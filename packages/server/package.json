@@ -10,7 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "latest"
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
+  },
+  "dependencies": {
+    "hono": "^4.12.7"
   }
 }

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "opencode-gitloops"
+  ],
+  "agent": {
+    "explore": {
+      "model": "google/gemini-3-flash-preview"
+    }
+  },
+  "formatter": {
+    "oxfmt": {
+      "command": [
+        "bun",
+        "fmt"
+      ]
+    }
+  },
+  "permission": {
+    "external_directory": {
+      "C:\\Users\\mahar\\.cache\\gitloops\\**": "allow"
+    }
+  }
+}

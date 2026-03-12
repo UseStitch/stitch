@@ -5,6 +5,15 @@
     "apps/*",
     "packages/*"
   ],
+  "catalog": {
+    "typescript": "latest",
+    "@types/bun": "latest"
+  },
+  "catalogs": {
+    "testing": {
+      "vitest": "latest"
+    }
+  },
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
