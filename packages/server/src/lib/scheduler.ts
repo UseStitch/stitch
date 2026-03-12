@@ -19,8 +19,14 @@ export namespace Scheduler {
     tasks.set(id, { id, callback, timer, recurring: false });
   }
 
-  export function scheduleRecurring(id: string, intervalMs: number, callback: Callback): void {
+  export function scheduleRecurring(
+    id: string,
+    intervalMs: number,
+    callback: Callback,
+    options: { immediate?: boolean } = {},
+  ): void {
     cancel(id);
+    if (options.immediate) callback();
     const timer = setInterval(callback, intervalMs);
     tasks.set(id, { id, callback, timer, recurring: true });
   }

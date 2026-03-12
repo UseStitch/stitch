@@ -61,6 +61,29 @@ describe('Scheduler', () => {
 
       expect(Scheduler.has('recurring1')).toBe(true);
     });
+
+    test('invokes callback immediately when immediate option is true', () => {
+      const cb = vi.fn();
+      Scheduler.scheduleRecurring('recurring1', 500, cb, { immediate: true });
+
+      expect(cb).toHaveBeenCalledOnce();
+    });
+
+    test('still invokes callback on interval ticks when immediate is true', async () => {
+      const cb = vi.fn();
+      Scheduler.scheduleRecurring('recurring1', 500, cb, { immediate: true });
+
+      await vi.advanceTimersByTimeAsync(1500);
+
+      expect(cb).toHaveBeenCalledTimes(4);
+    });
+
+    test('does not invoke callback immediately when immediate option is false', () => {
+      const cb = vi.fn();
+      Scheduler.scheduleRecurring('recurring1', 500, cb, { immediate: false });
+
+      expect(cb).not.toHaveBeenCalled();
+    });
   });
 
   describe('cancel', () => {
