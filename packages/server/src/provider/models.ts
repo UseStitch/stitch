@@ -6,6 +6,16 @@ import { PATHS } from '../lib/paths.js';
 const log = Log.create({ service: 'models.dev' });
 const URL = 'https://models.dev';
 
+const ALLOWERD_PROVIDER_IDS = [
+  'amazon-bedrock',
+  'anthropic',
+  'google',
+  'google-vertex',
+  'openai',
+  'openrouter',
+  'vercel'
+]
+
 export const ModelSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -78,12 +88,18 @@ export async function get(): Promise<Record<string, RawProvider>> {
   const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
-    data = JSON.parse(cached);
+    data = JSON.parse(cached) as Record<string, RawProvider>;
     return data as Record<string, RawProvider>;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
-  data = JSON.parse(json);
+  data = JSON.parse(json) as Record<string, RawProvider>;
+
+  // filter out providers that we don't allowlisted
+  data = Object.fromEntries(
+    Object.entries(data).filter(([key, _]) => ALLOWERD_PROVIDER_IDS.includes(key))
+  );
+
   return data as Record<string, RawProvider>;
 }
 
