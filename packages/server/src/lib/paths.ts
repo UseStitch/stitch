@@ -79,6 +79,13 @@ export const PATHS = {
   dataDir: paths.data,
   cacheDir: paths.cache,
   logDir: paths.log,
-  db: path.join(paths.data, `${APP_NAME}.db`),
-  toolOutput: path.join(paths.data, 'tool-output'),
+
+  filePaths: {
+    db: path.join(paths.data, `${APP_NAME}.db`),
+    models: path.join(paths.cache, 'models.json'),
+  },
+
+  dirPaths: {
+    toolOutput: path.join(paths.data, 'tool-output'),
+  },
 } as const;
