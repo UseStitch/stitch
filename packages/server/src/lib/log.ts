@@ -61,7 +61,7 @@ export namespace Log {
 
   export async function init(options: Options) {
     if (options.level) level = options.level;
-    cleanup(PATHS.logDir);
+    await cleanup(PATHS.logDir);
     if (options.print) return;
     logpath = path.join(
       PATHS.logDir,
@@ -69,7 +69,7 @@ export namespace Log {
         ? 'dev.log'
         : new Date().toISOString().split('.')[0].replace(/:/g, '') + '.log',
     );
-    await fs.truncate(logpath).catch(() => {});
+    await fs.writeFile(logpath, '');
     const stream = createWriteStream(logpath, { flags: 'a' });
     write = async (msg: any) => {
       return new Promise((resolve, reject) => {
@@ -89,7 +89,7 @@ export namespace Log {
     });
     if (files.length <= 5) return;
 
-    const filesToDelete = files.slice(0, -10);
+    const filesToDelete = files.sort().slice(0, -10);
     await Promise.all(
       filesToDelete.map((file) => fs.unlink(file).catch(() => {})),
     );
