@@ -11,11 +11,11 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/*': {
-      entry: ['src/index.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
   },
-
+  ignoreDependencies: ['oxlint'],
 }
 
 export default config
