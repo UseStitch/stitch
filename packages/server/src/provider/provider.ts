@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createVercel } from '@ai-sdk/vercel';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { GoogleAuthOptions } from 'google-auth-library';
 
@@ -20,14 +21,7 @@ export type BedrockCredentials = {
         secretAccessKey: string;
         sessionToken?: string;
       }
-    | {
-        method: 'credential-provider';
-        credentialProvider: () => PromiseLike<{
-          accessKeyId: string;
-          secretAccessKey: string;
-          sessionToken?: string;
-        }>;
-      };
+    | { method: 'credential-provider' };
 };
 
 export type AnthropicCredentials = {
@@ -93,7 +87,7 @@ export const createProvider = (credentials: ProviderCredentials) => {
         case 'credential-provider':
           return createAmazonBedrock({
             ...base,
-            credentialProvider: credentials.auth.credentialProvider,
+            credentialProvider: fromNodeProviderChain(),
           });
       }
     }
