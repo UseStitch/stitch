@@ -1,8 +1,11 @@
 {
-  "semi": false,
-  "singleQuote": true,
-  "trailingComma": "all",
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 100,
   "tabWidth": 2,
-  "useTabs": false
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "ignorePatterns": ["node_modules", "dist", "apps/web/src/routeTree.gen.ts"]
 }

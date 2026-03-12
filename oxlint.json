@@ -1,15 +1,31 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "import"
+  ],
   "rules": {
-    "correctness": "error",
-    "suspicious": "warn",
-    "perf": "warn"
+    "no-unused-vars": "warn",
+    "no-unused-imports": "error",
+    "eqeqeq": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript-eslint/no-floating-promises": "error",
+    "import/no-dynamic-require": [
+      "error",
+      {
+        "esmodule": true
+      }
+    ]
   },
   "ignorePatterns": [
     "node_modules",
     "dist",
-    ".next",
-    "build",
-    "coverage"
-  ]
+    "out",
+    "dist-electron",
+    ".turbo"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  }
 }
