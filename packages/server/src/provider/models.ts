@@ -6,8 +6,9 @@ import { PATHS } from '../lib/paths.js';
 
 const log = Log.create({ service: 'models.dev' });
 const filepath = path.join(PATHS.cacheDir, 'models.json');
+const URL = 'https://models.dev';
 
-export const Model = z.object({
+export const ModelSchema = z.object({
   id: z.string(),
   name: z.string(),
   family: z.string().optional(),
@@ -62,36 +63,31 @@ export const Model = z.object({
     .optional(),
   variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
 });
-
-export type Model = z.infer<typeof Model>;
-
-export const Provider = z.object({
+export const ProviderSchema = z.object({
   api: z.string().optional(),
   name: z.string(),
   env: z.array(z.string()),
   id: z.string(),
   npm: z.string().optional(),
-  models: z.record(z.string(), Model),
+  models: z.record(z.string(), ModelSchema),
 });
 
-export type Provider = z.infer<typeof Provider>;
+type RawProvider = z.infer<typeof ProviderSchema>;
 
-const URL = 'https://models.dev';
+let data: Record<string, RawProvider> | undefined;
 
-let data: Record<string, unknown> | undefined;
-
-export async function get(): Promise<Record<string, Provider>> {
-  if (data) return data as Record<string, Provider>;
+export async function get(): Promise<Record<string, RawProvider>> {
+  if (data) return data as Record<string, RawProvider>;
   const cached = await fs.readFile(filepath, 'utf8').catch(() => undefined);
 
   if (cached) {
     data = JSON.parse(cached);
-    return data as Record<string, Provider>;
+    return data as Record<string, RawProvider>;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
   data = JSON.parse(json);
-  return data as Record<string, Provider>;
+  return data as Record<string, RawProvider>;
 }
 
 export async function refresh() {
