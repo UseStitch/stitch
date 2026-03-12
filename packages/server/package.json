@@ -17,9 +17,12 @@
     "@ai-sdk/google-vertex": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
     "@ai-sdk/openai-compatible": "catalog:ai",
+    "@ai-sdk/vercel": "catalog:ai",
+    "@aws-sdk/credential-providers": "^3.1008.0",
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "ai": "catalog:ai",
     "glob": "13.0.6",
+    "google-auth-library": "^10.6.1",
     "hono": "^4.12.7",
     "minimatch": "10.2.4",
     "zod": "catalog:"

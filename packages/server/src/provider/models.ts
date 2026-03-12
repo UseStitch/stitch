@@ -6,15 +6,15 @@ import { PATHS } from '../lib/paths.js';
 const log = Log.create({ service: 'models.dev' });
 const URL = 'https://models.dev';
 
-const ALLOWERD_PROVIDER_IDS = [
+export const ALLOWERD_PROVIDER_IDS = [
   'amazon-bedrock',
   'anthropic',
   'google',
   'google-vertex',
   'openai',
   'openrouter',
-  'vercel'
-]
+  'vercel',
+] as const;
 
 export const ModelSchema = z.object({
   id: z.string(),
@@ -97,7 +97,9 @@ export async function get(): Promise<Record<string, RawProvider>> {
 
   // filter out providers that we don't allowlisted
   data = Object.fromEntries(
-    Object.entries(data).filter(([key, _]) => ALLOWERD_PROVIDER_IDS.includes(key))
+    Object.entries(data).filter(([key]) =>
+      (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key),
+    ),
   );
 
   return data as Record<string, RawProvider>;
