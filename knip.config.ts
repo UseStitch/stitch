@@ -15,8 +15,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
   },
-  ignore: ['**/*.d.ts', 'dist/**', 'build/**', '.next/**', 'coverage/**'],
-  ignoreDependencies: ['turbo'],
+
 }
 
 export default config
