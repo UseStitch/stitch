@@ -1,11 +1,9 @@
-import path from 'path';
 import fs from 'node:fs/promises';
 import z from 'zod';
 import * as Log from '../lib/log.js';
 import { PATHS } from '../lib/paths.js';
 
 const log = Log.create({ service: 'models.dev' });
-const filepath = path.join(PATHS.cacheDir, 'models.json');
 const URL = 'https://models.dev';
 
 export const ModelSchema = z.object({
@@ -58,9 +56,7 @@ export const ModelSchema = z.object({
   status: z.enum(['alpha', 'beta', 'deprecated']).optional(),
   options: z.record(z.string(), z.any()),
   headers: z.record(z.string(), z.string()).optional(),
-  provider: z
-    .object({ npm: z.string().optional(), api: z.string().optional() })
-    .optional(),
+  provider: z.object({ npm: z.string().optional(), api: z.string().optional() }).optional(),
   variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
 });
 export const ProviderSchema = z.object({
@@ -72,13 +68,14 @@ export const ProviderSchema = z.object({
   models: z.record(z.string(), ModelSchema),
 });
 
-type RawProvider = z.infer<typeof ProviderSchema>;
+export type RawModel = z.infer<typeof ModelSchema>;
+export type RawProvider = z.infer<typeof ProviderSchema>;
 
 let data: Record<string, RawProvider> | undefined;
 
 export async function get(): Promise<Record<string, RawProvider>> {
   if (data) return data as Record<string, RawProvider>;
-  const cached = await fs.readFile(filepath, 'utf8').catch(() => undefined);
+  const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
     data = JSON.parse(cached);
@@ -99,7 +96,7 @@ export async function refresh() {
   if (result && result.ok) {
     const text = await result.text();
     await fs.mkdir(PATHS.cacheDir, { recursive: true });
-    await fs.writeFile(filepath, text, 'utf8');
+    await fs.writeFile(PATHS.filePaths.models, text, 'utf8');
     data = undefined;
   }
 }
