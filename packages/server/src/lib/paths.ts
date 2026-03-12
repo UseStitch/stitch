@@ -77,6 +77,7 @@ const paths = envPaths(APP_NAME, { suffix: '' });
 export const PATHS = {
   configDir: paths.config,
   dataDir: paths.data,
+  cacheDir: paths.cache,
   logDir: paths.log,
   db: path.join(paths.data, `${APP_NAME}.db`),
   toolOutput: path.join(paths.data, 'tool-output'),
