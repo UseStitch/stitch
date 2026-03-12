@@ -1,6 +1,6 @@
-import { Log } from './lib/log.js';
-import { Scheduler } from './lib/scheduler.js';
-import { ModelsDev } from './provider/models.js';
+import * as Log from './lib/log.js';
+import * as Scheduler from './lib/scheduler.js';
+import * as ModelsDev from './provider/models.js';
 
 const log = Log.create({ service: 'init' });
 

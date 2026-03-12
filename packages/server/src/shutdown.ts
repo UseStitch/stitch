@@ -1,5 +1,5 @@
-import { Log } from './lib/log.js';
-import { Scheduler } from './lib/scheduler.js';
+import * as Log from './lib/log.js';
+import * as Scheduler from './lib/scheduler.js';
 
 const log = Log.create({ service: 'shutdown' });
 

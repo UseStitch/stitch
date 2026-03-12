@@ -6,7 +6,7 @@ import {
   afterEach,
   vi,
 } from 'vitest';
-import { Log } from '../../src/lib/log.js';
+import * as Log from '../../src/lib/log.js';
 import { PATHS } from '../../src/lib/paths.js';
 import fs from 'fs/promises';
 import path from 'path';
