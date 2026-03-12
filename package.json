@@ -1,6 +1,7 @@
 {
   "name": "openwork",
   "private": true,
+  "packageManager": "bun@1.3.8",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -20,7 +21,8 @@
     "format": "oxfmt write .",
     "format:check": "oxfmt check .",
     "typecheck": "turbo typecheck",
-    "knip": "knip"
+    "knip": "knip",
+    "check": "bun run scripts/check.ts"
   },
   "devDependencies": {
     "turbo": "latest",
