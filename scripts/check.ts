@@ -5,6 +5,7 @@ const steps = [
   { name: "typecheck", cmd: ["bun", "run", "typecheck"] },
   { name: "lint", cmd: ["bunx", "oxlint", "--config", "oxlint.json", "."] },
   { name: "knip", cmd: ["bunx", "knip"] },
+  { name: "check:catalogs", cmd: ["bun", "run", "scripts/check-catalogs.ts"] },
 ];
 
 let failed = false;
