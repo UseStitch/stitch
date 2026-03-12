@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "dev": "bun run --watch src/index.ts",
+    "dev": "NODE_ENV=development bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "typecheck": "tsc --noEmit"
   },

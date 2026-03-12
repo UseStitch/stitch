@@ -69,6 +69,7 @@ export namespace Log {
         ? 'dev.log'
         : new Date().toISOString().split('.')[0].replace(/:/g, '') + '.log',
     );
+    await fs.mkdir(PATHS.logDir, { recursive: true });
     await fs.writeFile(logpath, '');
     const stream = createWriteStream(logpath, { flags: 'a' });
     write = async (msg: any) => {
