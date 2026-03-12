@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
-import { Log } from './lib/log.js';
+import { init } from './init.js';
+import { registerShutdownHandlers } from './shutdown.js';
 
 const app = new Hono();
 
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
-Log.Default.info('server starting', { port: 3000 });
+registerShutdownHandlers();
+await init();
 
 export default {
   port: 3000,

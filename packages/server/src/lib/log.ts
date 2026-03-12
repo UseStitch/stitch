@@ -61,7 +61,7 @@ export namespace Log {
 
   export async function init(options: Options) {
     if (options.level) level = options.level;
-    await cleanup(PATHS.logDir);
+    await cleanup();
     if (options.print) return;
     logpath = path.join(
       PATHS.logDir,
@@ -81,7 +81,7 @@ export namespace Log {
     };
   }
 
-  async function cleanup(dir: string) {
+  export async function cleanup(dir = PATHS.logDir) {
     const files = await Glob.scan('????-??-??T??????.log', {
       cwd: dir,
       absolute: true,
