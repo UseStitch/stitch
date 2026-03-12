@@ -64,9 +64,7 @@ export async function init(options: Options) {
   if (options.print) return;
   logpath = path.join(
     PATHS.logDir,
-    options.dev
-      ? 'dev.log'
-      : new Date().toISOString().split('.')[0].replace(/:/g, '') + '.log',
+    options.dev ? 'dev.log' : new Date().toISOString().split('.')[0].replace(/:/g, '') + '.log',
   );
   await fs.mkdir(PATHS.logDir, { recursive: true });
   await fs.writeFile(logpath, '');
@@ -90,9 +88,7 @@ export async function cleanup(dir = PATHS.logDir) {
   if (files.length <= 5) return;
 
   const filesToDelete = files.sort().slice(0, -10);
-  await Promise.all(
-    filesToDelete.map((file) => fs.unlink(file).catch(() => {})),
-  );
+  await Promise.all(filesToDelete.map((file) => fs.unlink(file).catch(() => {})));
 }
 
 function formatError(error: Error, depth = 0): string {

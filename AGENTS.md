@@ -6,9 +6,9 @@ Openwork is a ai based tool to help users do work locally.
 
 ## Quick Reference
 
-| Command                | Description                      |
-| ---------------------- | -------------------------------- |
-| `bun install`          | Install all dependencies         |
+| Command       | Description              |
+| ------------- | ------------------------ |
+| `bun install` | Install all dependencies |
 
 ## General Workflow
 
@@ -153,7 +153,7 @@ LLMs Text: https://tanstack.com/llms.txt
 General Component Layout
 
 ```typescript
-export const Route = createFileRoute("/posts/$id")({
+export const Route = createFileRoute('/posts/$id')({
   component, // React component for page
   loader, // Fetch page data
   validateSearch, // Validate search params

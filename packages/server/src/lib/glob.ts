@@ -19,10 +19,7 @@ function toGlobOptions(options: Options): GlobOptions {
   };
 }
 
-export async function scan(
-  pattern: string,
-  options: Options = {},
-): Promise<string[]> {
+export async function scan(pattern: string, options: Options = {}): Promise<string[]> {
   return glob(pattern, toGlobOptions(options)) as Promise<string[]>;
 }
 

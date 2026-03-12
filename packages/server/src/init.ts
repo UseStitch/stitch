@@ -12,9 +12,7 @@ const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 export async function init() {
   await Log.init({ print: process.env.NODE_ENV === 'development' });
 
-  Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () =>
-    Log.cleanup(),
-  );
+  Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () => Log.cleanup());
 
   Scheduler.scheduleRecurring(
     'models-refresh',

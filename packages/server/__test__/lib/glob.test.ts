@@ -72,11 +72,7 @@ describe('Glob', () => {
     test('handles nested patterns', async () => {
       await using tmp = await tmpdir();
       await fs.mkdir(path.join(tmp.path, 'nested'), { recursive: true });
-      await fs.writeFile(
-        path.join(tmp.path, 'nested', 'deep.txt'),
-        '',
-        'utf-8',
-      );
+      await fs.writeFile(path.join(tmp.path, 'nested', 'deep.txt'), '', 'utf-8');
 
       const results = await Glob.scan('**/*.txt', { cwd: tmp.path });
 
@@ -94,15 +90,8 @@ describe('Glob', () => {
     test('does not follow symlinks by default', async () => {
       await using tmp = await tmpdir();
       await fs.mkdir(path.join(tmp.path, 'realdir'));
-      await fs.writeFile(
-        path.join(tmp.path, 'realdir', 'file.txt'),
-        '',
-        'utf-8',
-      );
-      await fs.symlink(
-        path.join(tmp.path, 'realdir'),
-        path.join(tmp.path, 'linkdir'),
-      );
+      await fs.writeFile(path.join(tmp.path, 'realdir', 'file.txt'), '', 'utf-8');
+      await fs.symlink(path.join(tmp.path, 'realdir'), path.join(tmp.path, 'linkdir'));
 
       const results = await Glob.scan('**/*.txt', { cwd: tmp.path });
 
@@ -112,15 +101,8 @@ describe('Glob', () => {
     test('follows symlinks when symlink option is true', async () => {
       await using tmp = await tmpdir();
       await fs.mkdir(path.join(tmp.path, 'realdir'));
-      await fs.writeFile(
-        path.join(tmp.path, 'realdir', 'file.txt'),
-        '',
-        'utf-8',
-      );
-      await fs.symlink(
-        path.join(tmp.path, 'realdir'),
-        path.join(tmp.path, 'linkdir'),
-      );
+      await fs.writeFile(path.join(tmp.path, 'realdir', 'file.txt'), '', 'utf-8');
+      await fs.symlink(path.join(tmp.path, 'realdir'), path.join(tmp.path, 'linkdir'));
 
       const results = await Glob.scan('**/*.txt', {
         cwd: tmp.path,

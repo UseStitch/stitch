@@ -1,4 +1,4 @@
-import type { KnipConfig } from 'knip'
+import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   workspaces: {
@@ -16,6 +16,6 @@ const config: KnipConfig = {
     },
   },
   ignoreDependencies: ['oxlint'],
-}
+};
 
-export default config
+export default config;

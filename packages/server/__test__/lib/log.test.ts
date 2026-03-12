@@ -1,11 +1,4 @@
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Log from '../../src/lib/log.js';
 import { PATHS } from '../../src/lib/paths.js';
 import fs from 'fs/promises';
@@ -137,7 +130,10 @@ describe('Log.init', () => {
 });
 
 async function fileExists(filepath: string): Promise<boolean> {
-  return fs.access(filepath).then(() => true, () => false);
+  return fs.access(filepath).then(
+    () => true,
+    () => false,
+  );
 }
 
 async function clearLogDir() {
@@ -159,11 +155,7 @@ function writeFiles(filenames: string[]) {
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
-function createLogFiles(
-  count: number,
-  startDate: Date,
-  increment = ONE_DAY,
-): string[] {
+function createLogFiles(count: number, startDate: Date, increment = ONE_DAY): string[] {
   return Array.from({ length: count }, (_, index) => {
     const creationOffset = index * increment;
     const fileCreatedAt = new Date(startDate.getTime() + creationOffset);

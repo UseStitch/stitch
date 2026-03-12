@@ -1,8 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "import"
-  ],
+  "plugins": ["import"],
   "rules": {
     "no-unused-vars": "warn",
     "no-unused-imports": "error",
@@ -16,13 +14,7 @@
       }
     ]
   },
-  "ignorePatterns": [
-    "node_modules",
-    "dist",
-    "out",
-    "dist-electron",
-    ".turbo"
-  ],
+  "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
   "env": {
     "browser": true,
     "node": true,
