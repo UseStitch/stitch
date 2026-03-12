@@ -10,13 +10,7 @@
     "build": "bun build src/index.ts --outdir dist --target bun",
     "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "@types/bun": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:testing"
-  },
   "dependencies": {
-    "ai": "catalog:ai",
     "@ai-sdk/amazon-bedrock": "catalog:ai",
     "@ai-sdk/anthropic": "catalog:ai",
     "@ai-sdk/google": "catalog:ai",
@@ -24,9 +18,15 @@
     "@ai-sdk/openai": "catalog:ai",
     "@ai-sdk/openai-compatible": "catalog:ai",
     "@openrouter/ai-sdk-provider": "catalog:ai",
+    "ai": "catalog:ai",
     "glob": "13.0.6",
     "hono": "^4.12.7",
     "minimatch": "10.2.4",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
   }
 }
