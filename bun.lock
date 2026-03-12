@@ -16,6 +16,7 @@
       "version": "0.0.0",
       "dependencies": {
         "hono": "^4.12.7",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -27,6 +28,7 @@
   "catalog": {
     "@types/bun": "latest",
     "typescript": "latest",
+    "zod": "4.3.6",
   },
   "catalogs": {
     "testing": {

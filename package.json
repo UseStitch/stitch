@@ -8,7 +8,8 @@
   ],
   "catalog": {
     "typescript": "latest",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "zod": "4.3.6"
   },
   "catalogs": {
     "testing": {
