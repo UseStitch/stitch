@@ -1,11 +1,5 @@
 import type { SSEStreamingApi } from 'hono/streaming';
-
-export type SseEventName = 'heartbeat' | 'connected' | 'data-change';
-
-export type SseEvent = {
-  event: SseEventName;
-  data: string;
-};
+import type { SseEventName } from '@openwork/shared';
 
 const connections = new Set<SSEStreamingApi>();
 

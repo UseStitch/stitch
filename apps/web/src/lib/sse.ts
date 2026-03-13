@@ -1,9 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
+import type { DataChangePayload } from '@openwork/shared'
 import { useSSE } from '@/hooks/use-sse'
-
-export type DataChangePayload = {
-  queryKey: readonly unknown[]
-}
 
 export function useSSEQueryInvalidation(): void {
   const queryClient = useQueryClient()

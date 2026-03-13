@@ -1,14 +1,6 @@
 import * as React from 'react'
+import type { SseEventName, SseHandlers, UseSseResult } from '@openwork/shared'
 import { getServerUrl } from '@/lib/api'
-
-export type SseEventName = 'heartbeat' | 'connected' | 'data-change'
-
-export type SseHandlers = Partial<Record<SseEventName, (data: unknown) => void>>
-
-export type UseSseResult = {
-  isConnected: boolean
-  lastHeartbeat: Date | null
-}
 
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {
   const [isConnected, setIsConnected] = React.useState(false)
@@ -32,19 +24,17 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
 
       eventSource.onerror = () => setIsConnected(false)
 
-      eventSource.addEventListener('heartbeat', () => {
+      addSseListener(eventSource, 'heartbeat', () => {
         setLastHeartbeat(new Date())
         handlersRef.current.heartbeat?.({ ts: Date.now() })
       })
 
-      eventSource.addEventListener('connected', (e: MessageEvent) => {
-        const data = parseJson(e.data)
-        handlersRef.current.connected?.(data)
+      addSseListener(eventSource, 'connected', (e) => {
+        handlersRef.current.connected?.(parseJson(e.data))
       })
 
-      eventSource.addEventListener('data-change', (e: MessageEvent) => {
-        const data = parseJson(e.data)
-        handlersRef.current['data-change']?.(data)
+      addSseListener(eventSource, 'data-change', (e) => {
+        handlersRef.current['data-change']?.(parseJson(e.data))
       })
     })
 
@@ -56,6 +46,14 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
   }, [])
 
   return { isConnected, lastHeartbeat }
+}
+
+function addSseListener(
+  source: EventSource,
+  event: SseEventName,
+  listener: (e: MessageEvent) => void,
+): void {
+  source.addEventListener(event, listener as EventListener)
 }
 
 function parseJson(raw: string): unknown {
