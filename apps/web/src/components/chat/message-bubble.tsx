@@ -242,11 +242,8 @@ export function StreamingMessageBubble({ partIds, parts, isStreaming }: Streamin
           switch (part.type) {
             case 'text':
               return (
-                <div key={partId} className="relative">
+                <div key={partId}>
                   <MarkdownContent text={part.text} />
-                  {part.status === 'streaming' && (
-                    <span className="ml-0.5 inline-block h-4 w-0.5 align-text-bottom bg-foreground animate-pulse" />
-                  )}
                 </div>
               )
             case 'reasoning':
