@@ -1,0 +1,22 @@
+{
+  "name": "@openwork/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "package": "electron-builder --config electron-builder.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.0",
+    "electron": "41.0.1",
+    "electron-builder": "26.8.1",
+    "electron-vite": "5.0.0",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "tree-kill": "1.2.2"
+  }
+}

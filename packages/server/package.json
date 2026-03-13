@@ -6,8 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "dev": "NODE_ENV=development node --import tsx/esm --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev:standalone": "NODE_ENV=development node --import tsx/esm --watch src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile dist/openwork-server",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
