@@ -82,11 +82,33 @@ export type RawProvider = z.infer<typeof ProviderSchema>;
 
 let data: Record<string, RawProvider> | undefined;
 
-function filterAllowed(raw: Record<string, RawProvider>): Record<string, RawProvider> {
+function filterModels(models: Record<string, RawModel>): Record<string, RawModel> {
   return Object.fromEntries(
-    Object.entries(raw).filter(([key]) =>
-      (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key),
+    Object.entries(models).filter(
+      ([, model]) =>
+        model.status !== 'deprecated' &&
+        !model.id.toLowerCase().includes('embedding') &&
+        !model.name.toLowerCase().includes('embedding'),
     ),
+  );
+}
+
+function sortModels(models: Record<string, RawModel>): Record<string, RawModel> {
+  return Object.fromEntries(
+    Object.entries(models).toSorted(([, a], [, b]) =>
+      b.release_date.localeCompare(a.release_date),
+    ),
+  );
+}
+
+function filterProviders(raw: Record<string, RawProvider>): Record<string, RawProvider> {
+  return Object.fromEntries(
+    Object.entries(raw)
+      .filter(([key]) => (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key))
+      .map(([key, provider]) => [
+        key,
+        { ...provider, models: sortModels(filterModels(provider.models)) },
+      ]),
   );
 }
 
@@ -95,12 +117,12 @@ export async function get(): Promise<Record<string, RawProvider>> {
   const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
-    data = filterAllowed(JSON.parse(cached) as Record<string, RawProvider>);
+    data = filterProviders(JSON.parse(cached) as Record<string, RawProvider>);
     return data as Record<string, RawProvider>;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
-  data = filterAllowed(JSON.parse(json) as Record<string, RawProvider>);
+  data = filterProviders(JSON.parse(json) as Record<string, RawProvider>);
 
   return data as Record<string, RawProvider>;
 }
