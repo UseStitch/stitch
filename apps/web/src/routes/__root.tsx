@@ -5,7 +5,9 @@ import { useActions } from '@/lib/actions'
 import { useGlobalHotkeys } from '@/lib/use-global-hotkeys'
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts'
 import { providersQueryOptions } from '@/lib/queries/providers'
+import { settingsQueryOptions } from '@/lib/queries/settings'
 import { DialogProvider } from '@/context/dialog-context'
+import { useTheme } from '@/hooks/use-theme'
 import { TitleBar } from '../components/layout/title-bar'
 import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
@@ -23,12 +25,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   loader: ({ context }) => Promise.all([
     context.queryClient.ensureQueryData(shortcutsQueryOptions),
     context.queryClient.ensureQueryData(providersQueryOptions),
+    context.queryClient.ensureQueryData(settingsQueryOptions),
   ]),
 })
 
 function RootLayout() {
   const actions = useActions()
   useGlobalHotkeys(actions)
+  useTheme()
 
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">

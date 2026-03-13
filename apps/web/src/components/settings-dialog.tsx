@@ -1,5 +1,5 @@
 import * as React from "react"
-import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon } from "lucide-react"
+import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon, PaletteIcon } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { GeneralSettings } from "@/components/settings/general"
 import { ShortcutsSettings } from "@/components/settings/shortcuts"
 import { ProvidersSettings } from "@/components/settings/providers"
 import { ModelsSettings } from "@/components/settings/models"
+import { AppearanceSettings } from "@/components/settings/appearance"
 
 interface SettingsSection {
   label: string
@@ -29,6 +30,7 @@ const SECTIONS: SettingsSection[] = [
     label: "Desktop",
     items: [
       { id: "general", label: "General", icon: <MonitorIcon className="size-4" /> },
+      { id: "appearance", label: "Appearance", icon: <PaletteIcon className="size-4" /> },
       { id: "shortcuts", label: "Shortcuts", icon: <KeyboardIcon className="size-4" /> },
     ],
   },
@@ -90,6 +92,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
   switch (activeItem) {
     case "general":
       return <GeneralSettings />
+    case "appearance":
+      return <AppearanceSettings />
     case "shortcuts":
       return <ShortcutsSettings />
     case "providers":
