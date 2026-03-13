@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { serverFetch } from '@/lib/api'
+import { useSSE } from '@/hooks/use-sse'
 import { HardDrive, Check } from 'lucide-react'
 
 export function ServerStatus() {
@@ -14,6 +15,10 @@ export function ServerStatus() {
     retry: false,
   })
 
+  const { isConnected: isSseConnected, lastHeartbeat } = useSSE()
+
+  const overallHealthy = isHealthy && isSseConnected
+
   return (
     <Popover>
       <PopoverTrigger
@@ -22,7 +27,7 @@ export function ServerStatus() {
       >
         <HardDrive className="w-3.75 h-3.75 text-muted-foreground" />
         <div
-          className={`absolute top-1 right-1 w-2 h-2 rounded-full border-[1.5px] border-background transition-colors ${isHealthy ? 'bg-green-500' : 'bg-red-500'}`}
+          className={`absolute top-1 right-1 w-2 h-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-green-500' : 'bg-red-500'}`}
         />
       </PopoverTrigger>
       <PopoverContent side="bottom" align="start" className="w-70 p-0 rounded-xl overflow-hidden shadow-lg border-border">
@@ -32,21 +37,48 @@ export function ServerStatus() {
             Servers
           </div>
         </div>
-        
+
         {/* Servers List */}
         <div className="flex flex-col p-4 gap-4 bg-popover">
-          {/* Local Server Item */}
-          <div className="flex items-center justify-between group cursor-default">
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${isHealthy ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-              <div className="flex items-baseline gap-2">
-                <span className={`text-[13px] ${isHealthy ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Local Server</span>
-              </div>
-            </div>
-            {isHealthy && <Check className="w-3.5 h-3.5 text-muted-foreground" />}
-          </div>
+          <StatusItem
+            active={!!isHealthy}
+            label="Local Server"
+          />
+          <StatusItem
+            active={isSseConnected}
+            label="Event Bus"
+            subtitle={lastHeartbeat ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}` : undefined}
+          />
         </div>
       </PopoverContent>
     </Popover>
   )
+}
+
+type StatusItemProps = {
+  active: boolean
+  label: string
+  subtitle?: string
+}
+
+function StatusItem({ active, label, subtitle }: StatusItemProps) {
+  return (
+    <div className="flex items-center justify-between cursor-default">
+      <div className="flex items-center gap-3">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+        <div className="flex flex-col gap-0.5">
+          <span className={`text-[13px] ${active ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{label}</span>
+          {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
+        </div>
+      </div>
+      {active && <Check className="w-3.5 h-3.5 text-muted-foreground" />}
+    </div>
+  )
+}
+
+function formatRelativeTime(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 5) return 'just now'
+  if (seconds < 60) return `${seconds}s ago`
+  return `${Math.floor(seconds / 60)}m ago`
 }
