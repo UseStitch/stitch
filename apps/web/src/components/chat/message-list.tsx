@@ -1,4 +1,3 @@
-import * as React from 'react'
 import type { Message } from '@openwork/shared'
 import { MessageBubble, StreamingMessageBubble } from '@/components/chat/message-bubble'
 import type { ChatStreamState } from '@/hooks/use-chat-stream'
@@ -6,10 +5,9 @@ import type { ChatStreamState } from '@/hooks/use-chat-stream'
 export type MessageListProps = {
   messages: Message[]
   streamState: ChatStreamState
-  bottomRef?: React.RefObject<HTMLDivElement | null>
 }
 
-export function MessageList({ messages, streamState, bottomRef }: MessageListProps) {
+export function MessageList({ messages, streamState }: MessageListProps) {
   const hasStreamContent =
     streamState.isStreaming ||
     streamState.partIds.length > 0 ||
@@ -36,8 +34,6 @@ export function MessageList({ messages, streamState, bottomRef }: MessageListPro
           />
         )
       )}
-
-      <div ref={bottomRef} />
     </div>
   )
 }

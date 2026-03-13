@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { StickToBottom } from 'use-stick-to-bottom'
 import { ChatInput } from '@/components/chat/chat-input'
 import { MessageList } from '@/components/chat/message-list'
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers'
@@ -40,13 +41,6 @@ function SessionComponent() {
   const sendMessage = useSendMessage()
   const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext()
 
-  const bottomRef = React.useRef<HTMLDivElement>(null)
-
-  // Auto-scroll to bottom when new content arrives
-  React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [session.messages.length, streamState.partIds.length])
-
   // When stream finishes, refresh message list and clear active stream
   React.useEffect(() => {
     if (!streamState.isStreaming && activeMessageId !== null && streamState.finishReason !== null) {
@@ -82,14 +76,13 @@ function SessionComponent() {
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming
 
   return (
-    <div className="flex h-full flex-col relative">
-      <div className="flex-1 overflow-y-auto px-6 pb-32">
+    <StickToBottom className="flex-1 h-full overflow-hidden relative" resize="smooth" initial="smooth">
+      <StickToBottom.Content className="px-6 pb-36 pt-4">
         <MessageList
           messages={session.messages}
           streamState={streamState}
-          bottomRef={bottomRef}
         />
-      </div>
+      </StickToBottom.Content>
 
       <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pt-8 bg-linear-to-t from-muted via-muted/90 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pointer-events-auto">
@@ -104,6 +97,6 @@ function SessionComponent() {
           />
         </div>
       </div>
-    </div>
+    </StickToBottom>
   )
 }
