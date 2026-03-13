@@ -79,10 +79,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 ))}
               </div>
             ))}
-            <div className="mt-auto">
-              <p className="text-muted-foreground text-xs px-2">Openwork Desktop</p>
-              <p className="text-muted-foreground text-xs px-2">v0.0.1</p>
-            </div>
           </aside>
           <main className="flex-1 overflow-y-auto p-6">
             <SettingsContent activeItem={activeItem} />

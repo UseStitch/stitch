@@ -7,6 +7,7 @@ import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
 import { CommandPalette } from '../components/command-palette'
 import { SettingsDialog } from '../components/settings-dialog'
+import { Toaster } from '../components/ui/sonner'
 
 interface RouterContext {
   queryClient: QueryClient
@@ -34,6 +35,7 @@ function RootComponent() {
       </div>
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <Toaster position="bottom-right" />
     </SidebarProvider>
   )
 }

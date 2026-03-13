@@ -10,7 +10,6 @@ export const ALLOWERD_PROVIDER_IDS = [
   'amazon-bedrock',
   'anthropic',
   'google',
-  'google-vertex',
   'openai',
   'openrouter',
   'vercel',
