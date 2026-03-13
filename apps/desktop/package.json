@@ -9,14 +9,14 @@
     "package": "electron-builder --config electron-builder.config.ts",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "tree-kill": "1.2.2"
+  },
   "devDependencies": {
     "@types/node": "25.5.0",
     "electron": "41.0.1",
     "electron-builder": "26.8.1",
     "electron-vite": "5.0.0",
     "typescript": "catalog:"
-  },
-  "dependencies": {
-    "tree-kill": "1.2.2"
   }
 }

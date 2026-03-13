@@ -14,6 +14,10 @@
     "knip": "knip",
     "check": "bun run scripts/check.ts"
   },
+  "dependencies": {
+    "hono": "^4.12.7",
+    "react-resizable-panels": "^4.7.2"
+  },
   "devDependencies": {
     "knip": "latest",
     "oxfmt": "latest",
@@ -43,9 +47,5 @@
       "@ai-sdk/vercel": "2.0.37",
       "@openrouter/ai-sdk-provider": "2.3.0"
     }
-  },
-  "dependencies": {
-    "hono": "^4.12.7",
-    "react-resizable-panels": "^4.7.2"
   }
 }

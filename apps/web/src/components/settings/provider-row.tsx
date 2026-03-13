@@ -1,10 +1,19 @@
-import * as React from 'react'
-import { PlusIcon, BoxIcon, CpuIcon, SparklesIcon, CloudIcon, SearchIcon, TriangleIcon, HexagonIcon } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { type ProviderSummary, providerKeys } from '@/lib/queries/providers'
-import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared'
-import { serverFetch } from '@/lib/api'
+import * as React from 'react';
+import {
+  PlusIcon,
+  BoxIcon,
+  CpuIcon,
+  SparklesIcon,
+  CloudIcon,
+  SearchIcon,
+  TriangleIcon,
+  HexagonIcon,
+} from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
+import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared';
+import { serverFetch } from '@/lib/api';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   anthropic: <CpuIcon className="size-4.5" />,
@@ -13,48 +22,47 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   'google-vertex': <SearchIcon className="size-4.5" />,
   'amazon-bedrock': <CloudIcon className="size-4.5" />,
   openrouter: <HexagonIcon className="size-4.5" />,
-  vercel: <TriangleIcon className="size-4.5" />
-}
+  vercel: <TriangleIcon className="size-4.5" />,
+};
 
 type Props = {
-  provider: ProviderSummary
-  onSelect: () => void
-}
+  provider: ProviderSummary;
+  onSelect: () => void;
+};
 
 export function ProviderRow({ provider, onSelect }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
-    : undefined
-  const queryClient = useQueryClient()
+    : undefined;
+  const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to disconnect')
+      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to disconnect');
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all })
-    }
-  })
+      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
+    },
+  });
 
-  if (!meta) return null
+  if (!meta) return null;
 
   const handleDisconnect = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    deleteMutation.mutate()
-  }
+    e.stopPropagation();
+    deleteMutation.mutate();
+  };
 
   // Determine badge text. The image shows "Custom" for Bedrock and "API key" for Google.
-  let badgeText = ''
+  let badgeText = '';
   if (provider.enabled && meta.authMethods.length > 0) {
-    if (provider.id === 'amazon-bedrock') badgeText = 'Custom' // matching screenshot specifically
-    else badgeText = meta.authMethods[0]?.label || ''
+    if (provider.id === 'amazon-bedrock')
+      badgeText = 'Custom'; // matching screenshot specifically
+    else badgeText = meta.authMethods[0]?.label || '';
   }
 
   return (
-    <div
-      className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 px-2 -mx-2 group"
-    >
+    <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 px-2 -mx-2 group">
       <div className="flex items-center gap-4 min-w-0">
         <div className="text-muted-foreground shrink-0">
           {ICON_MAP[provider.id] || <BoxIcon className="size-4.5" />}
@@ -69,9 +77,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
             )}
           </div>
           {!provider.enabled && meta.description && (
-            <span className="text-muted-foreground text-[12px] truncate">
-              {meta.description}
-            </span>
+            <span className="text-muted-foreground text-[12px] truncate">{meta.description}</span>
           )}
         </div>
       </div>
@@ -92,8 +98,8 @@ export function ProviderRow({ provider, onSelect }: Props) {
             size="sm"
             className="h-7 px-2.5 text-[12px] font-semibold rounded-[6px] bg-transparent border-border/60 hover:bg-muted/50 text-foreground/90 transition-colors"
             onClick={(e) => {
-              e.stopPropagation()
-              onSelect()
+              e.stopPropagation();
+              onSelect();
             }}
           >
             <PlusIcon className="size-3.5 mr-0.75 text-muted-foreground" />
@@ -102,5 +108,5 @@ export function ProviderRow({ provider, onSelect }: Props) {
         )}
       </div>
     </div>
-  )
+  );
 }

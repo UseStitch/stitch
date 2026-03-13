@@ -1,36 +1,53 @@
-import * as React from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { providerConfigQueryOptions, providerKeys, type ProviderSummary } from '@/lib/queries/providers'
-import { serverFetch } from '@/lib/api'
-import { PROVIDER_META, PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@openwork/shared'
+import * as React from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeftIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  providerConfigQueryOptions,
+  providerKeys,
+  type ProviderSummary,
+} from '@/lib/queries/providers';
+import { serverFetch } from '@/lib/api';
+import {
+  PROVIDER_META,
+  PROVIDER_IDS,
+  type AuthMethodDef,
+  type FieldDef,
+  type ProviderId,
+} from '@openwork/shared';
 
 type Props = {
-  provider: ProviderSummary
-  onBack: () => void
-}
+  provider: ProviderSummary;
+  onBack: () => void;
+};
 
-type FieldValues = Record<string, string>
+type FieldValues = Record<string, string>;
 
-function FieldGroup({ fields, providerId, values, onChange }: {
-  fields: FieldDef[]
-  providerId: string
-  values: FieldValues
-  onChange: (key: string, value: string) => void
+function FieldGroup({
+  fields,
+  providerId,
+  values,
+  onChange,
+}: {
+  fields: FieldDef[];
+  providerId: string;
+  values: FieldValues;
+  onChange: (key: string, value: string) => void;
 }) {
-  if (fields.length === 0) return null
+  if (fields.length === 0) return null;
   return (
     <div className="flex flex-col gap-3">
       {fields.map((field) => (
         <div key={field.key} className="flex flex-col gap-1.5">
           <Label htmlFor={`${providerId}-${field.key}`}>
             {field.label}
-            {!field.required && <span className="text-muted-foreground text-xs ml-1">(optional)</span>}
+            {!field.required && (
+              <span className="text-muted-foreground text-xs ml-1">(optional)</span>
+            )}
           </Label>
           <Input
             id={`${providerId}-${field.key}`}
@@ -42,65 +59,68 @@ function FieldGroup({ fields, providerId, values, onChange }: {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function NoFieldsNote({ method }: { method: string }) {
   if (method === 'adc') {
     return (
       <p className="text-muted-foreground text-sm">
-        Uses Application Default Credentials from your environment. No additional configuration needed.
+        Uses Application Default Credentials from your environment. No additional configuration
+        needed.
       </p>
-    )
+    );
   }
   if (method === 'credential-provider') {
     return (
       <p className="text-muted-foreground text-sm">
-        Uses the AWS credential provider chain (environment variables, shared credentials file, IAM role, etc.). No additional configuration needed.
+        Uses the AWS credential provider chain (environment variables, shared credentials file, IAM
+        role, etc.). No additional configuration needed.
       </p>
-    )
+    );
   }
-  return null
+  return null;
 }
 
 export function ProviderConfig({ provider, onBack }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
-    : undefined
-  const queryClient = useQueryClient()
-  const { data: existingConfig } = useQuery(providerConfigQueryOptions(provider.id))
+    : undefined;
+  const queryClient = useQueryClient();
+  const { data: existingConfig } = useQuery(providerConfigQueryOptions(provider.id));
 
-  const defaultMethod = (existingConfig?.auth as { method?: string } | undefined)?.method
-    ?? meta?.authMethods[0]?.method
-    ?? ''
+  const defaultMethod =
+    (existingConfig?.auth as { method?: string } | undefined)?.method ??
+    meta?.authMethods[0]?.method ??
+    '';
 
-  const [activeTab, setActiveTab] = React.useState(defaultMethod)
-  const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({})
-  const [extraFields, setExtraFields] = React.useState<FieldValues>({})
+  const [activeTab, setActiveTab] = React.useState(defaultMethod);
+  const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
+  const [extraFields, setExtraFields] = React.useState<FieldValues>({});
 
   React.useEffect(() => {
-    if (!existingConfig || !meta) return
+    if (!existingConfig || !meta) return;
 
-    const method = (existingConfig.auth as { method?: string } | undefined)?.method
-    if (method) setActiveTab(method)
+    const method = (existingConfig.auth as { method?: string } | undefined)?.method;
+    if (method) setActiveTab(method);
 
-    const authFields: FieldValues = {}
-    const auth = existingConfig.auth as Record<string, unknown> | undefined
+    const authFields: FieldValues = {};
+    const auth = existingConfig.auth as Record<string, unknown> | undefined;
     if (auth) {
       for (const [k, v] of Object.entries(auth)) {
-        if (k !== 'method' && typeof v === 'string') authFields[k] = v
+        if (k !== 'method' && typeof v === 'string') authFields[k] = v;
       }
     }
     if (method) {
-      setFieldsByMethod((prev) => ({ ...prev, [method]: authFields }))
+      setFieldsByMethod((prev) => ({ ...prev, [method]: authFields }));
     }
 
-    const extra: FieldValues = {}
+    const extra: FieldValues = {};
     for (const [k, v] of Object.entries(existingConfig)) {
-      if (k !== 'auth' && k !== 'providerId' && typeof v === 'string') extra[k] = v
+      if (k !== 'auth' && k !== 'providerId' && typeof v === 'string') extra[k] = v;
     }
-    setExtraFields(extra)
-  }, [existingConfig, meta])
+    setExtraFields(extra);
+  }, [existingConfig, meta]);
 
   const saveMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -108,78 +128,80 @@ export function ProviderConfig({ provider, onBack }: Props) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      })
+      });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(err.error ?? 'Failed to save')
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to save');
       }
     },
     onSuccess: () => {
-      setFieldsByMethod({})
-      setExtraFields({})
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all })
-      toast.success(`${meta?.displayName ?? 'Provider'} connected`)
-      onBack()
+      setFieldsByMethod({});
+      setExtraFields({});
+      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
+      toast.success(`${meta?.displayName ?? 'Provider'} connected`);
+      onBack();
     },
     onError: (err: Error) => toast.error(err.message),
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to disconnect')
+      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to disconnect');
     },
     onSuccess: () => {
-      setFieldsByMethod({})
-      setExtraFields({})
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all })
-      toast.success(`${meta?.displayName ?? 'Provider'} disconnected`)
-      onBack()
+      setFieldsByMethod({});
+      setExtraFields({});
+      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
+      toast.success(`${meta?.displayName ?? 'Provider'} disconnected`);
+      onBack();
     },
     onError: (err: Error) => toast.error(err.message),
-  })
+  });
 
-  if (!meta) return null
+  if (!meta) return null;
 
-  const currentMethodFields = fieldsByMethod[activeTab] ?? {}
+  const currentMethodFields = fieldsByMethod[activeTab] ?? {};
 
   function handleMethodFieldChange(key: string, value: string) {
     setFieldsByMethod((prev) => ({
       ...prev,
       [activeTab]: { ...prev[activeTab], [key]: value },
-    }))
+    }));
   }
 
   function handleExtraFieldChange(key: string, value: string) {
-    setExtraFields((prev) => ({ ...prev, [key]: value }))
+    setExtraFields((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleSave() {
-    if (!meta) return
-    const auth: Record<string, unknown> = { method: activeTab }
-    const methodDef = meta.authMethods.find((m) => m.method === activeTab)
+    if (!meta) return;
+    const auth: Record<string, unknown> = { method: activeTab };
+    const methodDef = meta.authMethods.find((m) => m.method === activeTab);
     if (methodDef) {
       for (const field of methodDef.fields) {
-        const val = currentMethodFields[field.key]
-        if (val) auth[field.key] = val
+        const val = currentMethodFields[field.key];
+        if (val) auth[field.key] = val;
       }
     }
 
-    const body: Record<string, unknown> = { auth }
+    const body: Record<string, unknown> = { auth };
     for (const field of meta.extraFields) {
-      const val = extraFields[field.key]
-      if (val) body[field.key] = val
+      const val = extraFields[field.key];
+      if (val) body[field.key] = val;
     }
 
-    saveMutation.mutate(body)
+    saveMutation.mutate(body);
   }
 
   function handleTabChange(value: string | null) {
-    if (value) setActiveTab(value)
+    if (value) setActiveTab(value);
   }
 
-  const hasMultipleMethods = meta.authMethods.length > 1
-  const activeMethodDef = meta.authMethods.find((m) => m.method === activeTab) as AuthMethodDef | undefined
+  const hasMultipleMethods = meta.authMethods.length > 1;
+  const activeMethodDef = meta.authMethods.find((m) => m.method === activeTab) as
+    | AuthMethodDef
+    | undefined;
 
   return (
     <div className="flex flex-col h-full">
@@ -242,20 +264,18 @@ export function ProviderConfig({ provider, onBack }: Props) {
             ))}
           </Tabs>
         ) : (
-          activeMethodDef && (
-            activeMethodDef.fields.length > 0 ? (
-              <FieldGroup
-                fields={activeMethodDef.fields}
-                providerId={provider.id}
-                values={currentMethodFields}
-                onChange={handleMethodFieldChange}
-              />
-            ) : (
-              <NoFieldsNote method={activeMethodDef.method} />
-            )
-          )
+          activeMethodDef &&
+          (activeMethodDef.fields.length > 0 ? (
+            <FieldGroup
+              fields={activeMethodDef.fields}
+              providerId={provider.id}
+              values={currentMethodFields}
+              onChange={handleMethodFieldChange}
+            />
+          ) : (
+            <NoFieldsNote method={activeMethodDef.method} />
+          ))
         )}
-
 
         <div className="flex items-center gap-2 pt-1">
           <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
@@ -274,5 +294,5 @@ export function ProviderConfig({ provider, onBack }: Props) {
         </div>
       </div>
     </div>
-  )
+  );
 }

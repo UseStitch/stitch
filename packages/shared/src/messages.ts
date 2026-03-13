@@ -37,14 +37,14 @@ export type SessionWithMessages = Session & { messages: Message[] };
 
 type FullStreamPart = TextStreamPart<ToolSet>;
 
-export type TextStartPart        = Extract<FullStreamPart, { type: 'text-start' }>;
-export type TextDeltaPart        = Extract<FullStreamPart, { type: 'text-delta' }>;
-export type TextEndPart          = Extract<FullStreamPart, { type: 'text-end' }>;
-export type ReasoningStartPart   = Extract<FullStreamPart, { type: 'reasoning-start' }>;
-export type ReasoningDeltaPart   = Extract<FullStreamPart, { type: 'reasoning-delta' }>;
-export type ReasoningEndPart     = Extract<FullStreamPart, { type: 'reasoning-end' }>;
-export type SourceStreamPart     = Extract<FullStreamPart, { type: 'source' }>;
-export type FileStreamPart       = Extract<FullStreamPart, { type: 'file' }>;
-export type ToolCallStreamPart   = Extract<FullStreamPart, { type: 'tool-call' }>;
+export type TextStartPart = Extract<FullStreamPart, { type: 'text-start' }>;
+export type TextDeltaPart = Extract<FullStreamPart, { type: 'text-delta' }>;
+export type TextEndPart = Extract<FullStreamPart, { type: 'text-end' }>;
+export type ReasoningStartPart = Extract<FullStreamPart, { type: 'reasoning-start' }>;
+export type ReasoningDeltaPart = Extract<FullStreamPart, { type: 'reasoning-delta' }>;
+export type ReasoningEndPart = Extract<FullStreamPart, { type: 'reasoning-end' }>;
+export type SourceStreamPart = Extract<FullStreamPart, { type: 'source' }>;
+export type FileStreamPart = Extract<FullStreamPart, { type: 'file' }>;
+export type ToolCallStreamPart = Extract<FullStreamPart, { type: 'tool-call' }>;
 export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result' }>;
-export type FinishStreamPart     = Extract<FullStreamPart, { type: 'finish' }>;
+export type FinishStreamPart = Extract<FullStreamPart, { type: 'finish' }>;

@@ -1,4 +1,4 @@
-import type { Configuration } from 'electron-builder'
+import type { Configuration } from 'electron-builder';
 
 const config: Configuration = {
   appId: 'com.openwork.desktop',
@@ -26,6 +26,6 @@ const config: Configuration = {
     category: 'Development',
     target: ['AppImage', 'deb'],
   },
-}
+};
 
-export default config
+export default config;

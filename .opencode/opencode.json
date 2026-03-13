@@ -1,8 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "opencode-gitloops"
-  ],
+  "plugin": ["opencode-gitloops"],
   "agent": {
     "explore": {
       "model": "google/gemini-3-flash-preview"
@@ -10,10 +8,7 @@
   },
   "formatter": {
     "oxfmt": {
-      "command": [
-        "bun",
-        "fmt"
-      ]
+      "command": ["bun", "fmt"]
     }
   },
   "permission": {

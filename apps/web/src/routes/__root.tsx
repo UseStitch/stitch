@@ -1,38 +1,39 @@
-import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
-import type { QueryClient } from '@tanstack/react-query'
-import * as React from 'react'
-import { useActions } from '@/lib/actions'
-import { useGlobalHotkeys } from '@/lib/use-global-hotkeys'
-import { shortcutsQueryOptions } from '@/lib/queries/shortcuts'
-import { providersQueryOptions } from '@/lib/queries/providers'
-import { settingsQueryOptions } from '@/lib/queries/settings'
-import { DialogProvider } from '@/context/dialog-context'
-import { useTheme } from '@/hooks/use-theme'
-import { TitleBar } from '../components/layout/title-bar'
-import { AppSidebar } from '../components/app-sidebar'
-import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
-import { CommandPalette } from '../components/command-palette'
-import { SettingsDialog } from '../components/settings-dialog'
-import { Toaster } from '../components/ui/sonner'
-import { ChatStreamProvider } from '../context/chat-stream-context'
+import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
+import type { QueryClient } from '@tanstack/react-query';
+import * as React from 'react';
+import { useActions } from '@/lib/actions';
+import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
+import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
+import { providersQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
+import { DialogProvider } from '@/context/dialog-context';
+import { useTheme } from '@/hooks/use-theme';
+import { TitleBar } from '../components/layout/title-bar';
+import { AppSidebar } from '../components/app-sidebar';
+import { SidebarInset, SidebarProvider } from '../components/ui/sidebar';
+import { CommandPalette } from '../components/command-palette';
+import { SettingsDialog } from '../components/settings-dialog';
+import { Toaster } from '../components/ui/sonner';
+import { ChatStreamProvider } from '../context/chat-stream-context';
 
 interface RouterContext {
-  queryClient: QueryClient
+  queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
-  loader: ({ context }) => Promise.all([
-    context.queryClient.ensureQueryData(shortcutsQueryOptions),
-    context.queryClient.ensureQueryData(providersQueryOptions),
-    context.queryClient.ensureQueryData(settingsQueryOptions),
-  ]),
-})
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(shortcutsQueryOptions),
+      context.queryClient.ensureQueryData(providersQueryOptions),
+      context.queryClient.ensureQueryData(settingsQueryOptions),
+    ]),
+});
 
 function RootLayout() {
-  const actions = useActions()
-  useGlobalHotkeys(actions)
-  useTheme()
+  const actions = useActions();
+  useGlobalHotkeys(actions);
+  useTheme();
 
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
@@ -49,7 +50,7 @@ function RootLayout() {
       <SettingsDialog />
       <Toaster position="bottom-right" />
     </SidebarProvider>
-  )
+  );
 }
 
 function RootComponent() {
@@ -57,5 +58,5 @@ function RootComponent() {
     <DialogProvider>
       <RootLayout />
     </DialogProvider>
-  )
+  );
 }

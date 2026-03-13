@@ -36,7 +36,7 @@ export async function runStream(opts: {
   const result = streamText({
     model,
     messages: llmMessages,
-     experimental_transform: smoothStream(),
+    experimental_transform: smoothStream(),
     onError: ({ error }) => {
       log.error('stream error', { sessionId, messageId: assistantMessageId, error });
     },
@@ -57,7 +57,11 @@ export async function runStream(opts: {
 
       case 'text-delta': {
         const now = Date.now();
-        accumulatedParts.push({ ...part, startedAt: partStartTimes.get(part.id) ?? now, endedAt: now });
+        accumulatedParts.push({
+          ...part,
+          startedAt: partStartTimes.get(part.id) ?? now,
+          endedAt: now,
+        });
         await Sse.broadcast('stream-part-delta', {
           sessionId,
           messageId: assistantMessageId,
@@ -90,7 +94,11 @@ export async function runStream(opts: {
 
       case 'reasoning-delta': {
         const now = Date.now();
-        accumulatedParts.push({ ...part, startedAt: partStartTimes.get(part.id) ?? now, endedAt: now });
+        accumulatedParts.push({
+          ...part,
+          startedAt: partStartTimes.get(part.id) ?? now,
+          endedAt: now,
+        });
         await Sse.broadcast('stream-part-delta', {
           sessionId,
           messageId: assistantMessageId,
@@ -185,7 +193,11 @@ export async function runStream(opts: {
       }
 
       case 'error': {
-        log.error('stream part error', { sessionId, messageId: assistantMessageId, error: part.error });
+        log.error('stream part error', {
+          sessionId,
+          messageId: assistantMessageId,
+          error: part.error,
+        });
         await Sse.broadcast('stream-error', {
           sessionId,
           messageId: assistantMessageId,

@@ -1,20 +1,20 @@
-import * as React from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lucide-react'
-import { Popover as PopoverPrimitive } from '@base-ui/react/popover'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers'
+import * as React from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lucide-react';
+import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 
-const SEPARATOR = ':::'
+const SEPARATOR = ':::';
 
 type ModelOption = {
-  providerId: string
-  providerName: string
-  modelId: string
-  modelName: string
-  value: string // `${providerId}:::${modelId}`
-}
+  providerId: string;
+  providerName: string;
+  modelId: string;
+  modelName: string;
+  value: string; // `${providerId}:::${modelId}`
+};
 
 function buildModelOptions(providerModels: ProviderModels[]): ModelOption[] {
   return providerModels.flatMap((provider) =>
@@ -25,38 +25,37 @@ function buildModelOptions(providerModels: ProviderModels[]): ModelOption[] {
       modelName: model.name,
       value: `${provider.providerId}${SEPARATOR}${model.id}`,
     })),
-  )
+  );
 }
 
 type ModelSelectorProps = {
-  selectedValue: string | null
-  onSelect: (value: string) => void
-  providerModels: ProviderModels[]
-}
+  selectedValue: string | null;
+  onSelect: (value: string) => void;
+  providerModels: ProviderModels[];
+};
 
 function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: ModelSelectorProps) {
-  const [search, setSearch] = React.useState('')
+  const [search, setSearch] = React.useState('');
 
-  const allOptions = React.useMemo(() => buildModelOptions(providerModels), [providerModels])
+  const allOptions = React.useMemo(() => buildModelOptions(providerModels), [providerModels]);
 
   const filtered = React.useMemo(() => {
-    if (!search.trim()) return providerModels
-    const q = search.toLowerCase()
+    if (!search.trim()) return providerModels;
+    const q = search.toLowerCase();
     return providerModels
       .map((provider) => ({
         ...provider,
         models: provider.models.filter(
           (m) =>
-            m.name.toLowerCase().includes(q) ||
-            provider.providerName.toLowerCase().includes(q),
+            m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
         ),
       }))
-      .filter((p) => p.models.length > 0)
-  }, [providerModels, search])
+      .filter((p) => p.models.length > 0);
+  }, [providerModels, search]);
 
   const selectedOption = selectedValue
     ? (allOptions.find((o) => o.value === selectedValue) ?? null)
-    : null
+    : null;
 
   return (
     <PopoverPrimitive.Root>
@@ -73,7 +72,12 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Positioner side="top" sideOffset={6} align="start" className="isolate z-50">
+        <PopoverPrimitive.Positioner
+          side="top"
+          sideOffset={6}
+          align="start"
+          className="isolate z-50"
+        >
           <PopoverPrimitive.Popup
             className={cn(
               'bg-popover text-popover-foreground rounded-lg shadow-lg ring-1 ring-foreground/10',
@@ -108,8 +112,8 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
                     {provider.providerName}
                   </p>
                   {provider.models.map((model) => {
-                    const val = `${provider.providerId}${SEPARATOR}${model.id}`
-                    const isSelected = selectedValue === val
+                    const val = `${provider.providerId}${SEPARATOR}${model.id}`;
+                    const isSelected = selectedValue === val;
                     return (
                       <PopoverPrimitive.Close
                         key={val}
@@ -124,7 +128,7 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
                         <span>{model.name}</span>
                         {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
                       </PopoverPrimitive.Close>
-                    )
+                    );
                   })}
                 </div>
               ))}
@@ -133,17 +137,17 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
         </PopoverPrimitive.Positioner>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
-  )
+  );
 }
 
 type ChatInputInnerProps = {
-  value: string
-  onChange: (value: string) => void
-  onSubmit: (value: string) => void
-  selectedModel: string | null
-  onModelChange: (value: string) => void
-  placeholder?: string
-}
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+  selectedModel: string | null;
+  onModelChange: (value: string) => void;
+  placeholder?: string;
+};
 
 function ChatInputInner({
   value,
@@ -153,33 +157,33 @@ function ChatInputInner({
   onModelChange,
   placeholder = 'Ask anything...',
 }: ChatInputInnerProps) {
-  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions)
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
+      e.preventDefault();
       if (value.trim()) {
-        onSubmit(value)
+        onSubmit(value);
       }
     }
   }
 
   // Auto-resize textarea
   React.useEffect(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
-  }, [value])
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
 
-  const canSubmit = value.trim().length > 0
+  const canSubmit = value.trim().length > 0;
 
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-xl border border-border/60 bg-card',
-        'transition-colors focus-within:border-border',
+        'relative flex flex-col rounded-2xl border border-border/60 bg-card',
+        'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
       )}
     >
@@ -192,8 +196,8 @@ function ChatInputInner({
         placeholder={placeholder}
         rows={1}
         className={cn(
-          'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm outline-none',
-          'placeholder:text-muted-foreground',
+          'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
+          'placeholder:text-muted-foreground/60',
           'max-h-48 overflow-y-auto',
           'field-sizing-content',
         )}
@@ -218,32 +222,34 @@ function ChatInputInner({
           size="icon-xs"
           variant={canSubmit ? 'default' : 'outline'}
           disabled={!canSubmit}
-          onClick={() => { if (canSubmit)  onSubmit(value)  }}
-          className="shrink-0"
+          onClick={() => {
+            if (canSubmit) onSubmit(value);
+          }}
+          className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
         >
           <ArrowUpIcon className="size-3.5" />
         </Button>
       </div>
     </div>
-  )
+  );
 }
 
 export type ChatInputProps = {
-  value: string
-  onChange: (value: string) => void
-  onSubmit: (value: string) => void
-  selectedModel: string | null
-  onModelChange: (value: string) => void
-  placeholder?: string
-  className?: string
-}
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+  selectedModel: string | null;
+  onModelChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+};
 
 export function ChatInput({ className, ...props }: ChatInputProps) {
   return (
     <div className={cn('w-full', className)}>
       <React.Suspense
         fallback={
-          <div className="relative flex flex-col rounded-xl border border-border/60 bg-card shadow-sm">
+          <div className="relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm">
             <div className="px-4 pt-4 pb-2">
               <div className="h-5 w-32 rounded bg-muted animate-pulse" />
             </div>
@@ -257,5 +263,5 @@ export function ChatInput({ className, ...props }: ChatInputProps) {
         <ChatInputInner {...props} />
       </React.Suspense>
     </div>
-  )
+  );
 }

@@ -5,24 +5,32 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useDialogContext } from "@/context/dialog-context"
-import { useActions, type Action } from "@/lib/actions"
+} from '@/components/ui/dialog';
+import { useDialogContext } from '@/context/dialog-context';
+import { useActions, type Action } from '@/lib/actions';
+import { SHORTCUT_DEFINITIONS } from '@/lib/shortcuts';
+import { formatForDisplay } from '@tanstack/react-hotkeys';
+
+function getShortcutDisplay(actionId: string): string | null {
+  const def = SHORTCUT_DEFINITIONS.find((d) => d.id === actionId);
+  if (!def?.defaultHotkey) return null;
+  return formatForDisplay(def.defaultHotkey);
+}
 
 export function CommandPalette() {
-  const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext()
-  const actions = useActions()
+  const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext();
+  const actions = useActions();
 
   function handleSelect(action: Action) {
-    setCommandPaletteOpen(false)
-    action.run()
+    setCommandPaletteOpen(false);
+    action.run();
   }
 
   return (
@@ -40,15 +48,34 @@ export function CommandPalette() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Actions">
-              {actions.map((action) => (
-                <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
-                  {action.label}
-                </CommandItem>
-              ))}
+              {actions.map((action) => {
+                const shortcut = getShortcutDisplay(action.id);
+                return (
+                  <CommandItem
+                    key={action.id}
+                    onSelect={() => handleSelect(action)}
+                    className="justify-between"
+                  >
+                    <span>{action.label}</span>
+                    {shortcut && (
+                      <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
+                        {shortcut.split('+').map((key, i) => (
+                          <kbd
+                            key={i}
+                            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium"
+                          >
+                            {key}
+                          </kbd>
+                        ))}
+                      </span>
+                    )}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

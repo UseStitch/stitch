@@ -1,71 +1,71 @@
-import * as React from 'react'
-import type { SseEventName, SseHandlers, UseSseResult } from '@openwork/shared'
-import { getServerUrl } from '@/lib/api'
+import * as React from 'react';
+import type { SseEventName, SseHandlers, UseSseResult } from '@openwork/shared';
+import { getServerUrl } from '@/lib/api';
 
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {
-  const [isConnected, setIsConnected] = React.useState(false)
-  const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null)
-  const handlersRef = React.useRef(handlers)
+  const [isConnected, setIsConnected] = React.useState(false);
+  const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
+  const handlersRef = React.useRef(handlers);
 
   React.useEffect(() => {
-    handlersRef.current = handlers
-  })
+    handlersRef.current = handlers;
+  });
 
   React.useEffect(() => {
-    let eventSource: EventSource | null = null
-    let cancelled = false
+    let eventSource: EventSource | null = null;
+    let cancelled = false;
 
     getServerUrl().then((baseUrl) => {
-      if (cancelled) return
+      if (cancelled) return;
 
-      eventSource = new EventSource(`${baseUrl}/events`)
+      eventSource = new EventSource(`${baseUrl}/events`);
 
-      eventSource.onopen = () => setIsConnected(true)
+      eventSource.onopen = () => setIsConnected(true);
 
-      eventSource.onerror = () => setIsConnected(false)
+      eventSource.onerror = () => setIsConnected(false);
 
       addSseListener(eventSource, 'heartbeat', () => {
-        setLastHeartbeat(new Date())
-        handlersRef.current.heartbeat?.({ ts: Date.now() })
-      })
+        setLastHeartbeat(new Date());
+        handlersRef.current.heartbeat?.({ ts: Date.now() });
+      });
 
       addSseListener(eventSource, 'connected', (e) => {
-        handlersRef.current.connected?.(parseJson(e.data))
-      })
+        handlersRef.current.connected?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'data-change', (e) => {
-        handlersRef.current['data-change']?.(parseJson(e.data))
-      })
+        handlersRef.current['data-change']?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'stream-start', (e) => {
-        handlersRef.current['stream-start']?.(parseJson(e.data))
-      })
+        handlersRef.current['stream-start']?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'stream-part-update', (e) => {
-        handlersRef.current['stream-part-update']?.(parseJson(e.data))
-      })
+        handlersRef.current['stream-part-update']?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'stream-part-delta', (e) => {
-        handlersRef.current['stream-part-delta']?.(parseJson(e.data))
-      })
+        handlersRef.current['stream-part-delta']?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'stream-finish', (e) => {
-        handlersRef.current['stream-finish']?.(parseJson(e.data))
-      })
+        handlersRef.current['stream-finish']?.(parseJson(e.data));
+      });
 
       addSseListener(eventSource, 'stream-error', (e) => {
-        handlersRef.current['stream-error']?.(parseJson(e.data))
-      })
-    })
+        handlersRef.current['stream-error']?.(parseJson(e.data));
+      });
+    });
 
     return () => {
-      cancelled = true
-      eventSource?.close()
-      setIsConnected(false)
-    }
-  }, [])
+      cancelled = true;
+      eventSource?.close();
+      setIsConnected(false);
+    };
+  }, []);
 
-  return { isConnected, lastHeartbeat }
+  return { isConnected, lastHeartbeat };
 }
 
 function addSseListener(
@@ -73,13 +73,13 @@ function addSseListener(
   event: SseEventName,
   listener: (e: MessageEvent) => void,
 ): void {
-  source.addEventListener(event, listener as EventListener)
+  source.addEventListener(event, listener as EventListener);
 }
 
 function parseJson(raw: string): unknown {
   try {
-    return JSON.parse(raw) as unknown
+    return JSON.parse(raw) as unknown;
   } catch {
-    return raw
+    return raw;
   }
 }

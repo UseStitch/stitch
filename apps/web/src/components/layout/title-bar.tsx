@@ -1,39 +1,45 @@
-import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useSidebar } from '@/components/ui/sidebar'
-import { ServerStatus } from '@/components/layout/server-status'
+import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSidebar } from '@/components/ui/sidebar';
+import { ServerStatus } from '@/components/layout/server-status';
 
 export function TitleBar() {
-  const [isMaximized, setIsMaximized] = useState(false)
-  const { open, toggleSidebar } = useSidebar()
+  const [isMaximized, setIsMaximized] = useState(false);
+  const { open, toggleSidebar } = useSidebar();
 
   useEffect(() => {
     const checkMaximized = async () => {
       if (window.api?.window?.isMaximized) {
-        const maximized = await window.api.window.isMaximized()
-        setIsMaximized(maximized)
+        const maximized = await window.api.window.isMaximized();
+        setIsMaximized(maximized);
       }
-    }
-    checkMaximized()
-  }, [])
+    };
+    checkMaximized();
+  }, []);
 
   const handleMinimize = () => {
-    window.api?.window?.minimize()
-  }
+    window.api?.window?.minimize();
+  };
 
   const handleMaximize = async () => {
-    await window.api?.window?.maximize()
-    const maximized = await window.api?.window?.isMaximized()
-    setIsMaximized(maximized ?? false)
-  }
+    await window.api?.window?.maximize();
+    const maximized = await window.api?.window?.isMaximized();
+    setIsMaximized(maximized ?? false);
+  };
 
   const handleClose = () => {
-    window.api?.window?.close()
-  }
+    window.api?.window?.close();
+  };
 
   return (
-    <div className="h-9 bg-background flex items-center justify-between select-none" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
-      <div className="flex items-center h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+    <div
+      className="h-9 bg-background flex items-center justify-between select-none"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
+      <div
+        className="flex items-center h-full"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         <button
           onClick={toggleSidebar}
           className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
@@ -45,7 +51,10 @@ export function TitleBar() {
           )}
         </button>
       </div>
-      <div className="flex h-full items-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div
+        className="flex h-full items-center"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         <ServerStatus />
         <button
           onClick={handleMinimize}
@@ -65,11 +74,11 @@ export function TitleBar() {
         </button>
         <button
           onClick={handleClose}
-          className="w-12 h-full flex items-center justify-center hover:bg-destructive transition-colors"
+          className="w-12 h-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors group"
         >
-          <X className="w-4 h-4 text-muted-foreground" />
+          <X className="w-4 h-4 text-muted-foreground group-hover:text-white" />
         </button>
       </div>
     </div>
-  )
+  );
 }

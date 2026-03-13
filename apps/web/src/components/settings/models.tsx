@@ -1,6 +1,6 @@
-import * as React from 'react'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Label } from '@/components/ui/label'
+import * as React from 'react';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Label } from '@/components/ui/label';
 import {
   Combobox,
   ComboboxCollection,
@@ -12,25 +12,25 @@ import {
   ComboboxLabel,
   ComboboxList,
   ComboboxSeparator,
-} from '@/components/ui/combobox'
-import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers'
+} from '@/components/ui/combobox';
+import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
   settingsQueryOptions,
-} from '@/lib/queries/settings'
+} from '@/lib/queries/settings';
 
-const SEPARATOR = ':::'
+const SEPARATOR = ':::';
 
 type ModelOption = {
-  value: string
-  label: string
-}
+  value: string;
+  label: string;
+};
 
 type ModelGroup = {
-  value: string
-  items: ModelOption[]
-}
+  value: string;
+  items: ModelOption[];
+};
 
 const MODEL_PREFERENCES = [
   {
@@ -48,7 +48,7 @@ const MODEL_PREFERENCES = [
     label: 'Title Generation Model',
     description: 'Used for generating conversation titles',
   },
-] as const
+] as const;
 
 function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
@@ -57,11 +57,11 @@ function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
       value: `${provider.providerId}${SEPARATOR}${model.id}`,
       label: model.name,
     })),
-  }))
+  }));
 }
 
 function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items)
+  return groups.flatMap((g) => g.items);
 }
 
 function ModelSelect({
@@ -69,27 +69,29 @@ function ModelSelect({
   currentValue,
   providerModels,
 }: {
-  settingKey: string
-  currentValue: string | undefined
-  providerModels: ProviderModels[]
+  settingKey: string;
+  currentValue: string | undefined;
+  providerModels: ProviderModels[];
 }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels])
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups])
+  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
+  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
 
-  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient))
-  const deleteMutation = useMutation(deleteSettingMutationOptions(settingKey, queryClient))
+  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient));
+  const deleteMutation = useMutation(deleteSettingMutationOptions(settingKey, queryClient));
 
   function handleValueChange(value: ModelOption | null) {
     if (!value) {
-      if (currentValue) deleteMutation.mutate()
-      return
+      if (currentValue) deleteMutation.mutate();
+      return;
     }
-    saveMutation.mutate(value.value)
+    saveMutation.mutate(value.value);
   }
 
-  const selectedOption = currentValue ? (allOptions.find((o) => o.value === currentValue) ?? null) : null
+  const selectedOption = currentValue
+    ? (allOptions.find((o) => o.value === currentValue) ?? null)
+    : null;
 
   return (
     <Combobox<ModelOption>
@@ -118,19 +120,19 @@ function ModelSelect({
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
-  )
+  );
 }
 
 function ModelsContent() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions)
-  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions)
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
 
   if (providerModels.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
         No providers are connected. Configure a provider first to select preferred models.
       </p>
-    )
+    );
   }
 
   return (
@@ -147,18 +149,21 @@ function ModelsContent() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 export function ModelsSettings() {
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h2 className="text-[15px] font-bold">Models</h2>
+      <div className="mb-6">
+        <h2 className="text-base font-bold">Models</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Choose which models to use for different tasks
+        </p>
       </div>
       <React.Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
         <ModelsContent />
       </React.Suspense>
     </div>
-  )
+  );
 }

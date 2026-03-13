@@ -1,13 +1,13 @@
-import * as React from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { StickToBottom } from 'use-stick-to-bottom'
-import { ChatInput } from '@/components/chat/chat-input'
-import { MessageList } from '@/components/chat/message-list'
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers'
-import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat'
-import { useChatStreamContext } from '@/context/chat-stream-context'
-import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings'
+import * as React from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { StickToBottom } from 'use-stick-to-bottom';
+import { ChatInput } from '@/components/chat/chat-input';
+import { MessageList } from '@/components/chat/message-list';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
+import { useChatStreamContext } from '@/context/chat-stream-context';
+import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
@@ -17,52 +17,61 @@ export const Route = createFileRoute('/session/$id')({
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
   component: SessionComponent,
-})
+});
 
-const SEPARATOR = ':::'
+const SEPARATOR = ':::';
 
 function SessionComponent() {
-  const { id } = Route.useParams()
-  const queryClient = useQueryClient()
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(id))
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions)
+  const { id } = Route.useParams();
+  const queryClient = useQueryClient();
+  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const [value, setValue] = React.useState('')
-  const [modelOverride, setModelOverride] = React.useState<string | null>(null)
-  const selectedModel = modelOverride ?? settings['model.default'] ?? null
+  const [value, setValue] = React.useState('');
+  const [modelOverride, setModelOverride] = React.useState<string | null>(null);
+  const selectedModel = modelOverride ?? settings['model.default'] ?? null;
 
-  const saveDefaultModel = useMutation(saveSettingMutationOptions('model.default', queryClient, { silent: true }))
+  const saveDefaultModel = useMutation(
+    saveSettingMutationOptions('model.default', queryClient, { silent: true }),
+  );
 
   function handleModelChange(model: string | null) {
-    setModelOverride(model)
-    if (model) saveDefaultModel.mutate(model)
+    setModelOverride(model);
+    if (model) saveDefaultModel.mutate(model);
   }
 
-  const sendMessage = useSendMessage()
-  const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext()
+  const sendMessage = useSendMessage();
+  const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext();
 
   // When stream finishes, refresh message list and clear active stream
   React.useEffect(() => {
     if (!streamState.isStreaming && activeMessageId !== null && streamState.finishReason !== null) {
-      void queryClient.invalidateQueries({ queryKey: ['sessions', 'detail', id] })
-      setActiveMessageId(null)
+      void queryClient.invalidateQueries({ queryKey: ['sessions', 'detail', id] });
+      setActiveMessageId(null);
     }
-  }, [streamState.isStreaming, streamState.finishReason, activeMessageId, id, queryClient, setActiveMessageId])
+  }, [
+    streamState.isStreaming,
+    streamState.finishReason,
+    activeMessageId,
+    id,
+    queryClient,
+    setActiveMessageId,
+  ]);
 
   async function handleSubmit(text: string) {
     if (!text.trim() || !selectedModel) {
-      return
+      return;
     }
 
-    const [providerId, modelId] = selectedModel.split(SEPARATOR)
+    const [providerId, modelId] = selectedModel.split(SEPARATOR);
     if (!providerId || !modelId) {
-      return
+      return;
     }
 
-    setValue('')
+    setValue('');
 
-    const assistantMessageId = crypto.randomUUID()
-    setActiveMessageId(assistantMessageId)
+    const assistantMessageId = crypto.randomUUID();
+    setActiveMessageId(assistantMessageId);
 
     await sendMessage.mutateAsync({
       sessionId: id,
@@ -70,37 +79,38 @@ function SessionComponent() {
       providerId,
       modelId,
       assistantMessageId,
-    })
+    });
   }
 
-  const canSubmit = !sendMessage.isPending && !streamState.isStreaming
+  const canSubmit = !sendMessage.isPending && !streamState.isStreaming;
 
   return (
-    <div className="flex flex-1 h-full overflow-hidden">
-      <StickToBottom className="flex-1 h-full overflow-hidden relative" resize="smooth" initial="smooth">
-        <StickToBottom.Content className="px-6 pb-36 pt-4">
-          <MessageList
-            messages={session.messages}
-            streamState={streamState}
-          />
-        </StickToBottom.Content>
-
-        <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pt-8 bg-linear-to-t from-muted via-muted/90 to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pointer-events-auto">
-          <div className="mx-auto max-w-4xl">
-            <ChatInput
-              value={value}
-              onChange={setValue}
-              onSubmit={(text) => { void handleSubmit(text) }}
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
-              placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
-            />
-          </div>
+    <StickToBottom
+      className="flex-1 h-full overflow-hidden relative"
+      resize="smooth"
+      initial="smooth"
+    >
+      <StickToBottom.Content className="px-6 pb-40 pt-6">
+        <div className="mx-auto max-w-4xl">
+          <MessageList messages={session.messages} streamState={streamState} />
         </div>
-      </StickToBottom>
+      </StickToBottom.Content>
 
-      <aside className="w-80 h-full border-l border-border shrink-0" />
-    </div>
-  )
+      <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pt-10 bg-linear-to-t from-muted via-muted/80 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pointer-events-auto">
+        <div className="mx-auto max-w-4xl">
+          <ChatInput
+            value={value}
+            onChange={setValue}
+            onSubmit={(text) => {
+              void handleSubmit(text);
+            }}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
+          />
+        </div>
+      </div>
+    </StickToBottom>
+  );
 }

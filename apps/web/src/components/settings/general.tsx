@@ -1,3 +1,3 @@
 export function GeneralSettings() {
-  return null
+  return null;
 }

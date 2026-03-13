@@ -89,9 +89,7 @@ function filterModels(models: Record<string, RawModel>): Record<string, RawModel
 
 function sortModels(models: Record<string, RawModel>): Record<string, RawModel> {
   return Object.fromEntries(
-    Object.entries(models).toSorted(([, a], [, b]) =>
-      b.release_date.localeCompare(a.release_date),
-    ),
+    Object.entries(models).toSorted(([, a], [, b]) => b.release_date.localeCompare(a.release_date)),
   );
 }
 

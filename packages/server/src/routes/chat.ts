@@ -62,7 +62,6 @@ chatRouter.delete('/sessions/:id', async (c) => {
   return c.body(null, 204);
 });
 
-
 chatRouter.post('/sessions/:id/messages', async (c) => {
   const db = getDb();
   const sessionId = c.req.param('id');
@@ -78,7 +77,10 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   };
 
   if (!body.content || !body.providerId || !body.modelId || !body.assistantMessageId) {
-    return c.json({ error: 'content, providerId, modelId and assistantMessageId are required' }, 400);
+    return c.json(
+      { error: 'content, providerId, modelId and assistantMessageId are required' },
+      400,
+    );
   }
 
   const [config] = await db
@@ -93,7 +95,13 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   // Persist user message
   const userMessageId = randomUUID();
   const now = Date.now();
-  const userPart: StoredPart = { type: 'text-delta', id: randomUUID(), text: body.content, startedAt: now, endedAt: now };
+  const userPart: StoredPart = {
+    type: 'text-delta',
+    id: randomUUID(),
+    text: body.content,
+    startedAt: now,
+    endedAt: now,
+  };
   await db.insert(messages).values({
     id: userMessageId,
     sessionId,
@@ -123,7 +131,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   const assistantMessageId = body.assistantMessageId;
   const modelLabel = `${body.providerId}:::${body.modelId}`;
-  
+
   void runStream({
     sessionId,
     assistantMessageId,
@@ -135,5 +143,3 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   return c.json({ messageId: assistantMessageId, userMessageId }, 202);
 });
-
-
