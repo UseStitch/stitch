@@ -9,12 +9,24 @@ export type ProviderSummary = {
   enabled: boolean
 }
 
+export type ModelSummary = {
+  id: string
+  name: string
+}
+
+export type ProviderModels = {
+  providerId: string
+  providerName: string
+  models: ModelSummary[]
+}
+
 export type ProviderCredentials = Record<string, unknown>
 
 export const providerKeys = {
   all: ['providers'] as const,
   list: () => [...providerKeys.all, 'list'] as const,
   config: (providerId: string) => [...providerKeys.all, 'config', providerId] as const,
+  enabledModels: () => [...providerKeys.all, 'enabled-models'] as const,
 }
 
 export const providersQueryOptions = queryOptions({
@@ -23,6 +35,28 @@ export const providersQueryOptions = queryOptions({
     const res = await serverFetch('/provider')
     if (!res.ok) throw new Error('Failed to fetch providers')
     return res.json() as Promise<ProviderSummary[]>
+  },
+})
+
+export const enabledProviderModelsQueryOptions = queryOptions({
+  queryKey: providerKeys.enabledModels(),
+  queryFn: async (): Promise<ProviderModels[]> => {
+    const providersRes = await serverFetch('/provider')
+    if (!providersRes.ok) throw new Error('Failed to fetch providers')
+    const providers = (await providersRes.json()) as ProviderSummary[]
+    const enabled = providers.filter((p) => p.enabled)
+
+    if (enabled.length === 0) return []
+
+    const results = await Promise.all(
+      enabled.map(async (provider) => {
+        const res = await serverFetch(`/provider/${provider.id}/models`)
+        if (!res.ok) return { providerId: provider.id, providerName: provider.name, models: [] }
+        const models = (await res.json()) as ModelSummary[]
+        return { providerId: provider.id, providerName: provider.name, models }
+      }),
+    )
+    return results.filter((r) => r.models.length > 0)
   },
 })
 

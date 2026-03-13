@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { init } from './init.js';
 import { providerRouter } from './routes/provider.js';
+import { settingsRouter } from './routes/settings.js';
 import { registerShutdownHandlers } from './shutdown.js';
 
 function parseArgs() {
@@ -30,6 +31,7 @@ const app = new Hono();
 app.use(cors());
 app.get('/health', (c) => c.json({ status: 'ok' }));
 app.route('/provider', providerRouter);
+app.route('/settings', settingsRouter);
 
 registerShutdownHandlers();
 await init();
