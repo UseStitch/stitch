@@ -1,6 +1,7 @@
 import * as Log from './lib/log.js';
 import * as Scheduler from './lib/scheduler.js';
 import * as ModelsDev from './provider/models.js';
+import { initDb } from './db/client.js';
 
 const log = Log.create({ service: 'init' });
 
@@ -11,6 +12,8 @@ const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 
 export async function init() {
   await Log.init({ print: process.env.NODE_ENV === 'development' });
+
+  initDb();
 
   Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () => Log.cleanup());
 

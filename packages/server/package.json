@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "dev": "NODE_ENV=development bun run --hot src/index.ts",
+    "dev": "NODE_ENV=development node --import tsx/esm --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "typecheck": "tsc --noEmit"
   },
@@ -19,8 +19,11 @@
     "@ai-sdk/openai-compatible": "catalog:ai",
     "@ai-sdk/vercel": "catalog:ai",
     "@aws-sdk/credential-providers": "^3.1008.0",
+    "@hono/node-server": "^1.19.11",
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "ai": "catalog:ai",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "google-auth-library": "^10.6.1",
     "hono": "^4.12.7",
@@ -28,7 +31,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "catalog:",
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.21.0",
     "typescript": "catalog:",
     "vitest": "catalog:testing"
   }
