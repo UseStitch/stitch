@@ -54,6 +54,10 @@ async function createWindow() {
   } else {
     mainWindow.loadFile(WEB_DIST)
   }
+
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools()
+  }
 }
 
 ipcMain.handle('window:minimize', () => {

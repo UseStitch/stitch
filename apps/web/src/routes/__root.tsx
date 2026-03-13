@@ -1,8 +1,12 @@
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
+import * as React from 'react'
+import { useHotkey } from '@tanstack/react-hotkeys'
 import { TitleBar } from '../components/title-bar'
 import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
+import { CommandPalette } from '../components/command-palette'
+import { SettingsDialog } from '../components/settings-dialog'
 
 interface RouterContext {
   queryClient: QueryClient
@@ -13,6 +17,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootComponent() {
+  const [commandOpen, setCommandOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
+
+  useHotkey('Mod+P', () => setCommandOpen((o) => !o), { preventDefault: true })
+  useHotkey('Mod+,', () => setSettingsOpen((o) => !o), { preventDefault: true })
+
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
       <TitleBar />
@@ -22,6 +32,8 @@ function RootComponent() {
           <Outlet />
         </SidebarInset>
       </div>
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </SidebarProvider>
   )
 }
