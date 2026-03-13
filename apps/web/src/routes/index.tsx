@@ -54,14 +54,14 @@ function IndexComponent() {
   const isSubmitting = createSession.isPending || sendMessage.isPending
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-4 gap-6">
+    <div className="flex h-full flex-col items-center justify-center px-6 gap-6">
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">What can I help you with?</h1>
         <p className="text-sm text-muted-foreground">
           Select a model and start a conversation
         </p>
       </div>
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <ChatInput
           value={value}
           onChange={setValue}

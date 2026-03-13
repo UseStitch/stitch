@@ -71,19 +71,18 @@ function SessionComponent() {
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto px-4">
-        <div className="mx-auto max-w-2xl">
-          <MessageList
-            messages={session.messages}
-            streamState={streamState}
-            bottomRef={bottomRef}
-          />
-        </div>
+    <div className="flex h-full flex-col relative">
+      <div className="flex-1 overflow-y-auto px-6 pb-32">
+        <MessageList
+          messages={session.messages}
+          streamState={streamState}
+          bottomRef={bottomRef}
+        />
       </div>
 
-      <div className="border-t border-border/40 bg-background px-4 py-3">
-        <div className="mx-auto max-w-2xl">
+      <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pt-8 bg-linear-to-t from-muted via-muted/90 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pointer-events-auto">
+        <div className="mx-auto max-w-4xl">
           <ChatInput
             value={value}
             onChange={setValue}

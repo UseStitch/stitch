@@ -173,7 +173,7 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] space-y-1">
+      <div className="w-full space-y-1">
         {segments.map((seg) => {
           switch (seg.type) {
             case 'text':
@@ -234,7 +234,7 @@ export function StreamingMessageBubble({ partIds, parts, isStreaming }: Streamin
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] space-y-1">
+      <div className="w-full space-y-1">
         {visibleIds.map((partId) => {
           const part = parts[partId]
           if (!part) return null
