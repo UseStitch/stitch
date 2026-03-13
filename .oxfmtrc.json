@@ -7,5 +7,5 @@
   "singleQuote": true,
   "trailingComma": "all",
   "bracketSpacing": true,
-  "ignorePatterns": ["node_modules", "dist", "apps/web/src/routeTree.gen.ts"]
+  "ignorePatterns": ["node_modules", "dist", "apps/web/src/routeTree.gen.ts", ".opencode/skills/**"]
 }
