@@ -6,18 +6,21 @@ const steps = [
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
   { name: 'lint', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '.'] },
   // { name: "knip", cmd: ["bunx", "knip"] },
-  { name: 'check:catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
+  { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
 ];
 
 let failed = false;
 
 for (const step of steps) {
-  console.log(`\n--- ${step.name} ---`);
-  const result = spawnSync(step.cmd, { stdout: 'inherit', stderr: 'inherit' });
+  const result = spawnSync(step.cmd, { stdout: 'pipe', stderr: 'pipe' });
+  const output = Buffer.concat([result.stdout, result.stderr]).toString();
+  
   if (result.exitCode !== 0) {
-    console.error(`\n${step.name} failed with exit code ${result.exitCode}`);
+    console.log(`${step.name}: Fail`);
+    console.log(output);
     failed = true;
-    break;
+  } else {
+    console.log(`${step.name}: Pass`);
   }
 }
 
