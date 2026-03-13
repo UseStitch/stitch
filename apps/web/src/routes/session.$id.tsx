@@ -76,27 +76,31 @@ function SessionComponent() {
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming
 
   return (
-    <StickToBottom className="flex-1 h-full overflow-hidden relative" resize="smooth" initial="smooth">
-      <StickToBottom.Content className="px-6 pb-36 pt-4">
-        <MessageList
-          messages={session.messages}
-          streamState={streamState}
-        />
-      </StickToBottom.Content>
-
-      <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pt-8 bg-linear-to-t from-muted via-muted/90 to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pointer-events-auto">
-        <div className="mx-auto max-w-4xl">
-          <ChatInput
-            value={value}
-            onChange={setValue}
-            onSubmit={(text) => { void handleSubmit(text) }}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
+    <div className="flex flex-1 h-full overflow-hidden">
+      <StickToBottom className="flex-1 h-full overflow-hidden relative" resize="smooth" initial="smooth">
+        <StickToBottom.Content className="px-6 pb-36 pt-4">
+          <MessageList
+            messages={session.messages}
+            streamState={streamState}
           />
+        </StickToBottom.Content>
+
+        <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pt-8 bg-linear-to-t from-muted via-muted/90 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 inset-x-0 px-6 pb-4 pointer-events-auto">
+          <div className="mx-auto max-w-4xl">
+            <ChatInput
+              value={value}
+              onChange={setValue}
+              onSubmit={(text) => { void handleSubmit(text) }}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
+            />
+          </div>
         </div>
-      </div>
-    </StickToBottom>
+      </StickToBottom>
+
+      <aside className="w-80 h-full border-l border-border shrink-0" />
+    </div>
   )
 }
