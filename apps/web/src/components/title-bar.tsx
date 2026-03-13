@@ -46,9 +46,6 @@ export function TitleBar({ sidebarOpen = true, onToggleSidebar }: TitleBarProps)
             <PanelLeftOpen className="w-4 h-4 text-muted-foreground" />
           )}
         </button>
-        <div className="text-sm text-muted-foreground font-medium px-2">
-          Openwork
-        </div>
       </div>
       <div className="flex h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
