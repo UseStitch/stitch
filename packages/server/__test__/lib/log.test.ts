@@ -18,7 +18,7 @@ describe('Log write', () => {
     logger.info('hello world');
 
     // allow the async stream write to flush
-    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setTimeout(r, 50));
 
     const content = await fs.readFile(Log.file(), 'utf-8');
     expect(content).toContain('INFO');
