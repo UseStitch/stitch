@@ -4,9 +4,20 @@ import type { ProviderCredentials } from '../provider/provider.js';
 export const SETTINGS_KEYS = ['model.default', 'model.compaction', 'model.title'] as const;
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
+export const SHORTCUT_ACTION_IDS = ['command-palette', 'open-settings', 'toggle-sidebar'] as const;
+export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
+
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),
   value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
+  actionId: text('action_id').$type<ShortcutActionId>().primaryKey(),
+  hotkey: text('hotkey'),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),
