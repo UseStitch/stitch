@@ -41,5 +41,8 @@
       "@ai-sdk/vercel": "2.0.37",
       "@openrouter/ai-sdk-provider": "2.3.0"
     }
+  },
+  "dependencies": {
+    "react-resizable-panels": "^4.7.2"
   }
 }

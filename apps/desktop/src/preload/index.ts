@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld('electron', {
 
 contextBridge.exposeInMainWorld('api', {
   getServerConfig: () => ipcRenderer.invoke('get-server-config') as Promise<{ url: string }>,
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
+  },
 })

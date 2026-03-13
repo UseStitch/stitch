@@ -2,6 +2,12 @@ declare global {
   interface Window {
     api?: {
       getServerConfig: () => Promise<{ url: string }>
+      window?: {
+        minimize: () => Promise<void>
+        maximize: () => Promise<void>
+        close: () => Promise<void>
+        isMaximized: () => Promise<boolean>
+      }
     }
   }
 }

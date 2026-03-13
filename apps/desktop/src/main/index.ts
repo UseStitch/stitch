@@ -7,6 +7,7 @@ const WEB_DIST = join(__dirname, '../../web/dist/index.html')
 const DEV_SERVER_POLL_MS = 200
 const DEV_SERVER_TIMEOUT_MS = 30_000
 
+let mainWindow: BrowserWindow | null = null
 let serverUrl: string | null = null
 
 async function waitForDevServer(url: string): Promise<void> {
@@ -26,9 +27,12 @@ async function waitForDevServer(url: string): Promise<void> {
 }
 
 async function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    frame: false,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -36,21 +40,41 @@ async function createWindow() {
     },
   })
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
   })
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     await waitForDevServer(process.env['ELECTRON_RENDERER_URL'])
-    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else if (!app.isPackaged) {
     await waitForDevServer(WEB_DEV_URL)
-    win.loadURL(WEB_DEV_URL)
+    mainWindow.loadURL(WEB_DEV_URL)
   } else {
-    win.loadFile(WEB_DIST)
+    mainWindow.loadFile(WEB_DIST)
   }
 }
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close()
+})
+
+ipcMain.handle('window:isMaximized', () => {
+  return mainWindow?.isMaximized() ?? false
+})
 
 ipcMain.handle('get-server-config', () => ({ url: serverUrl }))
 
