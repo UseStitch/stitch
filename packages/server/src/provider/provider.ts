@@ -6,69 +6,82 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createVercel } from '@ai-sdk/vercel';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import type { GoogleAuthOptions } from 'google-auth-library';
+import { z } from 'zod';
 
-// --- Per-provider credential types ---
+export const BedrockCredentialsSchema = z.object({
+  providerId: z.literal('amazon-bedrock'),
+  region: z.string().optional(),
+  auth: z.discriminatedUnion('method', [
+    z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+    z.object({
+      method: z.literal('iam'),
+      accessKeyId: z.string(),
+      secretAccessKey: z.string(),
+      sessionToken: z.string().optional(),
+    }),
+    z.object({ method: z.literal('credential-provider') }),
+  ]),
+});
 
-export type BedrockCredentials = {
-  providerId: 'amazon-bedrock';
-  region?: string;
-  auth:
-    | { method: 'api-key'; apiKey: string }
-    | {
-        method: 'iam';
-        accessKeyId: string;
-        secretAccessKey: string;
-        sessionToken?: string;
-      }
-    | { method: 'credential-provider' };
-};
+export const AnthropicCredentialsSchema = z.object({
+  providerId: z.literal('anthropic'),
+  auth: z.discriminatedUnion('method', [
+    z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+    z.object({ method: z.literal('auth-token'), authToken: z.string() }),
+  ]),
+});
 
-export type AnthropicCredentials = {
-  providerId: 'anthropic';
-  auth: { method: 'api-key'; apiKey: string } | { method: 'auth-token'; authToken: string };
-};
+export const GoogleCredentialsSchema = z.object({
+  providerId: z.literal('google'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
 
-export type GoogleCredentials = {
-  providerId: 'google';
-  auth: { method: 'api-key'; apiKey: string };
-};
+export const GoogleVertexCredentialsSchema = z.object({
+  providerId: z.literal('google-vertex'),
+  project: z.string().optional(),
+  location: z.string().optional(),
+  auth: z.discriminatedUnion('method', [
+    z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+    z.object({ method: z.literal('adc') }),
+    z.object({ method: z.literal('service-account'), googleAuthOptions: z.record(z.string(), z.unknown()) }),
+  ]),
+});
 
-export type GoogleVertexCredentials = {
-  providerId: 'google-vertex';
-  project?: string;
-  location?: string;
-  auth:
-    | { method: 'api-key'; apiKey: string }
-    | { method: 'adc' }
-    | { method: 'service-account'; googleAuthOptions: GoogleAuthOptions };
-};
+export const OpenAICredentialsSchema = z.object({
+  providerId: z.literal('openai'),
+  organization: z.string().optional(),
+  project: z.string().optional(),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
 
-export type OpenAICredentials = {
-  providerId: 'openai';
-  organization?: string;
-  project?: string;
-  auth: { method: 'api-key'; apiKey: string };
-};
+export const OpenRouterCredentialsSchema = z.object({
+  providerId: z.literal('openrouter'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
 
-export type OpenRouterCredentials = {
-  providerId: 'openrouter';
-  auth: { method: 'api-key'; apiKey: string };
-};
+export const VercelCredentialsSchema = z.object({
+  providerId: z.literal('vercel'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
 
-export type VercelCredentials = {
-  providerId: 'vercel';
-  auth: { method: 'api-key'; apiKey: string };
-};
+export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
+  BedrockCredentialsSchema,
+  AnthropicCredentialsSchema,
+  GoogleCredentialsSchema,
+  GoogleVertexCredentialsSchema,
+  OpenAICredentialsSchema,
+  OpenRouterCredentialsSchema,
+  VercelCredentialsSchema,
+]);
 
-export type ProviderCredentials =
-  | BedrockCredentials
-  | AnthropicCredentials
-  | GoogleCredentials
-  | GoogleVertexCredentials
-  | OpenAICredentials
-  | OpenRouterCredentials
-  | VercelCredentials;
+export type BedrockCredentials = z.infer<typeof BedrockCredentialsSchema>;
+export type AnthropicCredentials = z.infer<typeof AnthropicCredentialsSchema>;
+export type GoogleCredentials = z.infer<typeof GoogleCredentialsSchema>;
+export type GoogleVertexCredentials = z.infer<typeof GoogleVertexCredentialsSchema>;
+export type OpenAICredentials = z.infer<typeof OpenAICredentialsSchema>;
+export type OpenRouterCredentials = z.infer<typeof OpenRouterCredentialsSchema>;
+export type VercelCredentials = z.infer<typeof VercelCredentialsSchema>;
+export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
 
 export const createProvider = (credentials: ProviderCredentials) => {
   switch (credentials.providerId) {

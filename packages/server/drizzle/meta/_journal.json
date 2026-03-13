@@ -8,6 +8,13 @@
       "when": 1773361131805,
       "tag": "0000_thin_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773362299952,
+      "tag": "0001_woozy_warpath",
+      "breakpoints": true
     }
   ]
 }
