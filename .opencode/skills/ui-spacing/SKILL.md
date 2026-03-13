@@ -25,6 +25,11 @@ produce clean, balanced interfaces.
 navigate the interface — making it clear which elements belong together and
 which are distinct. Every spacing decision should serve this purpose.
 
+**Every element is related to every other element** — even if only because
+they share the same viewport. Relationships vary in strength. Stronger
+relationships = closer proximity. Weaker relationships = more distance.
+This is the foundation of information hierarchy.
+
 **Consistency first.** Even if the value isn't perfect, consistent spacing
 throughout a design makes it coherent. Inconsistent spacing will always look
 worse than a consistently "wrong" value.
@@ -32,6 +37,10 @@ worse than a consistently "wrong" value.
 **Start big, reduce if needed.** Never start with a small value like `0.5rem`
 and increase. Start with something generous like `1.5rem` and reduce. A little
 extra whitespace only improves readability; tight spacing actively hurts UX.
+
+**Don't eyeball it — eyeball with parameters.** Use a scaling system to give
+yourself creative freedom within guardrails. You still make judgment calls, but
+the system prevents bad decisions.
 
 ---
 
@@ -41,7 +50,6 @@ Use `rem` units, not pixels. This ensures spacing scales with font size and
 stays consistent across font sizes and screen densities.
 
 ### Base increments
-
 ```
 0.25rem  =  4px   (micro — rare)
 0.5rem   =  8px   (tight grouping, closely related elements)
@@ -54,44 +62,95 @@ stays consistent across font sizes and screen densities.
 ```
 
 ### Three values that cover 90% of use cases
-
 - `0.5rem` — closely related elements (title + subtitle, icon + label)
 - `1rem` — same-group elements, button padding, inner spacing
 - `1.5–2rem` — between distinct groups or sections
 
 ---
 
-## Step-by-Step: How to Space a UI
+## The Three Laws of Spacing
 
-### Step 1: Break the UI into groups
+1. **Every element is related to every other element.** Even distant elements
+   share a relationship (they exist in the same viewport). Spacing should
+   reflect the strength of each relationship.
 
-Identify which elements belong together logically. Label them as Group 1,
-Group 2, etc. Elements in the same group share the smallest spacing; spacing
-_between_ groups is always larger.
+2. **Stronger relationships = closer proximity.** Elements that belong to the
+   same informational unit (e.g., an email subject and sender) should be
+   closer together than elements with weaker relationships (e.g., an email
+   heading and a sidebar nav item).
 
-### Step 2: Apply smallest possible space within each group
+3. **Spacing must always be ordered: A > B > C.** When you have three levels
+   of separation (e.g., space within a group, between groups, between
+   sections), each level must be visibly larger than the last. Never let
+   two levels look equal.
 
-Start with `0.5rem` for tightly related elements (e.g., heading and its
-paragraph). If elements feel cramped, increase to `1rem`.
+### Assessing relationship strength
 
-### Step 3: Separate groups with larger spacing
+Scan your design and ask: *what does this element belong to?*
+- Same informational unit (heading + body of one card) → **strong** → very close
+- Same feature area (all settings options) → **medium** → moderate spacing
+- Different sections (navigation vs. content) → **weak** → large spacing
 
-Add `1.5rem` or `2rem` between distinct groups. The inter-group gap must
-always be visually larger than the intra-group gap.
-
-### Step 4: Set outer padding generously
-
-For card/section containers, start with `2rem` outer padding and reduce if
-needed. Outer padding should feel like breathing room, not a tight frame.
-
-### Step 5: Apply optical balancing (see below)
+**Watch out for context shifts.** With placeholder content (Lorem ipsum),
+relationships appear differently than with real content. Always test spacing
+with real copy — the true relationships may be reversed from what the
+placeholder suggested.
 
 ---
 
-## Optical Weight & Padding Rules
+## Step-by-Step: How to Space a UI
+
+### Step 1: Apply color grading (optional but helpful)
+Assign a different visual weight or color to each level of the type hierarchy
+(h1, h2, body, caption, etc.). This makes it much easier to spot the groups
+and hierarchy at a glance.
+
+### Step 2: Scan for relational pairs
+Go through the design top to bottom and identify pairs of adjacent elements.
+For each pair, ask: *is this a strong or weak relationship?*
+- Title + subtitle → strong
+- Subtitle + paragraph → medium
+- Paragraph + next section heading → weak (new semantic section)
+
+### Step 3: Apply spacing level-by-level using a scale
+Start from the tightest pair and assign a spacing value from your scale.
+Each subsequent weaker relationship gets a larger value. The key rule:
+**each value must be larger than the previous.** You don't always need to
+skip levels in the middle of a scale — but at the small end (XS/S), skipping
+a level helps create clearer visual distinction.
+
+**Example with a named scale:**
+- Title → Subtitle: `extra-small`
+- Subtitle → Paragraph: `medium` (skip `small` for clear contrast)
+- Paragraph → Next Section Heading: `large`
+
+Always apply the margin to the **larger** text element in the pair.
+
+### Step 4: Set outer padding generously
+For card/section containers, start with `2rem` outer padding and reduce if
+needed. Outer padding should feel like breathing room, not a tight frame.
+
+### Step 5: Apply optical corrections (see below)
+
+---
+
+## Optical Corrections & Padding Rules
+
+### Mathematically symmetrical ≠ visually symmetrical
+When you set equal padding on all sides of a card or container, it will
+*look* like there's extra space at the top. This is because the bounding
+box of a text element is taller than the actual rendered pixel height of
+the letterforms — the gap between the bounding box and the cap-height
+creates invisible extra space at the top.
+
+**Fix:** Reduce top padding by the amount of that gap (the difference between
+the bounding box height and the rendered text height). The result is
+mathematically asymmetrical but optically balanced.
+
+This is why a card with "equal" padding often looks top-heavy — and why
+optical corrections are required for truly balanced layouts.
 
 ### Horizontal > Vertical padding for buttons
-
 Text has more visual noise horizontally (varying letter widths like U vs W).
 Vertical space is constrained by cap-height and descenders. Equal padding
 makes buttons look bloated.
@@ -108,8 +167,7 @@ For elements with many vertical items (lists, stacked cards), increase
 vertical padding to `1.25rem` so content has room to breathe.
 
 ### Inner spacing < outer spacing (always)
-
-The space _inside_ a button (between icon and label) must always be smaller
+The space *inside* a button (between icon and label) must always be smaller
 than the button's own padding.
 
 ```
@@ -120,17 +178,41 @@ Bad:  gap: 1rem;   padding: 0.5rem 1rem;  /* inner > outer = ugly */
 You may use equal inner and outer spacing if needed, but **never** let inner
 spacing exceed outer spacing.
 
+## Using a Named Spacing Scale
+
+A named scale (XS, S, M, L, XL…) is more useful than raw numbers because
+it forces you to think in *relative* terms rather than absolute pixels.
+An exponential scale works best — the gaps between levels grow larger as
+you go up, which mirrors how human perception works.
+
+**Example named scale:**
+```
+xs   = 0.25rem   (4px)
+sm   = 0.5rem    (8px)
+md   = 1rem      (16px)
+lg   = 1.5rem    (24px)
+xl   = 2rem      (32px)
+2xl  = 3rem      (48px)
+```
+
+### Using the scale for typography pairs
+When assigning spacing between text elements:
+- Use `xs` or `sm` for strongly related pairs (title + subtitle)
+- Skip a level at the small end for clarity (go from `xs` to `md`, not `xs` to `sm`)
+- Once past `md`, sequential levels (`md` → `lg` → `xl`) provide enough contrast
+- Always apply margin to the **larger** element in the pair
+
 ---
 
-## Grouping Decision Guide
 
-| Relationship                     | Spacing to use             |
-| -------------------------------- | -------------------------- |
-| Same element parts (icon + text) | `< 1rem` (e.g., `0.5rem`)  |
-| Items in same group              | `0.5–1rem`                 |
-| Between groups / sections        | `1.5–2rem`                 |
-| Outer container padding          | `1.5–2rem` (start at 2rem) |
-| Between major page sections      | `2–3rem`                   |
+
+| Relationship | Spacing to use |
+|---|---|
+| Same element parts (icon + text) | `< 1rem` (e.g., `0.5rem`) |
+| Items in same group | `0.5–1rem` |
+| Between groups / sections | `1.5–2rem` |
+| Outer container padding | `1.5–2rem` (start at 2rem) |
+| Between major page sections | `2–3rem` |
 
 ---
 
@@ -171,6 +253,10 @@ base unit.
 - ❌ Equal vertical and horizontal padding on wide buttons — looks bloated
 - ❌ Inconsistent values everywhere — use the system, pick from the scale
 - ❌ Guessing random pixel values — use 0.25rem increments
+- ❌ Assuming mathematically equal padding looks balanced — it won't; apply optical corrections
+- ❌ Designing with placeholder (Lorem ipsum) content — real content shifts relationships
+- ❌ Applying the same spacing value between every element regardless of relationship strength
+- ❌ Applying margin to the smaller element in a pair — always apply to the larger one
 
 ---
 
