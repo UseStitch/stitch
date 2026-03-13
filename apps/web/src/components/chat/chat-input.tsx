@@ -159,7 +159,9 @@ function ChatInputInner({
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      if (value.trim()) onSubmit(value)
+      if (value.trim()) {
+        onSubmit(value)
+      }
     }
   }
 
@@ -216,7 +218,7 @@ function ChatInputInner({
           size="icon-xs"
           variant={canSubmit ? 'default' : 'outline'}
           disabled={!canSubmit}
-          onClick={() => { if (canSubmit) onSubmit(value) }}
+          onClick={() => { if (canSubmit)  onSubmit(value)  }}
           className="shrink-0"
         >
           <ArrowUpIcon className="size-3.5" />

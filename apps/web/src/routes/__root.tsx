@@ -5,12 +5,13 @@ import { useHotkey } from '@tanstack/react-hotkeys'
 import { useShortcuts } from '@/lib/shortcuts'
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts'
 import { providersQueryOptions } from '@/lib/queries/providers'
-import { TitleBar } from '../components/title-bar'
+import { TitleBar } from '../components/layout/title-bar'
 import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
 import { CommandPalette } from '../components/command-palette'
 import { SettingsDialog } from '../components/settings-dialog'
 import { Toaster } from '../components/ui/sonner'
+import { ChatStreamProvider } from '../context/chat-stream-context'
 
 interface RouterContext {
   queryClient: QueryClient
@@ -40,7 +41,9 @@ function RootComponent() {
       <div className="flex flex-1 overflow-hidden relative">
         <AppSidebar />
         <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
-          <Outlet />
+          <ChatStreamProvider>
+            <Outlet />
+          </ChatStreamProvider>
         </SidebarInset>
       </div>
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />

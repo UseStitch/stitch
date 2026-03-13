@@ -1,7 +1,7 @@
 import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSidebar } from '@/components/ui/sidebar'
-import { ServerStatus } from '@/components/server-status'
+import { ServerStatus } from '@/components/layout/server-status'
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)

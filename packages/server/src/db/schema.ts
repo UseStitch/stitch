@@ -1,6 +1,7 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { ProviderCredentials } from '../provider/provider.js';
-import type { SettingsKey, ShortcutActionId } from '@openwork/shared';
+import type { LanguageModelUsage } from 'ai';
+import type { MessageRole, SettingsKey, ShortcutActionId, StoredPart } from '@openwork/shared';
 
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),
@@ -24,4 +25,33 @@ export const providerConfig = sqliteTable('provider_config', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  title: text('title'),
+  parentSessionId: text('parent_session_id').references((): ReturnType<typeof text> => sessions.id),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const messages = sqliteTable('messages', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  role: text('role').$type<MessageRole>().notNull(),
+  parts: blob('parts', { mode: 'json' }).$type<StoredPart[]>().notNull(),
+  model: text('model'),
+  usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
+  finishReason: text('finish_reason'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
+  duration: integer('duration_ms'),
 });

@@ -33,6 +33,7 @@
     },
     "ai": {
       "ai": "6.0.116",
+      "@ai-sdk/provider": "3.0.8",
       "@ai-sdk/amazon-bedrock": "4.0.77",
       "@ai-sdk/anthropic": "3.0.58",
       "@ai-sdk/google": "3.0.43",

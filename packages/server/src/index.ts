@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { init } from './init.js';
+import { chatRouter } from './routes/chat.js';
 import { eventsRouter } from './routes/events.js';
 import { providerRouter } from './routes/provider.js';
 import { settingsRouter } from './routes/settings.js';
@@ -32,6 +33,7 @@ const app = new Hono();
 
 app.use(cors());
 app.get('/health', (c) => c.json({ status: 'ok' }));
+app.route('/chat', chatRouter);
 app.route('/events', eventsRouter);
 app.route('/provider', providerRouter);
 app.route('/settings', settingsRouter);

@@ -1,3 +1,4 @@
+export * from './messages.js';
 export * from './providers.js';
 export * from './realtime.js';
 

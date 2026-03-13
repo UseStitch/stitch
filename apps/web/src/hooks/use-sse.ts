@@ -36,6 +36,26 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
       addSseListener(eventSource, 'data-change', (e) => {
         handlersRef.current['data-change']?.(parseJson(e.data))
       })
+
+      addSseListener(eventSource, 'stream-start', (e) => {
+        handlersRef.current['stream-start']?.(parseJson(e.data))
+      })
+
+      addSseListener(eventSource, 'stream-part-update', (e) => {
+        handlersRef.current['stream-part-update']?.(parseJson(e.data))
+      })
+
+      addSseListener(eventSource, 'stream-part-delta', (e) => {
+        handlersRef.current['stream-part-delta']?.(parseJson(e.data))
+      })
+
+      addSseListener(eventSource, 'stream-finish', (e) => {
+        handlersRef.current['stream-finish']?.(parseJson(e.data))
+      })
+
+      addSseListener(eventSource, 'stream-error', (e) => {
+        handlersRef.current['stream-error']?.(parseJson(e.data))
+      })
     })
 
     return () => {

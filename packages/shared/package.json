@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "catalog:ai",
+    "ai": "catalog:ai",
     "typescript": "catalog:"
   }
 }

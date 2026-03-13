@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773361131805,
-      "tag": "0000_thin_bedlam",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773362299952,
-      "tag": "0001_woozy_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1773383083455,
-      "tag": "0002_real_karen_page",
+      "when": 1773430232204,
+      "tag": "0000_purple_rumiko_fujikawa",
       "breakpoints": true
     }
   ]
