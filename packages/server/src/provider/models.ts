@@ -83,24 +83,25 @@ export type RawProvider = z.infer<typeof ProviderSchema>;
 
 let data: Record<string, RawProvider> | undefined;
 
+function filterAllowed(raw: Record<string, RawProvider>): Record<string, RawProvider> {
+  return Object.fromEntries(
+    Object.entries(raw).filter(([key]) =>
+      (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key),
+    ),
+  );
+}
+
 export async function get(): Promise<Record<string, RawProvider>> {
   if (data) return data as Record<string, RawProvider>;
   const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
-    data = JSON.parse(cached) as Record<string, RawProvider>;
+    data = filterAllowed(JSON.parse(cached) as Record<string, RawProvider>);
     return data as Record<string, RawProvider>;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
-  data = JSON.parse(json) as Record<string, RawProvider>;
-
-  // filter out providers that we don't allowlisted
-  data = Object.fromEntries(
-    Object.entries(data).filter(([key]) =>
-      (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key),
-    ),
-  );
+  data = filterAllowed(JSON.parse(json) as Record<string, RawProvider>);
 
   return data as Record<string, RawProvider>;
 }
