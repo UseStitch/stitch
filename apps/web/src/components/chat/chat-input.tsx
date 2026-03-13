@@ -4,6 +4,7 @@ import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lu
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 
 const SEPARATOR = ':::';
@@ -101,7 +102,8 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             </div>
 
             {/* List */}
-            <div className="overflow-y-auto p-1 flex-1">
+            <ScrollArea className="flex-1 max-h-70">
+              <div className="p-1">
               {filtered.length === 0 && (
                 <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
               )}
@@ -132,7 +134,8 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
                   })}
                 </div>
               ))}
-            </div>
+              </div>
+            </ScrollArea>
           </PopoverPrimitive.Popup>
         </PopoverPrimitive.Positioner>
       </PopoverPrimitive.Portal>

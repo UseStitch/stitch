@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon, PaletteIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useDialogContext } from '@/context/dialog-context';
 import { GeneralSettings } from '@/components/settings/general';
@@ -76,9 +77,11 @@ export function SettingsDialog() {
               </div>
             ))}
           </aside>
-          <main className="flex-1 overflow-y-auto p-8">
-            <SettingsContent activeItem={activeItem} />
-          </main>
+          <ScrollArea className="flex-1">
+            <main className="p-8">
+              <SettingsContent activeItem={activeItem} />
+            </main>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
