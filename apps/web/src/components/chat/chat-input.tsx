@@ -104,36 +104,36 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             {/* List */}
             <ScrollArea className="flex-1 max-h-70">
               <div className="p-1">
-              {filtered.length === 0 && (
-                <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
-              )}
-              {filtered.map((provider, idx) => (
-                <div key={provider.providerId}>
-                  {idx > 0 && <div className="my-1 h-px bg-border/50" />}
-                  <p className="text-muted-foreground px-2 py-1 text-xs font-medium">
-                    {provider.providerName}
-                  </p>
-                  {provider.models.map((model) => {
-                    const val = `${provider.providerId}${SEPARATOR}${model.id}`;
-                    const isSelected = selectedValue === val;
-                    return (
-                      <PopoverPrimitive.Close
-                        key={val}
-                        onClick={() => onSelect(val)}
-                        className={cn(
-                          'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
-                          'transition-colors hover:bg-accent hover:text-accent-foreground',
-                          'focus-visible:outline-none focus-visible:bg-accent',
-                          isSelected && 'font-medium',
-                        )}
-                      >
-                        <span>{model.name}</span>
-                        {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
-                      </PopoverPrimitive.Close>
-                    );
-                  })}
-                </div>
-              ))}
+                {filtered.length === 0 && (
+                  <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
+                )}
+                {filtered.map((provider, idx) => (
+                  <div key={provider.providerId}>
+                    {idx > 0 && <div className="my-1 h-px bg-border/50" />}
+                    <p className="text-muted-foreground px-2 py-1 text-xs font-medium">
+                      {provider.providerName}
+                    </p>
+                    {provider.models.map((model) => {
+                      const val = `${provider.providerId}${SEPARATOR}${model.id}`;
+                      const isSelected = selectedValue === val;
+                      return (
+                        <PopoverPrimitive.Close
+                          key={val}
+                          onClick={() => onSelect(val)}
+                          className={cn(
+                            'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
+                            'transition-colors hover:bg-accent hover:text-accent-foreground',
+                            'focus-visible:outline-none focus-visible:bg-accent',
+                            isSelected && 'font-medium',
+                          )}
+                        >
+                          <span>{model.name}</span>
+                          {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
+                        </PopoverPrimitive.Close>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </ScrollArea>
           </PopoverPrimitive.Popup>

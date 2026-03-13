@@ -54,7 +54,10 @@ describe('theme validation', () => {
             const bgLightness = parseOklchLightness(tokens['background']);
             const fgLightness = parseOklchLightness(tokens['foreground']);
             const contrast = Math.abs(bgLightness - fgLightness);
-            expect(contrast, 'foreground must differ from background by at least 0.5 lightness').toBeGreaterThanOrEqual(0.5);
+            expect(
+              contrast,
+              'foreground must differ from background by at least 0.5 lightness',
+            ).toBeGreaterThanOrEqual(0.5);
           });
 
           test('primary-foreground contrasts with primary', () => {
@@ -62,7 +65,10 @@ describe('theme validation', () => {
             const primaryL = parseOklchLightness(tokens['primary']);
             const primaryFgL = parseOklchLightness(tokens['primary-foreground']);
             const contrast = Math.abs(primaryL - primaryFgL);
-            expect(contrast, 'primary-foreground must differ from primary by at least 0.4 lightness').toBeGreaterThanOrEqual(0.4);
+            expect(
+              contrast,
+              'primary-foreground must differ from primary by at least 0.4 lightness',
+            ).toBeGreaterThanOrEqual(0.4);
           });
 
           test('destructive-foreground contrasts with destructive', () => {
@@ -70,7 +76,10 @@ describe('theme validation', () => {
             const destructiveL = parseOklchLightness(tokens['destructive']);
             const destructiveFgL = parseOklchLightness(tokens['destructive-foreground']);
             const contrast = Math.abs(destructiveL - destructiveFgL);
-            expect(contrast, 'destructive-foreground must differ from destructive by at least 0.25 lightness').toBeGreaterThanOrEqual(0.25);
+            expect(
+              contrast,
+              'destructive-foreground must differ from destructive by at least 0.25 lightness',
+            ).toBeGreaterThanOrEqual(0.25);
           });
 
           test('muted, secondary, and accent are distinct from each other', () => {

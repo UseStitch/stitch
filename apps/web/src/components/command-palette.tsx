@@ -51,10 +51,7 @@ export function CommandPalette() {
               {actions.map((action) => {
                 const shortcut = getShortcutDisplay(action.id);
                 return (
-                  <CommandItem
-                    key={action.id}
-                    onSelect={() => handleSelect(action)}
-                  >
+                  <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                     <span className="flex-1">{action.label}</span>
                     {shortcut && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
