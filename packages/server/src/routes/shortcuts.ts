@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { SHORTCUT_ACTION_IDS } from '@openwork/shared';
+import type { ShortcutActionId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
-import { SHORTCUT_ACTION_IDS, keyboardShortcuts, type ShortcutActionId } from '../db/schema.js';
+import { keyboardShortcuts } from '../db/schema.js';
 
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);
 

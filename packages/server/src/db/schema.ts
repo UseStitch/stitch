@@ -1,11 +1,6 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { ProviderCredentials } from '../provider/provider.js';
-
-export const SETTINGS_KEYS = ['model.default', 'model.compaction', 'model.title'] as const;
-export type SettingsKey = (typeof SETTINGS_KEYS)[number];
-
-export const SHORTCUT_ACTION_IDS = ['command-palette', 'open-settings', 'toggle-sidebar'] as const;
-export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
+import type { SettingsKey, ShortcutActionId } from '@openwork/shared';
 
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),

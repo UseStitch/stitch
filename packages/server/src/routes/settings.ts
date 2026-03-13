@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { SETTINGS_KEYS } from '@openwork/shared';
+import type { SettingsKey } from '@openwork/shared';
 import { getDb } from '../db/client.js';
-import { SETTINGS_KEYS, userSettings, type SettingsKey } from '../db/schema.js';
+import { userSettings } from '../db/schema.js';
 
 const ALLOWED_KEYS: ReadonlySet<string> = new Set(SETTINGS_KEYS);
 
