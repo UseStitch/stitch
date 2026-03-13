@@ -1,6 +1,7 @@
 import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSidebar } from '@/components/ui/sidebar'
+import { ServerStatus } from '@/components/server-status'
 
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
@@ -44,7 +45,8 @@ export function TitleBar() {
           )}
         </button>
       </div>
-      <div className="flex h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div className="flex h-full items-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <ServerStatus />
         <button
           onClick={handleMinimize}
           className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors"
