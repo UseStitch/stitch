@@ -11,10 +11,6 @@ export function unregisterConnection(stream: SSEStreamingApi): void {
   connections.delete(stream);
 }
 
-export function getConnectionCount(): number {
-  return connections.size;
-}
-
 export async function broadcast(event: SseEventName, data: unknown): Promise<void> {
   const payload = JSON.stringify(data);
   await Promise.allSettled(

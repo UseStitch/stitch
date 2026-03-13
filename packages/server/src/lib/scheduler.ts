@@ -1,6 +1,6 @@
-export type Callback = () => void | Promise<void>;
+type Callback = () => void | Promise<void>;
 
-export type Task = {
+type Task = {
   id: string;
   callback: Callback;
   timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;

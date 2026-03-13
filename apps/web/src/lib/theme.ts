@@ -47,7 +47,7 @@ export const THEME_TOKEN_KEYS = [
 export type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
 export type ThemeTokens = Record<ThemeTokenKey, string>;
 
-export type ThemeDefinition = {
+type ThemeDefinition = {
   name: string;
   label: string;
   radius: string;
@@ -74,7 +74,7 @@ function buildCssVars(tokens: ThemeTokens): string {
     .join('\n');
 }
 
-export function buildThemeCss(theme: ThemeDefinition): string {
+function buildThemeCss(theme: ThemeDefinition): string {
   const lightVars = buildCssVars(theme.light);
   const darkVars = buildCssVars(theme.dark);
   const radiusVar = `  --radius: ${theme.radius};`;

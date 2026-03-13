@@ -2,9 +2,9 @@ import { queryOptions, type QueryClient, type MutationOptions } from '@tanstack/
 import { toast } from 'sonner';
 import { serverFetch } from '@/lib/api';
 
-export type UserSettings = Record<string, string>;
+type UserSettings = Record<string, string>;
 
-export const settingsKeys = {
+const settingsKeys = {
   all: ['settings'] as const,
   list: () => [...settingsKeys.all, 'list'] as const,
 };

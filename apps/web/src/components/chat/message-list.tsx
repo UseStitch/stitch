@@ -2,7 +2,7 @@ import type { Message } from '@openwork/shared';
 import { MessageBubble, StreamingMessageBubble } from '@/components/chat/message-bubble';
 import type { ChatStreamState } from '@/hooks/use-chat-stream';
 
-export type MessageListProps = {
+type MessageListProps = {
   messages: Message[];
   streamState: ChatStreamState;
 };

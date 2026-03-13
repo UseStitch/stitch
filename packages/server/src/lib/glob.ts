@@ -1,7 +1,7 @@
 import { glob, globSync, type GlobOptions } from 'glob';
 import { minimatch } from 'minimatch';
 
-export interface Options {
+interface Options {
   cwd?: string;
   absolute?: boolean;
   include?: 'file' | 'all';

@@ -1,9 +1,9 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { serverFetch } from '@/lib/api';
 
-export type ShortcutOverrides = Record<string, string | null>;
+type ShortcutOverrides = Record<string, string | null>;
 
-export const shortcutKeys = {
+const shortcutKeys = {
   all: ['shortcuts'] as const,
   list: () => [...shortcutKeys.all, 'list'] as const,
 };

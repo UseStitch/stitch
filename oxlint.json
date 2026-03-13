@@ -6,7 +6,7 @@
   },
   "rules": {
     "unicorn/no-useless-fallback-in-spread": "error",
-    "no-unused-vars": "warn",
+    "no-unused-vars": "error",
     "no-unused-imports": "error",
     "eqeqeq": "error",
     "typescript/no-unnecessary-type-assertion": "error",

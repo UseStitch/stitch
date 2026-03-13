@@ -8,7 +8,7 @@ import type {
 } from '@openwork/shared';
 import { serverFetch } from '@/lib/api';
 
-export type { Session, SessionWithMessages };
+export type {  SessionWithMessages };
 
 const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -49,12 +49,12 @@ export const sessionQueryOptions = (id: string) =>
     staleTime: Infinity,
   });
 
-export type CreateSessionInput = {
+type CreateSessionInput = {
   title?: string;
   parentSessionId?: string;
 };
 
-export type SendMessageInput = {
+type SendMessageInput = {
   sessionId: string;
   content: string;
   providerId: string;
@@ -62,7 +62,7 @@ export type SendMessageInput = {
   assistantMessageId: string;
 };
 
-export type SendMessageResult = {
+type SendMessageResult = {
   messageId: string;
   userMessageId: string;
 };
@@ -145,15 +145,3 @@ export function useSendMessage() {
   });
 }
 
-export function useDeleteSession() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (sessionId: string): Promise<void> => {
-      const res = await serverFetch(`/chat/sessions/${sessionId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete session');
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
-    },
-  });
-}

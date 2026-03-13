@@ -8,7 +8,7 @@ import * as Log from '../lib/log.js';
 import { PATHS } from '../lib/paths.js';
 import * as schema from './schema.js';
 
-export type Db = ReturnType<typeof drizzle<typeof schema>>;
+type Db = ReturnType<typeof drizzle<typeof schema>>;
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const log = Log.create({ service: 'db' });

@@ -10,7 +10,7 @@ import type { ProviderCredentials } from '../provider/provider.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
-export type LlmMessage = { role: 'user' | 'assistant'; content: string };
+type LlmMessage = { role: 'user' | 'assistant'; content: string };
 
 export async function runStream(opts: {
   sessionId: string;

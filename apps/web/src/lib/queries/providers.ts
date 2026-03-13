@@ -20,7 +20,7 @@ export type ProviderModels = {
   models: ModelSummary[];
 };
 
-export type ProviderCredentials = Record<string, unknown>;
+type ProviderCredentials = Record<string, unknown>;
 
 export const providerKeys = {
   all: ['providers'] as const,

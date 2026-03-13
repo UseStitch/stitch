@@ -237,7 +237,7 @@ function ChatInputInner({
   );
 }
 
-export type ChatInputProps = {
+type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;

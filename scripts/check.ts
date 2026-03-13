@@ -5,7 +5,7 @@ const steps = [
   { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
   { name: 'lint', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '.'] },
-  // { name: "knip", cmd: ["bunx", "knip"] },
+  { name: 'knip', cmd: ['bunx', 'knip'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
 ];
 

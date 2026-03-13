@@ -177,7 +177,7 @@ function groupStoredParts(parts: StoredPart[]): DisplaySegment[] {
   return segments;
 }
 
-export type MessageBubbleProps = {
+type MessageBubbleProps = {
   role: 'user' | 'assistant';
   parts: StoredPart[];
 };
@@ -240,7 +240,7 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
 
 // ─── Streaming message bubble ─────────────────────────────────────────────────
 
-export type StreamingMessageBubbleProps = {
+type StreamingMessageBubbleProps = {
   partIds: string[];
   parts: Record<string, StreamingPart>;
   isStreaming: boolean;

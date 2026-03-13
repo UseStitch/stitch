@@ -5,10 +5,10 @@ import z from 'zod';
 import * as Glob from './glob.js';
 import { PATHS } from './paths.js';
 
-export const Level = z
+const Level = z
   .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
   .meta({ ref: 'LogLevel', description: 'Log level' });
-export type Level = z.infer<typeof Level>;
+type Level = z.infer<typeof Level>;
 
 const levelPriority: Record<Level, number> = {
   DEBUG: 0,
@@ -23,7 +23,7 @@ function shouldLog(input: Level): boolean {
   return levelPriority[input] >= levelPriority[level];
 }
 
-export type Logger = {
+type Logger = {
   debug(message?: any, extra?: Record<string, any>): void;
   info(message?: any, extra?: Record<string, any>): void;
   error(message?: any, extra?: Record<string, any>): void;
@@ -41,9 +41,7 @@ export type Logger = {
 
 const loggers = new Map<string, Logger>();
 
-export const Default = create({ service: 'default' });
-
-export interface Options {
+interface Options {
   print: boolean;
   dev?: boolean;
   level?: Level;
