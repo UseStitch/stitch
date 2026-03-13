@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { useShortcuts } from '@/lib/shortcuts'
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts'
+import { providersQueryOptions } from '@/lib/queries/providers'
 import { TitleBar } from '../components/title-bar'
 import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
@@ -17,7 +18,10 @@ interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
-  loader: ({ context }) => context.queryClient.ensureQueryData(shortcutsQueryOptions),
+  loader: ({ context }) => Promise.all([
+    context.queryClient.ensureQueryData(shortcutsQueryOptions),
+    context.queryClient.ensureQueryData(providersQueryOptions),
+  ]),
 })
 
 function RootComponent() {

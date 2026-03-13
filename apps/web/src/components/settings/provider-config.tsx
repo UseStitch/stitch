@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { providerConfigQueryOptions, providerKeys, type ProviderSummary } from '@/lib/queries/providers'
 import { serverFetch } from '@/lib/api'
-import { PROVIDER_META, type AuthMethodDef, type FieldDef } from '@/components/settings/provider-metadata'
+import { PROVIDER_META, PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@openwork/shared'
 
 type Props = {
   provider: ProviderSummary
@@ -64,7 +64,9 @@ function NoFieldsNote({ method }: { method: string }) {
 }
 
 export function ProviderConfig({ provider, onBack }: Props) {
-  const meta = PROVIDER_META[provider.id]
+  const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
+    ? PROVIDER_META[provider.id as ProviderId]
+    : undefined
   const queryClient = useQueryClient()
   const { data: existingConfig } = useQuery(providerConfigQueryOptions(provider.id))
 
@@ -153,6 +155,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
   }
 
   function handleSave() {
+    if (!meta) return
     const auth: Record<string, unknown> = { method: activeTab }
     const methodDef = meta.authMethods.find((m) => m.method === activeTab)
     if (methodDef) {

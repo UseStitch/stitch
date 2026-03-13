@@ -1,3 +1,5 @@
+export * from './providers.js';
+
 export const SETTINGS_KEYS = ['model.default', 'model.compaction', 'model.title'] as const;
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 

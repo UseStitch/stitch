@@ -3,7 +3,7 @@ import { PlusIcon, BoxIcon, CpuIcon, SparklesIcon, CloudIcon, SearchIcon, Triang
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { type ProviderSummary, providerKeys } from '@/lib/queries/providers'
-import { PROVIDER_META } from '@/components/settings/provider-metadata'
+import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared'
 import { serverFetch } from '@/lib/api'
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -22,7 +22,9 @@ type Props = {
 }
 
 export function ProviderRow({ provider, onSelect }: Props) {
-  const meta = PROVIDER_META[provider.id]
+  const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
+    ? PROVIDER_META[provider.id as ProviderId]
+    : undefined
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({

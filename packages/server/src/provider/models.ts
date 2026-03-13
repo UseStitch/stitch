@@ -1,19 +1,13 @@
 import fs from 'node:fs/promises';
 import z from 'zod';
+import { PROVIDER_IDS, type ProviderId } from '@openwork/shared';
 import * as Log from '../lib/log.js';
 import { PATHS } from '../lib/paths.js';
 
 const log = Log.create({ service: 'models.dev' });
 const URL = 'https://models.dev';
 
-export const ALLOWERD_PROVIDER_IDS = [
-  'amazon-bedrock',
-  'anthropic',
-  'google',
-  'openai',
-  'openrouter',
-  'vercel',
-] as const;
+export const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
 
 export const ModelSchema = z.object({
   id: z.string(),

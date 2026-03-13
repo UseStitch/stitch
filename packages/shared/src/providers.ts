@@ -9,6 +9,7 @@ export type FieldDef = {
 export type AuthMethodDef = {
   method: string
   label: string
+  enabled: boolean
   fields: FieldDef[]
 }
 
@@ -19,7 +20,19 @@ export type ProviderMeta = {
   authMethods: AuthMethodDef[]
 }
 
-export const PROVIDER_META: Record<string, ProviderMeta> = {
+export const PROVIDER_IDS = [
+  'amazon-bedrock',
+  'anthropic',
+  'google',
+  'google-vertex',
+  'openai',
+  'openrouter',
+  'vercel',
+] as const;
+
+export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   anthropic: {
     displayName: 'Anthropic',
     description: 'Direct access to Claude models, including Pro and Max',
@@ -28,7 +41,14 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-ant-...', required: true, secret: true }],
+      },
+      {
+        method: 'auth-token',
+        label: 'Auth Token',
+        enabled: false,
+        fields: [{ key: 'authToken', label: 'Auth Token', placeholder: '', required: true, secret: true }],
       },
     ],
   },
@@ -43,6 +63,7 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-...', required: true, secret: true }],
       },
     ],
@@ -55,7 +76,36 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'AIza...', required: true, secret: true }],
+      },
+    ],
+  },
+  'google-vertex': {
+    displayName: 'Google Vertex AI',
+    description: 'Access to Gemini models via Google Cloud Vertex AI',
+    extraFields: [
+      { key: 'project', label: 'Project', placeholder: 'my-gcp-project', required: false, secret: false },
+      { key: 'location', label: 'Location', placeholder: 'us-central1', required: false, secret: false },
+    ],
+    authMethods: [
+      {
+        method: 'api-key',
+        label: 'API Key',
+        enabled: false,
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: '', required: true, secret: true }],
+      },
+      {
+        method: 'adc',
+        label: 'Application Default Credentials',
+        enabled: false,
+        fields: [],
+      },
+      {
+        method: 'service-account',
+        label: 'Service Account',
+        enabled: false,
+        fields: [],
       },
     ],
   },
@@ -69,7 +119,24 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true }],
+      },
+      {
+        method: 'iam',
+        label: 'IAM Credentials',
+        enabled: false,
+        fields: [
+          { key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...', required: true, secret: false },
+          { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: '', required: true, secret: true },
+          { key: 'sessionToken', label: 'Session Token', placeholder: '', required: false, secret: true },
+        ],
+      },
+      {
+        method: 'credential-provider',
+        label: 'Credential Provider Chain',
+        enabled: false,
+        fields: [],
       },
     ],
   },
@@ -81,6 +148,7 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-or-...', required: true, secret: true }],
       },
     ],
@@ -93,6 +161,7 @@ export const PROVIDER_META: Record<string, ProviderMeta> = {
       {
         method: 'api-key',
         label: 'API Key',
+        enabled: true,
         fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true }],
       },
     ],
