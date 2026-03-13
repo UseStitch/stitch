@@ -3,19 +3,62 @@ import defaultTheme from '@/themes/default.json';
 import oceanTheme from '@/themes/ocean.json';
 import roseTheme from '@/themes/rose.json';
 
-export type ThemeTokens = Record<string, string>;
+export const THEME_TOKEN_KEYS = [
+  'background',
+  'foreground',
+  'card',
+  'card-foreground',
+  'popover',
+  'popover-foreground',
+  'primary',
+  'primary-foreground',
+  'secondary',
+  'secondary-foreground',
+  'muted',
+  'muted-foreground',
+  'accent',
+  'accent-foreground',
+  'destructive',
+  'destructive-foreground',
+  'success',
+  'success-foreground',
+  'warning',
+  'warning-foreground',
+  'info',
+  'info-foreground',
+  'border',
+  'input',
+  'ring',
+  'chart-1',
+  'chart-2',
+  'chart-3',
+  'chart-4',
+  'chart-5',
+  'sidebar',
+  'sidebar-foreground',
+  'sidebar-primary',
+  'sidebar-primary-foreground',
+  'sidebar-accent',
+  'sidebar-accent-foreground',
+  'sidebar-border',
+  'sidebar-ring',
+] as const;
+
+export type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
+export type ThemeTokens = Record<ThemeTokenKey, string>;
 
 export type ThemeDefinition = {
   name: string;
   label: string;
+  radius: string;
   light: ThemeTokens;
   dark: ThemeTokens;
 };
 
 export const THEMES: ThemeDefinition[] = [
-  defaultTheme as ThemeDefinition,
-  oceanTheme as ThemeDefinition,
-  roseTheme as ThemeDefinition,
+  defaultTheme satisfies ThemeDefinition,
+  oceanTheme satisfies ThemeDefinition,
+  roseTheme satisfies ThemeDefinition,
 ];
 
 export const DEFAULT_THEME = 'default';
@@ -34,7 +77,8 @@ function buildCssVars(tokens: ThemeTokens): string {
 export function buildThemeCss(theme: ThemeDefinition): string {
   const lightVars = buildCssVars(theme.light);
   const darkVars = buildCssVars(theme.dark);
-  return `:root {\n${lightVars}\n}\n\n.dark {\n${darkVars}\n}`;
+  const radiusVar = `  --radius: ${theme.radius};`;
+  return `:root {\n${radiusVar}\n${lightVars}\n}\n\n.dark {\n${darkVars}\n}`;
 }
 
 const THEME_STYLE_ID = 'openwork-theme';

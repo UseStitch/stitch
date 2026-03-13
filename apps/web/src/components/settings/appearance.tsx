@@ -2,6 +2,7 @@ import type { AppearanceMode } from '@openwork/shared';
 import { APPEARANCE_MODES } from '@openwork/shared';
 import { useTheme } from '@/hooks/use-theme';
 import { THEMES } from '@/lib/theme';
+import type { ThemeTokens } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
 const MODE_LABELS: Record<AppearanceMode, string> = {
@@ -12,6 +13,13 @@ const MODE_LABELS: Record<AppearanceMode, string> = {
 
 export function AppearanceSettings() {
   const { mode, themeName, setMode, setTheme } = useTheme();
+
+  const effectiveMode =
+    mode === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      : mode;
 
   return (
     <div className="space-y-8">
@@ -54,7 +62,7 @@ export function AppearanceSettings() {
                   : 'border-border hover:border-foreground/30',
               )}
             >
-              <ThemePreview tokens={t.light} />
+              <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
               <span className="text-xs font-medium">{t.label}</span>
             </button>
           ))}
@@ -64,19 +72,13 @@ export function AppearanceSettings() {
   );
 }
 
-function ThemePreview({ tokens }: { tokens: Record<string, string> }) {
+function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
     <div
       className="h-12 rounded-md overflow-hidden flex gap-1 p-1.5"
       style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}
     >
-      <div
-        className="w-5 rounded-sm shrink-0"
-        style={{
-          background:
-            tokens['sidebar'] !== 'var(--background)' ? tokens['sidebar'] : tokens['muted'],
-        }}
-      />
+      <div className="w-5 rounded-sm shrink-0" style={{ background: tokens['sidebar'] }} />
       <div className="flex-1 flex flex-col gap-1">
         <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />
         <div className="h-2 w-1/2 rounded-sm" style={{ background: tokens['primary'] }} />

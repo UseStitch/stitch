@@ -54,15 +54,14 @@ export function CommandPalette() {
                   <CommandItem
                     key={action.id}
                     onSelect={() => handleSelect(action)}
-                    className="justify-between"
                   >
-                    <span>{action.label}</span>
+                    <span className="flex-1">{action.label}</span>
                     {shortcut && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
                         {shortcut.split('+').map((key, i) => (
                           <kbd
                             key={i}
-                            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium"
+                            className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
                           >
                             {key}
                           </kbd>

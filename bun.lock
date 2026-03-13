@@ -66,6 +66,7 @@
         "typescript": "catalog:",
         "unified": "^11.0.5",
         "vite": "8.0.0",
+        "vitest": "catalog:testing",
       },
     },
     "packages/server": {
