@@ -146,7 +146,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
   function handleMethodFieldChange(key: string, value: string) {
     setFieldsByMethod((prev) => ({
       ...prev,
-      [activeTab]: { ...(prev[activeTab] ?? {}), [key]: value },
+      [activeTab]: { ...prev[activeTab], [key]: value },
     }))
   }
 
@@ -231,7 +231,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
                     onChange={(key, value) =>
                       setFieldsByMethod((prev) => ({
                         ...prev,
-                        [m.method]: { ...(prev[m.method] ?? {}), [key]: value },
+                        [m.method]: { ...prev[m.method], [key]: value },
                       }))
                     }
                   />

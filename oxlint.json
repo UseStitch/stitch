@@ -1,12 +1,16 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["import"],
+  "options": {
+    "typeAware": true
+  },
   "rules": {
+    "unicorn/no-useless-fallback-in-spread": "error",
     "no-unused-vars": "warn",
     "no-unused-imports": "error",
     "eqeqeq": "error",
     "typescript/no-unnecessary-type-assertion": "error",
-    "typescript-eslint/no-floating-promises": "error",
+    "typescript/no-floating-promises": "error",
     "import/no-dynamic-require": [
       "error",
       {
