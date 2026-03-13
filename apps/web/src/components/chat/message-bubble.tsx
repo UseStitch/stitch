@@ -1,5 +1,9 @@
 import * as React from 'react'
-import ReactMarkdown from 'react-markdown'
+import { MarkdownHooks } from 'react-markdown'
+import rehypeShiki from '@shikijs/rehype'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import type { Pluggable } from 'unified'
 import { ChevronDownIcon, ChevronRightIcon, WrenchIcon, LinkIcon, FileIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StoredPart } from '@openwork/shared'
@@ -7,10 +11,17 @@ import type { StreamingPart } from '@/hooks/use-chat-stream'
 
 // ─── Shared markdown renderer ─────────────────────────────────────────────────
 
+const rehypePlugins: Pluggable[] = [
+  rehypeKatex,
+  [rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' } }],
+]
+
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
     <div className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
-      <ReactMarkdown>{text}</ReactMarkdown>
+      <MarkdownHooks remarkPlugins={[remarkMath]} rehypePlugins={rehypePlugins}>
+        {text}
+      </MarkdownHooks>
     </div>
   )
 }
