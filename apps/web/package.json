@@ -16,6 +16,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
     "@tanstack/router-plugin": "1.166.7",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
