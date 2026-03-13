@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { ChatInput } from '@/components/chat-input'
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers'
 
 export const Route = createFileRoute('/')({
+  loader: ({ context }) => context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
   component: IndexComponent,
 })
 
