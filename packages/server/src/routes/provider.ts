@@ -1,5 +1,12 @@
 import { Hono } from 'hono';
+import * as Log from '../lib/log.js';
 import * as Models from '../provider/models.js';
+
+const log = Log.create({ service: 'provider-routes' });
+
+function assertAllowed(providerId: string): boolean {
+  return (Models.ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
+}
 
 type ProviderSummary = {
   id: string;
@@ -48,23 +55,38 @@ providerRouter.get('/', async (c) => {
 });
 
 providerRouter.get('/:providerId', async (c) => {
+  const providerId = c.req.param('providerId');
+  if (!assertAllowed(providerId)) {
+    log.warn('Blocked access to non-allowed provider', { providerId });
+    return c.json({ error: 'Provider not found' }, 404);
+  }
   const data = await Models.get();
-  const provider = data[c.req.param('providerId')];
+  const provider = data[providerId];
   if (!provider) return c.json({ error: 'Provider not found' }, 404);
   return c.json(toProviderSummary(provider));
 });
 
 providerRouter.get('/:providerId/models', async (c) => {
+  const providerId = c.req.param('providerId');
+  if (!assertAllowed(providerId)) {
+    log.warn('Blocked access to non-allowed provider', { providerId });
+    return c.json({ error: 'Provider not found' }, 404);
+  }
   const data = await Models.get();
-  const provider = data[c.req.param('providerId')];
+  const provider = data[providerId];
   if (!provider) return c.json({ error: 'Provider not found' }, 404);
   const models = Object.values(provider.models).map(toModelSummary);
   return c.json(models);
 });
 
 providerRouter.get('/:providerId/models/:modelId', async (c) => {
+  const providerId = c.req.param('providerId');
+  if (!assertAllowed(providerId)) {
+    log.warn('Blocked access to non-allowed provider', { providerId });
+    return c.json({ error: 'Provider not found' }, 404);
+  }
   const data = await Models.get();
-  const provider = data[c.req.param('providerId')];
+  const provider = data[providerId];
   if (!provider) return c.json({ error: 'Provider not found' }, 404);
   const model = provider.models[c.req.param('modelId')];
   if (!model) return c.json({ error: 'Model not found' }, 404);
