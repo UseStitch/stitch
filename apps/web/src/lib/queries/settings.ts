@@ -11,6 +11,7 @@ export const settingsKeys = {
 
 export const settingsQueryOptions = queryOptions({
   queryKey: settingsKeys.list(),
+  staleTime: Infinity,
   queryFn: async (): Promise<UserSettings> => {
     const res = await serverFetch('/settings')
     if (!res.ok) throw new Error('Failed to fetch settings')

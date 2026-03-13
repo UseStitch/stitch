@@ -10,6 +10,7 @@ export const shortcutKeys = {
 
 export const shortcutsQueryOptions = queryOptions({
   queryKey: shortcutKeys.list(),
+  staleTime: Infinity,
   queryFn: async (): Promise<ShortcutOverrides> => {
     const res = await serverFetch('/shortcuts')
     if (!res.ok) throw new Error('Failed to fetch shortcuts')

@@ -31,6 +31,7 @@ export const providerKeys = {
 
 export const providersQueryOptions = queryOptions({
   queryKey: providerKeys.list(),
+  staleTime: Infinity,
   queryFn: async (): Promise<ProviderSummary[]> => {
     const res = await serverFetch('/provider')
     if (!res.ok) throw new Error('Failed to fetch providers')
@@ -40,6 +41,7 @@ export const providersQueryOptions = queryOptions({
 
 export const enabledProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.enabledModels(),
+  staleTime: Infinity,
   queryFn: async (): Promise<ProviderModels[]> => {
     const providersRes = await serverFetch('/provider')
     if (!providersRes.ok) throw new Error('Failed to fetch providers')
@@ -63,6 +65,7 @@ export const enabledProviderModelsQueryOptions = queryOptions({
 export const providerConfigQueryOptions = (providerId: string) =>
   queryOptions({
     queryKey: providerKeys.config(providerId),
+    staleTime: Infinity,
     queryFn: async (): Promise<ProviderCredentials | null> => {
       const res = await serverFetch(`/provider/${providerId}/config`)
       if (res.status === 404) return null
