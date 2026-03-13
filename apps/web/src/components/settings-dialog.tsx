@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { useDialogContext } from "@/context/dialog-context"
 import { GeneralSettings } from "@/components/settings/general"
 import { ShortcutsSettings } from "@/components/settings/shortcuts"
 import { ProvidersSettings } from "@/components/settings/providers"
@@ -40,16 +41,12 @@ const SECTIONS: SettingsSection[] = [
   },
 ]
 
-interface SettingsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export function SettingsDialog() {
+  const { settingsOpen, setSettingsOpen } = useDialogContext()
   const [activeItem, setActiveItem] = React.useState("general")
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
       <DialogHeader className="sr-only">
         <DialogTitle>Settings</DialogTitle>
       </DialogHeader>

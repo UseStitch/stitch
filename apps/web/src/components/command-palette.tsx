@@ -3,6 +3,7 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
+  CommandItem,
   CommandList,
 } from "@/components/ui/command"
 import {
@@ -12,15 +13,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useDialogContext } from "@/context/dialog-context"
+import { useActions, type Action } from "@/lib/actions"
 
-interface CommandPaletteProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+export function CommandPalette() {
+  const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext()
+  const actions = useActions()
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  function handleSelect(action: Action) {
+    setCommandPaletteOpen(false)
+    action.run()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
       <DialogHeader className="sr-only">
         <DialogTitle>Command Palette</DialogTitle>
         <DialogDescription>Search for a command to run...</DialogDescription>
@@ -34,6 +40,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Actions">
+              {actions.map((action) => (
+                <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
+                  {action.label}
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>

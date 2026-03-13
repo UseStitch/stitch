@@ -1,10 +1,11 @@
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
 import * as React from 'react'
-import { useHotkey } from '@tanstack/react-hotkeys'
-import { useShortcuts } from '@/lib/shortcuts'
+import { useActions } from '@/lib/actions'
+import { useGlobalHotkeys } from '@/lib/use-global-hotkeys'
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts'
 import { providersQueryOptions } from '@/lib/queries/providers'
+import { DialogProvider } from '@/context/dialog-context'
 import { TitleBar } from '../components/layout/title-bar'
 import { AppSidebar } from '../components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar'
@@ -25,15 +26,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   ]),
 })
 
-function RootComponent() {
-  const [commandOpen, setCommandOpen] = React.useState(false)
-  const [settingsOpen, setSettingsOpen] = React.useState(false)
-  const shortcuts = useShortcuts()
-  const commandPaletteKey = shortcuts.get('command-palette')
-  const openSettingsKey = shortcuts.get('open-settings')
-
-  useHotkey(commandPaletteKey ?? 'Mod+P', () => setCommandOpen((o) => !o), { preventDefault: true, enabled: !!commandPaletteKey })
-  useHotkey(openSettingsKey ?? 'Mod+,', () => setSettingsOpen((o) => !o), { preventDefault: true, enabled: !!openSettingsKey })
+function RootLayout() {
+  const actions = useActions()
+  useGlobalHotkeys(actions)
 
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
@@ -46,9 +41,17 @@ function RootComponent() {
           </ChatStreamProvider>
         </SidebarInset>
       </div>
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <CommandPalette />
+      <SettingsDialog />
       <Toaster position="bottom-right" />
     </SidebarProvider>
+  )
+}
+
+function RootComponent() {
+  return (
+    <DialogProvider>
+      <RootLayout />
+    </DialogProvider>
   )
 }

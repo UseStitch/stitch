@@ -15,6 +15,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'command-palette', label: 'Command palette', category: 'General', defaultHotkey: 'Mod+P' },
   { id: 'open-settings', label: 'Open settings', category: 'General', defaultHotkey: 'Mod+,' },
   { id: 'toggle-sidebar', label: 'Toggle sidebar', category: 'General', defaultHotkey: 'Mod+B' },
+  { id: 'new-session', label: 'New session', category: 'General', defaultHotkey: 'Mod+N' },
 ]
 
 export function useShortcuts(): Map<string, Hotkey | null> {
