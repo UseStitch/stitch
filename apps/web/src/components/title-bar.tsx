@@ -1,13 +1,10 @@
 import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useSidebar } from '@/components/ui/sidebar'
 
-interface TitleBarProps {
-  sidebarOpen?: boolean
-  onToggleSidebar?: () => void
-}
-
-export function TitleBar({ sidebarOpen = true, onToggleSidebar }: TitleBarProps) {
+export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
+  const { open, toggleSidebar } = useSidebar()
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -37,10 +34,10 @@ export function TitleBar({ sidebarOpen = true, onToggleSidebar }: TitleBarProps)
     <div className="h-9 bg-background flex items-center justify-between select-none" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
       <div className="flex items-center h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
-          onClick={onToggleSidebar}
+          onClick={toggleSidebar}
           className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
         >
-          {sidebarOpen ? (
+          {open ? (
             <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
           ) : (
             <PanelLeftOpen className="w-4 h-4 text-muted-foreground" />
