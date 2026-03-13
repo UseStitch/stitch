@@ -22,6 +22,7 @@ export const settingsQueryOptions = queryOptions({
 export function saveSettingMutationOptions(
   key: string,
   queryClient: QueryClient,
+  options?: { silent?: boolean },
 ): MutationOptions<void, Error, string> {
   return {
     mutationFn: async (value: string) => {
@@ -37,7 +38,7 @@ export function saveSettingMutationOptions(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all })
-      toast.success('Model preference saved')
+      if (!options?.silent) toast.success('Model preference saved')
     },
     onError: (err: Error) => toast.error(err.message),
   }

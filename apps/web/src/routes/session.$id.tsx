@@ -1,17 +1,19 @@
 import * as React from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { ChatInput } from '@/components/chat/chat-input'
 import { MessageList } from '@/components/chat/message-list'
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers'
 import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat'
 import { useChatStreamContext } from '@/context/chat-stream-context'
+import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings'
 
 export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions(params.id)),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
+      context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
   component: SessionComponent,
 })
@@ -22,9 +24,18 @@ function SessionComponent() {
   const { id } = Route.useParams()
   const queryClient = useQueryClient()
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id))
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions)
 
   const [value, setValue] = React.useState('')
-  const [selectedModel, setSelectedModel] = React.useState<string | null>(null)
+  const [modelOverride, setModelOverride] = React.useState<string | null>(null)
+  const selectedModel = modelOverride ?? settings['model.default'] ?? null
+
+  const saveDefaultModel = useMutation(saveSettingMutationOptions('model.default', queryClient, { silent: true }))
+
+  function handleModelChange(model: string | null) {
+    setModelOverride(model)
+    if (model) saveDefaultModel.mutate(model)
+  }
 
   const sendMessage = useSendMessage()
   const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext()
@@ -88,7 +99,7 @@ function SessionComponent() {
             onChange={setValue}
             onSubmit={(text) => { void handleSubmit(text) }}
             selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
+            onModelChange={handleModelChange}
             placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
           />
         </div>
