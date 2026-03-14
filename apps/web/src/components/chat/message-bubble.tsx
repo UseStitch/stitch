@@ -8,7 +8,6 @@ import type { Pluggable } from 'unified';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  WrenchIcon,
   LinkIcon,
   FileIcon,
   CheckIcon,
@@ -90,15 +89,6 @@ function ReasoningBlock({ text, isStreaming }: { text: string; isStreaming?: boo
 
 // ─── Tool call block (unified lifecycle) ─────────────────────────────────────
 
-type ToolCallBlockProps = {
-  toolName: string;
-  status: ToolCallStatus;
-  input: unknown | null;
-  partialInput?: string;
-  output?: unknown | null;
-  error?: string | null;
-};
-
 function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
     case 'pending':
@@ -120,20 +110,14 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
   }
 }
 
-function ToolCallBlock({ toolName, status, input, partialInput, output, error }: ToolCallBlockProps) {
-  const [open, setOpen] = React.useState(false);
+function ToolCallBlock({ toolName, status }: { toolName: string; status: ToolCallStatus }) {
+  const hasError = status === 'error';
   const isActive = status === 'pending' || status === 'in-progress';
-  const hasOutput = status === 'completed' && output !== null && output !== undefined;
-  const hasError = status === 'error' && error !== null && error !== undefined;
-
-  const displayInput = input !== null && input !== undefined
-    ? JSON.stringify(input, null, 2)
-    : (partialInput ?? '');
 
   return (
     <div
       className={cn(
-        'my-2 rounded-lg border text-xs transition-colors',
+        'my-2 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors',
         hasError
           ? 'border-destructive/40 bg-destructive/5'
           : isActive
@@ -141,65 +125,8 @@ function ToolCallBlock({ toolName, status, input, partialInput, output, error }:
             : 'border-border/40 bg-muted/20',
       )}
     >
-      {/* Header row */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
-      >
-        <StatusIcon status={status} />
-        <WrenchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className={cn('font-medium', hasError ? 'text-destructive' : 'text-foreground')}>
-          {toolName}
-        </span>
-        <span className={cn(
-          'ml-1 text-muted-foreground',
-          isActive && 'animate-pulse',
-        )}>
-          {status === 'pending' && 'preparing...'}
-          {status === 'in-progress' && 'running...'}
-          {status === 'completed' && 'done'}
-          {status === 'error' && 'failed'}
-        </span>
-        {(displayInput || hasOutput || hasError) && (
-          <span className="ml-auto">
-            {open
-              ? <ChevronDownIcon className="size-3 text-muted-foreground" />
-              : <ChevronRightIcon className="size-3 text-muted-foreground" />
-            }
-          </span>
-        )}
-      </button>
-
-      {/* Expandable details */}
-      {open && (
-        <div className="border-t border-border/30 px-3.5 py-2.5 space-y-2">
-          {displayInput && (
-            <div>
-              <p className="mb-1 text-muted-foreground font-medium">Input</p>
-              <pre className="overflow-x-auto text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {displayInput}
-              </pre>
-            </div>
-          )}
-          {hasOutput && (
-            <div>
-              <p className="mb-1 text-muted-foreground font-medium">Output</p>
-              <pre className="overflow-x-auto text-foreground whitespace-pre-wrap leading-relaxed">
-                {JSON.stringify(output, null, 2)}
-              </pre>
-            </div>
-          )}
-          {hasError && (
-            <div>
-              <p className="mb-1 font-medium text-destructive">Error</p>
-              <pre className="overflow-x-auto text-destructive/80 whitespace-pre-wrap leading-relaxed">
-                {error}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
+      <StatusIcon status={status} />
+      <span className="font-medium">{toolName}</span>
     </div>
   );
 }
@@ -342,9 +269,6 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
                       key={seg.key}
                       toolName={part.toolName}
                       status={isError ? 'error' : 'completed'}
-                      input={part.input}
-                      output={isError ? undefined : output}
-                      error={isError ? String((output as { error: unknown }).error) : undefined}
                     />
                   );
                 }
@@ -426,10 +350,6 @@ export function StreamingMessageBubble({
                   key={partId}
                   toolName={part.toolName}
                   status={part.status}
-                  input={part.input}
-                  partialInput={part.partialInput}
-                  output={part.output}
-                  error={part.error}
                 />
               );
             case 'source': {
