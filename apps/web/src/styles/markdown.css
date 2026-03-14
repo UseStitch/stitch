@@ -107,10 +107,9 @@
 
 .prose :where(table) {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875em;
-  overflow-x: auto;
-  display: block;
   margin-top: 1em;
   margin-bottom: 1em;
 }
