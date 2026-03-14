@@ -34,9 +34,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
 
   return (
     <ContextMenu open={isOpen} onOpenChange={setIsOpen}>
-      <ContextMenuTrigger className="contents">
-        {children}
-      </ContextMenuTrigger>
+      <ContextMenuTrigger className="contents">{children}</ContextMenuTrigger>
       <ContextMenuContent
         className="fixed z-50 min-w-48"
         style={{ position: 'fixed', left: position.x, top: position.y }}

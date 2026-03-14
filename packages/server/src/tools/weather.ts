@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 export const weatherInputSchema = z.object({
   location: z.string().describe('City name or location to get weather for'),
-  unit: z.enum(['celsius', 'fahrenheit']).optional().describe('Temperature unit, defaults to celsius'),
+  unit: z
+    .enum(['celsius', 'fahrenheit'])
+    .optional()
+    .describe('Temperature unit, defaults to celsius'),
 });
 
 type WeatherInput = z.infer<typeof weatherInputSchema>;
@@ -21,7 +24,7 @@ export async function executeWeather(input: WeatherInput): Promise<WeatherOutput
   const condition = conditions[Math.floor(Math.random() * conditions.length)] ?? 'sunny';
   const baseTemp = 15 + Math.floor(Math.random() * 20);
   const unit = input.unit ?? 'celsius';
-  const temperature = unit === 'fahrenheit' ? Math.round(baseTemp * 9 / 5 + 32) : baseTemp;
+  const temperature = unit === 'fahrenheit' ? Math.round((baseTemp * 9) / 5 + 32) : baseTemp;
 
   return {
     location: input.location,

@@ -96,7 +96,15 @@ type Action =
   | { type: 'start' }
   | { type: 'part-update'; partId: string; part: PartUpdate }
   | { type: 'part-delta'; partId: string; delta: PartDelta }
-  | { type: 'tool-state'; toolCallId: string; status: ToolCallStatus; toolName: string; input?: unknown; output?: unknown; error?: string }
+  | {
+      type: 'tool-state';
+      toolCallId: string;
+      status: ToolCallStatus;
+      toolName: string;
+      input?: unknown;
+      output?: unknown;
+      error?: string;
+    }
   | { type: 'tool-input-delta'; toolCallId: string; toolName: string; inputTextDelta: string }
   | { type: 'finish'; finishReason: string; usage?: LanguageModelUsage }
   | { type: 'error'; error: string }

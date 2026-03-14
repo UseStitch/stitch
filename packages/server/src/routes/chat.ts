@@ -20,13 +20,12 @@ chatRouter.post('/sessions', async (c) => {
   const id = createSessionId();
   const now = new Date();
 
-  const title =
-    body.title ?? `New Session ${now.toLocaleString('en-US', { hour12: false })}`;
+  const title = body.title ?? `New Session ${now.toLocaleString('en-US', { hour12: false })}`;
 
   await db.insert(sessions).values({
     id,
     title,
-    parentSessionId: (body.parentSessionId ?? null) as PrefixedString<"ses"> | null,
+    parentSessionId: (body.parentSessionId ?? null) as PrefixedString<'ses'> | null,
     createdAt: now,
     updatedAt: now,
   });
@@ -47,7 +46,7 @@ chatRouter.get('/sessions', async (c) => {
 
 chatRouter.get('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<"ses">;
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
@@ -63,7 +62,7 @@ chatRouter.get('/sessions/:id', async (c) => {
 
 chatRouter.delete('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<"ses">;
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const result = await db
     .delete(sessions)
@@ -76,7 +75,7 @@ chatRouter.delete('/sessions/:id', async (c) => {
 
 chatRouter.patch('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<"ses">;
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
   const body = (await c.req.json()) as { title: string };
 
   if (!body.title) {
@@ -95,7 +94,7 @@ chatRouter.patch('/sessions/:id', async (c) => {
 
 chatRouter.post('/sessions/:id/messages', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<"ses">;
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
@@ -243,7 +242,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     }
   }
 
-  const assistantMessageId = body.assistantMessageId as PrefixedString<"msg">;
+  const assistantMessageId = body.assistantMessageId as PrefixedString<'msg'>;
   const modelLabel = `${body.providerId}:::${body.modelId}`;
 
   void runStream({

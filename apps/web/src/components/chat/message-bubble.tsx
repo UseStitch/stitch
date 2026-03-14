@@ -57,8 +57,17 @@ const syncRehypePlugins: Pluggable[] = [rehypeKatex];
 
 function SyncMarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
-      <Markdown remarkPlugins={remarkPlugins} rehypePlugins={syncRehypePlugins} components={markdownComponents}>
+    <div
+      className={cn(
+        'prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed',
+        className,
+      )}
+    >
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={syncRehypePlugins}
+        components={markdownComponents}
+      >
         {text}
       </Markdown>
     </div>
@@ -74,13 +83,22 @@ function SyncMarkdownContent({ text, className }: { text: string; className?: st
  */
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
+    <div
+      className={cn(
+        'prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed',
+        className,
+      )}
+    >
       <MarkdownHooks
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
         components={markdownComponents}
         fallback={
-          <Markdown remarkPlugins={remarkPlugins} rehypePlugins={syncRehypePlugins} components={markdownComponents}>
+          <Markdown
+            remarkPlugins={remarkPlugins}
+            rehypePlugins={syncRehypePlugins}
+            components={markdownComponents}
+          >
             {text}
           </Markdown>
         }
@@ -131,17 +149,11 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
         <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40 border-t-muted-foreground animate-spin" />
       );
     case 'in-progress':
-      return (
-        <LoaderIcon className="mt-0.5 size-3.5 shrink-0 text-blue-500 animate-spin" />
-      );
+      return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 text-blue-500 animate-spin" />;
     case 'completed':
-      return (
-        <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-      );
+      return <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />;
     case 'error':
-      return (
-        <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-      );
+      return <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />;
   }
 }
 
@@ -380,13 +392,7 @@ export function StreamingMessageBubble({
                 />
               );
             case 'tool-call':
-              return (
-                <ToolCallBlock
-                  key={partId}
-                  toolName={part.toolName}
-                  status={part.status}
-                />
-              );
+              return <ToolCallBlock key={partId} toolName={part.toolName} status={part.status} />;
             case 'source': {
               const src = part.source;
               if (src.sourceType === 'url') {

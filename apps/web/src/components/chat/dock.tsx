@@ -9,7 +9,7 @@ type DockItem = {
   defaultExpanded?: boolean;
 };
 
-type DockItemProps = Omit<DockItem, 'id'> & { 
+type DockItemProps = Omit<DockItem, 'id'> & {
   isFirst: boolean;
   isLast: boolean;
 };
@@ -19,13 +19,7 @@ type DockContainerProps = {
   className?: string;
 };
 
-function DockItem({
-  title,
-  defaultExpanded = true,
-  children,
-  isFirst,
-  isLast,
-}: DockItemProps) {
+function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: DockItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = React.useState<number>(0);
@@ -58,9 +52,9 @@ function DockItem({
         !isFirst && 'border-t-0',
         isLast && 'border-b-0 rounded-b-none',
       )}
-      style={{ 
+      style={{
         height: `${currentHeight}px`,
-        transition: 'height 250ms ease-out' 
+        transition: 'height 250ms ease-out',
       }}
     >
       <div className="flex items-center border-b border-border/40 px-3 py-2">
@@ -94,12 +88,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
   if (docks.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        'pointer-events-auto mx-auto flex max-w-4xl flex-col',
-        className,
-      )}
-    >
+    <div className={cn('pointer-events-auto mx-auto flex max-w-4xl flex-col', className)}>
       {docks.map((dock, index) => (
         <DockItem
           key={dock.id}

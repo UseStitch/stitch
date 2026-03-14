@@ -14,7 +14,7 @@ let failed = false;
 for (const step of steps) {
   const result = spawnSync(step.cmd, { stdout: 'pipe', stderr: 'pipe' });
   const output = Buffer.concat([result.stdout, result.stderr]).toString();
-  
+
   if (result.exitCode !== 0) {
     console.log(`${step.name}: Fail`);
     console.log(output);

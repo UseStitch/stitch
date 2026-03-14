@@ -12,10 +12,7 @@ const config: KnipConfig = {
       ignore: ['src/components/ui/**'],
     },
     'apps/desktop': {
-      entry: [
-        'src/main/index.ts',
-        'src/preload/index.ts',
-      ],
+      entry: ['src/main/index.ts', 'src/preload/index.ts'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/*': {

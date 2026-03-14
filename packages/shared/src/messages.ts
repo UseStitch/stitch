@@ -24,7 +24,6 @@ export type ToolInputEndPart = Extract<FullStreamPart, { type: 'tool-input-end' 
 export type ToolErrorPart = Extract<FullStreamPart, { type: 'tool-error' }>;
 export type FinishStreamPart = Extract<FullStreamPart, { type: 'finish' }>;
 
-
 export type StepStartPart = {
   type: 'step-start';
   step: number;
@@ -56,7 +55,6 @@ export type StoredPart =
   | Timestamped<ToolResultStreamPart>
   | StepStartPart
   | StepFinishPart;
-
 
 export type Message = {
   id: string;

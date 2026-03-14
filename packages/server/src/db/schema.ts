@@ -1,7 +1,13 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { ProviderCredentials } from '../provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
-import type { MessageRole, PrefixedString, SettingsKey, ShortcutActionId, StoredPart } from '@openwork/shared';
+import type {
+  MessageRole,
+  PrefixedString,
+  SettingsKey,
+  ShortcutActionId,
+  StoredPart,
+} from '@openwork/shared';
 
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),
@@ -37,10 +43,12 @@ export const providerConfig = sqliteTable('provider_config', {
 });
 
 export const sessions = sqliteTable('sessions', {
-  id: text('id').$type<PrefixedString<"ses">>().primaryKey(),
+  id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
   sessionType: text('session_type').$type<'user' | 'title'>().notNull().default('user'),
-  parentSessionId: text('parent_session_id').$type<PrefixedString<"ses"> | null>().references((): ReturnType<typeof text> => sessions.id),
+  parentSessionId: text('parent_session_id')
+    .$type<PrefixedString<'ses'> | null>()
+    .references((): ReturnType<typeof text> => sessions.id),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -50,7 +58,7 @@ export const sessions = sqliteTable('sessions', {
 });
 
 export const messages = sqliteTable('messages', {
-  id: text('id').$type<PrefixedString<"msg">>().primaryKey(),
+  id: text('id').$type<PrefixedString<'msg'>>().primaryKey(),
   sessionId: text('session_id')
     .notNull()
     .references(() => sessions.id, { onDelete: 'cascade' }),

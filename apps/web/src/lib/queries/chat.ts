@@ -9,7 +9,7 @@ import type {
 import { createMessageId } from '@openwork/shared';
 import { serverFetch } from '@/lib/api';
 
-export type {  SessionWithMessages };
+export type { SessionWithMessages };
 
 const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -170,4 +170,3 @@ export function useSendMessage() {
     },
   });
 }
-

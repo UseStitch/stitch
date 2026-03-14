@@ -114,10 +114,9 @@ export function extractErrorInfo(error: unknown, providerId?: string): ErrorInfo
 
     const isContextOverflow = isOverflow(message, error.statusCode);
 
-    const isRetryable =
-      providerId?.startsWith('openai')
-        ? isOpenAiErrorRetryable(error)
-        : error.isRetryable;
+    const isRetryable = providerId?.startsWith('openai')
+      ? isOpenAiErrorRetryable(error)
+      : error.isRetryable;
 
     return {
       message,
@@ -152,7 +151,11 @@ export function isRetryable(errorInfo: ErrorInfo): string | undefined {
     return 'Provider is overloaded';
   }
 
-  if (msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('rate_limit')) {
+  if (
+    msg.includes('rate limit') ||
+    msg.includes('too many requests') ||
+    msg.includes('rate_limit')
+  ) {
     return 'Rate limited';
   }
 

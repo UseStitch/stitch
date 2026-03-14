@@ -19,19 +19,17 @@ export function RetryIndicator({ retry }: { retry: RetryInfo }) {
   const truncatedMessage = retry.message.length > 80;
   const displayMessage = truncatedMessage ? retry.message.slice(0, 80) + '...' : retry.message;
 
-  const retryText = secondsRemaining > 0
-    ? `Retrying in ${secondsRemaining}s - attempt ${retry.attempt}/${retry.maxRetries}`
-    : `Retrying... (attempt ${retry.attempt}/${retry.maxRetries})`;
+  const retryText =
+    secondsRemaining > 0
+      ? `Retrying in ${secondsRemaining}s - attempt ${retry.attempt}/${retry.maxRetries}`
+      : `Retrying... (attempt ${retry.attempt}/${retry.maxRetries})`;
 
   return (
     <div className="flex items-start gap-2">
       <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-destructive" />
       <div className="min-w-0">
         {truncatedMessage ? (
-          <div
-            className="cursor-help truncate text-sm text-destructive"
-            title={retry.message}
-          >
+          <div className="cursor-help truncate text-sm text-destructive" title={retry.message}>
             {displayMessage}
           </div>
         ) : (

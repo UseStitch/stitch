@@ -301,7 +301,10 @@
   cursor: default;
   position: relative;
   flex-shrink: 0;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .dark .prose :where(.task-list-item > input[type='checkbox']) {

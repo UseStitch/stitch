@@ -32,8 +32,7 @@ function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUs
         (a.inputTokenDetails.cacheWriteTokens ?? 0) + (b.inputTokenDetails.cacheWriteTokens ?? 0),
     },
     outputTokenDetails: {
-      textTokens:
-        (a.outputTokenDetails.textTokens ?? 0) + (b.outputTokenDetails.textTokens ?? 0),
+      textTokens: (a.outputTokenDetails.textTokens ?? 0) + (b.outputTokenDetails.textTokens ?? 0),
       reasoningTokens:
         (a.outputTokenDetails.reasoningTokens ?? 0) + (b.outputTokenDetails.reasoningTokens ?? 0),
     },
@@ -66,7 +65,8 @@ async function runStep(opts: {
   accumulatedParts: StoredPart[];
   partStartTimes: Map<string, number>;
 }): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts, partStartTimes } = opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, partStartTimes } =
+    opts;
 
   const result = streamText({
     model,
@@ -95,7 +95,12 @@ async function runStep(opts: {
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
-        await Sse.broadcast('stream-part-delta', { sessionId, messageId, partId: part.id, delta: part });
+        await Sse.broadcast('stream-part-delta', {
+          sessionId,
+          messageId,
+          partId: part.id,
+          delta: part,
+        });
         break;
       }
 
@@ -117,7 +122,12 @@ async function runStep(opts: {
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
-        await Sse.broadcast('stream-part-delta', { sessionId, messageId, partId: part.id, delta: part });
+        await Sse.broadcast('stream-part-delta', {
+          sessionId,
+          messageId,
+          partId: part.id,
+          delta: part,
+        });
         break;
       }
 
@@ -348,8 +358,8 @@ async function executeTool(toolName: string, input: unknown): Promise<ExecuteRes
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function runStream(opts: {
-  sessionId: PrefixedString<"ses">;
-  assistantMessageId: PrefixedString<"msg">;
+  sessionId: PrefixedString<'ses'>;
+  assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   modelLabel: string;
   llmMessages: ModelMessage[];
