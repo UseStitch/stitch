@@ -10,6 +10,7 @@ import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
+import { createMessageId } from '@openwork/shared';
 
 export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
@@ -73,7 +74,7 @@ function SessionComponent() {
 
     setValue('');
 
-    const assistantMessageId = crypto.randomUUID();
+    const assistantMessageId = createMessageId();
     setActiveMessageId(assistantMessageId);
 
     await sendMessage.mutateAsync({

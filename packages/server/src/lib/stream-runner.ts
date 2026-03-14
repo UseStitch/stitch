@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { streamText, smoothStream } from 'ai';
 import type { ModelMessage, LanguageModelUsage, ToolResultPart } from 'ai';
-import type { StoredPart } from '@openwork/shared';
+import type { PrefixedString, StoredPart } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
 import * as Log from './log.js';
@@ -348,8 +348,8 @@ async function executeTool(toolName: string, input: unknown): Promise<ExecuteRes
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function runStream(opts: {
-  sessionId: string;
-  assistantMessageId: string;
+  sessionId: PrefixedString<"ses">;
+  assistantMessageId: PrefixedString<"msg">;
   modelId: string;
   modelLabel: string;
   llmMessages: ModelMessage[];

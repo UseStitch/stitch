@@ -67,6 +67,7 @@ export type Message = {
   usage: LanguageModelUsage;
   finishReason: string;
   createdAt: number;
+  updatedAt: number;
   startedAt: number;
   duration: number | null;
 };

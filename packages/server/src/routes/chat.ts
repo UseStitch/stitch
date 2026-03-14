@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { eq, asc } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { ModelMessage, TextPart, ToolCallPart } from 'ai';
-import type { StoredPart } from '@openwork/shared';
+import type { PrefixedString, StoredPart } from '@openwork/shared';
+import { createSessionId, createMessageId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
@@ -17,7 +17,7 @@ export const chatRouter = new Hono();
 chatRouter.post('/sessions', async (c) => {
   const db = getDb();
   const body = (await c.req.json()) as { title?: string; parentSessionId?: string };
-  const id = randomUUID();
+  const id = createSessionId();
   const now = new Date();
 
   const title =
@@ -26,7 +26,7 @@ chatRouter.post('/sessions', async (c) => {
   await db.insert(sessions).values({
     id,
     title,
-    parentSessionId: body.parentSessionId ?? null,
+    parentSessionId: (body.parentSessionId ?? null) as PrefixedString<"ses"> | null,
     createdAt: now,
     updatedAt: now,
   });
@@ -47,7 +47,7 @@ chatRouter.get('/sessions', async (c) => {
 
 chatRouter.get('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id');
+  const sessionId = c.req.param('id') as PrefixedString<"ses">;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
@@ -63,7 +63,7 @@ chatRouter.get('/sessions/:id', async (c) => {
 
 chatRouter.delete('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id');
+  const sessionId = c.req.param('id') as PrefixedString<"ses">;
 
   const result = await db
     .delete(sessions)
@@ -76,7 +76,7 @@ chatRouter.delete('/sessions/:id', async (c) => {
 
 chatRouter.patch('/sessions/:id', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id');
+  const sessionId = c.req.param('id') as PrefixedString<"ses">;
   const body = (await c.req.json()) as { title: string };
 
   if (!body.title) {
@@ -95,7 +95,7 @@ chatRouter.patch('/sessions/:id', async (c) => {
 
 chatRouter.post('/sessions/:id/messages', async (c) => {
   const db = getDb();
-  const sessionId = c.req.param('id');
+  const sessionId = c.req.param('id') as PrefixedString<"ses">;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
@@ -147,11 +147,11 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   }
 
   // Persist user message
-  const userMessageId = randomUUID();
+  const userMessageId = createMessageId();
   const now = Date.now();
   const userPart: StoredPart = {
     type: 'text-delta',
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     text: body.content,
     startedAt: now,
     endedAt: now,
@@ -162,6 +162,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     role: 'user',
     parts: [userPart],
     createdAt: new Date(now),
+    updatedAt: new Date(now),
     startedAt: new Date(now),
     duration: null,
   });
@@ -242,7 +243,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     }
   }
 
-  const assistantMessageId = body.assistantMessageId;
+  const assistantMessageId = body.assistantMessageId as PrefixedString<"msg">;
   const modelLabel = `${body.providerId}:::${body.modelId}`;
 
   void runStream({

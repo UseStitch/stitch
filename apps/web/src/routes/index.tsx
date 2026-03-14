@@ -7,6 +7,7 @@ import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/cha
 import type { SessionWithMessages } from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
+import { createMessageId } from '@openwork/shared';
 
 export const Route = createFileRoute('/')({
   loader: ({ context }) =>
@@ -50,7 +51,7 @@ function IndexComponent() {
 
     setValue('');
 
-    const assistantMessageId = crypto.randomUUID();
+    const assistantMessageId = createMessageId();
     const session = await createSession.mutateAsync({});
 
     queryClient.setQueryData<SessionWithMessages>(sessionKeys.detail(session.id), {
