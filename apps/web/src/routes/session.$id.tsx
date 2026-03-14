@@ -116,17 +116,19 @@ function SessionComponent() {
       <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pointer-events-auto">
         <div className="mx-auto max-w-4xl">
           <DockContainer docks={docks} />
-          <ChatInput
-            value={value}
-            onChange={setValue}
-            onSubmit={(text) => {
-              void handleSubmit(text);
-            }}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
-            hasDockAbove={docks.length > 0}
-          />
+          <div style={{ viewTransitionName: 'chat-input' }}>
+            <ChatInput
+              value={value}
+              onChange={setValue}
+              onSubmit={(text) => {
+                void handleSubmit(text);
+              }}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
+              hasDockAbove={docks.length > 0}
+            />
+          </div>
         </div>
       </div>
     </StickToBottom>

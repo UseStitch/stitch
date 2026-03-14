@@ -68,7 +68,7 @@ function IndexComponent() {
       assistantMessageId,
     });
 
-    void navigate({ to: '/session/$id', params: { id: session.id } });
+    void navigate({ to: '/session/$id', params: { id: session.id }, viewTransition: true });
   }
 
   return (
@@ -78,16 +78,18 @@ function IndexComponent() {
           <h1 className="text-3xl font-bold tracking-tight">What can I help you with?</h1>
           <p className="text-base text-muted-foreground">Select a model and start a conversation</p>
         </div>
-        <ChatInput
-          value={value}
-          onChange={setValue}
-          onSubmit={(text) => {
-            void handleSubmit(text);
-          }}
-          selectedModel={selectedModel}
-          onModelChange={handleModelChange}
-          placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
-        />
+        <div style={{ viewTransitionName: 'chat-input' }}>
+          <ChatInput
+            value={value}
+            onChange={setValue}
+            onSubmit={(text) => {
+              void handleSubmit(text);
+            }}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
+          />
+        </div>
       </div>
     </div>
   );

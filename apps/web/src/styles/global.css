@@ -67,6 +67,14 @@
   }
 }
 
+/* View transition: chat-input morphs between center (index) and bottom (session).
+   Suppress the default cross-fade so only the position animation plays. */
+::view-transition-old(chat-input),
+::view-transition-new(chat-input) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
