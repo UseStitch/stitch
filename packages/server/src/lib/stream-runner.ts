@@ -9,8 +9,9 @@ import * as Sse from './sse.js';
 import * as Usage from '../utils/usage.js';
 import { createProvider } from '../provider/provider.js';
 import type { ProviderCredentials } from '../provider/provider.js';
-import { TOOL_DEFINITIONS, TOOL_EXECUTORS } from '../tools/index.js';
+import { TOOL_DEFINITIONS } from '../tools/index.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
+import { executeTool } from '../tools/execute.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -311,29 +312,7 @@ async function runStepWithRetry(opts: {
   }
 }
 
-// ─── Tool execution with Zod validation ──────────────────────────────────────
 
-type ExecuteResult = { ok: true; output: unknown } | { ok: false; error: string };
-
-async function executeTool(toolName: string, input: unknown): Promise<ExecuteResult> {
-  const executor = TOOL_EXECUTORS[toolName];
-  if (!executor) return { ok: false, error: `Unknown tool: ${toolName}` };
-
-  const parsed = executor.inputSchema.safeParse(input);
-  if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
-    return { ok: false, error: `Invalid arguments for "${toolName}":\n${issues}` };
-  }
-
-  try {
-    const output = await executor.execute(parsed.data);
-    return { ok: true, output };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
