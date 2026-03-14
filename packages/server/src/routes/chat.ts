@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { eq, asc } from 'drizzle-orm';
 import { Hono } from 'hono';
+import type { ModelMessage, TextPart, ToolCallPart } from 'ai';
 import type { StoredPart } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages, sessions } from '../db/schema.js';
@@ -114,20 +115,79 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, sessionId));
 
-  // Build conversation history for the LLM
+  // Build conversation history for the LLM, preserving tool call/result structure
   const history = await db
     .select()
     .from(messages)
     .where(eq(messages.sessionId, sessionId))
     .orderBy(asc(messages.createdAt));
 
-  const llmMessages = history.map((msg) => ({
-    role: msg.role as 'user' | 'assistant',
-    content: msg.parts
-      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-      .map((p) => p.text)
-      .join(''),
-  }));
+  const llmMessages: ModelMessage[] = [];
+
+  for (const msg of history) {
+    if (msg.role === 'user') {
+      const text = msg.parts
+        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
+        .map((p) => p.text)
+        .join('');
+      llmMessages.push({ role: 'user', content: text });
+      continue;
+    }
+
+    // assistant message — may contain text and tool calls
+    const textParts = msg.parts.filter(
+      (p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta',
+    );
+    const toolCallParts = msg.parts.filter(
+      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call',
+    );
+    const toolResultParts = msg.parts.filter(
+      (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
+    );
+
+    if (textParts.length > 0 || toolCallParts.length > 0) {
+      const assistantContent: Array<TextPart | ToolCallPart> = [];
+
+      const combinedText = textParts.map((p) => p.text).join('');
+      if (combinedText) {
+        assistantContent.push({ type: 'text', text: combinedText });
+      }
+
+      for (const tc of toolCallParts) {
+        assistantContent.push({
+          type: 'tool-call',
+          toolCallId: tc.toolCallId,
+          toolName: tc.toolName,
+          input: tc.input,
+        });
+      }
+
+      llmMessages.push({ role: 'assistant', content: assistantContent });
+    }
+
+    if (toolResultParts.length > 0) {
+      llmMessages.push({
+        role: 'tool',
+        content: toolResultParts.map((tr) => {
+          // Stored output is the raw value — wrap it into the SDK's ToolResultOutput
+          // discriminated union so the schema validator accepts it.
+          const isError =
+            tr.output !== null &&
+            tr.output !== undefined &&
+            typeof tr.output === 'object' &&
+            'error' in (tr.output as object);
+          return {
+            type: 'tool-result' as const,
+            toolCallId: tr.toolCallId,
+            toolName: tr.toolName,
+            output: isError
+              ? { type: 'error-json' as const, value: tr.output as never }
+              : { type: 'json' as const, value: tr.output as never },
+          };
+        }),
+      });
+    }
+  }
 
   const assistantMessageId = body.assistantMessageId;
   const modelLabel = `${body.providerId}:::${body.modelId}`;

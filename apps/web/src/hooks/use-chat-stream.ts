@@ -8,6 +8,9 @@ import type {
   StreamPartDeltaPayload,
   StreamPartUpdatePayload,
   StreamStartPayload,
+  StreamToolStatePayload,
+  StreamToolInputDeltaPayload,
+  ToolCallStatus,
 } from '@openwork/shared';
 import { useSSE } from '@/hooks/use-sse';
 
@@ -35,18 +38,15 @@ export type StreamingToolCallPart = {
   type: 'tool-call';
   toolCallId: string;
   toolName: string;
-  input: unknown;
+  /** Fully-parsed input once tool-call fires; null while args are still streaming. */
+  input: unknown | null;
+  /** Raw streamed arg text accumulated from tool-input-delta events. */
+  partialInput: string;
+  status: ToolCallStatus;
+  output: unknown | null;
+  error: string | null;
   startedAt: number;
-  endedAt: number;
-};
-
-export type StreamingToolResultPart = {
-  type: 'tool-result';
-  toolCallId: string;
-  toolName: string;
-  output: unknown;
-  startedAt: number;
-  endedAt: number;
+  endedAt: number | null;
 };
 
 export type StreamingSourcePart = {
@@ -68,7 +68,6 @@ export type StreamingPart =
   | StreamingTextPart
   | StreamingReasoningPart
   | StreamingToolCallPart
-  | StreamingToolResultPart
   | StreamingSourcePart
   | StreamingFilePart;
 
@@ -87,6 +86,8 @@ type Action =
   | { type: 'start' }
   | { type: 'part-update'; partId: string; part: PartUpdate }
   | { type: 'part-delta'; partId: string; delta: PartDelta }
+  | { type: 'tool-state'; toolCallId: string; status: ToolCallStatus; toolName: string; input?: unknown; output?: unknown; error?: string }
+  | { type: 'tool-input-delta'; toolCallId: string; toolName: string; inputTextDelta: string }
   | { type: 'finish'; finishReason: string; usage?: LanguageModelUsage }
   | { type: 'error'; error: string }
   | { type: 'reset' };
@@ -164,33 +165,36 @@ function reducer(state: StreamState, action: Action): StreamState {
           });
         }
 
+        // tool-call updates parsed input for existing 'pending' part; status remains 'pending'.
         case 'tool-call': {
-          const now = Date.now();
+          const existing = state.parts[partId];
+          if (existing && existing.type === 'tool-call') {
+            return updatePart(state, partId, {
+              ...existing,
+              input: part.input,
+            });
+          }
+          // Fallback: create the part if pending event hadn't arrived yet
           return addPart(state, partId, {
             type: 'tool-call',
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             input: part.input,
-            startedAt: now,
-            endedAt: now,
+            partialInput: '',
+            status: 'pending',
+            output: null,
+            error: null,
+            startedAt: Date.now(),
+            endedAt: null,
           });
         }
 
-        case 'tool-result': {
-          const now = Date.now();
-          return addPart(state, partId, {
-            type: 'tool-result',
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: part.output,
-            startedAt: now,
-            endedAt: now,
-          });
-        }
+        // tool-result is no longer sent as a separate stream part in our loop —
+        // we track it via stream-tool-state completed. Keep as a no-op.
+        case 'tool-result':
+          return state;
 
         case 'source': {
-          // The SDK source stream part is `{ type: 'source' } & LanguageModelV3Source`
-          // Strip the `type` field to store just the source data
           const { type: _type, ...sourceData } = part;
           const now = Date.now();
           return addPart(state, partId, {
@@ -229,6 +233,64 @@ function reducer(state: StreamState, action: Action): StreamState {
         return updatePart(state, partId, { ...existing, text: existing.text + delta.text });
       }
       return state;
+    }
+
+    // ── Tool lifecycle events ────────────────────────────────────────────────
+
+    case 'tool-input-delta': {
+      const { toolCallId, toolName, inputTextDelta } = action;
+      const existing = state.parts[toolCallId];
+
+      if (existing && existing.type === 'tool-call') {
+        return updatePart(state, toolCallId, {
+          ...existing,
+          partialInput: existing.partialInput + inputTextDelta,
+        });
+      }
+
+      // First delta arrived before tool-state pending — create the part now
+      return addPart(state, toolCallId, {
+        type: 'tool-call',
+        toolCallId,
+        toolName,
+        input: null,
+        partialInput: inputTextDelta,
+        status: 'pending',
+        output: null,
+        error: null,
+        startedAt: Date.now(),
+        endedAt: null,
+      });
+    }
+
+    case 'tool-state': {
+      const { toolCallId, toolName, status, input, output, error } = action;
+      const existing = state.parts[toolCallId];
+
+      if (existing && existing.type === 'tool-call') {
+        return updatePart(state, toolCallId, {
+          ...existing,
+          status,
+          ...(input !== undefined && { input }),
+          ...(output !== undefined && { output }),
+          ...(error !== undefined && { error }),
+          ...(status === 'completed' || status === 'error' ? { endedAt: Date.now() } : {}),
+        });
+      }
+
+      // tool-state arrived before any input-delta (e.g. non-streaming provider)
+      return addPart(state, toolCallId, {
+        type: 'tool-call',
+        toolCallId,
+        toolName,
+        input: input ?? null,
+        partialInput: '',
+        status,
+        output: output ?? null,
+        error: error ?? null,
+        startedAt: Date.now(),
+        endedAt: status === 'completed' || status === 'error' ? Date.now() : null,
+      });
     }
 
     case 'finish':
@@ -292,8 +354,30 @@ export function useChatStream(): UseChatStreamResult {
     'stream-part-delta': (data) => {
       const payload = data as StreamPartDeltaPayload;
       if (payload.messageId !== activeMessageIdRef.current) return;
-      if (payload.messageId !== activeMessageIdRef.current) return;
       dispatch({ type: 'part-delta', partId: payload.partId, delta: payload.delta });
+    },
+    'stream-tool-input-delta': (data) => {
+      const payload = data as StreamToolInputDeltaPayload;
+      if (payload.messageId !== activeMessageIdRef.current) return;
+      dispatch({
+        type: 'tool-input-delta',
+        toolCallId: payload.toolCallId,
+        toolName: payload.toolName,
+        inputTextDelta: payload.inputTextDelta,
+      });
+    },
+    'stream-tool-state': (data) => {
+      const payload = data as StreamToolStatePayload;
+      if (payload.messageId !== activeMessageIdRef.current) return;
+      dispatch({
+        type: 'tool-state',
+        toolCallId: payload.toolCallId,
+        toolName: payload.toolName,
+        status: payload.status,
+        input: payload.input,
+        output: payload.output,
+        error: payload.error,
+      });
     },
     'stream-finish': (data) => {
       const payload = data as StreamFinishPayload;

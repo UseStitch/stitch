@@ -20,7 +20,40 @@ export type SseEventName =
   | 'stream-part-update'
   | 'stream-part-delta'
   | 'stream-finish'
-  | 'stream-error';
+  | 'stream-error'
+  | 'stream-tool-state'
+  | 'stream-tool-input-delta';
+
+// ─── Tool call lifecycle ──────────────────────────────────────────────────────
+
+export type ToolCallStatus = 'pending' | 'in-progress' | 'completed' | 'error';
+
+/**
+ * Broadcast whenever a tool call transitions state.
+ * - pending:     LLM started generating args (tool-input-start)
+ * - in-progress: Args validated, execution started
+ * - completed:   Execution succeeded, output available
+ * - error:       Validation failed or execution threw — error details available
+ */
+export type StreamToolStatePayload = {
+  sessionId: string;
+  messageId: string;
+  toolCallId: string;
+  toolName: string;
+  status: ToolCallStatus;
+  input?: unknown;
+  output?: unknown;
+  error?: string;
+};
+
+/** Streamed tool argument chunk while the LLM is generating them. */
+export type StreamToolInputDeltaPayload = {
+  sessionId: string;
+  messageId: string;
+  toolCallId: string;
+  toolName: string;
+  inputTextDelta: string;
+};
 
 export type SseEvent = {
   event: SseEventName;
