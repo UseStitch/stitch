@@ -18,7 +18,6 @@ const log = Log.create({ service: 'stream-runner' });
 const MAX_STEPS = 25;
 const MAX_TOOL_RETRIES = 3;
 
-// ─── Single LLM step ─────────────────────────────────────────────────────────
 
 type StepResult = {
   finishReason: string;
@@ -127,9 +126,6 @@ async function runStep(opts: {
         break;
       }
 
-      // ── Tool input streaming: fires while the LLM generates args ───────────
-      // part.id is the toolCallId for tool-input-* events in fullStream.
-
       case 'tool-input-start': {
         await Sse.broadcast('stream-tool-state', {
           sessionId,
@@ -145,7 +141,6 @@ async function runStep(opts: {
         await Sse.broadcast('stream-tool-input-delta', {
           sessionId,
           messageId,
-          // tool-input-delta only carries id + delta; toolName resolved on FE from pending state
           toolCallId: part.id,
           toolName: '',
           inputTextDelta: part.delta,
@@ -154,10 +149,8 @@ async function runStep(opts: {
       }
 
       case 'tool-input-end':
-        // tool-call fires immediately after with fully-parsed input — no-op
         break;
 
-      // ── tool-call: LLM finished generating args; we take over ─────────────
       case 'tool-call': {
         const now = Date.now();
         const partId = createPartId();
@@ -166,7 +159,6 @@ async function runStep(opts: {
         break;
       }
 
-      // tool-result and tool-error won't fire (no execute on tools), guard anyway
       case 'tool-result':
       case 'tool-error':
         break;
@@ -236,7 +228,6 @@ async function runStep(opts: {
   };
 }
 
-// ─── Step execution with retry ──────────────────────────────────────────────
 
 async function runStepWithRetry(opts: {
   sessionId: string;
@@ -314,7 +305,6 @@ async function runStepWithRetry(opts: {
 
 
 
-// ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;
@@ -371,7 +361,6 @@ export async function runStream(opts: {
 
     if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) break;
 
-    // ── Execute each tool call and collect results ────────────────────────────
     const toolResultContent: ToolResultPart[] = [];
 
     for (const call of stepResult.toolCalls) {
