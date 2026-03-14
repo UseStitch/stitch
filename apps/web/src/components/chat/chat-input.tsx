@@ -102,7 +102,7 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             </div>
 
             {/* List */}
-            <ScrollArea className="flex-1 max-h-70">
+            <ScrollArea className="max-h-70 overflow-hidden">
               <div className="p-1">
                 {filtered.length === 0 && (
                   <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
