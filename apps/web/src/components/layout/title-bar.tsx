@@ -33,7 +33,7 @@ export function TitleBar() {
 
   return (
     <div
-      className="h-9 bg-background flex items-center justify-between select-none"
+      className="h-9 bg-sidebar flex items-center justify-between select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div

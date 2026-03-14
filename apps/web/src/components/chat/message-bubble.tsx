@@ -23,6 +23,8 @@ import type { ToolCallStatus } from '@openwork/shared';
 
 // ─── Shared markdown renderer ─────────────────────────────────────────────────
 
+const remarkPlugins: Pluggable[] = [remarkGfm, remarkMath];
+
 const rehypePlugins: Pluggable[] = [
   rehypeKatex,
   [rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' } }],
@@ -48,7 +50,7 @@ const markdownComponents = { img: MarkdownImage };
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
     <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
-      <MarkdownHooks remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={rehypePlugins} components={markdownComponents}>
+      <MarkdownHooks remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={markdownComponents}>
         {text}
       </MarkdownHooks>
     </div>
