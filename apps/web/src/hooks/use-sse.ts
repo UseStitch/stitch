@@ -57,6 +57,18 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
         handlersRef.current['stream-error']?.(parseJson(e.data));
       });
 
+      addSseListener(eventSource, 'stream-tool-state', (e) => {
+        handlersRef.current['stream-tool-state']?.(parseJson(e.data));
+      });
+
+      addSseListener(eventSource, 'stream-tool-input-delta', (e) => {
+        handlersRef.current['stream-tool-input-delta']?.(parseJson(e.data));
+      });
+
+      addSseListener(eventSource, 'stream-retry', (e) => {
+        handlersRef.current['stream-retry']?.(parseJson(e.data));
+      });
+
       addSseListener(eventSource, 'session-title-update', (e) => {
         handlersRef.current['session-title-update']?.(parseJson(e.data));
       });

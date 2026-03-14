@@ -48,8 +48,9 @@ function SessionComponent() {
   // When stream finishes, refresh message list and clear active stream
   React.useEffect(() => {
     if (!streamState.isStreaming && activeMessageId !== null && streamState.finishReason !== null) {
-      void queryClient.invalidateQueries({ queryKey: ['sessions', 'detail', id] });
-      setActiveMessageId(null);
+      void queryClient
+        .invalidateQueries({ queryKey: ['sessions', 'detail', id] })
+        .then(() => setActiveMessageId(null));
     }
   }, [
     streamState.isStreaming,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MarkdownHooks } from 'react-markdown';
+import Markdown, { MarkdownHooks } from 'react-markdown';
 import rehypeShiki from '@shikijs/rehype';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -46,10 +46,45 @@ function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
 
 const markdownComponents = { img: MarkdownImage };
 
+/**
+ * Synchronous markdown renderer (no syntax highlighting).
+ *
+ * Uses the sync `Markdown` component with only sync plugins so content renders
+ * immediately on every update. Used during streaming and as the fallback for
+ * `MarkdownContent` while its async rehypeShiki plugin processes.
+ */
+const syncRehypePlugins: Pluggable[] = [rehypeKatex];
+
+function SyncMarkdownContent({ text, className }: { text: string; className?: string }) {
+  return (
+    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
+      <Markdown remarkPlugins={remarkPlugins} rehypePlugins={syncRehypePlugins} components={markdownComponents}>
+        {text}
+      </Markdown>
+    </div>
+  );
+}
+
+/**
+ * Full markdown renderer with syntax highlighting for persisted messages.
+ *
+ * Uses `MarkdownHooks` with async rehypeShiki for code block highlighting.
+ * The `fallback` prop renders a sync version of the content so text is never
+ * blank while the async plugin processes.
+ */
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
     <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
-      <MarkdownHooks remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={markdownComponents}>
+      <MarkdownHooks
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={markdownComponents}
+        fallback={
+          <Markdown remarkPlugins={remarkPlugins} rehypePlugins={syncRehypePlugins} components={markdownComponents}>
+            {text}
+          </Markdown>
+        }
+      >
         {text}
       </MarkdownHooks>
     </div>
@@ -333,7 +368,7 @@ export function StreamingMessageBubble({
             case 'text':
               return (
                 <div key={partId}>
-                  <MarkdownContent text={part.text} />
+                  <SyncMarkdownContent text={part.text} />
                 </div>
               );
             case 'reasoning':
