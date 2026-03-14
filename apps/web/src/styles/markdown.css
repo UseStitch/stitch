@@ -40,16 +40,18 @@
 }
 
 /* ─── Inline code (:not(pre) > code) ────────────────────────────────────────── */
-/* Pill/chip style: subtle background, small padding, rounded.                  */
+/* Pill/chip style: tinted background + border + slightly elevated text color.  */
+/* Uses primary at low opacity for a GitHub-style highlighted chip.             */
 /* The typography plugin adds backtick pseudo-elements — we remove them.        */
 
 .prose :where(:not(pre) > code) {
-  background-color: var(--muted);
-  padding: 0.125rem 0.375rem;
+  background-color: color-mix(in oklch, var(--primary) 10%, var(--muted));
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border));
+  padding: 0.1rem 0.375rem;
   border-radius: var(--radius-sm);
-  font-size: 0.875em;
+  font-size: 0.8125em;
   font-weight: 500;
-  color: var(--foreground);
+  color: color-mix(in oklch, var(--primary) 60%, var(--foreground));
 }
 
 .prose :where(:not(pre) > code)::before,
