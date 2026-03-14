@@ -14,6 +14,12 @@ const TITLE_MODEL_PRIORITY = [
   'gpt-5-nano',
 ] as const;
 
+const generateTitlePrompt = (firstMessage: string) => `
+Generate a short, descriptive title (30 chars max) for a conversation that starts with this message: 
+"${firstMessage}". 
+Just return the title, nothing else.
+`;
+
 async function getTitleGenerationModel(
   fallbackProviderId: string,
   fallbackModelId: string,
@@ -75,7 +81,7 @@ export async function generateTitle(
       messages: [
         {
           role: 'user',
-          content: `Generate a short, descriptive title (30 chars max) for a conversation that starts with this message: "${firstMessage}". Just return the title, nothing else.`,
+          content: generateTitlePrompt(firstMessage),
         },
       ],
     });

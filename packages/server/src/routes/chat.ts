@@ -6,7 +6,7 @@ import { createSessionId, createMessageId, createPartId } from '@openwork/shared
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
-import { generateTitle } from '../lib/title-generator.js';
+import { generateTitle } from '../title-gen/title-generator.js';
 import { broadcast } from '../lib/sse.js';
 import * as Log from '../lib/log.js';
 
