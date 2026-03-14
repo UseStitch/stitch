@@ -60,7 +60,8 @@ export type Message = {
   sessionId: string;
   role: MessageRole;
   parts: StoredPart[];
-  model: string;
+  modelId: string;
+  providerId: string;
   usage: LanguageModelUsage;
   finishReason: string;
   createdAt: number;

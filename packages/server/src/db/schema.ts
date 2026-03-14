@@ -64,7 +64,8 @@ export const messages = sqliteTable('messages', {
     .references(() => sessions.id, { onDelete: 'cascade' }),
   role: text('role').$type<MessageRole>().notNull(),
   parts: blob('parts', { mode: 'json' }).$type<StoredPart[]>().notNull(),
-  model: text('model'),
+  modelId: text('model_id').notNull(),
+  providerId: text('provider_id').notNull(),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
   finishReason: text('finish_reason'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })

@@ -160,6 +160,8 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     sessionId,
     role: 'user',
     parts: [userPart],
+    modelId: body.modelId,
+    providerId: body.providerId,
     createdAt: new Date(now),
     updatedAt: new Date(now),
     startedAt: new Date(now),
@@ -243,13 +245,11 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   }
 
   const assistantMessageId = body.assistantMessageId as PrefixedString<'msg'>;
-  const modelLabel = `${body.providerId}:::${body.modelId}`;
 
   void runStream({
     sessionId,
     assistantMessageId,
     modelId: body.modelId,
-    modelLabel,
     llmMessages,
     credentials: config.credentials,
   });

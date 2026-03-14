@@ -310,11 +310,10 @@ export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  modelLabel: string;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
 }): Promise<void> {
-  const { sessionId, assistantMessageId, modelId, modelLabel, llmMessages, credentials } = opts;
+  const { sessionId, assistantMessageId, modelId, llmMessages, credentials } = opts;
 
   const provider = createProvider(credentials);
   const model = provider(modelId);
@@ -461,7 +460,8 @@ export async function runStream(opts: {
     sessionId,
     role: 'assistant',
     parts: accumulatedParts,
-    model: modelLabel,
+    modelId,
+    providerId: credentials.providerId,
     usage: totalUsage,
     finishReason: finalFinishReason,
     createdAt: new Date(startedAt),
