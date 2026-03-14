@@ -6,7 +6,7 @@ import type {
   LanguageModelUsage,
   StoredPart,
 } from '@openwork/shared';
-import { createMessageId } from '@openwork/shared';
+import { createMessageId, createPartId } from '@openwork/shared';
 import { serverFetch } from '@/lib/api';
 
 export type { SessionWithMessages };
@@ -137,7 +137,7 @@ export function useSendMessage() {
         const now = Date.now();
         const optimisticPart: StoredPart = {
           type: 'text-delta' as const,
-          id: createMessageId(),
+          id: createPartId(),
           text: input.content,
           startedAt: now,
           endedAt: now,

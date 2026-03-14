@@ -1,7 +1,7 @@
-import { randomUUID } from 'node:crypto';
 import { streamText, smoothStream } from 'ai';
 import type { ModelMessage, LanguageModelUsage, ToolResultPart } from 'ai';
 import type { PrefixedString, StoredPart } from '@openwork/shared';
+import { createPartId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
 import * as Log from './log.js';
@@ -90,15 +90,17 @@ async function runStep(opts: {
 
       case 'text-delta': {
         const now = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           ...part,
+          id: partId,
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
         await Sse.broadcast('stream-part-delta', {
           sessionId,
           messageId,
-          partId: part.id,
+          partId,
           delta: part,
         });
         break;
@@ -117,15 +119,17 @@ async function runStep(opts: {
 
       case 'reasoning-delta': {
         const now = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           ...part,
+          id: partId,
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
         await Sse.broadcast('stream-part-delta', {
           sessionId,
           messageId,
-          partId: part.id,
+          partId,
           delta: part,
         });
         break;
@@ -138,15 +142,16 @@ async function runStep(opts: {
 
       case 'source': {
         const now = Date.now();
-        accumulatedParts.push({ ...part, startedAt: now, endedAt: now });
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: part.id, part });
+        const partId = createPartId();
+        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
+        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
 
       case 'file': {
-        const partId = randomUUID();
+        const partId = createPartId();
         const now = Date.now();
-        accumulatedParts.push({ ...part, startedAt: now, endedAt: now });
+        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
         await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
@@ -184,7 +189,8 @@ async function runStep(opts: {
       // ── tool-call: LLM finished generating args; we take over ─────────────
       case 'tool-call': {
         const now = Date.now();
-        accumulatedParts.push({ ...part, startedAt: now, endedAt: now });
+        const partId = createPartId();
+        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
         toolCalls.push({ toolCallId: part.toolCallId, toolName: part.toolName, input: part.input });
         break;
       }
@@ -202,8 +208,10 @@ async function runStep(opts: {
 
       case 'start-step': {
         const stepStartNow = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           type: 'step-start' as const,
+          id: partId,
           step,
           startedAt: stepStartNow,
           endedAt: stepStartNow,
@@ -214,8 +222,10 @@ async function runStep(opts: {
 
       case 'finish-step': {
         const stepFinishNow = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           type: 'step-finish' as const,
+          id: partId,
           step,
           finishReason: part.finishReason,
           usage: part.usage,
@@ -458,8 +468,10 @@ export async function runStream(opts: {
         });
 
         const now = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           type: 'tool-result',
+          id: partId,
           toolCallId,
           toolName,
           input,
@@ -486,8 +498,10 @@ export async function runStream(opts: {
         });
 
         const now = Date.now();
+        const partId = createPartId();
         accumulatedParts.push({
           type: 'tool-result',
+          id: partId,
           toolCallId,
           toolName,
           input,

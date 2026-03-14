@@ -2,7 +2,7 @@ import { eq, asc } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { ModelMessage, TextPart, ToolCallPart } from 'ai';
 import type { PrefixedString, StoredPart } from '@openwork/shared';
-import { createSessionId, createMessageId } from '@openwork/shared';
+import { createSessionId, createMessageId, createPartId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
@@ -150,7 +150,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   const now = Date.now();
   const userPart: StoredPart = {
     type: 'text-delta',
-    id: crypto.randomUUID(),
+    id: createPartId(),
     text: body.content,
     startedAt: now,
     endedAt: now,

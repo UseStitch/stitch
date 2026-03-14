@@ -1,8 +1,10 @@
 import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { TextStreamPart, ToolSet, LanguageModelUsage } from 'ai';
+import type { PrefixedString } from './id.js';
 
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
 export type MessageRole = 'user' | 'assistant';
+export type PartId = PrefixedString<'prt'>;
 
 // ─── Stream part types (derived from SDK, used in SSE payloads) ───────────────
 
@@ -27,8 +29,6 @@ export type FinishStreamPart = Extract<FullStreamPart, { type: 'finish' }>;
 export type StepStartPart = {
   type: 'step-start';
   step: number;
-  startedAt: number;
-  endedAt: number;
 };
 
 export type StepFinishPart = {
@@ -36,25 +36,24 @@ export type StepFinishPart = {
   step: number;
   finishReason: string;
   usage: LanguageModelUsage;
-  startedAt: number;
-  endedAt: number;
 };
 
-type Timestamped<T> = T & { startedAt: number; endedAt: number };
 
-export type StoredPart =
-  | Timestamped<TextStartPart>
-  | Timestamped<TextDeltaPart>
-  | Timestamped<TextEndPart>
-  | Timestamped<ReasoningStartPart>
-  | Timestamped<ReasoningDeltaPart>
-  | Timestamped<ReasoningEndPart>
-  | Timestamped<SourceStreamPart>
-  | Timestamped<FileStreamPart>
-  | Timestamped<ToolCallStreamPart>
-  | Timestamped<ToolResultStreamPart>
+export type AllPart =
+  | TextStartPart
+  | TextDeltaPart
+  | TextEndPart
+  | ReasoningStartPart
+  | ReasoningDeltaPart
+  | ReasoningEndPart
+  | SourceStreamPart
+  | FileStreamPart
+  | ToolCallStreamPart
+  | ToolResultStreamPart
   | StepStartPart
   | StepFinishPart;
+
+export type StoredPart = AllPart & { id: PartId, startedAt: number, endedAt: number };
 
 export type Message = {
   id: string;

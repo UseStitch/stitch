@@ -3,6 +3,7 @@ export type PrefixedString<P extends string> = `${P}${string}`;
 export const ID_PREFIXES = {
   session: 'ses',
   message: 'msg',
+  part: 'prt',
 } as const;
 
 let lastTimestamp = 0;
@@ -25,6 +26,10 @@ export function createSessionId(): PrefixedString<'ses'> {
 
 export function createMessageId(): PrefixedString<'msg'> {
   return createId(ID_PREFIXES.message);
+}
+
+export function createPartId(): PrefixedString<'prt'> {
+  return createId(ID_PREFIXES.part);
 }
 
 function createId<P extends (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES]>(
