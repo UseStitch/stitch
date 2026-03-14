@@ -21,6 +21,7 @@ export type StreamingTextPart = {
   type: 'text';
   id: string;
   text: string;
+  hasContent: boolean;
   status: 'streaming' | 'complete';
   startedAt: number;
   endedAt: number | null;
@@ -30,6 +31,7 @@ export type StreamingReasoningPart = {
   type: 'reasoning';
   id: string;
   text: string;
+  hasContent: boolean;
   status: 'streaming' | 'complete';
   startedAt: number;
   endedAt: number | null;
@@ -150,6 +152,7 @@ function reducer(state: StreamState, action: Action): StreamState {
             type: 'text',
             id: partId,
             text: '',
+            hasContent: false,
             status: 'streaming',
             startedAt: Date.now(),
             endedAt: null,
@@ -170,6 +173,7 @@ function reducer(state: StreamState, action: Action): StreamState {
             type: 'reasoning',
             id: partId,
             text: '',
+            hasContent: false,
             status: 'streaming',
             startedAt: Date.now(),
             endedAt: null,
@@ -247,10 +251,18 @@ function reducer(state: StreamState, action: Action): StreamState {
       if (!existing) return state;
 
       if (delta.type === 'text-delta' && existing.type === 'text') {
-        return updatePart(state, partId, { ...existing, text: existing.text + delta.text });
+        return updatePart(state, partId, {
+          ...existing,
+          text: existing.text + delta.text,
+          hasContent: true,
+        });
       }
       if (delta.type === 'reasoning-delta' && existing.type === 'reasoning') {
-        return updatePart(state, partId, { ...existing, text: existing.text + delta.text });
+        return updatePart(state, partId, {
+          ...existing,
+          text: existing.text + delta.text,
+          hasContent: true,
+        });
       }
       return state;
     }

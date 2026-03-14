@@ -356,7 +356,16 @@ export function StreamingMessageBubble({
 }: StreamingMessageBubbleProps) {
   const visibleIds = partIds.filter((id) => id in parts);
 
-  if (visibleIds.length === 0) {
+  const hasAnyContent = visibleIds.some((partId) => {
+    const part = parts[partId];
+    if (!part) return false;
+    if (part.type === 'text' || part.type === 'reasoning') {
+      return part.hasContent;
+    }
+    return true;
+  });
+
+  if (!hasAnyContent) {
     if (!isStreaming) return null;
     return (
       <div className="flex justify-start">
