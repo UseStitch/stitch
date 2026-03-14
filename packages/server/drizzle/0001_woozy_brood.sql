@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` ADD `session_type` text DEFAULT 'user' NOT NULL;

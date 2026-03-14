@@ -14,9 +14,12 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { sessionsQueryOptions } from '@/lib/queries/chat';
+import { useSessionTitleUpdates } from '@/hooks/use-session-title-updates';
+import { AnimatedTitle } from '@/components/animated-title';
 
 export function AppSidebar() {
   const { data: sessions } = useQuery(sessionsQueryOptions);
+  useSessionTitleUpdates();
 
   const params = useParams({ strict: false }) as { id?: string };
   const currentId = params.id;
@@ -49,7 +52,10 @@ export function AppSidebar() {
                       }
                     >
                       <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{session.title ?? 'New conversation'}</span>
+                      <AnimatedTitle
+                        title={session.title ?? 'New conversation'}
+                        className="truncate"
+                      />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

@@ -16,6 +16,7 @@ export type SseEventName =
   | 'heartbeat'
   | 'connected'
   | 'data-change'
+  | 'session-title-update'
   | 'stream-start'
   | 'stream-part-update'
   | 'stream-part-delta'
@@ -122,4 +123,9 @@ export type StreamErrorPayload = {
 export type StreamStartPayload = {
   sessionId: string;
   messageId: string;
+};
+
+export type SessionTitleUpdatePayload = {
+  sessionId: string;
+  title: string;
 };

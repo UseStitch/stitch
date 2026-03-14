@@ -4,9 +4,13 @@ import { Hono } from 'hono';
 import type { ModelMessage, TextPart, ToolCallPart } from 'ai';
 import type { StoredPart } from '@openwork/shared';
 import { getDb } from '../db/client.js';
-import { messages, sessions } from '../db/schema.js';
-import { providerConfig } from '../db/schema.js';
+import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
+import { generateTitle } from '../lib/title-generator.js';
+import { broadcast } from '../lib/sse.js';
+import * as Log from '../lib/log.js';
+
+const log = Log.create({ service: 'chat' });
 
 export const chatRouter = new Hono();
 
@@ -33,7 +37,11 @@ chatRouter.post('/sessions', async (c) => {
 
 chatRouter.get('/sessions', async (c) => {
   const db = getDb();
-  const rows = await db.select().from(sessions).orderBy(asc(sessions.createdAt));
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.sessionType, 'user'))
+    .orderBy(asc(sessions.createdAt));
   return c.json(rows);
 });
 
@@ -113,6 +121,29 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   if (!config) {
     return c.json({ error: `Provider "${body.providerId}" is not configured` }, 400);
+  }
+
+  const existingMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId));
+
+  const isFirstMessage = existingMessages.length === 0;
+
+  if (isFirstMessage) {
+    generateTitle(body.content, body.providerId, body.modelId)
+      .then(async (title) => {
+        if (title) {
+          await db
+            .update(sessions)
+            .set({ title, updatedAt: new Date() })
+            .where(eq(sessions.id, sessionId));
+          await broadcast('session-title-update', { sessionId, title });
+        }
+      })
+      .catch((err) => {
+        log.error('title generation failed', { sessionId, error: err });
+      });
   }
 
   // Persist user message

@@ -30,6 +30,7 @@ export const providerConfig = sqliteTable('provider_config', {
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   title: text('title'),
+  sessionType: text('session_type').$type<'user' | 'title'>().notNull().default('user'),
   parentSessionId: text('parent_session_id').references((): ReturnType<typeof text> => sessions.id),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()

@@ -56,6 +56,10 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
       addSseListener(eventSource, 'stream-error', (e) => {
         handlersRef.current['stream-error']?.(parseJson(e.data));
       });
+
+      addSseListener(eventSource, 'session-title-update', (e) => {
+        handlersRef.current['session-title-update']?.(parseJson(e.data));
+      });
     });
 
     return () => {
