@@ -6,6 +6,7 @@ import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
 import * as Log from './log.js';
 import * as Sse from './sse.js';
+import * as Usage from '../utils/usage.js';
 import { createProvider } from '../provider/provider.js';
 import type { ProviderCredentials } from '../provider/provider.js';
 import { TOOL_DEFINITIONS, TOOL_EXECUTORS } from '../tools/index.js';
@@ -15,37 +16,6 @@ const log = Log.create({ service: 'stream-runner' });
 
 const MAX_STEPS = 25;
 const MAX_TOOL_RETRIES = 3;
-
-// ─── Usage accumulation ───────────────────────────────────────────────────────
-
-function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUsage {
-  return {
-    inputTokens: (a.inputTokens ?? 0) + (b.inputTokens ?? 0),
-    outputTokens: (a.outputTokens ?? 0) + (b.outputTokens ?? 0),
-    totalTokens: (a.totalTokens ?? 0) + (b.totalTokens ?? 0),
-    inputTokenDetails: {
-      noCacheTokens:
-        (a.inputTokenDetails.noCacheTokens ?? 0) + (b.inputTokenDetails.noCacheTokens ?? 0),
-      cacheReadTokens:
-        (a.inputTokenDetails.cacheReadTokens ?? 0) + (b.inputTokenDetails.cacheReadTokens ?? 0),
-      cacheWriteTokens:
-        (a.inputTokenDetails.cacheWriteTokens ?? 0) + (b.inputTokenDetails.cacheWriteTokens ?? 0),
-    },
-    outputTokenDetails: {
-      textTokens: (a.outputTokenDetails.textTokens ?? 0) + (b.outputTokenDetails.textTokens ?? 0),
-      reasoningTokens:
-        (a.outputTokenDetails.reasoningTokens ?? 0) + (b.outputTokenDetails.reasoningTokens ?? 0),
-    },
-  };
-}
-
-const ZERO_USAGE: LanguageModelUsage = {
-  inputTokens: 0,
-  outputTokens: 0,
-  totalTokens: 0,
-  inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
-  outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
-};
 
 // ─── Single LLM step ─────────────────────────────────────────────────────────
 
@@ -259,7 +229,7 @@ async function runStep(opts: {
 
   return {
     finishReason: 'unknown',
-    usage: ZERO_USAGE,
+    usage: Usage.ZERO_USAGE,
     toolCalls,
     responseMessages: (await result.response).messages,
   };
@@ -385,7 +355,7 @@ export async function runStream(opts: {
   const conversation: ModelMessage[] = [...llmMessages];
   const toolRetries = new Map<string, number>();
 
-  let totalUsage: LanguageModelUsage = ZERO_USAGE;
+  let totalUsage: LanguageModelUsage = Usage.ZERO_USAGE;
   let finalFinishReason = 'unknown';
   const startedAt = Date.now();
 
@@ -413,7 +383,7 @@ export async function runStream(opts: {
       providerId: credentials.providerId,
     });
 
-    totalUsage = addUsage(totalUsage, stepResult.usage);
+    totalUsage = Usage.addUsage(totalUsage, stepResult.usage);
     finalFinishReason = stepResult.finishReason;
 
     for (const msg of stepResult.responseMessages) {
