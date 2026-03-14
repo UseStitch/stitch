@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MarkdownHooks } from 'react-markdown';
 import rehypeShiki from '@shikijs/rehype';
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import type { Pluggable } from 'unified';
@@ -13,6 +14,7 @@ import {
   CheckIcon,
   AlertCircleIcon,
   LoaderIcon,
+  ImageOffIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StoredPart } from '@openwork/shared';
@@ -26,10 +28,27 @@ const rehypePlugins: Pluggable[] = [
   [rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' } }],
 ];
 
+function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const [broken, setBroken] = React.useState(false);
+
+  if (broken) {
+    return (
+      <span className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+        <ImageOffIcon className="size-3.5 shrink-0" />
+        <span>{props.alt ?? 'Image'}</span>
+      </span>
+    );
+  }
+
+  return <img {...props} onError={() => setBroken(true)} />;
+}
+
+const markdownComponents = { img: MarkdownImage };
+
 function MarkdownContent({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('prose prose-sm dark:prose-invert max-w-none leading-relaxed', className)}>
-      <MarkdownHooks remarkPlugins={[remarkMath]} rehypePlugins={rehypePlugins}>
+    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
+      <MarkdownHooks remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={rehypePlugins} components={markdownComponents}>
         {text}
       </MarkdownHooks>
     </div>

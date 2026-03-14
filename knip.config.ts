@@ -26,11 +26,12 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'oxlint',
     'oxlint-tsgolint',
-    // Referenced via CSS @import in apps/web/src/styles/global.css, not TS imports
+    // Referenced via CSS @import / @plugin in apps/web/src/styles/global.css, not TS imports
     'katex',
     'shadcn',
     'tw-animate-css',
     'tailwindcss',
+    '@tailwindcss/typography',
   ],
 };
 
