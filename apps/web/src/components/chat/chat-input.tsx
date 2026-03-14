@@ -150,6 +150,7 @@ type ChatInputInnerProps = {
   selectedModel: string | null;
   onModelChange: (value: string) => void;
   placeholder?: string;
+  hasDockAbove?: boolean;
 };
 
 function ChatInputInner({
@@ -159,6 +160,7 @@ function ChatInputInner({
   selectedModel,
   onModelChange,
   placeholder = 'Ask anything...',
+  hasDockAbove,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
@@ -188,6 +190,7 @@ function ChatInputInner({
         'relative flex flex-col rounded-2xl border border-border/60 bg-card',
         'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
+        hasDockAbove && 'rounded-t-none border-t-0',
       )}
     >
       {/* Textarea */}
@@ -245,14 +248,18 @@ type ChatInputProps = {
   onModelChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  hasDockAbove?: boolean;
 };
 
-export function ChatInput({ className, ...props }: ChatInputProps) {
+export function ChatInput({ className, hasDockAbove, ...props }: ChatInputProps) {
   return (
     <div className={cn('w-full', className)}>
       <React.Suspense
         fallback={
-          <div className="relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className={cn(
+            'relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm',
+            hasDockAbove && 'rounded-t-none border-t-0',
+          )}>
             <div className="px-4 pt-4 pb-2">
               <div className="h-5 w-32 rounded bg-muted animate-pulse" />
             </div>
@@ -263,7 +270,7 @@ export function ChatInput({ className, ...props }: ChatInputProps) {
           </div>
         }
       >
-        <ChatInputInner {...props} />
+        <ChatInputInner hasDockAbove={hasDockAbove} {...props} />
       </React.Suspense>
     </div>
   );
