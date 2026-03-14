@@ -50,7 +50,7 @@ export function AppearanceSettings() {
 
       <section className="space-y-3">
         <h3 className="text-sm font-medium">Theme</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {THEMES.map((t) => (
             <button
               key={t.name}

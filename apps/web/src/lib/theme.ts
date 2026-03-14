@@ -1,7 +1,8 @@
 import type { AppearanceMode } from '@openwork/shared';
 import defaultTheme from '@/themes/default.json';
-import oceanTheme from '@/themes/ocean.json';
-import roseTheme from '@/themes/rose.json';
+import draculaTheme from '@/themes/dracula.json';
+import solarizedTheme from '@/themes/solarized.json';
+import tokyonightTheme from '@/themes/tokyonight.json';
 
 export const THEME_TOKEN_KEYS = [
   'background',
@@ -57,8 +58,9 @@ type ThemeDefinition = {
 
 export const THEMES: ThemeDefinition[] = [
   defaultTheme satisfies ThemeDefinition,
-  oceanTheme satisfies ThemeDefinition,
-  roseTheme satisfies ThemeDefinition,
+  tokyonightTheme satisfies ThemeDefinition,
+  solarizedTheme satisfies ThemeDefinition,
+  draculaTheme satisfies ThemeDefinition,
 ];
 
 export const DEFAULT_THEME = 'default';
