@@ -263,7 +263,17 @@ export async function runStream(opts: {
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
 
+  const MAX_STEPS_WARNING = `CRITICAL: You are on step ${MAX_STEPS} (final step). Tools will be disabled after this. Complete all remaining work and provide your final answer.`;
+
   for (let step = 0; step < MAX_STEPS; step++) {
+    const isLastStep = step === MAX_STEPS - 1;
+    if (isLastStep) {
+      conversation.unshift({
+        role: 'system',
+        content: MAX_STEPS_WARNING,
+      });
+    }
+
     const stepResult = await runStep({
       sessionId,
       messageId: assistantMessageId,
