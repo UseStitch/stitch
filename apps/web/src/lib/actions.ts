@@ -10,8 +10,14 @@ export interface Action {
 
 export function useActions(): Action[] {
   const navigate = useNavigate();
-  const { commandPaletteOpen, setCommandPaletteOpen, settingsOpen, setSettingsOpen } =
-    useDialogContext();
+  const {
+    commandPaletteOpen,
+    setCommandPaletteOpen,
+    settingsOpen,
+    setSettingsOpen,
+    renameSessionOpen,
+    setRenameSessionOpen,
+  } = useDialogContext();
 
   return [
     {
@@ -21,5 +27,10 @@ export function useActions(): Action[] {
     },
     { id: 'open-settings', label: 'Open settings', run: () => setSettingsOpen(!settingsOpen) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
+    {
+      id: 'rename-session',
+      label: 'Rename session',
+      run: () => setRenameSessionOpen(!renameSessionOpen),
+    },
   ];
 }

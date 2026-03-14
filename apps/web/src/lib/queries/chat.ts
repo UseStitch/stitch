@@ -85,6 +85,30 @@ export function useCreateSession() {
   });
 }
 
+type RenameSessionInput = {
+  sessionId: string;
+  title: string;
+};
+
+export function useRenameSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: RenameSessionInput): Promise<Session> => {
+      const res = await serverFetch(`/chat/sessions/${input.sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: input.title }),
+      });
+      if (!res.ok) throw new Error('Failed to rename session');
+      return res.json() as Promise<Session>;
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(input.sessionId) });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
 export function useSendMessage() {
   const queryClient = useQueryClient();
   return useMutation({

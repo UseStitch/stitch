@@ -5,6 +5,8 @@ interface DialogContextValue {
   setCommandPaletteOpen: (open: boolean) => void;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
+  renameSessionOpen: boolean;
+  setRenameSessionOpen: (open: boolean) => void;
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null);
@@ -12,10 +14,18 @@ const DialogContext = React.createContext<DialogContextValue | null>(null);
 export function DialogProvider({ children }: { children: React.ReactNode }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [renameSessionOpen, setRenameSessionOpen] = React.useState(false);
 
   return (
     <DialogContext.Provider
-      value={{ commandPaletteOpen, setCommandPaletteOpen, settingsOpen, setSettingsOpen }}
+      value={{
+        commandPaletteOpen,
+        setCommandPaletteOpen,
+        settingsOpen,
+        setSettingsOpen,
+        renameSessionOpen,
+        setRenameSessionOpen,
+      }}
     >
       {children}
     </DialogContext.Provider>

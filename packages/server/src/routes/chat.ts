@@ -16,9 +16,12 @@ chatRouter.post('/sessions', async (c) => {
   const id = randomUUID();
   const now = new Date();
 
+  const title =
+    body.title ?? `New Session ${now.toLocaleString('en-US', { hour12: false })}`;
+
   await db.insert(sessions).values({
     id,
-    title: body.title ?? null,
+    title,
     parentSessionId: body.parentSessionId ?? null,
     createdAt: now,
     updatedAt: now,
@@ -61,6 +64,25 @@ chatRouter.delete('/sessions/:id', async (c) => {
 
   if (result.length === 0) return c.json({ error: 'Session not found' }, 404);
   return c.body(null, 204);
+});
+
+chatRouter.patch('/sessions/:id', async (c) => {
+  const db = getDb();
+  const sessionId = c.req.param('id');
+  const body = (await c.req.json()) as { title: string };
+
+  if (!body.title) {
+    return c.json({ error: 'Title is required' }, 400);
+  }
+
+  const [updated] = await db
+    .update(sessions)
+    .set({ title: body.title, updatedAt: new Date() })
+    .where(eq(sessions.id, sessionId))
+    .returning();
+
+  if (!updated) return c.json({ error: 'Session not found' }, 404);
+  return c.json(updated);
 });
 
 chatRouter.post('/sessions/:id/messages', async (c) => {
