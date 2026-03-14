@@ -23,7 +23,9 @@ export type SseEventName =
   | 'stream-finish'
   | 'stream-error'
   | 'stream-tool-state'
-  | 'stream-tool-input-delta';
+  | 'stream-tool-input-delta'
+  | 'step-start'
+  | 'step-finish';
 
 // ─── Tool call lifecycle ──────────────────────────────────────────────────────
 
@@ -128,4 +130,18 @@ export type StreamStartPayload = {
 export type SessionTitleUpdatePayload = {
   sessionId: string;
   title: string;
+};
+
+export type StepStartPayload = {
+  sessionId: string;
+  messageId: string;
+  step: number;
+};
+
+export type StepFinishPayload = {
+  sessionId: string;
+  messageId: string;
+  step: number;
+  finishReason: string;
+  usage: LanguageModelUsage;
 };

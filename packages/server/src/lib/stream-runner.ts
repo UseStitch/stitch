@@ -59,12 +59,13 @@ type StepResult = {
 async function runStep(opts: {
   sessionId: string;
   messageId: string;
+  step: number;
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
   partStartTimes: Map<string, number>;
 }): Promise<StepResult> {
-  const { sessionId, messageId, model, conversation, accumulatedParts, partStartTimes } = opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, partStartTimes } = opts;
 
   const result = streamText({
     model,
@@ -188,9 +189,39 @@ async function runStep(opts: {
         break;
       }
 
+      case 'start-step': {
+        const stepStartNow = Date.now();
+        accumulatedParts.push({
+          type: 'step-start' as const,
+          step,
+          startedAt: stepStartNow,
+          endedAt: stepStartNow,
+        });
+        await Sse.broadcast('step-start', { sessionId, messageId, step });
+        break;
+      }
+
+      case 'finish-step': {
+        const stepFinishNow = Date.now();
+        accumulatedParts.push({
+          type: 'step-finish' as const,
+          step,
+          finishReason: part.finishReason,
+          usage: part.usage,
+          startedAt: stepFinishNow,
+          endedAt: stepFinishNow,
+        });
+        await Sse.broadcast('step-finish', {
+          sessionId,
+          messageId,
+          step,
+          finishReason: part.finishReason,
+          usage: part.usage,
+        });
+        break;
+      }
+
       case 'start':
-      case 'start-step':
-      case 'finish-step':
       case 'raw':
         break;
 
@@ -277,6 +308,7 @@ export async function runStream(opts: {
     const stepResult = await runStep({
       sessionId,
       messageId: assistantMessageId,
+      step,
       model,
       conversation,
       accumulatedParts,
