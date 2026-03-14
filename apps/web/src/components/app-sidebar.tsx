@@ -24,7 +24,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
       <SidebarHeader className="pb-0">
-        <SidebarMenuButton render={<Link to="/" className="flex items-center gap-2 font-medium" />}>
+        <SidebarMenuButton render={<Link to="/" className="flex items-center justify-center gap-2 font-medium" />}>
           <PlusIcon className="size-4" />
           New Chat
         </SidebarMenuButton>
