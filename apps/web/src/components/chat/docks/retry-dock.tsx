@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Loader2Icon } from 'lucide-react';
 import type { RetryInfo } from '@/hooks/use-chat-stream';
 
-export function RetryIndicator({ retry }: { retry: RetryInfo }) {
+export function RetryDock({ retry }: { retry: RetryInfo }) {
   const [secondsRemaining, setSecondsRemaining] = React.useState(0);
 
   React.useEffect(() => {
