@@ -29,6 +29,7 @@ export function MessageList({ messages, streamState }: MessageListProps) {
             partIds={streamState.partIds}
             parts={streamState.parts}
             isStreaming={streamState.isStreaming}
+            retry={streamState.retry}
           />
         ))}
     </div>

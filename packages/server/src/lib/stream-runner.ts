@@ -9,6 +9,7 @@ import * as Sse from './sse.js';
 import { createProvider } from '../provider/provider.js';
 import type { ProviderCredentials } from '../provider/provider.js';
 import { TOOL_DEFINITIONS, TOOL_EXECUTORS } from '../tools/index.js';
+import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -244,6 +245,82 @@ async function runStep(opts: {
   };
 }
 
+// ─── Step execution with retry ──────────────────────────────────────────────
+
+async function runStepWithRetry(opts: {
+  sessionId: string;
+  messageId: string;
+  step: number;
+  model: ReturnType<ReturnType<typeof createProvider>>;
+  conversation: ModelMessage[];
+  accumulatedParts: StoredPart[];
+  partStartTimes: Map<string, number>;
+  providerId: string;
+}): Promise<StepResult> {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await runStep(opts);
+    } catch (error) {
+      attempt++;
+      const errorInfo = extractErrorInfo(error, opts.providerId);
+
+      log.error('step error', {
+        sessionId: opts.sessionId,
+        messageId: opts.messageId,
+        step: opts.step,
+        attempt,
+        error: errorInfo.message,
+        isContextOverflow: errorInfo.isContextOverflow,
+        isRetryable: errorInfo.isRetryable,
+      });
+
+      if (errorInfo.isContextOverflow) {
+        await Sse.broadcast('stream-error', {
+          sessionId: opts.sessionId,
+          messageId: opts.messageId,
+          error: `Context overflow: ${errorInfo.message}`,
+        });
+        throw error;
+      }
+
+      const retryMessage = isRetryable(errorInfo);
+      if (!retryMessage || attempt >= MAX_RETRIES) {
+        await Sse.broadcast('stream-error', {
+          sessionId: opts.sessionId,
+          messageId: opts.messageId,
+          error: errorInfo.message,
+        });
+        throw error;
+      }
+
+      const waitTime = delay(attempt, errorInfo.responseHeaders);
+
+      log.info('retrying step', {
+        sessionId: opts.sessionId,
+        messageId: opts.messageId,
+        step: opts.step,
+        attempt,
+        maxRetries: MAX_RETRIES,
+        delayMs: waitTime,
+        reason: retryMessage,
+      });
+
+      await Sse.broadcast('stream-retry', {
+        sessionId: opts.sessionId,
+        messageId: opts.messageId,
+        attempt,
+        maxRetries: MAX_RETRIES,
+        delayMs: waitTime,
+        message: retryMessage,
+      });
+
+      await sleep(waitTime);
+    }
+  }
+}
+
 // ─── Tool execution with Zod validation ──────────────────────────────────────
 
 type ExecuteResult = { ok: true; output: unknown } | { ok: false; error: string };
@@ -305,7 +382,7 @@ export async function runStream(opts: {
       });
     }
 
-    const stepResult = await runStep({
+    const stepResult = await runStepWithRetry({
       sessionId,
       messageId: assistantMessageId,
       step,
@@ -313,6 +390,7 @@ export async function runStream(opts: {
       conversation,
       accumulatedParts,
       partStartTimes,
+      providerId: credentials.providerId,
     });
 
     totalUsage = addUsage(totalUsage, stepResult.usage);

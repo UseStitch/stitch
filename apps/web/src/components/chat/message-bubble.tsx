@@ -17,8 +17,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StoredPart } from '@openwork/shared';
-import type { StreamingPart } from '@/hooks/use-chat-stream';
+import type { StreamingPart, RetryInfo } from '@/hooks/use-chat-stream';
 import type { ToolCallStatus } from '@openwork/shared';
+import { RetryIndicator } from './retry-indicator';
 
 // ─── Shared markdown renderer ─────────────────────────────────────────────────
 
@@ -300,12 +301,14 @@ type StreamingMessageBubbleProps = {
   partIds: string[];
   parts: Record<string, StreamingPart>;
   isStreaming: boolean;
+  retry?: RetryInfo | null;
 };
 
 export function StreamingMessageBubble({
   partIds,
   parts,
   isStreaming,
+  retry,
 }: StreamingMessageBubbleProps) {
   const visibleIds = partIds.filter((id) => id in parts);
 
@@ -363,6 +366,7 @@ export function StreamingMessageBubble({
               return <FileBlock key={partId} mediaType={part.mediaType} />;
           }
         })}
+        {retry && <RetryIndicator retry={retry} />}
       </div>
     </div>
   );

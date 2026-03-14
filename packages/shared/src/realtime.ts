@@ -22,6 +22,7 @@ export type SseEventName =
   | 'stream-part-delta'
   | 'stream-finish'
   | 'stream-error'
+  | 'stream-retry'
   | 'stream-tool-state'
   | 'stream-tool-input-delta'
   | 'step-start'
@@ -120,6 +121,15 @@ export type StreamErrorPayload = {
   sessionId: string;
   messageId: string;
   error: string;
+};
+
+export type StreamRetryPayload = {
+  sessionId: string;
+  messageId: string;
+  attempt: number;
+  maxRetries: number;
+  delayMs: number;
+  message: string;
 };
 
 export type StreamStartPayload = {

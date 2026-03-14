@@ -7,6 +7,7 @@ import type {
   StreamFinishPayload,
   StreamPartDeltaPayload,
   StreamPartUpdatePayload,
+  StreamRetryPayload,
   StreamStartPayload,
   StreamToolStatePayload,
   StreamToolInputDeltaPayload,
@@ -64,6 +65,14 @@ export type StreamingFilePart = {
   endedAt: number;
 };
 
+export type RetryInfo = {
+  attempt: number;
+  maxRetries: number;
+  delayMs: number;
+  message: string;
+  nextRetryAt: number;
+};
+
 export type StreamingPart =
   | StreamingTextPart
   | StreamingReasoningPart
@@ -80,6 +89,7 @@ type StreamState = {
   error: string | null;
   finishReason: string | null;
   usage: LanguageModelUsage | null;
+  retry: RetryInfo | null;
 };
 
 type Action =
@@ -90,6 +100,7 @@ type Action =
   | { type: 'tool-input-delta'; toolCallId: string; toolName: string; inputTextDelta: string }
   | { type: 'finish'; finishReason: string; usage?: LanguageModelUsage }
   | { type: 'error'; error: string }
+  | { type: 'retry'; retry: RetryInfo }
   | { type: 'reset' };
 
 const INITIAL_STATE: StreamState = {
@@ -99,6 +110,7 @@ const INITIAL_STATE: StreamState = {
   error: null,
   finishReason: null,
   usage: null,
+  retry: null,
 };
 
 function addPart(state: StreamState, partId: string, part: StreamingPart): StreamState {
@@ -119,7 +131,7 @@ function updatePart(state: StreamState, partId: string, part: StreamingPart): St
 function reducer(state: StreamState, action: Action): StreamState {
   switch (action.type) {
     case 'start':
-      return { ...state, isStreaming: true };
+      return { ...state, isStreaming: true, retry: null };
 
     case 'part-update': {
       const { partId, part } = action;
@@ -299,10 +311,14 @@ function reducer(state: StreamState, action: Action): StreamState {
         isStreaming: false,
         finishReason: action.finishReason,
         usage: action.usage ?? null,
+        retry: null,
       };
 
     case 'error':
-      return { ...state, isStreaming: false, error: action.error };
+      return { ...state, isStreaming: false, error: action.error, retry: null };
+
+    case 'retry':
+      return { ...state, retry: action.retry };
 
     case 'reset':
       return INITIAL_STATE;
@@ -321,6 +337,7 @@ export type ChatStreamState = {
   error: string | null;
   finishReason: string | null;
   usage: LanguageModelUsage | null;
+  retry: RetryInfo | null;
 };
 
 export type UseChatStreamResult = ChatStreamState & {
@@ -388,6 +405,20 @@ export function useChatStream(): UseChatStreamResult {
       const payload = data as StreamErrorPayload;
       if (payload.messageId !== activeMessageIdRef.current) return;
       dispatch({ type: 'error', error: payload.error });
+    },
+    'stream-retry': (data) => {
+      const payload = data as StreamRetryPayload;
+      if (payload.messageId !== activeMessageIdRef.current) return;
+      dispatch({
+        type: 'retry',
+        retry: {
+          attempt: payload.attempt,
+          maxRetries: payload.maxRetries,
+          delayMs: payload.delayMs,
+          message: payload.message,
+          nextRetryAt: Date.now() + payload.delayMs,
+        },
+      });
     },
   });
 
