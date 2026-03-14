@@ -114,5 +114,3 @@ export function DockContainer({ docks, className }: DockContainerProps) {
     </div>
   );
 }
-
-export type { DockItem };

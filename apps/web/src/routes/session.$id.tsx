@@ -5,6 +5,7 @@ import { StickToBottom } from 'use-stick-to-bottom';
 import { ChatInput } from '@/components/chat/chat-input';
 import { MessageList } from '@/components/chat/message-list';
 import { DockContainer } from '@/components/chat/dock';
+import { RetryIndicator } from '@/components/chat/retry-indicator';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
@@ -85,6 +86,18 @@ function SessionComponent() {
 
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming;
 
+  const docks = React.useMemo(() => {
+    if (!streamState.retry) return [];
+    return [
+      {
+        id: 'retry',
+        title: `Retrying... (attempt ${streamState.retry.attempt}/${streamState.retry.maxRetries})`,
+        defaultExpanded: true,
+        children: <RetryIndicator retry={streamState.retry} />,
+      },
+    ];
+  }, [streamState.retry]);
+
   return (
     <StickToBottom
       className="flex-1 h-full overflow-hidden relative"
@@ -100,7 +113,7 @@ function SessionComponent() {
       <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pt-10 bg-linear-to-t from-muted via-muted/80 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pointer-events-auto">
         <div className="mx-auto max-w-4xl">
-          <DockContainer docks={[]} />
+          <DockContainer docks={docks} />
           <ChatInput
             value={value}
             onChange={setValue}
@@ -110,7 +123,7 @@ function SessionComponent() {
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
             placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
-            hasDockAbove={false}
+            hasDockAbove={docks.length > 0}
           />
         </div>
       </div>

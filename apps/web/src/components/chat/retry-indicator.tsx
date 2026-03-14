@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Loader2Icon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import type { RetryInfo } from '@/hooks/use-chat-stream';
 
 export function RetryIndicator({ retry }: { retry: RetryInfo }) {
@@ -25,11 +24,7 @@ export function RetryIndicator({ retry }: { retry: RetryInfo }) {
     : `Retrying... (attempt ${retry.attempt}/${retry.maxRetries})`;
 
   return (
-    <div
-      className={cn(
-        'my-3 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3',
-      )}
-    >
+    <div className="flex items-start gap-2">
       <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-destructive" />
       <div className="min-w-0">
         {truncatedMessage ? (
