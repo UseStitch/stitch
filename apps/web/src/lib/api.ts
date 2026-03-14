@@ -8,6 +8,10 @@ declare global {
         close: () => Promise<void>;
         isMaximized: () => Promise<boolean>;
       };
+      devtools?: {
+        toggle: () => Promise<void>;
+        inspect: (x: number, y: number) => Promise<void>;
+      };
     };
   }
 }

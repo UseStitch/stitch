@@ -82,6 +82,14 @@ ipcMain.handle('window:isMaximized', () => {
 
 ipcMain.handle('get-server-config', () => ({ url: serverUrl }));
 
+ipcMain.handle('devtools:toggle', () => {
+  mainWindow?.webContents.toggleDevTools();
+});
+
+ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
+  mainWindow?.webContents.inspectElement(x, y);
+});
+
 app.whenReady().then(async () => {
   const port = await findAvailablePort();
   serverUrl = await spawnServer(port);

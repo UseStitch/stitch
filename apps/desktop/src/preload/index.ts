@@ -19,4 +19,8 @@ contextBridge.exposeInMainWorld('api', {
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
   },
+  devtools: {
+    toggle: () => ipcRenderer.invoke('devtools:toggle'),
+    inspect: (x: number, y: number) => ipcRenderer.invoke('devtools:inspect', x, y),
+  },
 });

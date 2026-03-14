@@ -15,6 +15,7 @@ import { SettingsDialog } from '../components/settings-dialog';
 import { RenameSessionDialog } from '../components/rename-session-dialog';
 import { Toaster } from '../components/ui/sonner';
 import { ChatStreamProvider } from '../context/chat-stream-context';
+import { RightClickMenu } from '@/components/right-click-menu';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -38,14 +39,16 @@ function RootLayout() {
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden relative">
-        <AppSidebar />
-        <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
-          <ChatStreamProvider>
-            <Outlet />
-          </ChatStreamProvider>
-        </SidebarInset>
-      </div>
+      <RightClickMenu>
+        <div className="flex flex-1 overflow-hidden relative">
+          <AppSidebar />
+          <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
+            <ChatStreamProvider>
+              <Outlet />
+            </ChatStreamProvider>
+          </SidebarInset>
+        </div>
+      </RightClickMenu>
       <CommandPalette />
       <SettingsDialog />
       <RenameSessionDialog />
