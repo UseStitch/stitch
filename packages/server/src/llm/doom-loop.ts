@@ -4,6 +4,10 @@ const log = Log.create({ service: 'doom-loop' });
 
 export const DOOM_LOOP_THRESHOLD = 3;
 
+export const DOOM_LOOP_MESSAGE =
+  'The user has stopped your execution because you were repeating the same action. ' +
+  'Provide a brief summary of what you have done so far and what remains to be completed.';
+
 /** Timeout (ms) before an unresolved doom-loop prompt auto-stops. */
 const DECISION_TIMEOUT_MS = 5 * 60 * 1000;
 

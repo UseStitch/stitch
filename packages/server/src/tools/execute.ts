@@ -1,5 +1,10 @@
 import { TOOL_EXECUTORS } from './index.js';
 
+export const MAX_STEPS = 25;
+
+export const MAX_STEPS_WARNING = (max: number) =>
+  `CRITICAL: You are on step ${max} (final step). Tools will be disabled after this. Complete all remaining work and provide your final answer.`;
+
 type ExecuteResult = { ok: true; output: unknown } | { ok: false; error: string };
 
 export async function executeTool(toolName: string, input: unknown): Promise<ExecuteResult> {

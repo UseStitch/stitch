@@ -11,9 +11,10 @@ import { createProvider } from '../provider/provider.js';
 import type { ProviderCredentials } from '../provider/provider.js';
 import { TOOL_DEFINITIONS } from '../tools/index.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
-import { executeTool } from '../tools/execute.js';
+import { executeTool, MAX_STEPS, MAX_STEPS_WARNING } from '../tools/execute.js';
 import {
   DOOM_LOOP_THRESHOLD,
+  DOOM_LOOP_MESSAGE,
   isDoomLoop,
   waitForUserDecision,
   type ToolCallRecord,
@@ -22,7 +23,6 @@ import { stableStringify } from '../utils/stable-stringify.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
-const MAX_STEPS = 25;
 const MAX_TOOL_RETRIES = 3;
 
 
@@ -337,14 +337,12 @@ export async function runStream(opts: {
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
 
-  const MAX_STEPS_WARNING = `CRITICAL: You are on step ${MAX_STEPS} (final step). Tools will be disabled after this. Complete all remaining work and provide your final answer.`;
-
   for (let step = 0; step < MAX_STEPS; step++) {
     const isLastStep = step === MAX_STEPS - 1;
     if (isLastStep) {
       conversation.unshift({
         role: 'system',
-        content: MAX_STEPS_WARNING,
+        content: MAX_STEPS_WARNING(MAX_STEPS),
       });
     }
 
@@ -400,9 +398,7 @@ export async function runStream(opts: {
 
         conversation.push({
           role: 'system',
-          content:
-            'The user has stopped your execution because you were repeating the same action. ' +
-            'Provide a brief summary of what you have done so far and what remains to be completed.',
+          content: DOOM_LOOP_MESSAGE,
         });
 
         const summaryResult = await runStepWithRetry({
