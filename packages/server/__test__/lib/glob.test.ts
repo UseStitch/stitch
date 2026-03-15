@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'path';
 import { describe, test, expect } from 'vitest';
 
-import * as Glob from "@/lib/glob.js";
+import * as Glob from '@/lib/glob.js';
 
 async function tmpdir(): Promise<{ path: string; [Symbol.asyncDispose]: () => Promise<void> }> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'glob-test-'));

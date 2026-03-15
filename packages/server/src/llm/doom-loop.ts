@@ -1,4 +1,4 @@
-import * as Log from "@/lib/log.js";
+import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'doom-loop' });
 

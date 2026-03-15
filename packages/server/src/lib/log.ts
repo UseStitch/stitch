@@ -3,8 +3,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
 
-import * as Glob from "@/lib/glob.js";
-import { PATHS } from "@/lib/paths.js";
+import * as Glob from '@/lib/glob.js';
+import { PATHS } from '@/lib/paths.js';
 
 const Level = z
   .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
@@ -53,6 +53,10 @@ let write = (msg: any) => {
   process.stderr.write(msg);
   return msg.length;
 };
+
+export function file(): string {
+  return logpath;
+}
 
 export async function init(options: Options) {
   if (options.level) level = options.level;

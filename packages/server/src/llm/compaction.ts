@@ -4,16 +4,15 @@ import { eq, asc } from 'drizzle-orm';
 import type { PrefixedString, StoredPart } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
 
-import { getDb } from "@/db/client.js";
-import { messages, sessions } from "@/db/schema.js";
-import * as Log from "@/lib/log.js";
-import * as Sse from "@/lib/sse.js";
-import * as Models from "@/provider/models.js";
-import { createProvider } from "@/provider/provider.js";
-import { estimate } from "@/utils/token.js";
-import { resolveCheapModel } from "@/llm/resolve-cheap-model.js";
-
-import type { ProviderCredentials } from "@/provider/provider.js";
+import { getDb } from '@/db/client.js';
+import { messages, sessions } from '@/db/schema.js';
+import * as Log from '@/lib/log.js';
+import * as Sse from '@/lib/sse.js';
+import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import * as Models from '@/provider/models.js';
+import { createProvider } from '@/provider/provider.js';
+import type { ProviderCredentials } from '@/provider/provider.js';
+import { estimate } from '@/utils/token.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'compaction' });

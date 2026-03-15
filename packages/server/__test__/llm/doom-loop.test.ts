@@ -5,7 +5,7 @@ import {
   waitForUserDecision,
   resolveDecision,
   type ToolCallRecord,
-} from "@/llm/doom-loop.js";
+} from '@/llm/doom-loop.js';
 
 describe('isDoomLoop', () => {
   test('returns false when history is empty', () => {

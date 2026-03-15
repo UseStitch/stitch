@@ -1,4 +1,5 @@
-import { glob,  type GlobOptions } from 'glob';
+import { glob, globSync, type GlobOptions } from 'glob';
+import { minimatch } from 'minimatch';
 
 interface Options {
   cwd?: string;
@@ -20,4 +21,12 @@ function toGlobOptions(options: Options): GlobOptions {
 
 export async function scan(pattern: string, options: Options = {}): Promise<string[]> {
   return glob(pattern, toGlobOptions(options)) as Promise<string[]>;
+}
+
+export function scanSync(pattern: string, options: Options = {}): string[] {
+  return globSync(pattern, toGlobOptions(options)) as string[];
+}
+
+export function match(pattern: string, filepath: string): boolean {
+  return minimatch(filepath, pattern, { dot: true, matchBase: false });
 }

@@ -3,9 +3,8 @@ import path from 'node:path';
 
 import { createToolResultId } from '@openwork/shared';
 
-import { PATHS } from "@/lib/paths.js";
-
 import * as Log from '@/lib/log.js';
+import { PATHS } from '@/lib/paths.js';
 
 const MAX_LINES = 2000;
 const MAX_BYTES = 50 * 1024;

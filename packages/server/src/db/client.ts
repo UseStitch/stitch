@@ -5,9 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as Log from "@/lib/log.js";
-import { PATHS } from "@/lib/paths.js";
-import * as schema from "@/db/schema.js";
+import * as schema from '@/db/schema.js';
+import * as Log from '@/lib/log.js';
+import { PATHS } from '@/lib/paths.js';
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
 
