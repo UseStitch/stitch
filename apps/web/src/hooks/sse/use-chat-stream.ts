@@ -16,7 +16,7 @@ import type {
   ToolCallStatus,
 } from '@openwork/shared';
 
-import { useSSE } from '@/hooks/sse/use-sse';
+import { useSSE } from '@/hooks/sse/sse-context';
 
 // ─── Streaming part types (FE in-flight state) ────────────────────────────────
 

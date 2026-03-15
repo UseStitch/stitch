@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { SessionTitleUpdatePayload } from '@openwork/shared';
 import type { Session } from '@openwork/shared';
 
-import { useSSE } from '@/hooks/sse/use-sse';
+import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
 
 export function useSessionTitleUpdates(

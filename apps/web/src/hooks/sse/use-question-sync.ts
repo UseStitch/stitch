@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useSSE } from '@/hooks/sse/use-sse';
+import { useSSE } from '@/hooks/sse/sse-context';
 import { questionKeys } from '@/lib/queries/questions';
 
 export function useQuestionSync(sessionId: string): void {

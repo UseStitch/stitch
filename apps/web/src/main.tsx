@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 
 import { routeTree } from '@/routeTree.gen';
+import { SseProvider } from '@/hooks/sse/sse-context';
 import '@/styles/global.css';
 
 const queryClient = new QueryClient();
@@ -28,7 +29,9 @@ ReactDOM.createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <HotkeysProvider>
-        <RouterProvider router={router} />
+        <SseProvider>
+          <RouterProvider router={router} />
+        </SseProvider>
       </HotkeysProvider>
     </QueryClientProvider>
   </StrictMode>,
