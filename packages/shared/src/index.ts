@@ -2,6 +2,7 @@ export * from './messages.js';
 export * from './providers.js';
 export * from './realtime.js';
 export * from './id.js';
+export * from './questions.js';
 
 export const SETTINGS_KEYS = [
   'model.default',

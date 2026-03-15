@@ -1,7 +1,7 @@
 import { streamText, smoothStream } from 'ai';
-import type { ModelMessage, LanguageModelUsage, ToolResultPart } from 'ai';
+import type { ModelMessage, LanguageModelUsage } from 'ai';
 import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
-import { createPartId, createToolCallId } from '@openwork/shared';
+import { createPartId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
 import * as Log from './log.js';
@@ -9,9 +9,8 @@ import * as Sse from './sse.js';
 import * as Usage from '../utils/usage.js';
 import { createProvider } from '../provider/provider.js';
 import type { ProviderCredentials } from '../provider/provider.js';
-import { TOOL_DEFINITIONS } from '../tools/index.js';
+import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '../tools/index.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
-import { executeTool, MAX_STEPS, MAX_STEPS_WARNING } from '../tools/execute.js';
 import {
   DOOM_LOOP_THRESHOLD,
   DOOM_LOOP_MESSAGE,
@@ -24,13 +23,11 @@ import { isOverflow, compact, getModelLimits } from '../llm/compaction.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
-const MAX_TOOL_RETRIES = 3;
-
 
 type StepResult = {
   finishReason: string;
   usage: LanguageModelUsage;
-  toolCalls: Array<{ toolCallId: string; toolName: string; input: unknown }>;
+  toolCalls: ToolCallRecord[];
   responseMessages: ModelMessage[];
 };
 
@@ -41,13 +38,14 @@ async function runStep(opts: {
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
+  tools: ReturnType<typeof createTools>;
 }): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts } = opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools } = opts;
 
   const result = streamText({
     model,
     messages: conversation,
-    tools: TOOL_DEFINITIONS,
+    tools,
     experimental_transform: smoothStream({
       delayInMs: 100,
     }),
@@ -56,10 +54,7 @@ async function runStep(opts: {
     },
   });
 
-  const toolCalls: StepResult['toolCalls'] = [];
-
-  // Map SDK tool call IDs to stable tool_ IDs for consistent lifecycle tracking
-  const sdkIdToToolCallId = new Map<string, string>();
+  const toolCalls: ToolCallRecord[] = [];
 
   // In-memory accumulation for text and reasoning parts
   let currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
@@ -156,12 +151,10 @@ async function runStep(opts: {
       }
 
       case 'tool-input-start': {
-        const toolCallId = createToolCallId();
-        sdkIdToToolCallId.set(part.id, toolCallId);
         await Sse.broadcast('stream-tool-state', {
           sessionId,
           messageId,
-          toolCallId,
+          toolCallId: part.id,
           toolName: part.toolName,
           status: 'pending',
         });
@@ -169,16 +162,13 @@ async function runStep(opts: {
       }
 
       case 'tool-input-delta': {
-        const toolCallId = sdkIdToToolCallId.get(part.id);
-        if (toolCallId) {
-          await Sse.broadcast('stream-tool-input-delta', {
-            sessionId,
-            messageId,
-            toolCallId,
-            toolName: '',
-            inputTextDelta: part.delta,
-          });
-        }
+        await Sse.broadcast('stream-tool-input-delta', {
+          sessionId,
+          messageId,
+          toolCallId: part.id,
+          toolName: '',
+          inputTextDelta: part.delta,
+        });
         break;
       }
 
@@ -188,16 +178,77 @@ async function runStep(opts: {
       case 'tool-call': {
         const now = Date.now();
         const partId = createPartId();
-        const toolCallId = sdkIdToToolCallId.get(part.toolCallId) ?? createToolCallId();
-        sdkIdToToolCallId.delete(part.toolCallId);
-        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        toolCalls.push({ toolCallId, toolName: part.toolName, input: part.input });
+
+        // Record for doom loop detection
+        toolCalls.push({
+          toolName: part.toolName,
+          inputJson: stableStringify(part.input),
+        });
+
+        await Sse.broadcast('stream-tool-state', {
+          sessionId,
+          messageId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          status: 'in-progress',
+          input: part.input,
+        });
+
+        accumulatedParts.push({
+          ...part,
+          id: partId,
+          toolCallId: part.toolCallId,
+          startedAt: now,
+          endedAt: now,
+        } as StoredPart);
         break;
       }
 
-      case 'tool-result':
-      case 'tool-error':
+      case 'tool-result': {
+        const now = Date.now();
+        const partId = createPartId();
+
+        await Sse.broadcast('stream-tool-state', {
+          sessionId,
+          messageId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          status: 'completed',
+          input: part.input,
+          output: part.output,
+        });
+
+        accumulatedParts.push({
+          type: 'tool-result',
+          id: partId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+          output: part.output,
+          truncated: false,
+          startedAt: now,
+          endedAt: now,
+        } as StoredPart);
         break;
+      }
+
+      case 'tool-error': {
+        await Sse.broadcast('stream-tool-state', {
+          sessionId,
+          messageId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          status: 'error',
+          error: String(part.error),
+        });
+
+        log.warn('tool call failed', {
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          error: String(part.error),
+        });
+        break;
+      }
 
       case 'error': {
         log.error('stream part error', { sessionId, messageId, error: part.error });
@@ -273,6 +324,7 @@ async function runStepWithRetry(opts: {
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
   providerId: string;
+  tools: ReturnType<typeof createTools>;
 }): Promise<StepResult> {
   let attempt = 0;
 
@@ -353,10 +405,10 @@ export async function runStream(opts: {
 
   const provider = createProvider(credentials);
   const model = provider(modelId);
+  const tools = createTools({ sessionId, messageId: assistantMessageId });
 
   const accumulatedParts: StoredPart[] = [];
   const conversation: ModelMessage[] = [...llmMessages];
-  const toolRetries = new Map<string, number>();
   const toolCallHistory: ToolCallRecord[] = [];
 
   let totalUsage: LanguageModelUsage = Usage.ZERO_USAGE;
@@ -386,23 +438,23 @@ export async function runStream(opts: {
         conversation,
         accumulatedParts,
         providerId: credentials.providerId,
+        tools,
       });
 
       totalUsage = Usage.addUsage(totalUsage, stepResult.usage);
       finalFinishReason = stepResult.finishReason;
 
+      // Push SDK response messages into conversation for next step
       for (const msg of stepResult.responseMessages) {
         conversation.push(msg);
       }
 
+      // If the model didn't call any tools, we're done
       if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) break;
 
       // ── Doom loop detection ──────────────────────────────────────────────────
       for (const call of stepResult.toolCalls) {
-        toolCallHistory.push({
-          toolName: call.toolName,
-          inputJson: stableStringify(call.input),
-        });
+        toolCallHistory.push(call);
       }
 
       if (isDoomLoop(toolCallHistory)) {
@@ -440,6 +492,7 @@ export async function runStream(opts: {
             conversation,
             accumulatedParts,
             providerId: credentials.providerId,
+            tools,
           });
 
           totalUsage = Usage.addUsage(totalUsage, summaryResult.usage);
@@ -450,113 +503,9 @@ export async function runStream(opts: {
           break;
         }
 
-        // User chose 'continue' — proceed with tool execution as normal
+        // User chose 'continue' — proceed as normal
         log.info('user continued past doom loop', { sessionId });
       }
-
-      // ── Parallel tool execution ──────────────────────────────────────────────
-      const toolResults = await Promise.allSettled(
-        stepResult.toolCalls.map(async (call) => {
-          const { toolCallId, toolName, input } = call;
-
-          await Sse.broadcast('stream-tool-state', {
-            sessionId,
-            messageId: assistantMessageId,
-            toolCallId,
-            toolName,
-            status: 'in-progress',
-            input,
-          });
-
-          const execResult = await executeTool(toolName, input);
-
-          const now = Date.now();
-          const partId = createPartId();
-
-          if (!execResult.ok) {
-            const retryKey = `${toolName}:${stableStringify(input)}`;
-            const retries = (toolRetries.get(retryKey) ?? 0) + 1;
-            toolRetries.set(retryKey, retries);
-
-            const errorValue =
-              retries >= MAX_TOOL_RETRIES
-                ? { error: `Tool "${toolName}" failed after ${retries} attempts: ${execResult.error}` }
-                : { error: execResult.error, hint: 'Fix the arguments and try again.' };
-
-            await Sse.broadcast('stream-tool-state', {
-              sessionId,
-              messageId: assistantMessageId,
-              toolCallId,
-              toolName,
-              status: 'error',
-              input,
-              error: execResult.error,
-            });
-
-            log.warn('tool call failed', { toolCallId, toolName, error: execResult.error, retries });
-
-            accumulatedParts.push({
-              type: 'tool-result',
-              id: partId,
-              toolCallId,
-              toolName,
-              input,
-              output: errorValue,
-              truncated: false,
-              startedAt: now,
-              endedAt: now,
-            } as StoredPart);
-
-            return {
-              type: 'tool-result' as const,
-              toolCallId,
-              toolName,
-              output: { type: 'json' as const, value: errorValue },
-            } satisfies ToolResultPart;
-          }
-
-          await Sse.broadcast('stream-tool-state', {
-            sessionId,
-            messageId: assistantMessageId,
-            toolCallId,
-            toolName,
-            status: 'completed',
-            input,
-            output: execResult.output,
-          });
-
-          accumulatedParts.push({
-            type: 'tool-result',
-            id: partId,
-            toolCallId,
-            toolName,
-            input,
-            output: execResult.output,
-            truncated: execResult.truncated,
-            ...(execResult.outputPath !== undefined && { outputPath: execResult.outputPath }),
-            startedAt: now,
-            endedAt: now,
-          } as StoredPart);
-
-          return {
-            type: 'tool-result' as const,
-            toolCallId,
-            toolName,
-            output: { type: 'json' as const, value: execResult.output as never },
-          } satisfies ToolResultPart;
-        }),
-      );
-
-      const toolResultContent: ToolResultPart[] = [];
-      for (const result of toolResults) {
-        if (result.status === 'fulfilled') {
-          toolResultContent.push(result.value);
-        } else {
-          log.error('tool execution promise rejected', { error: result.reason });
-        }
-      }
-
-      conversation.push({ role: 'tool', content: toolResultContent });
     }
 
     // ── Proactive compaction check ───────────────────────────────────────────

@@ -84,6 +84,18 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
       addSseListener(eventSource, 'compaction-complete', (e) => {
         handlersRef.current['compaction-complete']?.(parseJson(e.data));
       });
+
+      addSseListener(eventSource, 'question-asked', (e) => {
+        handlersRef.current['question-asked']?.(parseJson(e.data));
+      });
+
+      addSseListener(eventSource, 'question-replied', (e) => {
+        handlersRef.current['question-replied']?.(parseJson(e.data));
+      });
+
+      addSseListener(eventSource, 'question-rejected', (e) => {
+        handlersRef.current['question-rejected']?.(parseJson(e.data));
+      });
     });
 
     return () => {

@@ -7,6 +7,7 @@ import { eventsRouter } from './routes/events.js';
 import { providerRouter } from './routes/provider.js';
 import { settingsRouter } from './routes/settings.js';
 import { shortcutsRouter } from './routes/shortcuts.js';
+import { questionsRouter } from './routes/questions.js';
 import { PATHS } from './lib/paths.js';
 import { registerShutdownHandlers } from './shutdown.js';
 
@@ -37,6 +38,7 @@ app.get('/health', (c) =>
   c.json({ status: 'ok', paths: PATHS }),
 );
 app.route('/chat', chatRouter);
+app.route('/chat', questionsRouter);
 app.route('/events', eventsRouter);
 app.route('/provider', providerRouter);
 app.route('/settings', settingsRouter);

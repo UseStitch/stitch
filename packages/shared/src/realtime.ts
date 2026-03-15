@@ -11,6 +11,7 @@ import type {
   ToolCallStreamPart,
   ToolResultStreamPart,
 } from './messages.js';
+import type { QuestionRequest } from './questions.js';
 
 export type SseEventName =
   | 'heartbeat'
@@ -29,7 +30,10 @@ export type SseEventName =
   | 'step-finish'
   | 'doom-loop-detected'
   | 'compaction-start'
-  | 'compaction-complete';
+  | 'compaction-complete'
+  | 'question-asked'
+  | 'question-replied'
+  | 'question-rejected';
 
 // ─── Tool call lifecycle ──────────────────────────────────────────────────────
 
@@ -176,4 +180,21 @@ export type CompactionStartPayload = {
 export type CompactionCompletePayload = {
   sessionId: string;
   summaryMessageId: string;
+};
+
+// ─── Question events ──────────────────────────────────────────────────────────────
+
+export type QuestionAskedPayload = {
+  question: QuestionRequest;
+};
+
+export type QuestionRepliedPayload = {
+  questionId: string;
+  sessionId: string;
+  answers: string[][];
+};
+
+export type QuestionRejectedPayload = {
+  questionId: string;
+  sessionId: string;
 };

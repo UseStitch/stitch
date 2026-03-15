@@ -5,6 +5,7 @@ import {
   useSuspenseInfiniteQuery,
   useQueryClient,
   useMutation,
+  useQuery,
 } from '@tanstack/react-query';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ChatInput } from '@/components/chat/chat-input';
@@ -12,6 +13,7 @@ import { MessageList } from '@/components/chat/message-list';
 import { DockContainer, type DockItem } from '@/components/chat/docks/dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
+import { QuestionDock } from '@/components/chat/docks/question-dock';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import {
   sessionQueryOptions,
@@ -20,8 +22,10 @@ import {
   sessionKeys,
   useSendMessage,
 } from '@/lib/queries/chat';
+import { questionsQueryOptions, useReplyQuestion, useRejectQuestion, questionKeys } from '@/lib/queries/questions';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { useCompactionUpdates } from '@/hooks/use-compaction-updates';
+import { useSSE } from '@/hooks/use-sse';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 import { createMessageId } from '@openwork/shared';
 
@@ -67,8 +71,43 @@ function SessionComponent() {
   }
 
   const sendMessage = useSendMessage();
+  const replyQuestion = useReplyQuestion();
+  const rejectQuestion = useRejectQuestion();
   const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext();
   const { isCompacting } = useCompactionUpdates(id);
+
+  const questionsQuery = useQuery(questionsQueryOptions(id));
+  const pendingQuestions = questionsQuery.data?.filter((q) => q.status === 'pending') ?? [];
+
+  useSSE({
+    'question-asked': (data) => {
+      try {
+        const payload = data as { question: { sessionId: string } };
+        if (payload.question?.sessionId !== id) return;
+        void queryClient.invalidateQueries({ queryKey: questionKeys.list(id) });
+      } catch (e) {
+        console.error('Error handling question-asked:', e);
+      }
+    },
+    'question-replied': (data) => {
+      try {
+        const payload = data as { sessionId: string };
+        if (payload.sessionId !== id) return;
+        void queryClient.invalidateQueries({ queryKey: questionKeys.list(id) });
+      } catch (e) {
+        console.error('Error handling question-replied:', e);
+      }
+    },
+    'question-rejected': (data) => {
+      try {
+        const payload = data as { sessionId: string };
+        if (payload.sessionId !== id) return;
+        void queryClient.invalidateQueries({ queryKey: questionKeys.list(id) });
+      } catch (e) {
+        console.error('Error handling question-rejected:', e);
+      }
+    },
+  });
 
   // When stream finishes, refresh the most recent messages page and clear active stream
   React.useEffect(() => {
@@ -138,8 +177,42 @@ function SessionComponent() {
       });
     }
 
+    if (pendingQuestions.length > 0) {
+      items.push({
+        id: 'questions',
+        title: 'Questions',
+        defaultExpanded: true,
+        children: (
+          <QuestionDock
+            questions={pendingQuestions}
+            onReply={async (questionId, answers) => {
+              try {
+                await replyQuestion.mutateAsync({
+                  sessionId: id,
+                  questionId,
+                  answers,
+                });
+              } catch (error) {
+                console.error('Failed to reply to question:', error);
+              }
+            }}
+            onReject={async (questionId) => {
+              try {
+                await rejectQuestion.mutateAsync({
+                  sessionId: id,
+                  questionId,
+                });
+              } catch (error) {
+                console.error('Failed to reject question:', error);
+              }
+            }}
+          />
+        ),
+      });
+    }
+
     return items;
-  }, [streamState.doomLoop, streamState.retry, id]);
+  }, [streamState.doomLoop, streamState.retry, pendingQuestions, id, replyQuestion, rejectQuestion]);
 
   return (
     <StickToBottom

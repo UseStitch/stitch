@@ -78,3 +78,19 @@ export const messages = sqliteTable('messages', {
   startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
   duration: integer('duration_ms'),
 });
+
+export const questions = sqliteTable('questions', {
+  id: text('id').$type<PrefixedString<'quest'>>().primaryKey(),
+  sessionId: text('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  questions: blob('questions', { mode: 'json' }).notNull(),
+  answers: blob('answers', { mode: 'json' }),
+  status: text('status').$type<'pending' | 'answered' | 'rejected'>().notNull().default('pending'),
+  toolCallId: text('tool_call_id').notNull(),
+  messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  answeredAt: integer('answered_at', { mode: 'timestamp_ms' }),
+});

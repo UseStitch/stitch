@@ -15,6 +15,13 @@
       "when": 1773539254896,
       "tag": "0001_glossy_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773594255849,
+      "tag": "0002_great_the_stranger",
+      "breakpoints": true
     }
   ]
 }
