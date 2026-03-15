@@ -5,28 +5,6 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 
-describe('Log write', () => {
-  beforeEach(async () => {
-    await fs.mkdir(PATHS.logDir, { recursive: true });
-    await clearLogDir();
-  });
-  afterEach(clearLogDir);
-
-  test('writes log messages to the log file', async () => {
-    await Log.init({ print: false, dev: true });
-    const logger = Log.create({ service: 'test-write' });
-
-    logger.info('hello world');
-
-    // allow the async stream write to flush
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await fs.readFile(Log.file(), 'utf-8');
-    expect(content).toContain('INFO');
-    expect(content).toContain('hello world');
-  });
-});
-
 describe('Log.init', () => {
   const CLEANUP_THRESHOLD = 5;
 
@@ -37,26 +15,6 @@ describe('Log.init', () => {
   afterEach(async () => {
     vi.useRealTimers();
     await clearLogDir();
-  });
-
-  test('creates a new log file with timestamp name', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-07T15:00:00.000Z'));
-
-    await Log.init({ print: false });
-
-    const logFile = Log.file();
-    expect(logFile).toBeTruthy();
-    expect(path.basename(logFile)).toBe('2026-01-07T150000.log');
-    expect(await fileExists(logFile)).toBe(true);
-  });
-
-  test('creates dev.log when dev option is true', async () => {
-    await Log.init({ print: false, dev: true });
-
-    const logFile = Log.file();
-    expect(path.basename(logFile)).toBe('dev.log');
-    expect(await fileExists(logFile)).toBe(true);
   });
 
   test('does not delete files when at threshold', async () => {

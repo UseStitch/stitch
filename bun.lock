@@ -89,7 +89,6 @@
         "drizzle-orm": "^0.45.1",
         "glob": "13.0.6",
         "hono": "^4.12.7",
-        "minimatch": "10.2.4",
         "zod": "catalog:",
       },
       "devDependencies": {

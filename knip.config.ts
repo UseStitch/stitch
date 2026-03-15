@@ -16,7 +16,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/*': {
-      entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
   },

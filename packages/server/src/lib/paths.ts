@@ -4,7 +4,7 @@ import path from 'node:path';
 const homedir = os.homedir();
 const tmpdir = os.tmpdir();
 
-export function isSafeFilename(filename: string): boolean {
+function isSafeFilename(filename: string): boolean {
   const trimmed = filename.trim();
   return (
     trimmed !== '' &&
@@ -30,7 +30,7 @@ type EnvPaths = {
   temp: string;
 };
 
-export function envPaths(name: string, { suffix = 'nodejs' } = {}): EnvPaths {
+function envPaths(name: string, { suffix = 'nodejs' } = {}): EnvPaths {
   assertSafeFilename(name);
 
   const fullName = suffix ? `${name}-${suffix}` : name;

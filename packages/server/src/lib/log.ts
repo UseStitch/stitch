@@ -54,10 +54,6 @@ let write = (msg: any) => {
   return msg.length;
 };
 
-export function file(): string {
-  return logpath;
-}
-
 export async function init(options: Options) {
   if (options.level) level = options.level;
   await cleanup();

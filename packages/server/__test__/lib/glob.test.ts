@@ -136,49 +136,4 @@ describe('Glob', () => {
       expect(results).toEqual(['visible']);
     });
   });
-
-  describe('scanSync()', () => {
-    test('finds files matching pattern synchronously', async () => {
-      await using tmp = await tmpdir();
-      await fs.writeFile(path.join(tmp.path, 'a.txt'), '', 'utf-8');
-      await fs.writeFile(path.join(tmp.path, 'b.txt'), '', 'utf-8');
-
-      const results = Glob.scanSync('*.txt', { cwd: tmp.path });
-
-      expect(results.sort()).toEqual(['a.txt', 'b.txt']);
-    });
-
-    test('respects options', async () => {
-      await using tmp = await tmpdir();
-      await fs.mkdir(path.join(tmp.path, 'subdir'));
-      await fs.writeFile(path.join(tmp.path, 'file.txt'), '', 'utf-8');
-
-      const results = Glob.scanSync('*', { cwd: tmp.path, include: 'all' });
-
-      expect(results.sort()).toEqual(['file.txt', 'subdir']);
-    });
-  });
-
-  describe('match()', () => {
-    test('matches simple patterns', () => {
-      expect(Glob.match('*.txt', 'file.txt')).toBe(true);
-      expect(Glob.match('*.txt', 'file.js')).toBe(false);
-    });
-
-    test('matches directory patterns', () => {
-      expect(Glob.match('**/*.js', 'src/index.js')).toBe(true);
-      expect(Glob.match('**/*.js', 'src/index.ts')).toBe(false);
-    });
-
-    test('matches dot files', () => {
-      expect(Glob.match('.*', '.gitignore')).toBe(true);
-      expect(Glob.match('**/*.md', '.github/README.md')).toBe(true);
-    });
-
-    test('matches brace expansion', () => {
-      expect(Glob.match('*.{js,ts}', 'file.js')).toBe(true);
-      expect(Glob.match('*.{js,ts}', 'file.ts')).toBe(true);
-      expect(Glob.match('*.{js,ts}', 'file.py')).toBe(false);
-    });
-  });
 });
