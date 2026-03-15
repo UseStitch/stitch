@@ -69,6 +69,10 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
         handlersRef.current['stream-retry']?.(parseJson(e.data));
       });
 
+      addSseListener(eventSource, 'doom-loop-detected', (e) => {
+        handlersRef.current['doom-loop-detected']?.(parseJson(e.data));
+      });
+
       addSseListener(eventSource, 'session-title-update', (e) => {
         handlersRef.current['session-title-update']?.(parseJson(e.data));
       });

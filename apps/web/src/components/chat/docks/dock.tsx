@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type DockItem = {
+export type DockItem = {
   id: string;
   title: string;
   children: React.ReactNode;

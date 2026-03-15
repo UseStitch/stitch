@@ -26,7 +26,8 @@ export type SseEventName =
   | 'stream-tool-state'
   | 'stream-tool-input-delta'
   | 'step-start'
-  | 'step-finish';
+  | 'step-finish'
+  | 'doom-loop-detected';
 
 // ─── Tool call lifecycle ──────────────────────────────────────────────────────
 
@@ -140,6 +141,13 @@ export type StreamStartPayload = {
 export type SessionTitleUpdatePayload = {
   sessionId: string;
   title: string;
+};
+
+export type DoomLoopDetectedPayload = {
+  sessionId: string;
+  messageId: string;
+  toolName: string;
+  consecutiveCount: number;
 };
 
 export type StepStartPayload = {

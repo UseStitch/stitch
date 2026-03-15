@@ -12,6 +12,13 @@ import type { ProviderCredentials } from '../provider/provider.js';
 import { TOOL_DEFINITIONS } from '../tools/index.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
 import { executeTool } from '../tools/execute.js';
+import {
+  DOOM_LOOP_THRESHOLD,
+  isDoomLoop,
+  waitForUserDecision,
+  type ToolCallRecord,
+} from '../llm/doom-loop.js';
+import { stableStringify } from '../utils/stable-stringify.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -322,6 +329,7 @@ export async function runStream(opts: {
   const partStartTimes = new Map<string, number>();
   const conversation: ModelMessage[] = [...llmMessages];
   const toolRetries = new Map<string, number>();
+  const toolCallHistory: ToolCallRecord[] = [];
 
   let totalUsage: LanguageModelUsage = Usage.ZERO_USAGE;
   let finalFinishReason = 'unknown';
@@ -359,6 +367,66 @@ export async function runStream(opts: {
     }
 
     if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) break;
+
+    // ── Doom loop detection ──────────────────────────────────────────────────
+    for (const call of stepResult.toolCalls) {
+      toolCallHistory.push({
+        toolName: call.toolName,
+        inputJson: stableStringify(call.input),
+      });
+    }
+
+    if (isDoomLoop(toolCallHistory)) {
+      const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
+
+      log.warn('doom loop detected', {
+        sessionId,
+        messageId: assistantMessageId,
+        toolName: repeatedTool,
+        consecutiveCount: DOOM_LOOP_THRESHOLD,
+      });
+
+      await Sse.broadcast('doom-loop-detected', {
+        sessionId,
+        messageId: assistantMessageId,
+        toolName: repeatedTool,
+        consecutiveCount: DOOM_LOOP_THRESHOLD,
+      });
+
+      const decision = await waitForUserDecision(sessionId);
+
+      if (decision === 'stop') {
+        log.info('user stopped doom loop', { sessionId });
+
+        conversation.push({
+          role: 'system',
+          content:
+            'The user has stopped your execution because you were repeating the same action. ' +
+            'Provide a brief summary of what you have done so far and what remains to be completed.',
+        });
+
+        const summaryResult = await runStepWithRetry({
+          sessionId,
+          messageId: assistantMessageId,
+          step: step + 1,
+          model,
+          conversation,
+          accumulatedParts,
+          partStartTimes,
+          providerId: credentials.providerId,
+        });
+
+        totalUsage = Usage.addUsage(totalUsage, summaryResult.usage);
+        finalFinishReason = summaryResult.finishReason;
+        for (const msg of summaryResult.responseMessages) {
+          conversation.push(msg);
+        }
+        break;
+      }
+
+      // User chose 'continue' — proceed with tool execution as normal
+      log.info('user continued past doom loop', { sessionId });
+    }
 
     const toolResultContent: ToolResultPart[] = [];
 

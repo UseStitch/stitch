@@ -4,8 +4,9 @@ import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-q
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ChatInput } from '@/components/chat/chat-input';
 import { MessageList } from '@/components/chat/message-list';
-import { DockContainer } from '@/components/chat/docks/dock';
+import { DockContainer, type DockItem } from '@/components/chat/docks/dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
+import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
@@ -89,16 +90,33 @@ function SessionComponent() {
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming;
 
   const docks = React.useMemo(() => {
-    if (!streamState.retry) return [];
-    return [
-      {
+    const items: DockItem[] = [];
+
+    if (streamState.doomLoop) {
+      items.push({
+        id: 'doom-loop',
+        title: 'Repeated action detected',
+        defaultExpanded: true,
+        children: (
+          <DoomLoopDock
+            sessionId={id}
+            toolName={streamState.doomLoop.toolName}
+          />
+        ),
+      });
+    }
+
+    if (streamState.retry) {
+      items.push({
         id: 'retry',
         title: `Retrying... (attempt ${streamState.retry.attempt}/${streamState.retry.maxRetries})`,
         defaultExpanded: true,
         children: <RetryDock retry={streamState.retry} />,
-      },
-    ];
-  }, [streamState.retry]);
+      });
+    }
+
+    return items;
+  }, [streamState.doomLoop, streamState.retry, id]);
 
   return (
     <StickToBottom

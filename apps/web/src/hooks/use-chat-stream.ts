@@ -11,6 +11,7 @@ import type {
   StreamStartPayload,
   StreamToolStatePayload,
   StreamToolInputDeltaPayload,
+  DoomLoopDetectedPayload,
   ToolCallStatus,
 } from '@openwork/shared';
 import { useSSE } from '@/hooks/use-sse';
@@ -75,6 +76,11 @@ export type RetryInfo = {
   nextRetryAt: number;
 };
 
+export type DoomLoopInfo = {
+  toolName: string;
+  consecutiveCount: number;
+};
+
 export type StreamingPart =
   | StreamingTextPart
   | StreamingReasoningPart
@@ -92,6 +98,7 @@ type StreamState = {
   finishReason: string | null;
   usage: LanguageModelUsage | null;
   retry: RetryInfo | null;
+  doomLoop: DoomLoopInfo | null;
 };
 
 type Action =
@@ -111,6 +118,7 @@ type Action =
   | { type: 'finish'; finishReason: string; usage?: LanguageModelUsage }
   | { type: 'error'; error: string }
   | { type: 'retry'; retry: RetryInfo }
+  | { type: 'doom-loop'; toolName: string; consecutiveCount: number }
   | { type: 'reset' };
 
 const INITIAL_STATE: StreamState = {
@@ -121,6 +129,7 @@ const INITIAL_STATE: StreamState = {
   finishReason: null,
   usage: null,
   retry: null,
+  doomLoop: null,
 };
 
 function addPart(state: StreamState, partId: string, part: StreamingPart): StreamState {
@@ -141,7 +150,7 @@ function updatePart(state: StreamState, partId: string, part: StreamingPart): St
 function reducer(state: StreamState, action: Action): StreamState {
   switch (action.type) {
     case 'start':
-      return { ...state, isStreaming: true, retry: null };
+      return { ...state, isStreaming: true, retry: null, doomLoop: null };
 
     case 'part-update': {
       const { partId, part } = action;
@@ -332,13 +341,20 @@ function reducer(state: StreamState, action: Action): StreamState {
         finishReason: action.finishReason,
         usage: action.usage ?? null,
         retry: null,
+        doomLoop: null,
       };
 
     case 'error':
-      return { ...state, isStreaming: false, error: action.error, retry: null };
+      return { ...state, isStreaming: false, error: action.error, retry: null, doomLoop: null };
 
     case 'retry':
       return { ...state, retry: action.retry };
+
+    case 'doom-loop':
+      return {
+        ...state,
+        doomLoop: { toolName: action.toolName, consecutiveCount: action.consecutiveCount },
+      };
 
     case 'reset':
       return INITIAL_STATE;
@@ -358,6 +374,7 @@ export type ChatStreamState = {
   finishReason: string | null;
   usage: LanguageModelUsage | null;
   retry: RetryInfo | null;
+  doomLoop: DoomLoopInfo | null;
 };
 
 export type UseChatStreamResult = ChatStreamState & {
@@ -438,6 +455,15 @@ export function useChatStream(): UseChatStreamResult {
           message: payload.message,
           nextRetryAt: Date.now() + payload.delayMs,
         },
+      });
+    },
+    'doom-loop-detected': (data) => {
+      const payload = data as DoomLoopDetectedPayload;
+      if (payload.messageId !== activeMessageIdRef.current) return;
+      dispatch({
+        type: 'doom-loop',
+        toolName: payload.toolName,
+        consecutiveCount: payload.consecutiveCount,
       });
     },
   });

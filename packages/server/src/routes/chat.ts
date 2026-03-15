@@ -6,6 +6,7 @@ import { createSessionId, createMessageId, createPartId } from '@openwork/shared
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
+import { resolveDecision, type DoomLoopResponse } from '../llm/doom-loop.js';
 import { generateTitle } from '../llm/title-generator.js';
 import { broadcast } from '../lib/sse.js';
 import * as Log from '../lib/log.js';
@@ -255,4 +256,20 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   });
 
   return c.json({ messageId: assistantMessageId, userMessageId }, 202);
+});
+
+chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
+  const sessionId = c.req.param('id');
+  const body = (await c.req.json()) as { response: DoomLoopResponse };
+
+  if (body.response !== 'continue' && body.response !== 'stop') {
+    return c.json({ error: 'response must be "continue" or "stop"' }, 400);
+  }
+
+  const resolved = resolveDecision(sessionId, body.response);
+  if (!resolved) {
+    return c.json({ error: 'No pending doom loop prompt for this session' }, 404);
+  }
+
+  return c.json({ ok: true });
 });
