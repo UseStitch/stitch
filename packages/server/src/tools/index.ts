@@ -1,12 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { weatherInputSchema, executeWeather } from './weather.js';
+import { weatherInputSchema, weatherTool, executeWeather } from './weather.js';
 
 export const TOOL_DEFINITIONS = {
-  weather: tool({
-    description: 'Get the current weather for a location',
-    inputSchema: weatherInputSchema,
-  }),
+  weather: weatherTool,
 };
 
 export const TOOL_EXECUTORS: Record<

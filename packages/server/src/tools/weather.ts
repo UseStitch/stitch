@@ -1,3 +1,4 @@
+import { tool } from 'ai';
 import { z } from 'zod';
 
 export const weatherInputSchema = z.object({
@@ -6,6 +7,11 @@ export const weatherInputSchema = z.object({
     .enum(['celsius', 'fahrenheit'])
     .optional()
     .describe('Temperature unit, defaults to celsius'),
+});
+
+export const weatherTool = tool({
+  description: 'Get the current weather for a location',
+  inputSchema: weatherInputSchema,
 });
 
 type WeatherInput = z.infer<typeof weatherInputSchema>;
