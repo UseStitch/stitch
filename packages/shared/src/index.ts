@@ -21,5 +21,6 @@ export const SHORTCUT_ACTION_IDS = [
   'toggle-sidebar',
   'new-session',
   'rename-session',
+  'compact-session',
 ] as const;
 export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];

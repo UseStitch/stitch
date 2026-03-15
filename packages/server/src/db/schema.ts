@@ -68,6 +68,7 @@ export const messages = sqliteTable('messages', {
   providerId: text('provider_id').notNull(),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
   finishReason: text('finish_reason'),
+  isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),

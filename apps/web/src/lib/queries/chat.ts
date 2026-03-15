@@ -151,6 +151,7 @@ export function useSendMessage() {
           providerId: input.providerId,
           usage: EMPTY_USAGE,
           finishReason: 'stop',
+          isSummary: false,
           createdAt: now,
           updatedAt: now,
           startedAt: now,

@@ -38,6 +38,11 @@ export type StepFinishPart = {
   usage: LanguageModelUsage;
 };
 
+export type CompactionPart = {
+  type: 'compaction';
+  auto: boolean;
+  overflow?: boolean;
+};
 
 export type AllPart =
   | TextStartPart
@@ -51,7 +56,8 @@ export type AllPart =
   | ToolCallStreamPart
   | ToolResultStreamPart
   | StepStartPart
-  | StepFinishPart;
+  | StepFinishPart
+  | CompactionPart;
 
 export type StoredPart = AllPart & { id: PartId, startedAt: number, endedAt: number };
 
@@ -64,6 +70,7 @@ export type Message = {
   providerId: string;
   usage: LanguageModelUsage;
   finishReason: string;
+  isSummary: boolean;
   createdAt: number;
   updatedAt: number;
   startedAt: number;

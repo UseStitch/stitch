@@ -20,6 +20,7 @@ import {
   type ToolCallRecord,
 } from '../llm/doom-loop.js';
 import { stableStringify } from '../utils/stable-stringify.js';
+import { isOverflow, compact, getModelLimits } from '../llm/compaction.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -266,12 +267,13 @@ async function runStepWithRetry(opts: {
       });
 
       if (errorInfo.isContextOverflow) {
-        await Sse.broadcast('stream-error', {
+        log.info('context overflow detected, will trigger compaction', {
           sessionId: opts.sessionId,
           messageId: opts.messageId,
-          error: `Context overflow: ${errorInfo.message}`,
         });
-        throw error;
+        const overflowError = new Error('context_overflow');
+        overflowError.cause = error;
+        throw overflowError;
       }
 
       const retryMessage = isRetryable(errorInfo);
@@ -333,187 +335,219 @@ export async function runStream(opts: {
 
   let totalUsage: LanguageModelUsage = Usage.ZERO_USAGE;
   let finalFinishReason = 'unknown';
+  let needsCompaction = false;
+  let contextOverflow = false;
   const startedAt = Date.now();
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
 
-  for (let step = 0; step < MAX_STEPS; step++) {
-    const isLastStep = step === MAX_STEPS - 1;
-    if (isLastStep) {
-      conversation.unshift({
-        role: 'system',
-        content: MAX_STEPS_WARNING(MAX_STEPS),
-      });
-    }
-
-    const stepResult = await runStepWithRetry({
-      sessionId,
-      messageId: assistantMessageId,
-      step,
-      model,
-      conversation,
-      accumulatedParts,
-      partStartTimes,
-      providerId: credentials.providerId,
-    });
-
-    totalUsage = Usage.addUsage(totalUsage, stepResult.usage);
-    finalFinishReason = stepResult.finishReason;
-
-    for (const msg of stepResult.responseMessages) {
-      conversation.push(msg);
-    }
-
-    if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) break;
-
-    // ── Doom loop detection ──────────────────────────────────────────────────
-    for (const call of stepResult.toolCalls) {
-      toolCallHistory.push({
-        toolName: call.toolName,
-        inputJson: stableStringify(call.input),
-      });
-    }
-
-    if (isDoomLoop(toolCallHistory)) {
-      const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
-
-      log.warn('doom loop detected', {
-        sessionId,
-        messageId: assistantMessageId,
-        toolName: repeatedTool,
-        consecutiveCount: DOOM_LOOP_THRESHOLD,
-      });
-
-      await Sse.broadcast('doom-loop-detected', {
-        sessionId,
-        messageId: assistantMessageId,
-        toolName: repeatedTool,
-        consecutiveCount: DOOM_LOOP_THRESHOLD,
-      });
-
-      const decision = await waitForUserDecision(sessionId);
-
-      if (decision === 'stop') {
-        log.info('user stopped doom loop', { sessionId });
-
-        conversation.push({
+  try {
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const isLastStep = step === MAX_STEPS - 1;
+      if (isLastStep) {
+        conversation.unshift({
           role: 'system',
-          content: DOOM_LOOP_MESSAGE,
+          content: MAX_STEPS_WARNING(MAX_STEPS),
         });
-
-        const summaryResult = await runStepWithRetry({
-          sessionId,
-          messageId: assistantMessageId,
-          step: step + 1,
-          model,
-          conversation,
-          accumulatedParts,
-          partStartTimes,
-          providerId: credentials.providerId,
-        });
-
-        totalUsage = Usage.addUsage(totalUsage, summaryResult.usage);
-        finalFinishReason = summaryResult.finishReason;
-        for (const msg of summaryResult.responseMessages) {
-          conversation.push(msg);
-        }
-        break;
       }
 
-      // User chose 'continue' — proceed with tool execution as normal
-      log.info('user continued past doom loop', { sessionId });
-    }
-
-    const toolResultContent: ToolResultPart[] = [];
-
-    for (const call of stepResult.toolCalls) {
-      const { toolCallId, toolName, input } = call;
-
-      await Sse.broadcast('stream-tool-state', {
+      const stepResult = await runStepWithRetry({
         sessionId,
         messageId: assistantMessageId,
-        toolCallId,
-        toolName,
-        status: 'in-progress',
-        input,
+        step,
+        model,
+        conversation,
+        accumulatedParts,
+        partStartTimes,
+        providerId: credentials.providerId,
       });
 
-      const execResult = await executeTool(toolName, input);
+      totalUsage = Usage.addUsage(totalUsage, stepResult.usage);
+      finalFinishReason = stepResult.finishReason;
 
-      if (!execResult.ok) {
-        const retries = (toolRetries.get(toolCallId) ?? 0) + 1;
-        toolRetries.set(toolCallId, retries);
-
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId: assistantMessageId,
-          toolCallId,
-          toolName,
-          status: 'error',
-          input,
-          error: execResult.error,
-        });
-
-        log.warn('tool call failed', { toolCallId, toolName, error: execResult.error, retries });
-
-        const errorValue =
-          retries >= MAX_TOOL_RETRIES
-            ? { error: `Tool "${toolName}" failed after ${retries} attempts: ${execResult.error}` }
-            : { error: execResult.error, hint: 'Fix the arguments and try again.' };
-
-        toolResultContent.push({
-          type: 'tool-result',
-          toolCallId,
-          toolName,
-          output: { type: 'json', value: errorValue },
-        });
-
-        const now = Date.now();
-        const partId = createPartId();
-        accumulatedParts.push({
-          type: 'tool-result',
-          id: partId,
-          toolCallId,
-          toolName,
-          input,
-          output: errorValue,
-          startedAt: now,
-          endedAt: now,
-        } as StoredPart);
-      } else {
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId: assistantMessageId,
-          toolCallId,
-          toolName,
-          status: 'completed',
-          input,
-          output: execResult.output,
-        });
-
-        toolResultContent.push({
-          type: 'tool-result',
-          toolCallId,
-          toolName,
-          output: { type: 'json', value: execResult.output as never },
-        });
-
-        const now = Date.now();
-        const partId = createPartId();
-        accumulatedParts.push({
-          type: 'tool-result',
-          id: partId,
-          toolCallId,
-          toolName,
-          input,
-          output: execResult.output,
-          startedAt: now,
-          endedAt: now,
-        } as StoredPart);
+      for (const msg of stepResult.responseMessages) {
+        conversation.push(msg);
       }
+
+      if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) break;
+
+      // ── Doom loop detection ──────────────────────────────────────────────────
+      for (const call of stepResult.toolCalls) {
+        toolCallHistory.push({
+          toolName: call.toolName,
+          inputJson: stableStringify(call.input),
+        });
+      }
+
+      if (isDoomLoop(toolCallHistory)) {
+        const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
+
+        log.warn('doom loop detected', {
+          sessionId,
+          messageId: assistantMessageId,
+          toolName: repeatedTool,
+          consecutiveCount: DOOM_LOOP_THRESHOLD,
+        });
+
+        await Sse.broadcast('doom-loop-detected', {
+          sessionId,
+          messageId: assistantMessageId,
+          toolName: repeatedTool,
+          consecutiveCount: DOOM_LOOP_THRESHOLD,
+        });
+
+        const decision = await waitForUserDecision(sessionId);
+
+        if (decision === 'stop') {
+          log.info('user stopped doom loop', { sessionId });
+
+          conversation.push({
+            role: 'system',
+            content: DOOM_LOOP_MESSAGE,
+          });
+
+          const summaryResult = await runStepWithRetry({
+            sessionId,
+            messageId: assistantMessageId,
+            step: step + 1,
+            model,
+            conversation,
+            accumulatedParts,
+            partStartTimes,
+            providerId: credentials.providerId,
+          });
+
+          totalUsage = Usage.addUsage(totalUsage, summaryResult.usage);
+          finalFinishReason = summaryResult.finishReason;
+          for (const msg of summaryResult.responseMessages) {
+            conversation.push(msg);
+          }
+          break;
+        }
+
+        // User chose 'continue' — proceed with tool execution as normal
+        log.info('user continued past doom loop', { sessionId });
+      }
+
+      const toolResultContent: ToolResultPart[] = [];
+
+      for (const call of stepResult.toolCalls) {
+        const { toolCallId, toolName, input } = call;
+
+        await Sse.broadcast('stream-tool-state', {
+          sessionId,
+          messageId: assistantMessageId,
+          toolCallId,
+          toolName,
+          status: 'in-progress',
+          input,
+        });
+
+        const execResult = await executeTool(toolName, input);
+
+        if (!execResult.ok) {
+          const retries = (toolRetries.get(toolCallId) ?? 0) + 1;
+          toolRetries.set(toolCallId, retries);
+
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId: assistantMessageId,
+            toolCallId,
+            toolName,
+            status: 'error',
+            input,
+            error: execResult.error,
+          });
+
+          log.warn('tool call failed', { toolCallId, toolName, error: execResult.error, retries });
+
+          const errorValue =
+            retries >= MAX_TOOL_RETRIES
+              ? {
+                  error: `Tool "${toolName}" failed after ${retries} attempts: ${execResult.error}`,
+                }
+              : { error: execResult.error, hint: 'Fix the arguments and try again.' };
+
+          toolResultContent.push({
+            type: 'tool-result',
+            toolCallId,
+            toolName,
+            output: { type: 'json', value: errorValue },
+          });
+
+          const now = Date.now();
+          const partId = createPartId();
+          accumulatedParts.push({
+            type: 'tool-result',
+            id: partId,
+            toolCallId,
+            toolName,
+            input,
+            output: errorValue,
+            startedAt: now,
+            endedAt: now,
+          } as StoredPart);
+        } else {
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId: assistantMessageId,
+            toolCallId,
+            toolName,
+            status: 'completed',
+            input,
+            output: execResult.output,
+          });
+
+          toolResultContent.push({
+            type: 'tool-result',
+            toolCallId,
+            toolName,
+            output: { type: 'json', value: execResult.output as never },
+          });
+
+          const now = Date.now();
+          const partId = createPartId();
+          accumulatedParts.push({
+            type: 'tool-result',
+            id: partId,
+            toolCallId,
+            toolName,
+            input,
+            output: execResult.output,
+            startedAt: now,
+            endedAt: now,
+          } as StoredPart);
+        }
+      }
+
+      conversation.push({ role: 'tool', content: toolResultContent });
     }
 
-    conversation.push({ role: 'tool', content: toolResultContent });
+    // ── Proactive compaction check ───────────────────────────────────────────
+    const limits = await getModelLimits(credentials.providerId, modelId);
+    if (isOverflow(totalUsage, limits)) {
+      needsCompaction = true;
+      log.info('proactive compaction triggered', {
+        sessionId,
+        totalTokens: totalUsage.totalTokens,
+        inputTokens: totalUsage.inputTokens,
+      });
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'context_overflow') {
+      contextOverflow = true;
+      needsCompaction = true;
+      finalFinishReason = 'context-overflow';
+      log.info('context overflow caught, triggering compaction', { sessionId });
+    } else {
+      // Re-throw non-compaction errors
+      await Sse.broadcast('stream-error', {
+        sessionId,
+        messageId: assistantMessageId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 
   // ── Persist the full assistant message ────────────────────────────────────
@@ -539,4 +573,19 @@ export async function runStream(opts: {
     finishReason: finalFinishReason,
     usage: totalUsage,
   });
+
+  // ── Compaction ────────────────────────────────────────────────────────────
+  if (needsCompaction) {
+    const result = await compact({
+      sessionId,
+      providerId: credentials.providerId,
+      modelId,
+      auto: true,
+      overflow: contextOverflow,
+    });
+
+    if (result === 'error') {
+      log.error('compaction failed', { sessionId });
+    }
+  }
 }

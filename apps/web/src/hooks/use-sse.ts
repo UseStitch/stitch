@@ -76,6 +76,14 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
       addSseListener(eventSource, 'session-title-update', (e) => {
         handlersRef.current['session-title-update']?.(parseJson(e.data));
       });
+
+      addSseListener(eventSource, 'compaction-start', (e) => {
+        handlersRef.current['compaction-start']?.(parseJson(e.data));
+      });
+
+      addSseListener(eventSource, 'compaction-complete', (e) => {
+        handlersRef.current['compaction-complete']?.(parseJson(e.data));
+      });
     });
 
     return () => {

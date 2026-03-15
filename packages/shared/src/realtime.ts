@@ -27,7 +27,9 @@ export type SseEventName =
   | 'stream-tool-input-delta'
   | 'step-start'
   | 'step-finish'
-  | 'doom-loop-detected';
+  | 'doom-loop-detected'
+  | 'compaction-start'
+  | 'compaction-complete';
 
 // ─── Tool call lifecycle ──────────────────────────────────────────────────────
 
@@ -162,4 +164,16 @@ export type StepFinishPayload = {
   step: number;
   finishReason: string;
   usage: LanguageModelUsage;
+};
+
+// ─── Compaction events ────────────────────────────────────────────────────────
+
+export type CompactionStartPayload = {
+  sessionId: string;
+  messageId: string;
+};
+
+export type CompactionCompletePayload = {
+  sessionId: string;
+  summaryMessageId: string;
 };

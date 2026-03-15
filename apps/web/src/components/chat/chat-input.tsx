@@ -150,6 +150,7 @@ type ChatInputInnerProps = {
   selectedModel: string | null;
   onModelChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
   hasDockAbove?: boolean;
 };
 
@@ -160,6 +161,7 @@ function ChatInputInner({
   selectedModel,
   onModelChange,
   placeholder = 'Ask anything...',
+  disabled,
   hasDockAbove,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
@@ -168,7 +170,7 @@ function ChatInputInner({
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim()) {
+      if (value.trim() && !disabled) {
         onSubmit(value);
       }
     }
@@ -182,7 +184,7 @@ function ChatInputInner({
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
 
-  const canSubmit = value.trim().length > 0;
+  const canSubmit = value.trim().length > 0 && !disabled;
 
   return (
     <div
@@ -191,6 +193,7 @@ function ChatInputInner({
         'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
         hasDockAbove && 'rounded-t-none border-t-0',
+        disabled && 'opacity-60',
       )}
     >
       {/* Textarea */}
@@ -200,12 +203,14 @@ function ChatInputInner({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        disabled={disabled}
         rows={1}
         className={cn(
           'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
           'placeholder:text-muted-foreground/60',
           'max-h-48 overflow-y-auto',
           'field-sizing-content',
+          disabled && 'cursor-not-allowed',
         )}
       />
 
@@ -247,6 +252,7 @@ type ChatInputProps = {
   selectedModel: string | null;
   onModelChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
   className?: string;
   hasDockAbove?: boolean;
 };

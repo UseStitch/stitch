@@ -10,6 +10,7 @@ import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
+import { useCompactionUpdates } from '@/hooks/use-compaction-updates';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 import { createMessageId } from '@openwork/shared';
 
@@ -46,6 +47,7 @@ function SessionComponent() {
 
   const sendMessage = useSendMessage();
   const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext();
+  const { isCompacting } = useCompactionUpdates(id);
 
   // When stream finishes, refresh message list and clear active stream
   React.useEffect(() => {
@@ -87,7 +89,7 @@ function SessionComponent() {
     });
   }
 
-  const canSubmit = !sendMessage.isPending && !streamState.isStreaming;
+  const canSubmit = !sendMessage.isPending && !streamState.isStreaming && !isCompacting;
 
   const docks = React.useMemo(() => {
     const items: DockItem[] = [];
@@ -143,7 +145,14 @@ function SessionComponent() {
               }}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
-              placeholder={canSubmit ? 'Ask a follow-up...' : 'Waiting for response...'}
+              placeholder={
+                isCompacting
+                  ? 'Compacting conversation...'
+                  : canSubmit
+                    ? 'Ask a follow-up...'
+                    : 'Waiting for response...'
+              }
+              disabled={!canSubmit}
               hasDockAbove={docks.length > 0}
             />
           </div>

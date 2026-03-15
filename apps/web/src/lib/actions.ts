@@ -1,6 +1,7 @@
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import type { ShortcutActionId } from '@openwork/shared';
 import { useDialogContext } from '@/context/dialog-context';
+import { serverFetch } from '@/lib/api';
 
 export interface Action {
   id: ShortcutActionId;
@@ -10,6 +11,8 @@ export interface Action {
 
 export function useActions(): Action[] {
   const navigate = useNavigate();
+  const params = useParams({ strict: false });
+  const sessionId = params.id as string | undefined;
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
@@ -19,7 +22,7 @@ export function useActions(): Action[] {
     setRenameSessionOpen,
   } = useDialogContext();
 
-  return [
+  const actions: Action[] = [
     {
       id: 'command-palette',
       label: 'Command palette',
@@ -33,4 +36,16 @@ export function useActions(): Action[] {
       run: () => setRenameSessionOpen(!renameSessionOpen),
     },
   ];
+
+  if (sessionId) {
+    actions.push({
+      id: 'compact-session',
+      label: 'Compact session',
+      run: () => {
+        void serverFetch(`/chat/sessions/${sessionId}/compact`, { method: 'POST' });
+      },
+    });
+  }
+
+  return actions;
 }

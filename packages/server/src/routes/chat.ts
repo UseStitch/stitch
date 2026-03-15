@@ -1,13 +1,14 @@
 import { eq, asc } from 'drizzle-orm';
 import { Hono } from 'hono';
-import type { ModelMessage, TextPart, ToolCallPart } from 'ai';
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared';
 import { createSessionId, createMessageId, createPartId } from '@openwork/shared';
+import type { StoredPart } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
 import { runStream } from '../lib/stream-runner.js';
 import { resolveDecision, type DoomLoopResponse } from '../llm/doom-loop.js';
 import { generateTitle } from '../llm/title-generator.js';
+import { buildCompactedHistory, compact } from '../llm/compaction.js';
 import { broadcast } from '../lib/sse.js';
 import * as Log from '../lib/log.js';
 
@@ -171,79 +172,8 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, sessionId));
 
-  // Build conversation history for the LLM, preserving tool call/result structure
-  const history = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt));
-
-  const llmMessages: ModelMessage[] = [];
-
-  for (const msg of history) {
-    if (msg.role === 'user') {
-      const text = msg.parts
-        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-        .map((p) => p.text)
-        .join('');
-      llmMessages.push({ role: 'user', content: text });
-      continue;
-    }
-
-    // assistant message — may contain text and tool calls
-    const textParts = msg.parts.filter(
-      (p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta',
-    );
-    const toolCallParts = msg.parts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call',
-    );
-    const toolResultParts = msg.parts.filter(
-      (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
-    );
-
-    if (textParts.length > 0 || toolCallParts.length > 0) {
-      const assistantContent: Array<TextPart | ToolCallPart> = [];
-
-      const combinedText = textParts.map((p) => p.text).join('');
-      if (combinedText) {
-        assistantContent.push({ type: 'text', text: combinedText });
-      }
-
-      for (const tc of toolCallParts) {
-        assistantContent.push({
-          type: 'tool-call',
-          toolCallId: tc.toolCallId,
-          toolName: tc.toolName,
-          input: tc.input,
-        });
-      }
-
-      llmMessages.push({ role: 'assistant', content: assistantContent });
-    }
-
-    if (toolResultParts.length > 0) {
-      llmMessages.push({
-        role: 'tool',
-        content: toolResultParts.map((tr) => {
-          // Stored output is the raw value — wrap it into the SDK's ToolResultOutput
-          // discriminated union so the schema validator accepts it.
-          const isError =
-            tr.output !== null &&
-            tr.output !== undefined &&
-            typeof tr.output === 'object' &&
-            'error' in (tr.output as object);
-          return {
-            type: 'tool-result' as const,
-            toolCallId: tr.toolCallId,
-            toolName: tr.toolName,
-            output: isError
-              ? { type: 'error-json' as const, value: tr.output as never }
-              : { type: 'json' as const, value: tr.output as never },
-          };
-        }),
-      });
-    }
-  }
+  // Build conversation history respecting compaction boundaries
+  const llmMessages = await buildCompactedHistory(sessionId);
 
   const assistantMessageId = body.assistantMessageId as PrefixedString<'msg'>;
 
@@ -272,4 +202,33 @@ chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
   }
 
   return c.json({ ok: true });
+});
+
+chatRouter.post('/sessions/:id/compact', async (c) => {
+  const db = getDb();
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+
+  // Find the last message to get a fallback providerId/modelId
+  const lastMsg = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt))
+    .then((msgs) => msgs.at(-1));
+
+  if (!lastMsg) {
+    return c.json({ error: 'Session has no messages to compact' }, 400);
+  }
+
+  void compact({
+    sessionId,
+    providerId: lastMsg.providerId,
+    modelId: lastMsg.modelId,
+    auto: false,
+  });
+
+  return c.json({ ok: true }, 202);
 });
