@@ -1,5 +1,6 @@
-import type { SSEStreamingApi } from 'hono/streaming';
 import type { SseEventName } from '@openwork/shared';
+
+import type { SSEStreamingApi } from 'hono/streaming';
 
 const connections = new Set<SSEStreamingApi>();
 

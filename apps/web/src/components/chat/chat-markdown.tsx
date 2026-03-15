@@ -1,3 +1,4 @@
+import { CheckIcon, CopyIcon } from 'lucide-react';
 import * as React from 'react';
 import {
   Children,
@@ -11,12 +12,11 @@ import {
   useState,
   memo,
 } from 'react';
-import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import { CheckIcon, CopyIcon } from 'lucide-react';
+
 import { useTheme } from '@/hooks/ui/use-theme';
 import {
   getHighlighterPromise,
@@ -28,6 +28,7 @@ import {
   estimateHighlightedSize,
 } from '@/lib/code-highlighting';
 import { cn } from '@/lib/utils';
+import type { Components } from 'react-markdown';
 
 interface ChatMarkdownProps {
   text: string;

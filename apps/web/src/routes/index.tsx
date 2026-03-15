@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+
 import { useQueryClient, useMutation, useSuspenseQuery } from '@tanstack/react-query';
-import { ChatInput } from '@/components/chat/chat-input';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
-import type { Session, MessagesPage } from '@openwork/shared';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useChatStreamContext } from '@/context/chat-stream-context';
-import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+
+import type { Session, MessagesPage } from '@openwork/shared';
 import { createMessageId } from '@openwork/shared';
+
+import { ChatInput } from '@/components/chat/chat-input';
+import { useChatStreamContext } from '@/context/chat-stream-context';
+import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/')({
   loader: ({ context }) =>

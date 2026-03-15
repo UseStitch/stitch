@@ -1,8 +1,10 @@
-import * as React from 'react';
 import { CheckIcon, XIcon } from 'lucide-react';
+import * as React from 'react';
+
+import type { QuestionRequest, QuestionInfo } from '@openwork/shared';
+
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import type { QuestionRequest, QuestionInfo } from '@openwork/shared';
 import { cn } from '@/lib/utils';
 
 type QuestionDockProps = {

@@ -1,3 +1,5 @@
+import { formatForDisplay } from '@tanstack/react-hotkeys';
+
 import {
   Command,
   CommandEmpty,
@@ -16,7 +18,6 @@ import {
 import { useDialogContext } from '@/context/dialog-context';
 import { useActions, type Action } from '@/lib/actions';
 import { SHORTCUT_DEFINITIONS } from '@/lib/shortcuts';
-import { formatForDisplay } from '@tanstack/react-hotkeys';
 
 function getShortcutDisplay(actionId: string): string | null {
   const def = SHORTCUT_DEFINITIONS.find((d) => d.id === actionId);

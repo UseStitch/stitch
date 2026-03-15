@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -6,8 +5,11 @@ import {
   AlertCircleIcon,
   LoaderIcon,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from 'react';
+
 import type { ToolCallStatus } from '@openwork/shared';
+
+import { cn } from '@/lib/utils';
 
 function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
@@ -105,13 +107,7 @@ function QuestionToolBlock({
   );
 }
 
-function GenericToolBlock({
-  toolName,
-  status,
-}: {
-  toolName: string;
-  status: ToolCallStatus;
-}) {
+function GenericToolBlock({ toolName, status }: { toolName: string; status: ToolCallStatus }) {
   const hasError = status === 'error';
   const isActive = status === 'pending' || status === 'in-progress';
 
@@ -139,9 +135,7 @@ export function ToolCallBlock({ toolName, status, args, result }: ToolCallBlockP
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
 
   if (isQuestion) {
-    return (
-      <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />
-    );
+    return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;
   }
 
   return <GenericToolBlock toolName={toolName} status={status} />;

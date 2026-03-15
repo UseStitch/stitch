@@ -147,4 +147,4 @@ function normalizeLanguage(raw: string): SupportedLanguage {
 export { normalizeLanguage };
 
 export type { Highlighter } from 'shiki';
-export { getHighlighterPromise } from "@/lib/shiki-highlighter";
+export { getHighlighterPromise } from '@/lib/shiki-highlighter';

@@ -1,7 +1,9 @@
 import * as React from 'react';
+
 import { useQueryClient } from '@tanstack/react-query';
-import { sessionKeys } from '@/lib/queries/chat';
+
 import type { ChatStreamState } from '@/hooks/sse/use-chat-stream';
+import { sessionKeys } from '@/lib/queries/chat';
 
 type UseSessionStreamOptions = {
   sessionId: string;

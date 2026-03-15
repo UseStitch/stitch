@@ -7,5 +7,29 @@
   "singleQuote": true,
   "trailingComma": "all",
   "bracketSpacing": true,
-  "ignorePatterns": ["node_modules", "dist", "apps/web/src/routeTree.gen.ts", ".opencode/skills/**"]
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "apps/web/src/routeTree.gen.ts",
+    ".opencode/skills/**"
+  ],
+  "sortImports": {
+    "customGroups": [
+      {
+        "groupName": "tanstack",
+        "elementNamePattern": ["@tanstack/**"]
+      },
+      {
+        "groupName": "openwork",
+        "elementNamePattern": ["@openwork/**"]
+      }
+    ],
+    "groups": [
+      ["value-builtin", "value-external"],
+      "tanstack",
+      "openwork",
+      ["value-parent", "value-sibling", "value-index"],
+      "unknown"
+    ]
+  }
 }

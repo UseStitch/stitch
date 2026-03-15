@@ -1,16 +1,18 @@
 import { eq, asc, desc, lt, and } from 'drizzle-orm';
 import { Hono } from 'hono';
+
 import type { PrefixedString } from '@openwork/shared';
 import { createSessionId, createMessageId, createPartId } from '@openwork/shared';
 import type { StoredPart } from '@openwork/shared';
+
 import { getDb } from '../db/client.js';
 import { messages, sessions, providerConfig } from '../db/schema.js';
+import * as Log from '../lib/log.js';
+import { broadcast } from '../lib/sse.js';
 import { runStream } from '../lib/stream-runner.js';
+import { buildCompactedHistory, compact } from '../llm/compaction.js';
 import { resolveDecision, type DoomLoopResponse } from '../llm/doom-loop.js';
 import { generateTitle } from '../llm/title-generator.js';
-import { buildCompactedHistory, compact } from '../llm/compaction.js';
-import { broadcast } from '../lib/sse.js';
-import * as Log from '../lib/log.js';
 
 const log = Log.create({ service: 'chat' });
 

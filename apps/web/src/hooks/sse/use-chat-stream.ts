@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { LanguageModelUsage, LanguageModelV3Source } from '@openwork/shared';
 import type {
   PartDelta,
@@ -14,6 +15,7 @@ import type {
   DoomLoopDetectedPayload,
   ToolCallStatus,
 } from '@openwork/shared';
+
 import { useSSE } from '@/hooks/sse/use-sse';
 
 // ─── Streaming part types (FE in-flight state) ────────────────────────────────

@@ -1,5 +1,7 @@
-import { queryOptions, type QueryClient, type MutationOptions } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+import { queryOptions, type QueryClient, type MutationOptions } from '@tanstack/react-query';
+
 import { serverFetch } from '@/lib/api';
 
 type UserSettings = Record<string, string>;

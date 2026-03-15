@@ -1,7 +1,10 @@
-import * as React from 'react';
-import { Link, useParams } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import { PlusIcon, MessageSquareIcon, MessageCircleIcon } from 'lucide-react';
+import * as React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
+import { Link, useParams } from '@tanstack/react-router';
+
+import { AnimatedTitle } from '@/components/animated-title';
 import {
   Sidebar,
   SidebarContent,
@@ -13,9 +16,8 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { sessionsQueryOptions } from '@/lib/queries/chat';
 import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
-import { AnimatedTitle } from '@/components/animated-title';
+import { sessionsQueryOptions } from '@/lib/queries/chat';
 
 export function AppSidebar() {
   const { data: sessions } = useQuery(sessionsQueryOptions);

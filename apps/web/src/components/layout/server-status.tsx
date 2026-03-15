@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { serverFetch } from '@/lib/api';
-import { useSSE } from '@/hooks/sse/use-sse';
 import { HardDrive, Check } from 'lucide-react';
+
+import { useQuery } from '@tanstack/react-query';
+
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useSSE } from '@/hooks/sse/use-sse';
+import { serverFetch } from '@/lib/api';
 
 export function ServerStatus() {
   const { data: isHealthy } = useQuery({

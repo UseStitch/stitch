@@ -1,8 +1,10 @@
 import * as React from 'react';
+
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
-import { ProviderRow } from '@/components/settings/provider-row';
+
 import { ProviderConfig } from '@/components/settings/provider-config';
+import { ProviderRow } from '@/components/settings/provider-row';
+import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
   const { data: providers } = useSuspenseQuery(providersQueryOptions);

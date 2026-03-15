@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+
 import { stableStringify } from '../../src/utils/stable-stringify.js';
 
 describe('stableStringify', () => {

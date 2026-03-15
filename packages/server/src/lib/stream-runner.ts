@@ -1,16 +1,11 @@
 import { streamText, smoothStream } from 'ai';
-import type { ModelMessage, LanguageModelUsage } from 'ai';
+
 import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
 import { createPartId } from '@openwork/shared';
+
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
-import * as Log from './log.js';
-import * as Sse from './sse.js';
-import * as Usage from '../utils/usage.js';
-import { createProvider } from '../provider/provider.js';
-import type { ProviderCredentials } from '../provider/provider.js';
-import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '../tools/index.js';
-import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
+import { isOverflow, compact, getModelLimits } from '../llm/compaction.js';
 import {
   DOOM_LOOP_THRESHOLD,
   DOOM_LOOP_MESSAGE,
@@ -18,8 +13,16 @@ import {
   waitForUserDecision,
   type ToolCallRecord,
 } from '../llm/doom-loop.js';
+import { createProvider } from '../provider/provider.js';
+import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '../tools/index.js';
 import { stableStringify } from '../utils/stable-stringify.js';
-import { isOverflow, compact, getModelLimits } from '../llm/compaction.js';
+import * as Usage from '../utils/usage.js';
+import * as Log from './log.js';
+import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from './retry.js';
+import * as Sse from './sse.js';
+
+import type { ProviderCredentials } from '../provider/provider.js';
+import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'stream-runner' });
 

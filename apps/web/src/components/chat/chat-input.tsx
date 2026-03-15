@@ -1,11 +1,13 @@
-import * as React from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lucide-react';
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
-import { cn } from '@/lib/utils';
+import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lucide-react';
+import * as React from 'react';
+
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
 

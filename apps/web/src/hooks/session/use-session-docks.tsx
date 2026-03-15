@@ -1,11 +1,14 @@
 import * as React from 'react';
+
 import type { UseMutationResult } from '@tanstack/react-query';
+
+import type { QuestionRequest } from '@openwork/shared';
+
 import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
-import { RetryDock } from '@/components/chat/docks/retry-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
+import { RetryDock } from '@/components/chat/docks/retry-dock';
 import type { RetryInfo, DoomLoopInfo } from '@/hooks/sse/use-chat-stream';
-import type { QuestionRequest } from '@openwork/shared';
 
 type UseSessionDocksOptions = {
   sessionId: string;

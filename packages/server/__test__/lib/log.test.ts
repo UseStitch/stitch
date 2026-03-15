@@ -1,8 +1,9 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as Log from '../../src/lib/log.js';
-import { PATHS } from '../../src/lib/paths.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import * as Log from '../../src/lib/log.js';
+import { PATHS } from '../../src/lib/paths.js';
 
 describe('Log write', () => {
   beforeEach(async () => {

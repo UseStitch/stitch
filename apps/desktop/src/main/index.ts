@@ -1,5 +1,6 @@
-import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { join } from 'node:path';
+
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 
 const WEB_DEV_URL = 'http://localhost:5173';

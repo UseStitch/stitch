@@ -1,6 +1,7 @@
 import * as React from 'react';
+
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Label } from '@/components/ui/label';
+
 import {
   Combobox,
   ComboboxCollection,
@@ -13,6 +14,7 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
+import { Label } from '@/components/ui/label';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,

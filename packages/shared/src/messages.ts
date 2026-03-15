@@ -1,6 +1,6 @@
+import type { PrefixedString } from './id.js';
 import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { TextStreamPart, ToolSet, LanguageModelUsage } from 'ai';
-import type { PrefixedString } from './id.js';
 
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
 export type MessageRole = 'user' | 'assistant';

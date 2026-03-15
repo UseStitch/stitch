@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+
 import { SHORTCUT_ACTION_IDS } from '@openwork/shared';
 import type { ShortcutActionId } from '@openwork/shared';
+
 import { getDb } from '../db/client.js';
 import { keyboardShortcuts } from '../db/schema.js';
 

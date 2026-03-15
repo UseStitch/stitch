@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+
 import { envPaths, isSafeFilename } from '../../src/lib/paths.js';
 
 describe('isSafeFilename', () => {

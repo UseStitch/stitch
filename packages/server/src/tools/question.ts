@@ -1,6 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+
 import type { PrefixedString } from '@openwork/shared';
+
 import { askQuestion } from '../question/service.js';
 
 const questionOptionSchema = z

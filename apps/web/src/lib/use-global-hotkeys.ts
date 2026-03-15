@@ -1,7 +1,8 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import { useParams } from '@tanstack/react-router';
-import { useShortcuts } from '@/lib/shortcuts';
+
 import type { Action } from '@/lib/actions';
+import { useShortcuts } from '@/lib/shortcuts';
 
 export function useGlobalHotkeys(actions: Action[]) {
   const shortcuts = useShortcuts();

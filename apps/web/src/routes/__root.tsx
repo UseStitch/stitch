@@ -1,21 +1,22 @@
-import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 import type { QueryClient } from '@tanstack/react-query';
-import { useActions } from '@/lib/actions';
-import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
-import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
-import { providersQueryOptions } from '@/lib/queries/providers';
-import { settingsQueryOptions } from '@/lib/queries/settings';
+import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
+
+import { AppSidebar } from '@/components/app-sidebar';
+import { CommandPalette } from '@/components/command-palette';
+import { TitleBar } from '@/components/layout/title-bar';
+import { RenameSessionDialog } from '@/components/rename-session-dialog';
+import { RightClickMenu } from '@/components/right-click-menu';
+import { SettingsDialog } from '@/components/settings-dialog';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/sonner';
+import { ChatStreamProvider } from '@/context/chat-stream-context';
 import { DialogProvider } from '@/context/dialog-context';
 import { useTheme } from '@/hooks/ui/use-theme';
-import { TitleBar } from "@/components/layout/title-bar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { CommandPalette } from "@/components/command-palette";
-import { SettingsDialog } from "@/components/settings-dialog";
-import { RenameSessionDialog } from "@/components/rename-session-dialog";
-import { Toaster } from "@/components/ui/sonner";
-import { ChatStreamProvider } from "@/context/chat-stream-context";
-import { RightClickMenu } from '@/components/right-click-menu';
+import { useActions } from '@/lib/actions';
+import { providersQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
+import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
+import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
 interface RouterContext {
   queryClient: QueryClient;

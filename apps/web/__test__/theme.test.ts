@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+
 import { THEMES, THEME_TOKEN_KEYS } from '../src/lib/theme.js';
 
 const OKLCH_PATTERN = /^oklch\(\s*[\d.]+\s+[\d.]+\s+[\d.]+\s*\)$/;

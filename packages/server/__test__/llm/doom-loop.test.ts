@@ -1,4 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import {
   isDoomLoop,
   waitForUserDecision,

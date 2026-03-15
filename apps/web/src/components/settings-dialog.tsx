@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {
   MonitorIcon,
   KeyboardIcon,
@@ -7,16 +6,18 @@ import {
   PaletteIcon,
   SettingsIcon,
 } from 'lucide-react';
+import * as React from 'react';
+
+import { AdvancedSettings } from '@/components/settings/advanced';
+import { AppearanceSettings } from '@/components/settings/appearance';
+import { GeneralSettings } from '@/components/settings/general';
+import { ModelsSettings } from '@/components/settings/models';
+import { ProvidersSettings } from '@/components/settings/providers';
+import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 import { useDialogContext } from '@/context/dialog-context';
-import { GeneralSettings } from '@/components/settings/general';
-import { ShortcutsSettings } from '@/components/settings/shortcuts';
-import { ProvidersSettings } from '@/components/settings/providers';
-import { ModelsSettings } from '@/components/settings/models';
-import { AppearanceSettings } from '@/components/settings/appearance';
-import { AdvancedSettings } from '@/components/settings/advanced';
+import { cn } from '@/lib/utils';
 
 interface SettingsSection {
   label: string;

@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {
   PlusIcon,
   BoxIcon,
@@ -9,11 +8,15 @@ import {
   TriangleIcon,
   HexagonIcon,
 } from 'lucide-react';
+import * as React from 'react';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
+
 import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared';
+
+import { Button } from '@/components/ui/button';
 import { serverFetch } from '@/lib/api';
+import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   anthropic: <CpuIcon className="size-4.5" />,

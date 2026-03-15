@@ -1,12 +1,14 @@
-import * as React from 'react';
 import { FileIcon } from 'lucide-react';
+import * as React from 'react';
+
 import type { StoredPart } from '@openwork/shared';
-import type { StreamingPart } from '@/hooks/sse/use-chat-stream';
+
 import ChatMarkdown from '@/components/chat/chat-markdown';
-import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
-import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
-import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
+import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
+import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
+import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
+import type { StreamingPart } from '@/hooks/sse/use-chat-stream';
 
 export { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider.js';
 

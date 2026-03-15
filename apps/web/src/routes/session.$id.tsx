@@ -1,27 +1,34 @@
 import * as React from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { useSuspenseInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { StickToBottom } from 'use-stick-to-bottom';
+
+import { useSuspenseInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+
+import { createMessageId } from '@openwork/shared';
+
 import { ChatInput } from '@/components/chat/chat-input';
-import { MessageList } from '@/components/chat/message-list';
 import { DockContainer } from '@/components/chat/docks/dock';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { MessageList } from '@/components/chat/message-list';
+import { useChatStreamContext } from '@/context/chat-stream-context';
+import { useChatModel } from '@/hooks/session/use-chat-model';
+import { useSessionDocks } from '@/hooks/session/use-session-docks';
+import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
+import { useQuestionSync } from '@/hooks/sse/use-question-sync';
+import { useSessionStream } from '@/hooks/sse/use-session-stream';
+import { parseModelId } from '@/lib/model-id';
 import {
   sessionQueryOptions,
   sessionMessagesInfiniteQueryOptions,
   flattenMessages,
   useSendMessage,
 } from '@/lib/queries/chat';
-import { questionsQueryOptions, useReplyQuestion, useRejectQuestion } from '@/lib/queries/questions';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import {
+  questionsQueryOptions,
+  useReplyQuestion,
+  useRejectQuestion,
+} from '@/lib/queries/questions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { useChatStreamContext } from '@/context/chat-stream-context';
-import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
-import { useQuestionSync } from '@/hooks/sse/use-question-sync';
-import { useSessionStream } from '@/hooks/sse/use-session-stream';
-import { useSessionDocks } from '@/hooks/session/use-session-docks';
-import { useChatModel } from '@/hooks/session/use-chat-model';
-import { parseModelId } from '@/lib/model-id';
-import { createMessageId } from '@openwork/shared';
 
 export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>

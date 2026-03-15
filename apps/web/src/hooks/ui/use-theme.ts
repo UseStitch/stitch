@@ -1,6 +1,9 @@
 import * as React from 'react';
+
 import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+
 import type { AppearanceMode } from '@openwork/shared';
+
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 import {
   getTheme,

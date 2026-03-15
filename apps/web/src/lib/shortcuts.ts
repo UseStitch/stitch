@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+
 import type { Hotkey } from '@tanstack/react-hotkeys';
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import type { ShortcutActionId } from '@openwork/shared';
+
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 
 export interface ShortcutDefinition {

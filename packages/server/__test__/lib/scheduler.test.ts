@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+
 import * as Scheduler from '../../src/lib/scheduler.js';
 
 describe('Scheduler', () => {

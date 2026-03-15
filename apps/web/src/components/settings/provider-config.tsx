@@ -1,17 +1,9 @@
-import * as React from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftIcon } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  providerConfigQueryOptions,
-  providerKeys,
-  type ProviderSummary,
-} from '@/lib/queries/providers';
-import { serverFetch } from '@/lib/api';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import {
   PROVIDER_META,
   PROVIDER_IDS,
@@ -19,6 +11,17 @@ import {
   type FieldDef,
   type ProviderId,
 } from '@openwork/shared';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { serverFetch } from '@/lib/api';
+import {
+  providerConfigQueryOptions,
+  providerKeys,
+  type ProviderSummary,
+} from '@/lib/queries/providers';
 
 type Props = {
   provider: ProviderSummary;

@@ -1,4 +1,5 @@
 import type { AppearanceMode } from '@openwork/shared';
+
 import defaultTheme from '@/themes/default.json';
 import draculaTheme from '@/themes/dracula.json';
 import solarizedTheme from '@/themes/solarized.json';

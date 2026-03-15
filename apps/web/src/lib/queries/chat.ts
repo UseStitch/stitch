@@ -4,6 +4,8 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
+
 import type {
   Message,
   Session,
@@ -12,7 +14,7 @@ import type {
   StoredPart,
 } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
-import type { InfiniteData } from '@tanstack/react-query';
+
 import { serverFetch } from '@/lib/api';
 
 const EMPTY_USAGE: LanguageModelUsage = {

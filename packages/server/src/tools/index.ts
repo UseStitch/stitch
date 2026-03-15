@@ -1,8 +1,10 @@
-import type { Tool } from 'ai';
 import type { PrefixedString } from '@openwork/shared';
-import { createWeatherTool } from './weather.js';
+
 import { createQuestionTool } from './question.js';
 import { truncateOutput } from './truncation.js';
+import { createWeatherTool } from './weather.js';
+
+import type { Tool } from 'ai';
 
 export const MAX_STEPS = 25;
 

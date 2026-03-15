@@ -1,6 +1,5 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { ProviderCredentials } from '../provider/provider.js';
-import type { LanguageModelUsage } from 'ai';
+
 import type {
   MessageRole,
   PrefixedString,
@@ -8,6 +7,9 @@ import type {
   ShortcutActionId,
   StoredPart,
 } from '@openwork/shared';
+
+import type { ProviderCredentials } from '../provider/provider.js';
+import type { LanguageModelUsage } from 'ai';
 
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),

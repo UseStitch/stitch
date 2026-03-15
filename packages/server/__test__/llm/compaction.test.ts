@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+
 import { isOverflow } from '../../src/llm/compaction.js';
 import { estimate } from '../../src/utils/token.js';
 

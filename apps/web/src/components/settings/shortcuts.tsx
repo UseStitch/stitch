@@ -1,17 +1,19 @@
-import * as React from 'react';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
 import { SearchIcon } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
+
+import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { Button } from '@/components/ui/button';
-import { SHORTCUT_DEFINITIONS, type ShortcutDefinition } from '@/lib/shortcuts';
+import { Input } from '@/components/ui/input';
 import {
   shortcutsQueryOptions,
   useSaveShortcut,
   useDeleteShortcut,
   useResetAllShortcuts,
 } from '@/lib/queries/shortcuts';
+import { SHORTCUT_DEFINITIONS, type ShortcutDefinition } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R'];

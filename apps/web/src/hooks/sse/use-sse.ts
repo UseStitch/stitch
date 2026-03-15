@@ -1,5 +1,7 @@
 import * as React from 'react';
+
 import type { SseEventName, SseHandlers, UseSseResult } from '@openwork/shared';
+
 import { getServerUrl } from '@/lib/api';
 
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {

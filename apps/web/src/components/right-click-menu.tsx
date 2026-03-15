@@ -1,11 +1,12 @@
+import { Terminal } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
+
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Terminal } from 'lucide-react';
 
 interface RightClickMenuProps {
   children: React.ReactNode;

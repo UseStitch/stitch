@@ -1,7 +1,7 @@
+import { app } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
-import { app } from 'electron';
 import treeKill from 'tree-kill';
 
 const HEALTH_POLL_INTERVAL_MS = 100;

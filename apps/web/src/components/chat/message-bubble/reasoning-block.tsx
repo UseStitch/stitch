@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
+import * as React from 'react';
 
 type ReasoningBlockProps = {
   text: string;

@@ -1,4 +1,3 @@
-import type { LanguageModelUsage } from 'ai';
 import type {
   ReasoningDeltaPart,
   ReasoningEndPart,
@@ -12,6 +11,7 @@ import type {
   ToolResultStreamPart,
 } from './messages.js';
 import type { QuestionRequest } from './questions.js';
+import type { LanguageModelUsage } from 'ai';
 
 export type SseEventName =
   | 'heartbeat'

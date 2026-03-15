@@ -1,7 +1,8 @@
+import fs from 'fs/promises';
 import os from 'node:os';
 import path from 'path';
-import fs from 'fs/promises';
 import { describe, test, expect } from 'vitest';
+
 import * as Glob from '../../src/lib/glob.js';
 
 async function tmpdir(): Promise<{ path: string; [Symbol.asyncDispose]: () => Promise<void> }> {

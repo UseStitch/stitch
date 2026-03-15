@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm';
+
 import type { PrefixedString } from '@openwork/shared';
 import type { QuestionInfo, QuestionRequest } from '@openwork/shared';
+import { createQuestionId } from '@openwork/shared';
+
 import { getDb } from '../db/client.js';
 import { questions } from '../db/schema.js';
-import { broadcast } from '../lib/sse.js';
 import * as Log from '../lib/log.js';
-import { createQuestionId } from '@openwork/shared';
+import { broadcast } from '../lib/sse.js';
 
 const log = Log.create({ service: 'question-service' });
 
