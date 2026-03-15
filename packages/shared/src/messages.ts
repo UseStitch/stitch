@@ -20,7 +20,10 @@ export type ReasoningEndPart = Extract<FullStreamPart, { type: 'reasoning-end' }
 export type SourceStreamPart = Extract<FullStreamPart, { type: 'source' }>;
 export type FileStreamPart = Extract<FullStreamPart, { type: 'file' }>;
 export type ToolCallStreamPart = Extract<FullStreamPart, { type: 'tool-call' }>;
-export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result' }>;
+export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result' }> & {
+  truncated: boolean;
+  outputPath?: string;
+};
 export type ToolInputStartPart = Extract<FullStreamPart, { type: 'tool-input-start' }>;
 export type ToolInputDeltaPart = Extract<FullStreamPart, { type: 'tool-input-delta' }>;
 export type ToolInputEndPart = Extract<FullStreamPart, { type: 'tool-input-end' }>;

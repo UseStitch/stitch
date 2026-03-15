@@ -2,6 +2,7 @@ import * as Log from './lib/log.js';
 import * as Scheduler from './lib/scheduler.js';
 import * as ModelsDev from './provider/models.js';
 import { initDb } from './db/client.js';
+import * as ToolTruncation from './tools/truncation.js';
 
 const log = Log.create({ service: 'init' });
 
@@ -9,6 +10,7 @@ const HOUR_MS = 60 * 60 * 1000;
 
 const LOG_CLEANUP_INTERVAL_MS = 24 * HOUR_MS;
 const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
+const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 
 export async function init() {
   await Log.init({ print: process.env.NODE_ENV === 'development' });
@@ -22,6 +24,12 @@ export async function init() {
     MODELS_REFRESH_INTERVAL_MS,
     () => ModelsDev.refresh(),
     { immediate: true },
+  );
+
+  Scheduler.scheduleRecurring(
+    'tool-output-cleanup',
+    TOOL_OUTPUT_CLEANUP_INTERVAL_MS,
+    () => ToolTruncation.cleanup(),
   );
 
   log.info('server initialized');

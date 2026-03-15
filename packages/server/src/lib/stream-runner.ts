@@ -502,6 +502,7 @@ export async function runStream(opts: {
               toolName,
               input,
               output: errorValue,
+              truncated: false,
               startedAt: now,
               endedAt: now,
             } as StoredPart);
@@ -531,6 +532,8 @@ export async function runStream(opts: {
             toolName,
             input,
             output: execResult.output,
+            truncated: execResult.truncated,
+            ...(execResult.outputPath !== undefined && { outputPath: execResult.outputPath }),
             startedAt: now,
             endedAt: now,
           } as StoredPart);

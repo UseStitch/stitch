@@ -5,6 +5,7 @@ export const ID_PREFIXES = {
   message: 'msg',
   part: 'prt',
   toolCall: 'tool',
+  toolResult: 'toolres',
 } as const;
 
 let lastTimestamp = 0;
@@ -35,6 +36,10 @@ export function createPartId(): PrefixedString<'prt'> {
 
 export function createToolCallId(): PrefixedString<'tool'> {
   return createId(ID_PREFIXES.toolCall);
+}
+
+export function createToolResultId(): PrefixedString<'toolres'> {
+  return createId(ID_PREFIXES.toolResult);
 }
 
 function createId<P extends (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES]>(
