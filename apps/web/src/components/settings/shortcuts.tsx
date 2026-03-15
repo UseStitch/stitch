@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
 import { SearchIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SHORTCUT_DEFINITIONS, type ShortcutDefinition } from '@/lib/shortcuts';
@@ -12,6 +13,8 @@ import {
   useResetAllShortcuts,
 } from '@/lib/queries/shortcuts';
 import { cn } from '@/lib/utils';
+
+const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R'];
 
 function resolveHotkey(
   def: ShortcutDefinition,
@@ -108,16 +111,16 @@ function ShortcutsContent() {
 
   const [search, setSearch] = React.useState('');
   const [recordingId, setRecordingId] = React.useState<string | null>(null);
-  const [conflict, setConflict] = React.useState<{ id: string; conflictLabel: string } | null>(
-    null,
-  );
-  const [pendingRecord, setPendingRecord] = React.useState<{ id: string; hotkey: string } | null>(
-    null,
-  );
 
   const recorder = useHotkeyRecorder({
     onRecord: (hotkey) => {
       if (!recordingId) return;
+
+      if (BLOCKED_HOTKEYS.includes(hotkey)) {
+        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`);
+        setRecordingId(null);
+        return;
+      }
 
       // Check for conflicts with other shortcuts
       const conflictDef = SHORTCUT_DEFINITIONS.find((def) => {
@@ -126,13 +129,15 @@ function ShortcutsContent() {
       });
 
       if (conflictDef) {
-        setConflict({ id: recordingId, conflictLabel: conflictDef.label });
-        setPendingRecord({ id: recordingId, hotkey });
+        toast.error(
+          `${formatForDisplay(hotkey)} is already assigned to "${conflictDef.label}". Please unassign it first.`,
+        );
         setRecordingId(null);
-      } else {
-        saveShortcut.mutate({ actionId: recordingId, hotkey });
-        setRecordingId(null);
+        return;
       }
+
+      saveShortcut.mutate({ actionId: recordingId, hotkey });
+      setRecordingId(null);
     },
     onCancel: () => setRecordingId(null),
     onClear: () => {
@@ -144,22 +149,8 @@ function ShortcutsContent() {
   });
 
   function handleStartRecording(id: string) {
-    setConflict(null);
-    setPendingRecord(null);
     setRecordingId(id);
     recorder.startRecording();
-  }
-
-  function handleConfirmConflict() {
-    if (!pendingRecord) return;
-    saveShortcut.mutate({ actionId: pendingRecord.id, hotkey: pendingRecord.hotkey });
-    setConflict(null);
-    setPendingRecord(null);
-  }
-
-  function handleCancelConflict() {
-    setConflict(null);
-    setPendingRecord(null);
   }
 
   const filtered = React.useMemo(() => {
@@ -170,6 +161,23 @@ function ShortcutsContent() {
   }, [search]);
 
   const groups = React.useMemo(() => groupByCategory(filtered), [filtered]);
+
+  const conflicts = React.useMemo(() => {
+    const map = new Map<string, string>();
+    const hotkeyToDef = new Map<string, ShortcutDefinition>();
+    for (const def of SHORTCUT_DEFINITIONS) {
+      const hotkey = resolveHotkey(def, overrides);
+      if (hotkey) {
+        if (hotkeyToDef.has(hotkey)) {
+          map.set(def.id, hotkeyToDef.get(hotkey)!.label);
+          map.set(hotkeyToDef.get(hotkey)!.id, def.label);
+        } else {
+          hotkeyToDef.set(hotkey, def);
+        }
+      }
+    }
+    return map;
+  }, [overrides]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -183,24 +191,6 @@ function ShortcutsContent() {
         />
       </div>
 
-      {conflict && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm flex items-center justify-between gap-4">
-          <span>
-            <span className="font-medium">{formatForDisplay(pendingRecord?.hotkey ?? '')}</span> is
-            already assigned to <span className="font-medium">{conflict.conflictLabel}</span>.
-            Override it?
-          </span>
-          <div className="flex gap-2 shrink-0">
-            <Button size="sm" variant="destructive" onClick={handleConfirmConflict}>
-              Override
-            </Button>
-            <Button size="sm" variant="ghost" onClick={handleCancelConflict}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
-
       {groups.size === 0 && (
         <p className="text-muted-foreground text-sm text-center py-4">No shortcuts found</p>
       )}
@@ -212,14 +202,13 @@ function ShortcutsContent() {
             {defs.map((def) => {
               const currentHotkey = resolveHotkey(def, overrides);
               const isDefault = currentHotkey === def.defaultHotkey;
-              const isConflicting = conflict?.id === def.id;
               return (
                 <ShortcutRow
                   key={def.id}
                   def={def}
                   currentHotkey={currentHotkey}
                   isDefault={isDefault}
-                  conflict={isConflicting ? conflict.conflictLabel : null}
+                  conflict={conflicts.get(def.id) ?? null}
                   recordingId={recordingId}
                   onStartRecording={handleStartRecording}
                 />
