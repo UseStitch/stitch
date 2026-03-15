@@ -59,64 +59,82 @@ async function runStep(opts: {
   });
 
   const toolCalls: StepResult['toolCalls'] = [];
+  // Map AI SDK stream IDs to stable prt_ IDs for consistent lifecycle tracking.
+  const sdkIdToPartId = new Map<string, string>();
 
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-start': {
+        const partId = createPartId();
+        sdkIdToPartId.set(part.id, partId);
         partStartTimes.set(part.id, Date.now());
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: part.id, part });
+        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
 
       case 'text-delta': {
         const now = Date.now();
-        const partId = createPartId();
+        const partId = sdkIdToPartId.get(part.id);
         accumulatedParts.push({
           ...part,
-          id: partId,
+          id: createPartId(),
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
-        await Sse.broadcast('stream-part-delta', {
-          sessionId,
-          messageId,
-          partId,
-          delta: part,
-        });
+        if (partId) {
+          await Sse.broadcast('stream-part-delta', {
+            sessionId,
+            messageId,
+            partId,
+            delta: part,
+          });
+        }
         break;
       }
 
       case 'text-end': {
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: part.id, part });
+        const partId = sdkIdToPartId.get(part.id);
+        if (partId) {
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+        }
+        sdkIdToPartId.delete(part.id);
         break;
       }
 
       case 'reasoning-start': {
+        const partId = createPartId();
+        sdkIdToPartId.set(part.id, partId);
         partStartTimes.set(part.id, Date.now());
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: part.id, part });
+        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
 
       case 'reasoning-delta': {
         const now = Date.now();
-        const partId = createPartId();
+        const partId = sdkIdToPartId.get(part.id);
         accumulatedParts.push({
           ...part,
-          id: partId,
+          id: createPartId(),
           startedAt: partStartTimes.get(part.id) ?? now,
           endedAt: now,
         });
-        await Sse.broadcast('stream-part-delta', {
-          sessionId,
-          messageId,
-          partId,
-          delta: part,
-        });
+        if (partId) {
+          await Sse.broadcast('stream-part-delta', {
+            sessionId,
+            messageId,
+            partId,
+            delta: part,
+          });
+        }
         break;
       }
 
       case 'reasoning-end': {
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: part.id, part });
+        const partId = sdkIdToPartId.get(part.id);
+        if (partId) {
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+        }
+        sdkIdToPartId.delete(part.id);
         break;
       }
 
