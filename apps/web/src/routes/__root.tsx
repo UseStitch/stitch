@@ -7,14 +7,14 @@ import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { DialogProvider } from '@/context/dialog-context';
 import { useTheme } from '@/hooks/ui/use-theme';
-import { TitleBar } from '../components/layout/title-bar';
-import { AppSidebar } from '../components/app-sidebar';
-import { SidebarInset, SidebarProvider } from '../components/ui/sidebar';
-import { CommandPalette } from '../components/command-palette';
-import { SettingsDialog } from '../components/settings-dialog';
-import { RenameSessionDialog } from '../components/rename-session-dialog';
-import { Toaster } from '../components/ui/sonner';
-import { ChatStreamProvider } from '../context/chat-stream-context';
+import { TitleBar } from "@/components/layout/title-bar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { CommandPalette } from "@/components/command-palette";
+import { SettingsDialog } from "@/components/settings-dialog";
+import { RenameSessionDialog } from "@/components/rename-session-dialog";
+import { Toaster } from "@/components/ui/sonner";
+import { ChatStreamProvider } from "@/context/chat-stream-context";
 import { RightClickMenu } from '@/components/right-click-menu';
 
 interface RouterContext {

@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HotkeysProvider } from '@tanstack/react-hotkeys';
-import { routeTree } from './routeTree.gen';
-import './styles/global.css';
+import { routeTree } from "@/routeTree.gen";
+import "@/styles/global.css";
 
 const queryClient = new QueryClient();
 
