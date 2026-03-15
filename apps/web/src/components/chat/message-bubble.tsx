@@ -1,10 +1,4 @@
 import * as React from 'react';
-import Markdown, { MarkdownHooks } from 'react-markdown';
-import rehypeShiki from '@shikijs/rehype';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import type { Pluggable } from 'unified';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -13,101 +7,12 @@ import {
   CheckIcon,
   AlertCircleIcon,
   LoaderIcon,
-  ImageOffIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StoredPart } from '@openwork/shared';
 import type { StreamingPart } from '@/hooks/use-chat-stream';
 import type { ToolCallStatus } from '@openwork/shared';
-
-// ─── Shared markdown renderer ─────────────────────────────────────────────────
-
-const remarkPlugins: Pluggable[] = [remarkGfm, remarkMath];
-
-const rehypePlugins: Pluggable[] = [
-  rehypeKatex,
-  [rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' } }],
-];
-
-function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
-  const [broken, setBroken] = React.useState(false);
-
-  if (broken) {
-    return (
-      <span className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
-        <ImageOffIcon className="size-3.5 shrink-0" />
-        <span>{props.alt ?? 'Image'}</span>
-      </span>
-    );
-  }
-
-  return <img {...props} onError={() => setBroken(true)} />;
-}
-
-const markdownComponents = { img: MarkdownImage };
-
-/**
- * Synchronous markdown renderer (no syntax highlighting).
- *
- * Uses the sync `Markdown` component with only sync plugins so content renders
- * immediately on every update. Used during streaming and as the fallback for
- * `MarkdownContent` while its async rehypeShiki plugin processes.
- */
-const syncRehypePlugins: Pluggable[] = [rehypeKatex];
-
-function SyncMarkdownContent({ text, className }: { text: string; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed',
-        className,
-      )}
-    >
-      <Markdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={syncRehypePlugins}
-        components={markdownComponents}
-      >
-        {text}
-      </Markdown>
-    </div>
-  );
-}
-
-/**
- * Full markdown renderer with syntax highlighting for persisted messages.
- *
- * Uses `MarkdownHooks` with async rehypeShiki for code block highlighting.
- * The `fallback` prop renders a sync version of the content so text is never
- * blank while the async plugin processes.
- */
-function MarkdownContent({ text, className }: { text: string; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed',
-        className,
-      )}
-    >
-      <MarkdownHooks
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-        components={markdownComponents}
-        fallback={
-          <Markdown
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={syncRehypePlugins}
-            components={markdownComponents}
-          >
-            {text}
-          </Markdown>
-        }
-      >
-        {text}
-      </MarkdownHooks>
-    </div>
-  );
-}
+import ChatMarkdown from '@/components/chat/chat-markdown';
 
 // ─── Reasoning block ──────────────────────────────────────────────────────────
 
@@ -241,7 +146,7 @@ export function CompactionDivider({ summaryParts }: { summaryParts?: StoredPart[
       </div>
       {open && hasSummary && (
         <div className="mt-2 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
-          <MarkdownContent text={summaryText} />
+          <ChatMarkdown text={summaryText} />
         </div>
       )}
     </div>
@@ -257,11 +162,6 @@ type DisplaySegment = TextSegment | ReasoningSegment | OtherSegment;
 
 type StoredToolResult = StoredPart & { type: 'tool-result' };
 
-/**
- * Collapses StoredPart[] into display segments.
- * tool-result parts are skipped here — they're returned separately in a lookup
- * map so each tool-call can render its own result inline.
- */
 function groupStoredParts(parts: StoredPart[]): {
   segments: DisplaySegment[];
   resultsByCallId: Map<string, StoredToolResult>;
@@ -270,7 +170,6 @@ function groupStoredParts(parts: StoredPart[]): {
   const resultsByCallId = new Map<string, StoredToolResult>();
 
   for (const part of parts) {
-    // Collect tool-results into the lookup map — don't emit a segment for them
     if (part.type === 'tool-result') {
       resultsByCallId.set(part.toolCallId, part as StoredToolResult);
       continue;
@@ -296,7 +195,6 @@ function groupStoredParts(parts: StoredPart[]): {
       continue;
     }
 
-    // Skip structural markers — they carry no display content
     if (
       part.type === 'text-start' ||
       part.type === 'text-end' ||
@@ -317,7 +215,7 @@ type MessageBubbleProps = {
   parts: StoredPart[];
 };
 
-export function MessageBubble({ role, parts }: MessageBubbleProps) {
+export const MessageBubble = React.memo(function MessageBubble({ role, parts }: MessageBubbleProps) {
   if (role === 'user') {
     const text = parts
       .filter((p) => p.type === 'text-delta')
@@ -340,7 +238,7 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
         {segments.map((seg) => {
           switch (seg.type) {
             case 'text':
-              return <MarkdownContent key={seg.key} text={seg.text} />;
+              return <ChatMarkdown key={seg.key} text={seg.text} />;
             case 'reasoning':
               return <ReasoningBlock key={seg.key} text={seg.text} />;
             case 'other': {
@@ -363,7 +261,6 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
                   );
                 }
                 case 'tool-result':
-                  // Rendered inline with its tool-call above — never reached
                   return null;
                 case 'source': {
                   if (part.sourceType === 'url') {
@@ -382,7 +279,7 @@ export function MessageBubble({ role, parts }: MessageBubbleProps) {
       </div>
     </div>
   );
-}
+});
 
 // ─── Streaming message bubble ─────────────────────────────────────────────────
 
@@ -392,7 +289,7 @@ type StreamingMessageBubbleProps = {
   isStreaming: boolean;
 };
 
-export function StreamingMessageBubble({
+export const StreamingMessageBubble = React.memo(function StreamingMessageBubble({
   partIds,
   parts,
   isStreaming,
@@ -432,7 +329,7 @@ export function StreamingMessageBubble({
             case 'text':
               return (
                 <div key={partId}>
-                  <SyncMarkdownContent text={part.text} />
+                  <ChatMarkdown text={part.text} />
                 </div>
               );
             case 'reasoning':
@@ -459,4 +356,4 @@ export function StreamingMessageBubble({
       </div>
     </div>
   );
-}
+});

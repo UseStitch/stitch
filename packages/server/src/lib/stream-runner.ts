@@ -50,7 +50,9 @@ async function runStep(opts: {
     model,
     messages: conversation,
     tools: TOOL_DEFINITIONS,
-    experimental_transform: smoothStream(),
+    experimental_transform: smoothStream({
+      delayInMs: 100,
+    }),
     onError: ({ error }) => {
       log.error('step stream error', { sessionId, messageId, error });
     },
