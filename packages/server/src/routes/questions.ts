@@ -5,9 +5,9 @@ import type { PrefixedString } from '@openwork/shared';
 import type { QuestionInfo } from '@openwork/shared';
 import { createQuestionId } from '@openwork/shared';
 
-import { getDb } from '../db/client.js';
-import { questions, sessions } from '../db/schema.js';
-import { replyQuestion, rejectQuestion, getPendingQuestions } from '../question/service.js';
+import { getDb } from "@/db/client.js";
+import { questions, sessions } from "@/db/schema.js";
+import { replyQuestion, rejectQuestion, getPendingQuestions } from "@/question/service.js";
 
 export const questionsRouter = new Hono();
 

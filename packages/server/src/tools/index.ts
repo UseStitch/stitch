@@ -1,8 +1,8 @@
 import type { PrefixedString } from '@openwork/shared';
 
-import { createQuestionTool } from './question.js';
-import { truncateOutput } from './truncation.js';
-import { createWeatherTool } from './weather.js';
+import { createQuestionTool } from "@/tools/question.js";
+import { truncateOutput } from "@/tools/truncation.js";
+import { createWeatherTool } from "@/tools/weather.js";
 
 import type { Tool } from 'ai';
 

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { createToolResultId } from '@openwork/shared';
 
-import { PATHS } from '../lib/paths.js';
+import { PATHS } from "@/lib/paths.js";
 
 import * as Log from '@/lib/log.js';
 

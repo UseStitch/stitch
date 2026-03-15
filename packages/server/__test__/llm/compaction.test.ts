@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 
-import { isOverflow } from '../../src/llm/compaction.js';
-import { estimate } from '../../src/utils/token.js';
+import { isOverflow } from "@/llm/compaction.js";
+import { estimate } from "@/utils/token.js";
 
 describe('estimate', () => {
   test('returns 0 for null', () => {

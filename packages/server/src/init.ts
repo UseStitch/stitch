@@ -1,8 +1,8 @@
-import { initDb } from './db/client.js';
-import * as Log from './lib/log.js';
-import * as Scheduler from './lib/scheduler.js';
-import * as ModelsDev from './provider/models.js';
-import * as ToolTruncation from './tools/truncation.js';
+import { initDb } from "@/db/client.js";
+import * as Log from "@/lib/log.js";
+import * as Scheduler from "@/lib/scheduler.js";
+import * as ModelsDev from "@/provider/models.js";
+import * as ToolTruncation from "@/tools/truncation.js";
 
 const log = Log.create({ service: 'init' });
 

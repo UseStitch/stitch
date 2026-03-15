@@ -2,15 +2,15 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-import { init } from './init.js';
-import { PATHS } from './lib/paths.js';
-import { chatRouter } from './routes/chat.js';
-import { eventsRouter } from './routes/events.js';
-import { providerRouter } from './routes/provider.js';
-import { questionsRouter } from './routes/questions.js';
-import { settingsRouter } from './routes/settings.js';
-import { shortcutsRouter } from './routes/shortcuts.js';
-import { registerShutdownHandlers } from './shutdown.js';
+import { init } from "@/init.js";
+import { PATHS } from "@/lib/paths.js";
+import { chatRouter } from "@/routes/chat.js";
+import { eventsRouter } from "@/routes/events.js";
+import { providerRouter } from "@/routes/provider.js";
+import { questionsRouter } from "@/routes/questions.js";
+import { settingsRouter } from "@/routes/settings.js";
+import { shortcutsRouter } from "@/routes/shortcuts.js";
+import { registerShutdownHandlers } from "@/shutdown.js";
 
 function parseArgs() {
   const args = process.argv.slice(2);

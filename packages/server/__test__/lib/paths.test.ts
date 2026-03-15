@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { envPaths, isSafeFilename } from '../../src/lib/paths.js';
+import { envPaths, isSafeFilename } from "@/lib/paths.js";
 
 describe('isSafeFilename', () => {
   it('returns false for empty string', () => {

@@ -2,11 +2,11 @@ import { eq } from 'drizzle-orm';
 
 import { SettingsKey } from '@openwork/shared';
 
-import { getDb } from '../db/client.js';
-import { userSettings, providerConfig } from '../db/schema.js';
-import * as Models from '../provider/models.js';
+import { getDb } from "@/db/client.js";
+import { userSettings, providerConfig } from "@/db/schema.js";
+import * as Models from "@/provider/models.js";
 
-import type { ProviderCredentials } from '../provider/provider.js';
+import type { ProviderCredentials } from "@/provider/provider.js";
 
 const SEPARATOR = ':::';
 

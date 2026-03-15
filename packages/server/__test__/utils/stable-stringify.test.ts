@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 
-import { stableStringify } from '../../src/utils/stable-stringify.js';
+import { stableStringify } from "@/utils/stable-stringify.js";
 
 describe('stableStringify', () => {
   test('produces identical output regardless of top-level key order', () => {

@@ -8,7 +8,7 @@ import type {
   StoredPart,
 } from '@openwork/shared';
 
-import type { ProviderCredentials } from '../provider/provider.js';
+import type { ProviderCredentials } from "@/provider/provider.js";
 import type { LanguageModelUsage } from 'ai';
 
 export const userSettings = sqliteTable('user_settings', {

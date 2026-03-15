@@ -3,8 +3,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
 
-import * as Glob from './glob.js';
-import { PATHS } from './paths.js';
+import * as Glob from "@/lib/glob.js";
+import { PATHS } from "@/lib/paths.js";
 
 const Level = z
   .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
@@ -49,9 +49,6 @@ interface Options {
 }
 
 let logpath = '';
-export function file() {
-  return logpath;
-}
 let write = (msg: any) => {
   process.stderr.write(msg);
   return msg.length;

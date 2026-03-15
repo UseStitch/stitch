@@ -1,7 +1,7 @@
 import { generateText } from 'ai';
 
-import { createProvider } from '../provider/provider.js';
-import { resolveCheapModel } from './resolve-cheap-model.js';
+import { createProvider } from "@/provider/provider.js";
+import { resolveCheapModel } from "@/llm/resolve-cheap-model.js";
 
 const generateTitlePrompt = (firstMessage: string) => `
 Generate a short, descriptive title (30 chars max) for a conversation that starts with this message: 
