@@ -86,3 +86,8 @@ export type Session = {
 };
 
 export type SessionWithMessages = Session & { messages: Message[] };
+
+export type MessagesPage = {
+  messages: Message[];
+  hasMore: boolean;
+};

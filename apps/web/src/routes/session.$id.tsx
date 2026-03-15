@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import {
+  useSuspenseQuery,
+  useSuspenseInfiniteQuery,
+  useQueryClient,
+  useMutation,
+} from '@tanstack/react-query';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ChatInput } from '@/components/chat/chat-input';
 import { MessageList } from '@/components/chat/message-list';
@@ -8,7 +13,13 @@ import { DockContainer, type DockItem } from '@/components/chat/docks/dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { sessionQueryOptions, useSendMessage } from '@/lib/queries/chat';
+import {
+  sessionQueryOptions,
+  sessionMessagesInfiniteQueryOptions,
+  flattenMessages,
+  sessionKeys,
+  useSendMessage,
+} from '@/lib/queries/chat';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { useCompactionUpdates } from '@/hooks/use-compaction-updates';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -18,6 +29,9 @@ export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions(params.id)),
+      context.queryClient.ensureInfiniteQueryData(
+        sessionMessagesInfiniteQueryOptions(params.id),
+      ),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
@@ -29,8 +43,15 @@ const SEPARATOR = ':::';
 function SessionComponent() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+
+  const messagesQuery = useSuspenseInfiniteQuery(
+    sessionMessagesInfiniteQueryOptions(id),
+  );
+  const messages = React.useMemo(
+    () => flattenMessages(messagesQuery.data),
+    [messagesQuery.data],
+  );
 
   const [value, setValue] = React.useState('');
   const [modelOverride, setModelOverride] = React.useState<string | null>(null);
@@ -49,11 +70,11 @@ function SessionComponent() {
   const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext();
   const { isCompacting } = useCompactionUpdates(id);
 
-  // When stream finishes, refresh message list and clear active stream
+  // When stream finishes, refresh the most recent messages page and clear active stream
   React.useEffect(() => {
     if (!streamState.isStreaming && activeMessageId !== null && streamState.finishReason !== null) {
       void queryClient
-        .invalidateQueries({ queryKey: ['sessions', 'detail', id] })
+        .resetQueries({ queryKey: sessionKeys.messages(id) })
         .then(() => setActiveMessageId(null));
     }
   }, [
@@ -128,7 +149,13 @@ function SessionComponent() {
     >
       <StickToBottom.Content scrollClassName="no-scrollbar" className="px-6 pb-40 pt-6">
         <div className="mx-auto max-w-4xl">
-          <MessageList messages={session.messages} streamState={streamState} />
+          <MessageList
+            messages={messages}
+            streamState={streamState}
+            hasMore={messagesQuery.hasNextPage}
+            isFetchingMore={messagesQuery.isFetchingNextPage}
+            onLoadMore={() => void messagesQuery.fetchNextPage()}
+          />
         </div>
       </StickToBottom.Content>
 

@@ -1,15 +1,19 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  infiniteQueryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type {
   Message,
   Session,
-  SessionWithMessages,
+  MessagesPage,
   LanguageModelUsage,
   StoredPart,
 } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
+import type { InfiniteData } from '@tanstack/react-query';
 import { serverFetch } from '@/lib/api';
-
-export type { SessionWithMessages };
 
 const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -27,6 +31,7 @@ export const sessionKeys = {
   all: ['sessions'] as const,
   list: () => [...sessionKeys.all, 'list'] as const,
   detail: (id: string) => [...sessionKeys.all, 'detail', id] as const,
+  messages: (id: string) => [...sessionKeys.all, 'messages', id] as const,
 };
 
 export const sessionsQueryOptions = queryOptions({
@@ -42,13 +47,51 @@ export const sessionsQueryOptions = queryOptions({
 export const sessionQueryOptions = (id: string) =>
   queryOptions({
     queryKey: sessionKeys.detail(id),
-    queryFn: async (): Promise<SessionWithMessages> => {
+    queryFn: async (): Promise<Session> => {
       const res = await serverFetch(`/chat/sessions/${id}`);
       if (!res.ok) throw new Error('Failed to fetch session');
-      return res.json() as Promise<SessionWithMessages>;
+      return res.json() as Promise<Session>;
     },
     staleTime: Infinity,
   });
+
+const PAGE_SIZE = 50;
+
+export const sessionMessagesInfiniteQueryOptions = (id: string) =>
+  infiniteQueryOptions({
+    queryKey: sessionKeys.messages(id),
+    queryFn: async ({ pageParam }): Promise<MessagesPage> => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (pageParam !== undefined) {
+        params.set('cursor', String(pageParam));
+      }
+      const res = await serverFetch(`/chat/sessions/${id}/messages?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      return res.json() as Promise<MessagesPage>;
+    },
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage.hasMore || lastPage.messages.length === 0) return undefined;
+      // The cursor is the createdAt of the oldest message in this page
+      // (messages are returned chronologically, so oldest is first)
+      const oldest = lastPage.messages[0];
+      if (!oldest) return undefined;
+      // Guard against infinite loops: if cursor hasn't changed, stop
+      if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
+      return oldest.createdAt;
+    },
+    staleTime: Infinity,
+  });
+
+/** Flatten all pages into a single chronological message array. */
+export function flattenMessages(data: InfiniteData<MessagesPage> | undefined): Message[] {
+  if (!data) return [];
+  // Pages are stored newest-first (page 0 = most recent, page N = oldest).
+  // Each page's messages are already in chronological order.
+  // To get a full chronological list: reverse the pages array, then flatten.
+  const reversed = [...data.pages].reverse();
+  return reversed.flatMap((page) => page.messages);
+}
 
 type CreateSessionInput = {
   title?: string;
@@ -128,10 +171,10 @@ export function useSendMessage() {
       return res.json() as Promise<SendMessageResult>;
     },
     onMutate: async (input) => {
-      const queryKey = sessionKeys.detail(input.sessionId);
+      const queryKey = sessionKeys.messages(input.sessionId);
       await queryClient.cancelQueries({ queryKey });
 
-      const previous = queryClient.getQueryData<SessionWithMessages>(queryKey);
+      const previous = queryClient.getQueryData<InfiniteData<MessagesPage>>(queryKey);
 
       if (previous) {
         const now = Date.now();
@@ -157,9 +200,20 @@ export function useSendMessage() {
           startedAt: now,
           duration: null,
         };
-        queryClient.setQueryData<SessionWithMessages>(queryKey, {
+
+        // Append the optimistic message to the first page (most recent)
+        const updatedPages = [...previous.pages];
+        const firstPage = updatedPages[0];
+        if (firstPage) {
+          updatedPages[0] = {
+            ...firstPage,
+            messages: [...firstPage.messages, optimisticMessage],
+          };
+        }
+
+        queryClient.setQueryData<InfiniteData<MessagesPage>>(queryKey, {
           ...previous,
-          messages: [...previous.messages, optimisticMessage],
+          pages: updatedPages,
         });
       }
 
@@ -167,7 +221,7 @@ export function useSendMessage() {
     },
     onError: (_err, input, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(sessionKeys.detail(input.sessionId), context.previous);
+        queryClient.setQueryData(sessionKeys.messages(input.sessionId), context.previous);
       }
     },
   });

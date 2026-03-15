@@ -18,7 +18,7 @@ export function useCompactionUpdates(sessionId: string): { isCompacting: boolean
       const payload = data as CompactionCompletePayload;
       if (payload.sessionId !== sessionId) return;
       setIsCompacting(false);
-      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+      void queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
   });
 

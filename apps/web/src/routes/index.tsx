@@ -4,7 +4,8 @@ import { useQueryClient, useMutation, useSuspenseQuery } from '@tanstack/react-q
 import { ChatInput } from '@/components/chat/chat-input';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
-import type { SessionWithMessages } from '@/lib/queries/chat';
+import type { Session, MessagesPage } from '@openwork/shared';
+import type { InfiniteData } from '@tanstack/react-query';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 import { createMessageId } from '@openwork/shared';
@@ -54,9 +55,11 @@ function IndexComponent() {
     const assistantMessageId = createMessageId();
     const session = await createSession.mutateAsync({});
 
-    queryClient.setQueryData<SessionWithMessages>(sessionKeys.detail(session.id), {
-      ...session,
-      messages: [],
+    queryClient.setQueryData<Session>(sessionKeys.detail(session.id), session);
+
+    queryClient.setQueryData<InfiniteData<MessagesPage>>(sessionKeys.messages(session.id), {
+      pages: [{ messages: [], hasMore: false }],
+      pageParams: [undefined],
     });
 
     setActiveMessageId(assistantMessageId);

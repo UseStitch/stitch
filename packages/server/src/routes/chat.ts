@@ -1,4 +1,4 @@
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, desc, lt, and } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { PrefixedString } from '@openwork/shared';
 import { createSessionId, createMessageId, createPartId } from '@openwork/shared';
@@ -53,13 +53,38 @@ chatRouter.get('/sessions/:id', async (c) => {
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
 
-  const msgs = await db
+  return c.json(session);
+});
+
+const DEFAULT_PAGE_SIZE = 50;
+
+chatRouter.get('/sessions/:id/messages', async (c) => {
+  const db = getDb();
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+
+  const limitParam = c.req.query('limit');
+  const cursorParam = c.req.query('cursor');
+  const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 200) : DEFAULT_PAGE_SIZE;
+
+  const conditions = [eq(messages.sessionId, sessionId)];
+  if (cursorParam) {
+    conditions.push(lt(messages.createdAt, new Date(Number(cursorParam))));
+  }
+
+  const rows = await db
     .select()
     .from(messages)
-    .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt));
+    .where(and(...conditions))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit + 1);
 
-  return c.json({ ...session, messages: msgs });
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  // Return messages in chronological order (oldest first)
+  page.reverse();
+
+  return c.json({ messages: page, hasMore });
 });
 
 chatRouter.delete('/sessions/:id', async (c) => {
