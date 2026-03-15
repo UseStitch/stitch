@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon, PaletteIcon } from 'lucide-react';
+import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon, PaletteIcon, SettingsIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { ModelsSettings } from '@/components/settings/models';
 import { AppearanceSettings } from '@/components/settings/appearance';
+import { AdvancedSettings } from '@/components/settings/advanced';
 
 interface SettingsSection {
   label: string;
@@ -28,6 +29,7 @@ const SECTIONS: SettingsSection[] = [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
+      { id: 'advanced', label: 'Advanced', icon: <SettingsIcon className="size-4" /> },
     ],
   },
   {
@@ -77,7 +79,7 @@ export function SettingsDialog() {
               </div>
             ))}
           </aside>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-w-0 overflow-hidden">
             <main className="p-8">
               <SettingsContent activeItem={activeItem} />
             </main>
@@ -96,6 +98,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <AppearanceSettings />;
     case 'shortcuts':
       return <ShortcutsSettings />;
+    case 'advanced':
+      return <AdvancedSettings />;
     case 'providers':
       return <ProvidersSettings />;
     case 'models':

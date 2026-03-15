@@ -7,6 +7,7 @@ import { eventsRouter } from './routes/events.js';
 import { providerRouter } from './routes/provider.js';
 import { settingsRouter } from './routes/settings.js';
 import { shortcutsRouter } from './routes/shortcuts.js';
+import { PATHS } from './lib/paths.js';
 import { registerShutdownHandlers } from './shutdown.js';
 
 function parseArgs() {
@@ -32,7 +33,9 @@ const { port, hostname } = parseArgs();
 const app = new Hono();
 
 app.use(cors());
-app.get('/health', (c) => c.json({ status: 'ok' }));
+app.get('/health', (c) =>
+  c.json({ status: 'ok', paths: PATHS }),
+);
 app.route('/chat', chatRouter);
 app.route('/events', eventsRouter);
 app.route('/provider', providerRouter);
