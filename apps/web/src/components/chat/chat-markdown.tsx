@@ -213,6 +213,33 @@ function extractCodeBlock(
   };
 }
 
+function MarkdownAnchor({
+  href,
+  children,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!href) return;
+      const isExternal = /^https?:\/\//i.test(href);
+      if (!isExternal) return;
+      e.preventDefault();
+      if (window.api?.shell?.openExternal) {
+        void window.api.shell.openExternal(href);
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
+    },
+    [href],
+  );
+
+  return (
+    <a {...props} href={href} onClick={handleClick} rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
+
 function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [broken, setBroken] = useState(false);
 
@@ -235,6 +262,7 @@ function ChatMarkdown({ text, className }: ChatMarkdownProps) {
   const markdownComponents = useMemo<Components>(() => {
     return {
       img: MarkdownImage,
+      a: MarkdownAnchor,
       pre({ node: _node, children, ...props }) {
         const codeBlock = extractCodeBlock(children);
         if (!codeBlock) {

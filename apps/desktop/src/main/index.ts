@@ -90,6 +90,10 @@ ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
   mainWindow?.webContents.inspectElement(x, y);
 });
 
+ipcMain.handle('shell:openExternal', (_event, url: string) => {
+  shell.openExternal(url);
+});
+
 app.whenReady().then(async () => {
   const port = await findAvailablePort();
   serverUrl = await spawnServer(port);

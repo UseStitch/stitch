@@ -23,4 +23,7 @@ contextBridge.exposeInMainWorld('api', {
     toggle: () => ipcRenderer.invoke('devtools:toggle'),
     inspect: (x: number, y: number) => ipcRenderer.invoke('devtools:inspect', x, y),
   },
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+  },
 });

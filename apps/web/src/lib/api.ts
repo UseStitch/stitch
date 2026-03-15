@@ -12,6 +12,9 @@ declare global {
         toggle: () => Promise<void>;
         inspect: (x: number, y: number) => Promise<void>;
       };
+      shell?: {
+        openExternal: (url: string) => Promise<void>;
+      };
     };
   }
 }
