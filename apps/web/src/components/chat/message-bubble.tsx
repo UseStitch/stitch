@@ -8,7 +8,7 @@ import { extractTextFromParts } from '@/components/chat/message-bubble/extract-t
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
-import type { StreamingPart } from '@/hooks/sse/use-chat-stream';
+import type { StreamingPart } from '@/stores/stream-store';
 
 export { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider.js';
 

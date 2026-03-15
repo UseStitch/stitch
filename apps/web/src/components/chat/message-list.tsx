@@ -9,7 +9,7 @@ import {
   StreamingMessageBubble,
   CompactionDivider,
 } from '@/components/chat/message-bubble';
-import type { ChatStreamState } from '@/hooks/sse/use-chat-stream';
+import type { SessionStreamState } from '@/stores/stream-store';
 
 const ALWAYS_UNVIRTUALIZED_TAIL_ROWS = 8;
 const BASE_MESSAGE_HEIGHT_ESTIMATE = 200;
@@ -17,7 +17,7 @@ const MESSAGE_HEIGHT_PER_CHAR = 20;
 
 type MessageListProps = {
   messages: Message[];
-  streamState: ChatStreamState;
+  streamState: SessionStreamState;
   hasMore: boolean;
   isFetchingMore: boolean;
   onLoadMore: () => void;
@@ -32,7 +32,7 @@ type RowData =
 
 function buildRows(
   messages: Message[],
-  streamState: ChatStreamState,
+  streamState: SessionStreamState,
   hasMore: boolean,
   isFetchingMore: boolean,
 ): RowData[] {

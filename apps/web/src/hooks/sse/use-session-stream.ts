@@ -2,36 +2,40 @@ import * as React from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
-import type { ChatStreamState } from '@/hooks/sse/use-chat-stream';
+import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { sessionKeys } from '@/lib/queries/chat';
+import { useStreamStore } from '@/stores/stream-store';
 
 type UseSessionStreamOptions = {
   sessionId: string;
-  streamState: Pick<ChatStreamState, 'isStreaming' | 'finishReason'>;
-  activeMessageId: string | null;
-  setActiveMessageId: (id: string | null) => void;
 };
 
-export function useSessionStream({
-  sessionId,
-  streamState,
-  activeMessageId,
-  setActiveMessageId,
-}: UseSessionStreamOptions): void {
+/**
+ * Watches a single session's stream lifecycle and invalidates the
+ * TanStack Query message cache once the stream finishes.
+ * Scoped per-session — multiple instances can run concurrently.
+ */
+export function useSessionStream({ sessionId }: UseSessionStreamOptions): void {
   const queryClient = useQueryClient();
+  const streamState = useSessionStreamState(sessionId);
+  const resetSession = useStreamStore((s) => s.resetSession);
 
   React.useEffect(() => {
-    if (!streamState.isStreaming && activeMessageId !== null && streamState.finishReason !== null) {
+    if (
+      !streamState.isStreaming &&
+      streamState.activeMessageId !== null &&
+      streamState.finishReason !== null
+    ) {
       void queryClient
         .resetQueries({ queryKey: sessionKeys.messages(sessionId) })
-        .then(() => setActiveMessageId(null));
+        .then(() => resetSession(sessionId));
     }
   }, [
     streamState.isStreaming,
     streamState.finishReason,
-    activeMessageId,
+    streamState.activeMessageId,
     sessionId,
     queryClient,
-    setActiveMessageId,
+    resetSession,
   ]);
 }

@@ -9,12 +9,12 @@ import { createMessageId } from '@openwork/shared';
 import { ChatInput } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
-import { useChatStreamContext } from '@/context/chat-stream-context';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
+import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { parseModelId } from '@/lib/model-id';
 import {
   sessionQueryOptions,
@@ -29,6 +29,7 @@ import {
   useRejectQuestion,
 } from '@/lib/queries/questions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { useStreamStore } from '@/stores/stream-store';
 
 export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
@@ -53,14 +54,15 @@ function SessionComponent() {
   const sendMessage = useSendMessage();
   const replyQuestion = useReplyQuestion();
   const rejectQuestion = useRejectQuestion();
-  const { activeMessageId, setActiveMessageId, ...streamState } = useChatStreamContext();
+  const streamState = useSessionStreamState(id);
+  const startStream = useStreamStore((s) => s.startStream);
   const { isCompacting } = useCompactionUpdates(id);
 
   const questionsQuery = useQuery(questionsQueryOptions(id));
   const pendingQuestions = questionsQuery.data?.filter((q) => q.status === 'pending') ?? [];
 
   useQuestionSync(id);
-  useSessionStream({ sessionId: id, streamState, activeMessageId, setActiveMessageId });
+  useSessionStream({ sessionId: id });
 
   const docks = useSessionDocks({
     sessionId: id,
@@ -80,7 +82,7 @@ function SessionComponent() {
     setValue('');
 
     const assistantMessageId = createMessageId();
-    setActiveMessageId(assistantMessageId);
+    startStream(id, assistantMessageId);
 
     await sendMessage.mutateAsync({
       sessionId: id,

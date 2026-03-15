@@ -17,11 +17,13 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
+import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsQueryOptions } from '@/lib/queries/chat';
 
 export function AppSidebar() {
   const { data: sessions } = useQuery(sessionsQueryOptions);
   useSessionTitleUpdates();
+  const streamingIds = useStreamingSessionIds();
 
   const params = useParams({ strict: false }) as { id?: string };
   const currentId = params.id;
@@ -55,7 +57,13 @@ export function AppSidebar() {
                         />
                       }
                     >
-                      <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                      {streamingIds.includes(session.id) ? (
+                        <div className="size-3.5 shrink-0 flex items-center justify-center">
+                          <div className="size-2 rounded-full bg-primary animate-pulse" />
+                        </div>
+                      ) : (
+                        <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                      )}
                       <AnimatedTitle
                         title={session.title ?? 'New conversation'}
                         className="truncate"

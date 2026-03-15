@@ -9,8 +9,8 @@ import { RightClickMenu } from '@/components/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
-import { ChatStreamProvider } from '@/context/chat-stream-context';
 import { DialogProvider } from '@/context/dialog-context';
+import { StreamSync } from '@/hooks/sse/use-stream-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { useActions } from '@/lib/actions';
 import { providersQueryOptions } from '@/lib/queries/providers';
@@ -44,9 +44,8 @@ function RootLayout() {
         <div className="flex flex-1 overflow-hidden relative">
           <AppSidebar />
           <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
-            <ChatStreamProvider>
-              <Outlet />
-            </ChatStreamProvider>
+            <StreamSync />
+            <Outlet />
           </SidebarInset>
         </div>
       </RightClickMenu>

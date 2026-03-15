@@ -8,10 +8,10 @@ import type { Session, MessagesPage } from '@openwork/shared';
 import { createMessageId } from '@openwork/shared';
 
 import { ChatInput } from '@/components/chat/chat-input';
-import { useChatStreamContext } from '@/context/chat-stream-context';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
+import { useStreamStore } from '@/stores/stream-store';
 
 export const Route = createFileRoute('/')({
   loader: ({ context }) =>
@@ -29,7 +29,7 @@ function IndexComponent() {
   const queryClient = useQueryClient();
   const createSession = useCreateSession();
   const sendMessage = useSendMessage();
-  const { setActiveMessageId } = useChatStreamContext();
+  const startStream = useStreamStore((s) => s.startStream);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   const [value, setValue] = React.useState('');
@@ -65,7 +65,7 @@ function IndexComponent() {
       pageParams: [undefined],
     });
 
-    setActiveMessageId(assistantMessageId);
+    startStream(session.id, assistantMessageId);
     void sendMessage.mutateAsync({
       sessionId: session.id,
       content: text,

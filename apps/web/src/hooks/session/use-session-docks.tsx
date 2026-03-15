@@ -8,7 +8,7 @@ import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
-import type { RetryInfo, DoomLoopInfo } from '@/hooks/sse/use-chat-stream';
+import type { RetryInfo, DoomLoopInfo } from '@/stores/stream-store';
 
 type UseSessionDocksOptions = {
   sessionId: string;
