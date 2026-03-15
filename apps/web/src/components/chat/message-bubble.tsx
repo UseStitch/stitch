@@ -62,9 +62,79 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
   }
 }
 
-function ToolCallBlock({ toolName, status }: { toolName: string; status: ToolCallStatus }) {
+type ToolCallBlockProps = {
+  toolName: string;
+  status: ToolCallStatus;
+  args?: unknown;
+  result?: unknown;
+};
+
+function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) {
+  const questions = (args as { questions?: { question: string; header: string }[] })?.questions;
+  const answers = (result as { answers?: (string[] | undefined)[] } | undefined)?.answers;
+
+  if (!questions) return null;
+
+  return (
+    <div className="mt-1.5 space-y-1.5">
+      {questions.map((q, i) => {
+        const answer = answers?.[i];
+        const hasAnswer = answer !== undefined && answer.length > 0;
+        return (
+          <div key={q.header} className="flex flex-col gap-0.5">
+            <span className="text-muted-foreground">{q.question}</span>
+            {hasAnswer ? (
+              <span className="font-medium text-foreground">{answer.join(', ')}</span>
+            ) : (
+              <span className="italic text-muted-foreground/60">Waiting for answer...</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ToolCallBlock({ toolName, status, args, result }: ToolCallBlockProps) {
   const hasError = status === 'error';
   const isActive = status === 'pending' || status === 'in-progress';
+  const isQuestion = toolName === 'question' && args !== undefined && args !== null;
+
+  const [open, setOpen] = React.useState(false);
+
+  if (isQuestion) {
+    return (
+      <div
+        className={cn(
+          'my-2 rounded-lg border text-xs transition-colors overflow-hidden',
+          hasError
+            ? 'border-destructive/40 bg-destructive/5'
+            : isActive
+              ? 'border-blue-500/30 bg-blue-500/5'
+              : 'border-border/40 bg-muted/20',
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-muted/40 transition-colors"
+        >
+          {open ? (
+            <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground" />
+          )}
+          <StatusIcon status={status} />
+          <span className="font-medium">{toolName}</span>
+        </button>
+        {open && (
+          <div className="border-t border-border/40 px-3 py-2">
+            <QuestionAnswers args={args} result={result} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -257,6 +327,8 @@ export const MessageBubble = React.memo(function MessageBubble({ role, parts }: 
                       key={seg.key}
                       toolName={part.toolName}
                       status={isError ? 'error' : 'completed'}
+                      args={part.input}
+                      result={output}
                     />
                   );
                 }
@@ -341,7 +413,15 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
                 />
               );
             case 'tool-call':
-              return <ToolCallBlock key={partId} toolName={part.toolName} status={part.status} />;
+              return (
+                <ToolCallBlock
+                  key={partId}
+                  toolName={part.toolName}
+                  status={part.status}
+                  args={part.input}
+                  result={part.output}
+                />
+              );
             case 'source': {
               const src = part.source;
               if (src.sourceType === 'url') {
