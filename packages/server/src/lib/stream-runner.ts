@@ -1,6 +1,6 @@
 import { streamText, smoothStream } from 'ai';
 import type { ModelMessage, LanguageModelUsage, ToolResultPart } from 'ai';
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
 import { createPartId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
@@ -41,10 +41,8 @@ async function runStep(opts: {
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
-  partStartTimes: Map<string, number>;
 }): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts, partStartTimes } =
-    opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts } = opts;
 
   const result = streamText({
     model,
@@ -62,30 +60,27 @@ async function runStep(opts: {
   // Map AI SDK stream IDs to stable prt_ IDs for consistent lifecycle tracking.
   const sdkIdToPartId = new Map<string, string>();
 
+  // In-memory accumulation for text and reasoning parts
+  let currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
+  let currentReasoningPart: { id: PartId; text: string; startedAt: number } | null = null;
+
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-start': {
         const partId = createPartId();
         sdkIdToPartId.set(part.id, partId);
-        partStartTimes.set(part.id, Date.now());
+        currentTextPart = { id: partId, text: '', startedAt: Date.now() };
         await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
 
       case 'text-delta': {
-        const now = Date.now();
-        const partId = sdkIdToPartId.get(part.id);
-        accumulatedParts.push({
-          ...part,
-          id: createPartId(),
-          startedAt: partStartTimes.get(part.id) ?? now,
-          endedAt: now,
-        });
-        if (partId) {
+        if (currentTextPart) {
+          currentTextPart.text += part.text;
           await Sse.broadcast('stream-part-delta', {
             sessionId,
             messageId,
-            partId,
+            partId: currentTextPart.id,
             delta: part,
           });
         }
@@ -93,36 +88,36 @@ async function runStep(opts: {
       }
 
       case 'text-end': {
-        const partId = sdkIdToPartId.get(part.id);
-        if (partId) {
-          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+        if (currentTextPart) {
+          const now = Date.now();
+          accumulatedParts.push({
+            type: 'text-delta' as const,
+            text: currentTextPart.text,
+            id: currentTextPart.id,
+            startedAt: currentTextPart.startedAt,
+            endedAt: now,
+          });
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: currentTextPart.id, part });
+          currentTextPart = null;
         }
-        sdkIdToPartId.delete(part.id);
         break;
       }
 
       case 'reasoning-start': {
         const partId = createPartId();
         sdkIdToPartId.set(part.id, partId);
-        partStartTimes.set(part.id, Date.now());
+        currentReasoningPart = { id: partId, text: '', startedAt: Date.now() };
         await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
       }
 
       case 'reasoning-delta': {
-        const now = Date.now();
-        const partId = sdkIdToPartId.get(part.id);
-        accumulatedParts.push({
-          ...part,
-          id: createPartId(),
-          startedAt: partStartTimes.get(part.id) ?? now,
-          endedAt: now,
-        });
-        if (partId) {
+        if (currentReasoningPart) {
+          currentReasoningPart.text += part.text;
           await Sse.broadcast('stream-part-delta', {
             sessionId,
             messageId,
-            partId,
+            partId: currentReasoningPart.id,
             delta: part,
           });
         }
@@ -130,11 +125,18 @@ async function runStep(opts: {
       }
 
       case 'reasoning-end': {
-        const partId = sdkIdToPartId.get(part.id);
-        if (partId) {
-          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+        if (currentReasoningPart) {
+          const now = Date.now();
+          accumulatedParts.push({
+            type: 'reasoning-delta' as const,
+            text: currentReasoningPart.text,
+            id: currentReasoningPart.id,
+            startedAt: currentReasoningPart.startedAt,
+            endedAt: now,
+          });
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: currentReasoningPart.id, part });
+          currentReasoningPart = null;
         }
-        sdkIdToPartId.delete(part.id);
         break;
       }
 
@@ -264,7 +266,6 @@ async function runStepWithRetry(opts: {
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
-  partStartTimes: Map<string, number>;
   providerId: string;
 }): Promise<StepResult> {
   let attempt = 0;
@@ -348,7 +349,6 @@ export async function runStream(opts: {
   const model = provider(modelId);
 
   const accumulatedParts: StoredPart[] = [];
-  const partStartTimes = new Map<string, number>();
   const conversation: ModelMessage[] = [...llmMessages];
   const toolRetries = new Map<string, number>();
   const toolCallHistory: ToolCallRecord[] = [];
@@ -378,7 +378,6 @@ export async function runStream(opts: {
         model,
         conversation,
         accumulatedParts,
-        partStartTimes,
         providerId: credentials.providerId,
       });
 
@@ -433,7 +432,6 @@ export async function runStream(opts: {
             model,
             conversation,
             accumulatedParts,
-            partStartTimes,
             providerId: credentials.providerId,
           });
 
