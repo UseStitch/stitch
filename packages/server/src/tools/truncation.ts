@@ -2,10 +2,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createToolResultId } from '@openwork/shared';
 import { PATHS } from '../lib/paths.js';
+import * as Log from '@/lib/log.js';
 
 const MAX_LINES = 2000;
 const MAX_BYTES = 50 * 1024;
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const log = Log.create({ name: 'truncation' });
 
 type TruncateResult =
   | { content: string; truncated: false }
@@ -51,6 +54,7 @@ export async function truncateOutput(
   const outputPath = path.join(PATHS.dirPaths.toolOutput, id);
   await fs.mkdir(PATHS.dirPaths.toolOutput, { recursive: true });
   await fs.writeFile(outputPath, text, 'utf-8');
+  log.info(`Truncated output saved to: ${outputPath}`);
 
   const hint = `The tool call succeeded but the output was truncated. Full output saved to: ${outputPath}\nUse Read with offset/limit to view specific sections or Grep to search the full content.`;
   const content = `${preview}\n\n...${removed} ${unit} truncated...\n\n${hint}`;
@@ -78,8 +82,9 @@ export async function cleanup(): Promise<void> {
           if (stat.mtimeMs < cutoff) {
             await fs.unlink(filePath);
           }
-        } catch {
-          // file may have already been removed
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
+          log.warn(`Failed to clean up file: ${filePath}`);
         }
       }),
   );
