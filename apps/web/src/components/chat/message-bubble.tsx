@@ -285,7 +285,10 @@ type MessageBubbleProps = {
   parts: StoredPart[];
 };
 
-export const MessageBubble = React.memo(function MessageBubble({ role, parts }: MessageBubbleProps) {
+export const MessageBubble = React.memo(function MessageBubble({
+  role,
+  parts,
+}: MessageBubbleProps) {
   if (role === 'user') {
     const text = parts
       .filter((p) => p.type === 'text-delta')

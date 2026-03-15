@@ -140,10 +140,7 @@ export async function getPendingQuestions(
   sessionId: PrefixedString<'ses'>,
 ): Promise<QuestionRequest[]> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(questions)
-    .where(eq(questions.sessionId, sessionId));
+  const rows = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
 
   return rows.filter((q) => q.status === 'pending') as QuestionRequest[];
 }

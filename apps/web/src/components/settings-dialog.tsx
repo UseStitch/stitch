@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { MonitorIcon, KeyboardIcon, ServerIcon, SparklesIcon, PaletteIcon, SettingsIcon } from 'lucide-react';
+import {
+  MonitorIcon,
+  KeyboardIcon,
+  ServerIcon,
+  SparklesIcon,
+  PaletteIcon,
+  SettingsIcon,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';

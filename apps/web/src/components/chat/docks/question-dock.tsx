@@ -76,9 +76,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
             {items.map((item, idx) => (
               <TabsTrigger key={idx} value={String(idx)} className="gap-1.5 text-xs">
                 {item.header}
-                {isAnswered(idx) && (
-                  <CheckIcon className="size-3 text-primary" />
-                )}
+                {isAnswered(idx) && <CheckIcon className="size-3 text-primary" />}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -90,9 +88,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
 
           return (
             <TabsContent key={idx} value={String(idx)} className="mt-0">
-              <div className="text-sm text-foreground mb-1">
-                {item.question}
-              </div>
+              <div className="text-sm text-foreground mb-1">{item.question}</div>
               <div className="text-[11px] text-muted-foreground mb-2">
                 {isMultiQ ? 'Select all that apply' : 'Select one option'}
               </div>
@@ -147,9 +143,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
                       customOn[idx] ? 'border-primary bg-primary' : 'border-muted-foreground',
                     )}
                   >
-                    {customOn[idx] && (
-                      <CheckIcon className="size-2 text-primary-foreground" />
-                    )}
+                    {customOn[idx] && <CheckIcon className="size-2 text-primary-foreground" />}
                   </div>
                   <span className="text-foreground">Custom answer</span>
                 </button>
@@ -171,12 +165,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
       </Tabs>
 
       <div className="flex items-center justify-between gap-2 pt-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onReject(request.id)}
-          className="h-7 px-2"
-        >
+        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="h-7 px-2">
           <XIcon className="size-3 mr-1" />
           Dismiss
         </Button>

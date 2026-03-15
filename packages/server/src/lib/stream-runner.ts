@@ -23,7 +23,6 @@ import { isOverflow, compact, getModelLimits } from '../llm/compaction.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
-
 type StepResult = {
   finishReason: string;
   usage: LanguageModelUsage;
@@ -92,7 +91,12 @@ async function runStep(opts: {
             startedAt: currentTextPart.startedAt,
             endedAt: now,
           });
-          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: currentTextPart.id, part });
+          await Sse.broadcast('stream-part-update', {
+            sessionId,
+            messageId,
+            partId: currentTextPart.id,
+            part,
+          });
           currentTextPart = null;
         }
         break;
@@ -128,7 +132,12 @@ async function runStep(opts: {
             startedAt: currentReasoningPart.startedAt,
             endedAt: now,
           });
-          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId: currentReasoningPart.id, part });
+          await Sse.broadcast('stream-part-update', {
+            sessionId,
+            messageId,
+            partId: currentReasoningPart.id,
+            part,
+          });
           currentReasoningPart = null;
         }
         break;
@@ -315,7 +324,6 @@ async function runStep(opts: {
   };
 }
 
-
 async function runStepWithRetry(opts: {
   sessionId: string;
   messageId: string;
@@ -390,9 +398,6 @@ async function runStepWithRetry(opts: {
     }
   }
 }
-
-
-
 
 export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;

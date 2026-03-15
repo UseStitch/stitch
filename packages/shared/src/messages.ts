@@ -62,7 +62,7 @@ export type AllPart =
   | StepFinishPart
   | CompactionPart;
 
-export type StoredPart = AllPart & { id: PartId, startedAt: number, endedAt: number };
+export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 
 export type Message = {
   id: string;

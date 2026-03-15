@@ -23,9 +23,7 @@ const questionInfoSchema = z
 const questionInfoWithoutCustomSchema = questionInfoSchema.omit({ custom: true });
 
 const questionInputSchema = z.object({
-  questions: z
-    .array(questionInfoWithoutCustomSchema)
-    .describe('Questions to ask the user'),
+  questions: z.array(questionInfoWithoutCustomSchema).describe('Questions to ask the user'),
 });
 
 export function createQuestionTool(context: {

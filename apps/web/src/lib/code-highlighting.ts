@@ -59,11 +59,7 @@ const _highlightedCodeCache = new LRUCache<string>(
 
 export const highlightedCodeCache = _highlightedCodeCache;
 
-export function createHighlightCacheKey(
-  code: string,
-  language: string,
-  themeName: string,
-): string {
+export function createHighlightCacheKey(code: string, language: string, themeName: string): string {
   let hash = 0;
   for (let i = 0; i < code.length; i++) {
     const char = code.charCodeAt(i);

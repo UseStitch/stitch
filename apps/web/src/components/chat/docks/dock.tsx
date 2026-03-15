@@ -41,7 +41,14 @@ type DockContainerProps = {
   className?: string;
 };
 
-function DockItem({ title, defaultExpanded = true, children, isFirst, isLast, variant = 'default' }: DockItemProps) {
+function DockItem({
+  title,
+  defaultExpanded = true,
+  children,
+  isFirst,
+  isLast,
+  variant = 'default',
+}: DockItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const styles = variantStyles[variant];
 
@@ -99,7 +106,9 @@ function DockItem({ title, defaultExpanded = true, children, isFirst, isLast, va
 }
 
 export function DockContainer({ docks, className }: DockContainerProps) {
-  const [renderedDocks, setRenderedDocks] = React.useState<{ dock: DockItem; isExiting: boolean }[]>([]);
+  const [renderedDocks, setRenderedDocks] = React.useState<
+    { dock: DockItem; isExiting: boolean }[]
+  >([]);
 
   React.useEffect(() => {
     setRenderedDocks((prev) => {
@@ -202,7 +211,10 @@ function AnimatedDockItem({
         gridTemplateRows: show ? '1fr' : '0fr',
       }}
       onTransitionEnd={(e) => {
-        if (isExiting && (e.propertyName === 'grid-template-rows' || e.propertyName === 'opacity')) {
+        if (
+          isExiting &&
+          (e.propertyName === 'grid-template-rows' || e.propertyName === 'opacity')
+        ) {
           onExited();
         }
       }}

@@ -26,10 +26,8 @@ export async function init() {
     { immediate: true },
   );
 
-  Scheduler.scheduleRecurring(
-    'tool-output-cleanup',
-    TOOL_OUTPUT_CLEANUP_INTERVAL_MS,
-    () => ToolTruncation.cleanup(),
+  Scheduler.scheduleRecurring('tool-output-cleanup', TOOL_OUTPUT_CLEANUP_INTERVAL_MS, () =>
+    ToolTruncation.cleanup(),
   );
 
   log.info('server initialized');

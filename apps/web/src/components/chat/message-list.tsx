@@ -187,10 +187,13 @@ export function MessageList({
       },
       [rows],
     ),
-    estimateSize: useCallback((index: number) => {
-      const row = rows[index];
-      return row ? estimateRowHeight(row) : BASE_MESSAGE_HEIGHT_ESTIMATE;
-    }, [rows]),
+    estimateSize: useCallback(
+      (index: number) => {
+        const row = rows[index];
+        return row ? estimateRowHeight(row) : BASE_MESSAGE_HEIGHT_ESTIMATE;
+      },
+      [rows],
+    ),
     overscan: 4,
   });
 
@@ -201,11 +204,7 @@ export function MessageList({
     switch (row.kind) {
       case 'load-more':
         return (
-          <div
-            key="load-more"
-            ref={sentinelRef}
-            className="flex items-center justify-center py-3"
-          >
+          <div key="load-more" ref={sentinelRef} className="flex items-center justify-center py-3">
             {isFetchingMore ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
@@ -253,17 +252,15 @@ export function MessageList({
   return (
     <div ref={parentRef} className="flex flex-col gap-6 py-4">
       {virtualizedRowCount > 0 && (
-        <div
-          className="relative"
-          style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
-        >
+        <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
           {virtualRows.map((virtualRow) => {
             const row = rows[virtualRow.index];
             if (!row) return null;
 
-            const rowKey = row.kind === 'streaming' || row.kind === 'error' || row.kind === 'load-more'
-              ? `virtual-${row.kind}` 
-              : `virtual-${row.id}`;
+            const rowKey =
+              row.kind === 'streaming' || row.kind === 'error' || row.kind === 'load-more'
+                ? `virtual-${row.kind}`
+                : `virtual-${row.id}`;
 
             return (
               <div
@@ -284,9 +281,7 @@ export function MessageList({
 
       {!hasStreamContent && messages.length === 0 && (
         <div className="flex justify-start">
-          <div className="text-sm text-muted-foreground">
-            Start a conversation...
-          </div>
+          <div className="text-sm text-muted-foreground">Start a conversation...</div>
         </div>
       )}
     </div>

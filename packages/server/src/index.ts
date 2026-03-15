@@ -34,9 +34,7 @@ const { port, hostname } = parseArgs();
 const app = new Hono();
 
 app.use(cors());
-app.get('/health', (c) =>
-  c.json({ status: 'ok', paths: PATHS }),
-);
+app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
 app.route('/chat', chatRouter);
 app.route('/chat', questionsRouter);
 app.route('/events', eventsRouter);

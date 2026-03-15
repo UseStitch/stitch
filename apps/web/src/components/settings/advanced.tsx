@@ -59,10 +59,7 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
     >
       <div className="flex flex-col gap-1 flex-1 min-w-0 pr-4">
         <span className="text-sm font-medium text-foreground truncate">{item.label}</span>
-        <span
-          className="text-[13px] font-mono text-muted-foreground truncate"
-          title={item.path}
-        >
+        <span className="text-[13px] font-mono text-muted-foreground truncate" title={item.path}>
           {item.path}
         </span>
       </div>
@@ -131,11 +128,7 @@ function AdvancedContent() {
   return (
     <div className="flex flex-col w-full min-w-0 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       {pathItems.map((item, index) => (
-        <PathRow
-          key={item.label}
-          item={item}
-          isLast={index === pathItems.length - 1}
-        />
+        <PathRow key={item.label} item={item} isLast={index === pathItems.length - 1} />
       ))}
     </div>
   );
@@ -149,15 +142,13 @@ export function AdvancedSettings() {
           <HardDrive className="w-5 h-5" />
         </div>
         <div className="flex flex-col gap-1 mt-0.5">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            System Paths
-          </h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">System Paths</h2>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
             View the underlying storage directories and configuration files used by the application.
           </p>
         </div>
       </div>
-      
+
       <AdvancedContent />
     </div>
   );

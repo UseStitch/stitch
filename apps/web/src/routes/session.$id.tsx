@@ -22,7 +22,12 @@ import {
   sessionKeys,
   useSendMessage,
 } from '@/lib/queries/chat';
-import { questionsQueryOptions, useReplyQuestion, useRejectQuestion, questionKeys } from '@/lib/queries/questions';
+import {
+  questionsQueryOptions,
+  useReplyQuestion,
+  useRejectQuestion,
+  questionKeys,
+} from '@/lib/queries/questions';
 import { useChatStreamContext } from '@/context/chat-stream-context';
 import { useCompactionUpdates } from '@/hooks/use-compaction-updates';
 import { useSSE } from '@/hooks/use-sse';
@@ -33,9 +38,7 @@ export const Route = createFileRoute('/session/$id')({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions(params.id)),
-      context.queryClient.ensureInfiniteQueryData(
-        sessionMessagesInfiniteQueryOptions(params.id),
-      ),
+      context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
@@ -49,13 +52,8 @@ function SessionComponent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const messagesQuery = useSuspenseInfiniteQuery(
-    sessionMessagesInfiniteQueryOptions(id),
-  );
-  const messages = React.useMemo(
-    () => flattenMessages(messagesQuery.data),
-    [messagesQuery.data],
-  );
+  const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
+  const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
   const [value, setValue] = React.useState('');
   const [modelOverride, setModelOverride] = React.useState<string | null>(null);
@@ -160,12 +158,7 @@ function SessionComponent() {
         title: 'Repeated action detected',
         defaultExpanded: true,
         variant: 'warning',
-        children: (
-          <DoomLoopDock
-            sessionId={id}
-            toolName={streamState.doomLoop.toolName}
-          />
-        ),
+        children: <DoomLoopDock sessionId={id} toolName={streamState.doomLoop.toolName} />,
       });
     }
 
@@ -215,7 +208,14 @@ function SessionComponent() {
     }
 
     return items;
-  }, [streamState.doomLoop, streamState.retry, pendingQuestions, id, replyQuestion, rejectQuestion]);
+  }, [
+    streamState.doomLoop,
+    streamState.retry,
+    pendingQuestions,
+    id,
+    replyQuestion,
+    rejectQuestion,
+  ]);
 
   return (
     <StickToBottom

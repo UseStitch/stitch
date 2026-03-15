@@ -21,17 +21,12 @@ const PRUNE_MINIMUM = 20_000;
 
 type ModelLimits = { context: number; input?: number; output: number };
 
-export function isOverflow(
-  usage: LanguageModelUsage,
-  limits: ModelLimits,
-): boolean {
+export function isOverflow(usage: LanguageModelUsage, limits: ModelLimits): boolean {
   if (limits.context === 0) return false;
 
   const count = usage.totalTokens ?? (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
   const reserved = Math.min(COMPACTION_BUFFER, limits.output);
-  const usable = limits.input
-    ? limits.input - reserved
-    : limits.context - limits.output;
+  const usable = limits.input ? limits.input - reserved : limits.context - limits.output;
 
   return count >= usable;
 }
@@ -79,7 +74,10 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
   log.info('prune scan', { pruned, total });
 
   if (pruned > PRUNE_MINIMUM) {
-    const grouped = new Map<PrefixedString<'msg'>, Array<{ partIndex: number; part: StoredPart }>>();
+    const grouped = new Map<
+      PrefixedString<'msg'>,
+      Array<{ partIndex: number; part: StoredPart }>
+    >();
     for (const entry of toPrune) {
       let arr = grouped.get(entry.messageId);
       if (!arr) {
@@ -197,7 +195,8 @@ function buildHistoryMessages(
 
       if (textParts.length > 0 || toolCallParts.length > 0) {
         const assistantContent: Array<
-          { type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+          | { type: 'text'; text: string }
+          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
         > = [];
 
         const combinedText = textParts.map((p) => p.text).join('');
@@ -246,7 +245,12 @@ function buildHistoryMessages(
 async function resolveCompactionModel(
   fallbackProviderId: string,
   fallbackModelId: string,
-): Promise<{ providerId: string; modelId: string; credentials: ProviderCredentials; limits: ModelLimits }> {
+): Promise<{
+  providerId: string;
+  modelId: string;
+  credentials: ProviderCredentials;
+  limits: ModelLimits;
+}> {
   const resolved = await resolveCheapModel({
     settingsKey: 'model.compaction',
     fallbackProviderId,
@@ -463,10 +467,7 @@ export async function buildCompactedHistory(
 /**
  * Look up model limits for a given provider/model combination.
  */
-export async function getModelLimits(
-  providerId: string,
-  modelId: string,
-): Promise<ModelLimits> {
+export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
   const providers = await Models.get();
   const provider = providers[providerId];
   const model = provider?.models[modelId];
