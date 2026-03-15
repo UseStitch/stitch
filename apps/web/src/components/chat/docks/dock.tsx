@@ -2,11 +2,14 @@ import * as React from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
+
 export type DockItem = {
   id: string;
   title: string;
   children: React.ReactNode;
   defaultExpanded?: boolean;
+  variant?: DockVariant;
 };
 
 type DockItemProps = Omit<DockItem, 'id'> & {
@@ -14,13 +17,33 @@ type DockItemProps = Omit<DockItem, 'id'> & {
   isLast: boolean;
 };
 
+const variantStyles = {
+  default: {
+    header: 'text-foreground hover:bg-muted/50',
+    icon: 'text-muted-foreground',
+  },
+  primary: {
+    header: 'bg-primary/5 text-primary hover:bg-primary/10',
+    icon: 'text-primary',
+  },
+  warning: {
+    header: 'bg-amber-500/5 text-amber-600 dark:text-amber-500 hover:bg-amber-500/10',
+    icon: 'text-amber-500',
+  },
+  destructive: {
+    header: 'bg-destructive/5 text-destructive hover:bg-destructive/10',
+    icon: 'text-destructive',
+  },
+} satisfies Record<DockVariant, { header: string; icon: string }>;
+
 type DockContainerProps = {
   docks: DockItem[];
   className?: string;
 };
 
-function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: DockItemProps) {
+function DockItem({ title, defaultExpanded = true, children, isFirst, isLast, variant = 'default' }: DockItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const styles = variantStyles[variant];
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
@@ -29,7 +52,7 @@ function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: 
   return (
     <div
       className={cn(
-        'overflow-hidden border-x border-border/60 bg-card/95 backdrop-blur-sm shadow-sm transition-all duration-300',
+        'overflow-hidden border-x border-border/60 bg-card/95 backdrop-blur-sm transition-all duration-300',
         isFirst && 'border-t rounded-t-2xl',
         !isFirst && 'border-t-0',
         isLast && 'border-b-0 rounded-b-none',
@@ -41,13 +64,15 @@ function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: 
           onClick={handleToggle}
           className={cn(
             'flex flex-1 items-center gap-3 text-left text-sm font-medium px-4 py-3',
-            'text-foreground transition-colors hover:bg-muted/50 hover:text-foreground/80',
-            'focus-visible:outline-none focus-visible:bg-muted/50',
+            'transition-colors',
+            styles.header,
+            'focus-visible:outline-none',
           )}
         >
           <span
             className={cn(
               'transition-transform duration-200 ease-out',
+              styles.icon,
               isExpanded ? 'rotate-0' : '-rotate-90',
             )}
           >
@@ -186,6 +211,7 @@ function AnimatedDockItem({
         <DockItem
           title={dock.title}
           defaultExpanded={dock.defaultExpanded}
+          variant={dock.variant}
           isFirst={isFirst}
           isLast={isLast}
         >

@@ -159,6 +159,7 @@ function SessionComponent() {
         id: 'doom-loop',
         title: 'Repeated action detected',
         defaultExpanded: true,
+        variant: 'warning',
         children: (
           <DoomLoopDock
             sessionId={id}
@@ -173,6 +174,7 @@ function SessionComponent() {
         id: 'retry',
         title: `Retrying... (attempt ${streamState.retry.attempt}/${streamState.retry.maxRetries})`,
         defaultExpanded: true,
+        variant: 'destructive',
         children: <RetryDock retry={streamState.retry} />,
       });
     }
@@ -182,6 +184,7 @@ function SessionComponent() {
         id: 'questions',
         title: 'Questions',
         defaultExpanded: true,
+        variant: 'primary',
         children: (
           <QuestionDock
             questions={pendingQuestions}
