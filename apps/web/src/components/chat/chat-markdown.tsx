@@ -17,7 +17,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { CheckIcon, CopyIcon } from 'lucide-react';
-import { useTheme } from '@/hooks/use-theme';
+import { useTheme } from '@/hooks/ui/use-theme';
 import {
   getHighlighterPromise,
   type SupportedLanguage,

@@ -6,7 +6,7 @@ import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { DialogProvider } from '@/context/dialog-context';
-import { useTheme } from '@/hooks/use-theme';
+import { useTheme } from '@/hooks/ui/use-theme';
 import { TitleBar } from '../components/layout/title-bar';
 import { AppSidebar } from '../components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../components/ui/sidebar';

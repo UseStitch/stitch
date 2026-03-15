@@ -14,7 +14,7 @@ import type {
   DoomLoopDetectedPayload,
   ToolCallStatus,
 } from '@openwork/shared';
-import { useSSE } from '@/hooks/use-sse';
+import { useSSE } from '@/hooks/sse/use-sse';
 
 // ─── Streaming part types (FE in-flight state) ────────────────────────────────
 

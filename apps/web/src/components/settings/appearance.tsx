@@ -1,6 +1,6 @@
 import type { AppearanceMode } from '@openwork/shared';
 import { APPEARANCE_MODES } from '@openwork/shared';
-import { useTheme } from '@/hooks/use-theme';
+import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
 import { cn } from '@/lib/utils';

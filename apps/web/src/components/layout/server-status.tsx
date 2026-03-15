@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { serverFetch } from '@/lib/api';
-import { useSSE } from '@/hooks/use-sse';
+import { useSSE } from '@/hooks/sse/use-sse';
 import { HardDrive, Check } from 'lucide-react';
 
 export function ServerStatus() {

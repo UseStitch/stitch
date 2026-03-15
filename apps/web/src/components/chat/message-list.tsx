@@ -6,7 +6,7 @@ import {
   StreamingMessageBubble,
   CompactionDivider,
 } from '@/components/chat/message-bubble';
-import type { ChatStreamState } from '@/hooks/use-chat-stream';
+import type { ChatStreamState } from '@/hooks/sse/use-chat-stream';
 
 const ALWAYS_UNVIRTUALIZED_TAIL_ROWS = 8;
 const BASE_MESSAGE_HEIGHT_ESTIMATE = 200;

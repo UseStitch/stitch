@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FileIcon } from 'lucide-react';
 import type { StoredPart } from '@openwork/shared';
-import type { StreamingPart } from '@/hooks/use-chat-stream';
+import type { StreamingPart } from '@/hooks/sse/use-chat-stream';
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';

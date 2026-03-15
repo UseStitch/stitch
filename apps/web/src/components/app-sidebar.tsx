@@ -14,7 +14,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { sessionsQueryOptions } from '@/lib/queries/chat';
-import { useSessionTitleUpdates } from '@/hooks/use-session-title-updates';
+import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
 import { AnimatedTitle } from '@/components/animated-title';
 
 export function AppSidebar() {

@@ -15,11 +15,11 @@ import {
 import { questionsQueryOptions, useReplyQuestion, useRejectQuestion } from '@/lib/queries/questions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useChatStreamContext } from '@/context/chat-stream-context';
-import { useCompactionUpdates } from '@/hooks/use-compaction-updates';
-import { useQuestionSync } from '@/hooks/use-question-sync';
-import { useSessionStream } from '@/hooks/use-session-stream';
-import { useSessionDocks } from '@/hooks/use-session-docks';
-import { useChatModel } from '@/hooks/use-chat-model';
+import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
+import { useQuestionSync } from '@/hooks/sse/use-question-sync';
+import { useSessionStream } from '@/hooks/sse/use-session-stream';
+import { useSessionDocks } from '@/hooks/session/use-session-docks';
+import { useChatModel } from '@/hooks/session/use-chat-model';
 import { parseModelId } from '@/lib/model-id';
 import { createMessageId } from '@openwork/shared';
 
