@@ -1,7 +1,7 @@
 import { streamText, smoothStream } from 'ai';
 import type { ModelMessage, LanguageModelUsage, ToolResultPart } from 'ai';
 import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
-import { createPartId } from '@openwork/shared';
+import { createPartId, createToolCallId } from '@openwork/shared';
 import { getDb } from '../db/client.js';
 import { messages } from '../db/schema.js';
 import * as Log from './log.js';
@@ -57,8 +57,9 @@ async function runStep(opts: {
   });
 
   const toolCalls: StepResult['toolCalls'] = [];
-  // Map AI SDK stream IDs to stable prt_ IDs for consistent lifecycle tracking.
-  const sdkIdToPartId = new Map<string, string>();
+
+  // Map SDK tool call IDs to stable tool_ IDs for consistent lifecycle tracking
+  const sdkIdToToolCallId = new Map<string, string>();
 
   // In-memory accumulation for text and reasoning parts
   let currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
@@ -68,7 +69,6 @@ async function runStep(opts: {
     switch (part.type) {
       case 'text-start': {
         const partId = createPartId();
-        sdkIdToPartId.set(part.id, partId);
         currentTextPart = { id: partId, text: '', startedAt: Date.now() };
         await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
@@ -105,7 +105,6 @@ async function runStep(opts: {
 
       case 'reasoning-start': {
         const partId = createPartId();
-        sdkIdToPartId.set(part.id, partId);
         currentReasoningPart = { id: partId, text: '', startedAt: Date.now() };
         await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
         break;
@@ -157,10 +156,12 @@ async function runStep(opts: {
       }
 
       case 'tool-input-start': {
+        const toolCallId = createToolCallId();
+        sdkIdToToolCallId.set(part.id, toolCallId);
         await Sse.broadcast('stream-tool-state', {
           sessionId,
           messageId,
-          toolCallId: part.id,
+          toolCallId,
           toolName: part.toolName,
           status: 'pending',
         });
@@ -168,13 +169,16 @@ async function runStep(opts: {
       }
 
       case 'tool-input-delta': {
-        await Sse.broadcast('stream-tool-input-delta', {
-          sessionId,
-          messageId,
-          toolCallId: part.id,
-          toolName: '',
-          inputTextDelta: part.delta,
-        });
+        const toolCallId = sdkIdToToolCallId.get(part.id);
+        if (toolCallId) {
+          await Sse.broadcast('stream-tool-input-delta', {
+            sessionId,
+            messageId,
+            toolCallId,
+            toolName: '',
+            inputTextDelta: part.delta,
+          });
+        }
         break;
       }
 
@@ -184,8 +188,10 @@ async function runStep(opts: {
       case 'tool-call': {
         const now = Date.now();
         const partId = createPartId();
+        const toolCallId = sdkIdToToolCallId.get(part.toolCallId) ?? createToolCallId();
+        sdkIdToToolCallId.delete(part.toolCallId);
         accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        toolCalls.push({ toolCallId: part.toolCallId, toolName: part.toolName, input: part.input });
+        toolCalls.push({ toolCallId, toolName: part.toolName, input: part.input });
         break;
       }
 
@@ -357,6 +363,7 @@ export async function runStream(opts: {
   let finalFinishReason = 'unknown';
   let needsCompaction = false;
   let contextOverflow = false;
+  let streamError: unknown = undefined;
   const startedAt = Date.now();
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
@@ -365,7 +372,7 @@ export async function runStream(opts: {
     for (let step = 0; step < MAX_STEPS; step++) {
       const isLastStep = step === MAX_STEPS - 1;
       if (isLastStep) {
-        conversation.unshift({
+        conversation.push({
           role: 'system',
           content: MAX_STEPS_WARNING(MAX_STEPS),
         });
@@ -447,65 +454,66 @@ export async function runStream(opts: {
         log.info('user continued past doom loop', { sessionId });
       }
 
-      const toolResultContent: ToolResultPart[] = [];
-
-      for (const call of stepResult.toolCalls) {
-        const { toolCallId, toolName, input } = call;
-
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId: assistantMessageId,
-          toolCallId,
-          toolName,
-          status: 'in-progress',
-          input,
-        });
-
-        const execResult = await executeTool(toolName, input);
-
-        if (!execResult.ok) {
-          const retries = (toolRetries.get(toolCallId) ?? 0) + 1;
-          toolRetries.set(toolCallId, retries);
+      // ── Parallel tool execution ──────────────────────────────────────────────
+      const toolResults = await Promise.allSettled(
+        stepResult.toolCalls.map(async (call) => {
+          const { toolCallId, toolName, input } = call;
 
           await Sse.broadcast('stream-tool-state', {
             sessionId,
             messageId: assistantMessageId,
             toolCallId,
             toolName,
-            status: 'error',
+            status: 'in-progress',
             input,
-            error: execResult.error,
           });
 
-          log.warn('tool call failed', { toolCallId, toolName, error: execResult.error, retries });
-
-          const errorValue =
-            retries >= MAX_TOOL_RETRIES
-              ? {
-                  error: `Tool "${toolName}" failed after ${retries} attempts: ${execResult.error}`,
-                }
-              : { error: execResult.error, hint: 'Fix the arguments and try again.' };
-
-          toolResultContent.push({
-            type: 'tool-result',
-            toolCallId,
-            toolName,
-            output: { type: 'json', value: errorValue },
-          });
+          const execResult = await executeTool(toolName, input);
 
           const now = Date.now();
           const partId = createPartId();
-          accumulatedParts.push({
-            type: 'tool-result',
-            id: partId,
-            toolCallId,
-            toolName,
-            input,
-            output: errorValue,
-            startedAt: now,
-            endedAt: now,
-          } as StoredPart);
-        } else {
+
+          if (!execResult.ok) {
+            const retryKey = `${toolName}:${stableStringify(input)}`;
+            const retries = (toolRetries.get(retryKey) ?? 0) + 1;
+            toolRetries.set(retryKey, retries);
+
+            const errorValue =
+              retries >= MAX_TOOL_RETRIES
+                ? { error: `Tool "${toolName}" failed after ${retries} attempts: ${execResult.error}` }
+                : { error: execResult.error, hint: 'Fix the arguments and try again.' };
+
+            await Sse.broadcast('stream-tool-state', {
+              sessionId,
+              messageId: assistantMessageId,
+              toolCallId,
+              toolName,
+              status: 'error',
+              input,
+              error: execResult.error,
+            });
+
+            log.warn('tool call failed', { toolCallId, toolName, error: execResult.error, retries });
+
+            accumulatedParts.push({
+              type: 'tool-result',
+              id: partId,
+              toolCallId,
+              toolName,
+              input,
+              output: errorValue,
+              startedAt: now,
+              endedAt: now,
+            } as StoredPart);
+
+            return {
+              type: 'tool-result' as const,
+              toolCallId,
+              toolName,
+              output: { type: 'json' as const, value: errorValue },
+            } satisfies ToolResultPart;
+          }
+
           await Sse.broadcast('stream-tool-state', {
             sessionId,
             messageId: assistantMessageId,
@@ -516,15 +524,6 @@ export async function runStream(opts: {
             output: execResult.output,
           });
 
-          toolResultContent.push({
-            type: 'tool-result',
-            toolCallId,
-            toolName,
-            output: { type: 'json', value: execResult.output as never },
-          });
-
-          const now = Date.now();
-          const partId = createPartId();
           accumulatedParts.push({
             type: 'tool-result',
             id: partId,
@@ -535,6 +534,22 @@ export async function runStream(opts: {
             startedAt: now,
             endedAt: now,
           } as StoredPart);
+
+          return {
+            type: 'tool-result' as const,
+            toolCallId,
+            toolName,
+            output: { type: 'json' as const, value: execResult.output as never },
+          } satisfies ToolResultPart;
+        }),
+      );
+
+      const toolResultContent: ToolResultPart[] = [];
+      for (const result of toolResults) {
+        if (result.status === 'fulfilled') {
+          toolResultContent.push(result.value);
+        } else {
+          log.error('tool execution promise rejected', { error: result.reason });
         }
       }
 
@@ -558,39 +573,41 @@ export async function runStream(opts: {
       finalFinishReason = 'context-overflow';
       log.info('context overflow caught, triggering compaction', { sessionId });
     } else {
-      // Re-throw non-compaction errors
+      finalFinishReason = 'error';
+      streamError = error;
       await Sse.broadcast('stream-error', {
         sessionId,
         messageId: assistantMessageId,
         error: error instanceof Error ? error.message : String(error),
       });
-      throw error;
     }
+  } finally {
+    // ── Persist the full assistant message ──────────────────────────────────
+    const finishedAt = Date.now();
+    const db = getDb();
+    await db.insert(messages).values({
+      id: assistantMessageId,
+      sessionId,
+      role: 'assistant',
+      parts: accumulatedParts,
+      modelId,
+      providerId: credentials.providerId,
+      usage: totalUsage,
+      finishReason: finalFinishReason,
+      createdAt: new Date(startedAt),
+      startedAt: new Date(startedAt),
+      duration: finishedAt - startedAt,
+    });
+
+    await Sse.broadcast('stream-finish', {
+      sessionId,
+      messageId: assistantMessageId,
+      finishReason: finalFinishReason,
+      usage: totalUsage,
+    });
   }
 
-  // ── Persist the full assistant message ────────────────────────────────────
-  const finishedAt = Date.now();
-  const db = getDb();
-  await db.insert(messages).values({
-    id: assistantMessageId,
-    sessionId,
-    role: 'assistant',
-    parts: accumulatedParts,
-    modelId,
-    providerId: credentials.providerId,
-    usage: totalUsage,
-    finishReason: finalFinishReason,
-    createdAt: new Date(startedAt),
-    startedAt: new Date(startedAt),
-    duration: finishedAt - startedAt,
-  });
-
-  await Sse.broadcast('stream-finish', {
-    sessionId,
-    messageId: assistantMessageId,
-    finishReason: finalFinishReason,
-    usage: totalUsage,
-  });
+  if (streamError) throw streamError;
 
   // ── Compaction ────────────────────────────────────────────────────────────
   if (needsCompaction) {

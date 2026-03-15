@@ -5,6 +5,7 @@ import type { PrefixedString } from './id.js';
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
 export type MessageRole = 'user' | 'assistant';
 export type PartId = PrefixedString<'prt'>;
+export type ToolCallId = PrefixedString<'tool'>;
 
 // ─── Stream part types (derived from SDK, used in SSE payloads) ───────────────
 
