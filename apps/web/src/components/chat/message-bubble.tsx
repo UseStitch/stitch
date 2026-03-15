@@ -1,173 +1,14 @@
 import * as React from 'react';
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  LinkIcon,
-  FileIcon,
-  CheckIcon,
-  AlertCircleIcon,
-  LoaderIcon,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { FileIcon } from 'lucide-react';
 import type { StoredPart } from '@openwork/shared';
 import type { StreamingPart } from '@/hooks/use-chat-stream';
-import type { ToolCallStatus } from '@openwork/shared';
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
+import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
+import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
+import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
 
-// ─── Reasoning block ──────────────────────────────────────────────────────────
-
-function ReasoningBlock({ text, isStreaming }: { text: string; isStreaming?: boolean }) {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <div className="my-3 rounded-lg border border-border/40 bg-muted/30 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {open ? (
-          <ChevronDownIcon className="size-3.5 shrink-0" />
-        ) : (
-          <ChevronRightIcon className="size-3.5 shrink-0" />
-        )}
-        <span className="font-medium">{isStreaming ? 'Thinking...' : 'Reasoning'}</span>
-        {isStreaming && (
-          <span className="ml-auto inline-block h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-        )}
-      </button>
-      {open && (
-        <div className="border-t border-border/40 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground italic">
-          {text}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Tool call block (unified lifecycle) ─────────────────────────────────────
-
-function StatusIcon({ status }: { status: ToolCallStatus }) {
-  switch (status) {
-    case 'pending':
-      return (
-        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40 border-t-muted-foreground animate-spin" />
-      );
-    case 'in-progress':
-      return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 text-blue-500 animate-spin" />;
-    case 'completed':
-      return <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />;
-    case 'error':
-      return <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />;
-  }
-}
-
-type ToolCallBlockProps = {
-  toolName: string;
-  status: ToolCallStatus;
-  args?: unknown;
-  result?: unknown;
-};
-
-function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) {
-  const questions = (args as { questions?: { question: string; header: string }[] })?.questions;
-  const answers = (result as { answers?: (string[] | undefined)[] } | undefined)?.answers;
-
-  if (!questions) return null;
-
-  return (
-    <div className="mt-1.5 space-y-1.5">
-      {questions.map((q, i) => {
-        const answer = answers?.[i];
-        const hasAnswer = answer !== undefined && answer.length > 0;
-        return (
-          <div key={q.header} className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground">{q.question}</span>
-            {hasAnswer ? (
-              <span className="font-medium text-foreground">{answer.join(', ')}</span>
-            ) : (
-              <span className="italic text-muted-foreground/60">Waiting for answer...</span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function ToolCallBlock({ toolName, status, args, result }: ToolCallBlockProps) {
-  const hasError = status === 'error';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isQuestion = toolName === 'question' && args !== undefined && args !== null;
-
-  const [open, setOpen] = React.useState(false);
-
-  if (isQuestion) {
-    return (
-      <div
-        className={cn(
-          'my-2 rounded-lg border text-xs transition-colors overflow-hidden',
-          hasError
-            ? 'border-destructive/40 bg-destructive/5'
-            : isActive
-              ? 'border-blue-500/30 bg-blue-500/5'
-              : 'border-border/40 bg-muted/20',
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-muted/40 transition-colors"
-        >
-          {open ? (
-            <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRightIcon className="size-3 shrink-0 text-muted-foreground" />
-          )}
-          <StatusIcon status={status} />
-          <span className="font-medium">{toolName}</span>
-        </button>
-        {open && (
-          <div className="border-t border-border/40 px-3 py-2">
-            <QuestionAnswers args={args} result={result} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        'my-2 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors',
-        hasError
-          ? 'border-destructive/40 bg-destructive/5'
-          : isActive
-            ? 'border-blue-500/30 bg-blue-500/5'
-            : 'border-border/40 bg-muted/20',
-      )}
-    >
-      <StatusIcon status={status} />
-      <span className="font-medium">{toolName}</span>
-    </div>
-  );
-}
-
-// ─── Source chip ──────────────────────────────────────────────────────────────
-
-function SourceChip({ url, title }: { url: string; title?: string }) {
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mb-1 mr-1 inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-    >
-      <LinkIcon className="size-2.5 shrink-0" />
-      <span className="max-w-45 truncate">{title ?? url}</span>
-    </a>
-  );
-}
+export { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider.js';
 
 // ─── File block ───────────────────────────────────────────────────────────────
 
@@ -180,50 +21,17 @@ function FileBlock({ mediaType }: { mediaType: string }) {
   );
 }
 
-// ─── Compaction divider ───────────────────────────────────────────────────────
+// ─── Shared wrapper ───────────────────────────────────────────────────────────
 
-export function CompactionDivider({ summaryParts }: { summaryParts?: StoredPart[] }) {
-  const [open, setOpen] = React.useState(false);
-
-  const summaryText = summaryParts
-    ?.filter((p) => p.type === 'text-delta')
-    .map((p) => (p as Extract<typeof p, { type: 'text-delta' }>).text)
-    .join('');
-
-  const hasSummary = !!summaryText;
-
+function AssistantBubbleWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex items-center gap-3 py-2">
-        <div className="h-px flex-1 bg-border/60" />
-        {hasSummary ? (
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium hover:text-foreground transition-colors"
-          >
-            {open ? (
-              <ChevronDownIcon className="size-3 shrink-0" />
-            ) : (
-              <ChevronRightIcon className="size-3 shrink-0" />
-            )}
-            <span>Session compacted</span>
-          </button>
-        ) : (
-          <span className="text-xs text-muted-foreground font-medium">Session compacted</span>
-        )}
-        <div className="h-px flex-1 bg-border/60" />
-      </div>
-      {open && hasSummary && (
-        <div className="mt-2 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
-          <ChatMarkdown text={summaryText} />
-        </div>
-      )}
+    <div className="flex justify-start">
+      <div className="w-full space-y-1.5">{children}</div>
     </div>
   );
 }
 
-// ─── Persisted message bubble ─────────────────────────────────────────────────
+// ─── Stored parts grouping ────────────────────────────────────────────────────
 
 type TextSegment = { type: 'text'; text: string; key: string };
 type ReasoningSegment = { type: 'reasoning'; text: string; key: string };
@@ -232,18 +40,21 @@ type DisplaySegment = TextSegment | ReasoningSegment | OtherSegment;
 
 type StoredToolResult = StoredPart & { type: 'tool-result' };
 
-function groupStoredParts(parts: StoredPart[]): {
-  segments: DisplaySegment[];
-  resultsByCallId: Map<string, StoredToolResult>;
-} {
-  const segments: DisplaySegment[] = [];
-  const resultsByCallId = new Map<string, StoredToolResult>();
-
+function collectToolResults(parts: StoredPart[]): Map<string, StoredToolResult> {
+  const map = new Map<string, StoredToolResult>();
   for (const part of parts) {
     if (part.type === 'tool-result') {
-      resultsByCallId.set(part.toolCallId, part as StoredToolResult);
-      continue;
+      map.set(part.toolCallId, part as StoredToolResult);
     }
+  }
+  return map;
+}
+
+function buildDisplaySegments(parts: StoredPart[]): DisplaySegment[] {
+  const segments: DisplaySegment[] = [];
+
+  for (const part of parts) {
+    if (part.type === 'tool-result') continue;
 
     if (part.type === 'text-delta') {
       const last = segments.at(-1);
@@ -277,8 +88,10 @@ function groupStoredParts(parts: StoredPart[]): {
     segments.push({ type: 'other', part, key: `other-${segments.length}` });
   }
 
-  return { segments, resultsByCallId };
+  return segments;
 }
+
+// ─── Persisted message bubble ─────────────────────────────────────────────────
 
 type MessageBubbleProps = {
   role: 'user' | 'assistant';
@@ -290,10 +103,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   parts,
 }: MessageBubbleProps) {
   if (role === 'user') {
-    const text = parts
-      .filter((p) => p.type === 'text-delta')
-      .map((p) => (p as Extract<typeof p, { type: 'text-delta' }>).text)
-      .join('');
+    const text = extractTextFromParts(parts);
     return (
       <div className="flex justify-end">
         <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
@@ -303,56 +113,54 @@ export const MessageBubble = React.memo(function MessageBubble({
     );
   }
 
-  const { segments, resultsByCallId } = groupStoredParts(parts);
+  const segments = buildDisplaySegments(parts);
+  const resultsByCallId = collectToolResults(parts);
 
   return (
-    <div className="flex justify-start">
-      <div className="w-full space-y-1.5">
-        {segments.map((seg) => {
-          switch (seg.type) {
-            case 'text':
-              return <ChatMarkdown key={seg.key} text={seg.text} />;
-            case 'reasoning':
-              return <ReasoningBlock key={seg.key} text={seg.text} />;
-            case 'other': {
-              const part = seg.part;
-              switch (part.type) {
-                case 'tool-call': {
-                  const result = resultsByCallId.get(part.toolCallId);
-                  const output = result && 'output' in result ? result.output : undefined;
-                  const isError =
-                    output !== null &&
-                    output !== undefined &&
-                    typeof output === 'object' &&
-                    'error' in (output as object);
-                  return (
-                    <ToolCallBlock
-                      key={seg.key}
-                      toolName={part.toolName}
-                      status={isError ? 'error' : 'completed'}
-                      args={part.input}
-                      result={output}
-                    />
-                  );
-                }
-                case 'tool-result':
-                  return null;
-                case 'source': {
-                  if (part.sourceType === 'url') {
-                    return <SourceChip key={seg.key} url={part.url} title={part.title} />;
-                  }
-                  return null;
-                }
-                case 'file':
-                  return <FileBlock key={seg.key} mediaType={part.file.mediaType} />;
-                default:
-                  return null;
+    <AssistantBubbleWrapper>
+      {segments.map((seg) => {
+        switch (seg.type) {
+          case 'text':
+            return <ChatMarkdown key={seg.key} text={seg.text} />;
+          case 'reasoning':
+            return <ReasoningBlock key={seg.key} text={seg.text} />;
+          case 'other': {
+            const part = seg.part;
+            switch (part.type) {
+              case 'tool-call': {
+                const result = resultsByCallId.get(part.toolCallId);
+                const output = result && 'output' in result ? result.output : undefined;
+                const isError =
+                  output !== null &&
+                  output !== undefined &&
+                  typeof output === 'object' &&
+                  'error' in (output as object);
+                return (
+                  <ToolCallBlock
+                    key={seg.key}
+                    toolName={part.toolName}
+                    status={isError ? 'error' : 'completed'}
+                    args={part.input}
+                    result={output}
+                  />
+                );
               }
+              case 'tool-result':
+                return null;
+              case 'source':
+                if (part.sourceType === 'url') {
+                  return <SourceChip key={seg.key} url={part.url} title={part.title} />;
+                }
+                return null;
+              case 'file':
+                return <FileBlock key={seg.key} mediaType={part.file.mediaType} />;
+              default:
+                return null;
             }
           }
-        })}
-      </div>
-    </div>
+        }
+      })}
+    </AssistantBubbleWrapper>
   );
 });
 
@@ -394,49 +202,47 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
   }
 
   return (
-    <div className="flex justify-start">
-      <div className="w-full space-y-1.5">
-        {visibleIds.map((partId) => {
-          const part = parts[partId];
-          if (!part) return null;
+    <AssistantBubbleWrapper>
+      {visibleIds.map((partId) => {
+        const part = parts[partId];
+        if (!part) return null;
 
-          switch (part.type) {
-            case 'text':
-              return (
-                <div key={partId}>
-                  <ChatMarkdown text={part.text} />
-                </div>
-              );
-            case 'reasoning':
-              return (
-                <ReasoningBlock
-                  key={partId}
-                  text={part.text}
-                  isStreaming={part.status === 'streaming'}
-                />
-              );
-            case 'tool-call':
-              return (
-                <ToolCallBlock
-                  key={partId}
-                  toolName={part.toolName}
-                  status={part.status}
-                  args={part.input}
-                  result={part.output}
-                />
-              );
-            case 'source': {
-              const src = part.source;
-              if (src.sourceType === 'url') {
-                return <SourceChip key={partId} url={src.url} title={src.title} />;
-              }
-              return null;
+        switch (part.type) {
+          case 'text':
+            return (
+              <div key={partId}>
+                <ChatMarkdown text={part.text} />
+              </div>
+            );
+          case 'reasoning':
+            return (
+              <ReasoningBlock
+                key={partId}
+                text={part.text}
+                isStreaming={part.status === 'streaming'}
+              />
+            );
+          case 'tool-call':
+            return (
+              <ToolCallBlock
+                key={partId}
+                toolName={part.toolName}
+                status={part.status}
+                args={part.input}
+                result={part.output}
+              />
+            );
+          case 'source': {
+            const src = part.source;
+            if (src.sourceType === 'url') {
+              return <SourceChip key={partId} url={src.url} title={src.title} />;
             }
-            case 'file':
-              return <FileBlock key={partId} mediaType={part.mediaType} />;
+            return null;
           }
-        })}
-      </div>
-    </div>
+          case 'file':
+            return <FileBlock key={partId} mediaType={part.mediaType} />;
+        }
+      })}
+    </AssistantBubbleWrapper>
   );
 });
