@@ -16,25 +16,18 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
     return () => clearInterval(timer);
   }, [retry.nextRetryAt]);
 
-  const truncatedMessage = retry.message.length > 80;
-  const displayMessage = truncatedMessage ? retry.message.slice(0, 80) + '...' : retry.message;
-
   const retryText =
     secondsRemaining > 0
       ? `Retrying in ${secondsRemaining}s - attempt ${retry.attempt}/${retry.maxRetries}`
       : `Retrying... (attempt ${retry.attempt}/${retry.maxRetries})`;
 
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-3">
       <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-destructive" />
       <div className="min-w-0">
-        {truncatedMessage ? (
-          <div className="cursor-help truncate text-sm text-destructive" title={retry.message}>
-            {displayMessage}
-          </div>
-        ) : (
-          <div className="text-sm text-destructive">{displayMessage}</div>
-        )}
+        <div className="text-sm text-destructive line-clamp-2" title={retry.message}>
+          {retry.message}
+        </div>
         <div className="mt-1 text-xs text-destructive/70">{retryText}</div>
       </div>
     </div>

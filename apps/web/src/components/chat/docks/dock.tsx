@@ -21,49 +21,28 @@ type DockContainerProps = {
 
 function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: DockItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
-  const contentRef = React.useRef<HTMLDivElement>(null);
-  const [contentHeight, setContentHeight] = React.useState<number>(0);
-
-  React.useLayoutEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContentHeight(entry.contentRect.height);
-      }
-    });
-
-    observer.observe(content);
-    return () => observer.disconnect();
-  }, []);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
   };
 
-  const currentHeight = isExpanded ? contentHeight + 36 : 36;
-
   return (
     <div
       className={cn(
-        'overflow-hidden border-x border-border/60 bg-card/95 backdrop-blur-sm',
-        isFirst && 'border-t rounded-t-xl',
+        'overflow-hidden border-x border-border/60 bg-card/95 backdrop-blur-sm shadow-sm transition-all duration-300',
+        isFirst && 'border-t rounded-t-2xl',
         !isFirst && 'border-t-0',
         isLast && 'border-b-0 rounded-b-none',
+        !isLast && 'border-b',
       )}
-      style={{
-        height: `${currentHeight}px`,
-        transition: 'height 250ms ease-out',
-      }}
     >
-      <div className="flex items-center border-b border-border/40 px-3 py-2">
+      <div className="flex items-center">
         <button
           onClick={handleToggle}
           className={cn(
-            'flex flex-1 items-center gap-2 text-left text-sm font-medium',
-            'text-foreground transition-colors hover:text-foreground/80',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+            'flex flex-1 items-center gap-3 text-left text-sm font-medium px-4 py-3',
+            'text-foreground transition-colors hover:bg-muted/50 hover:text-foreground/80',
+            'focus-visible:outline-none focus-visible:bg-muted/50',
           )}
         >
           <span
@@ -77,29 +56,142 @@ function DockItem({ title, defaultExpanded = true, children, isFirst, isLast }: 
           <span>{title}</span>
         </button>
       </div>
-      <div ref={contentRef} className={cn(!isExpanded && 'hidden')}>
-        <div className="p-3">{children}</div>
+      <div
+        className={cn(
+          'grid transition-all duration-200 ease-out',
+          isExpanded ? 'opacity-100' : 'opacity-0',
+        )}
+        style={{
+          gridTemplateRows: isExpanded ? '1fr' : '0fr',
+        }}
+      >
+        <div className="overflow-hidden min-h-0">
+          <div className="px-4 pb-4 pt-1">{children}</div>
+        </div>
       </div>
     </div>
   );
 }
 
 export function DockContainer({ docks, className }: DockContainerProps) {
-  if (docks.length === 0) return null;
+  const [renderedDocks, setRenderedDocks] = React.useState<{ dock: DockItem; isExiting: boolean }[]>([]);
+
+  React.useEffect(() => {
+    setRenderedDocks((prev) => {
+      const next: { dock: DockItem; isExiting: boolean }[] = [];
+      const incomingIds = new Set(docks.map((d) => d.id));
+
+      let prevIndex = 0;
+      let newIndex = 0;
+
+      while (prevIndex < prev.length && newIndex < docks.length) {
+        const p = prev[prevIndex]!;
+        const d = docks[newIndex]!;
+
+        if (p.dock.id === d.id) {
+          next.push({ dock: d, isExiting: false });
+          prevIndex++;
+          newIndex++;
+        } else if (!incomingIds.has(p.dock.id)) {
+          next.push({ dock: p.dock, isExiting: true });
+          prevIndex++;
+        } else {
+          next.push({ dock: d, isExiting: false });
+          newIndex++;
+        }
+      }
+
+      while (prevIndex < prev.length) {
+        const p = prev[prevIndex]!;
+        if (!incomingIds.has(p.dock.id)) {
+          next.push({ dock: p.dock, isExiting: true });
+        }
+        prevIndex++;
+      }
+
+      while (newIndex < docks.length) {
+        next.push({ dock: docks[newIndex]!, isExiting: false });
+        newIndex++;
+      }
+
+      return next;
+    });
+  }, [docks]);
+
+  const handleExited = React.useCallback((id: string) => {
+    setRenderedDocks((prev) => prev.filter((d) => !(d.dock.id === id && d.isExiting)));
+  }, []);
+
+  if (renderedDocks.length === 0) return null;
 
   return (
     <div className={cn('pointer-events-auto mx-auto flex max-w-4xl flex-col', className)}>
-      {docks.map((dock, index) => (
+      {renderedDocks.map((item, index) => {
+        const isFirst = index === 0;
+        const isLast = index === renderedDocks.length - 1;
+
+        return (
+          <AnimatedDockItem
+            key={item.dock.id}
+            dock={item.dock}
+            isExiting={item.isExiting}
+            isFirst={isFirst}
+            isLast={isLast}
+            onExited={() => handleExited(item.dock.id)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function AnimatedDockItem({
+  dock,
+  isExiting,
+  isFirst,
+  isLast,
+  onExited,
+}: {
+  dock: DockItem;
+  isExiting: boolean;
+  isFirst: boolean;
+  isLast: boolean;
+  onExited: () => void;
+}) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const show = mounted && !isExiting;
+
+  return (
+    <div
+      className={cn(
+        'grid transition-all duration-300 ease-in-out',
+        show ? 'opacity-100' : 'opacity-0',
+      )}
+      style={{
+        gridTemplateRows: show ? '1fr' : '0fr',
+      }}
+      onTransitionEnd={(e) => {
+        if (isExiting && (e.propertyName === 'grid-template-rows' || e.propertyName === 'opacity')) {
+          onExited();
+        }
+      }}
+    >
+      <div className="overflow-hidden min-h-0">
         <DockItem
-          key={dock.id}
           title={dock.title}
           defaultExpanded={dock.defaultExpanded}
-          isFirst={index === 0}
-          isLast={index === docks.length - 1}
+          isFirst={isFirst}
+          isLast={isLast}
         >
           {dock.children}
         </DockItem>
-      ))}
+      </div>
     </div>
   );
 }
