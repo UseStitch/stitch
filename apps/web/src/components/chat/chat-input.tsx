@@ -241,6 +241,7 @@ type ChatInputInnerProps = {
   placeholder?: string;
   disabled?: boolean;
   hasDockAbove?: boolean;
+  embedded?: boolean;
 };
 
 function ChatInputInner({
@@ -256,6 +257,7 @@ function ChatInputInner({
   placeholder = 'Ask anything...',
   disabled,
   hasDockAbove,
+  embedded,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
@@ -286,7 +288,8 @@ function ChatInputInner({
         'relative flex flex-col rounded-2xl border border-border/60 bg-card',
         'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
-        hasDockAbove && 'rounded-t-none border-t-0',
+        embedded && 'rounded-none border-0 bg-transparent shadow-none',
+        hasDockAbove && !embedded && 'rounded-t-none border-t-0 shadow-none',
         disabled && 'opacity-60',
       )}
     >
@@ -372,9 +375,10 @@ type ChatInputProps = {
   disabled?: boolean;
   className?: string;
   hasDockAbove?: boolean;
+  embedded?: boolean;
 };
 
-export function ChatInput({ className, hasDockAbove, ...props }: ChatInputProps) {
+export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatInputProps) {
   return (
     <div className={cn('w-full', className)}>
       <React.Suspense
@@ -382,7 +386,8 @@ export function ChatInput({ className, hasDockAbove, ...props }: ChatInputProps)
           <div
             className={cn(
               'relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm',
-              hasDockAbove && 'rounded-t-none border-t-0',
+              embedded && 'rounded-none border-0 bg-transparent shadow-none',
+              hasDockAbove && !embedded && 'rounded-t-none border-t-0',
             )}
           >
             <div className="px-4 pt-4 pb-2">
@@ -395,7 +400,7 @@ export function ChatInput({ className, hasDockAbove, ...props }: ChatInputProps)
           </div>
         }
       >
-        <ChatInputInner hasDockAbove={hasDockAbove} {...props} />
+        <ChatInputInner hasDockAbove={hasDockAbove} embedded={embedded} {...props} />
       </React.Suspense>
     </div>
   );

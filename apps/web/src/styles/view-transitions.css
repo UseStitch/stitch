@@ -1,0 +1,26 @@
+:root {
+  --motion-ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* View transition: animate only the chat-input movement. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(chat-input),
+::view-transition-new(chat-input) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-group(chat-input) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--motion-ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(chat-input) {
+    animation-duration: 1ms;
+  }
+}

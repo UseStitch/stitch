@@ -20,10 +20,27 @@ import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsQueryOptions } from '@/lib/queries/chat';
 
+const SessionStatusIcon = React.memo(function SessionStatusIcon({
+  isStreaming,
+}: {
+  isStreaming: boolean;
+}) {
+  if (isStreaming) {
+    return (
+      <div className="size-3.5 shrink-0 flex items-center justify-center">
+        <div className="size-2 rounded-full bg-primary animate-pulse" />
+      </div>
+    );
+  }
+
+  return <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />;
+});
+
 export function AppSidebar() {
   const { data: sessions } = useQuery(sessionsQueryOptions);
   useSessionTitleUpdates();
   const streamingIds = useStreamingSessionIds();
+  const streamingIdSet = React.useMemo(() => new Set(streamingIds), [streamingIds]);
 
   const params = useParams({ strict: false }) as { id?: string };
   const currentId = params.id;
@@ -53,17 +70,12 @@ export function AppSidebar() {
                         <Link
                           to="/session/$id"
                           params={{ id: session.id }}
+                          viewTransition
                           className="flex items-center gap-2 truncate"
                         />
                       }
                     >
-                      {streamingIds.includes(session.id) ? (
-                        <div className="size-3.5 shrink-0 flex items-center justify-center">
-                          <div className="size-2 rounded-full bg-primary animate-pulse" />
-                        </div>
-                      ) : (
-                        <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                      )}
+                      <SessionStatusIcon isStreaming={streamingIdSet.has(session.id)} />
                       <AnimatedTitle
                         title={session.title ?? 'New conversation'}
                         className="truncate"

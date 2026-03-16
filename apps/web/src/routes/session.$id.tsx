@@ -138,30 +138,32 @@ function SessionComponent() {
       <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pt-10 bg-linear-to-t from-muted via-muted/80 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pointer-events-auto">
         <div className="mx-auto max-w-4xl">
-          <DockContainer docks={docks} />
-          <div style={{ viewTransitionName: 'chat-input' }}>
-            <ChatInput
-              value={value}
-              onChange={setValue}
-              onSubmit={(text) => {
-                void handleSubmit(text);
-              }}
-              onStop={() => void abortStream(id)}
-              isStreaming={streamState.isStreaming}
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
-              selectedAgent={selectedAgent}
-              onAgentChange={handleAgentChange}
-              placeholder={
-                isCompacting
-                  ? 'Compacting conversation...'
-                  : canSubmit
-                    ? 'Ask a follow-up...'
-                    : 'Waiting for response...'
-              }
-              disabled={!canSubmit}
-              hasDockAbove={docks.length > 0}
-            />
+          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+            <DockContainer docks={docks} />
+            <div style={{ viewTransitionName: 'chat-input' }}>
+              <ChatInput
+                value={value}
+                onChange={setValue}
+                onSubmit={(text) => {
+                  void handleSubmit(text);
+                }}
+                onStop={() => void abortStream(id)}
+                isStreaming={streamState.isStreaming}
+                selectedModel={selectedModel}
+                onModelChange={handleModelChange}
+                selectedAgent={selectedAgent}
+                onAgentChange={handleAgentChange}
+                placeholder={
+                  isCompacting
+                    ? 'Compacting conversation...'
+                    : canSubmit
+                      ? 'Ask a follow-up...'
+                      : 'Waiting for response...'
+                }
+                disabled={!canSubmit}
+                embedded
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 @import 'shadcn/tailwind.css';
 @import 'katex/dist/katex.min.css';
 @import './markdown.css';
+@import './view-transitions.css';
 
 @plugin "@tailwindcss/typography";
 
@@ -59,7 +60,7 @@
 @keyframes char-reveal {
   from {
     opacity: 0;
-    transform: translateY(0.4em);
+    transform: translateY(0.25em);
   }
   to {
     opacity: 1;
@@ -67,12 +68,11 @@
   }
 }
 
-/* View transition: chat-input morphs between center (index) and bottom (session).
-   Suppress the default cross-fade so only the position animation plays. */
-::view-transition-old(chat-input),
-::view-transition-new(chat-input) {
-  animation: none;
-  mix-blend-mode: normal;
+@media (prefers-reduced-motion: reduce) {
+  .animated-title,
+  .animated-title-char {
+    animation: none !important;
+  }
 }
 
 @layer base {
