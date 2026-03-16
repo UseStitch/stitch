@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared';
 
 import { askQuestion } from '@/question/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';
@@ -30,7 +30,7 @@ const questionInputSchema = z.object({
   questions: z.array(questionInfoWithoutCustomSchema).describe('Questions to ask the user'),
 });
 
-export function createQuestionTool(context: {
+function createQuestionTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
 }) {
@@ -64,22 +64,22 @@ export function createQuestionTool(context: {
   });
 }
 
-export function createTool(context: {
+function createTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
 }) {
   return createQuestionTool(context);
 }
 
-export function getPatternTargets(): string[] {
+function getPatternTargets(): string[] {
   return [];
 }
 
-export function getSuggestion(): PermissionSuggestion | null {
+function getSuggestion() {
   return null;
 }
 
-export const shouldTruncate = false;
+const shouldTruncate = false;
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createTool(context);
