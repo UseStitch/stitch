@@ -22,7 +22,7 @@ function InterruptedLabel() {
 
 function FileBlock({ mediaType }: { mediaType: string }) {
   return (
-    <div className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+    <div className="my-2 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/25 px-3 py-1.5 text-xs text-muted-foreground">
       <FileIcon className="size-3 shrink-0" />
       <span>{mediaType}</span>
     </div>

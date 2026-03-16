@@ -11,7 +11,7 @@ export function SourceChip({ url, title }: SourceChipProps) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="mb-1 mr-1 inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/30 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+      className="mb-2 mr-1 inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/25 px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground"
     >
       <LinkIcon className="size-2.5 shrink-0" />
       <span className="max-w-45 truncate">{title ?? url}</span>
