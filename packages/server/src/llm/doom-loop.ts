@@ -1,10 +1,14 @@
+import * as Sse from '@/lib/sse.js';
 import * as Log from '@/lib/log.js';
+import { executeStepWithRetry, type StepOptions } from './step-executor.js';
+import * as Usage from '@/utils/usage.js';
+import type { LanguageModelUsage, ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'doom-loop' });
 
-export const DOOM_LOOP_THRESHOLD = 3;
+const DOOM_LOOP_THRESHOLD = 3;
 
-export const DOOM_LOOP_MESSAGE =
+const DOOM_LOOP_MESSAGE =
   'The user has stopped your execution because you were repeating the same action. ' +
   'Provide a brief summary of what you have done so far and what remains to be completed.';
 
@@ -84,4 +88,73 @@ export function resolveDecision(sessionId: string, response: DoomLoopResponse): 
  */
 export function cancelDecision(sessionId: string): void {
   resolveDecision(sessionId, 'stop');
+}
+
+type DoomLoopState = {
+  totalUsage: LanguageModelUsage;
+  finalFinishReason: string;
+  isStopped: boolean;
+};
+
+export async function checkAndHandleDoomLoop(opts: {
+  sessionId: string;
+  messageId: string;
+  toolCallHistory: ToolCallRecord[];
+  conversation: ModelMessage[];
+  stepOptions: StepOptions;
+  currentState: DoomLoopState;
+}): Promise<DoomLoopState> {
+  const { sessionId, messageId, toolCallHistory, conversation, stepOptions, currentState } = opts;
+  
+  if (!isDoomLoop(toolCallHistory)) {
+    return currentState;
+  }
+
+  const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
+
+  log.warn('doom loop detected', {
+    sessionId,
+    messageId,
+    toolName: repeatedTool,
+    consecutiveCount: DOOM_LOOP_THRESHOLD,
+  });
+
+  await Sse.broadcast('doom-loop-detected', {
+    sessionId,
+    messageId,
+    toolName: repeatedTool,
+    consecutiveCount: DOOM_LOOP_THRESHOLD,
+  });
+
+  const decision = await waitForUserDecision(sessionId);
+
+  if (decision === 'stop') {
+    log.info('user stopped doom loop', { sessionId });
+
+    conversation.push({
+      role: 'system',
+      content: DOOM_LOOP_MESSAGE,
+    });
+
+    const summaryResult = await executeStepWithRetry({
+      ...stepOptions,
+      conversation,
+    });
+
+    const newUsage = Usage.addUsage(currentState.totalUsage, summaryResult.usage);
+    
+    for (const msg of summaryResult.responseMessages) {
+      conversation.push(msg);
+    }
+    
+    return {
+      totalUsage: newUsage,
+      finalFinishReason: summaryResult.finishReason,
+      isStopped: true,
+    };
+  }
+
+  // User chose 'continue' — proceed as normal
+  log.info('user continued past doom loop', { sessionId });
+  return currentState;
 }
