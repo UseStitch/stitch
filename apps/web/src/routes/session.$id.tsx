@@ -17,7 +17,12 @@ import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-s
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import {
+  consumeNextSessionInputSeed,
+  getTransitionSeedClearDelayMs,
+} from '@/lib/chat-input-transition-seed';
 import { parseModelId } from '@/lib/model-id';
+import { agentsQueryOptions } from '@/lib/queries/agents';
 import {
   sessionQueryOptions,
   sessionMessagesInfiniteQueryOptions,
@@ -44,6 +49,7 @@ export const Route = createFileRoute('/session/$id')({
     Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions(params.id)),
       context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
+      context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
@@ -56,7 +62,8 @@ function SessionComponent() {
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
-  const [value, setValue] = React.useState('');
+  const seedTextRef = React.useRef(consumeNextSessionInputSeed());
+  const [value, setValue] = React.useState(seedTextRef.current);
   const { selectedModel, handleModelChange } = useChatModel();
   const { selectedAgent, handleAgentChange } = useChatAgent();
 
@@ -80,6 +87,19 @@ function SessionComponent() {
   useQuestionSync(id);
   usePermissionResponseSync(id);
   useSessionStream({ sessionId: id });
+
+  React.useEffect(() => {
+    const seedText = seedTextRef.current;
+    if (!seedText) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setValue((current) => (current === seedText ? '' : current));
+    }, getTransitionSeedClearDelayMs());
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   const docks = useSessionDocks({
     sessionId: id,
@@ -157,7 +177,7 @@ function SessionComponent() {
                   isCompacting
                     ? 'Compacting conversation...'
                     : canSubmit
-                      ? 'Ask a follow-up...'
+                      ? 'Ask anything...'
                       : 'Waiting for response...'
                 }
                 disabled={!canSubmit}

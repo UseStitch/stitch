@@ -10,6 +10,7 @@ import { createMessageId } from '@openwork/shared';
 import { ChatInput } from '@/components/chat/chat-input';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
+import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { parseModelId } from '@/lib/model-id';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
@@ -49,7 +50,7 @@ function IndexComponent() {
 
     const { providerId, modelId } = parsed;
 
-    setValue('');
+    setNextSessionInputSeed(text);
 
     const assistantMessageId = createMessageId();
     const session = await createSession.mutateAsync({});
@@ -93,6 +94,7 @@ function IndexComponent() {
             selectedAgent={selectedAgent}
             onAgentChange={handleAgentChange}
             placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
+            disabled={isSubmitting}
           />
         </div>
       </div>

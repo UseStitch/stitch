@@ -31,7 +31,8 @@
 }
 
 ::view-transition-old(chat-thread) {
-  animation: chat-thread-exit var(--motion-duration-chat-exit) ease-out both;
+  animation: none;
+  opacity: 0;
 }
 
 ::view-transition-new(chat-thread) {
@@ -52,18 +53,6 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes chat-thread-exit {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    opacity: 0.88;
-    transform: translateY(-2px);
   }
 }
 
