@@ -6,6 +6,7 @@ export const ID_PREFIXES = {
   part: 'prt',
   toolResult: 'toolres',
   question: 'quest',
+  agent: 'agt',
 } as const;
 
 let lastTimestamp = 0;
@@ -40,6 +41,10 @@ export function createToolResultId(): PrefixedString<'toolres'> {
 
 export function createQuestionId(): PrefixedString<'quest'> {
   return createId(ID_PREFIXES.question);
+}
+
+export function createAgentId(): PrefixedString<'agt'> {
+  return createId(ID_PREFIXES.agent);
 }
 
 function createId<P extends (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES]>(

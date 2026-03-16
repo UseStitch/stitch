@@ -1,28 +1,31 @@
 import * as React from 'react';
 
-import { useQueryClient, useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import type { Session, MessagesPage } from '@openwork/shared';
+import type { Session, MessagesPage, PrefixedString } from '@openwork/shared';
 import { createMessageId } from '@openwork/shared';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
+import { parseModelId } from '@/lib/model-id';
+import { agentsQueryOptions } from '@/lib/queries/agents';
+import { settingsQueryOptions } from '@/lib/queries/settings';
+import { useChatModel } from '@/hooks/session/use-chat-model';
+import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useStreamStore } from '@/stores/stream-store';
 
 export const Route = createFileRoute('/')({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
+      context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
   component: IndexComponent,
 });
-
-const SEPARATOR = ':::';
 
 function IndexComponent() {
   const navigate = useNavigate();
@@ -30,28 +33,21 @@ function IndexComponent() {
   const createSession = useCreateSession();
   const sendMessage = useSendMessage();
   const startStream = useStreamStore((s) => s.startStream);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   const [value, setValue] = React.useState('');
-  const [modelOverride, setModelOverride] = React.useState<string | null>(null);
-  const selectedModel = modelOverride ?? settings['model.default'] ?? null;
-
-  const saveDefaultModel = useMutation(
-    saveSettingMutationOptions('model.default', queryClient, { silent: true }),
-  );
-
-  function handleModelChange(model: string | null) {
-    setModelOverride(model);
-    if (model) saveDefaultModel.mutate(model);
-  }
+  
+  const { selectedModel, handleModelChange } = useChatModel();
+  const { selectedAgent, handleAgentChange } = useChatAgent();
 
   const isSubmitting = createSession.isPending || sendMessage.isPending;
 
   async function handleSubmit(text: string) {
-    if (!text.trim() || !selectedModel) return;
+    if (!text.trim() || !selectedModel || !selectedAgent) return;
 
-    const [providerId, modelId] = selectedModel.split(SEPARATOR);
-    if (!providerId || !modelId) return;
+    const parsed = parseModelId(selectedModel);
+    if (!parsed) return;
+    
+    const { providerId, modelId } = parsed;
 
     setValue('');
 
@@ -67,10 +63,11 @@ function IndexComponent() {
 
     startStream(session.id, assistantMessageId);
     void sendMessage.mutateAsync({
-      sessionId: session.id,
+      sessionId: session.id as PrefixedString<'ses'>,
       content: text,
       providerId,
       modelId,
+      agentId: selectedAgent as PrefixedString<'agt'>,
       assistantMessageId,
     });
 
@@ -93,6 +90,8 @@ function IndexComponent() {
             }}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
+            selectedAgent={selectedAgent}
+            onAgentChange={handleAgentChange}
             placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
           />
         </div>

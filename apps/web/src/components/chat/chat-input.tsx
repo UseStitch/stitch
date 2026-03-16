@@ -1,5 +1,5 @@
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
-import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon, SquareIcon } from 'lucide-react';
+import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon, SquareIcon, BotIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -7,6 +7,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { agentsQueryOptions } from '@/lib/queries/agents';
+import type { Agent, PrefixedString } from '@openwork/shared';
 import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
@@ -145,6 +147,78 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
   );
 }
 
+type AgentSelectorProps = {
+  selectedValue: PrefixedString<'agt'> | null;
+  onSelect: (value: PrefixedString<'agt'>) => void;
+  agents: Agent[];
+};
+
+function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelectorProps) {
+  const selectedOption = selectedValue ? agents.find((a) => a.id === selectedValue) : null;
+
+  return (
+    <PopoverPrimitive.Root>
+      <PopoverPrimitive.Trigger
+        className={cn(
+          'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+          'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        )}
+      >
+        <BotIcon className="size-3.5 shrink-0" />
+        <span>{selectedOption?.name ?? 'Select agent'}</span>
+        <ChevronDownIcon className="size-3 shrink-0 opacity-60" />
+      </PopoverPrimitive.Trigger>
+
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Positioner
+          side="top"
+          sideOffset={6}
+          align="start"
+          className="isolate z-50"
+        >
+          <PopoverPrimitive.Popup
+            className={cn(
+              'bg-popover text-popover-foreground rounded-lg shadow-lg ring-1 ring-foreground/10',
+              'data-open:animate-in data-closed:animate-out',
+              'data-closed:fade-out-0 data-open:fade-in-0',
+              'data-closed:zoom-out-95 data-open:zoom-in-95',
+              'data-[side=top]:slide-in-from-bottom-2',
+              'w-64 max-h-80 flex flex-col origin-(--transform-origin) outline-none duration-100',
+            )}
+          >
+            <ScrollArea className="max-h-70 overflow-hidden">
+              <div className="p-1">
+                {agents.length === 0 && (
+                  <p className="text-muted-foreground text-xs text-center py-4">No agents found</p>
+                )}
+                {agents.map((agent) => {
+                  const isSelected = selectedValue === agent.id;
+                  return (
+                    <PopoverPrimitive.Close
+                      key={agent.id}
+                      onClick={() => onSelect(agent.id)}
+                      className={cn(
+                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
+                        'transition-colors hover:bg-accent hover:text-accent-foreground',
+                        'focus-visible:outline-none focus-visible:bg-accent',
+                        isSelected && 'font-medium',
+                      )}
+                    >
+                      <span>{agent.name}</span>
+                      {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
+                    </PopoverPrimitive.Close>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </PopoverPrimitive.Popup>
+        </PopoverPrimitive.Positioner>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
+
 type ChatInputInnerProps = {
   value: string;
   onChange: (value: string) => void;
@@ -153,6 +227,8 @@ type ChatInputInnerProps = {
   isStreaming?: boolean;
   selectedModel: string | null;
   onModelChange: (value: string) => void;
+  selectedAgent: string | null;
+  onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;
   disabled?: boolean;
   hasDockAbove?: boolean;
@@ -166,11 +242,14 @@ function ChatInputInner({
   isStreaming,
   selectedModel,
   onModelChange,
+  selectedAgent,
+  onAgentChange,
   placeholder = 'Ask anything...',
   disabled,
   hasDockAbove,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -224,6 +303,13 @@ function ChatInputInner({
       <div className="flex items-center justify-between px-3 pb-3 pt-1">
         {/* Left: model selector */}
         <div className="flex items-center gap-1">
+          {agents.filter(a => a.type === 'primary').length > 1 && (
+            <AgentSelectorPopover
+              selectedValue={selectedAgent as PrefixedString<'agt'> | null}
+              onSelect={onAgentChange}
+              agents={agents.filter(a => a.type === 'primary')}
+            />
+          )}
           {providerModels.length > 0 && (
             <ModelSelectorPopover
               selectedValue={selectedModel}
@@ -271,6 +357,8 @@ type ChatInputProps = {
   isStreaming?: boolean;
   selectedModel: string | null;
   onModelChange: (value: string) => void;
+  selectedAgent: string | null;
+  onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;

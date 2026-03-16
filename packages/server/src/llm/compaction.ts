@@ -286,6 +286,7 @@ export async function compact(input: {
   sessionId: PrefixedString<'ses'>;
   providerId: string;
   modelId: string;
+  agentId: PrefixedString<'agt'>;
   auto: boolean;
   overflow?: boolean;
 }): Promise<'continue' | 'error'> {
@@ -324,6 +325,7 @@ export async function compact(input: {
       parts: [compactionPart],
       modelId: input.modelId,
       providerId: input.providerId,
+      agentId: input.agentId as PrefixedString<'agt'>,
       createdAt: new Date(now),
       updatedAt: new Date(now),
       startedAt: new Date(now),
@@ -400,6 +402,7 @@ export async function compact(input: {
       parts: [summaryPart],
       modelId: resolved.modelId,
       providerId: resolved.providerId,
+      agentId: input.agentId as PrefixedString<'agt'>,
       usage,
       finishReason: 'stop',
       isSummary: true,

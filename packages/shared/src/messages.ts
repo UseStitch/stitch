@@ -65,12 +65,13 @@ export type AllPart =
 export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 
 export type Message = {
-  id: string;
-  sessionId: string;
+  id: PrefixedString<'msg'>;
+  sessionId: PrefixedString<'ses'>;
   role: MessageRole;
   parts: StoredPart[];
   modelId: string;
   providerId: string;
+  agentId: PrefixedString<'agt'>;
   usage: LanguageModelUsage;
   finishReason: string;
   isSummary: boolean;
@@ -81,9 +82,9 @@ export type Message = {
 };
 
 export type Session = {
-  id: string;
+  id: PrefixedString<'ses'>;
   title: string | null;
-  parentSessionId: string | null;
+  parentSessionId: PrefixedString<'ses'> | null;
   createdAt: number;
   updatedAt: number;
 };

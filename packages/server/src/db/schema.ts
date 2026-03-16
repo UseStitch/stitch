@@ -44,6 +44,20 @@ export const providerConfig = sqliteTable('provider_config', {
     .$defaultFn(() => new Date()),
 });
 
+export const agents = sqliteTable('agents', {
+  id: text('id').$type<PrefixedString<'agt'>>().primaryKey(),
+  name: text('name').notNull(),
+  type: text('type').$type<'primary' | 'sub'>().notNull().default('primary'),
+  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
+  isDeletable: integer('is_deletable', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
@@ -68,6 +82,7 @@ export const messages = sqliteTable('messages', {
   parts: blob('parts', { mode: 'json' }).$type<StoredPart[]>().notNull(),
   modelId: text('model_id').notNull(),
   providerId: text('provider_id').notNull(),
+  agentId: text('agent_id').notNull().references(() => agents.id),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),

@@ -21,6 +21,7 @@ async function saveAssistantMessage(opts: {
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   providerId: string;
+  agentId: PrefixedString<'agt'>;
   accumulatedParts: StoredPart[];
   totalUsage: LanguageModelUsage;
   finalFinishReason: string;
@@ -31,6 +32,7 @@ async function saveAssistantMessage(opts: {
     assistantMessageId,
     modelId,
     providerId,
+    agentId,
     accumulatedParts,
     totalUsage,
     finalFinishReason,
@@ -46,6 +48,7 @@ async function saveAssistantMessage(opts: {
     parts: accumulatedParts,
     modelId,
     providerId,
+    agentId: agentId as PrefixedString<'agt'>,
     usage: totalUsage,
     finishReason: finalFinishReason,
     createdAt: new Date(startedAt),
@@ -65,11 +68,12 @@ export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
+  agentId: string;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
 }): Promise<void> {
-  const { sessionId, assistantMessageId, modelId, llmMessages, credentials, abortSignal } = opts;
+  const { sessionId, assistantMessageId, modelId, agentId, llmMessages, credentials, abortSignal } = opts;
 
   const provider = createProvider(credentials);
   const model = provider(modelId);
@@ -211,6 +215,7 @@ export async function runStream(opts: {
       assistantMessageId,
       modelId,
       providerId: credentials.providerId,
+      agentId: agentId as PrefixedString<'agt'>,
       accumulatedParts,
       totalUsage,
       finalFinishReason,
@@ -229,6 +234,7 @@ export async function runStream(opts: {
       sessionId,
       providerId: credentials.providerId,
       modelId,
+      agentId: agentId as PrefixedString<'agt'>,
       auto: true,
       overflow: contextOverflow,
     });

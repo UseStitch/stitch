@@ -4,12 +4,13 @@ import { StickToBottom } from 'use-stick-to-bottom';
 import { useSuspenseInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { createMessageId } from '@openwork/shared';
+import { createMessageId, type PrefixedString } from '@openwork/shared';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
 import { useChatModel } from '@/hooks/session/use-chat-model';
+import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
@@ -50,6 +51,7 @@ function SessionComponent() {
 
   const [value, setValue] = React.useState('');
   const { selectedModel, handleModelChange } = useChatModel();
+  const { selectedAgent, handleAgentChange } = useChatAgent();
 
   const sendMessage = useSendMessage();
   const replyQuestion = useReplyQuestion();
@@ -75,7 +77,7 @@ function SessionComponent() {
   });
 
   async function handleSubmit(text: string) {
-    if (!text.trim() || !selectedModel) return;
+    if (!text.trim() || !selectedModel || !selectedAgent) return;
 
     const parsed = parseModelId(selectedModel);
     if (!parsed) return;
@@ -86,10 +88,11 @@ function SessionComponent() {
     startStream(id, assistantMessageId);
 
     await sendMessage.mutateAsync({
-      sessionId: id,
+      sessionId: id as PrefixedString<'ses'>,
       content: text,
       providerId: parsed.providerId,
       modelId: parsed.modelId,
+      agentId: selectedAgent,
       assistantMessageId,
     });
   }
@@ -129,6 +132,8 @@ function SessionComponent() {
               isStreaming={streamState.isStreaming}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
+              selectedAgent={selectedAgent}
+              onAgentChange={handleAgentChange}
               placeholder={
                 isCompacting
                   ? 'Compacting conversation...'

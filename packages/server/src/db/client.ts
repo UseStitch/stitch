@@ -1,9 +1,11 @@
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { eq } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAgentId } from '@openwork/shared';
 
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -30,6 +32,18 @@ export function initDb(): void {
   _db = drizzle(sqlite, { schema });
 
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
+
+  // Seed default agent if missing
+  const existingAgent = _db.select().from(schema.agents).where(eq(schema.agents.isDefault, true)).get();
+  if (!existingAgent) {
+    _db.insert(schema.agents).values({
+      id: createAgentId(),
+      name: 'My Assistant',
+      type: 'primary',
+      isDefault: true,
+      isDeletable: false,
+    }).run();
+  }
 
   log.info('database initialized', { path: PATHS.filePaths.db });
 }

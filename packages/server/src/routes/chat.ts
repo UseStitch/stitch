@@ -134,12 +134,13 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     content: string;
     providerId: string;
     modelId: string;
+    agentId: string;
     assistantMessageId: string;
   };
 
-  if (!body.content || !body.providerId || !body.modelId || !body.assistantMessageId) {
+  if (!body.content || !body.providerId || !body.modelId || !body.agentId || !body.assistantMessageId) {
     return c.json(
-      { error: 'content, providerId, modelId and assistantMessageId are required' },
+      { error: 'content, providerId, modelId, agentId, and assistantMessageId are required' },
       400,
     );
   }
@@ -193,6 +194,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     parts: [userPart],
     modelId: body.modelId,
     providerId: body.providerId,
+    agentId: body.agentId as PrefixedString<'agt'>,
     createdAt: new Date(now),
     updatedAt: new Date(now),
     startedAt: new Date(now),
@@ -212,6 +214,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     sessionId,
     assistantMessageId,
     modelId: body.modelId,
+    agentId: body.agentId,
     llmMessages,
     credentials: config.credentials,
     abortSignal,
@@ -269,6 +272,7 @@ chatRouter.post('/sessions/:id/compact', async (c) => {
     sessionId,
     providerId: lastMsg.providerId,
     modelId: lastMsg.modelId,
+    agentId: lastMsg.agentId as PrefixedString<'agt'>,
     auto: false,
   });
 

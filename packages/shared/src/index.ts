@@ -3,11 +3,13 @@ export * from './providers.js';
 export * from './realtime.js';
 export * from './id.js';
 export * from './questions.js';
+export * from './agents.js';
 
 export const SETTINGS_KEYS = [
   'model.default',
   'model.compaction',
   'model.title',
+  'agent.default',
   'appearance.mode',
   'appearance.theme',
 ] as const;

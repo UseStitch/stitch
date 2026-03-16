@@ -12,6 +12,7 @@ import type {
   MessagesPage,
   LanguageModelUsage,
   StoredPart,
+  PrefixedString,
 } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
 
@@ -101,16 +102,17 @@ type CreateSessionInput = {
 };
 
 type SendMessageInput = {
-  sessionId: string;
+  sessionId: PrefixedString<'ses'>;
   content: string;
   providerId: string;
   modelId: string;
-  assistantMessageId: string;
+  agentId: PrefixedString<'agt'>;
+  assistantMessageId: PrefixedString<'msg'>;
 };
 
 type SendMessageResult = {
-  messageId: string;
-  userMessageId: string;
+  messageId: PrefixedString<'msg'>;
+  userMessageId: PrefixedString<'msg'>;
 };
 
 export function useCreateSession() {
@@ -132,7 +134,7 @@ export function useCreateSession() {
 }
 
 type RenameSessionInput = {
-  sessionId: string;
+  sessionId: PrefixedString<'ses'>;
   title: string;
 };
 
@@ -166,6 +168,7 @@ export function useSendMessage() {
           content: input.content,
           providerId: input.providerId,
           modelId: input.modelId,
+          agentId: input.agentId,
           assistantMessageId: input.assistantMessageId,
         }),
       });
@@ -189,11 +192,12 @@ export function useSendMessage() {
         };
         const optimisticMessage: Message = {
           id: createMessageId(),
-          sessionId: input.sessionId,
+          sessionId: input.sessionId as PrefixedString<'ses'>,
           role: 'user',
           parts: [optimisticPart],
           modelId: input.modelId,
           providerId: input.providerId,
+          agentId: input.agentId as PrefixedString<'agt'>,
           usage: EMPTY_USAGE,
           finishReason: 'stop',
           isSummary: false,

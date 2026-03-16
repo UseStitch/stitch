@@ -10,6 +10,7 @@ import { providerRouter } from '@/routes/provider.js';
 import { questionsRouter } from '@/routes/questions.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
+import { agentsRouter } from '@/routes/agents.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {
@@ -36,6 +37,7 @@ const app = new Hono();
 
 app.use(cors());
 app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
+app.route('/agents', agentsRouter);
 app.route('/chat', chatRouter);
 app.route('/chat', questionsRouter);
 app.route('/events', eventsRouter);

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773529323049,
-      "tag": "0000_amusing_electro",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773539254896,
-      "tag": "0001_glossy_onslaught",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1773594255849,
-      "tag": "0002_great_the_stranger",
+      "when": 1773629297857,
+      "tag": "0000_harsh_triathlon",
       "breakpoints": true
     }
   ]
