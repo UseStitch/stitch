@@ -1,11 +1,23 @@
+CREATE TABLE `agent_permissions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`agent_id` text NOT NULL,
+	`tool_name` text NOT NULL,
+	`pattern` text,
+	`permission` text NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`agent_id`) REFERENCES `agents`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `agent_permissions_agent_tool_pattern_idx` ON `agent_permissions` (`agent_id`,`tool_name`,`pattern`);--> statement-breakpoint
 CREATE TABLE `agents` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`type` text DEFAULT 'primary' NOT NULL,
-	`is_default` integer DEFAULT false NOT NULL,
 	`is_deletable` integer DEFAULT true NOT NULL,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	CONSTRAINT "agents_type_check" CHECK("agents"."type" in ('primary', 'sub'))
 );
 --> statement-breakpoint
 CREATE TABLE `keyboard_shortcuts` (
@@ -30,6 +42,24 @@ CREATE TABLE `messages` (
 	`updated_at` integer NOT NULL,
 	`started_at` integer NOT NULL,
 	`duration_ms` integer,
+	FOREIGN KEY (`session_id`) REFERENCES `sessions`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`agent_id`) REFERENCES `agents`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `permission_responses` (
+	`id` text PRIMARY KEY NOT NULL,
+	`session_id` text NOT NULL,
+	`message_id` text NOT NULL,
+	`agent_id` text NOT NULL,
+	`tool_call_id` text NOT NULL,
+	`tool_name` text NOT NULL,
+	`tool_input` blob,
+	`system_reminder` text NOT NULL,
+	`suggestion` blob,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`entry` text,
+	`created_at` integer NOT NULL,
+	`resolved_at` integer,
 	FOREIGN KEY (`session_id`) REFERENCES `sessions`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`agent_id`) REFERENCES `agents`(`id`) ON UPDATE no action ON DELETE no action
 );

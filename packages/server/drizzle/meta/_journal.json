@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773629297857,
-      "tag": "0000_harsh_triathlon",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773678437781,
-      "tag": "0001_mushy_owl",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1773697558340,
-      "tag": "0002_lumpy_risque",
+      "when": 1773702354644,
+      "tag": "0000_initial",
       "breakpoints": true
     }
   ]

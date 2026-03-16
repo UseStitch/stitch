@@ -3,9 +3,10 @@ import { Hono } from 'hono';
 
 import { SETTINGS_KEYS } from '@openwork/shared';
 import type { SettingsKey } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
-import { userSettings } from '@/db/schema.js';
+import { agents, userSettings } from '@/db/schema.js';
 
 const ALLOWED_KEYS: ReadonlySet<string> = new Set(SETTINGS_KEYS);
 
@@ -31,6 +32,17 @@ settingsRouter.put('/:key', async (c) => {
     return c.json({ error: 'Invalid value' }, 400);
   }
   const db = getDb();
+
+  if (key === 'agent.default') {
+    const [agent] = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.id, body.value as PrefixedString<'agt'>));
+    if (!agent || agent.type !== 'primary') {
+      return c.json({ error: 'Invalid primary agent id' }, 400);
+    }
+  }
+
   await db
     .insert(userSettings)
     .values({ key: key as SettingsKey, value: body.value })

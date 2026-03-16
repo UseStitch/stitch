@@ -6,7 +6,7 @@ import { createSessionId, createMessageId, createPartId } from '@openwork/shared
 import type { StoredPart } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
-import { messages, sessions, providerConfig } from '@/db/schema.js';
+import { agents, messages, sessions, providerConfig } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
@@ -152,6 +152,19 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     );
   }
 
+  const [agent] = await db
+    .select()
+    .from(agents)
+    .where(eq(agents.id, body.agentId as PrefixedString<'agt'>));
+
+  if (!agent) {
+    return c.json({ error: `Agent "${body.agentId}" not found` }, 400);
+  }
+  
+  if (agent.type !== 'primary') {
+    return c.json({ error: 'Sub agents cannot be used directly in chat' }, 400);
+  }
+
   const [config] = await db
     .select()
     .from(providerConfig)
@@ -201,7 +214,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     parts: [userPart],
     modelId: body.modelId,
     providerId: body.providerId,
-    agentId: body.agentId as PrefixedString<'agt'>,
+    agentId: agent.id,
     createdAt: new Date(now),
     updatedAt: new Date(now),
     startedAt: new Date(now),
@@ -221,7 +234,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     sessionId,
     assistantMessageId,
     modelId: body.modelId,
-    agentId: body.agentId,
+    agentId: agent.id,
     llmMessages,
     credentials: config.credentials,
     abortSignal,

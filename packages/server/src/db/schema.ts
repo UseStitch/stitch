@@ -1,4 +1,5 @@
-import { blob, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { blob, check, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type {
   MessageRole,
@@ -45,19 +46,22 @@ export const providerConfig = sqliteTable('provider_config', {
     .$defaultFn(() => new Date()),
 });
 
-export const agents = sqliteTable('agents', {
-  id: text('id').$type<PrefixedString<'agt'>>().primaryKey(),
-  name: text('name').notNull(),
-  type: text('type').$type<'primary' | 'sub'>().notNull().default('primary'),
-  isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
-  isDeletable: integer('is_deletable', { mode: 'boolean' }).notNull().default(true),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const agents = sqliteTable(
+  'agents',
+  {
+    id: text('id').$type<PrefixedString<'agt'>>().primaryKey(),
+    name: text('name').notNull(),
+    type: text('type').$type<'primary' | 'sub'>().notNull().default('primary'),
+    isDeletable: integer('is_deletable', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [check('agents_type_check', sql`${table.type} in ('primary', 'sub')`)],
+);
 
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
@@ -159,11 +163,11 @@ export const agentPermissions = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (table) => ({
-    byAgentToolPattern: uniqueIndex('agent_permissions_agent_tool_pattern_idx').on(
+  (table) => [
+    uniqueIndex('agent_permissions_agent_tool_pattern_idx').on(
       table.agentId,
       table.toolName,
       table.pattern,
     ),
-  }),
+  ],
 );

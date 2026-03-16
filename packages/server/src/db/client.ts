@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
@@ -34,56 +34,33 @@ export function initDb(): void {
 
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
 
-  // Seed default agent if missing
-  const existingAgent = _db
-    .select()
+  const primaryAgents = _db
+    .select({ id: schema.agents.id })
     .from(schema.agents)
-    .where(eq(schema.agents.isDefault, true))
-    .get();
-  if (!existingAgent) {
+    .where(eq(schema.agents.type, 'primary'))
+    .all();
+
+  if (primaryAgents.length === 0) {
+    const id = createAgentId();
     _db
       .insert(schema.agents)
       .values({
-        id: createAgentId(),
+        id,
         name: 'My Assistant',
         type: 'primary',
-        isDefault: true,
-        isDeletable: false,
       })
       .run();
-  }
 
-  const defaultAgent = _db
-    .select({ id: schema.agents.id })
-    .from(schema.agents)
-    .where(eq(schema.agents.isDefault, true))
-    .get();
-
-  if (defaultAgent) {
-    const questionPermission = _db
-      .select({ id: schema.agentPermissions.id })
-      .from(schema.agentPermissions)
-      .where(
-        and(
-          eq(schema.agentPermissions.agentId, defaultAgent.id),
-          eq(schema.agentPermissions.toolName, 'question'),
-          isNull(schema.agentPermissions.pattern),
-        ),
-      )
-      .get();
-
-    if (!questionPermission) {
-      _db
-        .insert(schema.agentPermissions)
-        .values({
-          id: createAgentPermissionId(),
-          agentId: defaultAgent.id,
-          toolName: 'question',
-          permission: 'allow',
-          pattern: null,
-        })
-        .run();
-    }
+    _db
+      .insert(schema.agentPermissions)
+      .values({
+        id: createAgentPermissionId(),
+        agentId: id,
+        toolName: 'question',
+        permission: 'allow',
+        pattern: null,
+      })
+      .run();
   }
 
   log.info('database initialized', { path: PATHS.filePaths.db });
