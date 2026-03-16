@@ -7,6 +7,7 @@ export const ID_PREFIXES = {
   toolResult: 'toolres',
   question: 'quest',
   permissionResponse: 'permres',
+  agentPermission: 'perm',
   agent: 'agt',
 } as const;
 
@@ -46,6 +47,10 @@ export function createQuestionId(): PrefixedString<'quest'> {
 
 export function createPermissionResponseId(): PrefixedString<'permres'> {
   return createId(ID_PREFIXES.permissionResponse);
+}
+
+export function createAgentPermissionId(): PrefixedString<'perm'> {
+  return createId(ID_PREFIXES.agentPermission);
 }
 
 export function createAgentId(): PrefixedString<'agt'> {

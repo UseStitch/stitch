@@ -81,7 +81,11 @@ export async function runStream(opts: {
 
   const provider = createProvider(credentials);
   const model = provider(modelId);
-  const tools = createTools({ sessionId, messageId: assistantMessageId });
+  const tools = createTools({
+    sessionId,
+    messageId: assistantMessageId,
+    agentId: agentId as PrefixedString<'agt'>,
+  });
 
   const accumulatedParts: StoredPart[] = [];
   const conversation: ModelMessage[] = [...llmMessages];

@@ -27,12 +27,20 @@ type UseSessionDocksOptions = {
   allowPermissionResponse: UseMutationResult<
     unknown,
     Error,
-    { sessionId: string; permissionResponseId: string }
+    {
+      sessionId: string;
+      permissionResponseId: string;
+      setPermission?: { permission: 'allow' | 'deny' | 'ask'; pattern?: string | null };
+    }
   >;
   rejectPermissionResponse: UseMutationResult<
     unknown,
     Error,
-    { sessionId: string; permissionResponseId: string }
+    {
+      sessionId: string;
+      permissionResponseId: string;
+      setPermission?: { permission: 'allow' | 'deny' | 'ask'; pattern?: string | null };
+    }
   >;
   alternativePermissionResponse: UseMutationResult<
     unknown,
@@ -121,6 +129,20 @@ export function useSessionDocks({
                 console.error('Failed to allow tool:', error);
               }
             }}
+            onAlwaysAllow={async (permissionResponseId) => {
+              try {
+                await allowPermissionResponse.mutateAsync({
+                  sessionId,
+                  permissionResponseId,
+                  setPermission: {
+                    permission: 'allow',
+                    pattern: null,
+                  },
+                });
+              } catch (error) {
+                console.error('Failed to always allow tool:', error);
+              }
+            }}
             onReject={async (permissionResponseId) => {
               try {
                 await rejectPermissionResponse.mutateAsync({ sessionId, permissionResponseId });
@@ -137,6 +159,20 @@ export function useSessionDocks({
                 });
               } catch (error) {
                 console.error('Failed to submit alternative action:', error);
+              }
+            }}
+            onApplySuggestion={async (permissionResponseId, pattern) => {
+              try {
+                await allowPermissionResponse.mutateAsync({
+                  sessionId,
+                  permissionResponseId,
+                  setPermission: {
+                    permission: 'allow',
+                    pattern,
+                  },
+                });
+              } catch (error) {
+                console.error('Failed to apply permission suggestion:', error);
               }
             }}
           />

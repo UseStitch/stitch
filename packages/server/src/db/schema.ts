@@ -1,7 +1,8 @@
-import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type {
   MessageRole,
+  PermissionSuggestion,
   PrefixedString,
   SettingsKey,
   ShortcutActionId,
@@ -120,10 +121,15 @@ export const permissionResponses = sqliteTable('permission_responses', {
     .notNull()
     .references(() => sessions.id, { onDelete: 'cascade' }),
   messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
+  agentId: text('agent_id')
+    .$type<PrefixedString<'agt'>>()
+    .notNull()
+    .references(() => agents.id),
   toolCallId: text('tool_call_id').notNull(),
   toolName: text('tool_name').notNull(),
   toolInput: blob('tool_input', { mode: 'json' }),
   systemReminder: text('system_reminder').notNull(),
+  suggestion: blob('suggestion', { mode: 'json' }).$type<PermissionSuggestion | null>(),
   status: text('status')
     .$type<'pending' | 'allowed' | 'rejected' | 'alternative'>()
     .notNull()
@@ -134,3 +140,30 @@ export const permissionResponses = sqliteTable('permission_responses', {
     .$defaultFn(() => new Date()),
   resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
 });
+
+export const agentPermissions = sqliteTable(
+  'agent_permissions',
+  {
+    id: text('id').$type<PrefixedString<'perm'>>().primaryKey(),
+    agentId: text('agent_id')
+      .$type<PrefixedString<'agt'>>()
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    toolName: text('tool_name').notNull(),
+    pattern: text('pattern'),
+    permission: text('permission').$type<'allow' | 'deny' | 'ask'>().notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    byAgentToolPattern: uniqueIndex('agent_permissions_agent_tool_pattern_idx').on(
+      table.agentId,
+      table.toolName,
+      table.pattern,
+    ),
+  }),
+);

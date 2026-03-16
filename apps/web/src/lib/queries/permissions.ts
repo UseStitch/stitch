@@ -23,6 +23,10 @@ export function permissionResponsesQueryOptions(sessionId: string) {
 type PermissionBaseInput = {
   sessionId: string;
   permissionResponseId: string;
+  setPermission?: {
+    permission: 'allow' | 'deny' | 'ask';
+    pattern?: string | null;
+  };
 };
 
 type PermissionAlternativeInput = PermissionBaseInput & {
@@ -36,7 +40,11 @@ export function useAllowPermissionResponse() {
     mutationFn: async (input: PermissionBaseInput) => {
       const res = await serverFetch(
         `/chat/sessions/${input.sessionId}/permission-responses/${input.permissionResponseId}/allow`,
-        { method: 'POST' },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setPermission: input.setPermission }),
+        },
       );
       if (!res.ok) throw new Error('Failed to allow tool');
       return res.json();
@@ -56,7 +64,11 @@ export function useRejectPermissionResponse() {
     mutationFn: async (input: PermissionBaseInput) => {
       const res = await serverFetch(
         `/chat/sessions/${input.sessionId}/permission-responses/${input.permissionResponseId}/reject`,
-        { method: 'POST' },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setPermission: input.setPermission }),
+        },
       );
       if (!res.ok) throw new Error('Failed to reject tool');
       return res.json();

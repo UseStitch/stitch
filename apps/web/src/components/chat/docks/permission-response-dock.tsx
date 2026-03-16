@@ -7,17 +7,22 @@ import { Button } from '@/components/ui/button';
 type PermissionResponseDockProps = {
   permissionResponses: PermissionResponse[];
   onAllow: (permissionResponseId: string) => Promise<void>;
+  onAlwaysAllow: (permissionResponseId: string) => Promise<void>;
   onReject: (permissionResponseId: string) => Promise<void>;
   onAlternative: (permissionResponseId: string, entry: string) => Promise<void>;
+  onApplySuggestion: (permissionResponseId: string, pattern: string) => Promise<void>;
 };
 
 export function PermissionResponseDock({
   permissionResponses,
   onAllow,
+  onAlwaysAllow,
   onReject,
   onAlternative,
+  onApplySuggestion,
 }: PermissionResponseDockProps) {
   const pending = permissionResponses[0];
+  const suggestion = pending?.suggestion ?? null;
   const [entry, setEntry] = React.useState('');
 
   React.useEffect(() => {
@@ -39,9 +44,23 @@ export function PermissionResponseDock({
         <Button size="sm" onClick={() => void onAllow(pending.id)}>
           Allow
         </Button>
+        <Button size="sm" variant="outline" onClick={() => void onAlwaysAllow(pending.id)}>
+          Always allow this tool
+        </Button>
         <Button size="sm" variant="destructive" onClick={() => void onReject(pending.id)}>
           Reject
         </Button>
+        {suggestion ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void onApplySuggestion(pending.id, suggestion.pattern);
+            }}
+          >
+            {suggestion.message}
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

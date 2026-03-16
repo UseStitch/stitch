@@ -1,7 +1,7 @@
-import type { PrefixedString } from '@openwork/shared';
+import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
-import { requestPermissionResponse } from '@/permission/service.js';
+import { getAgentPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
 import { createQuestionTool } from '@/tools/question.js';
 import { truncateOutput } from '@/tools/truncation.js';
 import { createWeatherTool } from '@/tools/weather.js';
@@ -14,7 +14,27 @@ export const MAX_STEPS = 25;
 export const MAX_STEPS_WARNING = (max: number) =>
   `CRITICAL: You are on step ${max} (final step). Tools will be disabled after this. Complete all remaining work and provide your final answer.`;
 
-const NON_BLOCKING_TOOLS = new Set<string>(['question']);
+type ToolPermissionBehavior = {
+  getPatternTargets?: (input: unknown) => string[];
+  getSuggestion?: (input: unknown) => PermissionSuggestion | null;
+};
+
+const TOOL_PERMISSION_BEHAVIORS: Partial<Record<string, ToolPermissionBehavior>> = {
+  weather: {
+    getPatternTargets: (input) => {
+      const location = (input as { location?: unknown })?.location;
+      return typeof location === 'string' && location.length > 0 ? [location] : [];
+    },
+    getSuggestion: (input) => {
+      const location = (input as { location?: unknown })?.location;
+      if (typeof location !== 'string' || location.length === 0) return null;
+      return {
+        message: `Always allow weather for ${location}`,
+        pattern: location,
+      };
+    },
+  },
+};
 
 function withTruncation<T extends Tool>(t: T): T {
   const originalExecute = t.execute;
@@ -34,13 +54,33 @@ function withTruncation<T extends Tool>(t: T): T {
 function withPermissionGate<T extends Tool>(
   toolName: string,
   t: T,
-  context: { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> },
+  context: {
+    sessionId: PrefixedString<'ses'>;
+    messageId: PrefixedString<'msg'>;
+    agentId: PrefixedString<'agt'>;
+  },
 ): T {
   const originalExecute = t.execute;
-  if (!originalExecute || NON_BLOCKING_TOOLS.has(toolName)) return t;
+  if (!originalExecute) return t;
 
   const wrappedExecute = async (...args: Parameters<typeof originalExecute>) => {
     const input = args[0];
+    const behavior = TOOL_PERMISSION_BEHAVIORS[toolName];
+    const patternTargets = behavior?.getPatternTargets?.(input) ?? [];
+    const permission = await getAgentPermissionDecision({
+      agentId: context.agentId,
+      toolName,
+      patternTargets,
+    });
+
+    if (permission === 'allow') {
+      return originalExecute(...args);
+    }
+
+    if (permission === 'deny') {
+      throw new Error(`User rejected tool execution for ${toolName}`);
+    }
+
     const meta = args[1] as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
@@ -57,10 +97,12 @@ function withPermissionGate<T extends Tool>(
     const decision = await requestPermissionResponse({
       sessionId: context.sessionId,
       messageId: context.messageId,
+      agentId: context.agentId,
       toolCallId,
       toolName,
       toolInput: input,
       systemReminder: 'Tool execution requires user approval',
+      suggestion: behavior?.getSuggestion?.(input) ?? null,
       abortSignal: meta?.abortSignal,
     });
 
@@ -85,6 +127,7 @@ function withPermissionGate<T extends Tool>(
 export function createTools(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
+  agentId: PrefixedString<'agt'>;
 }) {
   const weatherTool = withTruncation(withPermissionGate('weather', createWeatherTool(), context));
   const questionTool = withPermissionGate('question', createQuestionTool(context), context);

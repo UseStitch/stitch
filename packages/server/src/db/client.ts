@@ -1,12 +1,12 @@
 import Database from 'better-sqlite3';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createAgentId } from '@openwork/shared';
+import { createAgentId, createAgentPermissionId } from '@openwork/shared';
 
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -51,6 +51,39 @@ export function initDb(): void {
         isDeletable: false,
       })
       .run();
+  }
+
+  const defaultAgent = _db
+    .select({ id: schema.agents.id })
+    .from(schema.agents)
+    .where(eq(schema.agents.isDefault, true))
+    .get();
+
+  if (defaultAgent) {
+    const questionPermission = _db
+      .select({ id: schema.agentPermissions.id })
+      .from(schema.agentPermissions)
+      .where(
+        and(
+          eq(schema.agentPermissions.agentId, defaultAgent.id),
+          eq(schema.agentPermissions.toolName, 'question'),
+          isNull(schema.agentPermissions.pattern),
+        ),
+      )
+      .get();
+
+    if (!questionPermission) {
+      _db
+        .insert(schema.agentPermissions)
+        .values({
+          id: createAgentPermissionId(),
+          agentId: defaultAgent.id,
+          toolName: 'question',
+          permission: 'allow',
+          pattern: null,
+        })
+        .run();
+    }
   }
 
   log.info('database initialized', { path: PATHS.filePaths.db });
