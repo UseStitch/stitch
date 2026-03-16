@@ -11,6 +11,7 @@ import type {
   ToolResultStreamPart,
 } from './messages.js';
 import type { QuestionRequest } from './questions.js';
+import type { PermissionResponse } from './permissions.js';
 import type { LanguageModelUsage } from 'ai';
 
 export type SseEventName =
@@ -33,7 +34,9 @@ export type SseEventName =
   | 'compaction-complete'
   | 'question-asked'
   | 'question-replied'
-  | 'question-rejected';
+  | 'question-rejected'
+  | 'permission-response-requested'
+  | 'permission-response-resolved';
 
 // ─── Tool call lifecycle ──────────────────────────────────────────────────────
 
@@ -196,5 +199,14 @@ export type QuestionRepliedPayload = {
 
 export type QuestionRejectedPayload = {
   questionId: string;
+  sessionId: string;
+};
+
+export type PermissionResponseRequestedPayload = {
+  permissionResponse: PermissionResponse;
+};
+
+export type PermissionResponseResolvedPayload = {
+  permissionResponseId: string;
   sessionId: string;
 };

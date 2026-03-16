@@ -3,6 +3,7 @@ export * from './providers.js';
 export * from './realtime.js';
 export * from './id.js';
 export * from './questions.js';
+export * from './permissions.js';
 export * from './agents.js';
 
 export const SETTINGS_KEYS = [

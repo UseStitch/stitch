@@ -3,10 +3,12 @@ import * as React from 'react';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 import type { QuestionRequest } from '@openwork/shared';
+import type { PermissionResponse } from '@openwork/shared';
 
 import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
+import { PermissionResponseDock } from '@/components/chat/docks/permission-response-dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
 import type { RetryInfo, DoomLoopInfo } from '@/stores/stream-store';
 
@@ -15,12 +17,28 @@ type UseSessionDocksOptions = {
   retry: RetryInfo | null;
   doomLoop: DoomLoopInfo | null;
   pendingQuestions: QuestionRequest[];
+  pendingPermissionResponses: PermissionResponse[];
   replyQuestion: UseMutationResult<
     unknown,
     Error,
     { sessionId: string; questionId: string; answers: string[][] }
   >;
   rejectQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string }>;
+  allowPermissionResponse: UseMutationResult<
+    unknown,
+    Error,
+    { sessionId: string; permissionResponseId: string }
+  >;
+  rejectPermissionResponse: UseMutationResult<
+    unknown,
+    Error,
+    { sessionId: string; permissionResponseId: string }
+  >;
+  alternativePermissionResponse: UseMutationResult<
+    unknown,
+    Error,
+    { sessionId: string; permissionResponseId: string; entry: string }
+  >;
 };
 
 export function useSessionDocks({
@@ -28,8 +46,12 @@ export function useSessionDocks({
   retry,
   doomLoop,
   pendingQuestions,
+  pendingPermissionResponses,
   replyQuestion,
   rejectQuestion,
+  allowPermissionResponse,
+  rejectPermissionResponse,
+  alternativePermissionResponse,
 }: UseSessionDocksOptions): DockItem[] {
   return React.useMemo(() => {
     const items: DockItem[] = [];
@@ -82,6 +104,57 @@ export function useSessionDocks({
       });
     }
 
+    if (pendingPermissionResponses.length > 0) {
+      const first = pendingPermissionResponses[0];
+      items.push({
+        id: 'permission-response',
+        title: `Allow ${first?.toolName ?? 'tool'}?`,
+        defaultExpanded: true,
+        variant: 'primary',
+        children: (
+          <PermissionResponseDock
+            permissionResponses={pendingPermissionResponses}
+            onAllow={async (permissionResponseId) => {
+              try {
+                await allowPermissionResponse.mutateAsync({ sessionId, permissionResponseId });
+              } catch (error) {
+                console.error('Failed to allow tool:', error);
+              }
+            }}
+            onReject={async (permissionResponseId) => {
+              try {
+                await rejectPermissionResponse.mutateAsync({ sessionId, permissionResponseId });
+              } catch (error) {
+                console.error('Failed to reject tool:', error);
+              }
+            }}
+            onAlternative={async (permissionResponseId, entry) => {
+              try {
+                await alternativePermissionResponse.mutateAsync({
+                  sessionId,
+                  permissionResponseId,
+                  entry,
+                });
+              } catch (error) {
+                console.error('Failed to submit alternative action:', error);
+              }
+            }}
+          />
+        ),
+      });
+    }
+
     return items;
-  }, [doomLoop, retry, pendingQuestions, sessionId, replyQuestion, rejectQuestion]);
+  }, [
+    doomLoop,
+    retry,
+    pendingQuestions,
+    pendingPermissionResponses,
+    sessionId,
+    replyQuestion,
+    rejectQuestion,
+    allowPermissionResponse,
+    rejectPermissionResponse,
+    alternativePermissionResponse,
+  ]);
 }

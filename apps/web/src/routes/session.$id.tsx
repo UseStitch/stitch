@@ -14,6 +14,7 @@ import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
+import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { parseModelId } from '@/lib/model-id';
@@ -24,6 +25,12 @@ import {
   useSendMessage,
 } from '@/lib/queries/chat';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import {
+  permissionResponsesQueryOptions,
+  useAllowPermissionResponse,
+  useRejectPermissionResponse,
+  useAlternativePermissionResponse,
+} from '@/lib/queries/permissions';
 import {
   questionsQueryOptions,
   useReplyQuestion,
@@ -56,6 +63,9 @@ function SessionComponent() {
   const sendMessage = useSendMessage();
   const replyQuestion = useReplyQuestion();
   const rejectQuestion = useRejectQuestion();
+  const allowPermissionResponse = useAllowPermissionResponse();
+  const rejectPermissionResponse = useRejectPermissionResponse();
+  const alternativePermissionResponse = useAlternativePermissionResponse();
   const streamState = useSessionStreamState(id);
   const startStream = useStreamStore((s) => s.startStream);
   const abortStream = useStreamStore((s) => s.abortStream);
@@ -63,8 +73,12 @@ function SessionComponent() {
 
   const questionsQuery = useQuery(questionsQueryOptions(id));
   const pendingQuestions = questionsQuery.data?.filter((q) => q.status === 'pending') ?? [];
+  const permissionResponsesQuery = useQuery(permissionResponsesQueryOptions(id));
+  const pendingPermissionResponses =
+    permissionResponsesQuery.data?.filter((p) => p.status === 'pending') ?? [];
 
   useQuestionSync(id);
+  usePermissionResponseSync(id);
   useSessionStream({ sessionId: id });
 
   const docks = useSessionDocks({
@@ -72,8 +86,12 @@ function SessionComponent() {
     retry: streamState.retry,
     doomLoop: streamState.doomLoop,
     pendingQuestions,
+    pendingPermissionResponses,
     replyQuestion,
     rejectQuestion,
+    allowPermissionResponse,
+    rejectPermissionResponse,
+    alternativePermissionResponse,
   });
 
   async function handleSubmit(text: string) {

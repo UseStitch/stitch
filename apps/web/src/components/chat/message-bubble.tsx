@@ -146,8 +146,13 @@ export const MessageBubble = React.memo(function MessageBubble({
                   output !== undefined &&
                   typeof output === 'object' &&
                   'error' in (output as object);
-                // Tool calls without a result on an aborted message show as aborted
-                const status = !result && wasAborted ? 'error' : isError ? 'error' : 'completed';
+                const missingResult = !result;
+                const status = missingResult || isError ? 'error' : 'completed';
+                const error = wasAborted
+                  ? 'Interrupted'
+                  : missingResult
+                    ? 'Blocked or failed before completion'
+                    : undefined;
                 return (
                   <ToolCallBlock
                     key={seg.key}
@@ -155,6 +160,7 @@ export const MessageBubble = React.memo(function MessageBubble({
                     status={status}
                     args={part.input}
                     result={output}
+                    error={error}
                   />
                 );
               }
@@ -244,6 +250,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
                 status={part.status}
                 args={part.input}
                 result={part.output}
+                error={part.error ?? undefined}
               />
             );
           case 'source': {

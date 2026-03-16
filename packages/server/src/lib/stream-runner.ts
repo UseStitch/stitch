@@ -16,6 +16,10 @@ import { executeStepWithRetry } from '@/llm/step-executor.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
+function isPermissionRejectedError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('User rejected tool execution for ');
+}
+
 async function saveAssistantMessage(opts: {
   sessionId: string;
   assistantMessageId: PrefixedString<'msg'>;
@@ -194,6 +198,29 @@ export async function runStream(opts: {
           });
         }
       }
+    } else if (isPermissionRejectedError(error)) {
+      const rejectionMessage = error instanceof Error ? error.message : String(error);
+      finalFinishReason = 'blocked';
+      for (let i = accumulatedParts.length - 1; i >= 0; i--) {
+        const type = accumulatedParts[i]?.type;
+        if (
+          type === 'text-delta' ||
+          type === 'text-start' ||
+          type === 'text-end' ||
+          type === 'reasoning-delta' ||
+          type === 'reasoning-start' ||
+          type === 'reasoning-end' ||
+          type === 'source' ||
+          type === 'file'
+        ) {
+          accumulatedParts.splice(i, 1);
+        }
+      }
+      log.info('stream stopped due to user-rejected tool', {
+        sessionId,
+        messageId: assistantMessageId,
+        error: rejectionMessage,
+      });
     } else if (error instanceof Error && error.message === 'context_overflow') {
       contextOverflow = true;
       needsCompaction = true;

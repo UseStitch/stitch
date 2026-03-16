@@ -62,6 +62,8 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
         'question-asked',
         'question-replied',
         'question-rejected',
+        'permission-response-requested',
+        'permission-response-resolved',
       ];
 
       eventNames.forEach((eventName) => {

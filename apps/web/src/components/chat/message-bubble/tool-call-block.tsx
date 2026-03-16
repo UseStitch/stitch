@@ -107,19 +107,32 @@ function QuestionToolBlock({
   );
 }
 
-function GenericToolBlock({ toolName, status }: { toolName: string; status: ToolCallStatus }) {
+function GenericToolBlock({
+  toolName,
+  status,
+  error,
+}: {
+  toolName: string;
+  status: ToolCallStatus;
+  error?: string;
+}) {
   const hasError = status === 'error';
   const isActive = status === 'pending' || status === 'in-progress';
+  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
+  const label = isBlocked ? 'Blocked by user' : error;
 
   return (
     <div
       className={cn(
-        'my-2 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors',
+        'my-2 inline-flex flex-col items-start gap-1 rounded-lg border px-3 py-1.5 text-xs transition-colors',
         toolCallBorderClass({ hasError, isActive }),
       )}
     >
-      <StatusIcon status={status} />
-      <span className="font-medium">{toolName}</span>
+      <div className="inline-flex items-center gap-2">
+        <StatusIcon status={status} />
+        <span className="font-medium">{toolName}</span>
+      </div>
+      {label ? <span className="text-muted-foreground">{label}</span> : null}
     </div>
   );
 }
@@ -129,14 +142,15 @@ type ToolCallBlockProps = {
   status: ToolCallStatus;
   args?: unknown;
   result?: unknown;
+  error?: string;
 };
 
-export function ToolCallBlock({ toolName, status, args, result }: ToolCallBlockProps) {
+export function ToolCallBlock({ toolName, status, args, result, error }: ToolCallBlockProps) {
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
 
   if (isQuestion) {
     return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;
   }
 
-  return <GenericToolBlock toolName={toolName} status={status} />;
+  return <GenericToolBlock toolName={toolName} status={status} error={error} />;
 }

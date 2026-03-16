@@ -15,6 +15,10 @@ import type { ToolCallRecord } from './doom-loop.js';
 
 const log = Log.create({ service: 'step-executor' });
 
+function isPermissionRejectedError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('User rejected tool execution for ');
+}
+
 type StepResult = {
   finishReason: string;
   usage: LanguageModelUsage;
@@ -92,6 +96,8 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
     } catch (error) {
       // Don't retry on abort — re-throw immediately
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      // Don't retry when user explicitly rejected a tool call
+      if (isPermissionRejectedError(error)) throw error;
 
       attempt++;
       const errorInfo = extractErrorInfo(error, opts.providerId);

@@ -222,20 +222,25 @@ export class StreamAccumulator {
       }
 
       case 'tool-error': {
+        const errorText = String(part.error);
         await Sse.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           status: 'error',
-          error: String(part.error),
+          error: errorText,
         });
 
         log.warn('tool call failed', {
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          error: String(part.error),
+          error: errorText,
         });
+
+        if (errorText.startsWith('User rejected tool execution for ')) {
+          throw new Error(errorText);
+        }
         break;
       }
 

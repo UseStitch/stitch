@@ -15,6 +15,7 @@ import { buildCompactedHistory, compact } from '@/llm/compaction.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortQuestions } from '@/question/service.js';
+import { abortPermissionResponses } from '@/permission/service.js';
 
 const log = Log.create({ service: 'chat' });
 
@@ -246,6 +247,7 @@ chatRouter.post('/sessions/:id/abort', async (c) => {
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
   await abortQuestions(sessionId);
+  await abortPermissionResponses(sessionId);
   return c.json({ ok: true });
 });
 

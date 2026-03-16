@@ -111,3 +111,24 @@ export const questions = sqliteTable('questions', {
     .$defaultFn(() => new Date()),
   answeredAt: integer('answered_at', { mode: 'timestamp_ms' }),
 });
+
+export const permissionResponses = sqliteTable('permission_responses', {
+  id: text('id').$type<PrefixedString<'permres'>>().primaryKey(),
+  sessionId: text('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
+  toolCallId: text('tool_call_id').notNull(),
+  toolName: text('tool_name').notNull(),
+  toolInput: blob('tool_input', { mode: 'json' }),
+  systemReminder: text('system_reminder').notNull(),
+  status: text('status')
+    .$type<'pending' | 'allowed' | 'rejected' | 'alternative'>()
+    .notNull()
+    .default('pending'),
+  entry: text('entry'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+});
