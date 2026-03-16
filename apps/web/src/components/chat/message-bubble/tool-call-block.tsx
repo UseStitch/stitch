@@ -1,5 +1,4 @@
 import {
-  ChevronDownIcon,
   ChevronRightIcon,
   CheckIcon,
   AlertCircleIcon,
@@ -93,13 +92,11 @@ function QuestionToolBlock({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 bg-primary/5 px-3 py-2 text-primary transition-colors hover:bg-primary/10"
       >
-        {open ? (
-          <ChevronDownIcon className="size-3 shrink-0 text-primary" />
-        ) : (
-          <ChevronRightIcon className="size-3 shrink-0 text-primary" />
-        )}
         <StatusIcon status={status} />
         <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
+        <ChevronRightIcon
+          className={cn('ml-auto size-3 shrink-0 text-primary transition-transform', open && 'rotate-90')}
+        />
       </button>
       {open && (
         <div className="border-t border-border/40 px-3 py-2 text-xs">
