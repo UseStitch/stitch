@@ -1,4 +1,4 @@
-import { useHotkey } from '@tanstack/react-hotkeys';
+import { useHotkey, useHotkeySequence } from '@tanstack/react-hotkeys';
 import { useParams } from '@tanstack/react-router';
 
 import type { Action } from '@/lib/actions';
@@ -15,6 +15,7 @@ export function useGlobalHotkeys(actions: Action[]) {
   const openSettingsKey = shortcuts.get('open-settings');
   const newSessionKey = shortcuts.get('new-session');
   const renameSessionKey = shortcuts.get('rename-session');
+  const stopStreamKey = shortcuts.get('stop-stream');
 
   useHotkey(commandPaletteKey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
     preventDefault: true,
@@ -32,4 +33,9 @@ export function useGlobalHotkeys(actions: Action[]) {
     preventDefault: true,
     enabled: !!renameSessionKey && isSessionPage,
   });
+  useHotkeySequence(
+    [stopStreamKey ?? 'Escape', stopStreamKey ?? 'Escape'],
+    () => actionMap.get('stop-stream')?.run(),
+    { enabled: !!stopStreamKey && isSessionPage, timeout: 500 },
+  );
 }

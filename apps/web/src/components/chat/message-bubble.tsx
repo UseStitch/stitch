@@ -12,6 +12,12 @@ import type { StreamingPart } from '@/stores/stream-store';
 
 export { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider.js';
 
+// ─── Interrupted label ────────────────────────────────────────────────────────
+
+function InterruptedLabel() {
+  return <p className="text-xs text-muted-foreground/60 mt-1">Interrupted</p>;
+}
+
 // ─── File block ───────────────────────────────────────────────────────────────
 
 function FileBlock({ mediaType }: { mediaType: string }) {
@@ -98,11 +104,13 @@ function buildDisplaySegments(parts: StoredPart[]): DisplaySegment[] {
 type MessageBubbleProps = {
   role: 'user' | 'assistant';
   parts: StoredPart[];
+  finishReason?: string | null;
 };
 
 export const MessageBubble = React.memo(function MessageBubble({
   role,
   parts,
+  finishReason,
 }: MessageBubbleProps) {
   if (role === 'user') {
     const text = extractTextFromParts(parts);
@@ -117,6 +125,7 @@ export const MessageBubble = React.memo(function MessageBubble({
 
   const segments = buildDisplaySegments(parts);
   const resultsByCallId = collectToolResults(parts);
+  const wasAborted = finishReason === 'aborted';
 
   return (
     <AssistantBubbleWrapper>
@@ -137,11 +146,13 @@ export const MessageBubble = React.memo(function MessageBubble({
                   output !== undefined &&
                   typeof output === 'object' &&
                   'error' in (output as object);
+                // Tool calls without a result on an aborted message show as aborted
+                const status = !result && wasAborted ? 'error' : isError ? 'error' : 'completed';
                 return (
                   <ToolCallBlock
                     key={seg.key}
                     toolName={part.toolName}
-                    status={isError ? 'error' : 'completed'}
+                    status={status}
                     args={part.input}
                     result={output}
                   />
@@ -162,6 +173,7 @@ export const MessageBubble = React.memo(function MessageBubble({
           }
         }
       })}
+      {wasAborted && <InterruptedLabel />}
     </AssistantBubbleWrapper>
   );
 });

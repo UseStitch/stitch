@@ -4,6 +4,7 @@ import type { ShortcutActionId } from '@openwork/shared';
 
 import { useDialogContext } from '@/context/dialog-context';
 import { serverFetch } from '@/lib/api';
+import { useStreamStore } from '@/stores/stream-store';
 
 export interface Action {
   id: ShortcutActionId;
@@ -23,6 +24,7 @@ export function useActions(): Action[] {
     renameSessionOpen,
     setRenameSessionOpen,
   } = useDialogContext();
+  const abortStream = useStreamStore((s) => s.abortStream);
 
   const actions: Action[] = [
     {
@@ -46,6 +48,11 @@ export function useActions(): Action[] {
       run: () => {
         void serverFetch(`/chat/sessions/${sessionId}/compact`, { method: 'POST' });
       },
+    });
+    actions.push({
+      id: 'stop-stream',
+      label: 'Stop stream',
+      run: () => void abortStream(sessionId),
     });
   }
 

@@ -77,3 +77,11 @@ export function resolveDecision(sessionId: string, response: DoomLoopResponse): 
   pending.delete(sessionId);
   return true;
 }
+
+/**
+ * Cancel a pending doom-loop decision by resolving it with 'stop'.
+ * Called when the session is aborted.
+ */
+export function cancelDecision(sessionId: string): void {
+  resolveDecision(sessionId, 'stop');
+}

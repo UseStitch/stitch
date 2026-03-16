@@ -25,6 +25,12 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     category: 'General',
     defaultHotkey: 'Mod+Shift+R',
   },
+  {
+    id: 'stop-stream',
+    label: 'Stop stream (double press)',
+    category: 'Chat',
+    defaultHotkey: 'Escape',
+  },
 ];
 
 export function useShortcuts(): Map<string, Hotkey | null> {

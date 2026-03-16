@@ -23,5 +23,6 @@ export const SHORTCUT_ACTION_IDS = [
   'new-session',
   'rename-session',
   'compact-session',
+  'stop-stream',
 ] as const;
 export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];

@@ -1,5 +1,5 @@
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
-import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon } from 'lucide-react';
+import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -149,6 +149,8 @@ type ChatInputInnerProps = {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
+  onStop?: () => void;
+  isStreaming?: boolean;
   selectedModel: string | null;
   onModelChange: (value: string) => void;
   placeholder?: string;
@@ -160,6 +162,8 @@ function ChatInputInner({
   value,
   onChange,
   onSubmit,
+  onStop,
+  isStreaming,
   selectedModel,
   onModelChange,
   placeholder = 'Ask anything...',
@@ -229,19 +233,31 @@ function ChatInputInner({
           )}
         </div>
 
-        {/* Right: submit */}
-        <Button
-          type="button"
-          size="icon-xs"
-          variant={canSubmit ? 'default' : 'outline'}
-          disabled={!canSubmit}
-          onClick={() => {
-            if (canSubmit) onSubmit(value);
-          }}
-          className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
-        >
-          <ArrowUpIcon className="size-3.5" />
-        </Button>
+        {/* Right: stop or submit */}
+        {isStreaming ? (
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="outline"
+            onClick={onStop}
+            className="shrink-0"
+          >
+            <SquareIcon className="size-3.5" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="icon-xs"
+            variant={canSubmit ? 'default' : 'outline'}
+            disabled={!canSubmit}
+            onClick={() => {
+              if (canSubmit) onSubmit(value);
+            }}
+            className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
+          >
+            <ArrowUpIcon className="size-3.5" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -251,6 +267,8 @@ type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
+  onStop?: () => void;
+  isStreaming?: boolean;
   selectedModel: string | null;
   onModelChange: (value: string) => void;
   placeholder?: string;

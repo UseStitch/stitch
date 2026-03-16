@@ -7,12 +7,14 @@ import type { StoredPart } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions, providerConfig } from '@/db/schema.js';
+import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
 import { runStream } from '@/lib/stream-runner.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
-import { resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
+import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
 import { generateTitle } from '@/llm/title-generator.js';
+import { abortQuestions } from '@/question/service.js';
 
 const log = Log.create({ service: 'chat' });
 
@@ -204,12 +206,17 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   const assistantMessageId = body.assistantMessageId as PrefixedString<'msg'>;
 
+  const abortSignal = AbortRegistry.register(sessionId);
+
   void runStream({
     sessionId,
     assistantMessageId,
     modelId: body.modelId,
     llmMessages,
     credentials: config.credentials,
+    abortSignal,
+  }).finally(() => {
+    AbortRegistry.cleanup(sessionId);
   });
 
   return c.json({ messageId: assistantMessageId, userMessageId }, 202);
@@ -228,6 +235,14 @@ chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
     return c.json({ error: 'No pending doom loop prompt for this session' }, 404);
   }
 
+  return c.json({ ok: true });
+});
+
+chatRouter.post('/sessions/:id/abort', async (c) => {
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+  AbortRegistry.abort(sessionId);
+  cancelDecision(sessionId);
+  await abortQuestions(sessionId);
   return c.json({ ok: true });
 });
 

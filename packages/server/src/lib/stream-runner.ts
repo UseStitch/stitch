@@ -40,13 +40,16 @@ async function runStep(opts: {
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
   tools: ReturnType<typeof createTools>;
+  abortSignal: AbortSignal;
 }): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools } = opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } =
+    opts;
 
   const result = streamText({
     model,
     messages: conversation,
     tools,
+    abortSignal,
     experimental_transform: smoothStream({
       delayInMs: 100,
     }),
@@ -61,261 +64,292 @@ async function runStep(opts: {
   let currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
   let currentReasoningPart: { id: PartId; text: string; startedAt: number } | null = null;
 
-  for await (const part of result.fullStream) {
-    switch (part.type) {
-      case 'text-start': {
-        const partId = createPartId();
-        currentTextPart = { id: partId, text: '', startedAt: Date.now() };
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
-        break;
+  try {
+    for await (const part of result.fullStream) {
+      if (abortSignal.aborted) {
+        throw new DOMException('Stream aborted', 'AbortError');
       }
 
-      case 'text-delta': {
-        if (currentTextPart) {
-          currentTextPart.text += part.text;
-          await Sse.broadcast('stream-part-delta', {
-            sessionId,
-            messageId,
-            partId: currentTextPart.id,
-            delta: part,
-          });
+      switch (part.type) {
+        case 'text-start': {
+          const partId = createPartId();
+          currentTextPart = { id: partId, text: '', startedAt: Date.now() };
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+          break;
         }
-        break;
-      }
 
-      case 'text-end': {
-        if (currentTextPart) {
+        case 'text-delta': {
+          if (currentTextPart) {
+            currentTextPart.text += part.text;
+            await Sse.broadcast('stream-part-delta', {
+              sessionId,
+              messageId,
+              partId: currentTextPart.id,
+              delta: part,
+            });
+          }
+          break;
+        }
+
+        case 'text-end': {
+          if (currentTextPart) {
+            const now = Date.now();
+            accumulatedParts.push({
+              type: 'text-delta' as const,
+              text: currentTextPart.text,
+              id: currentTextPart.id,
+              startedAt: currentTextPart.startedAt,
+              endedAt: now,
+            });
+            await Sse.broadcast('stream-part-update', {
+              sessionId,
+              messageId,
+              partId: currentTextPart.id,
+              part,
+            });
+            currentTextPart = null;
+          }
+          break;
+        }
+
+        case 'reasoning-start': {
+          const partId = createPartId();
+          currentReasoningPart = { id: partId, text: '', startedAt: Date.now() };
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+          break;
+        }
+
+        case 'reasoning-delta': {
+          if (currentReasoningPart) {
+            currentReasoningPart.text += part.text;
+            await Sse.broadcast('stream-part-delta', {
+              sessionId,
+              messageId,
+              partId: currentReasoningPart.id,
+              delta: part,
+            });
+          }
+          break;
+        }
+
+        case 'reasoning-end': {
+          if (currentReasoningPart) {
+            const now = Date.now();
+            accumulatedParts.push({
+              type: 'reasoning-delta' as const,
+              text: currentReasoningPart.text,
+              id: currentReasoningPart.id,
+              startedAt: currentReasoningPart.startedAt,
+              endedAt: now,
+            });
+            await Sse.broadcast('stream-part-update', {
+              sessionId,
+              messageId,
+              partId: currentReasoningPart.id,
+              part,
+            });
+            currentReasoningPart = null;
+          }
+          break;
+        }
+
+        case 'source': {
           const now = Date.now();
-          accumulatedParts.push({
-            type: 'text-delta' as const,
-            text: currentTextPart.text,
-            id: currentTextPart.id,
-            startedAt: currentTextPart.startedAt,
-            endedAt: now,
-          });
-          await Sse.broadcast('stream-part-update', {
-            sessionId,
-            messageId,
-            partId: currentTextPart.id,
-            part,
-          });
-          currentTextPart = null;
+          const partId = createPartId();
+          accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+          break;
         }
-        break;
-      }
 
-      case 'reasoning-start': {
-        const partId = createPartId();
-        currentReasoningPart = { id: partId, text: '', startedAt: Date.now() };
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
-        break;
-      }
-
-      case 'reasoning-delta': {
-        if (currentReasoningPart) {
-          currentReasoningPart.text += part.text;
-          await Sse.broadcast('stream-part-delta', {
-            sessionId,
-            messageId,
-            partId: currentReasoningPart.id,
-            delta: part,
-          });
-        }
-        break;
-      }
-
-      case 'reasoning-end': {
-        if (currentReasoningPart) {
+        case 'file': {
+          const partId = createPartId();
           const now = Date.now();
-          accumulatedParts.push({
-            type: 'reasoning-delta' as const,
-            text: currentReasoningPart.text,
-            id: currentReasoningPart.id,
-            startedAt: currentReasoningPart.startedAt,
-            endedAt: now,
-          });
-          await Sse.broadcast('stream-part-update', {
+          accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
+          await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
+          break;
+        }
+
+        case 'tool-input-start': {
+          await Sse.broadcast('stream-tool-state', {
             sessionId,
             messageId,
-            partId: currentReasoningPart.id,
-            part,
+            toolCallId: part.id,
+            toolName: part.toolName,
+            status: 'pending',
           });
-          currentReasoningPart = null;
+          break;
         }
-        break;
-      }
 
-      case 'source': {
-        const now = Date.now();
-        const partId = createPartId();
-        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
-        break;
-      }
+        case 'tool-input-delta': {
+          await Sse.broadcast('stream-tool-input-delta', {
+            sessionId,
+            messageId,
+            toolCallId: part.id,
+            toolName: '',
+            inputTextDelta: part.delta,
+          });
+          break;
+        }
 
-      case 'file': {
-        const partId = createPartId();
-        const now = Date.now();
-        accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await Sse.broadcast('stream-part-update', { sessionId, messageId, partId, part });
-        break;
-      }
+        case 'tool-input-end':
+          break;
 
-      case 'tool-input-start': {
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId,
-          toolCallId: part.id,
-          toolName: part.toolName,
-          status: 'pending',
-        });
-        break;
-      }
+        case 'tool-call': {
+          const now = Date.now();
+          const partId = createPartId();
 
-      case 'tool-input-delta': {
-        await Sse.broadcast('stream-tool-input-delta', {
-          sessionId,
-          messageId,
-          toolCallId: part.id,
-          toolName: '',
-          inputTextDelta: part.delta,
-        });
-        break;
-      }
+          // Record for doom loop detection
+          toolCalls.push({
+            toolName: part.toolName,
+            inputJson: stableStringify(part.input),
+          });
 
-      case 'tool-input-end':
-        break;
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            status: 'in-progress',
+            input: part.input,
+          });
 
-      case 'tool-call': {
-        const now = Date.now();
-        const partId = createPartId();
+          accumulatedParts.push({
+            ...part,
+            id: partId,
+            toolCallId: part.toolCallId,
+            startedAt: now,
+            endedAt: now,
+          } as StoredPart);
+          break;
+        }
 
-        // Record for doom loop detection
-        toolCalls.push({
-          toolName: part.toolName,
-          inputJson: stableStringify(part.input),
-        });
+        case 'tool-result': {
+          const now = Date.now();
+          const partId = createPartId();
 
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          status: 'in-progress',
-          input: part.input,
-        });
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            status: 'completed',
+            input: part.input,
+            output: part.output,
+          });
 
-        accumulatedParts.push({
-          ...part,
-          id: partId,
-          toolCallId: part.toolCallId,
-          startedAt: now,
-          endedAt: now,
-        } as StoredPart);
-        break;
-      }
+          accumulatedParts.push({
+            type: 'tool-result',
+            id: partId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: part.input,
+            output: part.output,
+            truncated: false,
+            startedAt: now,
+            endedAt: now,
+          } as StoredPart);
+          break;
+        }
 
-      case 'tool-result': {
-        const now = Date.now();
-        const partId = createPartId();
+        case 'tool-error': {
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            status: 'error',
+            error: String(part.error),
+          });
 
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          status: 'completed',
-          input: part.input,
-          output: part.output,
-        });
+          log.warn('tool call failed', {
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            error: String(part.error),
+          });
+          break;
+        }
 
-        accumulatedParts.push({
-          type: 'tool-result',
-          id: partId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
-          output: part.output,
-          truncated: false,
-          startedAt: now,
-          endedAt: now,
-        } as StoredPart);
-        break;
-      }
+        case 'error': {
+          log.error('stream part error', { sessionId, messageId, error: part.error });
+          await Sse.broadcast('stream-error', { sessionId, messageId, error: String(part.error) });
+          break;
+        }
 
-      case 'tool-error': {
-        await Sse.broadcast('stream-tool-state', {
-          sessionId,
-          messageId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          status: 'error',
-          error: String(part.error),
-        });
+        case 'start-step': {
+          const stepStartNow = Date.now();
+          const partId = createPartId();
+          accumulatedParts.push({
+            type: 'step-start' as const,
+            id: partId,
+            step,
+            startedAt: stepStartNow,
+            endedAt: stepStartNow,
+          });
+          await Sse.broadcast('step-start', { sessionId, messageId, step });
+          break;
+        }
 
-        log.warn('tool call failed', {
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          error: String(part.error),
-        });
-        break;
-      }
+        case 'finish-step': {
+          const stepFinishNow = Date.now();
+          const partId = createPartId();
+          accumulatedParts.push({
+            type: 'step-finish' as const,
+            id: partId,
+            step,
+            finishReason: part.finishReason,
+            usage: part.usage,
+            startedAt: stepFinishNow,
+            endedAt: stepFinishNow,
+          });
+          await Sse.broadcast('step-finish', {
+            sessionId,
+            messageId,
+            step,
+            finishReason: part.finishReason,
+            usage: part.usage,
+          });
+          break;
+        }
 
-      case 'error': {
-        log.error('stream part error', { sessionId, messageId, error: part.error });
-        await Sse.broadcast('stream-error', { sessionId, messageId, error: String(part.error) });
-        break;
-      }
+        case 'start':
+        case 'raw':
+          break;
 
-      case 'start-step': {
-        const stepStartNow = Date.now();
-        const partId = createPartId();
-        accumulatedParts.push({
-          type: 'step-start' as const,
-          id: partId,
-          step,
-          startedAt: stepStartNow,
-          endedAt: stepStartNow,
-        });
-        await Sse.broadcast('step-start', { sessionId, messageId, step });
-        break;
-      }
+        case 'abort':
+          throw new DOMException('Stream aborted', 'AbortError');
 
-      case 'finish-step': {
-        const stepFinishNow = Date.now();
-        const partId = createPartId();
-        accumulatedParts.push({
-          type: 'step-finish' as const,
-          id: partId,
-          step,
-          finishReason: part.finishReason,
-          usage: part.usage,
-          startedAt: stepFinishNow,
-          endedAt: stepFinishNow,
-        });
-        await Sse.broadcast('step-finish', {
-          sessionId,
-          messageId,
-          step,
-          finishReason: part.finishReason,
-          usage: part.usage,
-        });
-        break;
-      }
-
-      case 'start':
-      case 'raw':
-        break;
-
-      case 'finish': {
-        return {
-          finishReason: part.finishReason,
-          usage: part.totalUsage,
-          toolCalls,
-          responseMessages: (await result.response).messages,
-        };
+        case 'finish': {
+          return {
+            finishReason: part.finishReason,
+            usage: part.totalUsage,
+            toolCalls,
+            responseMessages: (await result.response).messages,
+          };
+        }
       }
     }
+  } catch (e) {
+    // Flush any in-progress text/reasoning parts so partial content is preserved
+    const now = Date.now();
+    if (currentTextPart && currentTextPart.text) {
+      accumulatedParts.push({
+        type: 'text-delta' as const,
+        text: currentTextPart.text,
+        id: currentTextPart.id,
+        startedAt: currentTextPart.startedAt,
+        endedAt: now,
+      });
+    }
+    if (currentReasoningPart && currentReasoningPart.text) {
+      accumulatedParts.push({
+        type: 'reasoning-delta' as const,
+        text: currentReasoningPart.text,
+        id: currentReasoningPart.id,
+        startedAt: currentReasoningPart.startedAt,
+        endedAt: now,
+      });
+    }
+    throw e;
   }
 
   return {
@@ -335,6 +369,7 @@ async function runStepWithRetry(opts: {
   accumulatedParts: StoredPart[];
   providerId: string;
   tools: ReturnType<typeof createTools>;
+  abortSignal: AbortSignal;
 }): Promise<StepResult> {
   let attempt = 0;
 
@@ -342,6 +377,9 @@ async function runStepWithRetry(opts: {
     try {
       return await runStep(opts);
     } catch (error) {
+      // Don't retry on abort — re-throw immediately
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+
       attempt++;
       const errorInfo = extractErrorInfo(error, opts.providerId);
 
@@ -396,7 +434,7 @@ async function runStepWithRetry(opts: {
         message: retryMessage,
       });
 
-      await sleep(waitTime);
+      await sleep(waitTime, opts.abortSignal);
     }
   }
 }
@@ -407,8 +445,9 @@ export async function runStream(opts: {
   modelId: string;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
+  abortSignal: AbortSignal;
 }): Promise<void> {
-  const { sessionId, assistantMessageId, modelId, llmMessages, credentials } = opts;
+  const { sessionId, assistantMessageId, modelId, llmMessages, credentials, abortSignal } = opts;
 
   const provider = createProvider(credentials);
   const model = provider(modelId);
@@ -423,6 +462,7 @@ export async function runStream(opts: {
   let needsCompaction = false;
   let contextOverflow = false;
   let streamError: unknown = undefined;
+  let wasAborted = false;
   const startedAt = Date.now();
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
@@ -446,6 +486,7 @@ export async function runStream(opts: {
         accumulatedParts,
         providerId: credentials.providerId,
         tools,
+        abortSignal,
       });
 
       totalUsage = Usage.addUsage(totalUsage, stepResult.usage);
@@ -500,6 +541,7 @@ export async function runStream(opts: {
             accumulatedParts,
             providerId: credentials.providerId,
             tools,
+            abortSignal,
           });
 
           totalUsage = Usage.addUsage(totalUsage, summaryResult.usage);
@@ -526,7 +568,30 @@ export async function runStream(opts: {
       });
     }
   } catch (error) {
-    if (error instanceof Error && error.message === 'context_overflow') {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      wasAborted = true;
+      finalFinishReason = 'aborted';
+      log.info('stream aborted by user', { sessionId, messageId: assistantMessageId });
+
+      // Mark any in-flight tool calls as aborted in the UI
+      const toolCallIds = new Set(
+        accumulatedParts
+          .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
+          .map((p) => p.toolCallId),
+      );
+      for (const part of accumulatedParts) {
+        if (part.type === 'tool-call' && !toolCallIds.has(part.toolCallId)) {
+          await Sse.broadcast('stream-tool-state', {
+            sessionId,
+            messageId: assistantMessageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            status: 'error',
+            error: 'Aborted',
+          });
+        }
+      }
+    } else if (error instanceof Error && error.message === 'context_overflow') {
       contextOverflow = true;
       needsCompaction = true;
       finalFinishReason = 'context-overflow';
@@ -567,6 +632,9 @@ export async function runStream(opts: {
   }
 
   if (streamError) throw streamError;
+
+  // Skip compaction if the stream was aborted — user interrupted, don't start new long-running work
+  if (wasAborted) return;
 
   // ── Compaction ────────────────────────────────────────────────────────────
   if (needsCompaction) {

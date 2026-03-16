@@ -25,7 +25,7 @@ type MessageListProps = {
 
 type RowData =
   | { kind: 'load-more' }
-  | { kind: 'message'; id: string; role: Message['role']; parts: Message['parts'] }
+  | { kind: 'message'; id: string; role: Message['role']; parts: Message['parts']; finishReason: Message['finishReason'] }
   | { kind: 'compaction'; id: string; summaryParts?: Message['parts'] }
   | { kind: 'streaming' }
   | { kind: 'error'; message: string };
@@ -67,7 +67,7 @@ function buildRows(
       continue;
     }
 
-    rows.push({ kind: 'message', id: msg.id, role: msg.role, parts: msg.parts });
+    rows.push({ kind: 'message', id: msg.id, role: msg.role, parts: msg.parts, finishReason: msg.finishReason });
   }
 
   const hasStreamContent =
@@ -229,7 +229,7 @@ export function MessageList({
         return <CompactionDivider key={row.id} summaryParts={row.summaryParts} />;
 
       case 'message':
-        return <MessageBubble key={row.id} role={row.role} parts={row.parts} />;
+        return <MessageBubble key={row.id} role={row.role} parts={row.parts} finishReason={row.finishReason} />;
 
       case 'streaming':
         return (

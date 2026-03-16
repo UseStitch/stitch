@@ -36,12 +36,13 @@ export function createQuestionTool(context: {
     description:
       'Ask the user questions during execution. Use this when you need clarification or additional information from the user before proceeding.',
     inputSchema: questionInputSchema,
-    execute: async (input, { toolCallId }) => {
+    execute: async (input, { toolCallId, abortSignal }) => {
       const answers = await askQuestion({
         sessionId: context.sessionId,
         questions: input.questions,
         toolCallId,
         messageId: context.messageId,
+        abortSignal,
       });
 
       function formatAnswer(answer: string[] | undefined): string {

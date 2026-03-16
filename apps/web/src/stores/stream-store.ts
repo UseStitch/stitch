@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import type { LanguageModelUsage, LanguageModelV3Source } from '@openwork/shared';
 import type { PartDelta, PartUpdate, ToolCallStatus } from '@openwork/shared';
 
+import { serverFetch } from '@/lib/api';
+
 // ─── Streaming part types (FE in-flight state) ────────────────────────────────
 
 export type StreamingTextPart = {
@@ -142,6 +144,7 @@ type StreamStoreActions = {
     consecutiveCount: number,
   ) => void;
   resetSession: (sessionId: string) => void;
+  abortStream: (sessionId: string) => Promise<void>;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -495,4 +498,19 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       const { [sessionId]: _, ...rest } = state.sessions;
       return { sessions: rest };
     }),
+
+  abortStream: async (sessionId) => {
+    // Optimistically mark as no longer streaming
+    set((state) => {
+      const session = getSession(state.sessions, sessionId);
+      if (!session) return state;
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: { ...session, isStreaming: false },
+        },
+      };
+    });
+    await serverFetch(`/chat/sessions/${sessionId}/abort`, { method: 'POST' });
+  },
 }));

@@ -56,6 +56,7 @@ function SessionComponent() {
   const rejectQuestion = useRejectQuestion();
   const streamState = useSessionStreamState(id);
   const startStream = useStreamStore((s) => s.startStream);
+  const abortStream = useStreamStore((s) => s.abortStream);
   const { isCompacting } = useCompactionUpdates(id);
 
   const questionsQuery = useQuery(questionsQueryOptions(id));
@@ -124,6 +125,8 @@ function SessionComponent() {
               onSubmit={(text) => {
                 void handleSubmit(text);
               }}
+              onStop={() => void abortStream(id)}
+              isStreaming={streamState.isStreaming}
               selectedModel={selectedModel}
               onModelChange={handleModelChange}
               placeholder={

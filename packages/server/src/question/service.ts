@@ -23,6 +23,7 @@ export async function askQuestion(opts: {
   questions: QuestionInfo[];
   toolCallId: string;
   messageId: PrefixedString<'msg'>;
+  abortSignal?: AbortSignal;
 }): Promise<string[][]> {
   const db = getDb();
   const id = createQuestionId();
@@ -47,29 +48,49 @@ export async function askQuestion(opts: {
   });
 
   return new Promise((resolve, reject) => {
+    let pollInterval: ReturnType<typeof setInterval>;
+
+    const cleanup = () => {
+      clearInterval(pollInterval);
+      pendingQuestions.delete(id);
+    };
+
+    const abortHandler = () => {
+      cleanup();
+      reject(new DOMException('Question aborted', 'AbortError'));
+    };
+
+    if (opts.abortSignal) {
+      if (opts.abortSignal.aborted) {
+        reject(new DOMException('Question aborted', 'AbortError'));
+        return;
+      }
+      opts.abortSignal.addEventListener('abort', abortHandler, { once: true });
+    }
+
     pendingQuestions.set(id, { resolve, reject });
 
-    const pollInterval = setInterval(async () => {
+    pollInterval = setInterval(async () => {
       const db = getDb();
       const [q] = await db.select().from(questions).where(eq(questions.id, id));
 
       if (!q) {
-        clearInterval(pollInterval);
-        pendingQuestions.delete(id);
+        opts.abortSignal?.removeEventListener('abort', abortHandler);
+        cleanup();
         reject(new Error('Question not found'));
         return;
       }
 
       if (q.status === 'answered') {
-        clearInterval(pollInterval);
-        pendingQuestions.delete(id);
+        opts.abortSignal?.removeEventListener('abort', abortHandler);
+        cleanup();
         resolve((q.answers as string[][] | undefined) ?? []);
         return;
       }
 
       if (q.status === 'rejected') {
-        clearInterval(pollInterval);
-        pendingQuestions.delete(id);
+        opts.abortSignal?.removeEventListener('abort', abortHandler);
+        cleanup();
         reject(new Error('Question rejected by user'));
         return;
       }
@@ -145,4 +166,37 @@ export async function getPendingQuestions(
   const rows = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
 
   return rows.filter((q) => q.status === 'pending') as QuestionRequest[];
+}
+
+/**
+ * Reject all pending questions for a session.
+ * Called when the session is aborted so tool execution is unblocked.
+ */
+export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<void> {
+  const db = getDb();
+  const now = new Date();
+
+  const pending = await db
+    .select()
+    .from(questions)
+    .where(eq(questions.sessionId, sessionId));
+
+  const pendingRows = pending.filter((q) => q.status === 'pending');
+  if (pendingRows.length === 0) return;
+
+  await db
+    .update(questions)
+    .set({ status: 'rejected', answeredAt: now })
+    .where(eq(questions.sessionId, sessionId));
+
+  for (const q of pendingRows) {
+    const entry = pendingQuestions.get(q.id as PrefixedString<'quest'>);
+    if (entry) {
+      entry.reject(new Error('Question rejected by user'));
+      pendingQuestions.delete(q.id as PrefixedString<'quest'>);
+    }
+    await broadcast('question-rejected', { questionId: q.id, sessionId });
+  }
+
+  log.info('aborted pending questions', { sessionId, count: pendingRows.length });
 }
