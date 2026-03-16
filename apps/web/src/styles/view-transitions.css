@@ -1,13 +1,18 @@
 :root {
   --motion-ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-duration-chat-enter: 220ms;
+  --motion-duration-chat-exit: 160ms;
+  --motion-duration-chat-shared: 220ms;
 }
 
-/* View transition: animate only the chat-input movement. */
+/* Keep route switches calm by avoiding root crossfades. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
 }
 
+/* Shared composer movement between index/session and session/session navigations. */
 ::view-transition-old(chat-input),
 ::view-transition-new(chat-input) {
   animation: none;
@@ -15,11 +20,60 @@
 }
 
 ::view-transition-group(chat-input) {
-  animation-duration: 180ms;
-  animation-timing-function: var(--motion-ease-out-strong);
+  animation-duration: var(--motion-duration-chat-shared);
+  animation-timing-function: var(--motion-ease-smooth);
+}
+
+/* Message pane transition when switching between sessions. */
+::view-transition-old(chat-thread),
+::view-transition-new(chat-thread) {
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(chat-thread) {
+  animation: chat-thread-exit var(--motion-duration-chat-exit) ease-out both;
+}
+
+::view-transition-new(chat-thread) {
+  animation: chat-thread-enter var(--motion-duration-chat-enter) var(--motion-ease-smooth) both;
+}
+
+::view-transition-group(chat-thread) {
+  animation-duration: var(--motion-duration-chat-shared);
+  animation-timing-function: var(--motion-ease-smooth);
+}
+
+@keyframes chat-thread-enter {
+  from {
+    opacity: 0.84;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-thread-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0.88;
+    transform: translateY(-2px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(chat-thread),
+  ::view-transition-new(chat-thread) {
+    animation: none;
+  }
+
+  ::view-transition-group(chat-thread),
   ::view-transition-group(chat-input) {
     animation-duration: 1ms;
   }

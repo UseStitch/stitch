@@ -124,7 +124,7 @@ function SessionComponent() {
       initial="smooth"
     >
       <StickToBottom.Content scrollClassName="no-scrollbar" className="px-6 pb-40 pt-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
           <MessageList
             messages={messages}
             streamState={streamState}
