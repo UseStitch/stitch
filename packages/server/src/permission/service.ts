@@ -1,7 +1,11 @@
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@openwork/shared';
-import type { PermissionDecisionResult, PermissionResponse, PermissionResponseStatus } from '@openwork/shared';
+import type {
+  PermissionDecisionResult,
+  PermissionResponse,
+  PermissionResponseStatus,
+} from '@openwork/shared';
 import { createPermissionResponseId } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
@@ -156,14 +160,20 @@ export async function getPendingPermissionResponses(
   sessionId: PrefixedString<'ses'>,
 ): Promise<PermissionResponse[]> {
   const db = getDb();
-  const rows = await db.select().from(permissionResponses).where(eq(permissionResponses.sessionId, sessionId));
+  const rows = await db
+    .select()
+    .from(permissionResponses)
+    .where(eq(permissionResponses.sessionId, sessionId));
   return rows.filter((p) => p.status === 'pending') as PermissionResponse[];
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {
   const db = getDb();
   const now = new Date();
-  const all = await db.select().from(permissionResponses).where(eq(permissionResponses.sessionId, sessionId));
+  const all = await db
+    .select()
+    .from(permissionResponses)
+    .where(eq(permissionResponses.sessionId, sessionId));
   const pending = all.filter((p) => p.status === 'pending');
   if (pending.length === 0) return;
 

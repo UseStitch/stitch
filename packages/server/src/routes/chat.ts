@@ -14,8 +14,8 @@ import { runStream } from '@/lib/stream-runner.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
 import { generateTitle } from '@/llm/title-generator.js';
-import { abortQuestions } from '@/question/service.js';
 import { abortPermissionResponses } from '@/permission/service.js';
+import { abortQuestions } from '@/question/service.js';
 
 const log = Log.create({ service: 'chat' });
 
@@ -139,7 +139,13 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     assistantMessageId: string;
   };
 
-  if (!body.content || !body.providerId || !body.modelId || !body.agentId || !body.assistantMessageId) {
+  if (
+    !body.content ||
+    !body.providerId ||
+    !body.modelId ||
+    !body.agentId ||
+    !body.assistantMessageId
+  ) {
     return c.json(
       { error: 'content, providerId, modelId, agentId, and assistantMessageId are required' },
       400,

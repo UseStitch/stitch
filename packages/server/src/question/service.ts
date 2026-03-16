@@ -176,10 +176,7 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
   const db = getDb();
   const now = new Date();
 
-  const pending = await db
-    .select()
-    .from(questions)
-    .where(eq(questions.sessionId, sessionId));
+  const pending = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
 
   const pendingRows = pending.filter((q) => q.status === 'pending');
   if (pendingRows.length === 0) return;

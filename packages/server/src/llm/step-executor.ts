@@ -1,17 +1,17 @@
 import { streamText, smoothStream } from 'ai';
-import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 import type { StoredPart } from '@openwork/shared';
 
+import { StreamAccumulator } from './stream-accumulator.js';
+
+import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/provider/provider.js';
 import type { createTools } from '@/tools/index.js';
 import * as Usage from '@/utils/usage.js';
-
-import { StreamAccumulator } from './stream-accumulator.js';
-import type { ToolCallRecord } from './doom-loop.js';
+import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'step-executor' });
 
@@ -39,7 +39,8 @@ export type StepOptions = {
 };
 
 async function executeStep(opts: StepOptions): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } = opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } =
+    opts;
 
   const result = streamText({
     model,
@@ -55,7 +56,13 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
   });
 
   const toolCalls: ToolCallRecord[] = [];
-  const accumulator = new StreamAccumulator(sessionId, messageId, step, accumulatedParts, toolCalls);
+  const accumulator = new StreamAccumulator(
+    sessionId,
+    messageId,
+    step,
+    accumulatedParts,
+    toolCalls,
+  );
 
   try {
     for await (const part of result.fullStream) {

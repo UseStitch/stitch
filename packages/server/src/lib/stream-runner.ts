@@ -6,13 +6,12 @@ import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { isOverflow, compact, getModelLimits } from '@/llm/compaction.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
+import { executeStepWithRetry } from '@/llm/step-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
-
-import { executeStepWithRetry } from '@/llm/step-executor.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -77,7 +76,8 @@ export async function runStream(opts: {
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
 }): Promise<void> {
-  const { sessionId, assistantMessageId, modelId, agentId, llmMessages, credentials, abortSignal } = opts;
+  const { sessionId, assistantMessageId, modelId, agentId, llmMessages, credentials, abortSignal } =
+    opts;
 
   const provider = createProvider(credentials);
   const model = provider(modelId);

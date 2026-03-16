@@ -4,14 +4,14 @@ import { cors } from 'hono/cors';
 
 import { init } from '@/init.js';
 import { PATHS } from '@/lib/paths.js';
+import { agentsRouter } from '@/routes/agents.js';
 import { chatRouter } from '@/routes/chat.js';
 import { eventsRouter } from '@/routes/events.js';
+import { permissionsRouter } from '@/routes/permissions.js';
 import { providerRouter } from '@/routes/provider.js';
 import { questionsRouter } from '@/routes/questions.js';
-import { permissionsRouter } from '@/routes/permissions.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
-import { agentsRouter } from '@/routes/agents.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {

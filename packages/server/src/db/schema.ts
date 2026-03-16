@@ -82,7 +82,9 @@ export const messages = sqliteTable('messages', {
   parts: blob('parts', { mode: 'json' }).$type<StoredPart[]>().notNull(),
   modelId: text('model_id').notNull(),
   providerId: text('provider_id').notNull(),
-  agentId: text('agent_id').notNull().references(() => agents.id),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => agents.id),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),

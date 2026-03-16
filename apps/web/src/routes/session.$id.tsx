@@ -9,12 +9,12 @@ import { createMessageId, type PrefixedString } from '@openwork/shared';
 import { ChatInput } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
-import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
+import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
-import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-sync';
+import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { parseModelId } from '@/lib/model-id';
@@ -24,13 +24,13 @@ import {
   flattenMessages,
   useSendMessage,
 } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import {
   permissionResponsesQueryOptions,
   useAllowPermissionResponse,
   useRejectPermissionResponse,
   useAlternativePermissionResponse,
 } from '@/lib/queries/permissions';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import {
   questionsQueryOptions,
   useReplyQuestion,

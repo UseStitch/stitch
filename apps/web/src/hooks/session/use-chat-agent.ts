@@ -2,9 +2,10 @@ import * as React from 'react';
 
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
-import { agentsQueryOptions } from '@/lib/queries/agents';
 import { PrefixedString } from '@openwork/shared';
+
+import { agentsQueryOptions } from '@/lib/queries/agents';
+import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
 type UseChatAgentResult = {
   selectedAgent: PrefixedString<'agt'> | null;
@@ -15,14 +16,16 @@ export function useChatAgent(): UseChatAgentResult {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
-  
+
   const [agentOverride, setAgentOverride] = React.useState<PrefixedString<'agt'> | null>(null);
 
   const defaultAgentId = React.useMemo(() => {
-    return agents.find(a => a.isDefault)?.id ?? null;
+    return agents.find((a) => a.isDefault)?.id ?? null;
   }, [agents]);
 
-  const selectedAgent = (agentOverride ?? settings['agent.default'] ?? defaultAgentId) as PrefixedString<'agt'> | null;
+  const selectedAgent = (agentOverride ??
+    settings['agent.default'] ??
+    defaultAgentId) as PrefixedString<'agt'> | null;
 
   const saveDefaultAgent = useMutation(
     saveSettingMutationOptions('agent.default', queryClient, { silent: true }),

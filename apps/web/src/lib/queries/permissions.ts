@@ -42,7 +42,9 @@ export function useAllowPermissionResponse() {
       return res.json();
     },
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
+      void queryClient.invalidateQueries({
+        queryKey: permissionResponseKeys.list(input.sessionId),
+      });
     },
   });
 }
@@ -60,7 +62,9 @@ export function useRejectPermissionResponse() {
       return res.json();
     },
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
+      void queryClient.invalidateQueries({
+        queryKey: permissionResponseKeys.list(input.sessionId),
+      });
     },
   });
 }
@@ -82,7 +86,9 @@ export function useAlternativePermissionResponse() {
       return res.json();
     },
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
+      void queryClient.invalidateQueries({
+        queryKey: permissionResponseKeys.list(input.sessionId),
+      });
     },
   });
 }

@@ -1,14 +1,23 @@
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
-import { ArrowUpIcon, CheckIcon, CpuIcon, SearchIcon, ChevronDownIcon, SquareIcon, BotIcon } from 'lucide-react';
+import {
+  ArrowUpIcon,
+  CheckIcon,
+  CpuIcon,
+  SearchIcon,
+  ChevronDownIcon,
+  SquareIcon,
+  BotIcon,
+} from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import type { Agent, PrefixedString } from '@openwork/shared';
+
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import type { Agent, PrefixedString } from '@openwork/shared';
+import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
@@ -303,11 +312,11 @@ function ChatInputInner({
       <div className="flex items-center justify-between px-3 pb-3 pt-1">
         {/* Left: model selector */}
         <div className="flex items-center gap-1">
-          {agents.filter(a => a.type === 'primary').length > 1 && (
+          {agents.filter((a) => a.type === 'primary').length > 1 && (
             <AgentSelectorPopover
               selectedValue={selectedAgent as PrefixedString<'agt'> | null}
               onSelect={onAgentChange}
-              agents={agents.filter(a => a.type === 'primary')}
+              agents={agents.filter((a) => a.type === 'primary')}
             />
           )}
           {providerModels.length > 0 && (

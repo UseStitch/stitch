@@ -8,13 +8,13 @@ import type { Session, MessagesPage, PrefixedString } from '@openwork/shared';
 import { createMessageId } from '@openwork/shared';
 
 import { ChatInput } from '@/components/chat/chat-input';
-import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { useChatAgent } from '@/hooks/session/use-chat-agent';
+import { useChatModel } from '@/hooks/session/use-chat-model';
 import { parseModelId } from '@/lib/model-id';
 import { agentsQueryOptions } from '@/lib/queries/agents';
+import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { useChatModel } from '@/hooks/session/use-chat-model';
-import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useStreamStore } from '@/stores/stream-store';
 
 export const Route = createFileRoute('/')({
@@ -35,7 +35,7 @@ function IndexComponent() {
   const startStream = useStreamStore((s) => s.startStream);
 
   const [value, setValue] = React.useState('');
-  
+
   const { selectedModel, handleModelChange } = useChatModel();
   const { selectedAgent, handleAgentChange } = useChatAgent();
 
@@ -46,7 +46,7 @@ function IndexComponent() {
 
     const parsed = parseModelId(selectedModel);
     if (!parsed) return;
-    
+
     const { providerId, modelId } = parsed;
 
     setValue('');

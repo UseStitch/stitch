@@ -1,7 +1,8 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { serverFetch } from '@/lib/api';
 import type { Agent } from '@openwork/shared';
+
+import { serverFetch } from '@/lib/api';
 
 const agentKeys = {
   all: ['agents'] as const,

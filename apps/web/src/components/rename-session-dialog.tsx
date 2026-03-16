@@ -2,12 +2,13 @@ import * as React from 'react';
 
 import { useParams } from '@tanstack/react-router';
 
+import { PrefixedString } from '@openwork/shared';
+
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useDialogContext } from '@/context/dialog-context';
 import { useRenameSession } from '@/lib/queries/chat';
-import { PrefixedString } from '@openwork/shared';
 
 export function RenameSessionDialog() {
   const { renameSessionOpen, setRenameSessionOpen } = useDialogContext();
@@ -25,7 +26,10 @@ export function RenameSessionDialog() {
 
   const handleRename = async () => {
     if (!title.trim() || !sessionId) return;
-    await renameMutation.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'>, title: title.trim() });
+    await renameMutation.mutateAsync({
+      sessionId: sessionId as PrefixedString<'ses'>,
+      title: title.trim(),
+    });
     setRenameSessionOpen(false);
   };
 

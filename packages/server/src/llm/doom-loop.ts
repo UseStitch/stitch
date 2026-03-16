@@ -1,6 +1,7 @@
-import * as Sse from '@/lib/sse.js';
-import * as Log from '@/lib/log.js';
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
+
+import * as Log from '@/lib/log.js';
+import * as Sse from '@/lib/sse.js';
 import * as Usage from '@/utils/usage.js';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
 
@@ -105,7 +106,7 @@ export async function checkAndHandleDoomLoop(opts: {
   currentState: DoomLoopState;
 }): Promise<DoomLoopState> {
   const { sessionId, messageId, toolCallHistory, conversation, stepOptions, currentState } = opts;
-  
+
   if (!isDoomLoop(toolCallHistory)) {
     return currentState;
   }
@@ -142,11 +143,11 @@ export async function checkAndHandleDoomLoop(opts: {
     });
 
     const newUsage = Usage.addUsage(currentState.totalUsage, summaryResult.usage);
-    
+
     for (const msg of summaryResult.responseMessages) {
       conversation.push(msg);
     }
-    
+
     return {
       totalUsage: newUsage,
       finalFinishReason: summaryResult.finishReason,

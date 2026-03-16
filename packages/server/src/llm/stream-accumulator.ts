@@ -1,9 +1,10 @@
 import type { PartId, StoredPart } from '@openwork/shared';
 import { createPartId } from '@openwork/shared';
-import * as Sse from '@/lib/sse.js';
+
 import * as Log from '@/lib/log.js';
-import { stableStringify } from '@/utils/stable-stringify.js';
+import * as Sse from '@/lib/sse.js';
 import type { ToolCallRecord } from '@/llm/doom-loop.js';
+import { stableStringify } from '@/utils/stable-stringify.js';
 
 const log = Log.create({ service: 'stream-accumulator' });
 
