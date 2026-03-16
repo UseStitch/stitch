@@ -21,6 +21,7 @@ type MessageListProps = {
   hasMore: boolean;
   isFetchingMore: boolean;
   onLoadMore: () => void;
+  onAbortTool?: () => void;
 };
 
 type RowData =
@@ -148,6 +149,7 @@ export function MessageList({
   hasMore,
   isFetchingMore,
   onLoadMore,
+  onAbortTool,
 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -247,6 +249,7 @@ export function MessageList({
             role={row.role}
             parts={row.parts}
             finishReason={row.finishReason}
+            onAbortTool={onAbortTool}
           />
         );
 
@@ -257,6 +260,7 @@ export function MessageList({
             partIds={streamState.partIds}
             parts={streamState.parts}
             isStreaming={streamState.isStreaming}
+            onAbortTool={onAbortTool}
           />
         );
 

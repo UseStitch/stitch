@@ -105,12 +105,14 @@ type MessageBubbleProps = {
   role: 'user' | 'assistant';
   parts: StoredPart[];
   finishReason?: string | null;
+  onAbortTool?: () => void;
 };
 
 export const MessageBubble = React.memo(function MessageBubble({
   role,
   parts,
   finishReason,
+  onAbortTool,
 }: MessageBubbleProps) {
   if (role === 'user') {
     const text = extractTextFromParts(parts);
@@ -161,6 +163,7 @@ export const MessageBubble = React.memo(function MessageBubble({
                     args={part.input}
                     result={output}
                     error={error}
+                    onAbort={onAbortTool}
                   />
                 );
               }
@@ -190,12 +193,14 @@ type StreamingMessageBubbleProps = {
   partIds: string[];
   parts: Record<string, StreamingPart>;
   isStreaming: boolean;
+  onAbortTool?: () => void;
 };
 
 export const StreamingMessageBubble = React.memo(function StreamingMessageBubble({
   partIds,
   parts,
   isStreaming,
+  onAbortTool,
 }: StreamingMessageBubbleProps) {
   const visibleIds = partIds.filter((id) => id in parts);
 
@@ -251,6 +256,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
                 args={part.input}
                 result={part.output}
                 error={part.error ?? undefined}
+                onAbort={onAbortTool}
               />
             );
           case 'source': {

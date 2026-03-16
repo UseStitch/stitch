@@ -5,6 +5,7 @@ import { getAgentPermissionDecision, requestPermissionResponse } from '@/permiss
 import { createQuestionTool } from '@/tools/question.js';
 import { truncateOutput } from '@/tools/truncation.js';
 import { createWeatherTool } from '@/tools/weather.js';
+import { createWebfetchTool, extractDomainForPermission } from '@/tools/webfetch.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'tools' });
@@ -31,6 +32,24 @@ const TOOL_PERMISSION_BEHAVIORS: Partial<Record<string, ToolPermissionBehavior>>
       return {
         message: `Always allow weather for ${location}`,
         pattern: location,
+      };
+    },
+  },
+  webfetch: {
+    getPatternTargets: (input) => {
+      const url = (input as { url?: unknown })?.url;
+      if (typeof url !== 'string' || url.length === 0) return [];
+      const domain = extractDomainForPermission(url);
+      return domain ? [domain] : [];
+    },
+    getSuggestion: (input) => {
+      const url = (input as { url?: unknown })?.url;
+      if (typeof url !== 'string' || url.length === 0) return null;
+      const domain = extractDomainForPermission(url);
+      if (!domain) return null;
+      return {
+        message: `Always allow from ${domain}`,
+        pattern: domain,
       };
     },
   },
@@ -130,10 +149,12 @@ export function createTools(context: {
   agentId: PrefixedString<'agt'>;
 }) {
   const weatherTool = withTruncation(withPermissionGate('weather', createWeatherTool(), context));
+  const webfetchTool = withTruncation(withPermissionGate('webfetch', createWebfetchTool(), context));
   const questionTool = withPermissionGate('question', createQuestionTool(context), context);
 
   return {
     weather: weatherTool,
+    webfetch: webfetchTool,
     question: questionTool,
   };
 }

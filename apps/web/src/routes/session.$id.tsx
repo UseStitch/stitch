@@ -151,6 +151,7 @@ function SessionComponent() {
             hasMore={messagesQuery.hasNextPage}
             isFetchingMore={messagesQuery.isFetchingNextPage}
             onLoadMore={() => void messagesQuery.fetchNextPage()}
+            onAbortTool={() => void abortStream(id)}
           />
         </div>
       </StickToBottom.Content>

@@ -3,6 +3,7 @@ import {
   CheckIcon,
   AlertCircleIcon,
   LoaderIcon,
+  SquareIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -140,19 +141,89 @@ function GenericToolBlock({
   );
 }
 
+function getWebfetchUrl(args: unknown): string | null {
+  const value = (args as { url?: unknown })?.url;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function truncateUrl(value: string, max = 84): string {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1)}...`;
+}
+
+function WebfetchToolBlock({
+  toolName,
+  status,
+  args,
+  error,
+  onAbort,
+}: {
+  toolName: string;
+  status: ToolCallStatus;
+  args: unknown;
+  error?: string;
+  onAbort?: () => void;
+}) {
+  const hasError = status === 'error';
+  const hasSuccess = status === 'completed';
+  const isActive = status === 'pending' || status === 'in-progress';
+  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
+  const label = isBlocked ? 'Blocked by user' : error;
+  const url = getWebfetchUrl(args);
+  const displayUrl = url ? truncateUrl(url) : 'Waiting for URL...';
+
+  return (
+    <div
+      className={cn(
+        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
+        toolCallBorderClass({ hasError, isActive, hasSuccess }),
+      )}
+    >
+      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
+        <StatusIcon status={status} />
+        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+          {label ? `${displayUrl} - ${label}` : displayUrl}
+        </span>
+        {isActive && onAbort ? (
+          <button
+            type="button"
+            onClick={onAbort}
+            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            title="Stop running tool"
+          >
+            <SquareIcon className="size-3" />
+            Stop
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 type ToolCallBlockProps = {
   toolName: string;
   status: ToolCallStatus;
   args?: unknown;
   result?: unknown;
   error?: string;
+  onAbort?: () => void;
 };
 
-export function ToolCallBlock({ toolName, status, args, result, error }: ToolCallBlockProps) {
+export function ToolCallBlock({ toolName, status, args, result, error, onAbort }: ToolCallBlockProps) {
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
+  const isWebfetch = toolName === 'webfetch' && args !== undefined && args !== null;
 
   if (isQuestion) {
     return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;
+  }
+
+  if (isWebfetch) {
+    return (
+      <WebfetchToolBlock toolName={toolName} status={status} args={args} error={error} onAbort={onAbort} />
+    );
   }
 
   return <GenericToolBlock toolName={toolName} status={status} error={error} />;
