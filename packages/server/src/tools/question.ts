@@ -1,9 +1,11 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@openwork/shared';
+import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
 
 import { askQuestion } from '@/question/service.js';
+import type { ToolContext } from '@/tools/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
 const questionOptionSchema = z
   .object({
@@ -60,4 +62,36 @@ export function createQuestionTool(context: {
       };
     },
   });
+}
+
+export function createTool(context: {
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+}) {
+  return createQuestionTool(context);
+}
+
+export function getPatternTargets(): string[] {
+  return [];
+}
+
+export function getSuggestion(): PermissionSuggestion | null {
+  return null;
+}
+
+export const shouldTruncate = false;
+
+export function createRegisteredTool(context: ToolContext) {
+  const baseTool = createTool(context);
+  const gatedTool = withPermissionGate(
+    'question',
+    {
+      getPatternTargets,
+      getSuggestion,
+    },
+    baseTool,
+    context,
+  );
+
+  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
 }

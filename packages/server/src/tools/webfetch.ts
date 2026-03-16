@@ -2,6 +2,11 @@ import TurndownService from 'turndown';
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import type { PermissionSuggestion } from '@openwork/shared';
+
+import type { ToolContext } from '@/tools/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;
 const MAX_TIMEOUT_SECONDS = 120;
@@ -215,4 +220,43 @@ Usage notes:
       }
     },
   });
+}
+
+export function createTool() {
+  return createWebfetchTool();
+}
+
+export function getPatternTargets(input: unknown): string[] {
+  const url = (input as { url?: unknown })?.url;
+  if (typeof url !== 'string' || url.length === 0) return [];
+  const domain = extractDomainForPermission(url);
+  return domain ? [domain] : [];
+}
+
+export function getSuggestion(input: unknown): PermissionSuggestion | null {
+  const url = (input as { url?: unknown })?.url;
+  if (typeof url !== 'string' || url.length === 0) return null;
+  const domain = extractDomainForPermission(url);
+  if (!domain) return null;
+  return {
+    message: `Always allow from ${domain}`,
+    pattern: domain,
+  };
+}
+
+export const shouldTruncate = true;
+
+export function createRegisteredTool(context: ToolContext) {
+  const baseTool = createTool();
+  const gatedTool = withPermissionGate(
+    'webfetch',
+    {
+      getPatternTargets,
+      getSuggestion,
+    },
+    baseTool,
+    context,
+  );
+
+  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
 }
