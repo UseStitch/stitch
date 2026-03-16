@@ -28,10 +28,13 @@ async function waitForDevServer(url: string): Promise<void> {
 }
 
 async function createWindow() {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     frame: false,
+    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
     minHeight: 600,
     webPreferences: {

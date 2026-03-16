@@ -1,5 +1,10 @@
 declare global {
   interface Window {
+    electron?: {
+      platform: NodeJS.Platform;
+      send: (channel: string, data?: unknown) => void;
+      on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
+    };
     api?: {
       getServerConfig: () => Promise<{ url: string }>;
       window?: {
