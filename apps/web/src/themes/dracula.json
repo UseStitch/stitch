@@ -18,7 +18,7 @@
     "accent": "oklch(0.927 0.016 106.5)",
     "accent-foreground": "oklch(0.267 0.018 284.0)",
     "destructive": "oklch(0.626 0.169 10.7)",
-    "destructive-foreground": "oklch(0.985 0.000 0.0)",
+    "destructive-foreground": "oklch(0.239 0.019 280.4)",
     "success": "oklch(0.712 0.164 154.1)",
     "success-foreground": "oklch(0.985 0.000 0.0)",
     "warning": "oklch(0.780 0.142 62.3)",
