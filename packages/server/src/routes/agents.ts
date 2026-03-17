@@ -1,13 +1,10 @@
-import { asc } from 'drizzle-orm';
 import { Hono } from 'hono';
 
-import { getDb } from '@/db/client.js';
-import { agents } from '@/db/schema.js';
+import { listAgents } from '@/agents/service.js';
 
 export const agentsRouter = new Hono();
 
 agentsRouter.get('/', async (c) => {
-  const db = getDb();
-  const rows = await db.select().from(agents).orderBy(asc(agents.createdAt));
+  const rows = await listAgents();
   return c.json(rows);
 });

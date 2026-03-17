@@ -1,0 +1,332 @@
+import { and, asc, desc, eq, lt } from 'drizzle-orm';
+
+import { createMessageId, createPartId, createSessionId } from '@openwork/shared';
+import type { PrefixedString, StoredPart } from '@openwork/shared';
+
+import { getDb } from '@/db/client.js';
+import { agents, messages, providerConfig, sessions } from '@/db/schema.js';
+import * as AbortRegistry from '@/lib/abort-registry.js';
+import * as Log from '@/lib/log.js';
+import { err, ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
+import { broadcast } from '@/lib/sse.js';
+import { runStream } from '@/lib/stream-runner.js';
+import { buildCompactedHistory, compact } from '@/llm/compaction.js';
+import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
+import { generateTitle } from '@/llm/title-generator.js';
+import { abortPermissionResponses } from '@/permission/service.js';
+import { abortQuestions } from '@/question/service.js';
+import { calculateMessageCostUsd } from '@/utils/cost.js';
+
+const log = Log.create({ service: 'chat-service' });
+
+const DEFAULT_PAGE_SIZE = 50;
+
+type CreateSessionInput = {
+  title?: string;
+  parentSessionId?: string;
+};
+
+type SendMessageInput = {
+  sessionId: PrefixedString<'ses'>;
+  content: string;
+  providerId: string;
+  modelId: string;
+  agentId: string;
+  assistantMessageId: string;
+};
+
+export async function createSession(input: CreateSessionInput) {
+  const db = getDb();
+  const id = createSessionId();
+  const now = new Date();
+  const title = input.title ?? `New Session ${now.toLocaleString('en-US', { hour12: false })}`;
+
+  await db.insert(sessions).values({
+    id,
+    title,
+    parentSessionId: (input.parentSessionId ?? null) as PrefixedString<'ses'> | null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, id));
+  return session;
+}
+
+export async function listSessions() {
+  const db = getDb();
+  return db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.sessionType, 'user'))
+    .orderBy(asc(sessions.createdAt));
+}
+
+export async function getSessionById(sessionId: PrefixedString<'ses'>) {
+  const db = getDb();
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  return session;
+}
+
+export async function listSessionMessages(sessionId: PrefixedString<'ses'>, limit?: number, cursor?: number) {
+  const db = getDb();
+  const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
+
+  const conditions = [eq(messages.sessionId, sessionId)];
+  if (cursor !== undefined) {
+    conditions.push(lt(messages.createdAt, new Date(cursor)));
+  }
+
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(and(...conditions))
+    .orderBy(desc(messages.createdAt))
+    .limit(pageSize + 1);
+
+  const hasMore = rows.length > pageSize;
+  const page = hasMore ? rows.slice(0, pageSize) : rows;
+  page.reverse();
+  return { messages: page, hasMore };
+}
+
+export async function deleteSession(sessionId: PrefixedString<'ses'>) {
+  const db = getDb();
+  const result = await db
+    .delete(sessions)
+    .where(eq(sessions.id, sessionId))
+    .returning({ id: sessions.id });
+  return result.length > 0;
+}
+
+export async function renameSession(sessionId: PrefixedString<'ses'>, title: string) {
+  const db = getDb();
+  const [updated] = await db
+    .update(sessions)
+    .set({ title, updatedAt: new Date() })
+    .where(eq(sessions.id, sessionId))
+    .returning();
+  return updated;
+}
+
+async function maybeGenerateTitle(input: {
+  sessionId: PrefixedString<'ses'>;
+  userText: string;
+  providerId: string;
+  modelId: string;
+  agentId: PrefixedString<'agt'>;
+}): Promise<void> {
+  const db = getDb();
+
+  const existingMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, input.sessionId));
+  if (existingMessages.length > 0) {
+    return;
+  }
+
+  generateTitle(input.userText, input.providerId, input.modelId)
+    .then(async (generatedTitle) => {
+      if (!generatedTitle) {
+        return;
+      }
+
+      const now = Date.now();
+      const titleSessionId = createSessionId();
+      const titleMessageId = createMessageId();
+      const titlePart: StoredPart = {
+        type: 'text-delta',
+        id: createPartId(),
+        text: generatedTitle.title,
+        startedAt: now,
+        endedAt: now,
+      };
+
+      const costUsd = generatedTitle.usage
+        ? await calculateMessageCostUsd({
+            providerId: generatedTitle.providerId,
+            modelId: generatedTitle.modelId,
+            usage: generatedTitle.usage,
+          })
+        : null;
+
+      await db.insert(sessions).values({
+        id: titleSessionId,
+        title: generatedTitle.title,
+        sessionType: 'title',
+        parentSessionId: input.sessionId,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+      });
+
+      await db.insert(messages).values({
+        id: titleMessageId,
+        sessionId: titleSessionId,
+        role: 'assistant',
+        parts: [titlePart],
+        modelId: generatedTitle.modelId,
+        providerId: generatedTitle.providerId,
+        agentId: input.agentId,
+        usage: generatedTitle.usage ?? undefined,
+        costUsd,
+        finishReason: 'stop',
+        isSummary: false,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
+        startedAt: new Date(now),
+        duration: 0,
+      });
+
+      await db
+        .update(sessions)
+        .set({ title: generatedTitle.title, updatedAt: new Date() })
+        .where(eq(sessions.id, input.sessionId));
+
+      await broadcast('session-title-update', { sessionId: input.sessionId, title: generatedTitle.title });
+    })
+    .catch((error) => {
+      log.error({ sessionId: input.sessionId, error }, 'title generation failed');
+    });
+}
+
+export async function sendMessage(input: SendMessageInput): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId));
+  if (!session) {
+    return err('Session not found', 404);
+  }
+
+  const [agent] = await db
+    .select()
+    .from(agents)
+    .where(eq(agents.id, input.agentId as PrefixedString<'agt'>));
+  if (!agent) {
+    return err(`Agent "${input.agentId}" not found`, 400);
+  }
+  if (agent.type !== 'primary') {
+    return err('Sub agents cannot be used directly in chat', 400);
+  }
+
+  const [config] = await db
+    .select()
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, input.providerId));
+  if (!config) {
+    return err(`Provider "${input.providerId}" is not configured`, 400);
+  }
+
+  await maybeGenerateTitle({
+    sessionId: input.sessionId,
+    userText: input.content,
+    providerId: input.providerId,
+    modelId: input.modelId,
+    agentId: agent.id,
+  });
+
+  const userMessageId = createMessageId();
+  const now = Date.now();
+  const userPart: StoredPart = {
+    type: 'text-delta',
+    id: createPartId(),
+    text: input.content,
+    startedAt: now,
+    endedAt: now,
+  };
+
+  await db.insert(messages).values({
+    id: userMessageId,
+    sessionId: input.sessionId,
+    role: 'user',
+    parts: [userPart],
+    modelId: input.modelId,
+    providerId: input.providerId,
+    agentId: agent.id,
+    costUsd: null,
+    createdAt: new Date(now),
+    updatedAt: new Date(now),
+    startedAt: new Date(now),
+    duration: null,
+  });
+
+  await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, input.sessionId));
+
+  const llmMessages = await buildCompactedHistory(input.sessionId);
+  const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
+  const abortSignal = AbortRegistry.register(input.sessionId);
+
+  void runStream({
+    sessionId: input.sessionId,
+    assistantMessageId,
+    modelId: input.modelId,
+    agentId: agent.id,
+    llmMessages,
+    credentials: config.credentials,
+    abortSignal,
+  })
+    .catch((error) => {
+      log.error(
+        {
+          event: 'stream.failed',
+          sessionId: input.sessionId,
+          messageId: assistantMessageId,
+          error,
+        },
+        'stream run failed',
+      );
+    })
+    .finally(() => {
+      AbortRegistry.cleanup(input.sessionId);
+    });
+
+  return ok({ messageId: assistantMessageId, userMessageId });
+}
+
+export function resolveDoomLoop(sessionId: string, response: DoomLoopResponse): ServiceResult<{ ok: true }> {
+  const resolved = resolveDecision(sessionId, response);
+  if (!resolved) {
+    return err('No pending doom loop prompt for this session', 404);
+  }
+
+  return ok({ ok: true });
+}
+
+export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
+  log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
+  AbortRegistry.abort(sessionId);
+  cancelDecision(sessionId);
+  await abortQuestions(sessionId);
+  await abortPermissionResponses(sessionId);
+}
+
+export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  if (!session) {
+    return err('Session not found', 404);
+  }
+
+  const lastMessage = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt))
+    .then((rows) => rows.at(-1));
+
+  if (!lastMessage) {
+    return err('Session has no messages to compact', 400);
+  }
+
+  void compact({
+    sessionId,
+    providerId: lastMessage.providerId,
+    modelId: lastMessage.modelId,
+    agentId: lastMessage.agentId as PrefixedString<'agt'>,
+    auto: false,
+  });
+
+  return ok({ ok: true });
+}

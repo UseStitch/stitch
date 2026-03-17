@@ -1,68 +1,32 @@
-import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
-import { SETTINGS_KEYS } from '@openwork/shared';
-import type { SettingsKey } from '@openwork/shared';
-import type { PrefixedString } from '@openwork/shared';
-
-import { getDb } from '@/db/client.js';
-import { agents, userSettings } from '@/db/schema.js';
-
-const ALLOWED_KEYS: ReadonlySet<string> = new Set(SETTINGS_KEYS);
+import { isServiceError } from '@/lib/service-result.js';
+import { deleteSetting, listSettings, saveSetting } from '@/settings/service.js';
 
 export const settingsRouter = new Hono();
 
 settingsRouter.get('/', async (c) => {
-  const db = getDb();
-  const rows = await db.select().from(userSettings);
-  const result: Record<string, string> = {};
-  for (const row of rows) {
-    result[row.key] = row.value;
-  }
+  const result = await listSettings();
   return c.json(result);
 });
 
 settingsRouter.put('/:key', async (c) => {
   const key = c.req.param('key');
-  if (!ALLOWED_KEYS.has(key)) {
-    return c.json({ error: 'Invalid setting key' }, 400);
-  }
   const body = (await c.req.json()) as { value?: unknown };
-  if (typeof body.value !== 'string' || body.value.length === 0) {
-    return c.json({ error: 'Invalid value' }, 400);
-  }
-  const db = getDb();
-
-  if (key === 'agent.default') {
-    const [agent] = await db
-      .select()
-      .from(agents)
-      .where(eq(agents.id, body.value as PrefixedString<'agt'>));
-    if (!agent || agent.type !== 'primary') {
-      return c.json({ error: 'Invalid primary agent id' }, 400);
-    }
+  const result = await saveSetting(key, body.value);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
   }
 
-  await db
-    .insert(userSettings)
-    .values({ key: key as SettingsKey, value: body.value })
-    .onConflictDoUpdate({
-      target: userSettings.key,
-      set: { value: body.value, updatedAt: new Date() },
-    });
   return c.body(null, 204);
 });
 
 settingsRouter.delete('/:key', async (c) => {
   const key = c.req.param('key');
-  if (!ALLOWED_KEYS.has(key)) {
-    return c.json({ error: 'Invalid setting key' }, 400);
+  const result = await deleteSetting(key);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
   }
-  const db = getDb();
-  const result = await db
-    .delete(userSettings)
-    .where(eq(userSettings.key, key as SettingsKey))
-    .returning({ key: userSettings.key });
-  if (result.length === 0) return c.json({ error: 'Setting not found' }, 404);
+
   return c.body(null, 204);
 });
