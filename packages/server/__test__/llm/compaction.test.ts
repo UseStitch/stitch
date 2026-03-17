@@ -253,7 +253,7 @@ describe('buildHistoryMessages', () => {
     expect(result[0]?.content).toContain('<env>');
     expect(result[0]?.content).toContain('Model id: openai/gpt-5.3-codex');
     expect(result[0]?.content).toContain('Preferred shell:');
-    expect(result[0]?.content).toContain('You are Agentloops, a local machine assistant.');
+    expect(result[0]?.content).toContain('You are Agentloops a local machine assistant.');
   });
 
   test('throws when called with empty history', () => {

@@ -7,6 +7,13 @@ import { StreamAccumulator } from './stream-accumulator.js';
 import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
+import {
+  ContextOverflowError,
+  getErrorCode,
+  isPermissionRejectedError,
+  isStreamAbortedError,
+  StreamAbortedError,
+} from '@/lib/stream-errors.js';
 import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/provider/provider.js';
 import type { createTools } from '@/tools/index.js';
@@ -15,15 +22,12 @@ import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'step-executor' });
 
-function isPermissionRejectedError(error: unknown): boolean {
-  return error instanceof Error && error.message.startsWith('User rejected tool execution for ');
-}
-
 type StepResult = {
   finishReason: string;
   usage: LanguageModelUsage;
   toolCalls: ToolCallRecord[];
   responseMessages: ModelMessage[];
+  protocolViolationCount: number;
 };
 
 export type StepOptions = {
@@ -36,6 +40,7 @@ export type StepOptions = {
   providerId: string;
   tools: ReturnType<typeof createTools>;
   abortSignal: AbortSignal;
+  streamRunId: string;
 };
 
 async function executeStep(opts: StepOptions): Promise<StepResult> {
@@ -51,7 +56,12 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
       delayInMs: 100,
     }),
     onError: ({ error }) => {
-      log.error('step stream error', { sessionId, messageId, error });
+      log.error('step stream error', {
+        sessionId,
+        messageId,
+        streamRunId: opts.streamRunId,
+        error,
+      });
     },
   });
 
@@ -62,12 +72,13 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     step,
     accumulatedParts,
     toolCalls,
+    opts.streamRunId,
   );
 
   try {
     for await (const part of result.fullStream) {
       if (abortSignal.aborted) {
-        throw new DOMException('Stream aborted', 'AbortError');
+        throw new StreamAbortedError();
       }
 
       if (part.type === 'finish') {
@@ -76,6 +87,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           usage: part.totalUsage,
           toolCalls,
           responseMessages: (await result.response).messages,
+          protocolViolationCount: accumulator.getProtocolViolationCount(),
         };
       }
 
@@ -91,6 +103,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     usage: Usage.ZERO_USAGE,
     toolCalls,
     responseMessages: (await result.response).messages,
+    protocolViolationCount: accumulator.getProtocolViolationCount(),
   };
 }
 
@@ -102,7 +115,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       return await executeStep(opts);
     } catch (error) {
       // Don't retry on abort — re-throw immediately
-      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      if (isStreamAbortedError(error)) throw error;
       // Don't retry when user explicitly rejected a tool call
       if (isPermissionRejectedError(error)) throw error;
 
@@ -111,10 +124,12 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
       log.error('step error', {
         sessionId: opts.sessionId,
+        streamRunId: opts.streamRunId,
         messageId: opts.messageId,
         step: opts.step,
         attempt,
         error: errorInfo.message,
+        errorCode: getErrorCode(error),
         isContextOverflow: errorInfo.isContextOverflow,
         isRetryable: errorInfo.isRetryable,
       });
@@ -122,10 +137,10 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       if (errorInfo.isContextOverflow) {
         log.info('context overflow detected, will trigger compaction', {
           sessionId: opts.sessionId,
+          streamRunId: opts.streamRunId,
           messageId: opts.messageId,
         });
-        const overflowError = new Error('context_overflow');
-        overflowError.cause = error;
+        const overflowError = new ContextOverflowError('context_overflow', { cause: error });
         throw overflowError;
       }
 
@@ -143,6 +158,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
       log.info('retrying step', {
         sessionId: opts.sessionId,
+        streamRunId: opts.streamRunId,
         messageId: opts.messageId,
         step: opts.step,
         attempt,

@@ -18,6 +18,7 @@ export function createTools(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   agentId: PrefixedString<'agt'>;
+  streamRunId: string;
 }) {
   return {
     webfetch: WebfetchTool.createRegisteredTool(context),

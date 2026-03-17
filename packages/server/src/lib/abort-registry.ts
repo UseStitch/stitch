@@ -7,7 +7,10 @@ const registry = new Map<string, AbortController>();
 export function register(sessionId: string): AbortSignal {
   const existing = registry.get(sessionId);
   if (existing) {
-    log.warn('aborting existing controller before re-registering', { sessionId });
+    log.warn('aborting existing controller before re-registering', {
+      event: 'stream.abort.registry_reregister',
+      sessionId,
+    });
     existing.abort();
   }
 
@@ -19,7 +22,7 @@ export function register(sessionId: string): AbortSignal {
 export function abort(sessionId: string): void {
   const controller = registry.get(sessionId);
   if (!controller) return;
-  log.info('aborting session', { sessionId });
+  log.info('aborting session', { event: 'stream.abort.registry_abort', sessionId });
   controller.abort();
   registry.delete(sessionId);
 }

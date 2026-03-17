@@ -1,6 +1,10 @@
 import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
+import {
+  PermissionRejectedError,
+  StreamProtocolViolationError,
+} from '@/lib/stream-errors.js';
 import { getAgentPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
 import { truncateOutput } from '@/tools/truncation.js';
 import type { Tool } from 'ai';
@@ -11,6 +15,7 @@ export type ToolContext = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   agentId: PrefixedString<'agt'>;
+  streamRunId: string;
 };
 
 type ToolPermissionBehavior = {
@@ -56,25 +61,28 @@ export function withPermissionGate<T extends Tool>(
     }
 
     if (permission === 'deny') {
-      throw new Error(`User rejected tool execution for ${toolName}`);
+      throw new PermissionRejectedError(toolName);
     }
 
     const meta = args[1] as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
       log.error('missing toolCallId in tool execute context', {
+        event: 'stream.part.protocol_violation',
         toolName,
         sessionId: context.sessionId,
         messageId: context.messageId,
+        streamRunId: context.streamRunId,
         hasMeta: meta !== undefined,
         metaKeys: meta ? Object.keys(meta) : [],
       });
-      throw new Error(`Missing toolCallId for ${toolName}`);
+      throw new StreamProtocolViolationError(`Missing toolCallId for ${toolName}`);
     }
 
     const decision = await requestPermissionResponse({
       sessionId: context.sessionId,
       messageId: context.messageId,
+      streamRunId: context.streamRunId,
       agentId: context.agentId,
       toolCallId,
       toolName,
@@ -96,7 +104,7 @@ export function withPermissionGate<T extends Tool>(
       };
     }
 
-    throw new Error(`User rejected tool execution for ${toolName}`);
+    throw new PermissionRejectedError(toolName);
   };
 
   return { ...t, execute: wrappedExecute } as T;

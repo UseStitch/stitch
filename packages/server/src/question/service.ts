@@ -7,6 +7,7 @@ import { createQuestionId } from '@openwork/shared';
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { QuestionAbortedError } from '@/lib/stream-errors.js';
 import { broadcast } from '@/lib/sse.js';
 
 const log = Log.create({ service: 'question-service' });
@@ -14,6 +15,7 @@ const log = Log.create({ service: 'question-service' });
 type PendingQuestion = {
   resolve: (answers: string[][]) => void;
   reject: (error: Error) => void;
+  streamRunId?: string;
 };
 
 const pendingQuestions = new Map<PrefixedString<'quest'>, PendingQuestion>();
@@ -23,13 +25,22 @@ export async function askQuestion(opts: {
   questions: QuestionInfo[];
   toolCallId: string;
   messageId: PrefixedString<'msg'>;
+  streamRunId?: string;
   abortSignal?: AbortSignal;
 }): Promise<string[][]> {
   const db = getDb();
   const id = createQuestionId();
   const now = new Date();
 
-  log.info('asking question', { id, sessionId: opts.sessionId, count: opts.questions.length });
+  log.info('asking question', {
+    event: 'stream.question.requested',
+    id,
+    streamRunId: opts.streamRunId,
+    sessionId: opts.sessionId,
+    messageId: opts.messageId,
+    toolCallId: opts.toolCallId,
+    count: opts.questions.length,
+  });
 
   await db.insert(questions).values({
     id,
@@ -57,18 +68,18 @@ export async function askQuestion(opts: {
 
     const abortHandler = () => {
       cleanup();
-      reject(new DOMException('Question aborted', 'AbortError'));
+      reject(new QuestionAbortedError());
     };
 
     if (opts.abortSignal) {
       if (opts.abortSignal.aborted) {
-        reject(new DOMException('Question aborted', 'AbortError'));
+        reject(new QuestionAbortedError());
         return;
       }
       opts.abortSignal.addEventListener('abort', abortHandler, { once: true });
     }
 
-    pendingQuestions.set(id, { resolve, reject });
+    pendingQuestions.set(id, { resolve, reject, streamRunId: opts.streamRunId });
 
     pollInterval = setInterval(async () => {
       const db = getDb();
@@ -123,6 +134,14 @@ export async function replyQuestion(
   });
 
   const pending = pendingQuestions.get(questionId);
+  log.info('question resolved', {
+    event: 'stream.question.resolved',
+    questionId,
+    streamRunId: pending?.streamRunId,
+    sessionId: question?.sessionId ?? '',
+    decision: 'answered',
+  });
+
   if (pending) {
     pending.resolve(answers);
     pendingQuestions.delete(questionId);
@@ -151,6 +170,14 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
   });
 
   const pending = pendingQuestions.get(questionId);
+  log.info('question resolved', {
+    event: 'stream.question.resolved',
+    questionId,
+    streamRunId: pending?.streamRunId,
+    sessionId: question?.sessionId ?? '',
+    decision: 'rejected',
+  });
+
   if (pending) {
     pending.reject(new Error('Question rejected by user'));
     pendingQuestions.delete(questionId);
@@ -188,11 +215,19 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
 
   for (const q of pendingRows) {
     const entry = pendingQuestions.get(q.id as PrefixedString<'quest'>);
+    const streamRunId = entry?.streamRunId;
     if (entry) {
-      entry.reject(new Error('Question rejected by user'));
+      entry.reject(new QuestionAbortedError('Question aborted by session abort'));
       pendingQuestions.delete(q.id as PrefixedString<'quest'>);
     }
     await broadcast('question-rejected', { questionId: q.id, sessionId });
+
+    log.info('question aborted', {
+      event: 'stream.question.aborted',
+      streamRunId,
+      sessionId,
+      questionId: q.id,
+    });
   }
 
   log.info('aborted pending questions', { sessionId, count: pendingRows.length });

@@ -33,6 +33,7 @@ const questionInputSchema = z.object({
 function createQuestionTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
+  streamRunId: string;
 }) {
   return tool({
     description:
@@ -44,6 +45,7 @@ function createQuestionTool(context: {
         questions: input.questions,
         toolCallId,
         messageId: context.messageId,
+        streamRunId: context.streamRunId,
         abortSignal,
       });
 
@@ -67,6 +69,7 @@ function createQuestionTool(context: {
 function createTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
+  streamRunId: string;
 }) {
   return createQuestionTool(context);
 }

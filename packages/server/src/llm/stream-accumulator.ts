@@ -3,6 +3,11 @@ import { createPartId } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
+import {
+  PermissionRejectedError,
+  StreamAbortedError,
+  isPermissionRejectedMessage,
+} from '@/lib/stream-errors.js';
 import type { ToolCallRecord } from '@/llm/doom-loop.js';
 import { stableStringify } from '@/utils/stable-stringify.js';
 
@@ -11,6 +16,7 @@ const log = Log.create({ service: 'stream-accumulator' });
 export class StreamAccumulator {
   private currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
   private currentReasoningPart: { id: PartId; text: string; startedAt: number } | null = null;
+  private protocolViolationCount = 0;
 
   constructor(
     private readonly sessionId: string,
@@ -18,9 +24,23 @@ export class StreamAccumulator {
     private readonly step: number,
     private readonly accumulatedParts: StoredPart[],
     private readonly toolCalls: ToolCallRecord[],
+    private readonly streamRunId: string,
   ) {}
 
+  getProtocolViolationCount(): number {
+    return this.protocolViolationCount;
+  }
+
   async handlePart(part: any): Promise<void> {
+    log.debug('stream.part.received', {
+      event: 'stream.part.received',
+      streamRunId: this.streamRunId,
+      sessionId: this.sessionId,
+      messageId: this.messageId,
+      step: this.step,
+      partType: String(part?.type ?? 'unknown'),
+    });
+
     switch (part.type) {
       case 'text-start': {
         const partId = createPartId();
@@ -42,6 +62,16 @@ export class StreamAccumulator {
             messageId: this.messageId,
             partId: this.currentTextPart.id,
             delta: part,
+          });
+        } else {
+          this.protocolViolationCount++;
+          log.warn('stream.part.protocol_violation', {
+            event: 'stream.part.protocol_violation',
+            streamRunId: this.streamRunId,
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            step: this.step,
+            violation: 'text_delta_without_text_start',
           });
         }
         break;
@@ -88,6 +118,16 @@ export class StreamAccumulator {
             messageId: this.messageId,
             partId: this.currentReasoningPart.id,
             delta: part,
+          });
+        } else {
+          this.protocolViolationCount++;
+          log.warn('stream.part.protocol_violation', {
+            event: 'stream.part.protocol_violation',
+            streamRunId: this.streamRunId,
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            step: this.step,
+            violation: 'reasoning_delta_without_reasoning_start',
           });
         }
         break;
@@ -236,6 +276,11 @@ export class StreamAccumulator {
         });
 
         log.warn('tool call failed', {
+          event: 'stream.tool.error',
+          streamRunId: this.streamRunId,
+          sessionId: this.sessionId,
+          messageId: this.messageId,
+          step: this.step,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           error: errorText,
@@ -252,16 +297,19 @@ export class StreamAccumulator {
           endedAt: now,
         } as StoredPart);
 
-        if (errorText.startsWith('User rejected tool execution for ')) {
-          throw new Error(errorText);
+        if (isPermissionRejectedMessage(errorText)) {
+          throw new PermissionRejectedError(part.toolName ?? 'unknown');
         }
         break;
       }
 
       case 'error': {
         log.error('stream part error', {
+          event: 'stream.part.error',
+          streamRunId: this.streamRunId,
           sessionId: this.sessionId,
           messageId: this.messageId,
+          step: this.step,
           error: part.error,
         });
         await Sse.broadcast('stream-error', {
@@ -317,7 +365,7 @@ export class StreamAccumulator {
         break;
 
       case 'abort':
-        throw new DOMException('Stream aborted', 'AbortError');
+        throw new StreamAbortedError();
     }
   }
 

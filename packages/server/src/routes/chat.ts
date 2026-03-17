@@ -238,9 +238,18 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     llmMessages,
     credentials: config.credentials,
     abortSignal,
-  }).finally(() => {
-    AbortRegistry.cleanup(sessionId);
-  });
+  })
+    .catch((error) => {
+      log.error('stream run failed', {
+        event: 'stream.failed',
+        sessionId,
+        messageId: assistantMessageId,
+        error,
+      });
+    })
+    .finally(() => {
+      AbortRegistry.cleanup(sessionId);
+    });
 
   return c.json({ messageId: assistantMessageId, userMessageId }, 202);
 });
@@ -263,6 +272,7 @@ chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
 
 chatRouter.post('/sessions/:id/abort', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+  log.info('stream abort requested', { event: 'stream.abort.requested', sessionId });
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
   await abortQuestions(sessionId);
