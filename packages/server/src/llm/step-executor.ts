@@ -56,12 +56,12 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
       delayInMs: 100,
     }),
     onError: ({ error }) => {
-      log.error('step stream error', {
+      log.error({
         sessionId,
         messageId,
         streamRunId: opts.streamRunId,
         error,
-      });
+      }, 'step stream error');
     },
   });
 
@@ -122,7 +122,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       attempt++;
       const errorInfo = extractErrorInfo(error, opts.providerId);
 
-      log.error('step error', {
+      log.error({
         sessionId: opts.sessionId,
         streamRunId: opts.streamRunId,
         messageId: opts.messageId,
@@ -132,14 +132,14 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         errorCode: getErrorCode(error),
         isContextOverflow: errorInfo.isContextOverflow,
         isRetryable: errorInfo.isRetryable,
-      });
+      }, 'step error');
 
       if (errorInfo.isContextOverflow) {
-        log.info('context overflow detected, will trigger compaction', {
+        log.info({
           sessionId: opts.sessionId,
           streamRunId: opts.streamRunId,
           messageId: opts.messageId,
-        });
+        }, 'context overflow detected, will trigger compaction');
         const overflowError = new ContextOverflowError('context_overflow', { cause: error });
         throw overflowError;
       }
@@ -156,7 +156,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
       const waitTime = delay(attempt, errorInfo.responseHeaders);
 
-      log.info('retrying step', {
+      log.info({
         sessionId: opts.sessionId,
         streamRunId: opts.streamRunId,
         messageId: opts.messageId,
@@ -165,7 +165,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         maxRetries: MAX_RETRIES,
         delayMs: waitTime,
         reason: retryMessage,
-      });
+      }, 'retrying step');
 
       await Sse.broadcast('stream-retry', {
         sessionId: opts.sessionId,

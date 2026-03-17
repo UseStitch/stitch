@@ -125,7 +125,7 @@ export async function refresh() {
   const result = await fetch(`${URL}/api.json`, {
     signal: AbortSignal.timeout(10 * 1000),
   }).catch((e) => {
-    log.error('Failed to fetch models.dev', { error: e });
+    log.error({ error: e }, 'failed to fetch models.dev');
   });
   if (result && result.ok) {
     const text = await result.text();

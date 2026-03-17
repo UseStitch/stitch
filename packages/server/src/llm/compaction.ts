@@ -40,7 +40,7 @@ export function isOverflow(usage: LanguageModelUsage, limits: ModelLimits): bool
  * space without a full compaction summary.
  */
 async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
-  log.info('pruning', { sessionId });
+  log.info({ sessionId }, 'pruning');
 
   const db = getDb();
   const msgs = await db
@@ -74,7 +74,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
     }
   }
 
-  log.info('prune scan', { pruned, total });
+  log.info({ pruned, total }, 'prune scan');
 
   if (pruned > PRUNE_MINIMUM) {
     const grouped = new Map<
@@ -110,7 +110,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
         .where(eq(messages.id, messageId));
     }
 
-    log.info('pruned', { count: toPrune.length });
+    log.info({ count: toPrune.length }, 'pruned');
   }
 
   return pruned;
@@ -202,9 +202,9 @@ export function buildHistoryMessages(
       const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
 
       if (unmatchedToolCalls > 0) {
-        log.warn('dropping unmatched tool-call parts from LLM history', {
+        log.warn({
           count: unmatchedToolCalls,
-        });
+        }, 'dropping unmatched tool-call parts from LLM history');
       }
 
       if (textParts.length > 0 || matchedToolCalls.length > 0) {
@@ -312,7 +312,7 @@ export async function compact(input: {
   const { sessionId } = input;
 
   if (activeCompactions.has(sessionId)) {
-    log.warn('compaction already in progress', { sessionId });
+    log.warn({ sessionId }, 'compaction already in progress');
     return 'error';
   }
 
@@ -320,7 +320,7 @@ export async function compact(input: {
   const summaryMessageId = createMessageId();
 
   try {
-    log.info('compaction starting', { sessionId, auto: input.auto });
+    log.info({ sessionId, auto: input.auto }, 'compaction starting');
 
     await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
 
@@ -399,7 +399,7 @@ export async function compact(input: {
     }
 
     if (!summaryText.trim()) {
-      log.error('compaction produced empty summary', { sessionId });
+      log.error({ sessionId }, 'compaction produced empty summary');
       return 'error';
     }
 
@@ -433,22 +433,22 @@ export async function compact(input: {
 
     await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, sessionId));
 
-    log.info('compaction complete', {
+    log.info({
       sessionId,
       summaryTokens: estimate(summaryText),
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
-    });
+    }, 'compaction complete');
 
     await Sse.broadcast('compaction-complete', { sessionId, summaryMessageId });
     await Sse.broadcast('data-change', { queryKey: ['sessions', sessionId] });
 
     return 'continue';
   } catch (error) {
-    log.error('compaction failed', {
+    log.error({
       sessionId,
       error: error instanceof Error ? error.message : String(error),
-    });
+    }, 'compaction failed');
 
     await Sse.broadcast('stream-error', {
       sessionId,

@@ -193,7 +193,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
         }
       })
       .catch((err) => {
-        log.error('title generation failed', { sessionId, error: err });
+        log.error({ sessionId, error: err }, 'title generation failed');
       });
   }
 
@@ -240,12 +240,12 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     abortSignal,
   })
     .catch((error) => {
-      log.error('stream run failed', {
+      log.error({
         event: 'stream.failed',
         sessionId,
         messageId: assistantMessageId,
         error,
-      });
+      }, 'stream run failed');
     })
     .finally(() => {
       AbortRegistry.cleanup(sessionId);
@@ -272,7 +272,7 @@ chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
 
 chatRouter.post('/sessions/:id/abort', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  log.info('stream abort requested', { event: 'stream.abort.requested', sessionId });
+  log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
   await abortQuestions(sessionId);

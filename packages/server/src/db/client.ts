@@ -63,5 +63,5 @@ export function initDb(): void {
       .run();
   }
 
-  log.info('database initialized', { path: PATHS.filePaths.db });
+  log.info({ path: PATHS.filePaths.db }, 'database initialized');
 }

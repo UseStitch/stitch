@@ -1,12 +1,14 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 
+import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const RECONNECT_DELAY_MS = 10_000;
 
 export const eventsRouter = new Hono();
+const log = Log.create({ service: 'events' });
 
 eventsRouter.get('/', (c) => {
   return streamSSE(
@@ -35,7 +37,7 @@ eventsRouter.get('/', (c) => {
       }
     },
     async (err) => {
-      console.error('[sse] stream error', err);
+      log.error({ error: err }, 'sse stream error');
     },
   );
 });

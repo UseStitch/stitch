@@ -10,7 +10,7 @@ const MAX_LINES = 2000;
 const MAX_BYTES = 50 * 1024;
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-const log = Log.create({ name: 'truncation' });
+const log = Log.create({ service: 'truncation' });
 
 type TruncateResult =
   | { content: string; truncated: false }
@@ -56,7 +56,7 @@ export async function truncateOutput(
   const outputPath = path.join(PATHS.dirPaths.toolOutput, id);
   await fs.mkdir(PATHS.dirPaths.toolOutput, { recursive: true });
   await fs.writeFile(outputPath, text, 'utf-8');
-  log.info(`Truncated output saved to: ${outputPath}`);
+  log.info({ outputPath }, 'truncated output saved');
 
   const hint = `The tool call succeeded but the output was truncated. Full output saved to: ${outputPath}\nUse Read with offset/limit to view specific sections or Grep to search the full content.`;
   const content = `${preview}\n\n...${removed} ${unit} truncated...\n\n${hint}`;
@@ -86,7 +86,7 @@ export async function cleanup(): Promise<void> {
           }
         } catch (err) {
           if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
-          log.warn(`Failed to clean up file: ${filePath}`);
+          log.warn({ filePath }, 'failed to clean up file');
         }
       }),
   );

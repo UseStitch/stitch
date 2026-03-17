@@ -69,7 +69,7 @@ providerRouter.get('/', async (c) => {
 providerRouter.get('/:providerId', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const data = await Models.get();
@@ -86,7 +86,7 @@ providerRouter.get('/:providerId', async (c) => {
 providerRouter.get('/:providerId/models', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const data = await Models.get();
@@ -99,7 +99,7 @@ providerRouter.get('/:providerId/models', async (c) => {
 providerRouter.get('/:providerId/models/:modelId', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const data = await Models.get();
@@ -113,7 +113,7 @@ providerRouter.get('/:providerId/models/:modelId', async (c) => {
 providerRouter.get('/:providerId/config', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const db = getDb();
@@ -128,7 +128,7 @@ providerRouter.get('/:providerId/config', async (c) => {
 providerRouter.put('/:providerId/config', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const body = await c.req.json();
@@ -150,7 +150,7 @@ providerRouter.put('/:providerId/config', async (c) => {
 providerRouter.delete('/:providerId/config', async (c) => {
   const providerId = c.req.param('providerId');
   if (!assertAllowed(providerId)) {
-    log.warn('Blocked access to non-allowed provider', { providerId });
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
     return c.json({ error: 'Provider not found' }, 404);
   }
   const db = getDb();

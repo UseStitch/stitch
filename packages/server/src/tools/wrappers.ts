@@ -67,7 +67,7 @@ export function withPermissionGate<T extends Tool>(
     const meta = args[1] as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
-      log.error('missing toolCallId in tool execute context', {
+      log.error({
         event: 'stream.part.protocol_violation',
         toolName,
         sessionId: context.sessionId,
@@ -75,7 +75,7 @@ export function withPermissionGate<T extends Tool>(
         streamRunId: context.streamRunId,
         hasMeta: meta !== undefined,
         metaKeys: meta ? Object.keys(meta) : [],
-      });
+      }, 'missing toolCallId in tool execute context');
       throw new StreamProtocolViolationError(`Missing toolCallId for ${toolName}`);
     }
 

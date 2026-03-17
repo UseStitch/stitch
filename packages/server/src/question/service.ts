@@ -32,7 +32,7 @@ export async function askQuestion(opts: {
   const id = createQuestionId();
   const now = new Date();
 
-  log.info('asking question', {
+  log.info({
     event: 'stream.question.requested',
     id,
     streamRunId: opts.streamRunId,
@@ -40,7 +40,7 @@ export async function askQuestion(opts: {
     messageId: opts.messageId,
     toolCallId: opts.toolCallId,
     count: opts.questions.length,
-  });
+  }, 'asking question');
 
   await db.insert(questions).values({
     id,
@@ -134,20 +134,20 @@ export async function replyQuestion(
   });
 
   const pending = pendingQuestions.get(questionId);
-  log.info('question resolved', {
+  log.info({
     event: 'stream.question.resolved',
     questionId,
     streamRunId: pending?.streamRunId,
     sessionId: question?.sessionId ?? '',
     decision: 'answered',
-  });
+  }, 'question resolved');
 
   if (pending) {
     pending.resolve(answers);
     pendingQuestions.delete(questionId);
   }
 
-  log.info('question replied', { questionId });
+  log.info({ questionId }, 'question replied');
 }
 
 export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promise<void> {
@@ -170,20 +170,20 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
   });
 
   const pending = pendingQuestions.get(questionId);
-  log.info('question resolved', {
+  log.info({
     event: 'stream.question.resolved',
     questionId,
     streamRunId: pending?.streamRunId,
     sessionId: question?.sessionId ?? '',
     decision: 'rejected',
-  });
+  }, 'question resolved');
 
   if (pending) {
     pending.reject(new Error('Question rejected by user'));
     pendingQuestions.delete(questionId);
   }
 
-  log.info('question rejected', { questionId });
+  log.info({ questionId }, 'question rejected');
 }
 
 export async function getPendingQuestions(
@@ -222,13 +222,13 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
     }
     await broadcast('question-rejected', { questionId: q.id, sessionId });
 
-    log.info('question aborted', {
+    log.info({
       event: 'stream.question.aborted',
       streamRunId,
       sessionId,
       questionId: q.id,
-    });
+    }, 'question aborted');
   }
 
-  log.info('aborted pending questions', { sessionId, count: pendingRows.length });
+  log.info({ sessionId, count: pendingRows.length }, 'aborted pending questions');
 }

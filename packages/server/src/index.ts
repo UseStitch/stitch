@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { init } from '@/init.js';
+import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { agentsRouter } from '@/routes/agents.js';
 import { chatRouter } from '@/routes/chat.js';
@@ -33,6 +34,7 @@ function parseArgs() {
 }
 
 const { port, hostname } = parseArgs();
+const log = Log.create({ service: 'server' });
 
 const app = new Hono();
 
@@ -51,5 +53,5 @@ registerShutdownHandlers();
 await init();
 
 serve({ fetch: app.fetch, port, hostname }, (info) => {
-  console.log(`server:ready http://${info.address}:${info.port}`);
+  log.info({ address: info.address, port: info.port }, 'server ready');
 });

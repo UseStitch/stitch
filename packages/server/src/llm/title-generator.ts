@@ -1,7 +1,10 @@
 import { generateText } from 'ai';
 
+import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { createProvider } from '@/provider/provider.js';
+
+const log = Log.create({ service: 'title-generator' });
 
 const generateTitlePrompt = (firstMessage: string) => `
 Generate a short, descriptive title (30 chars max) for a conversation that starts with this message: 
@@ -36,7 +39,7 @@ export async function generateTitle(
     const title = result.text.trim().replace(/^["']|["']$/g, '');
     return title || null;
   } catch (error) {
-    console.error('Failed to generate title:', error);
+    log.error({ error }, 'title generation failed');
     return null;
   }
 }

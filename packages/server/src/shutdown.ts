@@ -4,7 +4,7 @@ import * as Scheduler from '@/lib/scheduler.js';
 const log = Log.create({ service: 'shutdown' });
 
 function shutdown(signal: string) {
-  log.info('shutting down', { signal });
+  log.info({ signal }, 'shutting down');
   Scheduler.cancelAll();
   process.exit(0);
 }

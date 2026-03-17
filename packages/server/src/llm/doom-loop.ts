@@ -60,7 +60,7 @@ export function waitForUserDecision(sessionId: string): Promise<DoomLoopResponse
 
   return new Promise<DoomLoopResponse>((resolve) => {
     const timer = setTimeout(() => {
-      log.warn('doom loop decision timed out, auto-stopping', { sessionId });
+      log.warn({ sessionId }, 'doom loop decision timed out, auto-stopping');
       pending.delete(sessionId);
       resolve('stop');
     }, DECISION_TIMEOUT_MS);
@@ -113,12 +113,12 @@ export async function checkAndHandleDoomLoop(opts: {
 
   const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
 
-  log.warn('doom loop detected', {
+  log.warn({
     sessionId,
     messageId,
     toolName: repeatedTool,
     consecutiveCount: DOOM_LOOP_THRESHOLD,
-  });
+  }, 'doom loop detected');
 
   await Sse.broadcast('doom-loop-detected', {
     sessionId,
@@ -130,7 +130,7 @@ export async function checkAndHandleDoomLoop(opts: {
   const decision = await waitForUserDecision(sessionId);
 
   if (decision === 'stop') {
-    log.info('user stopped doom loop', { sessionId });
+    log.info({ sessionId }, 'user stopped doom loop');
 
     conversation.push({
       role: 'system',
@@ -156,6 +156,6 @@ export async function checkAndHandleDoomLoop(opts: {
   }
 
   // User chose 'continue' — proceed as normal
-  log.info('user continued past doom loop', { sessionId });
+  log.info({ sessionId }, 'user continued past doom loop');
   return currentState;
 }
