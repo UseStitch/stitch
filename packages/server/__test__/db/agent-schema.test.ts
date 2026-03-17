@@ -1,11 +1,11 @@
 import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import { createAgentId } from '@openwork/shared';
 
@@ -40,7 +40,8 @@ describe('agents schema constraints', () => {
       .run();
 
     expect(() =>
-      db.insert(schema.agents)
+      db
+        .insert(schema.agents)
         .values({
           id: createAgentId(),
           name: 'Primary B',

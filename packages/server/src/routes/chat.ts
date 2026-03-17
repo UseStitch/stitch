@@ -160,7 +160,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   if (!agent) {
     return c.json({ error: `Agent "${body.agentId}" not found` }, 400);
   }
-  
+
   if (agent.type !== 'primary') {
     return c.json({ error: 'Sub agents cannot be used directly in chat' }, 400);
   }
@@ -240,12 +240,15 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     abortSignal,
   })
     .catch((error) => {
-      log.error({
-        event: 'stream.failed',
-        sessionId,
-        messageId: assistantMessageId,
-        error,
-      }, 'stream run failed');
+      log.error(
+        {
+          event: 'stream.failed',
+          sessionId,
+          messageId: assistantMessageId,
+          error,
+        },
+        'stream run failed',
+      );
     })
     .finally(() => {
       AbortRegistry.cleanup(sessionId);

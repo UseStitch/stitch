@@ -7,6 +7,7 @@ import { StreamAccumulator } from './stream-accumulator.js';
 import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
+import * as Sse from '@/lib/sse.js';
 import {
   ContextOverflowError,
   getErrorCode,
@@ -14,7 +15,6 @@ import {
   isStreamAbortedError,
   StreamAbortedError,
 } from '@/lib/stream-errors.js';
-import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/provider/provider.js';
 import type { createTools } from '@/tools/index.js';
 import * as Usage from '@/utils/usage.js';
@@ -56,12 +56,15 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
       delayInMs: 100,
     }),
     onError: ({ error }) => {
-      log.error({
-        sessionId,
-        messageId,
-        streamRunId: opts.streamRunId,
-        error,
-      }, 'step stream error');
+      log.error(
+        {
+          sessionId,
+          messageId,
+          streamRunId: opts.streamRunId,
+          error,
+        },
+        'step stream error',
+      );
     },
   });
 
@@ -122,24 +125,30 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       attempt++;
       const errorInfo = extractErrorInfo(error, opts.providerId);
 
-      log.error({
-        sessionId: opts.sessionId,
-        streamRunId: opts.streamRunId,
-        messageId: opts.messageId,
-        step: opts.step,
-        attempt,
-        error: errorInfo.message,
-        errorCode: getErrorCode(error),
-        isContextOverflow: errorInfo.isContextOverflow,
-        isRetryable: errorInfo.isRetryable,
-      }, 'step error');
-
-      if (errorInfo.isContextOverflow) {
-        log.info({
+      log.error(
+        {
           sessionId: opts.sessionId,
           streamRunId: opts.streamRunId,
           messageId: opts.messageId,
-        }, 'context overflow detected, will trigger compaction');
+          step: opts.step,
+          attempt,
+          error: errorInfo.message,
+          errorCode: getErrorCode(error),
+          isContextOverflow: errorInfo.isContextOverflow,
+          isRetryable: errorInfo.isRetryable,
+        },
+        'step error',
+      );
+
+      if (errorInfo.isContextOverflow) {
+        log.info(
+          {
+            sessionId: opts.sessionId,
+            streamRunId: opts.streamRunId,
+            messageId: opts.messageId,
+          },
+          'context overflow detected, will trigger compaction',
+        );
         const overflowError = new ContextOverflowError('context_overflow', { cause: error });
         throw overflowError;
       }
@@ -156,16 +165,19 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
       const waitTime = delay(attempt, errorInfo.responseHeaders);
 
-      log.info({
-        sessionId: opts.sessionId,
-        streamRunId: opts.streamRunId,
-        messageId: opts.messageId,
-        step: opts.step,
-        attempt,
-        maxRetries: MAX_RETRIES,
-        delayMs: waitTime,
-        reason: retryMessage,
-      }, 'retrying step');
+      log.info(
+        {
+          sessionId: opts.sessionId,
+          streamRunId: opts.streamRunId,
+          messageId: opts.messageId,
+          step: opts.step,
+          attempt,
+          maxRetries: MAX_RETRIES,
+          delayMs: waitTime,
+          reason: retryMessage,
+        },
+        'retrying step',
+      );
 
       await Sse.broadcast('stream-retry', {
         sessionId: opts.sessionId,

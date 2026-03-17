@@ -202,9 +202,12 @@ export function buildHistoryMessages(
       const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
 
       if (unmatchedToolCalls > 0) {
-        log.warn({
-          count: unmatchedToolCalls,
-        }, 'dropping unmatched tool-call parts from LLM history');
+        log.warn(
+          {
+            count: unmatchedToolCalls,
+          },
+          'dropping unmatched tool-call parts from LLM history',
+        );
       }
 
       if (textParts.length > 0 || matchedToolCalls.length > 0) {
@@ -236,19 +239,19 @@ export function buildHistoryMessages(
           content: toolResultParts
             .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
             .map((tr) => {
-            const isError =
-              tr.output !== null &&
-              tr.output !== undefined &&
-              typeof tr.output === 'object' &&
-              'error' in (tr.output as object);
-            return {
-              type: 'tool-result' as const,
-              toolCallId: tr.toolCallId,
-              toolName: tr.toolName,
-              output: isError
-                ? { type: 'error-json' as const, value: tr.output as never }
-                : { type: 'json' as const, value: tr.output as never },
-            };
+              const isError =
+                tr.output !== null &&
+                tr.output !== undefined &&
+                typeof tr.output === 'object' &&
+                'error' in (tr.output as object);
+              return {
+                type: 'tool-result' as const,
+                toolCallId: tr.toolCallId,
+                toolName: tr.toolName,
+                output: isError
+                  ? { type: 'error-json' as const, value: tr.output as never }
+                  : { type: 'json' as const, value: tr.output as never },
+              };
             }),
         });
       }
@@ -433,22 +436,28 @@ export async function compact(input: {
 
     await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, sessionId));
 
-    log.info({
-      sessionId,
-      summaryTokens: estimate(summaryText),
-      inputTokens: usage.inputTokens,
-      outputTokens: usage.outputTokens,
-    }, 'compaction complete');
+    log.info(
+      {
+        sessionId,
+        summaryTokens: estimate(summaryText),
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+      },
+      'compaction complete',
+    );
 
     await Sse.broadcast('compaction-complete', { sessionId, summaryMessageId });
     await Sse.broadcast('data-change', { queryKey: ['sessions', sessionId] });
 
     return 'continue';
   } catch (error) {
-    log.error({
-      sessionId,
-      error: error instanceof Error ? error.message : String(error),
-    }, 'compaction failed');
+    log.error(
+      {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'compaction failed',
+    );
 
     await Sse.broadcast('stream-error', {
       sessionId,

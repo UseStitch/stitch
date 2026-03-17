@@ -1,14 +1,12 @@
+import { randomUUID } from 'node:crypto';
+
 import { createPartId } from '@openwork/shared';
 import type { PrefixedString, StoredPart } from '@openwork/shared';
-import { randomUUID } from 'node:crypto';
 
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
-import { isOverflow, compact, getModelLimits } from '@/llm/compaction.js';
-import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
-import { executeStepWithRetry } from '@/llm/step-executor.js';
 import {
   getErrorCode,
   getErrorMessage,
@@ -16,6 +14,9 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/lib/stream-errors.js';
+import { isOverflow, compact, getModelLimits } from '@/llm/compaction.js';
+import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
+import { executeStepWithRetry } from '@/llm/step-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
@@ -108,28 +109,34 @@ export async function runStream(opts: {
   let stepCount = 0;
   let protocolViolationCount = 0;
 
-  log.info({
-    event: 'stream.started',
-    streamRunId,
-    sessionId,
-    messageId: assistantMessageId,
-    modelId,
-    providerId: credentials.providerId,
-    agentId,
-  }, 'stream.started');
+  log.info(
+    {
+      event: 'stream.started',
+      streamRunId,
+      sessionId,
+      messageId: assistantMessageId,
+      modelId,
+      providerId: credentials.providerId,
+      agentId,
+    },
+    'stream.started',
+  );
 
   await Sse.broadcast('stream-start', { sessionId, messageId: assistantMessageId });
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
       stepCount = step + 1;
-      log.info({
-        event: 'stream.step.started',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-        step,
-      }, 'stream.step.started');
+      log.info(
+        {
+          event: 'stream.step.started',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+          step,
+        },
+        'stream.step.started',
+      );
 
       const isLastStep = step === MAX_STEPS - 1;
       if (isLastStep) {
@@ -157,16 +164,19 @@ export async function runStream(opts: {
 
       protocolViolationCount += stepResult.protocolViolationCount;
 
-      log.info({
-        event: 'stream.step.finished',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-        step,
-        finishReason: stepResult.finishReason,
-        usage: stepResult.usage,
-        toolCallCount: stepResult.toolCalls.length,
-      }, 'stream.step.finished');
+      log.info(
+        {
+          event: 'stream.step.finished',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+          step,
+          finishReason: stepResult.finishReason,
+          usage: stepResult.usage,
+          toolCallCount: stepResult.toolCalls.length,
+        },
+        'stream.step.finished',
+      );
 
       // Push SDK response messages into conversation for next step
       for (const msg of stepResult.responseMessages) {
@@ -215,25 +225,31 @@ export async function runStream(opts: {
     const limits = await getModelLimits(credentials.providerId, modelId);
     if (isOverflow(totalUsage, limits)) {
       needsCompaction = true;
-      log.info({
-        event: 'stream.compaction.triggered',
-        streamRunId,
-        sessionId,
-        totalTokens: totalUsage.totalTokens,
-        inputTokens: totalUsage.inputTokens,
-      }, 'stream.compaction.triggered');
+      log.info(
+        {
+          event: 'stream.compaction.triggered',
+          streamRunId,
+          sessionId,
+          totalTokens: totalUsage.totalTokens,
+          inputTokens: totalUsage.inputTokens,
+        },
+        'stream.compaction.triggered',
+      );
     }
   } catch (error) {
     if (isStreamAbortedError(error)) {
       wasAborted = true;
       finalFinishReason = 'aborted';
-      log.info({
-        event: 'stream.abort.handled',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-        errorCode: getErrorCode(error),
-      }, 'stream.abort.handled');
+      log.info(
+        {
+          event: 'stream.abort.handled',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+          errorCode: getErrorCode(error),
+        },
+        'stream.abort.handled',
+      );
 
       // Mark any in-flight tool calls as aborted in the UI
       const toolCallIds = new Set(
@@ -284,24 +300,30 @@ export async function runStream(opts: {
           accumulatedParts.splice(i, 1);
         }
       }
-      log.info({
-        event: 'stream.permission.rejected',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-        error: rejectionMessage,
-        errorCode: getErrorCode(error),
-      }, 'stream.permission.rejected');
+      log.info(
+        {
+          event: 'stream.permission.rejected',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+          error: rejectionMessage,
+          errorCode: getErrorCode(error),
+        },
+        'stream.permission.rejected',
+      );
     } else if (isContextOverflowError(error)) {
       contextOverflow = true;
       needsCompaction = true;
       finalFinishReason = 'context-overflow';
-      log.info({
-        event: 'stream.context_overflow',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-      }, 'stream.context_overflow');
+      log.info(
+        {
+          event: 'stream.context_overflow',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+        },
+        'stream.context_overflow',
+      );
     } else {
       finalFinishReason = 'error';
       streamError = error;
@@ -310,14 +332,17 @@ export async function runStream(opts: {
         messageId: assistantMessageId,
         error: getErrorMessage(error),
       });
-      log.error({
-        event: 'stream.failed',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-        errorCode: getErrorCode(error),
-        error,
-      }, 'stream.failed');
+      log.error(
+        {
+          event: 'stream.failed',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+          errorCode: getErrorCode(error),
+          error,
+        },
+        'stream.failed',
+      );
     }
   } finally {
     // ── Persist the full assistant message ──────────────────────────────────
@@ -343,19 +368,22 @@ export async function runStream(opts: {
         'error' in (p.output as object),
     ).length;
 
-    log.info({
-      event: 'stream.finished',
-      streamRunId,
-      sessionId,
-      messageId: assistantMessageId,
-      finishReason: finalFinishReason,
-      durationMs: Date.now() - startedAt,
-      stepCount,
-      partCount: accumulatedParts.length,
-      toolCallCount,
-      toolErrorCount,
-      protocolViolationCount,
-    }, 'stream.finished');
+    log.info(
+      {
+        event: 'stream.finished',
+        streamRunId,
+        sessionId,
+        messageId: assistantMessageId,
+        finishReason: finalFinishReason,
+        durationMs: Date.now() - startedAt,
+        stepCount,
+        partCount: accumulatedParts.length,
+        toolCallCount,
+        toolErrorCount,
+        protocolViolationCount,
+      },
+      'stream.finished',
+    );
   }
 
   if (streamError) throw streamError;
@@ -375,12 +403,15 @@ export async function runStream(opts: {
     });
 
     if (result === 'error') {
-      log.error({
-        event: 'stream.compaction.failed',
-        streamRunId,
-        sessionId,
-        messageId: assistantMessageId,
-      }, 'compaction failed');
+      log.error(
+        {
+          event: 'stream.compaction.failed',
+          streamRunId,
+          sessionId,
+          messageId: assistantMessageId,
+        },
+        'compaction failed',
+      );
     }
   }
 }

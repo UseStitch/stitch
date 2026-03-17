@@ -19,10 +19,7 @@ export function AnimatedTitle({ title, className }: AnimatedTitleProps) {
   }, [title]);
 
   return (
-    <span
-      className={cn('animated-title', className)}
-      aria-label={title}
-    >
+    <span className={cn('animated-title', className)} aria-label={title}>
       {[...title].map((char, i) => (
         <span
           key={`${animationKey}-${i}`}

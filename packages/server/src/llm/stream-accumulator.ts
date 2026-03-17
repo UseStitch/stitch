@@ -32,14 +32,17 @@ export class StreamAccumulator {
   }
 
   async handlePart(part: any): Promise<void> {
-    log.debug({
-      event: 'stream.part.received',
-      streamRunId: this.streamRunId,
-      sessionId: this.sessionId,
-      messageId: this.messageId,
-      step: this.step,
-      partType: String(part?.type ?? 'unknown'),
-    }, 'stream.part.received');
+    log.debug(
+      {
+        event: 'stream.part.received',
+        streamRunId: this.streamRunId,
+        sessionId: this.sessionId,
+        messageId: this.messageId,
+        step: this.step,
+        partType: String(part?.type ?? 'unknown'),
+      },
+      'stream.part.received',
+    );
 
     switch (part.type) {
       case 'text-start': {
@@ -65,14 +68,17 @@ export class StreamAccumulator {
           });
         } else {
           this.protocolViolationCount++;
-          log.warn({
-            event: 'stream.part.protocol_violation',
-            streamRunId: this.streamRunId,
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            step: this.step,
-            violation: 'text_delta_without_text_start',
-          }, 'stream.part.protocol_violation');
+          log.warn(
+            {
+              event: 'stream.part.protocol_violation',
+              streamRunId: this.streamRunId,
+              sessionId: this.sessionId,
+              messageId: this.messageId,
+              step: this.step,
+              violation: 'text_delta_without_text_start',
+            },
+            'stream.part.protocol_violation',
+          );
         }
         break;
       }
@@ -121,14 +127,17 @@ export class StreamAccumulator {
           });
         } else {
           this.protocolViolationCount++;
-          log.warn({
-            event: 'stream.part.protocol_violation',
-            streamRunId: this.streamRunId,
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            step: this.step,
-            violation: 'reasoning_delta_without_reasoning_start',
-          }, 'stream.part.protocol_violation');
+          log.warn(
+            {
+              event: 'stream.part.protocol_violation',
+              streamRunId: this.streamRunId,
+              sessionId: this.sessionId,
+              messageId: this.messageId,
+              step: this.step,
+              violation: 'reasoning_delta_without_reasoning_start',
+            },
+            'stream.part.protocol_violation',
+          );
         }
         break;
       }
@@ -275,16 +284,19 @@ export class StreamAccumulator {
           error: errorText,
         });
 
-        log.warn({
-          event: 'stream.tool.error',
-          streamRunId: this.streamRunId,
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          step: this.step,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          error: errorText,
-        }, 'tool call failed');
+        log.warn(
+          {
+            event: 'stream.tool.error',
+            streamRunId: this.streamRunId,
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            step: this.step,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            error: errorText,
+          },
+          'tool call failed',
+        );
 
         this.accumulatedParts.push({
           type: 'tool-result',
@@ -304,14 +316,17 @@ export class StreamAccumulator {
       }
 
       case 'error': {
-        log.error({
-          event: 'stream.part.error',
-          streamRunId: this.streamRunId,
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          step: this.step,
-          error: part.error,
-        }, 'stream part error');
+        log.error(
+          {
+            event: 'stream.part.error',
+            streamRunId: this.streamRunId,
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            step: this.step,
+            error: part.error,
+          },
+          'stream part error',
+        );
         await Sse.broadcast('stream-error', {
           sessionId: this.sessionId,
           messageId: this.messageId,

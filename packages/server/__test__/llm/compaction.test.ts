@@ -1,8 +1,9 @@
 import { describe, test, expect } from 'vitest';
 
+import type { StoredPart } from '@openwork/shared';
+
 import { buildHistoryMessages, isOverflow } from '@/llm/compaction.js';
 import { estimate } from '@/utils/token.js';
-import type { StoredPart } from '@openwork/shared';
 
 describe('estimate', () => {
   test('returns 0 for null', () => {
@@ -219,10 +220,7 @@ describe('buildHistoryMessages', () => {
         role: 'assistant',
         isSummary: false,
         modelId: 'test-model',
-        parts: [
-          toolCallPart('tc_err'),
-          toolResultPart('tc_err', { error: 'Command was aborted' }),
-        ],
+        parts: [toolCallPart('tc_err'), toolResultPart('tc_err', { error: 'Command was aborted' })],
       },
     ]);
 
@@ -257,6 +255,8 @@ describe('buildHistoryMessages', () => {
   });
 
   test('throws when called with empty history', () => {
-    expect(() => buildHistoryMessages([])).toThrow('buildHistoryMessages requires at least one message');
+    expect(() => buildHistoryMessages([])).toThrow(
+      'buildHistoryMessages requires at least one message',
+    );
   });
 });

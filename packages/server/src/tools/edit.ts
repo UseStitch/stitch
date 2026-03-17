@@ -1,6 +1,6 @@
+import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { ToolContext } from '@/tools/wrappers.js';
@@ -9,21 +9,22 @@ import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 const MULTIPLE_MATCHES_ERROR =
   'Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match.';
 
-const editInputSchema = z.object({
-  filePath: z.string().describe('The absolute path to the file to modify'),
-  oldString: z
-    .string()
-    .min(1)
-    .describe('The text to replace'),
-  newString: z.string().describe('The text to replace it with (must be different from oldString)'),
-  replaceAll: z
-    .boolean()
-    .optional()
-    .describe('Replace all occurrences of oldString (default false)'),
-}).refine((value) => value.newString !== value.oldString, {
-  message: 'newString must be different from oldString',
-  path: ['newString'],
-});
+const editInputSchema = z
+  .object({
+    filePath: z.string().describe('The absolute path to the file to modify'),
+    oldString: z.string().min(1).describe('The text to replace'),
+    newString: z
+      .string()
+      .describe('The text to replace it with (must be different from oldString)'),
+    replaceAll: z
+      .boolean()
+      .optional()
+      .describe('Replace all occurrences of oldString (default false)'),
+  })
+  .refine((value) => value.newString !== value.oldString, {
+    message: 'newString must be different from oldString',
+    path: ['newString'],
+  });
 
 function validateAbsoluteFilePath(filePath: string): string {
   if (!path.isAbsolute(filePath)) {

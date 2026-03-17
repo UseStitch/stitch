@@ -32,11 +32,7 @@ export function inferWindowsShellFromProfile(profile: TerminalProfile): WindowsS
     .join(' ')
     .toLowerCase();
 
-  if (
-    text.includes('pwsh') ||
-    text.includes('powershellcore') ||
-    text.includes('powershell')
-  ) {
+  if (text.includes('pwsh') || text.includes('powershellcore') || text.includes('powershell')) {
     return 'pwsh';
   }
 

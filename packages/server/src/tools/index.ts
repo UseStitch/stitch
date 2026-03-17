@@ -1,13 +1,13 @@
 import type { PrefixedString } from '@openwork/shared';
 
+import * as BashTool from '@/tools/bash.js';
+import * as EditTool from '@/tools/edit.js';
+import * as GlobTool from '@/tools/glob.js';
+import * as GrepTool from '@/tools/grep.js';
 import * as QuestionTool from '@/tools/question.js';
 import * as ReadTool from '@/tools/read.js';
 import * as WebfetchTool from '@/tools/webfetch.js';
-import * as EditTool from '@/tools/edit.js';
 import * as WriteTool from '@/tools/write.js';
-import * as GlobTool from '@/tools/glob.js';
-import * as GrepTool from '@/tools/grep.js';
-import * as BashTool from '@/tools/bash.js';
 
 export const MAX_STEPS = 25;
 

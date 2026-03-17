@@ -1,6 +1,6 @@
+import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { ToolContext } from '@/tools/wrappers.js';
@@ -26,13 +26,11 @@ Usage:
 
 const readInputSchema = z.object({
   filePath: z.string().describe('The absolute path to the file or directory to read'),
-  offset: z
-    .coerce
+  offset: z.coerce
     .number()
     .describe('The line number to start reading from (1-indexed)')
     .optional(),
-  limit: z
-    .coerce
+  limit: z.coerce
     .number()
     .describe('The maximum number of lines to read (defaults to 2000)')
     .optional(),

@@ -1,6 +1,6 @@
+import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
@@ -23,8 +23,13 @@ Usage:
 
 const grepInputSchema = z.object({
   pattern: z.string().describe('The regex pattern to search for in file contents'),
-  path: z.string().describe('Absolute directory path to search in. Required for performance and scope control.'),
-  include: z.string().optional().describe('File pattern to include in the search (e.g. "*.ts", "**/*.{ts,tsx}")'),
+  path: z
+    .string()
+    .describe('Absolute directory path to search in. Required for performance and scope control.'),
+  include: z
+    .string()
+    .optional()
+    .describe('File pattern to include in the search (e.g. "*.ts", "**/*.{ts,tsx}")'),
 });
 
 type GrepResult = {
@@ -180,11 +185,15 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
   }
 
   if (truncatedByMatchLimit) {
-    outputLines.push(`(Results truncated at ${MAX_MATCHES} matches. Narrow the path/include/pattern for better performance.)`);
+    outputLines.push(
+      `(Results truncated at ${MAX_MATCHES} matches. Narrow the path/include/pattern for better performance.)`,
+    );
   }
 
   if (truncatedByFileLimit) {
-    outputLines.push(`(Search stopped after scanning ${MAX_FILES_SCANNED} files. Narrow the path/include for better performance.)`);
+    outputLines.push(
+      `(Search stopped after scanning ${MAX_FILES_SCANNED} files. Narrow the path/include for better performance.)`,
+    );
   }
 
   if (skippedLargeFiles > 0) {

@@ -1,5 +1,5 @@
-import TurndownService from 'turndown';
 import { tool } from 'ai';
+import TurndownService from 'turndown';
 import { z } from 'zod';
 
 import type { ToolContext } from '@/tools/wrappers.js';
@@ -14,7 +14,9 @@ const webfetchInputSchema = z.object({
   format: z
     .enum(['text', 'markdown', 'html'])
     .default('markdown')
-    .describe('The format to return the content in (text, markdown, or html). Defaults to markdown.'),
+    .describe(
+      'The format to return the content in (text, markdown, or html). Defaults to markdown.',
+    ),
   timeout: z.number().optional().describe('Optional timeout in seconds (max 120)'),
 });
 
@@ -29,7 +31,9 @@ const markdownConverter = new TurndownService({
 markdownConverter.remove(['script', 'style', 'meta', 'link']);
 
 function validateAndNormalizeUrl(input: string): string {
-  const withHttps = input.startsWith('http://') ? `https://${input.slice('http://'.length)}` : input;
+  const withHttps = input.startsWith('http://')
+    ? `https://${input.slice('http://'.length)}`
+    : input;
   const parsed = new URL(withHttps);
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new Error('URL must start with http:// or https://');
@@ -77,7 +81,12 @@ function extractTextFromHtml(html: string): string {
     .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, ' ')
     .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, ' ');
 
-  return decodeHtmlEntities(withoutIgnored.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  return decodeHtmlEntities(
+    withoutIgnored
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim(),
+  );
 }
 
 function convertHtmlToMarkdown(html: string): string {
@@ -174,7 +183,9 @@ Usage notes:
         const title = `${normalizedUrl} (${full})`;
 
         const isImage =
-          mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/vnd.fastbidsheet';
+          mime.startsWith('image/') &&
+          mime !== 'image/svg+xml' &&
+          mime !== 'image/vnd.fastbidsheet';
 
         if (isImage) {
           const base64Content = Buffer.from(arrayBuffer).toString('base64');

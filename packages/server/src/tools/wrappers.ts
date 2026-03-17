@@ -1,10 +1,7 @@
 import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
-import {
-  PermissionRejectedError,
-  StreamProtocolViolationError,
-} from '@/lib/stream-errors.js';
+import { PermissionRejectedError, StreamProtocolViolationError } from '@/lib/stream-errors.js';
 import { getAgentPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
 import { truncateOutput } from '@/tools/truncation.js';
 import type { Tool } from 'ai';
@@ -67,15 +64,18 @@ export function withPermissionGate<T extends Tool>(
     const meta = args[1] as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
-      log.error({
-        event: 'stream.part.protocol_violation',
-        toolName,
-        sessionId: context.sessionId,
-        messageId: context.messageId,
-        streamRunId: context.streamRunId,
-        hasMeta: meta !== undefined,
-        metaKeys: meta ? Object.keys(meta) : [],
-      }, 'missing toolCallId in tool execute context');
+      log.error(
+        {
+          event: 'stream.part.protocol_violation',
+          toolName,
+          sessionId: context.sessionId,
+          messageId: context.messageId,
+          streamRunId: context.streamRunId,
+          hasMeta: meta !== undefined,
+          metaKeys: meta ? Object.keys(meta) : [],
+        },
+        'missing toolCallId in tool execute context',
+      );
       throw new StreamProtocolViolationError(`Missing toolCallId for ${toolName}`);
     }
 

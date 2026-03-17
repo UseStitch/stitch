@@ -1,8 +1,8 @@
+import { tool } from 'ai';
+import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawn, type ChildProcess } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { PermissionSuggestion } from '@openwork/shared';
@@ -20,7 +20,10 @@ const MAX_METADATA_LENGTH = 30_000;
 const bashInputSchema = z.object({
   command: z.string().min(1).describe('The shell command to run'),
   workdir: z.string().describe('The absolute working directory to run the command in'),
-  timeout: z.number().optional().describe('Optional timeout in milliseconds (defaults to 120000, max 600000)'),
+  timeout: z
+    .number()
+    .optional()
+    .describe('Optional timeout in milliseconds (defaults to 120000, max 600000)'),
   description: z
     .string()
     .min(1)

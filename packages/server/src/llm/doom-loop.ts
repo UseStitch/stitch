@@ -113,12 +113,15 @@ export async function checkAndHandleDoomLoop(opts: {
 
   const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
 
-  log.warn({
-    sessionId,
-    messageId,
-    toolName: repeatedTool,
-    consecutiveCount: DOOM_LOOP_THRESHOLD,
-  }, 'doom loop detected');
+  log.warn(
+    {
+      sessionId,
+      messageId,
+      toolName: repeatedTool,
+      consecutiveCount: DOOM_LOOP_THRESHOLD,
+    },
+    'doom loop detected',
+  );
 
   await Sse.broadcast('doom-loop-detected', {
     sessionId,

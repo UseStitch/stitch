@@ -1,6 +1,6 @@
+import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { tool } from 'ai';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
@@ -22,7 +22,9 @@ const globInputSchema = z.object({
   pattern: z.string().describe('The glob pattern to match files against'),
   path: z
     .string()
-    .describe('Absolute directory path to search in. Required to keep searches scoped and performant.'),
+    .describe(
+      'Absolute directory path to search in. Required to keep searches scoped and performant.',
+    ),
 });
 
 type GlobResult = {

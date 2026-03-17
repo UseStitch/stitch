@@ -13,9 +13,9 @@ import { createAgentPermissionId, createPermissionResponseId } from '@openwork/s
 import { getDb } from '@/db/client.js';
 import { agentPermissions, permissionResponses } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { broadcast } from '@/lib/sse.js';
 import { PermissionResponseAbortedError } from '@/lib/stream-errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
-import { broadcast } from '@/lib/sse.js';
 
 const log = Log.create({ service: 'permission-service' });
 
@@ -135,15 +135,18 @@ export async function requestPermissionResponse(opts: {
     permissionResponse: row,
   });
 
-  log.info({
-    id,
-    streamRunId: opts.streamRunId,
-    sessionId: opts.sessionId,
-    messageId: opts.messageId,
-    toolCallId: opts.toolCallId,
-    toolName: opts.toolName,
-    event: 'stream.permission.requested',
-  }, 'permission requested');
+  log.info(
+    {
+      id,
+      streamRunId: opts.streamRunId,
+      sessionId: opts.sessionId,
+      messageId: opts.messageId,
+      toolCallId: opts.toolCallId,
+      toolName: opts.toolName,
+      event: 'stream.permission.requested',
+    },
+    'permission requested',
+  );
 
   return new Promise((resolve, reject) => {
     const abortHandler = () => {
@@ -221,13 +224,16 @@ async function resolvePermissionResponse(opts: {
   });
 
   const pending = pendingPermissionResponses.get(opts.permissionResponseId);
-  log.info({
-    event: 'stream.permission.resolved',
-    streamRunId: pending?.streamRunId,
-    permissionResponseId: opts.permissionResponseId,
-    sessionId: permissionResponse?.sessionId ?? '',
-    status: opts.status,
-  }, 'permission resolved');
+  log.info(
+    {
+      event: 'stream.permission.resolved',
+      streamRunId: pending?.streamRunId,
+      permissionResponseId: opts.permissionResponseId,
+      sessionId: permissionResponse?.sessionId ?? '',
+      status: opts.status,
+    },
+    'permission resolved',
+  );
 
   if (pending) {
     pending.resolve(opts.decision);
@@ -302,7 +308,9 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
     const entry = pendingPermissionResponses.get(id);
     const streamRunId = entry?.streamRunId;
     if (entry) {
-      entry.reject(new PermissionResponseAbortedError('Permission response aborted by session abort'));
+      entry.reject(
+        new PermissionResponseAbortedError('Permission response aborted by session abort'),
+      );
       pendingPermissionResponses.delete(id);
     }
 
@@ -311,17 +319,23 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
       sessionId,
     });
 
-    log.info({
-      event: 'stream.permission.aborted',
-      streamRunId,
-      sessionId,
-      permissionResponseId: row.id,
-    }, 'permission aborted');
+    log.info(
+      {
+        event: 'stream.permission.aborted',
+        streamRunId,
+        sessionId,
+        permissionResponseId: row.id,
+      },
+      'permission aborted',
+    );
   }
 
-  log.info({
-    event: 'stream.permission.aborted',
-    sessionId,
-    count: pending.length,
-  }, 'aborted pending permission responses');
+  log.info(
+    {
+      event: 'stream.permission.aborted',
+      sessionId,
+      count: pending.length,
+    },
+    'aborted pending permission responses',
+  );
 }

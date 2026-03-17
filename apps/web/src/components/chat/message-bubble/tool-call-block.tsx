@@ -48,7 +48,15 @@ function getToolLabel(status: ToolCallStatus, error?: string): string | undefine
   return error.includes('User rejected tool execution') ? 'Blocked by user' : error;
 }
 
-function ToolCardRoot({ status, children, className }: { status: ToolCallStatus; children: React.ReactNode; className?: string }) {
+function ToolCardRoot({
+  status,
+  children,
+  className,
+}: {
+  status: ToolCallStatus;
+  children: React.ReactNode;
+  className?: string;
+}) {
   const { hasError, hasSuccess, isActive } = getToolCardState(status);
 
   return (
@@ -86,7 +94,13 @@ function ToolCardHeader({
   );
 }
 
-function ToolCardStatusIndicator({ status, className }: { status: ToolCallStatus; className?: string }) {
+function ToolCardStatusIndicator({
+  status,
+  className,
+}: {
+  status: ToolCallStatus;
+  className?: string;
+}) {
   return (
     <span className={className}>
       <StatusIcon status={status} />
@@ -95,7 +109,9 @@ function ToolCardStatusIndicator({ status, className }: { status: ToolCallStatus
 }
 
 function ToolCardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('text-sm leading-none font-medium capitalize', className)}>{children}</span>;
+  return (
+    <span className={cn('text-sm leading-none font-medium capitalize', className)}>{children}</span>
+  );
 }
 
 function ToolCardTitleContent({
@@ -123,7 +139,13 @@ function ToolCardTitleContent({
   );
 }
 
-function ToolCardActions({ children, className }: { children: React.ReactNode; className?: string }) {
+function ToolCardActions({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <span className={cn('inline-flex items-center gap-1', className)}>{children}</span>;
 }
 
@@ -154,10 +176,7 @@ function ToolCardCopyButton({
       onClick={() => {
         void navigator.clipboard.writeText(value).then(() => setCopied(true));
       }}
-      className={cn(
-        'text-muted-foreground hover:text-foreground',
-        className,
-      )}
+      className={cn('text-muted-foreground hover:text-foreground', className)}
       title={copied ? copiedLabel : copyLabel}
       aria-label={copied ? copiedLabel : copyLabel}
     >
@@ -198,7 +217,9 @@ function ToolCardExpandToggle({
       aria-label={open ? 'Collapse' : 'Expand'}
       title={open ? 'Collapse' : 'Expand'}
     >
-      <ChevronRightIcon className={cn('size-3 shrink-0 transition-transform', open && 'rotate-90')} />
+      <ChevronRightIcon
+        className={cn('size-3 shrink-0 transition-transform', open && 'rotate-90')}
+      />
     </Button>
   );
 }
@@ -219,9 +240,19 @@ function ToolCardStopButton({ onAbort }: { onAbort: () => void }) {
   );
 }
 
-function ToolCardContent({ children, open, className }: { children: React.ReactNode; open?: boolean; className?: string }) {
+function ToolCardContent({
+  children,
+  open,
+  className,
+}: {
+  children: React.ReactNode;
+  open?: boolean;
+  className?: string;
+}) {
   if (open === false) return null;
-  return <div className={cn('border-t border-border/40 px-3 py-2 text-xs', className)}>{children}</div>;
+  return (
+    <div className={cn('border-t border-border/40 px-3 py-2 text-xs', className)}>{children}</div>
+  );
 }
 
 const ToolCard = {
@@ -252,7 +283,9 @@ function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) 
           <div key={q.header} className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{q.question}</span>
             {hasAnswer ? (
-              <span className="text-sm leading-relaxed font-medium text-foreground">{answer.join(', ')}</span>
+              <span className="text-sm leading-relaxed font-medium text-foreground">
+                {answer.join(', ')}
+              </span>
             ) : (
               <span className="text-xs italic text-muted-foreground/70">Waiting for answer...</span>
             )}
@@ -412,8 +445,10 @@ function getBashArgs(args: unknown): {
   const rawCommand = (args as { command?: unknown })?.command;
   const rawTimeout = (args as { timeout?: unknown })?.timeout;
 
-  const action = typeof rawAction === 'string' && rawAction.trim().length > 0 ? rawAction.trim() : null;
-  const command = typeof rawCommand === 'string' && rawCommand.trim().length > 0 ? rawCommand.trim() : null;
+  const action =
+    typeof rawAction === 'string' && rawAction.trim().length > 0 ? rawAction.trim() : null;
+  const command =
+    typeof rawCommand === 'string' && rawCommand.trim().length > 0 ? rawCommand.trim() : null;
   const timeoutMs =
     typeof rawTimeout === 'number' && Number.isFinite(rawTimeout) && rawTimeout > 0
       ? Math.trunc(rawTimeout)
@@ -475,7 +510,9 @@ function BashToolBlock({
   const timeoutLabel = formatTimeoutLabel(timeoutMs);
   const actionLabel = action ?? 'Run a shell command';
   const commandPreview = command ? truncateText(command, 96) : 'Waiting for command...';
-  const outputPreview = outputText ? truncateText(outputText.replace(/\s+/g, ' '), 180) : 'No output yet';
+  const outputPreview = outputText
+    ? truncateText(outputText.replace(/\s+/g, ' '), 180)
+    : 'No output yet';
 
   return (
     <ToolCard.Root status={status}>
@@ -500,26 +537,36 @@ function BashToolBlock({
       </ToolCard.Header>
 
       <ToolCard.Content open={open}>
-          <div className="space-y-1.5">
-            <div className="font-mono text-[11px] text-muted-foreground break-all">
-              <span className="font-sans font-medium text-foreground">Command:</span> {commandPreview}
-            </div>
-            <div className="text-muted-foreground">
-              <span className="font-medium text-foreground">Result:</span> {resultSummary}
-            </div>
-            <div className="text-muted-foreground">
-              <span className="font-medium text-foreground">Output:</span> {outputPreview}
-            </div>
-            <div className="text-muted-foreground">
-              <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
-            </div>
+        <div className="space-y-1.5">
+          <div className="font-mono text-[11px] text-muted-foreground break-all">
+            <span className="font-sans font-medium text-foreground">Command:</span> {commandPreview}
           </div>
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Result:</span> {resultSummary}
+          </div>
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Output:</span> {outputPreview}
+          </div>
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
+          </div>
+        </div>
       </ToolCard.Content>
     </ToolCard.Root>
   );
 }
 
-function FileToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
+function FileToolBlock({
+  toolName,
+  status,
+  args,
+  error,
+}: {
+  toolName: string;
+  status: ToolCallStatus;
+  args: unknown;
+  error?: string;
+}) {
   const label = getToolLabel(status, error);
   const filePath = getFilePathFromArgs(args);
   const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
@@ -551,7 +598,14 @@ type ToolCallBlockProps = {
   onAbort?: () => void;
 };
 
-export function ToolCallBlock({ toolName, status, args, result, error, onAbort }: ToolCallBlockProps) {
+export function ToolCallBlock({
+  toolName,
+  status,
+  args,
+  result,
+  error,
+  onAbort,
+}: ToolCallBlockProps) {
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
   const isWebfetch = toolName === 'webfetch' && args !== undefined && args !== null;
   const isBash = toolName === 'bash' && args !== undefined && args !== null;
@@ -565,7 +619,13 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
 
   if (isWebfetch) {
     return (
-      <WebfetchToolBlock toolName={toolName} status={status} args={args} error={error} onAbort={onAbort} />
+      <WebfetchToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        error={error}
+        onAbort={onAbort}
+      />
     );
   }
 
