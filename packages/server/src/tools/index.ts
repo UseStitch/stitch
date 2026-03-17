@@ -1,6 +1,7 @@
 import type { PrefixedString } from '@openwork/shared';
 
 import * as QuestionTool from '@/tools/question.js';
+import * as ReadTool from '@/tools/read.js';
 import * as WebfetchTool from '@/tools/webfetch.js';
 import * as EditTool from '@/tools/edit.js';
 import * as WriteTool from '@/tools/write.js';
@@ -18,6 +19,7 @@ export function createTools(context: {
   return {
     webfetch: WebfetchTool.createRegisteredTool(context),
     question: QuestionTool.createRegisteredTool(context),
+    read: ReadTool.createRegisteredTool(context),
     edit: EditTool.createRegisteredTool(context),
     write: WriteTool.createRegisteredTool(context),
   };
