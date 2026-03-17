@@ -211,6 +211,148 @@ function getFilePathFromArgs(args: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function formatTimeoutLabel(timeoutMs: number | null): string {
+  const fallbackMs = 120000;
+  const value = timeoutMs ?? fallbackMs;
+  if (!Number.isFinite(value) || value <= 0) return '2 min';
+
+  const totalSeconds = Math.round(value / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`;
+}
+
+function getBashArgs(args: unknown): {
+  action: string | null;
+  command: string | null;
+  timeoutMs: number | null;
+} {
+  const rawAction = (args as { description?: unknown })?.description;
+  const rawCommand = (args as { command?: unknown })?.command;
+  const rawTimeout = (args as { timeout?: unknown })?.timeout;
+
+  const action = typeof rawAction === 'string' && rawAction.trim().length > 0 ? rawAction.trim() : null;
+  const command = typeof rawCommand === 'string' && rawCommand.trim().length > 0 ? rawCommand.trim() : null;
+  const timeoutMs =
+    typeof rawTimeout === 'number' && Number.isFinite(rawTimeout) && rawTimeout > 0
+      ? Math.trunc(rawTimeout)
+      : null;
+
+  return {
+    action,
+    command,
+    timeoutMs,
+  };
+}
+
+function getBashResultSummary(status: ToolCallStatus, result: unknown, error?: string): string {
+  if (status === 'pending' || status === 'in-progress') return 'Running';
+  if (status === 'error') return error ? `Failed: ${error}` : 'Failed';
+
+  const exitCode = (result as { metadata?: { exit?: unknown } } | null)?.metadata?.exit;
+  if (typeof exitCode === 'number') {
+    return exitCode === 0 ? 'Done' : `Completed with issues (exit ${exitCode})`;
+  }
+
+  return 'Done';
+}
+
+function getBashOutputText(result: unknown): string | null {
+  const direct = (result as { output?: unknown } | null)?.output;
+  if (typeof direct === 'string' && direct.trim().length > 0) {
+    return direct.trim();
+  }
+
+  if (typeof result === 'string' && result.trim().length > 0) {
+    return result.trim();
+  }
+
+  return null;
+}
+
+function BashToolBlock({
+  toolName,
+  status,
+  args,
+  result,
+  error,
+  onAbort,
+}: {
+  toolName: string;
+  status: ToolCallStatus;
+  args: unknown;
+  result?: unknown;
+  error?: string;
+  onAbort?: () => void;
+}) {
+  const hasError = status === 'error';
+  const hasSuccess = status === 'completed';
+  const isActive = status === 'pending' || status === 'in-progress';
+  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
+  const label = isBlocked ? 'Blocked by user' : error;
+  const { action, command, timeoutMs } = getBashArgs(args);
+  const outputText = getBashOutputText(result);
+  const resultSummary = getBashResultSummary(status, result, label);
+  const timeoutLabel = formatTimeoutLabel(timeoutMs);
+  const commandPreview = command ? truncateText(command, 96) : 'Waiting for command...';
+  const outputPreview = outputText ? truncateText(outputText.replace(/\s+/g, ' '), 180) : null;
+  const showDoneDetails = status === 'completed' || status === 'error';
+
+  return (
+    <div
+      className={cn(
+        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
+        toolCallBorderClass({ hasError, isActive, hasSuccess }),
+      )}
+    >
+      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
+        <StatusIcon status={status} />
+        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+          {label ? label : commandPreview}
+        </span>
+        {isActive && onAbort ? (
+          <button
+            type="button"
+            onClick={onAbort}
+            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            title="Stop running tool"
+          >
+            <SquareIcon className="size-3" />
+            Stop
+          </button>
+        ) : null}
+      </div>
+
+      <div className="border-t border-border/40 px-3 py-2 text-xs">
+        <div className="space-y-1.5">
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Action:</span> {action ?? 'Run a shell command'}
+          </div>
+          <div className="font-mono text-[11px] text-muted-foreground break-all">
+            <span className="font-sans font-medium text-foreground">Command:</span> {command ?? 'Waiting for command...'}
+          </div>
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
+          </div>
+          {showDoneDetails ? (
+            <div className="text-muted-foreground">
+              <span className="font-medium text-foreground">Result:</span> {resultSummary}
+            </div>
+          ) : null}
+          {showDoneDetails && outputPreview ? (
+            <div className="text-muted-foreground">
+              <span className="font-medium text-foreground">Output:</span> {outputPreview}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WriteToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
   const hasError = status === 'error';
   const hasSuccess = status === 'completed';
@@ -403,6 +545,7 @@ type ToolCallBlockProps = {
 export function ToolCallBlock({ toolName, status, args, result, error, onAbort }: ToolCallBlockProps) {
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
   const isWebfetch = toolName === 'webfetch' && args !== undefined && args !== null;
+  const isBash = toolName === 'bash' && args !== undefined && args !== null;
   const isWrite = toolName === 'write' && args !== undefined && args !== null;
   const isEdit = toolName === 'edit' && args !== undefined && args !== null;
   const isRead = toolName === 'read' && args !== undefined && args !== null;
@@ -414,6 +557,19 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
   if (isWebfetch) {
     return (
       <WebfetchToolBlock toolName={toolName} status={status} args={args} error={error} onAbort={onAbort} />
+    );
+  }
+
+  if (isBash) {
+    return (
+      <BashToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        error={error}
+        onAbort={onAbort}
+      />
     );
   }
 
