@@ -45,10 +45,27 @@ function countOccurrences(content: string, oldString: string): number {
   }
 }
 
+function isTextFileBuffer(buffer: Buffer): boolean {
+  if (buffer.length === 0) return true;
+  if (buffer.includes(0)) return false;
+
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function editFileContent(input: z.infer<typeof editInputSchema>): Promise<string> {
   const parsed = editInputSchema.parse(input);
   const targetPath = validateAbsoluteFilePath(parsed.filePath);
-  const content = await fs.readFile(targetPath, 'utf8');
+  const buffer = await fs.readFile(targetPath);
+  if (!isTextFileBuffer(buffer)) {
+    throw new Error('Only text files are supported');
+  }
+
+  const content = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
   const matchCount = countOccurrences(content, parsed.oldString);
 
   if (matchCount === 0) {
@@ -76,6 +93,7 @@ Usage:
 - When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: line number + colon + space (e.g., \`1: \`). Everything after that space is the actual file content to match. Never include any part of the line number prefix in the oldString or newString.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
 - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+- This tool only supports text files. Non-text files will return an error.
 - The edit will FAIL if oldString is not found in the file with an error "oldString not found in content".
 - The edit will FAIL if oldString is found multiple times in the file with an error "Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match." Either provide a larger string with more surrounding context to make it unique or use replaceAll to change every instance of oldString.
 - Use replaceAll for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.`,

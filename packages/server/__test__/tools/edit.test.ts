@@ -103,4 +103,19 @@ describe('edit tool helpers', () => {
       }),
     ).rejects.toThrow('newString must be different from oldString');
   });
+
+  test('rejects non-text files', async () => {
+    const dir = await createTempDir();
+    const filePath = path.join(dir, 'image.png');
+
+    await fs.writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]));
+
+    await expect(
+      editFileContent({
+        filePath,
+        oldString: 'x',
+        newString: 'y',
+      }),
+    ).rejects.toThrow('Only text files are supported');
+  });
 });
