@@ -41,7 +41,7 @@ function RootLayout() {
     <SidebarProvider className="h-screen flex-col overflow-hidden">
       <TitleBar />
       <RightClickMenu>
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="relative flex flex-1 overflow-hidden bg-sidebar">
           <AppSidebar />
           <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
             <StreamSync />
