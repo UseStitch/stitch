@@ -90,13 +90,15 @@ export function ProviderConfig({ provider, onBack }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
     : undefined;
+  const enabledAuthMethods = meta?.authMethods.filter((method) => method.enabled) ?? [];
   const queryClient = useQueryClient();
   const { data: existingConfig } = useQuery(providerConfigQueryOptions(provider.id));
 
+  const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
   const defaultMethod =
-    (existingConfig?.auth as { method?: string } | undefined)?.method ??
-    meta?.authMethods[0]?.method ??
-    '';
+    (existingMethod && enabledAuthMethods.some((method) => method.method === existingMethod)
+      ? existingMethod
+      : undefined) ?? enabledAuthMethods[0]?.method ?? '';
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
@@ -106,7 +108,11 @@ export function ProviderConfig({ provider, onBack }: Props) {
     if (!existingConfig || !meta) return;
 
     const method = (existingConfig.auth as { method?: string } | undefined)?.method;
-    if (method) setActiveTab(method);
+    if (method && enabledAuthMethods.some((authMethod) => authMethod.method === method)) {
+      setActiveTab(method);
+    } else if (enabledAuthMethods[0]?.method) {
+      setActiveTab(enabledAuthMethods[0].method);
+    }
 
     const authFields: FieldValues = {};
     const auth = existingConfig.auth as Record<string, unknown> | undefined;
@@ -115,7 +121,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
         if (k !== 'method' && typeof v === 'string') authFields[k] = v;
       }
     }
-    if (method) {
+    if (method && enabledAuthMethods.some((authMethod) => authMethod.method === method)) {
       setFieldsByMethod((prev) => ({ ...prev, [method]: authFields }));
     }
 
@@ -124,7 +130,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
       if (k !== 'auth' && k !== 'providerId' && typeof v === 'string') extra[k] = v;
     }
     setExtraFields(extra);
-  }, [existingConfig, meta]);
+  }, [enabledAuthMethods, existingConfig, meta]);
 
   const saveMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -163,7 +169,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  if (!meta) return null;
+  if (!meta || enabledAuthMethods.length === 0) return null;
 
   const currentMethodFields = fieldsByMethod[activeTab] ?? {};
 
@@ -181,7 +187,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
   function handleSave() {
     if (!meta) return;
     const auth: Record<string, unknown> = { method: activeTab };
-    const methodDef = meta.authMethods.find((m) => m.method === activeTab);
+    const methodDef = enabledAuthMethods.find((m) => m.method === activeTab);
     if (methodDef) {
       for (const field of methodDef.fields) {
         const val = currentMethodFields[field.key];
@@ -202,8 +208,8 @@ export function ProviderConfig({ provider, onBack }: Props) {
     if (value) setActiveTab(value);
   }
 
-  const hasMultipleMethods = meta.authMethods.length > 1;
-  const activeMethodDef = meta.authMethods.find((m) => m.method === activeTab) as
+  const hasMultipleMethods = enabledAuthMethods.length > 1;
+  const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab) as
     | AuthMethodDef
     | undefined;
 
@@ -243,14 +249,14 @@ export function ProviderConfig({ provider, onBack }: Props) {
         {/* Auth method section */}
         {hasMultipleMethods ? (
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList>
-              {meta.authMethods.map((m) => (
+              <TabsList>
+              {enabledAuthMethods.map((m) => (
                 <TabsTrigger key={m.method} value={m.method}>
                   {m.label}
                 </TabsTrigger>
               ))}
             </TabsList>
-            {meta.authMethods.map((m) => (
+            {enabledAuthMethods.map((m) => (
               <TabsContent key={m.method} value={m.method} className="mt-4">
                 {m.fields.length > 0 ? (
                   <FieldGroup

@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared';
 
 import { ProviderConfig } from '@/components/settings/provider-config';
 import { ProviderRow } from '@/components/settings/provider-row';
@@ -9,8 +10,14 @@ import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/provi
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
   const { data: providers } = useSuspenseQuery(providersQueryOptions);
 
-  const connected = providers.filter((p) => p.enabled);
-  const unconnected = providers.filter((p) => !p.enabled);
+  const providersWithEnabledAuth = providers.filter((provider) => {
+    if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;
+    const meta = PROVIDER_META[provider.id as ProviderId];
+    return meta.authMethods.some((method) => method.enabled);
+  });
+
+  const connected = providersWithEnabledAuth.filter((p) => p.enabled);
+  const unconnected = providersWithEnabledAuth.filter((p) => !p.enabled);
 
   return (
     <div className="flex flex-col gap-6">

@@ -33,6 +33,9 @@ export function ProviderRow({ provider, onSelect }: Props) {
 
   if (!meta) return null;
 
+  const enabledAuthMethods = meta.authMethods.filter((method) => method.enabled);
+  if (enabledAuthMethods.length === 0) return null;
+
   const handleDisconnect = (e: React.MouseEvent) => {
     e.stopPropagation();
     deleteMutation.mutate();
@@ -40,10 +43,10 @@ export function ProviderRow({ provider, onSelect }: Props) {
 
   // Determine badge text. The image shows "Custom" for Bedrock and "API key" for Google.
   let badgeText = '';
-  if (provider.enabled && meta.authMethods.length > 0) {
+  if (provider.enabled && enabledAuthMethods.length > 0) {
     if (provider.id === 'amazon-bedrock')
       badgeText = 'Custom'; // matching screenshot specifically
-    else badgeText = meta.authMethods[0]?.label || '';
+    else badgeText = enabledAuthMethods[0]?.label || '';
   }
 
   return (
