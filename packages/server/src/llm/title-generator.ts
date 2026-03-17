@@ -1,4 +1,5 @@
 import { generateText } from 'ai';
+import type { LanguageModelUsage } from 'ai';
 
 import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -12,11 +13,18 @@ Generate a short, descriptive title (30 chars max) for a conversation that start
 Just return the title, nothing else.
 `;
 
+type GeneratedTitle = {
+  title: string;
+  usage: LanguageModelUsage | null;
+  providerId: string;
+  modelId: string;
+};
+
 export async function generateTitle(
   firstMessage: string,
   fallbackProviderId: string,
   fallbackModelId: string,
-): Promise<string | null> {
+): Promise<GeneratedTitle | null> {
   const resolved = await resolveCheapModel({
     settingsKey: 'model.title',
     fallbackProviderId,
@@ -37,7 +45,16 @@ export async function generateTitle(
     });
 
     const title = result.text.trim().replace(/^["']|["']$/g, '');
-    return title || null;
+    if (!title) {
+      return null;
+    }
+
+    return {
+      title,
+      usage: result.usage ?? null,
+      providerId: resolved.providerId,
+      modelId: resolved.modelId,
+    };
   } catch (error) {
     log.error({ error }, 'title generation failed');
     return null;

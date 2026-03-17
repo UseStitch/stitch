@@ -20,6 +20,7 @@ import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
+import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
@@ -50,6 +51,12 @@ async function saveAssistantMessage(opts: {
 
   const finishedAt = Date.now();
   const db = getDb();
+  const costUsd = await calculateMessageCostUsd({
+    providerId,
+    modelId,
+    usage: totalUsage,
+  });
+
   await db.insert(messages).values({
     id: assistantMessageId,
     sessionId,
@@ -59,6 +66,7 @@ async function saveAssistantMessage(opts: {
     providerId,
     agentId: agentId as PrefixedString<'agt'>,
     usage: totalUsage,
+    costUsd,
     finishReason: finalFinishReason,
     createdAt: new Date(startedAt),
     startedAt: new Date(startedAt),

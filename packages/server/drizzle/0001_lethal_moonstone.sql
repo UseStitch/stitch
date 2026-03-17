@@ -1,0 +1,1 @@
+ALTER TABLE `messages` ADD `cost_usd` real;

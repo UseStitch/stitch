@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { blob, check, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type {
   MessageRole,
@@ -91,6 +91,7 @@ export const messages = sqliteTable('messages', {
     .notNull()
     .references(() => agents.id),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
+  costUsd: real('cost_usd'),
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })

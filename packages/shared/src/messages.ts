@@ -73,6 +73,7 @@ export type Message = {
   providerId: string;
   agentId: PrefixedString<'agt'>;
   usage: LanguageModelUsage;
+  costUsd: number | null;
   finishReason: string;
   isSummary: boolean;
   createdAt: number;

@@ -13,6 +13,7 @@ import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import * as Models from '@/provider/models.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
+import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
@@ -348,6 +349,7 @@ export async function compact(input: {
       modelId: input.modelId,
       providerId: input.providerId,
       agentId: input.agentId as PrefixedString<'agt'>,
+      costUsd: null,
       createdAt: new Date(now),
       updatedAt: new Date(now),
       startedAt: new Date(now),
@@ -408,6 +410,11 @@ export async function compact(input: {
 
     // Step 4: Store the summary as an assistant message
     const usage = await result.usage;
+    const costUsd = await calculateMessageCostUsd({
+      providerId: resolved.providerId,
+      modelId: resolved.modelId,
+      usage,
+    });
     const summaryNow = Date.now();
     const summaryPart: StoredPart = {
       type: 'text-delta',
@@ -426,6 +433,7 @@ export async function compact(input: {
       providerId: resolved.providerId,
       agentId: input.agentId as PrefixedString<'agt'>,
       usage,
+      costUsd,
       finishReason: 'stop',
       isSummary: true,
       createdAt: new Date(summaryNow),

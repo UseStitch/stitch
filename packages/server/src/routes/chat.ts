@@ -16,6 +16,7 @@ import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/do
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortPermissionResponses } from '@/permission/service.js';
 import { abortQuestions } from '@/question/service.js';
+import { calculateMessageCostUsd } from '@/utils/cost.js';
 
 const log = Log.create({ service: 'chat' });
 
@@ -183,13 +184,59 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
   if (isFirstMessage) {
     generateTitle(body.content, body.providerId, body.modelId)
-      .then(async (title) => {
-        if (title) {
+      .then(async (generatedTitle) => {
+        if (generatedTitle) {
+          const now = Date.now();
+          const titleSessionId = createSessionId();
+          const titleMessageId = createMessageId();
+          const titlePart: StoredPart = {
+            type: 'text-delta',
+            id: createPartId(),
+            text: generatedTitle.title,
+            startedAt: now,
+            endedAt: now,
+          };
+
+          const costUsd = generatedTitle.usage
+            ? await calculateMessageCostUsd({
+                providerId: generatedTitle.providerId,
+                modelId: generatedTitle.modelId,
+                usage: generatedTitle.usage,
+              })
+            : null;
+
+          await db.insert(sessions).values({
+            id: titleSessionId,
+            title: generatedTitle.title,
+            sessionType: 'title',
+            parentSessionId: sessionId,
+            createdAt: new Date(now),
+            updatedAt: new Date(now),
+          });
+
+          await db.insert(messages).values({
+            id: titleMessageId,
+            sessionId: titleSessionId,
+            role: 'assistant',
+            parts: [titlePart],
+            modelId: generatedTitle.modelId,
+            providerId: generatedTitle.providerId,
+            agentId: agent.id,
+            usage: generatedTitle.usage ?? undefined,
+            costUsd,
+            finishReason: 'stop',
+            isSummary: false,
+            createdAt: new Date(now),
+            updatedAt: new Date(now),
+            startedAt: new Date(now),
+            duration: 0,
+          });
+
           await db
             .update(sessions)
-            .set({ title, updatedAt: new Date() })
+            .set({ title: generatedTitle.title, updatedAt: new Date() })
             .where(eq(sessions.id, sessionId));
-          await broadcast('session-title-update', { sessionId, title });
+          await broadcast('session-title-update', { sessionId, title: generatedTitle.title });
         }
       })
       .catch((err) => {
@@ -215,6 +262,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     modelId: body.modelId,
     providerId: body.providerId,
     agentId: agent.id,
+    costUsd: null,
     createdAt: new Date(now),
     updatedAt: new Date(now),
     startedAt: new Date(now),
