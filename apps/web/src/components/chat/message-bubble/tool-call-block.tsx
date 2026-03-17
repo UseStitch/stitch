@@ -1,6 +1,7 @@
 import {
   ChevronRightIcon,
   CheckIcon,
+  CopyIcon,
   AlertCircleIcon,
   LoaderIcon,
   SquareIcon,
@@ -148,7 +149,7 @@ function getWebfetchUrl(args: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function truncateUrl(value: string, max = 84): string {
+function truncateText(value: string, max = 84): string {
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1)}...`;
 }
@@ -172,7 +173,7 @@ function WebfetchToolBlock({
   const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
   const label = isBlocked ? 'Blocked by user' : error;
   const url = getWebfetchUrl(args);
-  const displayUrl = url ? truncateUrl(url) : 'Waiting for URL...';
+  const displayUrl = url ? truncateText(url) : 'Waiting for URL...';
 
   return (
     <div
@@ -203,6 +204,73 @@ function WebfetchToolBlock({
   );
 }
 
+function getWritePath(args: unknown): string | null {
+  const value = (args as { filePath?: unknown })?.filePath;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function WriteToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
+  const hasError = status === 'error';
+  const hasSuccess = status === 'completed';
+  const isActive = status === 'pending' || status === 'in-progress';
+  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
+  const label = isBlocked ? 'Blocked by user' : error;
+  const filePath = getWritePath(args);
+  const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!copied) return;
+    const timeoutId = setTimeout(() => setCopied(false), 1000);
+    return () => clearTimeout(timeoutId);
+  }, [copied]);
+
+  return (
+    <div
+      className={cn(
+        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
+        toolCallBorderClass({ hasError, isActive, hasSuccess }),
+      )}
+    >
+      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
+        <StatusIcon status={status} />
+        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+          {label ? `${displayPath} - ${label}` : displayPath}
+        </span>
+        {filePath ? (
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(filePath).then(() => setCopied(true));
+            }}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
+            title={copied ? 'Copied' : 'Copy file path'}
+            aria-label={copied ? 'Copied' : 'Copy file path'}
+          >
+            <span className="relative inline-flex size-3">
+              <CopyIcon
+                className={cn(
+                  'absolute inset-0 size-3 transition-all duration-200',
+                  copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
+                )}
+              />
+              <CheckIcon
+                className={cn(
+                  'text-success absolute inset-0 size-3 transition-all duration-200',
+                  copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+                )}
+              />
+            </span>
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 type ToolCallBlockProps = {
   toolName: string;
   status: ToolCallStatus;
@@ -215,6 +283,7 @@ type ToolCallBlockProps = {
 export function ToolCallBlock({ toolName, status, args, result, error, onAbort }: ToolCallBlockProps) {
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
   const isWebfetch = toolName === 'webfetch' && args !== undefined && args !== null;
+  const isWrite = toolName === 'write' && args !== undefined && args !== null;
 
   if (isQuestion) {
     return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;
@@ -224,6 +293,10 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
     return (
       <WebfetchToolBlock toolName={toolName} status={status} args={args} error={error} onAbort={onAbort} />
     );
+  }
+
+  if (isWrite) {
+    return <WriteToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
 
   return <GenericToolBlock toolName={toolName} status={status} error={error} />;
