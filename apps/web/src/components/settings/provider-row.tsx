@@ -1,32 +1,14 @@
-import {
-  PlusIcon,
-  BoxIcon,
-  CpuIcon,
-  SparklesIcon,
-  CloudIcon,
-  SearchIcon,
-  TriangleIcon,
-  HexagonIcon,
-} from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared';
 
+import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
 import { serverFetch } from '@/lib/api';
 import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
-
-const ICON_MAP: Record<string, React.ReactNode> = {
-  anthropic: <CpuIcon className="size-4.5" />,
-  openai: <SparklesIcon className="size-4.5" />,
-  google: <SparklesIcon className="size-4.5" />,
-  'google-vertex': <SearchIcon className="size-4.5" />,
-  'amazon-bedrock': <CloudIcon className="size-4.5" />,
-  openrouter: <HexagonIcon className="size-4.5" />,
-  vercel: <TriangleIcon className="size-4.5" />,
-};
 
 type Props = {
   provider: ProviderSummary;
@@ -68,7 +50,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
     <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 px-2 -mx-2 group">
       <div className="flex items-center gap-4 min-w-0">
         <div className="text-muted-foreground shrink-0">
-          {ICON_MAP[provider.id] || <BoxIcon className="size-4.5" />}
+          <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
         </div>
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2">

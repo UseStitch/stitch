@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import * as ProviderLogos from '@/provider/logos.js';
 import * as Models from '@/provider/models.js';
 import { ProviderCredentialsSchema } from '@/provider/provider.js';
 
@@ -108,6 +109,21 @@ providerRouter.get('/:providerId/models/:modelId', async (c) => {
   const model = provider.models[c.req.param('modelId')];
   if (!model) return c.json({ error: 'Model not found' }, 404);
   return c.json(toModelSummary(model));
+});
+
+providerRouter.get('/:providerId/logo', async (c) => {
+  const providerId = c.req.param('providerId');
+  if (!assertAllowed(providerId)) {
+    log.warn({ providerId }, 'blocked access to non-allowed provider');
+    return c.json({ error: 'Provider not found' }, 404);
+  }
+
+  const logo = await ProviderLogos.get(providerId);
+  if (!logo) return c.json({ error: 'Provider logo not found' }, 404);
+
+  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=86400');
+  return c.body(logo, 200);
 });
 
 providerRouter.get('/:providerId/config', async (c) => {

@@ -22,6 +22,7 @@ import {
   providerKeys,
   type ProviderSummary,
 } from '@/lib/queries/providers';
+import { ProviderLogo } from './provider-logo';
 
 type Props = {
   provider: ProviderSummary;
@@ -213,6 +214,9 @@ export function ProviderConfig({ provider, onBack }: Props) {
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to providers">
           <ArrowLeftIcon className="size-4" />
         </Button>
+        <div className="text-muted-foreground shrink-0">
+          <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
+        </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
           <p className="text-muted-foreground text-xs">{provider.model_count} models available</p>
