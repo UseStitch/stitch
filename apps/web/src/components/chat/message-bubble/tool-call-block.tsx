@@ -293,12 +293,13 @@ function BashToolBlock({
   const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
   const label = isBlocked ? 'Blocked by user' : error;
   const { action, command, timeoutMs } = getBashArgs(args);
+  const [open, setOpen] = React.useState(false);
   const outputText = getBashOutputText(result);
   const resultSummary = getBashResultSummary(status, result, label);
   const timeoutLabel = formatTimeoutLabel(timeoutMs);
+  const actionLabel = action ?? 'Run a shell command';
   const commandPreview = command ? truncateText(command, 96) : 'Waiting for command...';
-  const outputPreview = outputText ? truncateText(outputText.replace(/\s+/g, ' '), 180) : null;
-  const showDoneDetails = status === 'completed' || status === 'error';
+  const outputPreview = outputText ? truncateText(outputText.replace(/\s+/g, ' '), 180) : 'No output yet';
 
   return (
     <div
@@ -307,12 +308,19 @@ function BashToolBlock({
         toolCallBorderClass({ hasError, isActive, hasSuccess }),
       )}
     >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          {label ? label : commandPreview}
-        </span>
+      <div className="flex w-full items-center gap-2 bg-primary/5 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-primary transition-colors hover:text-primary/90"
+        >
+          <StatusIcon status={status} />
+          <span className="min-w-0 flex-1 truncate text-left text-sm leading-none font-medium">
+            <span className="capitalize">{toolName}</span>
+            <span className="text-primary/70"> / {actionLabel}</span>
+          </span>
+          <ChevronRightIcon className={cn('size-3 shrink-0 text-primary transition-transform', open && 'rotate-90')} />
+        </button>
         {isActive && onAbort ? (
           <button
             type="button"
@@ -326,29 +334,24 @@ function BashToolBlock({
         ) : null}
       </div>
 
-      <div className="border-t border-border/40 px-3 py-2 text-xs">
-        <div className="space-y-1.5">
-          <div className="text-muted-foreground">
-            <span className="font-medium text-foreground">Action:</span> {action ?? 'Run a shell command'}
-          </div>
-          <div className="font-mono text-[11px] text-muted-foreground break-all">
-            <span className="font-sans font-medium text-foreground">Command:</span> {command ?? 'Waiting for command...'}
-          </div>
-          <div className="text-muted-foreground">
-            <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
-          </div>
-          {showDoneDetails ? (
+      {open ? (
+        <div className="border-t border-border/40 px-3 py-2 text-xs">
+          <div className="space-y-1.5">
+            <div className="font-mono text-[11px] text-muted-foreground break-all">
+              <span className="font-sans font-medium text-foreground">Command:</span> {commandPreview}
+            </div>
             <div className="text-muted-foreground">
               <span className="font-medium text-foreground">Result:</span> {resultSummary}
             </div>
-          ) : null}
-          {showDoneDetails && outputPreview ? (
             <div className="text-muted-foreground">
               <span className="font-medium text-foreground">Output:</span> {outputPreview}
             </div>
-          ) : null}
+            <div className="text-muted-foreground">
+              <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
