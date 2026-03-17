@@ -164,16 +164,18 @@ describe('buildHistoryMessages', () => {
       {
         role: 'assistant',
         isSummary: false,
+        modelId: 'test-model',
         parts: [toolCallPart('tc_1'), toolResultPart('tc_1', { ok: true })],
       },
     ]);
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({
+    expect(result).toHaveLength(3);
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(result[1]).toMatchObject({
       role: 'assistant',
       content: [{ type: 'tool-call', toolCallId: 'tc_1' }],
     });
-    expect(result[1]).toMatchObject({
+    expect(result[2]).toMatchObject({
       role: 'tool',
       content: [{ type: 'tool-result', toolCallId: 'tc_1' }],
     });
@@ -184,11 +186,13 @@ describe('buildHistoryMessages', () => {
       {
         role: 'assistant',
         isSummary: false,
+        modelId: 'test-model',
         parts: [toolCallPart('tc_missing')],
       },
     ]);
 
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ role: 'system' });
   });
 
   test('keeps assistant text even when tool-call is unmatched', () => {
@@ -196,12 +200,14 @@ describe('buildHistoryMessages', () => {
       {
         role: 'assistant',
         isSummary: false,
+        modelId: 'test-model',
         parts: [textPart('hello'), toolCallPart('tc_missing')],
       },
     ]);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(result[1]).toMatchObject({
       role: 'assistant',
       content: [{ type: 'text', text: 'hello' }],
     });
@@ -212,6 +218,7 @@ describe('buildHistoryMessages', () => {
       {
         role: 'assistant',
         isSummary: false,
+        modelId: 'test-model',
         parts: [
           toolCallPart('tc_err'),
           toolResultPart('tc_err', { error: 'Command was aborted' }),
@@ -219,7 +226,7 @@ describe('buildHistoryMessages', () => {
       },
     ]);
 
-    expect(result[1]).toMatchObject({
+    expect(result[2]).toMatchObject({
       role: 'tool',
       content: [
         {
@@ -229,5 +236,27 @@ describe('buildHistoryMessages', () => {
         },
       ],
     });
+  });
+
+  test('adds system prompt with environment and model id', () => {
+    const result = buildHistoryMessages([
+      {
+        role: 'user',
+        isSummary: false,
+        modelId: 'openai/gpt-5.3-codex',
+        parts: [textPart('hello')],
+      },
+    ]);
+
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(typeof result[0]?.content).toBe('string');
+    expect(result[0]?.content).toContain('<env>');
+    expect(result[0]?.content).toContain('Model id: openai/gpt-5.3-codex');
+    expect(result[0]?.content).toContain('Preferred shell:');
+    expect(result[0]?.content).toContain('You are Agentloops, a local machine assistant.');
+  });
+
+  test('throws when called with empty history', () => {
+    expect(() => buildHistoryMessages([])).toThrow('buildHistoryMessages requires at least one message');
   });
 });

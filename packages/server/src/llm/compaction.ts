@@ -1,13 +1,14 @@
 import { streamText } from 'ai';
 import { eq, asc } from 'drizzle-orm';
 
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import type { Message, PrefixedString, StoredPart } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
+import { buildSystemPrompt } from '@/llm/prompt/builder.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import * as Models from '@/provider/models.js';
 import { createProvider } from '@/provider/provider.js';
@@ -149,12 +150,12 @@ When constructing the summary, try to stick to this template:
  * message in the returned array.
  */
 export function buildHistoryMessages(
-  msgs: Array<{
-    role: string;
-    parts: StoredPart[];
-    isSummary: boolean;
-  }>,
+  msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
 ): ModelMessage[] {
+  if (msgs.length === 0) {
+    throw new Error('buildHistoryMessages requires at least one message');
+  }
+
   const llmMessages: ModelMessage[] = [];
 
   for (const msg of msgs) {
@@ -252,6 +253,11 @@ export function buildHistoryMessages(
         });
       }
     }
+  }
+
+  if (llmMessages[0]?.role !== 'system') {
+    const latestModelId = msgs[msgs.length - 1].modelId;
+    llmMessages.unshift({ role: 'system', content: buildSystemPrompt(latestModelId) });
   }
 
   return llmMessages;

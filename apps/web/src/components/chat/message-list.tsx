@@ -29,7 +29,7 @@ type RowData =
   | {
       kind: 'message';
       id: string;
-      role: Message['role'];
+      role: 'user' | 'assistant';
       parts: Message['parts'];
       finishReason: Message['finishReason'];
     }
@@ -71,6 +71,10 @@ function buildRows(
     }
 
     if (pairedSummaryIds.has(msg.id)) {
+      continue;
+    }
+
+    if (msg.role !== 'user' && msg.role !== 'assistant') {
       continue;
     }
 

@@ -3,7 +3,7 @@ import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { TextStreamPart, ToolSet, LanguageModelUsage } from 'ai';
 
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
-export type MessageRole = 'user' | 'assistant';
+export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 export type PartId = PrefixedString<'prt'>;
 
 // ─── Stream part types (derived from SDK, used in SSE payloads) ───────────────

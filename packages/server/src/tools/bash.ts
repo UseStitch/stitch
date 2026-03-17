@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import type { PermissionSuggestion } from '@openwork/shared';
 
+import { resolvePreferredShell } from '@/lib/shell.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/bash-families.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
@@ -46,18 +47,6 @@ function normalizeTimeout(timeout: number | undefined): number {
     throw new Error('timeout must be a positive number');
   }
   return Math.min(Math.trunc(timeout), MAX_TIMEOUT_MS);
-}
-
-function resolveShell(): string {
-  if (process.platform === 'win32') {
-    return process.env.COMSPEC || 'cmd.exe';
-  }
-
-  if (process.env.SHELL && process.env.SHELL.trim().length > 0) {
-    return process.env.SHELL;
-  }
-
-  return process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh';
 }
 
 async function killProcessTree(proc: ChildProcess, exited: () => boolean): Promise<void> {
@@ -107,7 +96,7 @@ Usage:
     execute: async (input, { abortSignal }) => {
       const workdir = await validateAbsoluteDirectoryPath(input.workdir);
       const timeout = normalizeTimeout(input.timeout);
-      const shell = resolveShell();
+      const shell = resolvePreferredShell().shell;
       const proc = spawn(input.command, {
         shell,
         cwd: workdir,
