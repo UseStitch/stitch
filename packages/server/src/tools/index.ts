@@ -5,6 +5,8 @@ import * as ReadTool from '@/tools/read.js';
 import * as WebfetchTool from '@/tools/webfetch.js';
 import * as EditTool from '@/tools/edit.js';
 import * as WriteTool from '@/tools/write.js';
+import * as GlobTool from '@/tools/glob.js';
+import * as GrepTool from '@/tools/grep.js';
 
 export const MAX_STEPS = 25;
 
@@ -20,6 +22,8 @@ export function createTools(context: {
     webfetch: WebfetchTool.createRegisteredTool(context),
     question: QuestionTool.createRegisteredTool(context),
     read: ReadTool.createRegisteredTool(context),
+    glob: GlobTool.createRegisteredTool(context),
+    grep: GrepTool.createRegisteredTool(context),
     edit: EditTool.createRegisteredTool(context),
     write: WriteTool.createRegisteredTool(context),
   };
