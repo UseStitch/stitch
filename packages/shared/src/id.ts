@@ -11,6 +11,8 @@ export const ID_PREFIXES = {
   agent: 'agt',
 } as const;
 
+type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
+
 let lastTimestamp = 0;
 let counter = 0;
 
@@ -25,41 +27,7 @@ function randomBase62(length: number): string {
   return result;
 }
 
-export function createSessionId(): PrefixedString<'ses'> {
-  return createId(ID_PREFIXES.session);
-}
-
-export function createMessageId(): PrefixedString<'msg'> {
-  return createId(ID_PREFIXES.message);
-}
-
-export function createPartId(): PrefixedString<'prt'> {
-  return createId(ID_PREFIXES.part);
-}
-
-export function createToolResultId(): PrefixedString<'toolres'> {
-  return createId(ID_PREFIXES.toolResult);
-}
-
-export function createQuestionId(): PrefixedString<'quest'> {
-  return createId(ID_PREFIXES.question);
-}
-
-export function createPermissionResponseId(): PrefixedString<'permres'> {
-  return createId(ID_PREFIXES.permissionResponse);
-}
-
-export function createAgentPermissionId(): PrefixedString<'perm'> {
-  return createId(ID_PREFIXES.agentPermission);
-}
-
-export function createAgentId(): PrefixedString<'agt'> {
-  return createId(ID_PREFIXES.agent);
-}
-
-function createId<P extends (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES]>(
-  prefix: P,
-): PrefixedString<P> {
+function createId<P extends IdPrefix>(prefix: P): PrefixedString<P> {
   const currentTimestamp = Date.now();
 
   if (currentTimestamp !== lastTimestamp) {
@@ -81,6 +49,19 @@ function createId<P extends (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES]>(
 
   return (prefix + '_' + hexPart + randomBase62(14)) as PrefixedString<P>;
 }
+
+function createIdFactory<P extends IdPrefix>(prefix: P): () => PrefixedString<P> {
+  return () => createId(prefix);
+}
+
+export const createSessionId = createIdFactory(ID_PREFIXES.session);
+export const createMessageId = createIdFactory(ID_PREFIXES.message);
+export const createPartId = createIdFactory(ID_PREFIXES.part);
+export const createToolResultId = createIdFactory(ID_PREFIXES.toolResult);
+export const createQuestionId = createIdFactory(ID_PREFIXES.question);
+export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permissionResponse);
+export const createAgentPermissionId = createIdFactory(ID_PREFIXES.agentPermission);
+export const createAgentId = createIdFactory(ID_PREFIXES.agent);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];
