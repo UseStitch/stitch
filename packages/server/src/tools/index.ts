@@ -7,6 +7,7 @@ import * as EditTool from '@/tools/edit.js';
 import * as WriteTool from '@/tools/write.js';
 import * as GlobTool from '@/tools/glob.js';
 import * as GrepTool from '@/tools/grep.js';
+import * as BashTool from '@/tools/bash.js';
 
 export const MAX_STEPS = 25;
 
@@ -22,6 +23,7 @@ export function createTools(context: {
     webfetch: WebfetchTool.createRegisteredTool(context),
     question: QuestionTool.createRegisteredTool(context),
     read: ReadTool.createRegisteredTool(context),
+    bash: BashTool.createRegisteredTool(context),
     glob: GlobTool.createRegisteredTool(context),
     grep: GrepTool.createRegisteredTool(context),
     edit: EditTool.createRegisteredTool(context),
