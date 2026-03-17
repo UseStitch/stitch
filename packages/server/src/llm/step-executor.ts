@@ -80,10 +80,6 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
 
   try {
     for await (const part of result.fullStream) {
-      if (abortSignal.aborted) {
-        throw new StreamAbortedError();
-      }
-
       if (part.type === 'finish') {
         return {
           finishReason: part.finishReason,
@@ -95,6 +91,10 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
       }
 
       await accumulator.handlePart(part);
+
+      if (abortSignal.aborted) {
+        throw new StreamAbortedError();
+      }
     }
   } catch (e) {
     accumulator.flush();
