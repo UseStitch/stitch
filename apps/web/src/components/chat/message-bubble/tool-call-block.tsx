@@ -10,7 +10,22 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@openwork/shared';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+type ToolCardState = {
+  hasError: boolean;
+  hasSuccess: boolean;
+  isActive: boolean;
+};
+
+function getToolCardState(status: ToolCallStatus): ToolCardState {
+  return {
+    hasError: status === 'error',
+    hasSuccess: status === 'completed',
+    isActive: status === 'pending' || status === 'in-progress',
+  };
+}
 
 function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
@@ -26,6 +41,201 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
       return <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />;
   }
 }
+
+function getToolLabel(status: ToolCallStatus, error?: string): string | undefined {
+  if (status !== 'error') return undefined;
+  if (!error) return undefined;
+  return error.includes('User rejected tool execution') ? 'Blocked by user' : error;
+}
+
+function ToolCardRoot({ status, children, className }: { status: ToolCallStatus; children: React.ReactNode; className?: string }) {
+  const { hasError, hasSuccess, isActive } = getToolCardState(status);
+
+  return (
+    <div
+      className={cn(
+        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
+        toolCallBorderClass({ hasError, isActive, hasSuccess }),
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ToolCardHeader({
+  children,
+  tone = 'plain',
+  className,
+}: {
+  children: React.ReactNode;
+  tone?: 'plain' | 'accent';
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex w-full items-center gap-2 px-3 py-2',
+        tone === 'accent' && 'bg-primary/5 text-primary',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ToolCardStatusIndicator({ status, className }: { status: ToolCallStatus; className?: string }) {
+  return (
+    <span className={className}>
+      <StatusIcon status={status} />
+    </span>
+  );
+}
+
+function ToolCardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <span className={cn('text-sm leading-none font-medium capitalize', className)}>{children}</span>;
+}
+
+function ToolCardTitleContent({
+  children,
+  truncate,
+  mono,
+  className,
+}: {
+  children: React.ReactNode;
+  truncate?: boolean;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'text-xs text-muted-foreground',
+        truncate && 'min-w-0 flex-1 truncate',
+        mono && 'font-mono text-[11px]',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function ToolCardActions({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <span className={cn('inline-flex items-center gap-1', className)}>{children}</span>;
+}
+
+function ToolCardCopyButton({
+  value,
+  copyLabel = 'Copy file path',
+  copiedLabel = 'Copied',
+  className,
+}: {
+  value: string;
+  copyLabel?: string;
+  copiedLabel?: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!copied) return;
+    const timeoutId = setTimeout(() => setCopied(false), 1000);
+    return () => clearTimeout(timeoutId);
+  }, [copied]);
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-xs"
+      onClick={() => {
+        void navigator.clipboard.writeText(value).then(() => setCopied(true));
+      }}
+      className={cn(
+        'text-muted-foreground hover:text-foreground',
+        className,
+      )}
+      title={copied ? copiedLabel : copyLabel}
+      aria-label={copied ? copiedLabel : copyLabel}
+    >
+      <span className="relative inline-flex size-3">
+        <CopyIcon
+          className={cn(
+            'absolute inset-0 size-3 transition-all duration-200',
+            copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
+          )}
+        />
+        <CheckIcon
+          className={cn(
+            'text-success absolute inset-0 size-3 transition-all duration-200',
+            copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+          )}
+        />
+      </span>
+    </Button>
+  );
+}
+
+function ToolCardExpandToggle({
+  open,
+  onOpenChange,
+  className,
+}: {
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-xs"
+      onClick={() => onOpenChange(!open)}
+      className={cn('text-primary hover:text-primary/90', className)}
+      aria-label={open ? 'Collapse' : 'Expand'}
+      title={open ? 'Collapse' : 'Expand'}
+    >
+      <ChevronRightIcon className={cn('size-3 shrink-0 transition-transform', open && 'rotate-90')} />
+    </Button>
+  );
+}
+
+function ToolCardStopButton({ onAbort }: { onAbort: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="xs"
+      onClick={onAbort}
+      className="h-auto gap-1 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+      title="Stop running tool"
+    >
+      <SquareIcon className="size-3" />
+      Stop
+    </Button>
+  );
+}
+
+function ToolCardContent({ children, open, className }: { children: React.ReactNode; open?: boolean; className?: string }) {
+  if (open === false) return null;
+  return <div className={cn('border-t border-border/40 px-3 py-2 text-xs', className)}>{children}</div>;
+}
+
+const ToolCard = {
+  Root: ToolCardRoot,
+  Header: ToolCardHeader,
+  StatusIndicator: ToolCardStatusIndicator,
+  Title: ToolCardTitle,
+  TitleContent: ToolCardTitleContent,
+  Actions: ToolCardActions,
+  CopyButton: ToolCardCopyButton,
+  ExpandToggle: ToolCardExpandToggle,
+  StopButton: ToolCardStopButton,
+  Content: ToolCardContent,
+};
 
 function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) {
   const questions = (args as { questions?: { question: string; header: string }[] })?.questions;
@@ -78,34 +288,28 @@ function QuestionToolBlock({
   result?: unknown;
 }) {
   const [open, setOpen] = React.useState(false);
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
 
   return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 bg-primary/5 px-3 py-2 text-primary transition-colors hover:bg-primary/10"
-      >
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <ChevronRightIcon
-          className={cn('ml-auto size-3 shrink-0 text-primary transition-transform', open && 'rotate-90')}
-        />
-      </button>
-      {open && (
-        <div className="border-t border-border/40 px-3 py-2 text-xs">
-          <QuestionAnswers args={args} result={result} />
-        </div>
-      )}
-    </div>
+    <ToolCard.Root status={status}>
+      <ToolCard.Header tone="accent" className="hover:bg-primary/10">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen((current) => !current)}
+          className="h-auto min-w-0 flex-1 justify-start gap-2 px-0 py-0 text-left text-primary hover:bg-transparent hover:text-primary/90"
+        >
+          <ToolCard.StatusIndicator status={status} />
+          <ToolCard.Title>{toolName}</ToolCard.Title>
+        </Button>
+        <ToolCard.Actions className="ml-auto">
+          <ToolCard.ExpandToggle open={open} onOpenChange={setOpen} />
+        </ToolCard.Actions>
+      </ToolCard.Header>
+      <ToolCard.Content open={open}>
+        <QuestionAnswers args={args} result={result} />
+      </ToolCard.Content>
+    </ToolCard.Root>
   );
 }
 
@@ -118,27 +322,16 @@ function GenericToolBlock({
   status: ToolCallStatus;
   error?: string;
 }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
+  const label = getToolLabel(status, error);
 
   return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        {label ? (
-          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">- {label}</span>
-        ) : null}
-      </div>
-    </div>
+    <ToolCard.Root status={status}>
+      <ToolCard.Header>
+        <ToolCard.StatusIndicator status={status} />
+        <ToolCard.Title>{toolName}</ToolCard.Title>
+        {label ? <ToolCard.TitleContent truncate>- {label}</ToolCard.TitleContent> : null}
+      </ToolCard.Header>
+    </ToolCard.Root>
   );
 }
 
@@ -167,40 +360,26 @@ function WebfetchToolBlock({
   error?: string;
   onAbort?: () => void;
 }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
+  const { isActive } = getToolCardState(status);
+  const label = getToolLabel(status, error);
   const url = getWebfetchUrl(args);
   const displayUrl = url ? truncateText(url) : 'Waiting for URL...';
 
   return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+    <ToolCard.Root status={status}>
+      <ToolCard.Header>
+        <ToolCard.StatusIndicator status={status} />
+        <ToolCard.Title>{toolName}</ToolCard.Title>
+        <ToolCard.TitleContent truncate mono>
           {label ? `${displayUrl} - ${label}` : displayUrl}
-        </span>
+        </ToolCard.TitleContent>
         {isActive && onAbort ? (
-          <button
-            type="button"
-            onClick={onAbort}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            title="Stop running tool"
-          >
-            <SquareIcon className="size-3" />
-            Stop
-          </button>
+          <ToolCard.Actions>
+            <ToolCard.StopButton onAbort={onAbort} />
+          </ToolCard.Actions>
         ) : null}
-      </div>
-    </div>
+      </ToolCard.Header>
+    </ToolCard.Root>
   );
 }
 
@@ -287,11 +466,8 @@ function BashToolBlock({
   error?: string;
   onAbort?: () => void;
 }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
+  const { isActive } = getToolCardState(status);
+  const label = getToolLabel(status, error);
   const { action, command, timeoutMs } = getBashArgs(args);
   const [open, setOpen] = React.useState(false);
   const outputText = getBashOutputText(result);
@@ -302,40 +478,28 @@ function BashToolBlock({
   const outputPreview = outputText ? truncateText(outputText.replace(/\s+/g, ' '), 180) : 'No output yet';
 
   return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="flex w-full items-center gap-2 bg-primary/5 px-3 py-2">
-        <button
+    <ToolCard.Root status={status}>
+      <ToolCard.Header tone="accent">
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setOpen((current) => !current)}
-          className="flex min-w-0 flex-1 items-center gap-2 text-primary transition-colors hover:text-primary/90"
+          className="h-auto min-w-0 flex-1 justify-start gap-2 px-0 py-0 text-primary hover:bg-transparent hover:text-primary/90"
         >
-          <StatusIcon status={status} />
+          <ToolCard.StatusIndicator status={status} />
           <span className="min-w-0 flex-1 truncate text-left text-sm leading-none font-medium">
             <span className="capitalize">{toolName}</span>
             <span className="text-primary/70"> / {actionLabel}</span>
           </span>
-          <ChevronRightIcon className={cn('size-3 shrink-0 text-primary transition-transform', open && 'rotate-90')} />
-        </button>
-        {isActive && onAbort ? (
-          <button
-            type="button"
-            onClick={onAbort}
-            className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            title="Stop running tool"
-          >
-            <SquareIcon className="size-3" />
-            Stop
-          </button>
-        ) : null}
-      </div>
+        </Button>
+        <ToolCard.Actions>
+          <ToolCard.ExpandToggle open={open} onOpenChange={setOpen} />
+          {isActive && onAbort ? <ToolCard.StopButton onAbort={onAbort} /> : null}
+        </ToolCard.Actions>
+      </ToolCard.Header>
 
-      {open ? (
-        <div className="border-t border-border/40 px-3 py-2 text-xs">
+      <ToolCard.Content open={open}>
           <div className="space-y-1.5">
             <div className="font-mono text-[11px] text-muted-foreground break-all">
               <span className="font-sans font-medium text-foreground">Command:</span> {commandPreview}
@@ -350,189 +514,31 @@ function BashToolBlock({
               <span className="font-medium text-foreground">Time limit:</span> {timeoutLabel}
             </div>
           </div>
-        </div>
-      ) : null}
-    </div>
+      </ToolCard.Content>
+    </ToolCard.Root>
   );
 }
 
-function WriteToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
+function FileToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
+  const label = getToolLabel(status, error);
   const filePath = getFilePathFromArgs(args);
   const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
-  const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!copied) return;
-    const timeoutId = setTimeout(() => setCopied(false), 1000);
-    return () => clearTimeout(timeoutId);
-  }, [copied]);
 
   return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+    <ToolCard.Root status={status}>
+      <ToolCard.Header>
+        <ToolCard.StatusIndicator status={status} />
+        <ToolCard.Title>{toolName}</ToolCard.Title>
+        <ToolCard.TitleContent truncate mono>
           {label ? `${displayPath} - ${label}` : displayPath}
-        </span>
+        </ToolCard.TitleContent>
         {filePath ? (
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(filePath).then(() => setCopied(true));
-            }}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
-            title={copied ? 'Copied' : 'Copy file path'}
-            aria-label={copied ? 'Copied' : 'Copy file path'}
-          >
-            <span className="relative inline-flex size-3">
-              <CopyIcon
-                className={cn(
-                  'absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
-                )}
-              />
-              <CheckIcon
-                className={cn(
-                  'text-success absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
-                )}
-              />
-            </span>
-          </button>
+          <ToolCard.Actions>
+            <ToolCard.CopyButton value={filePath} />
+          </ToolCard.Actions>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-function EditToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
-  const filePath = getFilePathFromArgs(args);
-  const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
-  const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!copied) return;
-    const timeoutId = setTimeout(() => setCopied(false), 1000);
-    return () => clearTimeout(timeoutId);
-  }, [copied]);
-
-  return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
-          {label ? `${displayPath} - ${label}` : displayPath}
-        </span>
-        {filePath ? (
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(filePath).then(() => setCopied(true));
-            }}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
-            title={copied ? 'Copied' : 'Copy file path'}
-            aria-label={copied ? 'Copied' : 'Copy file path'}
-          >
-            <span className="relative inline-flex size-3">
-              <CopyIcon
-                className={cn(
-                  'absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
-                )}
-              />
-              <CheckIcon
-                className={cn(
-                  'text-success absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
-                )}
-              />
-            </span>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function ReadToolBlock({ toolName, status, args, error }: { toolName: string; status: ToolCallStatus; args: unknown; error?: string }) {
-  const hasError = status === 'error';
-  const hasSuccess = status === 'completed';
-  const isActive = status === 'pending' || status === 'in-progress';
-  const isBlocked = hasError && (error?.includes('User rejected tool execution') ?? false);
-  const label = isBlocked ? 'Blocked by user' : error;
-  const filePath = getFilePathFromArgs(args);
-  const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
-  const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!copied) return;
-    const timeoutId = setTimeout(() => setCopied(false), 1000);
-    return () => clearTimeout(timeoutId);
-  }, [copied]);
-
-  return (
-    <div
-      className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
-        toolCallBorderClass({ hasError, isActive, hasSuccess }),
-      )}
-    >
-      <div className="inline-flex w-full items-center gap-2 px-3 py-2">
-        <StatusIcon status={status} />
-        <span className="text-sm leading-none font-medium capitalize">{toolName}</span>
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
-          {label ? `${displayPath} - ${label}` : displayPath}
-        </span>
-        {filePath ? (
-          <button
-            type="button"
-            onClick={() => {
-              void navigator.clipboard.writeText(filePath).then(() => setCopied(true));
-            }}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
-            title={copied ? 'Copied' : 'Copy file path'}
-            aria-label={copied ? 'Copied' : 'Copy file path'}
-          >
-            <span className="relative inline-flex size-3">
-              <CopyIcon
-                className={cn(
-                  'absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
-                )}
-              />
-              <CheckIcon
-                className={cn(
-                  'text-success absolute inset-0 size-3 transition-all duration-200',
-                  copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
-                )}
-              />
-            </span>
-          </button>
-        ) : null}
-      </div>
-    </div>
+      </ToolCard.Header>
+    </ToolCard.Root>
   );
 }
 
@@ -577,15 +583,15 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
   }
 
   if (isWrite) {
-    return <WriteToolBlock toolName={toolName} status={status} args={args} error={error} />;
+    return <FileToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
 
   if (isEdit) {
-    return <EditToolBlock toolName={toolName} status={status} args={args} error={error} />;
+    return <FileToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
 
   if (isRead) {
-    return <ReadToolBlock toolName={toolName} status={status} args={args} error={error} />;
+    return <FileToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
 
   return <GenericToolBlock toolName={toolName} status={status} error={error} />;
