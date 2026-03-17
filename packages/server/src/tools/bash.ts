@@ -17,6 +17,13 @@ const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
 const MAX_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_METADATA_LENGTH = 30_000;
 
+function stripAnsi(value: string): string {
+  return value.replace(
+    /[\u001B\u009B][[\]()#;?]*(?:(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~])/g,
+    '',
+  );
+}
+
 const bashInputSchema = z.object({
   command: z.string().min(1).describe('The shell command to run'),
   workdir: z.string().describe('The absolute working directory to run the command in'),
@@ -167,16 +174,18 @@ Usage:
         output += `\n\n<shell_metadata>\n${runtimeNotes.join('\n')}\n</shell_metadata>`;
       }
 
+      const cleanedOutput = stripAnsi(output);
+
       return {
         title: input.description,
-        output,
+        output: cleanedOutput,
         metadata: {
           description: input.description,
           exit: proc.exitCode,
           output:
-            output.length > MAX_METADATA_LENGTH
-              ? `${output.slice(0, MAX_METADATA_LENGTH)}\n\n...`
-              : output,
+            cleanedOutput.length > MAX_METADATA_LENGTH
+              ? `${cleanedOutput.slice(0, MAX_METADATA_LENGTH)}\n\n...`
+              : cleanedOutput,
         },
       };
     },
