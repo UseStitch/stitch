@@ -150,11 +150,15 @@ export const MessageBubble = React.memo(function MessageBubble({
                   'error' in (output as object);
                 const missingResult = !result;
                 const status = missingResult || isError ? 'error' : 'completed';
-                const error = wasAborted
-                  ? 'Interrupted'
-                  : missingResult
-                    ? 'Blocked or failed before completion'
-                    : undefined;
+
+                let toolError: string | undefined;
+                if (isError) {
+                  const rawError = (output as { error?: unknown }).error;
+                  toolError = typeof rawError === 'string' ? rawError : String(rawError);
+                } else if (missingResult) {
+                  toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
+                }
+
                 return (
                   <ToolCallBlock
                     key={seg.key}
@@ -162,7 +166,7 @@ export const MessageBubble = React.memo(function MessageBubble({
                     status={status}
                     args={part.input}
                     result={output}
-                    error={error}
+                    error={toolError}
                     onAbort={onAbortTool}
                   />
                 );

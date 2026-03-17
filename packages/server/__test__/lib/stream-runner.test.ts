@@ -184,4 +184,45 @@ describe('runStream', () => {
     expect(events).toContain('stream-finish');
     expect(mocks.insertValuesMock).toHaveBeenCalledTimes(1);
   });
+
+  test('repairs missing tool results before persist', async () => {
+    mocks.executeStepWithRetryMock.mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+      opts.accumulatedParts.push({
+        type: 'tool-call',
+        id: 'prt_call_1' as StoredPart['id'],
+        toolCallId: 'call_missing',
+        toolName: 'webfetch',
+        input: { url: 'https://example.com' },
+        startedAt: 1,
+        endedAt: 1,
+      } as StoredPart);
+
+      return {
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      };
+    });
+
+    await runStream(getDefaultOpts());
+
+    const insertedAssistant = mocks.insertValuesMock.mock.calls.at(0)?.at(0) as
+      | { parts: StoredPart[] }
+      | undefined;
+    if (!insertedAssistant) {
+      throw new Error('assistant message was not inserted');
+    }
+
+    expect(insertedAssistant.parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'call_missing',
+          output: { error: 'Missing tool result' },
+        }),
+      ]),
+    );
+  });
 });

@@ -479,6 +479,8 @@ class StreamRunner {
   }
 
   private async persistAndLogFinish(): Promise<void> {
+    this.ensureTerminalToolResults();
+
     await this.deps.saveAssistantMessage({
       sessionId: this.ctx.sessionId,
       assistantMessageId: this.ctx.assistantMessageId,
@@ -519,6 +521,51 @@ class StreamRunner {
         contextOverflow: this.state.contextOverflow,
       },
       'stream.finished',
+    );
+  }
+
+  private ensureTerminalToolResults(): void {
+    const resolvedToolCallIds = new Set(
+      this.state.accumulatedParts
+        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
+        .map((p) => p.toolCallId),
+    );
+
+    const missingToolCalls = this.state.accumulatedParts.filter(
+      (p): p is StoredPart & { type: 'tool-call' } =>
+        p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+    );
+
+    if (missingToolCalls.length === 0) {
+      return;
+    }
+
+    const fallbackError = this.state.wasAborted ? 'Aborted' : 'Missing tool result';
+    const now = this.deps.now();
+
+    for (const call of missingToolCalls) {
+      this.state.accumulatedParts.push({
+        type: 'tool-result',
+        id: createPartId(),
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        output: { error: fallbackError },
+        truncated: false,
+        startedAt: now,
+        endedAt: now,
+      } as StoredPart);
+    }
+
+    log.warn(
+      {
+        event: 'stream.tool.result_missing_repaired',
+        streamRunId: this.ctx.streamRunId,
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        wasAborted: this.state.wasAborted,
+        repairedToolCallIds: missingToolCalls.map((call) => call.toolCallId),
+      },
+      'missing tool results repaired before persist',
     );
   }
 
