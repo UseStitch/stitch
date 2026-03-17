@@ -1,6 +1,3 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,15 +10,21 @@ import * as schema from '@/db/schema.js';
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 
-describe('agents schema constraints', () => {
-  let sqlite: Database.Database;
+describe.skipIf(typeof Bun === 'undefined')('agents schema constraints', () => {
+  let sqlite: any;
   let tempDir: string;
-  let db: ReturnType<typeof drizzle<typeof schema>>;
+  let db: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
+      import('bun:sqlite'),
+      import('drizzle-orm/bun-sqlite'),
+      import('drizzle-orm/bun-sqlite/migrator'),
+    ]);
+
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openwork-server-test-'));
-    sqlite = new Database(path.join(tempDir, 'test.sqlite'));
-    db = drizzle(sqlite, { schema });
+    sqlite = new BunDatabase(path.join(tempDir, 'test.sqlite'), { create: true });
+    db = drizzle({ client: sqlite, schema });
     migrate(db, { migrationsFolder: MIGRATIONS_DIR });
   });
 

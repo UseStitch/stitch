@@ -15,7 +15,7 @@ const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 export async function init() {
   await Log.init({ print: process.env.NODE_ENV === 'development' });
 
-  initDb();
+  await initDb();
 
   Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () => Log.cleanup());
 

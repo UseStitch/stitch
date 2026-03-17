@@ -28,7 +28,7 @@ function getSidecarCommand(port: number): { cmd: string; args: string[]; cwd?: s
   const root = getMonorepoRoot();
   const serverEntry = join(root, 'packages/server/src/index.ts');
   const cwd = join(root, 'packages/server');
-  return { cmd: 'node', args: ['--import', 'tsx/esm', serverEntry, ...portArgs], cwd };
+  return { cmd: 'bun', args: [serverEntry, ...portArgs], cwd };
 }
 
 export async function findAvailablePort(): Promise<number> {

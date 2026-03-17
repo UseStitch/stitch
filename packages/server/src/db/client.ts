@@ -1,10 +1,9 @@
-import Database from 'better-sqlite3';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 import { createAgentId, createAgentPermissionId } from '@openwork/shared';
 
@@ -12,7 +11,7 @@ import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 
-type Db = ReturnType<typeof drizzle<typeof schema>>;
+type Db = BunSQLiteDatabase<typeof schema>;
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const log = Log.create({ service: 'db' });
@@ -20,18 +19,30 @@ const log = Log.create({ service: 'db' });
 let _db: Db | undefined;
 
 export function getDb(): Db {
-  if (!_db) throw new Error('Database not initialized — call initDb() first');
+  if (!_db) throw new Error('Database not initialized - call initDb() first');
   return _db;
 }
 
-export function initDb(): void {
+export async function initDb(): Promise<void> {
   fs.mkdirSync(path.dirname(PATHS.filePaths.db), { recursive: true });
 
-  const sqlite = new Database(PATHS.filePaths.db);
-  sqlite.pragma('journal_mode = WAL');
+  if (typeof Bun === 'undefined') {
+    throw new Error('Bun runtime is required for SQLite initialization');
+  }
 
-  _db = drizzle(sqlite, { schema });
+  const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
+    import('bun:sqlite'),
+    import('drizzle-orm/bun-sqlite'),
+    import('drizzle-orm/bun-sqlite/migrator'),
+  ]);
 
+  const sqlite = new BunDatabase(PATHS.filePaths.db, { create: true });
+  sqlite.run('PRAGMA journal_mode = WAL');
+  sqlite.run('PRAGMA synchronous = NORMAL');
+  sqlite.run('PRAGMA busy_timeout = 5000');
+  sqlite.run('PRAGMA foreign_keys = ON');
+
+  _db = drizzle({ client: sqlite, schema }) as Db;
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
 
   const primaryAgents = _db
@@ -63,5 +74,5 @@ export function initDb(): void {
       .run();
   }
 
-  log.info({ path: PATHS.filePaths.db }, 'database initialized');
+  log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
 }

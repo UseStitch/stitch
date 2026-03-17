@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "dev": "NODE_ENV=development node --import tsx/esm --watch src/index.ts",
+    "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile --outfile dist/openwork-server",
     "typecheck": "tsc --noEmit"
   },
@@ -22,7 +22,6 @@
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "@openwork/shared": "workspace:*",
     "ai": "catalog:ai",
-    "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "hono": "^4.12.7",
@@ -31,11 +30,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "catalog:",
     "@types/node": "^25.5.0",
     "drizzle-kit": "^0.31.9",
-    "tsx": "^4.21.0",
     "typescript": "catalog:",
     "vitest": "catalog:testing"
   }
