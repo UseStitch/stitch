@@ -31,7 +31,7 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
     case 'pending':
       return (
-        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-muted-foreground/40 border-t-muted-foreground animate-spin" />
+        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-info/35 border-t-info animate-spin" />
       );
     case 'in-progress':
       return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 text-info animate-spin" />;
@@ -62,7 +62,7 @@ function ToolCardRoot({
   return (
     <div
       className={cn(
-        'my-2 w-full overflow-hidden rounded-lg border text-xs transition-colors',
+        'my-2 w-full overflow-hidden rounded-lg border text-xs shadow-sm transition-colors',
         toolCallBorderClass({ hasError, isActive, hasSuccess }),
         className,
       )}
@@ -84,8 +84,8 @@ function ToolCardHeader({
   return (
     <div
       className={cn(
-        'flex w-full items-center gap-2 px-3 py-2',
-        tone === 'accent' && 'bg-primary/5 text-primary',
+        'flex w-full items-start gap-2.5 px-3 py-2.5',
+        tone === 'accent' && 'bg-primary/5',
         className,
       )}
     >
@@ -109,9 +109,7 @@ function ToolCardStatusIndicator({
 }
 
 function ToolCardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span className={cn('text-sm leading-none font-medium capitalize', className)}>{children}</span>
-  );
+  return <span className={cn('text-sm leading-tight font-medium capitalize', className)}>{children}</span>;
 }
 
 function ToolCardTitleContent({
@@ -130,7 +128,7 @@ function ToolCardTitleContent({
       className={cn(
         'text-xs text-muted-foreground',
         truncate && 'min-w-0 flex-1 truncate',
-        mono && 'font-mono text-[11px]',
+        mono && 'font-mono text-xs',
         className,
       )}
     >
@@ -146,7 +144,7 @@ function ToolCardActions({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <span className={cn('inline-flex items-center gap-1', className)}>{children}</span>;
+  return <span className={cn('inline-flex items-center gap-1.5', className)}>{children}</span>;
 }
 
 function ToolCardCopyButton({
@@ -198,32 +196,6 @@ function ToolCardCopyButton({
   );
 }
 
-function ToolCardExpandToggle({
-  open,
-  onOpenChange,
-  className,
-}: {
-  open: boolean;
-  onOpenChange: (next: boolean) => void;
-  className?: string;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-xs"
-      onClick={() => onOpenChange(!open)}
-      className={cn('text-primary hover:text-primary/90', className)}
-      aria-label={open ? 'Collapse' : 'Expand'}
-      title={open ? 'Collapse' : 'Expand'}
-    >
-      <ChevronRightIcon
-        className={cn('size-3 shrink-0 transition-transform', open && 'rotate-90')}
-      />
-    </Button>
-  );
-}
-
 function ToolCardStopButton({ onAbort }: { onAbort: () => void }) {
   return (
     <Button
@@ -231,7 +203,7 @@ function ToolCardStopButton({ onAbort }: { onAbort: () => void }) {
       variant="outline"
       size="xs"
       onClick={onAbort}
-      className="h-auto gap-1 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
+      className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
       title="Stop running tool"
     >
       <SquareIcon className="size-3" />
@@ -263,7 +235,6 @@ const ToolCard = {
   TitleContent: ToolCardTitleContent,
   Actions: ToolCardActions,
   CopyButton: ToolCardCopyButton,
-  ExpandToggle: ToolCardExpandToggle,
   StopButton: ToolCardStopButton,
   Content: ToolCardContent,
 };
@@ -303,10 +274,10 @@ type ToolCallBlockClasses = {
 };
 
 function toolCallBorderClass({ hasError, isActive, hasSuccess }: ToolCallBlockClasses) {
-  if (hasError) return 'border-destructive/40 bg-destructive/5';
-  if (hasSuccess) return 'border-success/40 bg-success/5';
-  if (isActive) return 'border-info/30 bg-info/10';
-  return 'border-border/40 bg-muted/25';
+  if (hasError) return 'border-destructive/35 bg-destructive/5';
+  if (hasSuccess) return 'border-success/35 bg-success/5';
+  if (isActive) return 'border-info/35 bg-info/8';
+  return 'border-border/50 bg-muted/20';
 }
 
 function QuestionToolBlock({
@@ -324,20 +295,22 @@ function QuestionToolBlock({
 
   return (
     <ToolCard.Root status={status}>
-      <ToolCard.Header tone="accent" className="hover:bg-primary/10">
-        <Button
+      <ToolCard.Header>
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
           onClick={() => setOpen((current) => !current)}
-          className="h-auto min-w-0 flex-1 justify-start gap-2 px-0 py-0 text-left text-primary hover:bg-transparent hover:text-primary/90"
+          aria-expanded={open}
+          className="group flex min-w-0 flex-1 items-center justify-start gap-2 text-left text-foreground"
         >
           <ToolCard.StatusIndicator status={status} />
-          <ToolCard.Title>{toolName}</ToolCard.Title>
-        </Button>
-        <ToolCard.Actions className="ml-auto">
-          <ToolCard.ExpandToggle open={open} onOpenChange={setOpen} />
-        </ToolCard.Actions>
+          <ToolCard.Title className="min-w-0 flex-1 truncate">{toolName}</ToolCard.Title>
+          <ChevronRightIcon
+            className={cn(
+              'size-3 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-90',
+            )}
+          />
+        </button>
       </ToolCard.Header>
       <ToolCard.Content open={open}>
         <QuestionAnswers args={args} result={result} />
@@ -361,8 +334,10 @@ function GenericToolBlock({
     <ToolCard.Root status={status}>
       <ToolCard.Header>
         <ToolCard.StatusIndicator status={status} />
-        <ToolCard.Title>{toolName}</ToolCard.Title>
-        {label ? <ToolCard.TitleContent truncate>- {label}</ToolCard.TitleContent> : null}
+        <div className="min-w-0 flex-1 space-y-1">
+          <ToolCard.Title>{toolName}</ToolCard.Title>
+          {label ? <ToolCard.TitleContent truncate className="block">{label}</ToolCard.TitleContent> : null}
+        </div>
       </ToolCard.Header>
     </ToolCard.Root>
   );
@@ -402,12 +377,14 @@ function WebfetchToolBlock({
     <ToolCard.Root status={status}>
       <ToolCard.Header>
         <ToolCard.StatusIndicator status={status} />
-        <ToolCard.Title>{toolName}</ToolCard.Title>
-        <ToolCard.TitleContent truncate mono>
-          {label ? `${displayUrl} - ${label}` : displayUrl}
-        </ToolCard.TitleContent>
+        <div className="min-w-0 flex-1 space-y-1">
+          <ToolCard.Title>{toolName}</ToolCard.Title>
+          <ToolCard.TitleContent truncate mono className="block">
+            {label ? `${displayUrl} - ${label}` : displayUrl}
+          </ToolCard.TitleContent>
+        </div>
         {isActive && onAbort ? (
-          <ToolCard.Actions>
+          <ToolCard.Actions className="self-center">
             <ToolCard.StopButton onAbort={onAbort} />
           </ToolCard.Actions>
         ) : null}
@@ -457,27 +434,33 @@ function BashToolBlock({
   const [open, setOpen] = React.useState(false);
   const [showFullCommand, setShowFullCommand] = React.useState(false);
   const actionLabel = action ?? 'Run a shell command';
-  const commandPreview = command ? truncateText(command, 96) : 'Waiting for command...';
-  const canExpandCommand = Boolean(command && command.length > 96);
+  const commandPreview = command ? truncateText(command, 180) : 'Waiting for command...';
+  const canExpandCommand = Boolean(command && command.length > 180);
 
   return (
     <ToolCard.Root status={status}>
-      <ToolCard.Header tone="accent">
-        <Button
+      <ToolCard.Header>
+        <button
           type="button"
-          variant="ghost"
-          size="sm"
           onClick={() => setOpen((current) => !current)}
-          className="h-auto min-w-0 flex-1 justify-start gap-2 px-0 py-0 text-primary hover:bg-transparent hover:text-primary/90"
+          aria-expanded={open}
+          className="group flex min-w-0 flex-1 items-center justify-start gap-2 text-left text-foreground"
         >
           <ToolCard.StatusIndicator status={status} />
-          <span className="min-w-0 flex-1 truncate text-left text-sm leading-none font-medium">
-            <span className="capitalize">{toolName}</span>
-            <span className="text-primary/70"> / {actionLabel}</span>
+          <span className="min-w-0 flex-1 text-left">
+            <ToolCard.Title>{toolName}</ToolCard.Title>
+            <ToolCard.TitleContent truncate className="mt-1 block">
+              {actionLabel}
+            </ToolCard.TitleContent>
           </span>
-        </Button>
-        <ToolCard.Actions>
-          <ToolCard.ExpandToggle open={open} onOpenChange={setOpen} />
+          <ChevronRightIcon
+            className={cn(
+              'size-3 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-90',
+            )}
+          />
+        </button>
+        <ToolCard.Actions className="self-center">
           {isActive && onAbort ? <ToolCard.StopButton onAbort={onAbort} /> : null}
         </ToolCard.Actions>
       </ToolCard.Header>
@@ -485,7 +468,7 @@ function BashToolBlock({
       <ToolCard.Content open={open}>
         <div className="space-y-1.5">
           <div className="font-medium text-foreground">Command</div>
-          <div className="font-mono text-[11px] text-muted-foreground break-all whitespace-pre-wrap">
+          <div className="font-mono text-xs text-muted-foreground break-all whitespace-pre-wrap">
             {showFullCommand ? (command ?? commandPreview) : commandPreview}
           </div>
           {canExpandCommand ? (
@@ -494,7 +477,7 @@ function BashToolBlock({
               variant="outline"
               size="xs"
               onClick={() => setShowFullCommand((current) => !current)}
-              className="h-auto px-2 py-0.5 text-[11px]"
+              className="h-6 px-2 text-xs"
             >
               {showFullCommand ? 'Show less' : 'Show full command'}
             </Button>
@@ -524,12 +507,14 @@ function FileToolBlock({
     <ToolCard.Root status={status}>
       <ToolCard.Header>
         <ToolCard.StatusIndicator status={status} />
-        <ToolCard.Title>{toolName}</ToolCard.Title>
-        <ToolCard.TitleContent truncate mono>
-          {label ? `${displayPath} - ${label}` : displayPath}
-        </ToolCard.TitleContent>
+        <div className="min-w-0 flex-1 space-y-1">
+          <ToolCard.Title>{toolName}</ToolCard.Title>
+          <ToolCard.TitleContent truncate mono className="block">
+            {label ? `${displayPath} - ${label}` : displayPath}
+          </ToolCard.TitleContent>
+        </div>
         {filePath ? (
-          <ToolCard.Actions>
+          <ToolCard.Actions className="self-center">
             <ToolCard.CopyButton value={filePath} />
           </ToolCard.Actions>
         ) : null}
