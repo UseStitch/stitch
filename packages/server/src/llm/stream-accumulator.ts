@@ -223,6 +223,8 @@ export class StreamAccumulator {
       }
 
       case 'tool-error': {
+        const now = Date.now();
+        const partId = createPartId();
         const errorText = String(part.error);
         await Sse.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
@@ -238,6 +240,17 @@ export class StreamAccumulator {
           toolName: part.toolName,
           error: errorText,
         });
+
+        this.accumulatedParts.push({
+          type: 'tool-result',
+          id: partId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: { error: errorText },
+          truncated: false,
+          startedAt: now,
+          endedAt: now,
+        } as StoredPart);
 
         if (errorText.startsWith('User rejected tool execution for ')) {
           throw new Error(errorText);

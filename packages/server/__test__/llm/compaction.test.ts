@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'vitest';
 
-import { isOverflow } from '@/llm/compaction.js';
+import { buildHistoryMessages, isOverflow } from '@/llm/compaction.js';
 import { estimate } from '@/utils/token.js';
+import type { StoredPart } from '@openwork/shared';
 
 describe('estimate', () => {
   test('returns 0 for null', () => {
@@ -120,5 +121,113 @@ describe('isOverflow', () => {
       outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
     };
     expect(isOverflow(belowBoundary, defaultLimits)).toBe(false);
+  });
+});
+
+describe('buildHistoryMessages', () => {
+  const timing = { startedAt: 1, endedAt: 1 };
+
+  function textPart(text: string): StoredPart {
+    return {
+      type: 'text-delta',
+      id: 'prt_text' as StoredPart['id'],
+      text,
+      ...timing,
+    } as StoredPart;
+  }
+
+  function toolCallPart(toolCallId: string, toolName = 'bash'): StoredPart {
+    return {
+      type: 'tool-call',
+      id: `prt_call_${toolCallId}` as StoredPart['id'],
+      toolCallId,
+      toolName,
+      input: { command: 'pwd' },
+      ...timing,
+    } as StoredPart;
+  }
+
+  function toolResultPart(toolCallId: string, output: unknown, toolName = 'bash'): StoredPart {
+    return {
+      type: 'tool-result',
+      id: `prt_result_${toolCallId}` as StoredPart['id'],
+      toolCallId,
+      toolName,
+      output,
+      truncated: false,
+      ...timing,
+    } as StoredPart;
+  }
+
+  test('keeps matched tool-call and tool-result pairs', () => {
+    const result = buildHistoryMessages([
+      {
+        role: 'assistant',
+        isSummary: false,
+        parts: [toolCallPart('tc_1'), toolResultPart('tc_1', { ok: true })],
+      },
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      role: 'assistant',
+      content: [{ type: 'tool-call', toolCallId: 'tc_1' }],
+    });
+    expect(result[1]).toMatchObject({
+      role: 'tool',
+      content: [{ type: 'tool-result', toolCallId: 'tc_1' }],
+    });
+  });
+
+  test('drops unmatched tool-call parts from history', () => {
+    const result = buildHistoryMessages([
+      {
+        role: 'assistant',
+        isSummary: false,
+        parts: [toolCallPart('tc_missing')],
+      },
+    ]);
+
+    expect(result).toHaveLength(0);
+  });
+
+  test('keeps assistant text even when tool-call is unmatched', () => {
+    const result = buildHistoryMessages([
+      {
+        role: 'assistant',
+        isSummary: false,
+        parts: [textPart('hello'), toolCallPart('tc_missing')],
+      },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      role: 'assistant',
+      content: [{ type: 'text', text: 'hello' }],
+    });
+  });
+
+  test('maps error outputs to error-json tool results', () => {
+    const result = buildHistoryMessages([
+      {
+        role: 'assistant',
+        isSummary: false,
+        parts: [
+          toolCallPart('tc_err'),
+          toolResultPart('tc_err', { error: 'Command was aborted' }),
+        ],
+      },
+    ]);
+
+    expect(result[1]).toMatchObject({
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'tc_err',
+          output: { type: 'error-json', value: { error: 'Command was aborted' } },
+        },
+      ],
+    });
   });
 });

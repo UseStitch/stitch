@@ -1,3 +1,4 @@
+import { createPartId } from '@openwork/shared';
 import type { PrefixedString, StoredPart } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
@@ -192,6 +193,19 @@ export async function runStream(opts: {
       );
       for (const part of accumulatedParts) {
         if (part.type === 'tool-call' && !toolCallIds.has(part.toolCallId)) {
+          const now = Date.now();
+
+          accumulatedParts.push({
+            type: 'tool-result',
+            id: createPartId(),
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: { error: 'Aborted' },
+            truncated: false,
+            startedAt: now,
+            endedAt: now,
+          } as StoredPart);
+
           await Sse.broadcast('stream-tool-state', {
             sessionId,
             messageId: assistantMessageId,

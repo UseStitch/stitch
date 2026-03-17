@@ -148,7 +148,7 @@ When constructing the summary, try to stick to this template:
  * recent compaction summary. If a summary exists, it becomes the first
  * message in the returned array.
  */
-function buildHistoryMessages(
+export function buildHistoryMessages(
   msgs: Array<{
     role: string;
     parts: StoredPart[];
@@ -195,7 +195,18 @@ function buildHistoryMessages(
         (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
       );
 
-      if (textParts.length > 0 || toolCallParts.length > 0) {
+      const toolResultById = new Map(toolResultParts.map((part) => [part.toolCallId, part]));
+      const matchedToolCalls = toolCallParts.filter((part) => toolResultById.has(part.toolCallId));
+      const matchedToolCallIds = new Set(matchedToolCalls.map((part) => part.toolCallId));
+      const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
+
+      if (unmatchedToolCalls > 0) {
+        log.warn('dropping unmatched tool-call parts from LLM history', {
+          count: unmatchedToolCalls,
+        });
+      }
+
+      if (textParts.length > 0 || matchedToolCalls.length > 0) {
         const assistantContent: Array<
           | { type: 'text'; text: string }
           | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
@@ -206,7 +217,7 @@ function buildHistoryMessages(
           assistantContent.push({ type: 'text', text: combinedText });
         }
 
-        for (const tc of toolCallParts) {
+        for (const tc of matchedToolCalls) {
           assistantContent.push({
             type: 'tool-call',
             toolCallId: tc.toolCallId,
@@ -218,10 +229,12 @@ function buildHistoryMessages(
         llmMessages.push({ role: 'assistant', content: assistantContent });
       }
 
-      if (toolResultParts.length > 0) {
+      if (matchedToolCallIds.size > 0) {
         llmMessages.push({
           role: 'tool',
-          content: toolResultParts.map((tr) => {
+          content: toolResultParts
+            .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
+            .map((tr) => {
             const isError =
               tr.output !== null &&
               tr.output !== undefined &&
@@ -235,7 +248,7 @@ function buildHistoryMessages(
                 ? { type: 'error-json' as const, value: tr.output as never }
                 : { type: 'json' as const, value: tr.output as never },
             };
-          }),
+            }),
         });
       }
     }
