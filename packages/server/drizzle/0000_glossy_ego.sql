@@ -36,6 +36,7 @@ CREATE TABLE `messages` (
 	`provider_id` text NOT NULL,
 	`agent_id` text NOT NULL,
 	`usage` blob,
+	`cost_usd` real DEFAULT 0 NOT NULL,
 	`finish_reason` text,
 	`is_summary` integer DEFAULT false NOT NULL,
 	`created_at` integer NOT NULL,

@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773702354644,
-      "tag": "0000_initial",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773786640687,
-      "tag": "0001_lethal_moonstone",
+      "when": 1773793139012,
+      "tag": "0000_glossy_ego",
       "breakpoints": true
     }
   ]

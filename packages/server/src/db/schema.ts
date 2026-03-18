@@ -91,7 +91,7 @@ export const messages = sqliteTable('messages', {
     .notNull()
     .references(() => agents.id),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
-  costUsd: real('cost_usd'),
+  costUsd: real('cost_usd').notNull().default(0),
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
