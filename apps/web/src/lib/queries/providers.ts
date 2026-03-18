@@ -13,6 +13,15 @@ export type ProviderSummary = {
 export type ModelSummary = {
   id: string;
   name: string;
+  family?: string;
+  release_date?: string;
+  cost?: Record<string, unknown>;
+  limit?: {
+    context: number;
+    input?: number;
+    output: number;
+  };
+  modalities?: string[];
 };
 
 export type ProviderModels = {

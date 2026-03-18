@@ -138,6 +138,10 @@ type RenameSessionInput = {
   title: string;
 };
 
+type DeleteSessionInput = {
+  sessionId: PrefixedString<'ses'>;
+};
+
 export function useRenameSession() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -153,6 +157,23 @@ export function useRenameSession() {
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(input.sessionId) });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: DeleteSessionInput): Promise<void> => {
+      const res = await serverFetch(`/chat/sessions/${input.sessionId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete session');
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+      queryClient.removeQueries({ queryKey: sessionKeys.detail(input.sessionId) });
+      queryClient.removeQueries({ queryKey: sessionKeys.messages(input.sessionId) });
     },
   });
 }
