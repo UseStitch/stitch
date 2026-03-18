@@ -78,6 +78,27 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     opts.streamRunId,
   );
 
+  const resolveResponseMessages = async (phase: 'finish' | 'unknown'): Promise<ModelMessage[]> => {
+    try {
+      return (await result.response).messages;
+    } catch (error) {
+      log.warn(
+        {
+          event: 'stream.response_messages.unavailable',
+          sessionId,
+          messageId,
+          streamRunId: opts.streamRunId,
+          providerId: opts.providerId,
+          step,
+          phase,
+          error,
+        },
+        'step finished but provider response messages were unavailable',
+      );
+      return [];
+    }
+  };
+
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'finish') {
@@ -86,7 +107,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           finishReason: part.finishReason,
           usage: part.totalUsage,
           toolCalls,
-          responseMessages: (await result.response).messages,
+          responseMessages: await resolveResponseMessages('finish'),
           protocolViolationCount: accumulator.getProtocolViolationCount(),
         };
       }
@@ -106,7 +127,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     finishReason: 'unknown',
     usage: Usage.ZERO_USAGE,
     toolCalls,
-    responseMessages: (await result.response).messages,
+    responseMessages: await resolveResponseMessages('unknown'),
     protocolViolationCount: accumulator.getProtocolViolationCount(),
   };
 }

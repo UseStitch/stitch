@@ -114,4 +114,43 @@ describe('executeStepWithRetry', () => {
       ]),
     );
   });
+
+  test('returns step result when provider response messages fail after finish', async () => {
+    mocks.streamTextMock.mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: 'text-start' };
+        yield { type: 'text-delta', text: 'Done.' };
+        yield { type: 'finish', finishReason: 'stop', totalUsage: ZERO_USAGE };
+      })(),
+      response: Promise.reject(new Error('response read failed')),
+    });
+
+    const accumulatedParts: StoredPart[] = [];
+    const model = {} as unknown as StepOptions['model'];
+    const tools = {} as unknown as StepOptions['tools'];
+
+    const result = await executeStepWithRetry({
+      sessionId: 'ses_1',
+      messageId: 'msg_1',
+      step: 0,
+      model,
+      conversation: [],
+      accumulatedParts,
+      providerId: 'openai',
+      tools,
+      abortSignal: new AbortController().signal,
+      streamRunId: 'run_1',
+    });
+
+    expect(result.finishReason).toBe('stop');
+    expect(result.responseMessages).toEqual([]);
+    expect(accumulatedParts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text-delta',
+          text: 'Done.',
+        }),
+      ]),
+    );
+  });
 });

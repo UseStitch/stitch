@@ -96,6 +96,20 @@ function getDefaultOpts() {
 describe('runStream', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.broadcastMock.mockReset();
+    mocks.executeStepWithRetryMock.mockReset();
+    mocks.checkAndHandleDoomLoopMock.mockReset();
+    mocks.getModelLimitsMock.mockReset();
+    mocks.compactMock.mockReset();
+    mocks.isOverflowMock.mockReset();
+    mocks.createToolsMock.mockReset();
+    mocks.insertValuesMock.mockReset();
+    mocks.dbInsertMock.mockReset();
+
+    mocks.broadcastMock.mockResolvedValue(undefined);
+    mocks.createToolsMock.mockReturnValue({});
+    mocks.dbInsertMock.mockReturnValue({ values: mocks.insertValuesMock });
+    mocks.insertValuesMock.mockResolvedValue(undefined);
 
     mocks.executeStepWithRetryMock.mockResolvedValue({
       finishReason: 'stop',
@@ -127,13 +141,6 @@ describe('runStream', () => {
         finishReason: 'stop',
         usage: ZERO_USAGE,
         toolCalls: [{ toolName: 'bash', inputJson: '{"command":"pwd"}' }],
-        responseMessages: [],
-        protocolViolationCount: 0,
-      })
-      .mockResolvedValueOnce({
-        finishReason: 'stop',
-        usage: ZERO_USAGE,
-        toolCalls: [],
         responseMessages: [],
         protocolViolationCount: 0,
       });
@@ -174,22 +181,26 @@ describe('runStream', () => {
           responseMessages: [],
           protocolViolationCount: 0,
         };
-      })
-      .mockResolvedValueOnce({
-        finishReason: 'stop',
-        usage: ZERO_USAGE,
-        toolCalls: [],
-        responseMessages: [],
-        protocolViolationCount: 0,
       });
 
     await runStream(getDefaultOpts());
 
-    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
-    const synthesisCall = mocks.executeStepWithRetryMock.mock.calls.at(1)?.at(0) as
-      | { tools?: Record<string, unknown> }
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
+    const insertedAssistant = mocks.insertValuesMock.mock.calls.at(0)?.at(0) as
+      | { finishReason: string; parts: StoredPart[] }
       | undefined;
-    expect(synthesisCall?.tools).toEqual({});
+    if (!insertedAssistant) {
+      throw new Error('assistant message was not inserted');
+    }
+    expect(insertedAssistant.finishReason).toBe('error');
+    expect(insertedAssistant.parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text-delta',
+          text: 'I could not produce a final response after running tools. Please retry this request.',
+        }),
+      ]),
+    );
   });
 
   test('runs final synthesis when only pre-tool text exists without trailing answer', async () => {
@@ -240,7 +251,7 @@ describe('runStream', () => {
 
     await runStream(getDefaultOpts());
 
-    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
   });
 
   test('retries once when finish reason is unknown without tool calls', async () => {
@@ -360,6 +371,64 @@ describe('runStream', () => {
     expect(events).toContain('stream-error');
     expect(events).toContain('stream-finish');
     expect(mocks.insertValuesMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('runs error-path synthesis when tools completed but no trailing user text', async () => {
+    const boom = new Error('boom');
+
+    mocks.executeStepWithRetryMock
+      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-result',
+          id: 'prt_result_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          output: { output: 'C:/Users/mahar' },
+          truncated: false,
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        throw boom;
+      });
+
+    await expect(runStream(getDefaultOpts())).rejects.toThrow('boom');
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
+
+    const insertedAssistant = mocks.insertValuesMock.mock.calls.at(0)?.at(0) as
+      | { finishReason: string; parts: StoredPart[] }
+      | undefined;
+    if (!insertedAssistant) {
+      throw new Error('assistant message was not inserted');
+    }
+
+    expect(insertedAssistant.finishReason).toBe('error');
+    expect(insertedAssistant.parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text-delta',
+          text: 'I hit an internal error after running tools and could not complete the final response. Please retry this request.',
+        }),
+      ]),
+    );
+  });
+
+  test('continues with original error when no tool results exist for error fallback', async () => {
+    const boom = new Error('boom');
+
+    mocks.executeStepWithRetryMock.mockRejectedValueOnce(boom);
+
+    await expect(runStream(getDefaultOpts())).rejects.toThrow('boom');
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
   });
 
   test('repairs missing tool results before persist', async () => {

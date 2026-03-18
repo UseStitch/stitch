@@ -360,84 +360,11 @@ class StreamRunner {
   }
 
   private async maybeRunFinalSynthesis(): Promise<void> {
-    if (this.state.finalSynthesisAttempted || this.state.wasAborted) {
-      return;
-    }
-
-    if (this.state.stepCount > MAX_STEPS) {
-      return;
-    }
-
-    if (this.hasTrailingUserFacingTextAfterLastToolResult() || !this.hasToolResultPart()) {
-      return;
-    }
-
-    this.state.finalSynthesisAttempted = true;
-
-    log.warn(
-      {
-        event: 'stream.final_synthesis.triggered',
-        phase: 'step',
-        streamRunId: this.ctx.streamRunId,
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        finishReason: this.state.finalFinishReason,
-      },
-      'final synthesis triggered because message had tool results without user-facing text',
-    );
-
-    this.state.conversation.push({
-      role: 'system',
-      content:
-        'Provide the final user-facing answer now using the available tool results. Do not call tools again. ' +
-        'If information is missing, clearly explain what is missing and what the user can do next.',
+    this.runFinalSynthesis({
+      triggerEvent: 'stream.final_synthesis.triggered',
+      triggerReason: 'step-loop-complete',
+      syntheticReason: 'missing-user-facing-text-after-tools',
     });
-
-    const step = this.state.stepCount;
-    this.state.stepCount = step + 1;
-
-    const stepResult = await this.deps.executeStepWithRetry({
-      ...this.buildStepOptions(step),
-      tools: {} as StepOptions['tools'],
-    });
-    this.state.totalUsage = Usage.addUsage(this.state.totalUsage, stepResult.usage);
-    this.setFinishReason(stepResult.finishReason, 'final-synthesis');
-    this.state.protocolViolationCount += stepResult.protocolViolationCount;
-
-    log.info(
-      {
-        event: 'stream.step.finished',
-        phase: 'step',
-        streamRunId: this.ctx.streamRunId,
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        step,
-        finishReason: stepResult.finishReason,
-        usage: stepResult.usage,
-        toolCallCount: stepResult.toolCalls.length,
-        protocolViolationCount: this.state.protocolViolationCount,
-        fallback: true,
-      },
-      'stream.step.finished',
-    );
-
-    for (const msg of stepResult.responseMessages) {
-      this.state.conversation.push(msg);
-    }
-
-    if (stepResult.toolCalls.length > 0) {
-      log.warn(
-        {
-          event: 'stream.final_synthesis.tools_called',
-          phase: 'step',
-          streamRunId: this.ctx.streamRunId,
-          sessionId: this.ctx.sessionId,
-          messageId: this.ctx.assistantMessageId,
-          toolCallCount: stepResult.toolCalls.length,
-        },
-        'final synthesis step still produced tool calls',
-      );
-    }
   }
 
   private async evaluateCompactionTrigger(): Promise<void> {
@@ -572,6 +499,25 @@ class StreamRunner {
   }
 
   private async handleUnknownError(error: unknown): Promise<void> {
+    const fallbackSucceeded = this.runFinalSynthesis({
+      triggerEvent: 'stream.error_fallback_synthesis.triggered',
+      triggerReason: 'error-path',
+      syntheticReason: 'unhandled-stream-error',
+    });
+
+    if (fallbackSucceeded) {
+      log.info(
+        {
+          event: 'stream.error_fallback_synthesis.succeeded',
+          phase: 'error',
+          streamRunId: this.ctx.streamRunId,
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+        },
+        'error fallback synthesis succeeded',
+      );
+    }
+
     this.setFinishReason('error', 'unhandled-error');
     this.state.streamError = error;
 
@@ -593,6 +539,77 @@ class StreamRunner {
       },
       'stream.failed',
     );
+  }
+
+  private shouldRunFinalSynthesis(): boolean {
+    if (this.state.finalSynthesisAttempted || this.state.wasAborted) {
+      return false;
+    }
+
+    if (this.state.stepCount > MAX_STEPS) {
+      return false;
+    }
+
+    if (!this.hasToolResultPart()) {
+      return false;
+    }
+
+    return !this.hasTrailingUserFacingTextAfterLastToolResult();
+  }
+
+  private runFinalSynthesis(opts: {
+    triggerEvent: string;
+    triggerReason: string;
+    syntheticReason: 'missing-user-facing-text-after-tools' | 'unhandled-stream-error';
+  }): boolean {
+    if (!this.shouldRunFinalSynthesis()) {
+      return false;
+    }
+
+    this.state.finalSynthesisAttempted = true;
+
+    log.warn(
+      {
+        event: opts.triggerEvent,
+        phase: 'step',
+        streamRunId: this.ctx.streamRunId,
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        finishReason: this.state.finalFinishReason,
+        reason: opts.triggerReason,
+      },
+      'synthetic fallback response triggered because message had tool results without trailing user-facing text',
+    );
+
+    const now = this.deps.now();
+    const text =
+      opts.syntheticReason === 'unhandled-stream-error'
+        ? 'I hit an internal error after running tools and could not complete the final response. Please retry this request.'
+        : 'I could not produce a final response after running tools. Please retry this request.';
+
+    this.state.accumulatedParts.push({
+      type: 'text-delta',
+      id: createPartId(),
+      text,
+      startedAt: now,
+      endedAt: now,
+    } as StoredPart);
+
+    this.setFinishReason('error', 'synthetic-fallback-response');
+
+    log.info(
+      {
+        event: 'stream.synthetic_fallback_response.added',
+        phase: 'step',
+        streamRunId: this.ctx.streamRunId,
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        reason: opts.syntheticReason,
+      },
+      'synthetic fallback response added',
+    );
+
+    return true;
   }
 
   private async persistAndLogFinish(): Promise<void> {
