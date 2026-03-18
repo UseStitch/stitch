@@ -121,6 +121,183 @@ describe('runStream', () => {
     expect(events).toContain('stream-finish');
   });
 
+  test('continues to next step when tool calls exist even if finish reason is stop', async () => {
+    mocks.executeStepWithRetryMock
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [{ toolName: 'bash', inputJson: '{"command":"pwd"}' }],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
+    expect(mocks.checkAndHandleDoomLoopMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('runs final synthesis fallback when tool results exist without user-facing text', async () => {
+    mocks.executeStepWithRetryMock
+      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-result',
+          id: 'prt_result_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          output: { output: 'C:/Users/mahar' },
+          truncated: false,
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+
+        return {
+          finishReason: 'stop',
+          usage: ZERO_USAGE,
+          toolCalls: [],
+          responseMessages: [],
+          protocolViolationCount: 0,
+        };
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
+    const synthesisCall = mocks.executeStepWithRetryMock.mock.calls.at(1)?.at(0) as
+      | { tools?: Record<string, unknown> }
+      | undefined;
+    expect(synthesisCall?.tools).toEqual({});
+  });
+
+  test('runs final synthesis when only pre-tool text exists without trailing answer', async () => {
+    mocks.executeStepWithRetryMock
+      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'text-delta',
+          id: 'prt_text_1' as StoredPart['id'],
+          text: 'I will check that for you.',
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-result',
+          id: 'prt_result_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          output: { output: 'C:/Users/mahar' },
+          truncated: false,
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+
+        return {
+          finishReason: 'stop',
+          usage: ZERO_USAGE,
+          toolCalls: [],
+          responseMessages: [],
+          protocolViolationCount: 0,
+        };
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('retries once when finish reason is unknown without tool calls', async () => {
+    mocks.executeStepWithRetryMock
+      .mockResolvedValueOnce({
+        finishReason: 'unknown',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('disables tools on final max step', async () => {
+    mocks.executeStepWithRetryMock
+      .mockResolvedValueOnce({
+        finishReason: 'tool-calls',
+        usage: ZERO_USAGE,
+        toolCalls: [{ toolName: 'bash', inputJson: '{"command":"pwd"}' }],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'tool-calls',
+        usage: ZERO_USAGE,
+        toolCalls: [{ toolName: 'read', inputJson: '{"filePath":"README.md"}' }],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      })
+      .mockResolvedValueOnce({
+        finishReason: 'stop',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(3);
+    const finalCall = mocks.executeStepWithRetryMock.mock.calls.at(2)?.at(0) as
+      | { tools?: Record<string, unknown> }
+      | undefined;
+    expect(finalCall?.tools).toEqual({});
+  });
+
   test('triggers compaction after context overflow', async () => {
     mocks.executeStepWithRetryMock.mockRejectedValue(new ContextOverflowError());
 

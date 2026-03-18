@@ -137,7 +137,11 @@ type StreamRunnerState = {
   wasAborted: boolean;
   stepCount: number;
   protocolViolationCount: number;
+  finalSynthesisAttempted: boolean;
+  unknownRecoveryAttempts: number;
 };
+
+const UNKNOWN_RECOVERY_LIMIT = 1;
 
 const DEFAULT_DEPS: StreamRunnerDeps = {
   executeStepWithRetry,
@@ -191,6 +195,8 @@ class StreamRunner {
       wasAborted: false,
       stepCount: 0,
       protocolViolationCount: 0,
+      finalSynthesisAttempted: false,
+      unknownRecoveryAttempts: 0,
     };
 
     this.deps = { ...DEFAULT_DEPS, ...deps };
@@ -205,6 +211,7 @@ class StreamRunner {
 
     try {
       await this.runStepLoop();
+      await this.maybeRunFinalSynthesis();
       await this.evaluateCompactionTrigger();
     } catch (error) {
       await this.handleError(error);
@@ -277,7 +284,10 @@ class StreamRunner {
         });
       }
 
-      const stepResult = await this.deps.executeStepWithRetry(this.buildStepOptions(step));
+      const stepResult = await this.deps.executeStepWithRetry({
+        ...this.buildStepOptions(step),
+        tools: isLastStep ? ({} as StepOptions['tools']) : this.ctx.tools,
+      });
       this.state.totalUsage = Usage.addUsage(this.state.totalUsage, stepResult.usage);
       this.setFinishReason(stepResult.finishReason, 'step-finish');
       this.state.protocolViolationCount += stepResult.protocolViolationCount;
@@ -302,7 +312,25 @@ class StreamRunner {
         this.state.conversation.push(msg);
       }
 
-      if (stepResult.finishReason !== 'tool-calls' || stepResult.toolCalls.length === 0) {
+      if (stepResult.toolCalls.length === 0) {
+        if (stepResult.finishReason === 'unknown' && this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT) {
+          this.state.unknownRecoveryAttempts += 1;
+          log.warn(
+            {
+              event: 'stream.unknown_finish.recovering',
+              phase: 'step',
+              streamRunId: this.ctx.streamRunId,
+              sessionId: this.ctx.sessionId,
+              messageId: this.ctx.assistantMessageId,
+              step,
+              attempt: this.state.unknownRecoveryAttempts,
+              maxAttempts: UNKNOWN_RECOVERY_LIMIT,
+            },
+            'retrying step because finish reason was unknown without tool calls',
+          );
+          continue;
+        }
+
         break;
       }
 
@@ -328,6 +356,87 @@ class StreamRunner {
       if (doomLoopState.isStopped) {
         break;
       }
+    }
+  }
+
+  private async maybeRunFinalSynthesis(): Promise<void> {
+    if (this.state.finalSynthesisAttempted || this.state.wasAborted) {
+      return;
+    }
+
+    if (this.state.stepCount > MAX_STEPS) {
+      return;
+    }
+
+    if (this.hasTrailingUserFacingTextAfterLastToolResult() || !this.hasToolResultPart()) {
+      return;
+    }
+
+    this.state.finalSynthesisAttempted = true;
+
+    log.warn(
+      {
+        event: 'stream.final_synthesis.triggered',
+        phase: 'step',
+        streamRunId: this.ctx.streamRunId,
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        finishReason: this.state.finalFinishReason,
+      },
+      'final synthesis triggered because message had tool results without user-facing text',
+    );
+
+    this.state.conversation.push({
+      role: 'system',
+      content:
+        'Provide the final user-facing answer now using the available tool results. Do not call tools again. ' +
+        'If information is missing, clearly explain what is missing and what the user can do next.',
+    });
+
+    const step = this.state.stepCount;
+    this.state.stepCount = step + 1;
+
+    const stepResult = await this.deps.executeStepWithRetry({
+      ...this.buildStepOptions(step),
+      tools: {} as StepOptions['tools'],
+    });
+    this.state.totalUsage = Usage.addUsage(this.state.totalUsage, stepResult.usage);
+    this.setFinishReason(stepResult.finishReason, 'final-synthesis');
+    this.state.protocolViolationCount += stepResult.protocolViolationCount;
+
+    log.info(
+      {
+        event: 'stream.step.finished',
+        phase: 'step',
+        streamRunId: this.ctx.streamRunId,
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        step,
+        finishReason: stepResult.finishReason,
+        usage: stepResult.usage,
+        toolCallCount: stepResult.toolCalls.length,
+        protocolViolationCount: this.state.protocolViolationCount,
+        fallback: true,
+      },
+      'stream.step.finished',
+    );
+
+    for (const msg of stepResult.responseMessages) {
+      this.state.conversation.push(msg);
+    }
+
+    if (stepResult.toolCalls.length > 0) {
+      log.warn(
+        {
+          event: 'stream.final_synthesis.tools_called',
+          phase: 'step',
+          streamRunId: this.ctx.streamRunId,
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+          toolCallCount: stepResult.toolCalls.length,
+        },
+        'final synthesis step still produced tool calls',
+      );
     }
   }
 
@@ -489,6 +598,21 @@ class StreamRunner {
   private async persistAndLogFinish(): Promise<void> {
     this.ensureTerminalToolResults();
 
+    const hasTrailingUserFacingText = this.hasTrailingUserFacingTextAfterLastToolResult();
+    const hasToolResult = this.hasToolResultPart();
+    if (hasToolResult && !hasTrailingUserFacingText) {
+      log.warn(
+        {
+          event: 'stream.finished_without_user_text_after_tools',
+          streamRunId: this.ctx.streamRunId,
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+          finishReason: this.state.finalFinishReason,
+        },
+        'stream finished without user-facing text after tools',
+      );
+    }
+
     await this.deps.saveAssistantMessage({
       sessionId: this.ctx.sessionId,
       assistantMessageId: this.ctx.assistantMessageId,
@@ -530,6 +654,40 @@ class StreamRunner {
       },
       'stream.finished',
     );
+  }
+
+  private hasUserFacingTextPart(): boolean {
+    return this.state.accumulatedParts.some(
+      (part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
+    );
+  }
+
+  private hasTrailingUserFacingTextAfterLastToolResult(): boolean {
+    let lastToolResultIndex = -1;
+
+    for (let i = this.state.accumulatedParts.length - 1; i >= 0; i--) {
+      if (this.state.accumulatedParts[i]?.type === 'tool-result') {
+        lastToolResultIndex = i;
+        break;
+      }
+    }
+
+    if (lastToolResultIndex === -1) {
+      return this.hasUserFacingTextPart();
+    }
+
+    for (let i = lastToolResultIndex + 1; i < this.state.accumulatedParts.length; i++) {
+      const part = this.state.accumulatedParts[i];
+      if (part?.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private hasToolResultPart(): boolean {
+    return this.state.accumulatedParts.some((part) => part.type === 'tool-result');
   }
 
   private ensureTerminalToolResults(): void {

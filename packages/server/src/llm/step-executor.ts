@@ -81,6 +81,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'finish') {
+        accumulator.flush();
         return {
           finishReason: part.finishReason,
           usage: part.totalUsage,
