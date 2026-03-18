@@ -18,12 +18,12 @@ export async function calculateMessageCostUsd(input: {
   providerId: string;
   modelId: string;
   usage: LanguageModelUsage;
-}): Promise<number | null> {
+}): Promise<number> {
   const providers = await Models.get();
   const model = providers[input.providerId]?.models[input.modelId];
   const modelCost = model?.cost;
   if (!modelCost) {
-    return null;
+    return 0;
   }
 
   const effectiveCost = getEffectiveCostModel(modelCost, input.usage);
@@ -42,5 +42,5 @@ export async function calculateMessageCostUsd(input: {
       cacheWriteTokens * (effectiveCost.cache_write ?? effectiveCost.input)) /
     TOKENS_PER_MILLION;
 
-  return Number.isFinite(costUsd) ? costUsd : null;
+  return Number.isFinite(costUsd) ? costUsd : 0;
 }

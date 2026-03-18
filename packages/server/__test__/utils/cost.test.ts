@@ -36,7 +36,7 @@ describe('calculateMessageCostUsd', () => {
     vi.clearAllMocks();
   });
 
-  test('returns null when model pricing is unavailable', async () => {
+  test('returns 0 when model pricing is unavailable', async () => {
     vi.mocked(Models.get).mockResolvedValue({
       openai: {
         id: 'openai',
@@ -64,7 +64,7 @@ describe('calculateMessageCostUsd', () => {
       usage: buildUsage({ inputTokens: 1_000, outputTokens: 500 }),
     });
 
-    expect(cost).toBeNull();
+    expect(cost).toBe(0);
   });
 
   test('calculates input and output cost per million tokens', async () => {

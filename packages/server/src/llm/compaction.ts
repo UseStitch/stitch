@@ -349,7 +349,7 @@ export async function compact(input: {
       modelId: input.modelId,
       providerId: input.providerId,
       agentId: input.agentId as PrefixedString<'agt'>,
-      costUsd: null,
+      costUsd: 0,
       createdAt: new Date(now),
       updatedAt: new Date(now),
       startedAt: new Date(now),

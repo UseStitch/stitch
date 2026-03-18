@@ -150,7 +150,7 @@ async function maybeGenerateTitle(input: {
             modelId: generatedTitle.modelId,
             usage: generatedTitle.usage,
           })
-        : null;
+        : 0;
 
       await db.insert(sessions).values({
         id: titleSessionId,
@@ -244,7 +244,7 @@ export async function sendMessage(input: SendMessageInput): Promise<ServiceResul
     modelId: input.modelId,
     providerId: input.providerId,
     agentId: agent.id,
-    costUsd: null,
+    costUsd: 0,
     createdAt: new Date(now),
     updatedAt: new Date(now),
     startedAt: new Date(now),
