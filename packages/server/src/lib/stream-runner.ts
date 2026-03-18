@@ -140,6 +140,9 @@ type StreamRunnerState = {
   finalSynthesisAttempted: boolean;
   unknownRecoveryAttempts: number;
   toolCallFinishRecoveryAttempts: number;
+  lastStepFinishReason: string;
+  lastStepToolCallCount: number;
+  lastStepResponseMessageCount: number;
 };
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
@@ -200,6 +203,9 @@ class StreamRunner {
       finalSynthesisAttempted: false,
       unknownRecoveryAttempts: 0,
       toolCallFinishRecoveryAttempts: 0,
+      lastStepFinishReason: 'unknown',
+      lastStepToolCallCount: 0,
+      lastStepResponseMessageCount: 0,
     };
 
     this.deps = { ...DEFAULT_DEPS, ...deps };
@@ -249,6 +255,8 @@ class StreamRunner {
   }
 
   private logStart(): void {
+    const userPromptPreview = this.getLastUserPromptPreview();
+
     log.info(
       {
         event: 'stream.started',
@@ -259,9 +267,33 @@ class StreamRunner {
         modelId: this.ctx.modelId,
         providerId: this.ctx.providerId,
         agentId: this.ctx.agentId,
+        userPromptPreview,
       },
       'stream.started',
     );
+  }
+
+  private getLastUserPromptPreview(): string | null {
+    for (let i = this.state.conversation.length - 1; i >= 0; i--) {
+      const message = this.state.conversation[i];
+      if (message?.role !== 'user') {
+        continue;
+      }
+
+      const { content } = message;
+      if (typeof content === 'string') {
+        return content.slice(0, 200);
+      }
+
+      if (Array.isArray(content)) {
+        const textPart = content.find((part) => typeof part === 'object' && part !== null && part.type === 'text');
+        if (textPart && typeof textPart.text === 'string') {
+          return textPart.text.slice(0, 200);
+        }
+      }
+    }
+
+    return null;
   }
 
   private async runStepLoop(): Promise<void> {
@@ -294,6 +326,9 @@ class StreamRunner {
       this.state.totalUsage = Usage.addUsage(this.state.totalUsage, stepResult.usage);
       this.setFinishReason(stepResult.finishReason, 'step-finish');
       this.state.protocolViolationCount += stepResult.protocolViolationCount;
+      this.state.lastStepFinishReason = stepResult.finishReason;
+      this.state.lastStepToolCallCount = stepResult.toolCalls.length;
+      this.state.lastStepResponseMessageCount = stepResult.responseMessages.length;
 
       log.info(
         {
@@ -355,6 +390,23 @@ class StreamRunner {
           continue;
         }
 
+        log.info(
+          {
+            event: 'stream.step.loop_break.no_tool_calls',
+            phase: 'step',
+            streamRunId: this.ctx.streamRunId,
+            sessionId: this.ctx.sessionId,
+            messageId: this.ctx.assistantMessageId,
+            step,
+            finishReason: stepResult.finishReason,
+            toolCallCount: stepResult.toolCalls.length,
+            responseMessageCount: stepResult.responseMessages.length,
+            unknownRecoveryAttempts: this.state.unknownRecoveryAttempts,
+            toolCallFinishRecoveryAttempts: this.state.toolCallFinishRecoveryAttempts,
+          },
+          'breaking step loop because there are no tool calls to execute',
+        );
+
         break;
       }
 
@@ -380,6 +432,18 @@ class StreamRunner {
       this.state.totalUsage = doomLoopState.totalUsage;
       this.setFinishReason(doomLoopState.finalFinishReason, 'doom-loop');
       if (doomLoopState.isStopped) {
+        log.info(
+          {
+            event: 'stream.step.loop_break.doom_loop_stop',
+            phase: 'step',
+            streamRunId: this.ctx.streamRunId,
+            sessionId: this.ctx.sessionId,
+            messageId: this.ctx.assistantMessageId,
+            step,
+            doomLoopFinishReason: doomLoopState.finalFinishReason,
+          },
+          'breaking step loop because doom loop handler requested stop',
+        );
         break;
       }
     }
@@ -603,6 +667,16 @@ class StreamRunner {
         messageId: this.ctx.assistantMessageId,
         finishReason: this.state.finalFinishReason,
         reason: opts.triggerReason,
+        diagnostics: {
+          stepCount: this.state.stepCount,
+          lastStepFinishReason: this.state.lastStepFinishReason,
+          lastStepToolCallCount: this.state.lastStepToolCallCount,
+          lastStepResponseMessageCount: this.state.lastStepResponseMessageCount,
+          unknownRecoveryAttempts: this.state.unknownRecoveryAttempts,
+          toolCallFinishRecoveryAttempts: this.state.toolCallFinishRecoveryAttempts,
+          hasToolResultPart: this.hasToolResultPart(),
+          hasTrailingUserFacingTextAfterLastToolResult: this.hasTrailingUserFacingTextAfterLastToolResult(),
+        },
       },
       'synthetic fallback response triggered because message had tool results without trailing user-facing text',
     );
@@ -631,6 +705,12 @@ class StreamRunner {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         reason: opts.syntheticReason,
+        diagnostics: {
+          stepCount: this.state.stepCount,
+          lastStepFinishReason: this.state.lastStepFinishReason,
+          lastStepToolCallCount: this.state.lastStepToolCallCount,
+          lastStepResponseMessageCount: this.state.lastStepResponseMessageCount,
+        },
       },
       'synthetic fallback response added',
     );

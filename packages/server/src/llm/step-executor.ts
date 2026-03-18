@@ -48,6 +48,20 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     opts;
   const initialPartCount = accumulatedParts.length;
 
+  log.info(
+    {
+      event: 'stream.step.execute.started',
+      sessionId,
+      messageId,
+      streamRunId: opts.streamRunId,
+      providerId: opts.providerId,
+      step,
+      conversationMessageCount: conversation.length,
+      accumulatedPartCount: accumulatedParts.length,
+    },
+    'step execution started',
+  );
+
   const result = streamText({
     model,
     messages: conversation,
@@ -167,6 +181,11 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     }
 
     if (hasStepSideEffects()) {
+      const sideEffectPartTypes = accumulatedParts
+        .slice(initialPartCount)
+        .filter((part) => part?.type === 'tool-call' || part?.type === 'tool-result')
+        .map((part) => part.type);
+
       log.warn(
         {
           event: 'stream.step.retry_suppressed_after_side_effects',
@@ -176,6 +195,10 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           providerId: opts.providerId,
           step,
           errorCode: getErrorCode(e),
+          errorMessage: e instanceof Error ? e.message : String(e),
+          sideEffectPartTypes,
+          toolCallCount: toolCalls.length,
+          responsePartCountDelta: accumulatedParts.length - initialPartCount,
         },
         'step failed after tool side effects; returning partial step result without retry',
       );
@@ -191,6 +214,20 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
 
     throw e;
   }
+
+  log.warn(
+    {
+      event: 'stream.step.execute.ended_without_finish',
+      sessionId,
+      messageId,
+      streamRunId: opts.streamRunId,
+      providerId: opts.providerId,
+      step,
+      toolCallCount: toolCalls.length,
+      responsePartCountDelta: accumulatedParts.length - initialPartCount,
+    },
+    'step stream ended without finish event; returning unknown finish reason',
+  );
 
   return {
     finishReason: 'unknown',

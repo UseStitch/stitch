@@ -318,6 +318,8 @@ export class StreamAccumulator {
 
       case 'error': {
         const errorText = String(part.error);
+        const errorName = part.error instanceof Error ? part.error.name : typeof part.error;
+        const errorStack = part.error instanceof Error ? part.error.stack : undefined;
         log.error(
           {
             event: 'stream.part.error',
@@ -326,6 +328,9 @@ export class StreamAccumulator {
             messageId: this.messageId,
             step: this.step,
             error: errorText,
+            errorName,
+            errorStack,
+            rawPartKeys: part && typeof part === 'object' ? Object.keys(part as Record<string, unknown>) : [],
           },
           'stream part error',
         );
