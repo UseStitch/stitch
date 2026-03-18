@@ -46,11 +46,38 @@ export type StepOptions = {
 async function executeStep(opts: StepOptions): Promise<StepResult> {
   const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } =
     opts;
+  const initialPartCount = accumulatedParts.length;
 
   const result = streamText({
     model,
     messages: conversation,
     tools,
+    experimental_repairToolCall: async (failed) => {
+      const toolName = String(failed.toolCall.toolName ?? '');
+      const normalizedToolName = toolName.toLowerCase();
+      if (normalizedToolName !== toolName && normalizedToolName in tools) {
+        log.info(
+          {
+            event: 'stream.tool_call.repaired',
+            sessionId,
+            messageId,
+            streamRunId: opts.streamRunId,
+            providerId: opts.providerId,
+            step,
+            from: toolName,
+            to: normalizedToolName,
+          },
+          'repaired tool call name casing',
+        );
+
+        return {
+          ...failed.toolCall,
+          toolName: normalizedToolName,
+        };
+      }
+
+      return failed.toolCall;
+    },
     abortSignal,
     experimental_transform: smoothStream({
       delayInMs: 100,
@@ -99,6 +126,21 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     }
   };
 
+  const hasStepSideEffects = (): boolean => {
+    if (toolCalls.length > 0) {
+      return true;
+    }
+
+    for (let i = initialPartCount; i < accumulatedParts.length; i++) {
+      const part = accumulatedParts[i];
+      if (part?.type === 'tool-call' || part?.type === 'tool-result') {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   try {
     for await (const part of result.fullStream) {
       if (part.type === 'finish') {
@@ -120,6 +162,33 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     }
   } catch (e) {
     accumulator.flush();
+    if (isStreamAbortedError(e) || isPermissionRejectedError(e)) {
+      throw e;
+    }
+
+    if (hasStepSideEffects()) {
+      log.warn(
+        {
+          event: 'stream.step.retry_suppressed_after_side_effects',
+          sessionId,
+          messageId,
+          streamRunId: opts.streamRunId,
+          providerId: opts.providerId,
+          step,
+          errorCode: getErrorCode(e),
+        },
+        'step failed after tool side effects; returning partial step result without retry',
+      );
+
+      return {
+        finishReason: toolCalls.length > 0 ? 'tool-calls' : 'unknown',
+        usage: Usage.ZERO_USAGE,
+        toolCalls,
+        responseMessages: await resolveResponseMessages('unknown'),
+        protocolViolationCount: accumulator.getProtocolViolationCount(),
+      };
+    }
+
     throw e;
   }
 

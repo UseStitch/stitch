@@ -139,9 +139,11 @@ type StreamRunnerState = {
   protocolViolationCount: number;
   finalSynthesisAttempted: boolean;
   unknownRecoveryAttempts: number;
+  toolCallFinishRecoveryAttempts: number;
 };
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
+const TOOL_CALL_FINISH_RECOVERY_LIMIT = 1;
 
 const DEFAULT_DEPS: StreamRunnerDeps = {
   executeStepWithRetry,
@@ -197,6 +199,7 @@ class StreamRunner {
       protocolViolationCount: 0,
       finalSynthesisAttempted: false,
       unknownRecoveryAttempts: 0,
+      toolCallFinishRecoveryAttempts: 0,
     };
 
     this.deps = { ...DEFAULT_DEPS, ...deps };
@@ -313,6 +316,27 @@ class StreamRunner {
       }
 
       if (stepResult.toolCalls.length === 0) {
+        if (
+          stepResult.finishReason === 'tool-calls' &&
+          this.state.toolCallFinishRecoveryAttempts < TOOL_CALL_FINISH_RECOVERY_LIMIT
+        ) {
+          this.state.toolCallFinishRecoveryAttempts += 1;
+          log.warn(
+            {
+              event: 'stream.tool_calls_finish_without_tool_records.recovering',
+              phase: 'step',
+              streamRunId: this.ctx.streamRunId,
+              sessionId: this.ctx.sessionId,
+              messageId: this.ctx.assistantMessageId,
+              step,
+              attempt: this.state.toolCallFinishRecoveryAttempts,
+              maxAttempts: TOOL_CALL_FINISH_RECOVERY_LIMIT,
+            },
+            'retrying step because finish reason indicated tool calls but no tool call records were parsed',
+          );
+          continue;
+        }
+
         if (stepResult.finishReason === 'unknown' && this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT) {
           this.state.unknownRecoveryAttempts += 1;
           log.warn(
@@ -333,6 +357,8 @@ class StreamRunner {
 
         break;
       }
+
+      this.state.toolCallFinishRecoveryAttempts = 0;
 
       for (const call of stepResult.toolCalls) {
         this.state.toolCallHistory.push(call);

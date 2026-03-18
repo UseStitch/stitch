@@ -6,6 +6,7 @@ import * as Sse from '@/lib/sse.js';
 import {
   PermissionRejectedError,
   StreamAbortedError,
+  StreamPartError,
   isPermissionRejectedMessage,
 } from '@/lib/stream-errors.js';
 import type { ToolCallRecord } from '@/llm/doom-loop.js';
@@ -316,6 +317,7 @@ export class StreamAccumulator {
       }
 
       case 'error': {
+        const errorText = String(part.error);
         log.error(
           {
             event: 'stream.part.error',
@@ -323,16 +325,21 @@ export class StreamAccumulator {
             sessionId: this.sessionId,
             messageId: this.messageId,
             step: this.step,
-            error: part.error,
+            error: errorText,
           },
           'stream part error',
         );
         await Sse.broadcast('stream-error', {
           sessionId: this.sessionId,
           messageId: this.messageId,
-          error: String(part.error),
+          error: errorText,
         });
-        break;
+
+        if (part.error instanceof Error) {
+          throw new StreamPartError(part.error.message, { cause: part.error });
+        }
+
+        throw new StreamPartError(errorText);
       }
 
       case 'start-step': {

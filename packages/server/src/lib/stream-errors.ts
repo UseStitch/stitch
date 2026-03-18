@@ -4,7 +4,8 @@ type StreamErrorCode =
   | 'PERMISSION_RESPONSE_ABORTED'
   | 'QUESTION_ABORTED'
   | 'CONTEXT_OVERFLOW'
-  | 'STREAM_PROTOCOL_VIOLATION';
+  | 'STREAM_PROTOCOL_VIOLATION'
+  | 'STREAM_PART_ERROR';
 
 class StreamControlError extends Error {
   readonly code: StreamErrorCode;
@@ -52,6 +53,12 @@ export class ContextOverflowError extends StreamControlError {
 export class StreamProtocolViolationError extends StreamControlError {
   constructor(message: string, options?: ErrorOptions) {
     super('STREAM_PROTOCOL_VIOLATION', message, options);
+  }
+}
+
+export class StreamPartError extends StreamControlError {
+  constructor(message = 'stream part error', options?: ErrorOptions) {
+    super('STREAM_PART_ERROR', message, options);
   }
 }
 

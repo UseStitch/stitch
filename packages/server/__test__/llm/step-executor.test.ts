@@ -153,4 +153,38 @@ describe('executeStepWithRetry', () => {
       ]),
     );
   });
+
+  test('suppresses retry when step fails after tool side effects', async () => {
+    mocks.streamTextMock.mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: { command: 'pwd' } };
+        throw new Error('provider stream failed after tool call');
+      })(),
+      response: Promise.resolve({ messages: [] }),
+    });
+
+    const accumulatedParts: StoredPart[] = [];
+    const model = {} as unknown as StepOptions['model'];
+    const tools = {} as unknown as StepOptions['tools'];
+
+    const result = await executeStepWithRetry({
+      sessionId: 'ses_1',
+      messageId: 'msg_1',
+      step: 0,
+      model,
+      conversation: [],
+      accumulatedParts,
+      providerId: 'openai',
+      tools,
+      abortSignal: new AbortController().signal,
+      streamRunId: 'run_1',
+    });
+
+    expect(mocks.streamTextMock).toHaveBeenCalledTimes(1);
+    expect(result.finishReason).toBe('tool-calls');
+    expect(result.toolCalls).toEqual([
+      expect.objectContaining({ toolName: 'bash', inputJson: '{"command":"pwd"}' }),
+    ]);
+  });
+
 });

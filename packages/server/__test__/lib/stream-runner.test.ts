@@ -240,6 +240,21 @@ describe('runStream', () => {
           responseMessages: [],
           protocolViolationCount: 0,
         };
+      });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('retries once when finish reason is tool-calls without parsed tool call records', async () => {
+    mocks.executeStepWithRetryMock
+      .mockResolvedValueOnce({
+        finishReason: 'tool-calls',
+        usage: ZERO_USAGE,
+        toolCalls: [],
+        responseMessages: [],
+        protocolViolationCount: 0,
       })
       .mockResolvedValueOnce({
         finishReason: 'stop',
@@ -251,7 +266,7 @@ describe('runStream', () => {
 
     await runStream(getDefaultOpts());
 
-    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(1);
+    expect(mocks.executeStepWithRetryMock).toHaveBeenCalledTimes(2);
   });
 
   test('retries once when finish reason is unknown without tool calls', async () => {
