@@ -3,6 +3,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 
+import {
+  getFilePathPatternTargets,
+  getParentDirPermissionSuggestion,
+} from '@/tools/file-permissions.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
@@ -114,12 +118,12 @@ function createTool() {
   return createEditTool();
 }
 
-function getPatternTargets(): string[] {
-  return [];
+function getPatternTargets(input: unknown): string[] {
+  return getFilePathPatternTargets(input);
 }
 
-function getSuggestion() {
-  return null;
+function getSuggestion(input: unknown) {
+  return getParentDirPermissionSuggestion(input);
 }
 
 const shouldTruncate = true;
