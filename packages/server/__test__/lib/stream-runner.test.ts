@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
   const executeStepWithRetryMock = vi.fn();
   const checkAndHandleDoomLoopMock = vi.fn();
   const getModelLimitsMock = vi.fn(async () => ({ context: 200_000, output: 8_192 }));
+  const getCompactionSettingsMock = vi.fn(async () => ({ auto: true, prune: true }));
   const compactMock = vi.fn(async () => 'continue' as const);
   const isOverflowMock = vi.fn(() => false);
   const createToolsMock = vi.fn(() => ({}));
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => {
     executeStepWithRetryMock,
     checkAndHandleDoomLoopMock,
     getModelLimitsMock,
+    getCompactionSettingsMock,
     compactMock,
     isOverflowMock,
     createToolsMock,
@@ -44,6 +46,7 @@ vi.mock('@/llm/doom-loop.js', () => ({
 
 vi.mock('@/llm/compaction.js', () => ({
   compact: mocks.compactMock,
+  getCompactionSettings: mocks.getCompactionSettingsMock,
   getModelLimits: mocks.getModelLimitsMock,
   isOverflow: mocks.isOverflowMock,
 }));
@@ -100,6 +103,7 @@ describe('runStream', () => {
     mocks.executeStepWithRetryMock.mockReset();
     mocks.checkAndHandleDoomLoopMock.mockReset();
     mocks.getModelLimitsMock.mockReset();
+    mocks.getCompactionSettingsMock.mockReset();
     mocks.compactMock.mockReset();
     mocks.isOverflowMock.mockReset();
     mocks.createToolsMock.mockReset();
@@ -120,6 +124,7 @@ describe('runStream', () => {
     });
     mocks.checkAndHandleDoomLoopMock.mockImplementation(async ({ currentState }) => currentState);
     mocks.getModelLimitsMock.mockResolvedValue({ context: 200_000, output: 8_192 });
+    mocks.getCompactionSettingsMock.mockResolvedValue({ auto: true, prune: true });
     mocks.isOverflowMock.mockReturnValue(false);
     mocks.compactMock.mockResolvedValue('continue');
   });
@@ -339,6 +344,29 @@ describe('runStream', () => {
         overflow: true,
       }),
     );
+  });
+
+  test('skips auto compaction when compaction.auto is disabled', async () => {
+    mocks.getCompactionSettingsMock.mockResolvedValue({ auto: false, prune: true });
+    mocks.isOverflowMock.mockReturnValue(true);
+    mocks.executeStepWithRetryMock.mockResolvedValue({
+      finishReason: 'stop',
+      usage: {
+        inputTokens: 180_000,
+        outputTokens: 20_000,
+        totalTokens: 200_000,
+        inputTokenDetails: { noCacheTokens: 180_000, cacheReadTokens: 0, cacheWriteTokens: 0 },
+        outputTokenDetails: { textTokens: 20_000, reasoningTokens: 0 },
+      },
+      toolCalls: [],
+      responseMessages: [],
+      protocolViolationCount: 0,
+    });
+
+    await runStream(getDefaultOpts());
+
+    expect(mocks.compactMock).not.toHaveBeenCalled();
+    expect(mocks.isOverflowMock).not.toHaveBeenCalled();
   });
 
   test('marks in-flight tool calls as aborted and skips compaction on abort', async () => {

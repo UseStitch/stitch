@@ -10,6 +10,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 
 const ALLOWED_KEYS: ReadonlySet<string> = new Set(SETTINGS_KEYS);
 const ONBOARDING_STATUSES = new Set(['pending', 'completed']);
+const BOOLEAN_SETTING_VALUES = new Set(['true', 'false']);
 
 export async function listSettings(): Promise<Record<string, string>> {
   const db = getDb();
@@ -30,6 +31,15 @@ export async function saveSetting(key: string, value: unknown): Promise<ServiceR
   }
   if (key === 'onboarding.status' && !ONBOARDING_STATUSES.has(value)) {
     return err('Invalid onboarding status', 400);
+  }
+  if ((key === 'compaction.auto' || key === 'compaction.prune') && !BOOLEAN_SETTING_VALUES.has(value)) {
+    return err('Invalid boolean setting value', 400);
+  }
+  if (key === 'compaction.reserved') {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return err('Invalid compaction reserved value', 400);
+    }
   }
 
   const db = getDb();

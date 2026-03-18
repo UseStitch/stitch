@@ -5,7 +5,7 @@ import type { Message, PrefixedString, StoredPart } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
-import { agents, messages, sessions } from '@/db/schema.js';
+import { agents, messages, sessions, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';
@@ -20,17 +20,62 @@ import type { ModelMessage, LanguageModelUsage } from 'ai';
 const log = Log.create({ service: 'compaction' });
 
 const COMPACTION_BUFFER = 20_000;
+const OUTPUT_TOKEN_MAX = 32_000;
 const PRUNE_PROTECT = 40_000;
 const PRUNE_MINIMUM = 20_000;
 
 type ModelLimits = { context: number; input?: number; output: number };
 
-export function isOverflow(usage: LanguageModelUsage, limits: ModelLimits): boolean {
+type CompactionSettings = {
+  auto: boolean;
+  prune: boolean;
+  reserved?: number;
+};
+
+function parseBooleanSetting(value: string | undefined): boolean | undefined {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return undefined;
+}
+
+function parseReservedSetting(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+  return parsed;
+}
+
+export async function getCompactionSettings(): Promise<CompactionSettings> {
+  const db = getDb();
+  const rows = await db.select().from(userSettings);
+  const byKey = new Map(rows.map((row) => [row.key, row.value]));
+
+  return {
+    auto: parseBooleanSetting(byKey.get('compaction.auto')) ?? true,
+    prune: parseBooleanSetting(byKey.get('compaction.prune')) ?? true,
+    reserved: parseReservedSetting(byKey.get('compaction.reserved')),
+  };
+}
+
+export function isOverflow(
+  usage: LanguageModelUsage,
+  limits: ModelLimits,
+  settings?: { reserved?: number },
+): boolean {
   if (limits.context === 0) return false;
 
-  const count = usage.totalTokens ?? (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-  const reserved = Math.min(COMPACTION_BUFFER, limits.output);
-  const usable = limits.input ? limits.input - reserved : limits.context - limits.output;
+  const count =
+    usage.totalTokens ??
+    (usage.inputTokens ?? 0) +
+      (usage.outputTokens ?? 0) +
+      (usage.inputTokenDetails?.cacheReadTokens ?? 0) +
+      (usage.inputTokenDetails?.cacheWriteTokens ?? 0);
+
+  const maxOutput = Math.min(limits.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX;
+  const reserved = settings?.reserved ?? Math.min(COMPACTION_BUFFER, maxOutput);
+  const usable = limits.input ? limits.input - reserved : limits.context - maxOutput;
 
   return count >= usable;
 }
@@ -339,6 +384,8 @@ export async function compact(input: {
   try {
     log.info({ sessionId, auto: input.auto }, 'compaction starting');
 
+    const compactionSettings = await getCompactionSettings();
+
     await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
 
     // Step 1: Insert compaction marker as a user message
@@ -378,7 +425,9 @@ export async function compact(input: {
     });
 
     // Step 2: Prune old tool outputs
-    await prune(sessionId);
+    if (compactionSettings.prune) {
+      await prune(sessionId);
+    }
 
     // Step 3: Resolve the compaction model and send history for summarization
     const resolved = await resolveCompactionModel(input.providerId, input.modelId);

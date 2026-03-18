@@ -21,6 +21,7 @@ import type { LanguageModelUsage } from 'ai';
 export const userSettings = sqliteTable('user_settings', {
   key: text('key').$type<SettingsKey>().primaryKey(),
   value: text('value').notNull(),
+  description: text('description').notNull().default(''),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

@@ -57,7 +57,7 @@ describe('isOverflow', () => {
   });
 
   test('returns true when totalTokens exceeds usable context', () => {
-    // usable = context - output = 200_000 - 8_192 = 191_808
+    // usable = context - maxOutput = 200_000 - 8_192 = 191_808
     const usage = {
       inputTokens: 180_000,
       outputTokens: 15_000,
@@ -96,10 +96,10 @@ describe('isOverflow', () => {
       inputTokens: 180_000,
       outputTokens: 15_000,
       totalTokens: undefined as unknown as number,
-      inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 200, cacheWriteTokens: 300 },
       outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
     };
-    // count = undefined → (180_000 + 15_000) = 195_000 > 191_808
+    // count = undefined → 180_000 + 15_000 + 200 + 300 = 195_500 > 191_808
     expect(isOverflow(usage, defaultLimits)).toBe(true);
   });
 
@@ -122,6 +122,34 @@ describe('isOverflow', () => {
       outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
     };
     expect(isOverflow(belowBoundary, defaultLimits)).toBe(false);
+  });
+
+  test('caps max output tokens to avoid zero usable context', () => {
+    const limits = { context: 256_000, output: 256_000 };
+    const usage = {
+      inputTokens: 7_000,
+      outputTokens: 200,
+      totalTokens: 7_200,
+      inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+    };
+
+    // max output is capped to 32k, so usable = 224k and this should not overflow.
+    expect(isOverflow(usage, limits)).toBe(false);
+  });
+
+  test('respects explicit reserved setting override', () => {
+    const limits = { context: 400_000, input: 200_000, output: 32_000 };
+    const usage = {
+      inputTokens: 194_000,
+      outputTokens: 0,
+      totalTokens: 194_000,
+      inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+    };
+
+    expect(isOverflow(usage, limits)).toBe(true);
+    expect(isOverflow(usage, limits, { reserved: 5_000 })).toBe(false);
   });
 });
 

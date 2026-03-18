@@ -17,7 +17,8 @@ export function useChatModel(input?: UseChatModelInput): UseChatModelResult {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const [modelOverride, setModelOverride] = React.useState<string | null>(null);
 
-  const selectedModel = modelOverride ?? input?.lastUsedModel ?? settings['model.default'] ?? null;
+  const savedModel = settings['model.default']?.trim() ? settings['model.default'] : null;
+  const selectedModel = modelOverride ?? input?.lastUsedModel ?? savedModel;
 
   const handleModelChange = (model: string | null) => {
     setModelOverride(model);

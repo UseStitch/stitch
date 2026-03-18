@@ -14,7 +14,7 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/lib/stream-errors.js';
-import { isOverflow, compact, getModelLimits } from '@/llm/compaction.js';
+import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
 import { createProvider } from '@/provider/provider.js';
@@ -106,6 +106,7 @@ type StreamRunnerDeps = {
   executeStepWithRetry: typeof executeStepWithRetry;
   checkAndHandleDoomLoop: typeof checkAndHandleDoomLoop;
   getModelLimits: typeof getModelLimits;
+  getCompactionSettings: typeof getCompactionSettings;
   compact: typeof compact;
   saveAssistantMessage: typeof saveAssistantMessage;
   broadcast: typeof Sse.broadcast;
@@ -152,6 +153,7 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   executeStepWithRetry,
   checkAndHandleDoomLoop,
   getModelLimits,
+  getCompactionSettings,
   compact,
   saveAssistantMessage,
   broadcast: Sse.broadcast,
@@ -458,8 +460,13 @@ class StreamRunner {
   }
 
   private async evaluateCompactionTrigger(): Promise<void> {
+    const compactionSettings = await this.deps.getCompactionSettings();
+    if (!compactionSettings.auto) {
+      return;
+    }
+
     const limits = await this.deps.getModelLimits(this.ctx.providerId, this.ctx.modelId);
-    if (!isOverflow(this.state.totalUsage, limits)) {
+    if (!isOverflow(this.state.totalUsage, limits, { reserved: compactionSettings.reserved })) {
       return;
     }
 
