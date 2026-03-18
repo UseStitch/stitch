@@ -1,8 +1,7 @@
 import { ArrowLeftIcon } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   PROVIDER_META,
@@ -16,10 +15,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { serverFetch } from '@/lib/api';
+import {
+  useDeleteProviderConfigMutation,
+  useSaveProviderConfigMutation,
+} from '@/lib/mutations/provider-config';
 import {
   providerConfigQueryOptions,
-  providerKeys,
   type ProviderSummary,
 } from '@/lib/queries/providers';
 import { ProviderLogo } from './provider-logo';
@@ -92,7 +93,10 @@ export function ProviderConfig({ provider, onBack }: Props) {
     : undefined;
   const enabledAuthMethods = meta?.authMethods.filter((method) => method.enabled) ?? [];
   const queryClient = useQueryClient();
-  const { data: existingConfig } = useQuery(providerConfigQueryOptions(provider.id));
+  const { data: existingConfig } = useQuery({
+    ...providerConfigQueryOptions(provider.id),
+    enabled: provider.enabled,
+  });
 
   const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
   const defaultMethod =
@@ -132,41 +136,28 @@ export function ProviderConfig({ provider, onBack }: Props) {
     setExtraFields(extra);
   }, [enabledAuthMethods, existingConfig, meta]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (body: Record<string, unknown>) => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to save');
-      }
-    },
+  const saveMutation = useSaveProviderConfigMutation({
+    providerId: provider.id,
+    queryClient,
+    successMessage: `${meta?.displayName ?? 'Provider'} connected`,
+    errorMessage: 'Failed to save',
     onSuccess: () => {
       setFieldsByMethod({});
       setExtraFields({});
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
-      toast.success(`${meta?.displayName ?? 'Provider'} connected`);
       onBack();
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to disconnect');
-    },
+  const deleteMutation = useDeleteProviderConfigMutation({
+    providerId: provider.id,
+    queryClient,
+    successMessage: `${meta?.displayName ?? 'Provider'} disconnected`,
+    errorMessage: 'Failed to disconnect',
     onSuccess: () => {
       setFieldsByMethod({});
       setExtraFields({});
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
-      toast.success(`${meta?.displayName ?? 'Provider'} disconnected`);
       onBack();
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
   if (!meta || enabledAuthMethods.length === 0) return null;

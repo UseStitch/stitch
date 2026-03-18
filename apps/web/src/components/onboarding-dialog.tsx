@@ -1,6 +1,5 @@
 import { ArrowLeftIcon, CheckCircle2Icon, SparklesIcon, PlusIcon } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,10 +16,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { serverFetch } from '@/lib/api';
+import { useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import {
   providerConfigQueryOptions,
-  providerKeys,
   providersQueryOptions,
   type ProviderSummary,
 } from '@/lib/queries/providers';
@@ -98,7 +96,10 @@ function OnboardingProviderConfig({
     : undefined;
   const enabledAuthMethods = meta?.authMethods.filter((method) => method.enabled) ?? [];
   const queryClient = useQueryClient();
-  const { data: existingConfig, isPending } = useQuery(providerConfigQueryOptions(provider.id));
+  const { data: existingConfig, isPending } = useQuery({
+    ...providerConfigQueryOptions(provider.id),
+    enabled: provider.enabled,
+  });
 
   const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
   const defaultMethod =
@@ -138,29 +139,19 @@ function OnboardingProviderConfig({
     setExtraFields(extra);
   }, [enabledAuthMethods, existingConfig, meta]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (body: Record<string, unknown>) => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to save provider config');
-      }
-    },
+  const saveMutation = useSaveProviderConfigMutation({
+    providerId: provider.id,
+    queryClient,
+    successMessage: `${meta?.displayName ?? 'Provider'} connected`,
+    errorMessage: 'Failed to save provider config',
     onSuccess: () => {
       setFieldsByMethod({});
       setExtraFields({});
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
-      toast.success(`${meta?.displayName ?? 'Provider'} connected`);
       onConnected();
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
-  if (isPending) {
+  if (provider.enabled && isPending) {
     return <div className="text-muted-foreground text-sm">Loading provider configuration...</div>;
   }
 
