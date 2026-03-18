@@ -8,6 +8,13 @@
       "when": 1773793139012,
       "tag": "0000_glossy_ego",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773847126272,
+      "tag": "0001_strong_wild_pack",
+      "breakpoints": true
     }
   ]
 }

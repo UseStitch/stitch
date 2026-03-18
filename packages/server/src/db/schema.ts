@@ -66,7 +66,6 @@ export const agents = sqliteTable(
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
-  sessionType: text('session_type').$type<'user' | 'title'>().notNull().default('user'),
   parentSessionId: text('parent_session_id')
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),

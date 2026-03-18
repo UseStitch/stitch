@@ -47,6 +47,11 @@ export type CompactionPart = {
   overflow?: boolean;
 };
 
+export type SessionTitlePart = {
+  type: 'session-title';
+  title: string;
+};
+
 export type AllPart =
   | TextStartPart
   | TextDeltaPart
@@ -60,7 +65,8 @@ export type AllPart =
   | ToolResultStreamPart
   | StepStartPart
   | StepFinishPart
-  | CompactionPart;
+  | CompactionPart
+  | SessionTitlePart;
 
 export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 

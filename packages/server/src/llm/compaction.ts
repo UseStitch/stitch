@@ -160,6 +160,11 @@ export function buildHistoryMessages(
   const llmMessages: ModelMessage[] = [];
 
   for (const msg of msgs) {
+    const hasSessionTitle = msg.parts.some((p) => p.type === 'session-title');
+    if (hasSessionTitle) {
+      continue;
+    }
+
     if (msg.role === 'user') {
       const hasCompaction = msg.parts.some((p) => p.type === 'compaction');
       if (hasCompaction) continue;

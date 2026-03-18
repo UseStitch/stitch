@@ -56,11 +56,7 @@ export async function createSession(input: CreateSessionInput) {
 
 export async function listSessions() {
   const db = getDb();
-  return db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.sessionType, 'user'))
-    .orderBy(asc(sessions.createdAt));
+  return db.select().from(sessions).orderBy(asc(sessions.createdAt));
 }
 
 export async function getSessionById(sessionId: PrefixedString<'ses'>) {
@@ -134,12 +130,11 @@ async function maybeGenerateTitle(input: {
       }
 
       const now = Date.now();
-      const titleSessionId = createSessionId();
       const titleMessageId = createMessageId();
       const titlePart: StoredPart = {
-        type: 'text-delta',
+        type: 'session-title',
         id: createPartId(),
-        text: generatedTitle.title,
+        title: generatedTitle.title,
         startedAt: now,
         endedAt: now,
       };
@@ -152,18 +147,9 @@ async function maybeGenerateTitle(input: {
           })
         : 0;
 
-      await db.insert(sessions).values({
-        id: titleSessionId,
-        title: generatedTitle.title,
-        sessionType: 'title',
-        parentSessionId: input.sessionId,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
-      });
-
       await db.insert(messages).values({
         id: titleMessageId,
-        sessionId: titleSessionId,
+        sessionId: input.sessionId,
         role: 'assistant',
         parts: [titlePart],
         modelId: generatedTitle.modelId,

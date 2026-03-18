@@ -54,6 +54,10 @@ function buildRows(
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
+    if (msg.parts.some((p) => p.type === 'session-title')) {
+      continue;
+    }
+
     if (msg.role === 'user' && msg.parts.some((p) => p.type === 'compaction')) {
       const next = messages[i + 1];
       if (next?.isSummary) {
@@ -64,6 +68,10 @@ function buildRows(
   }
 
   for (const msg of messages) {
+    if (msg.parts.some((p) => p.type === 'session-title')) {
+      continue;
+    }
+
     if (msg.role === 'user' && msg.parts.some((p) => p.type === 'compaction')) {
       const summary = summaryByMarker.get(msg.id);
       rows.push({ kind: 'compaction', id: msg.id, summaryParts: summary?.parts });
