@@ -282,9 +282,8 @@
 }
 
 .prose :where(.task-list-item) {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  position: relative;
+  padding-left: 1.5rem;
 }
 
 /* Match the app's Checkbox component: size-4, rounded-lg, border-input,        */
@@ -299,10 +298,10 @@
   border-radius: var(--radius-lg);
   background-color: transparent;
   margin: 0;
-  margin-top: 0.15em;
+  top: 0.15em;
+  left: 0;
   cursor: default;
-  position: relative;
-  flex-shrink: 0;
+  position: absolute;
   transition:
     color 0.15s ease,
     background-color 0.15s ease,
