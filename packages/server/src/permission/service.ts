@@ -19,6 +19,15 @@ import { resolvePermissionFromRules } from '@/permission/policy.js';
 
 const log = Log.create({ service: 'permission-service' });
 
+type PermissionResponseRow = typeof permissionResponses.$inferSelect;
+
+function toPermissionResponse(row: PermissionResponseRow): PermissionResponse {
+  return {
+    ...row,
+    resolvedAt: row.resolvedAt ?? undefined,
+  };
+}
+
 type PendingPermissionResponse = {
   resolve: (decision: PermissionDecisionResult) => void;
   reject: (error: Error) => void;
@@ -39,7 +48,7 @@ async function upsertAgentPermission(opts: {
   pattern: string | null;
 }): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
 
   const where =
     opts.pattern === null
@@ -112,7 +121,7 @@ export async function requestPermissionResponse(opts: {
 }): Promise<PermissionDecisionResult> {
   const db = getDb();
   const id = createPermissionResponseId();
-  const now = new Date();
+  const now = Date.now();
 
   await db.insert(permissionResponses).values({
     id,
@@ -132,7 +141,7 @@ export async function requestPermissionResponse(opts: {
   if (!row) throw new Error('Permission response not found after create');
 
   await broadcast('permission-response-requested', {
-    permissionResponse: row,
+    permissionResponse: toPermissionResponse(row),
   });
 
   log.info(
@@ -184,7 +193,7 @@ async function resolvePermissionResponse(opts: {
   setPermission?: SetPermissionRule;
 }): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
 
   const [existing] = await db
     .select()
@@ -197,7 +206,7 @@ async function resolvePermissionResponse(opts: {
 
   if (opts.setPermission) {
     await upsertAgentPermission({
-      agentId: existing.agentId as PrefixedString<'agt'>,
+      agentId: existing.agentId,
       toolName: existing.toolName,
       permission: opts.setPermission.permission,
       pattern: opts.setPermission.pattern ?? null,
@@ -220,7 +229,7 @@ async function resolvePermissionResponse(opts: {
 
   await broadcast('permission-response-resolved', {
     permissionResponseId: opts.permissionResponseId,
-    sessionId: permissionResponse?.sessionId ?? '',
+    sessionId: permissionResponse?.sessionId ?? existing.sessionId,
   });
 
   const pending = pendingPermissionResponses.get(opts.permissionResponseId);
@@ -229,7 +238,7 @@ async function resolvePermissionResponse(opts: {
       event: 'stream.permission.resolved',
       streamRunId: pending?.streamRunId,
       permissionResponseId: opts.permissionResponseId,
-      sessionId: permissionResponse?.sessionId ?? '',
+      sessionId: permissionResponse?.sessionId ?? existing.sessionId,
       status: opts.status,
     },
     'permission resolved',
@@ -285,12 +294,12 @@ export async function getPendingPermissionResponses(
     .select()
     .from(permissionResponses)
     .where(eq(permissionResponses.sessionId, sessionId));
-  return rows.filter((p) => p.status === 'pending') as PermissionResponse[];
+  return rows.filter((p) => p.status === 'pending').map(toPermissionResponse);
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
   const all = await db
     .select()
     .from(permissionResponses)
@@ -304,7 +313,7 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
     .where(eq(permissionResponses.sessionId, sessionId));
 
   for (const row of pending) {
-    const id = row.id as PrefixedString<'permres'>;
+    const id = row.id;
     const entry = pendingPermissionResponses.get(id);
     const streamRunId = entry?.streamRunId;
     if (entry) {

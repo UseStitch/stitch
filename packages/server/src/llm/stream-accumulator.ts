@@ -1,4 +1,4 @@
-import type { PartId, StoredPart } from '@openwork/shared';
+import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
 import { createPartId } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
@@ -19,8 +19,8 @@ export class StreamAccumulator {
   private protocolViolationCount = 0;
 
   constructor(
-    private readonly sessionId: string,
-    private readonly messageId: string,
+    private readonly sessionId: PrefixedString<'ses'>,
+    private readonly messageId: PrefixedString<'msg'>,
     private readonly step: number,
     private readonly accumulatedParts: StoredPart[],
     private readonly toolCalls: ToolCallRecord[],

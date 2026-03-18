@@ -1,4 +1,5 @@
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
+import type { PrefixedString } from '@openwork/shared';
 
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
@@ -43,13 +44,13 @@ type PendingDecision = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-const pending = new Map<string, PendingDecision>();
+const pending = new Map<PrefixedString<'ses'>, PendingDecision>();
 
 /**
  * Pause execution until the user responds via the API endpoint.
  * Automatically resolves with `'stop'` after `DECISION_TIMEOUT_MS`.
  */
-export function waitForUserDecision(sessionId: string): Promise<DoomLoopResponse> {
+export function waitForUserDecision(sessionId: PrefixedString<'ses'>): Promise<DoomLoopResponse> {
   // If there is already a pending prompt for this session, resolve it first.
   const existing = pending.get(sessionId);
   if (existing) {
@@ -73,7 +74,10 @@ export function waitForUserDecision(sessionId: string): Promise<DoomLoopResponse
  * Called from the API route when the user picks "Continue" or "Stop".
  * Returns `false` if there was no pending prompt for the session.
  */
-export function resolveDecision(sessionId: string, response: DoomLoopResponse): boolean {
+export function resolveDecision(
+  sessionId: PrefixedString<'ses'>,
+  response: DoomLoopResponse,
+): boolean {
   const entry = pending.get(sessionId);
   if (!entry) return false;
 
@@ -87,7 +91,7 @@ export function resolveDecision(sessionId: string, response: DoomLoopResponse): 
  * Cancel a pending doom-loop decision by resolving it with 'stop'.
  * Called when the session is aborted.
  */
-export function cancelDecision(sessionId: string): void {
+export function cancelDecision(sessionId: PrefixedString<'ses'>): void {
   resolveDecision(sessionId, 'stop');
 }
 
@@ -98,8 +102,8 @@ type DoomLoopState = {
 };
 
 export async function checkAndHandleDoomLoop(opts: {
-  sessionId: string;
-  messageId: string;
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
   toolCallHistory: ToolCallRecord[];
   conversation: ModelMessage[];
   stepOptions: StepOptions;

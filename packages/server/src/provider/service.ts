@@ -163,7 +163,7 @@ export async function upsertProviderCredentials(
     .values({ providerId, credentials: parsed.data })
     .onConflictDoUpdate({
       target: providerConfig.providerId,
-      set: { credentials: parsed.data, updatedAt: new Date() },
+      set: { credentials: parsed.data, updatedAt: Date.now() },
     });
 
   return ok(null);

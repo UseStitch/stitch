@@ -39,10 +39,10 @@ export async function saveShortcut(
   const db = getDb();
   await db
     .insert(keyboardShortcuts)
-    .values({ actionId: actionId as ShortcutActionId, hotkey, updatedAt: new Date() })
+    .values({ actionId: actionId as ShortcutActionId, hotkey, updatedAt: Date.now() })
     .onConflictDoUpdate({
       target: keyboardShortcuts.actionId,
-      set: { hotkey, updatedAt: new Date() },
+      set: { hotkey, updatedAt: Date.now() },
     });
 
   return ok(null);

@@ -110,7 +110,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 });
 
 chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
-  const sessionId = c.req.param('id');
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
   const body = (await c.req.json()) as { response: DoomLoopResponse };
 
   if (body.response !== 'continue' && body.response !== 'stop') {

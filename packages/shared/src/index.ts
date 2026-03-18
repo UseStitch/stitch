@@ -1,10 +1,118 @@
-export * from './messages.js';
-export * from './providers.js';
-export * from './realtime.js';
-export * from './id.js';
-export * from './questions.js';
-export * from './permissions.js';
-export * from './agents.js';
+export {
+  AGENT_TYPES,
+  type Agent,
+  type AgentType,
+} from './agents/types.js';
+export {
+  MESSAGE_ROLES,
+  type AllPart,
+  type CompactionPart,
+  type FileStreamPart,
+  type FinishStreamPart,
+  type LanguageModelUsage,
+  type LanguageModelV3Source,
+  type Message,
+  type MessageRole,
+  type MessagesPage,
+  type PartId,
+  type ReasoningDeltaPart,
+  type ReasoningEndPart,
+  type ReasoningStartPart,
+  type Session,
+  type SessionTitlePart,
+  type SessionWithMessages,
+  type SourceStreamPart,
+  type StepFinishPart,
+  type StepStartPart,
+  type StoredPart,
+  type TextDeltaPart,
+  type TextEndPart,
+  type TextStartPart,
+  type TextStreamPart,
+  type ToolCallStreamPart,
+  type ToolErrorPart,
+  type ToolInputDeltaPart,
+  type ToolInputEndPart,
+  type ToolInputStartPart,
+  type ToolResultStreamPart,
+  type ToolSet,
+} from './chat/messages.js';
+export {
+  type CompactionCompletePayload,
+  type CompactionStartPayload,
+  type DataChangePayload,
+  type DoomLoopDetectedPayload,
+  type PartDelta,
+  type PartUpdate,
+  type PermissionResponseRequestedPayload,
+  type PermissionResponseResolvedPayload,
+  type QuestionAskedPayload,
+  type QuestionRejectedPayload,
+  type QuestionRepliedPayload,
+  type SessionTitleUpdatePayload,
+  type SseEvent,
+  type SseEventName,
+  type SseEventPayloadMap,
+  type SseHandlers,
+  type StepFinishPayload,
+  type StepStartPayload,
+  type StreamErrorPayload,
+  type StreamFinishPayload,
+  type StreamPartDeltaPayload,
+  type StreamPartUpdatePayload,
+  type StreamRetryPayload,
+  type StreamStartPayload,
+  type StreamToolInputDeltaPayload,
+  type StreamToolStatePayload,
+  type ToolCallStatus,
+  type UseSseResult,
+} from './chat/realtime.js';
+export {
+  ID_PREFIXES,
+  createAgentId,
+  createAgentPermissionId,
+  createMessageId,
+  createPartId,
+  createPermissionResponseId,
+  createQuestionId,
+  createSessionId,
+  createToolResultId,
+  extractTimestamp,
+  type IdPrefix,
+  type PrefixedString,
+} from './id/index.js';
+export {
+  AGENT_PERMISSION_VALUES,
+  PERMISSION_DECISIONS,
+  PERMISSION_RESPONSE_STATUSES,
+  type AgentPermission,
+  type AgentPermissionValue,
+  type PermissionAllow,
+  type PermissionAlternative,
+  type PermissionDecision,
+  type PermissionDecisionResult,
+  type PermissionReject,
+  type PermissionResponse,
+  type PermissionResponseStatus,
+  type PermissionSuggestion,
+} from './permissions/types.js';
+export { PROVIDER_META } from './providers/catalog.js';
+export {
+  PROVIDER_IDS,
+  type AuthMethodDef,
+  type FieldDef,
+  type ProviderId,
+  type ProviderMeta,
+} from './providers/types.js';
+export {
+  QUESTION_REQUEST_STATUSES,
+  type QuestionInfo,
+  type QuestionOption,
+  type QuestionReject,
+  type QuestionReply,
+  type QuestionRequest,
+  type QuestionRequestStatus,
+} from './questions/types.js';
 
 export const SETTINGS_KEYS = [
   'model.default',

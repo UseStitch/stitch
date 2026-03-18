@@ -1,12 +1,15 @@
-import type { PrefixedString } from './id.js';
 import type { LanguageModelV3Source } from '@ai-sdk/provider';
-import type { TextStreamPart, ToolSet, LanguageModelUsage } from 'ai';
+import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
+
+import type { PrefixedString } from '../id/index.js';
 
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
-export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
-export type PartId = PrefixedString<'prt'>;
 
-// ─── Stream part types (derived from SDK, used in SSE payloads) ───────────────
+export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
+
+export type MessageRole = (typeof MESSAGE_ROLES)[number];
+
+export type PartId = PrefixedString<'prt'>;
 
 type FullStreamPart = TextStreamPart<ToolSet>;
 

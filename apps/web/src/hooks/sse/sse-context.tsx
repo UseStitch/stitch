@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { SseEventName, SseHandlers, UseSseResult } from '@openwork/shared';
+import type { SseEventName, SseEventPayloadMap, SseHandlers, UseSseResult } from '@openwork/shared';
 
 type SseContextValue = {
   isConnected: boolean;
@@ -16,6 +16,23 @@ function parseJson(raw: string): unknown {
   } catch {
     return raw;
   }
+}
+
+function parseEventData<K extends SseEventName>(eventName: K, raw: string): SseEventPayloadMap[K] {
+  if (eventName === 'heartbeat') {
+    return { ts: Date.now() } as SseEventPayloadMap[K];
+  }
+
+  return parseJson(raw) as SseEventPayloadMap[K];
+}
+
+function dispatchEvent<K extends SseEventName>(
+  handlers: SseHandlers,
+  eventName: K,
+  payload: SseEventPayloadMap[K],
+): void {
+  const handler = handlers[eventName] as ((data: SseEventPayloadMap[K]) => void) | undefined;
+  handler?.(payload);
 }
 
 export function SseProvider({ children }: { children: React.ReactNode }) {
@@ -68,7 +85,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
 
       eventNames.forEach((eventName) => {
         eventSource!.addEventListener(eventName, (e) => {
-          handlersRef.current[eventName]?.(parseJson(e.data));
+          dispatchEvent(handlersRef.current, eventName, parseEventData(eventName, e.data));
         });
       });
     };

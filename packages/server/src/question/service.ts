@@ -12,6 +12,16 @@ import { QuestionAbortedError } from '@/lib/stream-errors.js';
 
 const log = Log.create({ service: 'question-service' });
 
+type QuestionRow = typeof questions.$inferSelect;
+
+function toQuestionRequest(row: QuestionRow): QuestionRequest {
+  return {
+    ...row,
+    answers: row.answers ?? undefined,
+    answeredAt: row.answeredAt ?? undefined,
+  };
+}
+
 type PendingQuestion = {
   resolve: (answers: string[][]) => void;
   reject: (error: Error) => void;
@@ -30,7 +40,7 @@ export async function askQuestion(opts: {
 }): Promise<string[][]> {
   const db = getDb();
   const id = createQuestionId();
-  const now = new Date();
+  const now = Date.now();
 
   log.info(
     {
@@ -56,9 +66,12 @@ export async function askQuestion(opts: {
   });
 
   const [row] = await db.select().from(questions).where(eq(questions.id, id));
+  if (!row) {
+    throw new Error(`Question not found after create: ${id}`);
+  }
 
   await broadcast('question-asked', {
-    question: row,
+    question: toQuestionRequest(row),
   });
 
   return new Promise((resolve, reject) => {
@@ -98,7 +111,7 @@ export async function askQuestion(opts: {
       if (q.status === 'answered') {
         opts.abortSignal?.removeEventListener('abort', abortHandler);
         cleanup();
-        resolve((q.answers as string[][] | undefined) ?? []);
+        resolve(q.answers ?? []);
         return;
       }
 
@@ -117,7 +130,7 @@ export async function replyQuestion(
   answers: string[][],
 ): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
 
   await db
     .update(questions)
@@ -129,10 +142,13 @@ export async function replyQuestion(
     .where(eq(questions.id, questionId));
 
   const [question] = await db.select().from(questions).where(eq(questions.id, questionId));
+  if (!question) {
+    throw new Error(`Question not found: ${questionId}`);
+  }
 
   await broadcast('question-replied', {
     questionId,
-    sessionId: question?.sessionId ?? '',
+    sessionId: question.sessionId,
     answers,
   });
 
@@ -142,7 +158,7 @@ export async function replyQuestion(
       event: 'stream.question.resolved',
       questionId,
       streamRunId: pending?.streamRunId,
-      sessionId: question?.sessionId ?? '',
+      sessionId: question.sessionId,
       decision: 'answered',
     },
     'question resolved',
@@ -158,9 +174,12 @@ export async function replyQuestion(
 
 export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
 
   const [question] = await db.select().from(questions).where(eq(questions.id, questionId));
+  if (!question) {
+    throw new Error(`Question not found: ${questionId}`);
+  }
 
   await db
     .update(questions)
@@ -172,7 +191,7 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
 
   await broadcast('question-rejected', {
     questionId,
-    sessionId: question?.sessionId ?? '',
+    sessionId: question.sessionId,
   });
 
   const pending = pendingQuestions.get(questionId);
@@ -181,7 +200,7 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
       event: 'stream.question.resolved',
       questionId,
       streamRunId: pending?.streamRunId,
-      sessionId: question?.sessionId ?? '',
+      sessionId: question.sessionId,
       decision: 'rejected',
     },
     'question resolved',
@@ -201,7 +220,7 @@ export async function getPendingQuestions(
   const db = getDb();
   const rows = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
 
-  return rows.filter((q) => q.status === 'pending') as QuestionRequest[];
+  return rows.filter((q) => q.status === 'pending').map(toQuestionRequest);
 }
 
 /**
@@ -210,7 +229,7 @@ export async function getPendingQuestions(
  */
 export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<void> {
   const db = getDb();
-  const now = new Date();
+  const now = Date.now();
 
   const pending = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
 
@@ -223,11 +242,11 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
     .where(eq(questions.sessionId, sessionId));
 
   for (const q of pendingRows) {
-    const entry = pendingQuestions.get(q.id as PrefixedString<'quest'>);
+    const entry = pendingQuestions.get(q.id);
     const streamRunId = entry?.streamRunId;
     if (entry) {
       entry.reject(new QuestionAbortedError('Question aborted by session abort'));
-      pendingQuestions.delete(q.id as PrefixedString<'quest'>);
+      pendingQuestions.delete(q.id);
     }
     await broadcast('question-rejected', { questionId: q.id, sessionId });
 

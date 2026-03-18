@@ -86,7 +86,7 @@ function getDefaultOpts() {
     sessionId: 'ses_1' as PrefixedString<'ses'>,
     assistantMessageId: 'msg_1' as PrefixedString<'msg'>,
     modelId: 'openai/gpt-5.3-codex',
-    agentId: 'agt_1',
+    agentId: 'agt_1' as PrefixedString<'agt'>,
     llmMessages: getDefaultMessages(),
     credentials,
     abortSignal: new AbortController().signal,

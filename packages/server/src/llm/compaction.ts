@@ -107,7 +107,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
 
       await db
         .update(messages)
-        .set({ parts: updatedParts, updatedAt: new Date() })
+        .set({ parts: updatedParts, updatedAt: Date.now() })
         .where(eq(messages.id, messageId));
     }
 
@@ -355,9 +355,9 @@ export async function compact(input: {
       providerId: input.providerId,
       agentId: input.agentId as PrefixedString<'agt'>,
       costUsd: 0,
-      createdAt: new Date(now),
-      updatedAt: new Date(now),
-      startedAt: new Date(now),
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
       duration: null,
     });
 
@@ -441,13 +441,13 @@ export async function compact(input: {
       costUsd,
       finishReason: 'stop',
       isSummary: true,
-      createdAt: new Date(summaryNow),
-      updatedAt: new Date(summaryNow),
-      startedAt: new Date(summaryNow),
+      createdAt: summaryNow,
+      updatedAt: summaryNow,
+      startedAt: summaryNow,
       duration: Date.now() - now,
     });
 
-    await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, sessionId));
+    await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, sessionId));
 
     log.info(
       {

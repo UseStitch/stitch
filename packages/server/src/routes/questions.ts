@@ -45,7 +45,7 @@ questionsRouter.post('/sessions/:id/questions', async (c) => {
   }
 
   const id = createQuestionId();
-  const now = new Date();
+  const now = Date.now();
 
   await db.insert(questions).values({
     id,

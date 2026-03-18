@@ -11,7 +11,7 @@ export const ID_PREFIXES = {
   agent: 'agt',
 } as const;
 
-type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
+export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
 
 let lastTimestamp = 0;
 let counter = 0;

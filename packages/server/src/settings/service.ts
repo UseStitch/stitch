@@ -48,7 +48,7 @@ export async function saveSetting(key: string, value: unknown): Promise<ServiceR
     .values({ key: key as SettingsKey, value })
     .onConflictDoUpdate({
       target: userSettings.key,
-      set: { value, updatedAt: new Date() },
+      set: { value, updatedAt: Date.now() },
     });
 
   return ok(null);

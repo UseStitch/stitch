@@ -39,8 +39,8 @@ type SendMessageInput = {
 export async function createSession(input: CreateSessionInput) {
   const db = getDb();
   const id = createSessionId();
-  const now = new Date();
-  const title = input.title ?? `New Session ${now.toLocaleString('en-US', { hour12: false })}`;
+  const now = Date.now();
+  const title = input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
 
   await db.insert(sessions).values({
     id,
@@ -71,7 +71,7 @@ export async function listSessionMessages(sessionId: PrefixedString<'ses'>, limi
 
   const conditions = [eq(messages.sessionId, sessionId)];
   if (cursor !== undefined) {
-    conditions.push(lt(messages.createdAt, new Date(cursor)));
+    conditions.push(lt(messages.createdAt, cursor));
   }
 
   const rows = await db
@@ -100,7 +100,7 @@ export async function renameSession(sessionId: PrefixedString<'ses'>, title: str
   const db = getDb();
   const [updated] = await db
     .update(sessions)
-    .set({ title, updatedAt: new Date() })
+    .set({ title, updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .returning();
   return updated;
@@ -159,15 +159,15 @@ async function maybeGenerateTitle(input: {
         costUsd,
         finishReason: 'stop',
         isSummary: false,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
-        startedAt: new Date(now),
+        createdAt: now,
+        updatedAt: now,
+        startedAt: now,
         duration: 0,
       });
 
       await db
         .update(sessions)
-        .set({ title: generatedTitle.title, updatedAt: new Date() })
+        .set({ title: generatedTitle.title, updatedAt: Date.now() })
         .where(eq(sessions.id, input.sessionId));
 
       await broadcast('session-title-update', { sessionId: input.sessionId, title: generatedTitle.title });
@@ -231,13 +231,13 @@ export async function sendMessage(input: SendMessageInput): Promise<ServiceResul
     providerId: input.providerId,
     agentId: agent.id,
     costUsd: 0,
-    createdAt: new Date(now),
-    updatedAt: new Date(now),
-    startedAt: new Date(now),
+    createdAt: now,
+    updatedAt: now,
+    startedAt: now,
     duration: null,
   });
 
-  await db.update(sessions).set({ updatedAt: new Date() }).where(eq(sessions.id, input.sessionId));
+  await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
   const llmMessages = await buildCompactedHistory(input.sessionId);
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
@@ -270,7 +270,10 @@ export async function sendMessage(input: SendMessageInput): Promise<ServiceResul
   return ok({ messageId: assistantMessageId, userMessageId });
 }
 
-export function resolveDoomLoop(sessionId: string, response: DoomLoopResponse): ServiceResult<{ ok: true }> {
+export function resolveDoomLoop(
+  sessionId: PrefixedString<'ses'>,
+  response: DoomLoopResponse,
+): ServiceResult<{ ok: true }> {
   const resolved = resolveDecision(sessionId, response);
   if (!resolved) {
     return err('No pending doom loop prompt for this session', 404);

@@ -1,6 +1,6 @@
 import { streamText, smoothStream } from 'ai';
 
-import type { StoredPart } from '@openwork/shared';
+import type { PrefixedString, StoredPart } from '@openwork/shared';
 
 import { StreamAccumulator } from './stream-accumulator.js';
 
@@ -31,8 +31,8 @@ type StepResult = {
 };
 
 export type StepOptions = {
-  sessionId: string;
-  messageId: string;
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
   step: number;
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];

@@ -27,7 +27,7 @@ import type { ModelMessage, LanguageModelUsage } from 'ai';
 const log = Log.create({ service: 'stream-runner' });
 
 async function saveAssistantMessage(opts: {
-  sessionId: string;
+  sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   providerId: string;
@@ -68,8 +68,8 @@ async function saveAssistantMessage(opts: {
     usage: totalUsage,
     costUsd,
     finishReason: finalFinishReason,
-    createdAt: new Date(startedAt),
-    startedAt: new Date(startedAt),
+    createdAt: startedAt,
+    startedAt,
     duration: finishedAt - startedAt,
   });
 
@@ -96,7 +96,7 @@ type RunStreamOptions = {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  agentId: string;
+  agentId: PrefixedString<'agt'>;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
@@ -158,7 +158,7 @@ class StreamRunner {
     const provider = createProvider(opts.credentials);
     const model = provider(opts.modelId);
     const streamRunId = randomUUID();
-    const agentId = opts.agentId as PrefixedString<'agt'>;
+    const agentId = opts.agentId;
     const startedAt = Date.now();
 
     this.ctx = {
@@ -656,7 +656,7 @@ export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  agentId: string;
+  agentId: PrefixedString<'agt'>;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
