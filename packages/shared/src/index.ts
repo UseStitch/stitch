@@ -13,6 +13,7 @@ export const SETTINGS_KEYS = [
   'agent.default',
   'appearance.mode',
   'appearance.theme',
+  'onboarding.status',
 ] as const;
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 

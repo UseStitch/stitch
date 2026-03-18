@@ -7,6 +7,7 @@ import { TitleBar } from '@/components/layout/title-bar';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { RightClickMenu } from '@/components/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
+import { OnboardingDialog } from '@/components/onboarding-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
@@ -51,6 +52,7 @@ function RootLayout() {
       </RightClickMenu>
       <CommandPalette />
       <SettingsDialog />
+      <OnboardingDialog />
       <RenameSessionDialog />
       <Toaster position="bottom-right" />
     </SidebarProvider>
