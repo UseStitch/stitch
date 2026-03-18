@@ -90,6 +90,8 @@ type SessionUsageTotals = {
   cacheWriteTokens: number;
 };
 
+const MODEL_SEPARATOR = ':::';
+
 function SessionComponent() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -103,10 +105,36 @@ function SessionComponent() {
   const providerModelsQuery = useQuery(enabledProviderModelsQueryOptions);
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
+  const lastUsedModel = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (!message) continue;
+      if (message.parts.some((part) => part.type === 'session-title')) continue;
+      if (message.isSummary) continue;
+      if (message.parts.some((part) => part.type === 'compaction')) continue;
+      return `${message.providerId}${MODEL_SEPARATOR}${message.modelId}`;
+    }
+
+    return null;
+  }, [messages]);
+
+  const lastUsedAgentId = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (!message) continue;
+      if (message.parts.some((part) => part.type === 'session-title')) continue;
+      if (message.isSummary) continue;
+      if (message.parts.some((part) => part.type === 'compaction')) continue;
+      return message.agentId;
+    }
+
+    return null;
+  }, [messages]);
+
   const seedTextRef = React.useRef(consumeNextSessionInputSeed());
   const [value, setValue] = React.useState(seedTextRef.current);
-  const { selectedModel, handleModelChange } = useChatModel();
-  const { selectedAgent, handleAgentChange } = useChatAgent();
+  const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
+  const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
 
   const sendMessage = useSendMessage();
   const deleteSession = useDeleteSession();
