@@ -15,6 +15,13 @@
       "when": 1773847126272,
       "tag": "0001_strong_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773874043832,
+      "tag": "0002_nasty_venom",
+      "breakpoints": true
     }
   ]
 }

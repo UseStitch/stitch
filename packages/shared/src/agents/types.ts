@@ -9,6 +9,8 @@ export type Agent = {
   name: string;
   type: AgentType;
   isDeletable: boolean;
+  systemPrompt: string | null;
+  useBasePrompt: boolean;
   createdAt: number;
   updatedAt: number;
 };

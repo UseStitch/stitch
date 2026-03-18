@@ -133,6 +133,7 @@ export const SHORTCUT_ACTION_IDS = [
   'open-settings',
   'toggle-sidebar',
   'new-session',
+  'switch-primary-agent',
   'rename-session',
   'compact-session',
   'stop-stream',

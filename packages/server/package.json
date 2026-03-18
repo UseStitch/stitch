@@ -19,6 +19,7 @@
     "@ai-sdk/vercel": "catalog:ai",
     "@aws-sdk/credential-providers": "^3.1008.0",
     "@hono/node-server": "^1.19.11",
+    "@hono/zod-validator": "^0.7.6",
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "@openwork/shared": "workspace:*",
     "ai": "catalog:ai",

@@ -14,6 +14,7 @@ export function useGlobalHotkeys(actions: Action[]) {
   const commandPaletteKey = shortcuts.get('command-palette');
   const openSettingsKey = shortcuts.get('open-settings');
   const newSessionKey = shortcuts.get('new-session');
+  const switchPrimaryAgentKey = shortcuts.get('switch-primary-agent');
   const renameSessionKey = shortcuts.get('rename-session');
   const stopStreamKey = shortcuts.get('stop-stream');
 
@@ -28,6 +29,10 @@ export function useGlobalHotkeys(actions: Action[]) {
   useHotkey(newSessionKey ?? 'Mod+N', () => actionMap.get('new-session')?.run(), {
     preventDefault: true,
     enabled: !!newSessionKey,
+  });
+  useHotkey(switchPrimaryAgentKey ?? 'Mod+T', () => actionMap.get('switch-primary-agent')?.run(), {
+    preventDefault: true,
+    enabled: !!switchPrimaryAgentKey,
   });
   useHotkey(renameSessionKey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
     preventDefault: true,

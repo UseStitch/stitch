@@ -13,6 +13,20 @@ const BASE_SYSTEM_PROMPT = readFileSync(
   'utf8',
 ).trim();
 
-export function buildSystemPrompt(modelId: string): string {
-  return `${identity()}\n\n${buildPromptEnvironment(modelId)}\n\n${BASE_SYSTEM_PROMPT}`;
+export function buildSystemPrompt(input: {
+  modelId: string;
+  useBasePrompt: boolean;
+  systemPrompt: string | null;
+}): string {
+  const userPrompt = input.systemPrompt?.trim() ?? '';
+
+  let promptBody = userPrompt;
+  if (input.useBasePrompt) {
+    promptBody = BASE_SYSTEM_PROMPT;
+    if (userPrompt.length > 0) {
+      promptBody = `${promptBody}\n\n${userPrompt}`;
+    }
+  }
+
+  return `${identity()}\n\n${buildPromptEnvironment(input.modelId)}\n\n${promptBody}`;
 }

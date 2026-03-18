@@ -239,7 +239,10 @@ export async function sendMessage(input: SendMessageInput): Promise<ServiceResul
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildCompactedHistory(input.sessionId);
+  const llmMessages = await buildCompactedHistory(input.sessionId, {
+    useBasePrompt: agent.useBasePrompt,
+    systemPrompt: agent.systemPrompt,
+  });
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 

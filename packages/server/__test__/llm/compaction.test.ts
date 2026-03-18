@@ -254,6 +254,50 @@ describe('buildHistoryMessages', () => {
     expect(result[0]?.content).toContain('You are Agentloops a local machine assistant.');
   });
 
+  test('uses custom system prompt when base prompt is disabled', () => {
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
+      {
+        useBasePrompt: false,
+        systemPrompt: 'Custom system prompt for testing',
+      },
+    );
+
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(typeof result[0]?.content).toBe('string');
+    expect(result[0]?.content).toContain('<env>');
+    expect(result[0]?.content).toContain('Custom system prompt for testing');
+  });
+
+  test('appends custom system prompt when base prompt is enabled', () => {
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
+      {
+        useBasePrompt: true,
+        systemPrompt: 'Extra user instruction',
+      },
+    );
+
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(typeof result[0]?.content).toBe('string');
+    expect(result[0]?.content).toContain('<env>');
+    expect(result[0]?.content).toContain('Extra user instruction');
+  });
+
   test('throws when called with empty history', () => {
     expect(() => buildHistoryMessages([])).toThrow(
       'buildHistoryMessages requires at least one message',

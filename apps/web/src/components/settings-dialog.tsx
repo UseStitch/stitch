@@ -1,4 +1,5 @@
 import {
+  BotIcon,
   MonitorIcon,
   KeyboardIcon,
   ServerIcon,
@@ -9,6 +10,7 @@ import {
 import * as React from 'react';
 
 import { AdvancedSettings } from '@/components/settings/advanced';
+import { AgentsSettings } from '@/components/settings/agents';
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { GeneralSettings } from '@/components/settings/general';
 import { ModelsSettings } from '@/components/settings/models';
@@ -45,6 +47,7 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
       { id: 'models', label: 'Models', icon: <SparklesIcon className="size-4" /> },
+      { id: 'agents', label: 'Agents', icon: <BotIcon className="size-4" /> },
     ],
   },
 ];
@@ -112,6 +115,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <ProvidersSettings />;
     case 'models':
       return <ModelsSettings />;
+    case 'agents':
+      return <AgentsSettings />;
     default:
       return null;
   }

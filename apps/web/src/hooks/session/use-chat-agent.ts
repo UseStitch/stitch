@@ -17,8 +17,6 @@ export function useChatAgent(): UseChatAgentResult {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
 
-  const [agentOverride, setAgentOverride] = React.useState<PrefixedString<'agt'> | null>(null);
-
   const firstPrimaryAgentId = React.useMemo(() => {
     return agents.find((a) => a.type === 'primary')?.id ?? null;
   }, [agents]);
@@ -31,16 +29,13 @@ export function useChatAgent(): UseChatAgentResult {
     return agent.id;
   }, [agents, settings]);
 
-  const selectedAgent = (agentOverride ??
-    savedPrimaryAgentId ??
-    firstPrimaryAgentId) as PrefixedString<'agt'> | null;
+  const selectedAgent = (savedPrimaryAgentId ?? firstPrimaryAgentId) as PrefixedString<'agt'> | null;
 
   const saveDefaultAgent = useMutation(
     saveSettingMutationOptions('agent.default', queryClient, { silent: true }),
   );
 
   const handleAgentChange = (agentId: PrefixedString<'agt'> | null) => {
-    setAgentOverride(agentId);
     if (agentId) saveDefaultAgent.mutate(agentId);
   };
 

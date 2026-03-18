@@ -39,6 +39,7 @@ function seedDb(db: Db): boolean {
           id,
           name: 'My Assistant',
           type: 'primary',
+          isDeletable: false,
         })
         .run();
 

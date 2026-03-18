@@ -58,6 +58,8 @@ export const agents = sqliteTable(
     name: text('name').notNull(),
     type: text('type').$type<AgentType>().notNull().default('primary'),
     isDeletable: integer('is_deletable', { mode: 'boolean' }).notNull().default(true),
+    systemPrompt: text('system_prompt'),
+    useBasePrompt: integer('use_base_prompt', { mode: 'boolean' }).notNull().default(true),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
       .$defaultFn(() => Date.now()),
@@ -65,7 +67,9 @@ export const agents = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [check('agents_type_check', sql`${table.type} in ('primary', 'sub')`)],
+  (table) => [
+    check('agents_type_check', sql`${table.type} in ('primary', 'sub')`),
+  ],
 );
 
 export const sessions = sqliteTable('sessions', {

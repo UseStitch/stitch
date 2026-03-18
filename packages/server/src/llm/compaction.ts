@@ -5,7 +5,7 @@ import type { Message, PrefixedString, StoredPart } from '@openwork/shared';
 import { createMessageId, createPartId } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
-import { messages, sessions } from '@/db/schema.js';
+import { agents, messages, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';
@@ -152,6 +152,7 @@ When constructing the summary, try to stick to this template:
  */
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
+  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
 ): ModelMessage[] {
   if (msgs.length === 0) {
     throw new Error('buildHistoryMessages requires at least one message');
@@ -266,7 +267,14 @@ export function buildHistoryMessages(
 
   if (llmMessages[0]?.role !== 'system') {
     const latestModelId = msgs[msgs.length - 1].modelId;
-    llmMessages.unshift({ role: 'system', content: buildSystemPrompt(latestModelId) });
+    llmMessages.unshift({
+      role: 'system',
+      content: buildSystemPrompt({
+        modelId: latestModelId,
+        useBasePrompt: promptConfig?.useBasePrompt ?? true,
+        systemPrompt: promptConfig?.systemPrompt ?? null,
+      }),
+    });
   }
 
   return llmMessages;
@@ -346,6 +354,14 @@ export async function compact(input: {
     } as StoredPart;
 
     const db = getDb();
+    const [agent] = await db
+      .select({
+        useBasePrompt: agents.useBasePrompt,
+        systemPrompt: agents.systemPrompt,
+      })
+      .from(agents)
+      .where(eq(agents.id, input.agentId));
+
     await db.insert(messages).values({
       id: compactionMarkerId,
       sessionId,
@@ -389,7 +405,10 @@ export async function compact(input: {
     }
     const relevantMsgs = historyMsgs.slice(startIndex);
 
-    const historyMessages = buildHistoryMessages(relevantMsgs);
+    const historyMessages = buildHistoryMessages(relevantMsgs, {
+      useBasePrompt: agent?.useBasePrompt ?? true,
+      systemPrompt: agent?.systemPrompt ?? null,
+    });
 
     // Append the compaction prompt
     const llmMessages: ModelMessage[] = [
@@ -490,6 +509,7 @@ export async function compact(input: {
  */
 export async function buildCompactedHistory(
   sessionId: PrefixedString<'ses'>,
+  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
 ): Promise<ModelMessage[]> {
   const db = getDb();
   const msgs = await db
@@ -507,7 +527,7 @@ export async function buildCompactedHistory(
     }
   }
 
-  return buildHistoryMessages(msgs.slice(startIndex));
+  return buildHistoryMessages(msgs.slice(startIndex), promptConfig);
 }
 
 /**

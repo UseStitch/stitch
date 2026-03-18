@@ -1,9 +1,12 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import type { ShortcutActionId } from '@openwork/shared';
+import type { PrefixedString, ShortcutActionId } from '@openwork/shared';
 
 import { useDialogContext } from '@/context/dialog-context';
 import { serverFetch } from '@/lib/api';
+import { agentsQueryOptions } from '@/lib/queries/agents';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { useStreamStore } from '@/stores/stream-store';
 
 export interface Action {
@@ -13,9 +16,15 @@ export interface Action {
 }
 
 export function useActions(): Action[] {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const sessionId = params.id as string | undefined;
+  const agentsQuery = useQuery(agentsQueryOptions);
+  const settingsQuery = useQuery(settingsQueryOptions);
+  const saveDefaultAgent = useMutation(
+    saveSettingMutationOptions('agent.default', queryClient, { silent: true }),
+  );
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
@@ -26,6 +35,24 @@ export function useActions(): Action[] {
   } = useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
 
+  const primaryAgents = (agentsQuery.data ?? []).filter((agent) => agent.type === 'primary');
+  const currentAgentId = settingsQuery.data?.['agent.default'] as PrefixedString<'agt'> | undefined;
+
+  const switchPrimaryAgent = () => {
+    if (primaryAgents.length < 2) {
+      return;
+    }
+
+    const currentIndex = primaryAgents.findIndex((agent) => agent.id === currentAgentId);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % primaryAgents.length;
+    const nextAgent = primaryAgents[nextIndex];
+    if (!nextAgent) {
+      return;
+    }
+
+    saveDefaultAgent.mutate(nextAgent.id);
+  };
+
   const actions: Action[] = [
     {
       id: 'command-palette',
@@ -34,6 +61,11 @@ export function useActions(): Action[] {
     },
     { id: 'open-settings', label: 'Open settings', run: () => setSettingsOpen(!settingsOpen) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
+    {
+      id: 'switch-primary-agent',
+      label: 'Switch primary agent',
+      run: switchPrimaryAgent,
+    },
     {
       id: 'rename-session',
       label: 'Rename session',

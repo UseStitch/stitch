@@ -20,6 +20,12 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { id: 'toggle-sidebar', label: 'Toggle sidebar', category: 'General', defaultHotkey: 'Mod+B' },
   { id: 'new-session', label: 'New session', category: 'General', defaultHotkey: 'Mod+N' },
   {
+    id: 'switch-primary-agent',
+    label: 'Switch primary agent',
+    category: 'General',
+    defaultHotkey: 'Mod+T',
+  },
+  {
     id: 'rename-session',
     label: 'Rename session',
     category: 'General',
