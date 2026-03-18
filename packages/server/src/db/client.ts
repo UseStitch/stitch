@@ -18,6 +18,52 @@ const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
 
+function hasPrimaryAgents(db: Db): boolean {
+  const primaryAgents = db
+    .select({ id: schema.agents.id })
+    .from(schema.agents)
+    .where(eq(schema.agents.type, 'primary'))
+    .all();
+
+  return primaryAgents.length > 0;
+}
+
+function seedDb(db: Db): boolean {
+  try {
+    db.transaction((tx) => {
+      const id = createAgentId();
+
+      tx
+        .insert(schema.agents)
+        .values({
+          id,
+          name: 'My Assistant',
+          type: 'primary',
+        })
+        .run();
+
+      tx
+        .insert(schema.agentPermissions)
+        .values({
+          id: createAgentPermissionId(),
+          agentId: id,
+          toolName: 'question',
+          permission: 'allow',
+          pattern: null,
+        })
+        .run();
+
+      return true;
+    });
+
+    log.info('seeded initial database records');
+    return true;
+  } catch (error) {
+    log.error({ error }, 'failed to seed initial database records');
+    return false;
+  }
+}
+
 export function getDb(): Db {
   if (!_db) throw new Error('Database not initialized - call initDb() first');
   return _db;
@@ -45,33 +91,12 @@ export async function initDb(): Promise<void> {
   _db = drizzle({ client: sqlite, schema }) as Db;
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
 
-  const primaryAgents = _db
-    .select({ id: schema.agents.id })
-    .from(schema.agents)
-    .where(eq(schema.agents.type, 'primary'))
-    .all();
+  if (!hasPrimaryAgents(_db)) {
+    const seeded = seedDb(_db);
 
-  if (primaryAgents.length === 0) {
-    const id = createAgentId();
-    _db
-      .insert(schema.agents)
-      .values({
-        id,
-        name: 'My Assistant',
-        type: 'primary',
-      })
-      .run();
-
-    _db
-      .insert(schema.agentPermissions)
-      .values({
-        id: createAgentPermissionId(),
-        agentId: id,
-        toolName: 'question',
-        permission: 'allow',
-        pattern: null,
-      })
-      .run();
+    if (!seeded) {
+      throw new Error('Database seeding failed');
+    }
   }
 
   log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
