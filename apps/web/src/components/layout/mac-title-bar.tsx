@@ -8,7 +8,7 @@ const MAC_TRAFFIC_LIGHTS_SPACE_PX = 76;
 
 export function MacTitleBar() {
   const { open, toggleSidebar } = useSidebar();
-  const { setSettingsOpen } = useDialogContext();
+  const { setSettingsTab } = useDialogContext();
 
   return (
     <div
@@ -37,7 +37,7 @@ export function MacTitleBar() {
       >
         <ServerStatus />
         <button
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => setSettingsTab('general')}
           className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
           aria-label="Open settings"
         >

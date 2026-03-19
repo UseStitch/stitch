@@ -29,8 +29,8 @@ export function useActions(): Action[] {
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
-    settingsOpen,
-    setSettingsOpen,
+    settingsTab,
+    setSettingsTab,
     renameSessionOpen,
     setRenameSessionOpen,
   } = useDialogContext();
@@ -60,7 +60,7 @@ export function useActions(): Action[] {
       label: 'Command palette',
       run: () => setCommandPaletteOpen(!commandPaletteOpen),
     },
-    { id: 'open-settings', label: 'Open settings', run: () => setSettingsOpen(!settingsOpen) },
+    { id: 'open-settings', label: 'Open settings', run: () => setSettingsTab(settingsTab ? undefined : 'general') },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
     {
       id: 'switch-primary-agent',

@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDialogContext } from '@/context/dialog-context';
 import { cn } from '@/lib/utils';
+import type { SettingsTab } from '@/routes/__root';
 
 interface SettingsSection {
   label: string;
@@ -27,7 +28,7 @@ interface SettingsSection {
 }
 
 interface SettingsNavItem {
-  id: string;
+  id: SettingsTab;
   label: string;
   icon: React.ReactNode;
 }
@@ -58,11 +59,10 @@ const SECTIONS: SettingsSection[] = [
 ];
 
 export function SettingsDialog() {
-  const { settingsOpen, setSettingsOpen } = useDialogContext();
-  const [activeItem, setActiveItem] = React.useState('general');
+  const { settingsTab, setSettingsTab } = useDialogContext();
 
   return (
-    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+    <Dialog open={!!settingsTab} onOpenChange={(open) => setSettingsTab(open ? 'general' : undefined)}>
       <DialogHeader className="sr-only">
         <DialogTitle>Settings</DialogTitle>
       </DialogHeader>
@@ -80,10 +80,10 @@ export function SettingsDialog() {
                 {section.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => setActiveItem(item.id)}
+                    onClick={() => setSettingsTab(item.id)}
                     className={cn(
                       'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-left transition-colors',
-                      activeItem === item.id
+                      settingsTab === item.id
                         ? 'bg-accent text-accent-foreground font-medium shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
                     )}
@@ -97,7 +97,7 @@ export function SettingsDialog() {
           </aside>
           <ScrollArea className="flex-1 min-w-0 overflow-hidden">
             <main className="p-8">
-              <SettingsContent activeItem={activeItem} />
+              <SettingsContent activeItem={settingsTab || 'general'} />
             </main>
           </ScrollArea>
         </div>

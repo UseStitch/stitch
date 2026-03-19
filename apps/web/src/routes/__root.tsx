@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
+import { z } from 'zod';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { CommandPalette } from '@/components/command-palette';
@@ -23,8 +24,26 @@ interface RouterContext {
   queryClient: QueryClient;
 }
 
+const settingsSearchSchema = z.object({
+  settings: z
+    .enum([
+      'general',
+      'appearance',
+      'shortcuts',
+      'key-locations',
+      'providers',
+      'models',
+      'agents',
+    ])
+    .optional(),
+});
+
+export type SettingsTab = z.infer<typeof settingsSearchSchema>['settings'];
+
+
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
+  validateSearch: settingsSearchSchema,
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(shortcutsQueryOptions),

@@ -8,7 +8,7 @@ import { useDialogContext } from '@/context/dialog-context';
 export function WindowsTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const { open, toggleSidebar } = useSidebar();
-  const { setSettingsOpen } = useDialogContext();
+  const { setSettingsTab } = useDialogContext();
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -60,7 +60,7 @@ export function WindowsTitleBar() {
       >
         <ServerStatus />
         <button
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => setSettingsTab('general')}
           className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
           aria-label="Open settings"
         >
