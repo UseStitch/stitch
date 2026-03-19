@@ -125,10 +125,10 @@ function ModelsListContent() {
 
       {filtered.map((provider) => (
         <div key={provider.providerId}>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
             {provider.providerName}
           </p>
-          <div className="rounded-lg border border-border/60 overflow-hidden px-3">
+          <div>
             {provider.models.map((model) => (
               <ModelRow
                 key={model.id}

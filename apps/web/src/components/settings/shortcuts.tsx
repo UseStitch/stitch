@@ -212,14 +212,25 @@ function ShortcutsContent() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-        <Input
-          className="pl-8"
-          placeholder="Search shortcuts"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Search shortcuts"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 text-muted-foreground"
+          onClick={() => resetAll.mutate()}
+          disabled={resetAll.isPending}
+        >
+          Reset to defaults
+        </Button>
       </div>
 
       {groups.size === 0 && (
@@ -228,7 +239,7 @@ function ShortcutsContent() {
 
       {Array.from(groups.entries()).map(([category, entries]) => (
         <div key={category}>
-          <h3 className="text-sm font-medium text-muted-foreground mb-1">{category}</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{category}</h3>
           <div>
             {entries.map((entry) => (
               <ShortcutRow
@@ -249,16 +260,6 @@ function ShortcutsContent() {
           Press Escape to cancel · Backspace to unassign
         </p>
       )}
-
-      <Button
-        variant="ghost"
-        size="sm"
-        className="self-end text-muted-foreground"
-        onClick={() => resetAll.mutate()}
-        disabled={resetAll.isPending}
-      >
-        Reset to defaults
-      </Button>
     </div>
   );
 }

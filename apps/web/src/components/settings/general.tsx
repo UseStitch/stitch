@@ -138,16 +138,23 @@ function ModelsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {MODEL_PREFERENCES.map((pref) => (
-        <div key={pref.key} className="flex flex-col gap-1.5">
-          <Label>{pref.label}</Label>
-          <p className="text-muted-foreground text-xs mb-1">{pref.description}</p>
-          <ModelSelect
-            settingKey={pref.key}
-            currentValue={settings[pref.key]}
-            providerModels={providerModels}
-          />
+    <div className="flex flex-col">
+      {MODEL_PREFERENCES.map((pref, index) => (
+        <div
+          key={pref.key}
+          className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
+        >
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <Label className="text-sm font-medium">{pref.label}</Label>
+            <p className="text-muted-foreground text-xs">{pref.description}</p>
+          </div>
+          <div className="w-52 shrink-0">
+            <ModelSelect
+              settingKey={pref.key}
+              currentValue={settings[pref.key]}
+              providerModels={providerModels}
+            />
+          </div>
         </div>
       ))}
     </div>

@@ -54,26 +54,26 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
 
   return (
     <div
-      className={`group flex items-center justify-between py-3 px-4 sm:px-5 transition-colors hover:bg-muted/30 w-full min-w-0 overflow-hidden ${
+      className={`group flex items-center justify-between py-3 transition-colors w-full min-w-0 overflow-hidden ${
         !isLast ? 'border-b border-border/50' : ''
       }`}
     >
-      <div className="flex flex-col gap-1 flex-1 min-w-0 pr-4">
-        <span className="text-sm font-medium text-foreground truncate">{item.label}</span>
-        <span className="text-[13px] font-mono text-muted-foreground truncate" title={item.path}>
+      <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-4">
+        <span className="text-sm font-medium text-foreground">{item.label}</span>
+        <span className="text-xs font-mono text-muted-foreground truncate" title={item.path}>
           {item.path}
         </span>
       </div>
       <button
         onClick={handleCopy}
-        className="flex shrink-0 items-center justify-center p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex shrink-0 items-center justify-center p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Copy path"
         title="Copy path"
       >
         {copied ? (
-          <Check className="w-4 h-4 text-emerald-500 transition-transform scale-100" />
+          <Check className="w-4 h-4 text-emerald-500" />
         ) : (
-          <Copy className="w-4 h-4 transition-transform scale-100 active:scale-95" />
+          <Copy className="w-4 h-4" />
         )}
       </button>
     </div>
@@ -103,22 +103,20 @@ function KeyLocationsContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 border border-border rounded-lg bg-card/50 shadow-sm">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
-          <span className="text-sm font-medium">Loading paths...</span>
-        </div>
+      <div className="flex items-center gap-2 py-4 text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-sm">Loading paths...</span>
       </div>
     );
   }
 
   if (error || !data?.paths) {
     return (
-      <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive text-sm rounded-lg border border-destructive/20 shadow-sm">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-        <div className="flex flex-col gap-1">
+      <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive text-sm rounded-lg border border-destructive/20">
+        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="flex flex-col gap-0.5">
           <span className="font-semibold">Connection Error</span>
-          <span className="opacity-90">{error || 'Unable to load paths.'}</span>
+          <span className="opacity-90 text-xs">{error || 'Unable to load paths.'}</span>
         </div>
       </div>
     );
@@ -127,7 +125,7 @@ function KeyLocationsContent() {
   const pathItems = formatPaths(data.paths);
 
   return (
-    <div className="flex flex-col w-full min-w-0 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="flex flex-col w-full min-w-0">
       {pathItems.map((item, index) => (
         <PathRow key={item.label} item={item} isLast={index === pathItems.length - 1} />
       ))}
