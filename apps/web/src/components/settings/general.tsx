@@ -15,7 +15,7 @@ import {
   ComboboxSeparator,
 } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
-import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -127,7 +127,7 @@ function ModelSelect({
 
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
 
   if (providerModels.length === 0) {
     return (

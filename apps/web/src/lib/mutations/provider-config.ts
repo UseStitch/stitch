@@ -26,6 +26,7 @@ async function invalidateProviderQueries(queryClient: QueryClient): Promise<void
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: providerKeys.list() }),
     queryClient.invalidateQueries({ queryKey: providerKeys.enabledModels() }),
+    queryClient.invalidateQueries({ queryKey: providerKeys.visibleModels() }),
   ]);
 }
 

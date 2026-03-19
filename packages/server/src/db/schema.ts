@@ -150,6 +150,21 @@ export const permissionResponses = sqliteTable('permission_responses', {
   resolvedAt: integer('resolved_at', { mode: 'number' }),
 });
 
+export const modelVisibility = sqliteTable(
+  'model_visibility',
+  {
+    providerId: text('provider_id').notNull(),
+    modelId: text('model_id').notNull(),
+    visibility: text('visibility').$type<'show' | 'hide'>().notNull(),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('model_visibility_provider_model_idx').on(table.providerId, table.modelId),
+  ],
+);
+
 export const agentPermissions = sqliteTable(
   'agent_permissions',
   {

@@ -1,5 +1,10 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import {
+  buildDefaultVisibleSet,
+  isModelVisible,
+} from '@stitch/shared/providers/model-visibility';
+
 import { serverFetch } from '@/lib/api';
 
 export type ProviderSummary = {
@@ -37,6 +42,7 @@ export const providerKeys = {
   list: () => [...providerKeys.all, 'list'] as const,
   config: (providerId: string) => [...providerKeys.all, 'config', providerId] as const,
   enabledModels: () => [...providerKeys.all, 'enabled-models'] as const,
+  visibleModels: () => [...providerKeys.all, 'visible-models'] as const,
 };
 
 export const providersQueryOptions = queryOptions({
@@ -69,6 +75,58 @@ export const enabledProviderModelsQueryOptions = queryOptions({
       }),
     );
     return results.filter((r) => r.models.length > 0);
+  },
+});
+
+export const visibleProviderModelsQueryOptions = queryOptions({
+  queryKey: providerKeys.visibleModels(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<ProviderModels[]> => {
+    const [providersRes, visibilityRes] = await Promise.all([
+      serverFetch('/provider'),
+      serverFetch('/models/visibility'),
+    ]);
+    if (!providersRes.ok) throw new Error('Failed to fetch providers');
+    if (!visibilityRes.ok) throw new Error('Failed to fetch model visibility');
+
+    const providers = (await providersRes.json()) as ProviderSummary[];
+    const overridesList = (await visibilityRes.json()) as Array<{
+      providerId: string;
+      modelId: string;
+      visibility: 'show' | 'hide';
+    }>;
+
+    const enabled = providers.filter((p) => p.enabled);
+    if (enabled.length === 0) return [];
+
+    const allProviderModels = await Promise.all(
+      enabled.map(async (provider) => {
+        const res = await serverFetch(`/provider/${provider.id}/models`);
+        if (!res.ok) return { providerId: provider.id, providerName: provider.name, models: [] as ModelSummary[] };
+        const models = (await res.json()) as ModelSummary[];
+        return { providerId: provider.id, providerName: provider.name, models };
+      }),
+    );
+
+    const defaultVisibleSet = buildDefaultVisibleSet(
+      allProviderModels.map((p) => ({
+        providerId: p.providerId,
+        models: p.models.map((m) => ({ id: m.id, family: m.family, release_date: m.release_date })),
+      })),
+    );
+
+    const overridesMap = new Map(
+      overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility]),
+    );
+
+    return allProviderModels
+      .map((provider) => ({
+        ...provider,
+        models: provider.models.filter((m) =>
+          isModelVisible(provider.providerId, m.id, overridesMap, defaultVisibleSet),
+        ),
+      }))
+      .filter((p) => p.models.length > 0);
   },
 });
 

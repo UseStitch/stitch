@@ -5,6 +5,7 @@ import {
   PaletteIcon,
   FolderOpenIcon,
   MonitorIcon,
+  CpuIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -12,6 +13,7 @@ import { AgentsSettings } from '@/components/settings/agents';
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { GeneralSettings } from '@/components/settings/general';
 import { KeyLocationsSettings } from '@/components/settings/key-locations';
+import { ModelsSettings } from '@/components/settings/models';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -49,6 +51,7 @@ const SECTIONS: SettingsSection[] = [
     label: 'AI',
     items: [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
+      { id: 'models', label: 'Models', icon: <CpuIcon className="size-4" /> },
       { id: 'agents', label: 'Agents', icon: <BotIcon className="size-4" /> },
     ],
   },
@@ -115,6 +118,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <KeyLocationsSettings />;
     case 'providers':
       return <ProvidersSettings />;
+    case 'models':
+      return <ModelsSettings />;
     case 'agents':
       return <AgentsSettings />;
     default:

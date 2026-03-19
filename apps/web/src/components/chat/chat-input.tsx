@@ -17,7 +17,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
@@ -259,7 +259,7 @@ function ChatInputInner({
   hasDockAbove,
   embedded,
 }: ChatInputInnerProps) {
-  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 

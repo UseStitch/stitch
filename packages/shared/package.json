@@ -12,6 +12,7 @@
     "./id": "./src/id/index.ts",
     "./permissions/types": "./src/permissions/types.ts",
     "./providers/catalog": "./src/providers/catalog.ts",
+    "./providers/model-visibility": "./src/providers/model-visibility.ts",
     "./providers/types": "./src/providers/types.ts",
     "./questions/types": "./src/questions/types.ts",
     "./settings/types": "./src/settings/types.ts",
