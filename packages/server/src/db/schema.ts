@@ -27,6 +27,9 @@ export const userSettings = sqliteTable('user_settings', {
 export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
   actionId: text('action_id').$type<ShortcutActionId>().primaryKey(),
   hotkey: text('hotkey'),
+  isSequence: integer('is_sequence', { mode: 'boolean' }).notNull().default(false),
+  label: text('label').notNull().default(''),
+  category: text('category').notNull().default(''),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

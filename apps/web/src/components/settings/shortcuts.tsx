@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,70 +14,94 @@ import {
   useSaveShortcut,
   useDeleteShortcut,
   useResetAllShortcuts,
+  type ShortcutEntry,
 } from '@/lib/queries/shortcuts';
-import { SHORTCUT_DEFINITIONS, type ShortcutDefinition } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R'];
 
-function resolveHotkey(
-  def: ShortcutDefinition,
-  overrides: Record<string, string | null>,
-): string | null {
-  return def.id in overrides ? overrides[def.id]! : def.defaultHotkey;
+const defaultsByActionId = new Map<string, (typeof SHORTCUT_DEFAULTS)[number]>(
+  SHORTCUT_DEFAULTS.map((d) => [d.actionId, d]),
+);
+
+function isDefaultHotkey(entry: ShortcutEntry): boolean {
+  const def = defaultsByActionId.get(entry.actionId);
+  return def ? entry.hotkey === def.hotkey : true;
 }
 
-function groupByCategory(defs: ShortcutDefinition[]): Map<string, ShortcutDefinition[]> {
-  const groups = new Map<string, ShortcutDefinition[]>();
-  for (const def of defs) {
-    const existing = groups.get(def.category) ?? [];
-    existing.push(def);
-    groups.set(def.category, existing);
+function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]> {
+  const groups = new Map<string, ShortcutEntry[]>();
+  for (const entry of entries) {
+    const existing = groups.get(entry.category) ?? [];
+    existing.push(entry);
+    groups.set(entry.category, existing);
   }
   return groups;
 }
 
-function HotkeyBadge({ hotkey }: { hotkey: string | null }) {
+function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
     return <span className="text-muted-foreground text-sm">Unassigned</span>;
   }
-  return (
-    <span className="inline-flex gap-1">
-      {formatForDisplay(hotkey)
-        .split('+')
-        .map((key, i) => (
+
+  const displayKeys = formatForDisplay(hotkey).split('+');
+
+  if (isSequence) {
+    return (
+      <span className="inline-flex gap-1">
+        {displayKeys.map((key, i) => (
           <kbd
-            key={i}
+            key={`first-${i}`}
             className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
           >
             {key}
           </kbd>
         ))}
+        {displayKeys.map((key, i) => (
+          <kbd
+            key={`second-${i}`}
+            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
+          >
+            {key}
+          </kbd>
+        ))}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex gap-1">
+      {displayKeys.map((key, i) => (
+        <kbd
+          key={i}
+          className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
+        >
+          {key}
+        </kbd>
+      ))}
     </span>
   );
 }
 
 function ShortcutRow({
-  def,
-  currentHotkey,
+  entry,
   isDefault,
   conflict,
   recordingId,
   onStartRecording,
 }: {
-  def: ShortcutDefinition;
-  currentHotkey: string | null;
+  entry: ShortcutEntry;
   isDefault: boolean;
   conflict: string | null;
   recordingId: string | null;
   onStartRecording: (id: string) => void;
 }) {
-  const isRecording = recordingId === def.id;
+  const isRecording = recordingId === entry.actionId;
 
   return (
     <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
       <div className="flex items-center gap-2">
-        <span className="text-sm">{def.label}</span>
+        <span className="text-sm">{entry.label}</span>
         {!isDefault && (
           <span className="text-xs text-muted-foreground rounded bg-muted px-1.5 py-0.5">
             custom
@@ -83,7 +109,7 @@ function ShortcutRow({
         )}
       </div>
       <button
-        onClick={() => onStartRecording(def.id)}
+        onClick={() => onStartRecording(entry.actionId)}
         className={cn(
           'text-sm rounded px-2 py-1 transition-colors min-w-30 text-right',
           isRecording
@@ -98,7 +124,7 @@ function ShortcutRow({
         ) : conflict ? (
           <span className="text-xs text-destructive">Conflicts with {conflict}</span>
         ) : (
-          <HotkeyBadge hotkey={currentHotkey} />
+          <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} />
         )}
       </button>
     </div>
@@ -106,7 +132,7 @@ function ShortcutRow({
 }
 
 function ShortcutsContent() {
-  const { data: overrides } = useSuspenseQuery(shortcutsQueryOptions);
+  const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
   const saveShortcut = useSaveShortcut();
   const deleteShortcut = useDeleteShortcut();
   const resetAll = useResetAllShortcuts();
@@ -124,15 +150,18 @@ function ShortcutsContent() {
         return;
       }
 
-      // Check for conflicts with other shortcuts
-      const conflictDef = SHORTCUT_DEFINITIONS.find((def) => {
-        if (def.id === recordingId) return false;
-        return resolveHotkey(def, overrides) === hotkey;
+      const recordingEntry = shortcuts.find((e) => e.actionId === recordingId);
+
+      // Check for conflicts — only conflict if both are the same type (sequence vs single)
+      const conflictEntry = shortcuts.find((entry) => {
+        if (entry.actionId === recordingId) return false;
+        if (entry.hotkey !== hotkey) return false;
+        return entry.isSequence === (recordingEntry?.isSequence ?? false);
       });
 
-      if (conflictDef) {
+      if (conflictEntry) {
         toast.error(
-          `${formatForDisplay(hotkey)} is already assigned to "${conflictDef.label}". Please unassign it first.`,
+          `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Please unassign it first.`,
         );
         setRecordingId(null);
         return;
@@ -158,28 +187,28 @@ function ShortcutsContent() {
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase();
     return q
-      ? SHORTCUT_DEFINITIONS.filter((d) => d.label.toLowerCase().includes(q))
-      : SHORTCUT_DEFINITIONS;
-  }, [search]);
+      ? shortcuts.filter((e) => e.label.toLowerCase().includes(q))
+      : shortcuts;
+  }, [search, shortcuts]);
 
   const groups = React.useMemo(() => groupByCategory(filtered), [filtered]);
 
   const conflicts = React.useMemo(() => {
     const map = new Map<string, string>();
-    const hotkeyToDef = new Map<string, ShortcutDefinition>();
-    for (const def of SHORTCUT_DEFINITIONS) {
-      const hotkey = resolveHotkey(def, overrides);
-      if (hotkey) {
-        if (hotkeyToDef.has(hotkey)) {
-          map.set(def.id, hotkeyToDef.get(hotkey)!.label);
-          map.set(hotkeyToDef.get(hotkey)!.id, def.label);
-        } else {
-          hotkeyToDef.set(hotkey, def);
-        }
+    const hotkeyToDef = new Map<string, ShortcutEntry>();
+    for (const entry of shortcuts) {
+      if (!entry.hotkey) continue;
+      // Use hotkey + isSequence as the conflict key so single-press and double-press don't clash
+      const conflictKey = `${entry.hotkey}:${entry.isSequence}`;
+      if (hotkeyToDef.has(conflictKey)) {
+        map.set(entry.actionId, hotkeyToDef.get(conflictKey)!.label);
+        map.set(hotkeyToDef.get(conflictKey)!.actionId, entry.label);
+      } else {
+        hotkeyToDef.set(conflictKey, entry);
       }
     }
     return map;
-  }, [overrides]);
+  }, [shortcuts]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -197,25 +226,20 @@ function ShortcutsContent() {
         <p className="text-muted-foreground text-sm text-center py-4">No shortcuts found</p>
       )}
 
-      {Array.from(groups.entries()).map(([category, defs]) => (
+      {Array.from(groups.entries()).map(([category, entries]) => (
         <div key={category}>
           <h3 className="text-sm font-medium text-muted-foreground mb-1">{category}</h3>
           <div>
-            {defs.map((def) => {
-              const currentHotkey = resolveHotkey(def, overrides);
-              const isDefault = currentHotkey === def.defaultHotkey;
-              return (
-                <ShortcutRow
-                  key={def.id}
-                  def={def}
-                  currentHotkey={currentHotkey}
-                  isDefault={isDefault}
-                  conflict={conflicts.get(def.id) ?? null}
-                  recordingId={recordingId}
-                  onStartRecording={handleStartRecording}
-                />
-              );
-            })}
+            {entries.map((entry) => (
+              <ShortcutRow
+                key={entry.actionId}
+                entry={entry}
+                isDefault={isDefaultHotkey(entry)}
+                conflict={conflicts.get(entry.actionId) ?? null}
+                recordingId={recordingId}
+                onStartRecording={handleStartRecording}
+              />
+            ))}
           </div>
         </div>
       ))}

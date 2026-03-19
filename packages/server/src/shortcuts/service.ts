@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import { SHORTCUT_ACTION_IDS } from '@stitch/shared/shortcuts/types';
+import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
@@ -8,20 +8,30 @@ import { keyboardShortcuts } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
+interface ShortcutRow {
+  actionId: string;
+  hotkey: string | null;
+  isSequence: boolean;
+  label: string;
+  category: string;
+}
+
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);
 
 function isAllowedActionId(actionId: string): boolean {
   return ALLOWED_ACTION_IDS.has(actionId);
 }
 
-export async function listShortcuts(): Promise<Record<string, string | null>> {
+export async function listShortcuts(): Promise<ShortcutRow[]> {
   const db = getDb();
   const rows = await db.select().from(keyboardShortcuts);
-  const result: Record<string, string | null> = {};
-  for (const row of rows) {
-    result[row.actionId] = row.hotkey;
-  }
-  return result;
+  return rows.map((row) => ({
+    actionId: row.actionId,
+    hotkey: row.hotkey,
+    isSequence: row.isSequence,
+    label: row.label,
+    category: row.category,
+  }));
 }
 
 export async function saveShortcut(
@@ -38,19 +48,22 @@ export async function saveShortcut(
   const hotkey = (hotkeyValue as string | null) ?? null;
   const db = getDb();
   await db
-    .insert(keyboardShortcuts)
-    .values({ actionId: actionId as ShortcutActionId, hotkey, updatedAt: Date.now() })
-    .onConflictDoUpdate({
-      target: keyboardShortcuts.actionId,
-      set: { hotkey, updatedAt: Date.now() },
-    });
+    .update(keyboardShortcuts)
+    .set({ hotkey, updatedAt: Date.now() })
+    .where(eq(keyboardShortcuts.actionId, actionId as ShortcutActionId));
 
   return ok(null);
 }
 
-export async function clearShortcuts(): Promise<void> {
+export async function resetShortcuts(): Promise<void> {
   const db = getDb();
-  await db.delete(keyboardShortcuts);
+  const now = Date.now();
+  for (const def of SHORTCUT_DEFAULTS) {
+    await db
+      .update(keyboardShortcuts)
+      .set({ hotkey: def.hotkey, isSequence: def.isSequence, updatedAt: now })
+      .where(eq(keyboardShortcuts.actionId, def.actionId));
+  }
 }
 
 export async function deleteShortcut(actionId: string): Promise<ServiceResult<null>> {
@@ -59,13 +72,10 @@ export async function deleteShortcut(actionId: string): Promise<ServiceResult<nu
   }
 
   const db = getDb();
-  const result = await db
-    .delete(keyboardShortcuts)
-    .where(eq(keyboardShortcuts.actionId, actionId as ShortcutActionId))
-    .returning({ actionId: keyboardShortcuts.actionId });
-  if (result.length === 0) {
-    return err('Shortcut override not found', 404);
-  }
+  await db
+    .update(keyboardShortcuts)
+    .set({ hotkey: null, updatedAt: Date.now() })
+    .where(eq(keyboardShortcuts.actionId, actionId as ShortcutActionId));
 
   return ok(null);
 }

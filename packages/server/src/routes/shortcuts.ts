@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 
 import {
-  clearShortcuts,
   deleteShortcut,
   listShortcuts,
+  resetShortcuts,
   saveShortcut,
 } from '@/shortcuts/service.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -27,7 +27,7 @@ shortcutsRouter.put('/:actionId', async (c) => {
 });
 
 shortcutsRouter.delete('/', async (c) => {
-  await clearShortcuts();
+  await resetShortcuts();
   return c.body(null, 204);
 });
 

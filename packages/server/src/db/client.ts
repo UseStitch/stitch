@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 import { createAgentId, createAgentPermissionId } from '@stitch/shared/id';
+import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -73,6 +74,21 @@ function seedDb(db: Db): boolean {
   }
 }
 
+function seedShortcuts(db: Db): void {
+  for (const def of SHORTCUT_DEFAULTS) {
+    db.insert(schema.keyboardShortcuts)
+      .values({
+        actionId: def.actionId,
+        hotkey: def.hotkey,
+        isSequence: def.isSequence,
+        label: def.label,
+        category: def.category,
+      })
+      .onConflictDoNothing()
+      .run();
+  }
+}
+
 export function getDb(): Db {
   if (!_db) throw new Error('Database not initialized - call initDb() first');
   return _db;
@@ -107,6 +123,8 @@ export async function initDb(): Promise<void> {
       throw new Error('Database seeding failed');
     }
   }
+
+  seedShortcuts(_db);
 
   log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
 }

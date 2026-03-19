@@ -91,7 +91,7 @@ function SidebarProvider({
   }, [isMobile, setOpen, setOpenMobile]);
 
   const shortcuts = useShortcuts();
-  const toggleSidebarKey = shortcuts.get('toggle-sidebar');
+  const toggleSidebarKey = shortcuts.get('toggle-sidebar')?.hotkey;
   useHotkey(toggleSidebarKey ?? 'Mod+B', toggleSidebar, {
     preventDefault: true,
     enabled: !!toggleSidebarKey,

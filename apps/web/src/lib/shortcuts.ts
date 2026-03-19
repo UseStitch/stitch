@@ -3,51 +3,24 @@ import { useMemo } from 'react';
 import type { Hotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
-
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 
-export interface ShortcutDefinition {
-  id: ShortcutActionId;
-  label: string;
-  category: string;
-  defaultHotkey: Hotkey | null;
+interface ShortcutInfo {
+  hotkey: Hotkey | null;
+  isSequence: boolean;
 }
 
-export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
-  { id: 'command-palette', label: 'Command palette', category: 'General', defaultHotkey: 'Mod+P' },
-  { id: 'open-settings', label: 'Open settings', category: 'General', defaultHotkey: 'Mod+,' },
-  { id: 'toggle-sidebar', label: 'Toggle sidebar', category: 'General', defaultHotkey: 'Mod+B' },
-  { id: 'new-session', label: 'New session', category: 'General', defaultHotkey: 'Mod+N' },
-  {
-    id: 'switch-primary-agent',
-    label: 'Switch primary agent',
-    category: 'General',
-    defaultHotkey: 'Mod+T',
-  },
-  {
-    id: 'rename-session',
-    label: 'Rename session',
-    category: 'General',
-    defaultHotkey: 'Mod+Shift+R',
-  },
-  {
-    id: 'stop-stream',
-    label: 'Stop stream (double press)',
-    category: 'Chat',
-    defaultHotkey: 'Escape',
-  },
-];
-
-export function useShortcuts(): Map<string, Hotkey | null> {
-  const { data: overrides } = useSuspenseQuery(shortcutsQueryOptions);
+export function useShortcuts(): Map<string, ShortcutInfo> {
+  const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
 
   return useMemo(() => {
-    const resolved = new Map<string, Hotkey | null>();
-    for (const def of SHORTCUT_DEFINITIONS) {
-      const override = def.id in overrides ? overrides[def.id]! : def.defaultHotkey;
-      resolved.set(def.id, override as Hotkey | null);
+    const resolved = new Map<string, ShortcutInfo>();
+    for (const entry of shortcuts) {
+      resolved.set(entry.actionId, {
+        hotkey: entry.hotkey as Hotkey | null,
+        isSequence: entry.isSequence,
+      });
     }
     return resolved;
-  }, [overrides]);
+  }, [shortcuts]);
 }

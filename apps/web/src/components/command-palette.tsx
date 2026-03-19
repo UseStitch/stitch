@@ -17,17 +17,12 @@ import {
 } from '@/components/ui/dialog';
 import { useDialogContext } from '@/context/dialog-context';
 import { useActions, type Action } from '@/lib/actions';
-import { SHORTCUT_DEFINITIONS } from '@/lib/shortcuts';
-
-function getShortcutDisplay(actionId: string): string | null {
-  const def = SHORTCUT_DEFINITIONS.find((d) => d.id === actionId);
-  if (!def?.defaultHotkey) return null;
-  return formatForDisplay(def.defaultHotkey);
-}
+import { useShortcuts } from '@/lib/shortcuts';
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext();
   const actions = useActions();
+  const shortcuts = useShortcuts();
 
   function handleSelect(action: Action) {
     setCommandPaletteOpen(false);
@@ -50,20 +45,30 @@ export function CommandPalette() {
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Actions">
               {actions.map((action) => {
-                const shortcut = getShortcutDisplay(action.id);
+                const info = shortcuts.get(action.id);
+                const hotkey = info?.hotkey ?? null;
                 return (
                   <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                     <span className="flex-1">{action.label}</span>
-                    {shortcut && (
+                    {hotkey && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
-                        {shortcut.split('+').map((key, i) => (
-                          <kbd
-                            key={i}
-                            className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
-                          >
-                            {key}
-                          </kbd>
-                        ))}
+                        {info?.isSequence
+                          ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')].map((key, i) => (
+                              <kbd
+                                key={i}
+                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                              >
+                                {key}
+                              </kbd>
+                            ))
+                          : formatForDisplay(hotkey).split('+').map((key, i) => (
+                              <kbd
+                                key={i}
+                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                              >
+                                {key}
+                              </kbd>
+                            ))}
                       </span>
                     )}
                   </CommandItem>

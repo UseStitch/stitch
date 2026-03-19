@@ -11,36 +11,36 @@ export function useGlobalHotkeys(actions: Action[]) {
 
   const isSessionPage = !!params.id;
 
-  const commandPaletteKey = shortcuts.get('command-palette');
-  const openSettingsKey = shortcuts.get('open-settings');
-  const newSessionKey = shortcuts.get('new-session');
-  const switchPrimaryAgentKey = shortcuts.get('switch-primary-agent');
-  const renameSessionKey = shortcuts.get('rename-session');
-  const stopStreamKey = shortcuts.get('stop-stream');
+  const commandPalette = shortcuts.get('command-palette');
+  const openSettings = shortcuts.get('open-settings');
+  const newSession = shortcuts.get('new-session');
+  const switchPrimaryAgent = shortcuts.get('switch-primary-agent');
+  const renameSession = shortcuts.get('rename-session');
+  const stopStream = shortcuts.get('stop-stream');
 
-  useHotkey(commandPaletteKey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
+  useHotkey(commandPalette?.hotkey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
     preventDefault: true,
-    enabled: !!commandPaletteKey,
+    enabled: !!commandPalette?.hotkey,
   });
-  useHotkey(openSettingsKey ?? 'Mod+,', () => actionMap.get('open-settings')?.run(), {
+  useHotkey(openSettings?.hotkey ?? 'Mod+,', () => actionMap.get('open-settings')?.run(), {
     preventDefault: true,
-    enabled: !!openSettingsKey,
+    enabled: !!openSettings?.hotkey,
   });
-  useHotkey(newSessionKey ?? 'Mod+N', () => actionMap.get('new-session')?.run(), {
+  useHotkey(newSession?.hotkey ?? 'Mod+N', () => actionMap.get('new-session')?.run(), {
     preventDefault: true,
-    enabled: !!newSessionKey,
+    enabled: !!newSession?.hotkey,
   });
-  useHotkey(switchPrimaryAgentKey ?? 'Mod+T', () => actionMap.get('switch-primary-agent')?.run(), {
+  useHotkey(switchPrimaryAgent?.hotkey ?? 'Mod+T', () => actionMap.get('switch-primary-agent')?.run(), {
     preventDefault: true,
-    enabled: !!switchPrimaryAgentKey,
+    enabled: !!switchPrimaryAgent?.hotkey,
   });
-  useHotkey(renameSessionKey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
+  useHotkey(renameSession?.hotkey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
     preventDefault: true,
-    enabled: !!renameSessionKey && isSessionPage,
+    enabled: !!renameSession?.hotkey && isSessionPage,
   });
   useHotkeySequence(
-    [stopStreamKey ?? 'Escape', stopStreamKey ?? 'Escape'],
+    [stopStream?.hotkey ?? 'Escape', stopStream?.hotkey ?? 'Escape'],
     () => actionMap.get('stop-stream')?.run(),
-    { enabled: !!stopStreamKey && isSessionPage, timeout: 500 },
+    { enabled: !!stopStream?.hotkey && isSessionPage, timeout: 500 },
   );
 }

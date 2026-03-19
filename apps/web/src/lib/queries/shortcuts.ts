@@ -2,7 +2,13 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import { serverFetch } from '@/lib/api';
 
-type ShortcutOverrides = Record<string, string | null>;
+export interface ShortcutEntry {
+  actionId: string;
+  hotkey: string | null;
+  isSequence: boolean;
+  label: string;
+  category: string;
+}
 
 const shortcutKeys = {
   all: ['shortcuts'] as const,
@@ -12,10 +18,10 @@ const shortcutKeys = {
 export const shortcutsQueryOptions = queryOptions({
   queryKey: shortcutKeys.list(),
   staleTime: Infinity,
-  queryFn: async (): Promise<ShortcutOverrides> => {
+  queryFn: async (): Promise<ShortcutEntry[]> => {
     const res = await serverFetch('/shortcuts');
     if (!res.ok) throw new Error('Failed to fetch shortcuts');
-    return res.json() as Promise<ShortcutOverrides>;
+    return res.json() as Promise<ShortcutEntry[]>;
   },
 });
 
