@@ -55,6 +55,18 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DetailRow({ label, value, sublabel }: { label: string; value: string; sublabel?: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[13px] text-muted-foreground">{label}</p>
+      <div className="flex items-baseline gap-1.5">
+        <p className="text-sm font-medium text-foreground">{value}</p>
+        {sublabel && <p className="text-[13px] text-muted-foreground">{sublabel}</p>}
+      </div>
+    </div>
+  );
+}
+
 export function SessionDetailsSheet({
   sessionTitle,
   providerLabel,
@@ -89,21 +101,18 @@ export function SessionDetailsSheet({
             <DetailItem label="Messages" value={formatNumber(messagesCount)} />
             <DetailItem label="Provider" value={providerLabel} />
             <DetailItem label="Model" value={modelLabel} />
-            <DetailItem label="Context Limit" value={contextLimit ? formatNumber(contextLimit) : '-'} />
-            <DetailItem label="Total Tokens" value={formatNumber(totalTokens)} />
-            <DetailItem label="Usage" value={usagePercent} />
-            <DetailItem label="Input Tokens" value={formatNumber(inputTokens)} />
-            <DetailItem label="Output Tokens" value={formatNumber(outputTokens)} />
-            <DetailItem label="Reasoning Tokens" value={formatNumber(reasoningTokens)} />
-            <DetailItem
-              label="Cache Tokens (read/write)"
-              value={`${formatNumber(cacheReadTokens)} / ${formatNumber(cacheWriteTokens)}`}
-            />
-            <DetailItem label="User Messages" value={formatNumber(userMessageCount)} />
-            <DetailItem label="Assistant Messages" value={formatNumber(assistantMessageCount)} />
-            <DetailItem label="Total Cost" value={USD_FORMATTER.format(totalCostUsd)} />
             <DetailItem label="Session Created" value={formatDate(sessionCreatedAt)} />
             <DetailItem label="Last Activity" value={formatDate(lastActivityAt)} />
+            <DetailItem label="User Messages" value={formatNumber(userMessageCount)} />
+            <DetailItem label="Assistant Messages" value={formatNumber(assistantMessageCount)} />
+            <DetailItem label="Context Limit" value={contextLimit ? formatNumber(contextLimit) : '-'} />
+            <DetailItem label="Reasoning Tokens" value={formatNumber(reasoningTokens)} />
+            <DetailItem label="Input Tokens" value={formatNumber(inputTokens)} />
+            <DetailItem label="Output Tokens" value={formatNumber(outputTokens)} />
+            <DetailItem label="Cache Read" value={formatNumber(cacheReadTokens)} />
+            <DetailItem label="Cache Write" value={formatNumber(cacheWriteTokens)} />
+            <DetailRow label="Total Tokens" value={formatNumber(totalTokens)} sublabel={`(${usagePercent})`} />
+            <DetailItem label="Total Cost" value={USD_FORMATTER.format(totalCostUsd)} />
           </div>
         </div>
       </div>
