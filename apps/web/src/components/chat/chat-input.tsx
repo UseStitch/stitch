@@ -16,7 +16,6 @@ import type { Agent } from '@openwork/shared/agents/types';
 import type { PrefixedString } from '@openwork/shared/id';
 
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
@@ -116,7 +115,7 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             </div>
 
             {/* List */}
-            <ScrollArea className="max-h-70 overflow-hidden">
+            <div className="no-scrollbar max-h-70 overflow-y-auto overscroll-contain">
               <div className="p-1">
                 {filtered.length === 0 && (
                   <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
@@ -149,7 +148,7 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </PopoverPrimitive.Popup>
         </PopoverPrimitive.Positioner>
       </PopoverPrimitive.Portal>
@@ -197,7 +196,7 @@ function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelector
               'w-64 max-h-80 flex flex-col origin-(--transform-origin) outline-none duration-100',
             )}
           >
-            <ScrollArea className="max-h-70 overflow-hidden">
+            <div className="no-scrollbar max-h-70 overflow-y-auto overscroll-contain">
               <div className="p-1">
                 {agents.length === 0 && (
                   <p className="text-muted-foreground text-xs text-center py-4">No agents found</p>
@@ -221,7 +220,7 @@ function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelector
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           </PopoverPrimitive.Popup>
         </PopoverPrimitive.Positioner>
       </PopoverPrimitive.Portal>
