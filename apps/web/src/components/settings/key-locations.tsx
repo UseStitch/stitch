@@ -1,4 +1,4 @@
-import { Copy, Check, HardDrive, AlertCircle, Loader2 } from 'lucide-react';
+import { Copy, Check, AlertCircle, Loader2 } from 'lucide-react';
 import * as React from 'react';
 
 import { serverFetch } from '@/lib/api';
@@ -80,7 +80,7 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
   );
 }
 
-function AdvancedContent() {
+function KeyLocationsContent() {
   const [data, setData] = React.useState<HealthResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -106,7 +106,7 @@ function AdvancedContent() {
       <div className="flex items-center justify-center py-12 border border-border rounded-lg bg-card/50 shadow-sm">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
-          <span className="text-sm font-medium">Loading configuration paths...</span>
+          <span className="text-sm font-medium">Loading paths...</span>
         </div>
       </div>
     );
@@ -135,22 +135,16 @@ function AdvancedContent() {
   );
 }
 
-export function AdvancedSettings() {
+export function KeyLocationsSettings() {
   return (
-    <div className="flex flex-col w-full min-w-0 mx-auto">
-      <div className="mb-8 flex items-start gap-4 min-w-0">
-        <div className="p-2.5 bg-accent/50 text-accent-foreground rounded-xl shrink-0 border border-border/50 shadow-sm">
-          <HardDrive className="w-5 h-5" />
-        </div>
-        <div className="flex flex-col gap-1 mt-0.5">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">System Paths</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
-            View the underlying storage directories and configuration files used by the application.
-          </p>
-        </div>
+    <div className="flex flex-col h-full">
+      <div className="mb-6">
+        <h2 className="text-base font-bold">Key Locations</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Storage directories and configuration files used by the application
+        </p>
       </div>
-
-      <AdvancedContent />
+      <KeyLocationsContent />
     </div>
   );
 }

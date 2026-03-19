@@ -1,19 +1,17 @@
 import {
   BotIcon,
-  MonitorIcon,
   KeyboardIcon,
   ServerIcon,
-  SparklesIcon,
   PaletteIcon,
-  SettingsIcon,
+  FolderOpenIcon,
+  MonitorIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
-import { AdvancedSettings } from '@/components/settings/advanced';
 import { AgentsSettings } from '@/components/settings/agents';
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { GeneralSettings } from '@/components/settings/general';
-import { ModelsSettings } from '@/components/settings/models';
+import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,14 +37,18 @@ const SECTIONS: SettingsSection[] = [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
-      { id: 'advanced', label: 'Advanced', icon: <SettingsIcon className="size-4" /> },
     ],
   },
   {
     label: 'Server',
     items: [
+      { id: 'key-locations', label: 'Key Locations', icon: <FolderOpenIcon className="size-4" /> },
+    ],
+  },
+  {
+    label: 'AI',
+    items: [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
-      { id: 'models', label: 'Models', icon: <SparklesIcon className="size-4" /> },
       { id: 'agents', label: 'Agents', icon: <BotIcon className="size-4" /> },
     ],
   },
@@ -109,12 +111,10 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <AppearanceSettings />;
     case 'shortcuts':
       return <ShortcutsSettings />;
-    case 'advanced':
-      return <AdvancedSettings />;
+    case 'key-locations':
+      return <KeyLocationsSettings />;
     case 'providers':
       return <ProvidersSettings />;
-    case 'models':
-      return <ModelsSettings />;
     case 'agents':
       return <AgentsSettings />;
     default:
