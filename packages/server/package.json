@@ -25,7 +25,6 @@
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "hono": "^4.12.7",
-    "pino": "^10.3.1",
     "turndown": "^7.2.2",
     "zod": "catalog:"
   },

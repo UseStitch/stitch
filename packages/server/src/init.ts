@@ -13,7 +13,7 @@ const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 
 export async function init() {
-  await Log.init({ print: process.env.NODE_ENV === 'development' });
+  await Log.init({ print: false });
 
   await initDb();
 
