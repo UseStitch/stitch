@@ -54,6 +54,14 @@ function seedDb(db: Db): boolean {
         })
         .run();
 
+      tx
+        .insert(schema.userSettings)
+        .values({
+          key: 'agent.default',
+          value: id,
+        })
+        .run();
+
       return true;
     });
 

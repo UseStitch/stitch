@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type { Agent } from '@stitch/shared/agents/types';
 
 import { serverFetch } from '@/lib/api';
+import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
 const agentKeys = {
   all: ['agents'] as const,
@@ -91,6 +92,16 @@ export function useDeleteAgent() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agentKeys.all });
+    },
+  });
+}
+
+export function useSetDefaultAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...saveSettingMutationOptions('agent.default', queryClient, { silent: true }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: settingsQueryOptions.queryKey });
     },
   });
 }

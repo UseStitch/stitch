@@ -6,6 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@stitch/shared/agents/types';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -14,8 +15,10 @@ import {
   agentsQueryOptions,
   useCreateAgent,
   useDeleteAgent,
+  useSetDefaultAgent,
   useUpdateAgent,
 } from '@/lib/queries/agents';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type AgentEditorMode =
   | { type: 'create' }
@@ -153,7 +156,11 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
 
 function AgentsList({ onEdit, onCreate }: { onEdit: (agent: Agent) => void; onCreate: () => void }) {
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const deleteAgent = useDeleteAgent();
+  const setDefaultAgent = useSetDefaultAgent();
+
+  const defaultAgentId = settings['agent.default'];
 
   const handleDelete = async (agent: Agent) => {
     try {
@@ -161,6 +168,15 @@ function AgentsList({ onEdit, onCreate }: { onEdit: (agent: Agent) => void; onCr
       toast.success('Agent deleted');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete agent');
+    }
+  };
+
+  const handleSetDefault = async (agent: Agent) => {
+    try {
+      await setDefaultAgent.mutateAsync(agent.id);
+      toast.success(`${agent.name} set as default`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to set default agent');
     }
   };
 
@@ -181,29 +197,45 @@ function AgentsList({ onEdit, onCreate }: { onEdit: (agent: Agent) => void; onCr
           <p className="px-4 py-5 text-sm text-muted-foreground">No agents found.</p>
         )}
 
-        {agents.map((agent) => (
-          <div
-            key={agent.id}
-            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
-          >
-            <p className="text-sm font-medium">{agent.name}</p>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => onEdit(agent)}>
-                Edit
-              </Button>
-              {agent.isDeletable && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => void handleDelete(agent)}
-                  disabled={deleteAgent.isPending}
-                >
-                  Delete
+        {agents.map((agent) => {
+          const isDefault = agent.id === defaultAgentId;
+          return (
+            <div
+              key={agent.id}
+              className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
+            >
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{agent.name}</p>
+                {isDefault && <Badge variant="secondary">Default</Badge>}
+              </div>
+              <div className="flex items-center gap-2">
+                {!isDefault && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleSetDefault(agent)}
+                    disabled={setDefaultAgent.isPending}
+                  >
+                    Make default
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => onEdit(agent)}>
+                  Edit
                 </Button>
-              )}
+                {agent.isDeletable && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => void handleDelete(agent)}
+                    disabled={deleteAgent.isPending}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
