@@ -1,0 +1,181 @@
+import * as React from 'react';
+import { StickToBottom } from 'use-stick-to-bottom';
+
+import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
+import { useParams } from '@tanstack/react-router';
+
+import { createMessageId, type PrefixedString } from '@openwork/shared/id';
+
+import { ChatInput } from '@/components/chat/chat-input';
+import { DockContainer } from '@/components/chat/docks/dock';
+import { MessageList } from '@/components/chat/message-list';
+import { useChatAgent } from '@/hooks/session/use-chat-agent';
+import { useChatModel } from '@/hooks/session/use-chat-model';
+import { useSessionDocks } from '@/hooks/session/use-session-docks';
+import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
+import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
+import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-sync';
+import { useQuestionSync } from '@/hooks/sse/use-question-sync';
+import { useSessionStream } from '@/hooks/sse/use-session-stream';
+import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import {
+  consumeNextSessionInputSeed,
+  getTransitionSeedClearDelayMs,
+} from '@/lib/chat-input-transition-seed';
+import { parseModelId } from '@/lib/model-id';
+import {
+  flattenMessages,
+  sessionMessagesInfiniteQueryOptions,
+  useSendMessage,
+} from '@/lib/queries/chat';
+import { useStreamStore } from '@/stores/stream-store';
+
+const MODEL_SEPARATOR = ':::';
+
+export function SessionChatPane() {
+  const { id } = useParams({ from: '/session/$id' });
+  const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
+  const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
+
+  const lastUsedModel = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (!message) continue;
+      if (message.parts.some((part) => part.type === 'session-title')) continue;
+      if (message.isSummary) continue;
+      if (message.parts.some((part) => part.type === 'compaction')) continue;
+      return `${message.providerId}${MODEL_SEPARATOR}${message.modelId}`;
+    }
+
+    return null;
+  }, [messages]);
+
+  const lastUsedAgentId = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (!message) continue;
+      if (message.parts.some((part) => part.type === 'session-title')) continue;
+      if (message.isSummary) continue;
+      if (message.parts.some((part) => part.type === 'compaction')) continue;
+      return message.agentId;
+    }
+
+    return null;
+  }, [messages]);
+
+  const seedTextRef = React.useRef(consumeNextSessionInputSeed());
+  const [value, setValue] = React.useState(seedTextRef.current);
+  const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
+  const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
+  const sendMessage = useSendMessage();
+  const streamState = useSessionStreamState(id);
+  const startStream = useStreamStore((state) => state.startStream);
+  const abortStream = useStreamStore((state) => state.abortStream);
+  const { isCompacting } = useCompactionUpdates(id);
+  const pendingItems = useSessionPendingItems(id);
+
+  useQuestionSync(id);
+  usePermissionResponseSync(id);
+  useSessionStream({ sessionId: id });
+
+  React.useEffect(() => {
+    const seedText = seedTextRef.current;
+    if (!seedText) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setValue((current) => (current === seedText ? '' : current));
+    }, getTransitionSeedClearDelayMs());
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const docks = useSessionDocks({
+    sessionId: id,
+    retry: streamState.retry,
+    doomLoop: streamState.doomLoop,
+    pendingQuestions: pendingItems.pendingQuestions,
+    pendingPermissionResponses: pendingItems.pendingPermissionResponses,
+    replyQuestion: pendingItems.replyQuestion,
+    rejectQuestion: pendingItems.rejectQuestion,
+    allowPermissionResponse: pendingItems.allowPermissionResponse,
+    rejectPermissionResponse: pendingItems.rejectPermissionResponse,
+    alternativePermissionResponse: pendingItems.alternativePermissionResponse,
+  });
+
+  async function handleSubmit(text: string) {
+    if (!text.trim() || !selectedModel || !selectedAgent) return;
+
+    const parsed = parseModelId(selectedModel);
+    if (!parsed) return;
+
+    setValue('');
+
+    const assistantMessageId = createMessageId();
+    startStream(id, assistantMessageId);
+
+    await sendMessage.mutateAsync({
+      sessionId: id as PrefixedString<'ses'>,
+      content: text,
+      providerId: parsed.providerId,
+      modelId: parsed.modelId,
+      agentId: selectedAgent,
+      assistantMessageId,
+    });
+  }
+
+  const canSubmit = !sendMessage.isPending && !streamState.isStreaming && !isCompacting;
+
+  return (
+    <div className="h-full min-w-0 pr-4 pt-4">
+      <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
+        <StickToBottom.Content scrollClassName="no-scrollbar" className="pb-40 pt-2">
+          <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
+            <MessageList
+              messages={messages}
+              streamState={streamState}
+              hasMore={messagesQuery.hasNextPage}
+              isFetchingMore={messagesQuery.isFetchingNextPage}
+              onLoadMore={() => void messagesQuery.fetchNextPage()}
+              onAbortTool={() => void abortStream(id)}
+            />
+          </div>
+        </StickToBottom.Content>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pb-5 pt-10" />
+        <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
+          <div className="mx-auto max-w-4xl">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+              <DockContainer docks={docks} />
+              <div style={{ viewTransitionName: 'chat-input' }}>
+                <ChatInput
+                  value={value}
+                  onChange={setValue}
+                  onSubmit={(text) => {
+                    void handleSubmit(text);
+                  }}
+                  onStop={() => void abortStream(id)}
+                  isStreaming={streamState.isStreaming}
+                  selectedModel={selectedModel}
+                  onModelChange={handleModelChange}
+                  selectedAgent={selectedAgent}
+                  onAgentChange={handleAgentChange}
+                  placeholder={
+                    isCompacting
+                      ? 'Compacting conversation...'
+                      : canSubmit
+                        ? 'Ask anything...'
+                        : 'Waiting for response...'
+                  }
+                  disabled={!canSubmit}
+                  embedded
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </StickToBottom>
+    </div>
+  );
+}
