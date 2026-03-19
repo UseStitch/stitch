@@ -10,7 +10,7 @@ import {
 } from '@/lib/queries/chat';
 import { enabledProviderModelsQueryOptions, providersQueryOptions } from '@/lib/queries/providers';
 
-type SessionUsageTotals = {
+type SessionContextTokens = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -48,39 +48,62 @@ export function useSessionDetailsStats(): SessionDetailsStats {
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
-  const usageTotals = React.useMemo<SessionUsageTotals>(() => {
-    return messages.reduce<SessionUsageTotals>(
-      (acc, message) => {
-        acc.inputTokens += message.usage?.inputTokens ?? 0;
-        acc.outputTokens += message.usage?.outputTokens ?? 0;
-        acc.totalTokens += message.usage?.totalTokens ?? 0;
-        acc.reasoningTokens += message.usage?.outputTokenDetails?.reasoningTokens ?? 0;
-        acc.cacheReadTokens += message.usage?.inputTokenDetails?.cacheReadTokens ?? 0;
-        acc.cacheWriteTokens += message.usage?.inputTokenDetails?.cacheWriteTokens ?? 0;
-        return acc;
-      },
-      {
+  const latestAssistantWithTokens = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== 'assistant') continue;
+      const usage = msg.usage;
+      const tokenSum =
+        (usage?.inputTokens ?? 0) +
+        (usage?.outputTokens ?? 0) +
+        (usage?.inputTokenDetails?.cacheReadTokens ?? 0) +
+        (usage?.inputTokenDetails?.cacheWriteTokens ?? 0) +
+        (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+      if (tokenSum > 0) return msg;
+    }
+    return null;
+  }, [messages]);
+
+  const contextTokens = React.useMemo<SessionContextTokens>(() => {
+    if (!latestAssistantWithTokens) {
+      return {
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
         reasoningTokens: 0,
         cacheReadTokens: 0,
         cacheWriteTokens: 0,
-      },
-    );
-  }, [messages]);
+      };
+    }
+    const usage = latestAssistantWithTokens.usage;
+    const cacheRead = usage?.inputTokenDetails?.cacheReadTokens ?? 0;
+    const cacheWrite = usage?.inputTokenDetails?.cacheWriteTokens ?? 0;
+    const reasoning = usage?.outputTokenDetails?.reasoningTokens ?? 0;
+    const input = usage?.inputTokens ?? 0;
+    const output = usage?.outputTokens ?? 0;
+    return {
+      inputTokens: input,
+      outputTokens: output,
+      totalTokens: input + output + cacheRead + cacheWrite + reasoning,
+      reasoningTokens: reasoning,
+      cacheReadTokens: cacheRead,
+      cacheWriteTokens: cacheWrite,
+    };
+  }, [latestAssistantWithTokens]);
 
   const contextLimit = React.useMemo(() => {
-    if (!latestMessage || !providerModelsQuery.data) return null;
+    if (!latestAssistantWithTokens || !providerModelsQuery.data) return null;
 
-    const provider = providerModelsQuery.data.find((item) => item.providerId === latestMessage.providerId);
-    const model = provider?.models.find((item) => item.id === latestMessage.modelId);
+    const provider = providerModelsQuery.data.find(
+      (item) => item.providerId === latestAssistantWithTokens.providerId,
+    );
+    const model = provider?.models.find((item) => item.id === latestAssistantWithTokens.modelId);
     return model?.limit?.context ?? null;
-  }, [latestMessage, providerModelsQuery.data]);
+  }, [latestAssistantWithTokens, providerModelsQuery.data]);
 
   const usagePercent =
     contextLimit && contextLimit > 0
-      ? `${Math.min(100, ((usageTotals.inputTokens / contextLimit) * 100)).toFixed(1)}%`
+      ? `${Math.min(100, Math.round((contextTokens.totalTokens / contextLimit) * 100))}%`
       : '-';
 
   const totalCostUsd = React.useMemo(
@@ -118,12 +141,12 @@ export function useSessionDetailsStats(): SessionDetailsStats {
     contextLimit,
     messagesCount: messages.length,
     usagePercent,
-    totalTokens: usageTotals.totalTokens,
-    inputTokens: usageTotals.inputTokens,
-    outputTokens: usageTotals.outputTokens,
-    reasoningTokens: usageTotals.reasoningTokens,
-    cacheReadTokens: usageTotals.cacheReadTokens,
-    cacheWriteTokens: usageTotals.cacheWriteTokens,
+    totalTokens: contextTokens.totalTokens,
+    inputTokens: contextTokens.inputTokens,
+    outputTokens: contextTokens.outputTokens,
+    reasoningTokens: contextTokens.reasoningTokens,
+    cacheReadTokens: contextTokens.cacheReadTokens,
+    cacheWriteTokens: contextTokens.cacheWriteTokens,
     userMessageCount,
     assistantMessageCount,
     totalCostUsd,
