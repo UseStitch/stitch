@@ -1,4 +1,4 @@
-import type { StoredPart } from '@openwork/shared/chat/messages';
+import type { StoredPart } from '@stitch/shared/chat/messages';
 
 export function extractTextFromParts(parts: StoredPart[]): string {
   return parts

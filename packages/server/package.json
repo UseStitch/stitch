@@ -1,5 +1,5 @@
 {
-  "name": "@openwork/server",
+  "name": "@stitch/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
   "scripts": {
     "test": "vitest run",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile dist/openwork-server",
+    "build": "bun build src/index.ts --compile --outfile dist/stitch-server",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,7 +20,7 @@
     "@hono/node-server": "^1.19.11",
     "@hono/zod-validator": "^0.7.6",
     "@openrouter/ai-sdk-provider": "catalog:ai",
-    "@openwork/shared": "workspace:*",
+    "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",

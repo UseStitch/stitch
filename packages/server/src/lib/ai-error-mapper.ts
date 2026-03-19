@@ -1,5 +1,5 @@
 import { APICallError } from 'ai';
-import type { StreamErrorCategory, StreamErrorDetails } from '@openwork/shared/chat/errors';
+import type { StreamErrorCategory, StreamErrorDetails } from '@stitch/shared/chat/errors';
 
 const OVERFLOW_PATTERNS = [
   /prompt is too long/i,

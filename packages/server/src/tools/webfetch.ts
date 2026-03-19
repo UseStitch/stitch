@@ -161,7 +161,7 @@ Usage notes:
           firstResponse.status === 403 && firstResponse.headers.get('cf-mitigated') === 'challenge'
             ? await fetch(normalizedUrl, {
                 signal: timeoutController.signal,
-                headers: { ...headers, 'User-Agent': 'openwork' },
+                headers: { ...headers, 'User-Agent': 'stitch' },
               })
             : firstResponse;
 

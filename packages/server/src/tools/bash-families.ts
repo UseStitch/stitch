@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import type { PermissionSuggestion } from '@openwork/shared/permissions/types';
+import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 type CommandFamily = {
   pattern: string;

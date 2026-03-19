@@ -1,5 +1,5 @@
 {
-  "name": "@openwork/shared",
+  "name": "@stitch/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",

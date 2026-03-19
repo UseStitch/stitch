@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { createAgentId } from '@openwork/shared/id';
+import { createAgentId } from '@stitch/shared/id';
 
 import * as schema from '@/db/schema.js';
 
@@ -22,7 +22,7 @@ describe.skipIf(typeof Bun === 'undefined')('agents schema constraints', () => {
       import('drizzle-orm/bun-sqlite/migrator'),
     ]);
 
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openwork-server-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stitch-server-test-'));
     sqlite = new BunDatabase(path.join(tempDir, 'test.sqlite'), { create: true });
     db = drizzle({ client: sqlite, schema });
     migrate(db, { migrationsFolder: MIGRATIONS_DIR });

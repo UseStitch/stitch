@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { SHORTCUT_ACTION_IDS } from '@openwork/shared/shortcuts/types';
-import type { ShortcutActionId } from '@openwork/shared/shortcuts/types';
+import { SHORTCUT_ACTION_IDS } from '@stitch/shared/shortcuts/types';
+import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
 import { keyboardShortcuts } from '@/db/schema.js';

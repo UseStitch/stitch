@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
-import type { PrefixedString } from '@openwork/shared/id';
-import type { QuestionInfo } from '@openwork/shared/questions/types';
-import { createQuestionId } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
+import type { QuestionInfo } from '@stitch/shared/questions/types';
+import { createQuestionId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { questions, sessions } from '@/db/schema.js';

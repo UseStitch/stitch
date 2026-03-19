@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 
-import type { PrefixedString } from '@openwork/shared/id';
-import { createAgentId } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
+import { createAgentId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agents } from '@/db/schema.js';

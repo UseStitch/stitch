@@ -1,4 +1,4 @@
-import type { PrefixedString } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import * as BashTool from '@/tools/bash.js';
 import * as EditTool from '@/tools/edit.js';

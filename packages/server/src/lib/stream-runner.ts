@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import { createPartId } from '@openwork/shared/id';
-import type { StoredPart } from '@openwork/shared/chat/messages';
-import type { PrefixedString } from '@openwork/shared/id';
+import { createPartId } from '@stitch/shared/id';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';

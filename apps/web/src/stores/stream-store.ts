@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-import type { LanguageModelUsage, LanguageModelV3Source } from '@openwork/shared/chat/messages';
-import type { PartDelta, PartUpdate, ToolCallStatus } from '@openwork/shared/chat/realtime';
-import type { StreamErrorDetails } from '@openwork/shared/chat/errors';
+import type { LanguageModelUsage, LanguageModelV3Source } from '@stitch/shared/chat/messages';
+import type { PartDelta, PartUpdate, ToolCallStatus } from '@stitch/shared/chat/realtime';
+import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 
 import { serverFetch } from '@/lib/api';
 

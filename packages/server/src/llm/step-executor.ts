@@ -1,13 +1,13 @@
 import { streamText, smoothStream } from 'ai';
 
-import type { StoredPart } from '@openwork/shared/chat/messages';
-import type { PrefixedString } from '@openwork/shared/id';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
-import type { ProviderId } from '@openwork/shared/providers/types';
+import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';

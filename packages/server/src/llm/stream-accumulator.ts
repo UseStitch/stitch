@@ -1,6 +1,6 @@
-import type { PartId, StoredPart } from '@openwork/shared/chat/messages';
-import type { PrefixedString } from '@openwork/shared/id';
-import { createPartId } from '@openwork/shared/id';
+import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
+import { createPartId } from '@stitch/shared/id';
 
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { SseEventName, SseEventPayloadMap, SseHandlers, UseSseResult } from '@openwork/shared/chat/realtime';
+import type { SseEventName, SseEventPayloadMap, SseHandlers, UseSseResult } from '@stitch/shared/chat/realtime';
 
 type SseContextValue = {
   isConnected: boolean;

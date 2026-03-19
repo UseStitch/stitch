@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { askQuestion } from '@/question/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';

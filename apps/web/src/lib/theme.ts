@@ -1,4 +1,4 @@
-import type { AppearanceMode } from '@openwork/shared/appearance/types';
+import type { AppearanceMode } from '@stitch/shared/appearance/types';
 
 import defaultTheme from '@/themes/default.json';
 import draculaTheme from '@/themes/dracula.json';
@@ -84,7 +84,7 @@ function buildThemeCss(theme: ThemeDefinition): string {
   return `:root {\n${radiusVar}\n${lightVars}\n}\n\n.dark {\n${darkVars}\n}`;
 }
 
-const THEME_STYLE_ID = 'openwork-theme';
+const THEME_STYLE_ID = 'stitch-theme';
 
 export function injectThemeCss(theme: ThemeDefinition): void {
   let el = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null;

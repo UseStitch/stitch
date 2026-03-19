@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import type { PermissionSuggestion } from '@openwork/shared/permissions/types';
+import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 function resolveAbsoluteFilePath(input: unknown): string | null {
   const filePath = (input as { filePath?: unknown })?.filePath;

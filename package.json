@@ -1,5 +1,5 @@
 {
-  "name": "openwork",
+  "name": "stitch",
   "private": true,
   "workspaces": [
     "apps/*",

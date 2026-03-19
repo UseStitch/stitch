@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { PermissionResponse } from '@openwork/shared/permissions/types';
+import type { PermissionResponse } from '@stitch/shared/permissions/types';
 
 import { serverFetch } from '@/lib/api';
 

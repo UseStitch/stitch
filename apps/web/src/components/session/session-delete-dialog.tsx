@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import type { PrefixedString } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
 import {

@@ -2,8 +2,8 @@ import { ArrowLeftIcon, CheckCircle2Icon, SparklesIcon, PlusIcon } from 'lucide-
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { PROVIDER_META } from '@openwork/shared/providers/catalog';
-import { PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@openwork/shared/providers/types';
+import { PROVIDER_META } from '@stitch/shared/providers/catalog';
+import { PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -397,7 +397,7 @@ export function OnboardingDialog() {
   return (
     <Dialog open onOpenChange={() => {}}>
       <DialogHeader className="sr-only">
-        <DialogTitle>Openwork Onboarding</DialogTitle>
+        <DialogTitle>Stitch Onboarding</DialogTitle>
       </DialogHeader>
       <DialogContent className="max-w-3xl! h-140 p-0 gap-0 overflow-hidden flex flex-col" showCloseButton={false}>
         <div className="flex h-full flex-col p-8">
@@ -407,7 +407,7 @@ export function OnboardingDialog() {
                 <SparklesIcon className="size-6" />
               </div>
               <div className="space-y-2 max-w-lg">
-                <h2 className="text-2xl font-semibold tracking-tight">Welcome to Openwork</h2>
+                <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
                 <p className="text-muted-foreground text-sm">
                   Let&apos;s set up your first provider so you can start chatting in less than a minute.
                 </p>

@@ -71,7 +71,7 @@ function envPaths(name: string, { suffix = 'nodejs' } = {}): EnvPaths {
 }
 
 const isDev = process.env.NODE_ENV === 'development';
-const APP_NAME = isDev ? 'openwork-dev' : 'openwork';
+const APP_NAME = isDev ? 'stitch-dev' : 'stitch';
 const paths = envPaths(APP_NAME, { suffix: '' });
 
 export const PATHS = {

@@ -1,8 +1,8 @@
 import type { Configuration } from 'electron-builder';
 
 const config: Configuration = {
-  appId: 'com.openwork.desktop',
-  productName: 'Openwork',
+  appId: 'com.stitch.desktop',
+  productName: 'Stitch',
   directories: {
     output: 'dist',
     buildResources: 'resources',
@@ -12,7 +12,7 @@ const config: Configuration = {
     {
       from: 'resources/',
       to: '',
-      filter: ['openwork-server*'],
+      filter: ['stitch-server*'],
     },
   ],
   win: {

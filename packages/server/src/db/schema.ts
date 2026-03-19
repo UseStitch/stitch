@@ -1,13 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { AgentType } from '@openwork/shared/agents/types';
-import type { MessageRole, StoredPart } from '@openwork/shared/chat/messages';
-import type { PrefixedString } from '@openwork/shared/id';
-import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@openwork/shared/permissions/types';
-import type { QuestionInfo, QuestionRequestStatus } from '@openwork/shared/questions/types';
-import type { SettingsKey } from '@openwork/shared/settings/types';
-import type { ShortcutActionId } from '@openwork/shared/shortcuts/types';
+import type { AgentType } from '@stitch/shared/agents/types';
+import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
+import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@stitch/shared/permissions/types';
+import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
+import type { SettingsKey } from '@stitch/shared/settings/types';
+import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';

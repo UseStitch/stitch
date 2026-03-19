@@ -1,5 +1,5 @@
-import type { AppearanceMode } from '@openwork/shared/appearance/types';
-import { APPEARANCE_MODES } from '@openwork/shared/appearance/types';
+import type { AppearanceMode } from '@stitch/shared/appearance/types';
+import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
@@ -26,7 +26,7 @@ export function AppearanceSettings() {
     <div className="space-y-8">
       <div>
         <h2 className="text-base font-bold">Appearance</h2>
-        <p className="text-sm text-muted-foreground mt-1">Customize how Openwork looks</p>
+        <p className="text-sm text-muted-foreground mt-1">Customize how Stitch looks</p>
       </div>
 
       <section className="space-y-3">

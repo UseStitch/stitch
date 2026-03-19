@@ -1,4 +1,4 @@
-import type { ProviderId } from '@openwork/shared/providers/types';
+import type { ProviderId } from '@stitch/shared/providers/types';
 import type { ModelMessage, JSONValue } from 'ai';
 
 type ProviderCacheConfig = {

@@ -1,16 +1,16 @@
 import { streamText } from 'ai';
 import { eq, asc } from 'drizzle-orm';
 
-import type { StoredPart } from '@openwork/shared/chat/messages';
-import type { PrefixedString } from '@openwork/shared/id';
-import { createMessageId, createPartId } from '@openwork/shared/id';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
+import { createMessageId, createPartId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, sessions, userSettings } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
-import type { ProviderId } from '@openwork/shared/providers/types';
+import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';

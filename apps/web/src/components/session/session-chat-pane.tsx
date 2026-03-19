@@ -4,7 +4,7 @@ import { StickToBottom } from 'use-stick-to-bottom';
 import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
-import { createMessageId, type PrefixedString } from '@openwork/shared/id';
+import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';

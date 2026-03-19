@@ -1,4 +1,4 @@
-import type { AgentPermissionValue } from '@openwork/shared/permissions/types';
+import type { AgentPermissionValue } from '@stitch/shared/permissions/types';
 
 type PermissionRule = {
   pattern: string | null;

@@ -1,8 +1,8 @@
-# AGENTS.md - Coding Agent Instructions for Openwork
+# AGENTS.md - Coding Agent Instructions for Stitch
 
 ## Project Overview
 
-Openwork is a ai based tool to help users do work locally.
+Stitch is a ai based tool to help users do work locally.
 
 ## Quick Reference
 
@@ -62,7 +62,7 @@ Do not consider a task done until all three commands pass with zero errors.
 ### General
 
 - Prefer low cyclomatic complexity code - keep functions simple with minimal branching
-- Prefer absolute imports over relative (ie. import x from '@openwork/lib/...' instead of import x from '../../lib/...')
+- Prefer absolute imports over relative (ie. import x from '@stitch/lib/...' instead of import x from '../../lib/...')
 
 Naming Conventions
 

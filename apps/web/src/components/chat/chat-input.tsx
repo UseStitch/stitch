@@ -12,8 +12,8 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { Agent } from '@openwork/shared/agents/types';
-import type { PrefixedString } from '@openwork/shared/id';
+import type { Agent } from '@stitch/shared/agents/types';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { agentsQueryOptions } from '@/lib/queries/agents';

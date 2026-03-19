@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { Agent } from '@openwork/shared/agents/types';
+import type { Agent } from '@stitch/shared/agents/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

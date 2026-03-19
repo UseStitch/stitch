@@ -2,7 +2,7 @@
  * Theme generator script.
  *
  * Converts hex color palettes into full OKLCH-based theme JSON files
- * compatible with the Openwork theme system.
+ * compatible with the Stitch theme system.
  *
  * Usage:
  *   bun run scripts/gen-themes.mjs

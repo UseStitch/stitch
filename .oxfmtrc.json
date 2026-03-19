@@ -20,14 +20,14 @@
         "elementNamePattern": ["@tanstack/**"]
       },
       {
-        "groupName": "openwork",
-        "elementNamePattern": ["@openwork/**"]
+        "groupName": "stitch",
+        "elementNamePattern": ["@stitch/**"]
       }
     ],
     "groups": [
       ["value-builtin", "value-external"],
       "tanstack",
-      "openwork",
+      "stitch",
       ["value-parent", "value-sibling", "value-index"],
       "unknown"
     ]

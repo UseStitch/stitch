@@ -3,8 +3,8 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { PROVIDER_META } from '@openwork/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@openwork/shared/providers/types';
+import { PROVIDER_META } from '@stitch/shared/providers/catalog';
+import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';

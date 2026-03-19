@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createToolResultId } from '@openwork/shared/id';
+import { createToolResultId } from '@stitch/shared/id';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';

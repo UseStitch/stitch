@@ -1,4 +1,4 @@
-import type { Message, StoredPart } from '@openwork/shared/chat/messages';
+import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';

@@ -21,7 +21,7 @@ function getSidecarCommand(port: number): { cmd: string; args: string[]; cwd?: s
 
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
-    const binaryPath = join(process.resourcesPath, `openwork-server${suffix}`);
+    const binaryPath = join(process.resourcesPath, `stitch-server${suffix}`);
     return { cmd: binaryPath, args: portArgs };
   }
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { StoredPart } from '@openwork/shared/chat/messages';
+import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { LanguageModelUsage } from 'ai';
 import { StreamAbortedError } from '@/lib/stream-errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';

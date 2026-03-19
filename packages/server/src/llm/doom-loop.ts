@@ -1,5 +1,5 @@
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
-import type { PrefixedString } from '@openwork/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';

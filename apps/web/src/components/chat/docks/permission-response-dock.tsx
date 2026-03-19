@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { PermissionResponse } from '@openwork/shared/permissions/types';
+import type { PermissionResponse } from '@stitch/shared/permissions/types';
 
 import { Button } from '@/components/ui/button';
 

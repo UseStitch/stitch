@@ -1,5 +1,5 @@
-import type { PrefixedString } from '@openwork/shared/id';
-import type { PermissionSuggestion } from '@openwork/shared/permissions/types';
+import type { PrefixedString } from '@stitch/shared/id';
+import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/lib/stream-errors.js';

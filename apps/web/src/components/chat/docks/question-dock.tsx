@@ -1,7 +1,7 @@
 import { CheckIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { QuestionRequest, QuestionInfo } from '@openwork/shared/questions/types';
+import type { QuestionRequest, QuestionInfo } from '@stitch/shared/questions/types';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';

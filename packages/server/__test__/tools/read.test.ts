@@ -12,7 +12,7 @@ afterEach(async () => {
 });
 
 async function createTempDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'openwork-read-tool-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'stitch-read-tool-'));
   tempDirs.push(dir);
   return dir;
 }
