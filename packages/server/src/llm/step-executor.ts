@@ -7,6 +7,9 @@ import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
+import type { ProviderId } from '@openwork/shared/providers/types';
+
+import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import * as Sse from '@/lib/sse.js';
 import {
@@ -63,10 +66,14 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     'step execution started',
   );
 
+  const cachedMessages = addCacheControlToMessages(conversation, opts.providerId as ProviderId, model.modelId);
+  const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
+
   const result = streamText({
     model,
-    messages: conversation,
+    messages: cachedMessages,
     tools,
+    providerOptions,
     experimental_repairToolCall: async (failed) => {
       const toolName = String(failed.toolCall.toolName ?? '');
       const normalizedToolName = toolName.toLowerCase();

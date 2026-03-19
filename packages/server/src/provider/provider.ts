@@ -2,10 +2,11 @@ import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
+import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createVercel } from '@ai-sdk/vercel';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createGateway } from 'ai';
 import { z } from 'zod';
 
 const BedrockCredentialsSchema = z.object({
@@ -115,17 +116,27 @@ export const createProvider = (credentials: ProviderCredentials) => {
 
     case 'google-vertex': {
       const base = { project: credentials.project, location: credentials.location };
-      switch (credentials.auth.method) {
-        case 'api-key':
-          return createVertex({ ...base, apiKey: credentials.auth.apiKey });
-        case 'adc':
-          return createVertex({ ...base });
-        case 'service-account':
-          return createVertex({
-            ...base,
-            googleAuthOptions: credentials.auth.googleAuthOptions,
-          });
-      }
+      const authOptions = (() => {
+        switch (credentials.auth.method) {
+          case 'api-key':
+            return { apiKey: credentials.auth.apiKey } as const;
+          case 'adc':
+            return {} as const;
+          case 'service-account':
+            return { googleAuthOptions: credentials.auth.googleAuthOptions } as const;
+        }
+      })();
+
+      const vertex = createVertex({ ...base, ...authOptions });
+      const anthropic = createVertexAnthropic({ ...base, ...authOptions });
+
+      // Route to the Anthropic SDK for Claude models on Vertex
+      return ((modelId: string) => {
+        if (modelId.includes('claude') || modelId.includes('anthropic')) {
+          return anthropic(modelId);
+        }
+        return vertex(modelId);
+      }) as ReturnType<typeof createVertex>;
     }
 
     case 'openai':
@@ -139,6 +150,6 @@ export const createProvider = (credentials: ProviderCredentials) => {
       return createOpenRouter({ apiKey: credentials.auth.apiKey });
 
     case 'vercel':
-      return createVercel({ apiKey: credentials.auth.apiKey });
+      return createGateway({ apiKey: credentials.auth.apiKey });
   }
 };

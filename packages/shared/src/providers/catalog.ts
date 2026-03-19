@@ -185,7 +185,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   },
   vercel: {
     displayName: 'Vercel',
-    description: 'Vercel AI SDK provider',
+    description: 'Vercel AI Gateway',
     extraFields: [],
     authMethods: [
       {

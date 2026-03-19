@@ -10,6 +10,9 @@ import { agents, messages, sessions, userSettings } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
+import type { ProviderId } from '@openwork/shared/providers/types';
+
+import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import * as Models from '@/provider/models.js';
@@ -332,9 +335,17 @@ export async function compact(input: {
       { role: 'user', content: COMPACTION_PROMPT },
     ];
 
+    const cachedMessages = addCacheControlToMessages(
+      llmMessages,
+      resolved.providerId as ProviderId,
+      resolved.modelId,
+    );
+    const providerOptions = getProviderOptions(resolved.providerId as ProviderId, sessionId);
+
     const result = await streamText({
       model,
-      messages: llmMessages,
+      messages: cachedMessages,
+      providerOptions,
       maxOutputTokens: 4096,
     });
 
