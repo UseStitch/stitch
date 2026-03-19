@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-import { createAgentId, createAgentPermissionId } from '@openwork/shared';
+import { createAgentId, createAgentPermissionId } from '@openwork/shared/id';
 
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';

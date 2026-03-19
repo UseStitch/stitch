@@ -1,7 +1,8 @@
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { PROVIDER_META, PROVIDER_IDS, type ProviderId } from '@openwork/shared';
+import { PROVIDER_META } from '@openwork/shared/providers/catalog';
+import { PROVIDER_IDS, type ProviderId } from '@openwork/shared/providers/types';
 
 import { ProviderConfig } from '@/components/settings/provider-config';
 import { ProviderRow } from '@/components/settings/provider-row';

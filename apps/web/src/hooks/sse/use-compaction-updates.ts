@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
-import type { CompactionStartPayload, CompactionCompletePayload } from '@openwork/shared';
+import type { CompactionStartPayload, CompactionCompletePayload } from '@openwork/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';

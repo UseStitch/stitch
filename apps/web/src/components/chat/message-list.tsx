@@ -2,8 +2,8 @@ import { useMemo, useRef, useCallback, useEffect } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-import type { Message } from '@openwork/shared';
-import { toUserFacingStreamError } from '@openwork/shared';
+import type { Message } from '@openwork/shared/chat/messages';
+import { toUserFacingStreamError } from '@openwork/shared/chat/errors';
 
 import {
   MessageBubble,

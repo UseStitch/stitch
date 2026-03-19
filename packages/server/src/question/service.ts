@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 
-import type { PrefixedString } from '@openwork/shared';
-import type { QuestionInfo, QuestionRequest } from '@openwork/shared';
-import { createQuestionId } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { QuestionInfo, QuestionRequest } from '@openwork/shared/questions/types';
+import { createQuestionId } from '@openwork/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';

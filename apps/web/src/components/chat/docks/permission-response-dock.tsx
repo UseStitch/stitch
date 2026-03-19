@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { PermissionResponse } from '@openwork/shared';
+import type { PermissionResponse } from '@openwork/shared/permissions/types';
 
 import { Button } from '@/components/ui/button';
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import type { StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
 import type { ProviderCredentials } from '@/provider/provider.js';
 

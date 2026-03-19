@@ -1,14 +1,4 @@
-import type {
-  DoomLoopDetectedPayload,
-  StreamErrorPayload,
-  StreamFinishPayload,
-  StreamPartDeltaPayload,
-  StreamPartUpdatePayload,
-  StreamRetryPayload,
-  StreamStartPayload,
-  StreamToolInputDeltaPayload,
-  StreamToolStatePayload,
-} from '@openwork/shared';
+import type { DoomLoopDetectedPayload, StreamErrorPayload, StreamFinishPayload, StreamPartDeltaPayload, StreamPartUpdatePayload, StreamRetryPayload, StreamStartPayload, StreamToolInputDeltaPayload, StreamToolStatePayload } from '@openwork/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';

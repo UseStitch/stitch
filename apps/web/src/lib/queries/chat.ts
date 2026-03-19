@@ -6,15 +6,9 @@ import {
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 
-import type {
-  Message,
-  Session,
-  MessagesPage,
-  LanguageModelUsage,
-  StoredPart,
-  PrefixedString,
-} from '@openwork/shared';
-import { createMessageId, createPartId } from '@openwork/shared';
+import type { Message, Session, MessagesPage, LanguageModelUsage, StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
+import { createMessageId, createPartId } from '@openwork/shared/id';
 
 import { serverFetch } from '@/lib/api';
 

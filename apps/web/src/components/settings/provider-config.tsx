@@ -3,13 +3,8 @@ import * as React from 'react';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  PROVIDER_META,
-  PROVIDER_IDS,
-  type AuthMethodDef,
-  type FieldDef,
-  type ProviderId,
-} from '@openwork/shared';
+import { PROVIDER_META } from '@openwork/shared/providers/catalog';
+import { PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@openwork/shared/providers/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -1,5 +1,5 @@
-import type { AppearanceMode } from '@openwork/shared';
-import { APPEARANCE_MODES } from '@openwork/shared';
+import type { AppearanceMode } from '@openwork/shared/appearance/types';
+import { APPEARANCE_MODES } from '@openwork/shared/appearance/types';
 
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';

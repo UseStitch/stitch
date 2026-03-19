@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
-import type { PrefixedString } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
 
 type SetPermissionRuleInput = {
   permission: 'allow' | 'deny' | 'ask';

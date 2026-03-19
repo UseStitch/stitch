@@ -12,7 +12,8 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { Agent, PrefixedString } from '@openwork/shared';
+import type { Agent } from '@openwork/shared/agents/types';
+import type { PrefixedString } from '@openwork/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';

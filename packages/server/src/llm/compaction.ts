@@ -1,8 +1,9 @@
 import { streamText } from 'ai';
 import { eq, asc } from 'drizzle-orm';
 
-import type { Message, PrefixedString, StoredPart } from '@openwork/shared';
-import { createMessageId, createPartId } from '@openwork/shared';
+import type { Message, StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
+import { createMessageId, createPartId } from '@openwork/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, sessions, userSettings } from '@/db/schema.js';

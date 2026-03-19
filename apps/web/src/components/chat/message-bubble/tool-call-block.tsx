@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
-import type { ToolCallStatus } from '@openwork/shared';
+import type { ToolCallStatus } from '@openwork/shared/chat/realtime';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import type { PrefixedString, ShortcutActionId } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { ShortcutActionId } from '@openwork/shared/shortcuts/types';
 
 import { useDialogContext } from '@/context/dialog-context';
 import { serverFetch } from '@/lib/api';

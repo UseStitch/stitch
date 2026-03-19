@@ -4,8 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import type { Session, MessagesPage, PrefixedString } from '@openwork/shared';
-import { createMessageId } from '@openwork/shared';
+import type { Session, MessagesPage } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
+import { createMessageId } from '@openwork/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';

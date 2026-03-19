@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useParams } from '@tanstack/react-router';
 
-import { PrefixedString } from '@openwork/shared';
+import { PrefixedString } from '@openwork/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';

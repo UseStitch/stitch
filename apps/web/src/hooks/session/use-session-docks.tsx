@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import type { UseMutationResult } from '@tanstack/react-query';
 
-import type { QuestionRequest } from '@openwork/shared';
-import type { PermissionResponse } from '@openwork/shared';
+import type { QuestionRequest } from '@openwork/shared/questions/types';
+import type { PermissionResponse } from '@openwork/shared/permissions/types';
 
 import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';

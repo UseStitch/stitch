@@ -4,7 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    "./agents/types": "./src/agents/types.ts",
+    "./appearance/types": "./src/appearance/types.ts",
+    "./chat/errors": "./src/chat/errors.ts",
+    "./chat/messages": "./src/chat/messages.ts",
+    "./chat/realtime": "./src/chat/realtime.ts",
+    "./id": "./src/id/index.ts",
+    "./permissions/types": "./src/permissions/types.ts",
+    "./providers/catalog": "./src/providers/catalog.ts",
+    "./providers/types": "./src/providers/types.ts",
+    "./questions/types": "./src/questions/types.ts",
+    "./settings/types": "./src/settings/types.ts",
+    "./shortcuts/types": "./src/shortcuts/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

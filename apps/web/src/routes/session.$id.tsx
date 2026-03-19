@@ -5,7 +5,7 @@ import { EllipsisIcon, InfoIcon, PencilLineIcon, Trash2Icon } from 'lucide-react
 import { useSuspenseInfiniteQuery, useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { createMessageId, type PrefixedString } from '@openwork/shared';
+import { createMessageId, type PrefixedString } from '@openwork/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';

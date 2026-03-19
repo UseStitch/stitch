@@ -1,7 +1,7 @@
 import { FileIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { StoredPart } from '@openwork/shared';
+import type { StoredPart } from '@openwork/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';

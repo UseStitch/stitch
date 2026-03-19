@@ -1,4 +1,4 @@
-import type { SseEventName, SseEventPayloadMap } from '@openwork/shared';
+import type { SseEventName, SseEventPayloadMap } from '@openwork/shared/chat/realtime';
 
 import type { SSEStreamingApi } from 'hono/streaming';
 

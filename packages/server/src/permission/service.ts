@@ -1,14 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
-import type { PrefixedString } from '@openwork/shared';
-import type {
-  AgentPermissionValue,
-  PermissionDecisionResult,
-  PermissionResponse,
-  PermissionResponseStatus,
-  PermissionSuggestion,
-} from '@openwork/shared';
-import { createAgentPermissionId, createPermissionResponseId } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { AgentPermissionValue, PermissionDecisionResult, PermissionResponse, PermissionResponseStatus, PermissionSuggestion } from '@openwork/shared/permissions/types';
+import { createAgentPermissionId, createPermissionResponseId } from '@openwork/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agentPermissions, permissionResponses } from '@/db/schema.js';

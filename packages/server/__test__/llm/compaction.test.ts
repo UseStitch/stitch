@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 
-import type { StoredPart } from '@openwork/shared';
+import type { StoredPart } from '@openwork/shared/chat/messages';
 
 import { buildHistoryMessages, isOverflow } from '@/llm/compaction.js';
 import { estimate } from '@/utils/token.js';

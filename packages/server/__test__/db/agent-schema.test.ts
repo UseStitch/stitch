@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { createAgentId } from '@openwork/shared';
+import { createAgentId } from '@openwork/shared/id';
 
 import * as schema from '@/db/schema.js';
 

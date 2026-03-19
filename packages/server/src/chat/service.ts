@@ -1,7 +1,8 @@
 import { and, asc, desc, eq, lt } from 'drizzle-orm';
 
-import { createMessageId, createPartId, createSessionId } from '@openwork/shared';
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import { createMessageId, createPartId, createSessionId } from '@openwork/shared/id';
+import type { StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, providerConfig, sessions } from '@/db/schema.js';

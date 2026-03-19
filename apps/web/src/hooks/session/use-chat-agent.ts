@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import { PrefixedString } from '@openwork/shared';
+import { PrefixedString } from '@openwork/shared/id';
 
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { settingsQueryOptions } from '@/lib/queries/settings';

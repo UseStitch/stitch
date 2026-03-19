@@ -1,4 +1,5 @@
-import type { PermissionSuggestion, PrefixedString } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { PermissionSuggestion } from '@openwork/shared/permissions/types';
 
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/lib/stream-errors.js';

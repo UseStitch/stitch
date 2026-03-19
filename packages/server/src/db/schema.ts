@@ -1,19 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type {
-  AgentPermissionValue,
-  AgentType,
-  MessageRole,
-  PermissionResponseStatus,
-  PermissionSuggestion,
-  PrefixedString,
-  QuestionInfo,
-  QuestionRequestStatus,
-  SettingsKey,
-  ShortcutActionId,
-  StoredPart,
-} from '@openwork/shared';
+import type { AgentType } from '@openwork/shared/agents/types';
+import type { MessageRole, StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@openwork/shared/permissions/types';
+import type { QuestionInfo, QuestionRequestStatus } from '@openwork/shared/questions/types';
+import type { SettingsKey } from '@openwork/shared/settings/types';
+import type { ShortcutActionId } from '@openwork/shared/shortcuts/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';

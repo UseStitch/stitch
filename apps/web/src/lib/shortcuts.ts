@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import type { Hotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { ShortcutActionId } from '@openwork/shared';
+import type { ShortcutActionId } from '@openwork/shared/shortcuts/types';
 
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 

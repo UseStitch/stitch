@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm';
 
-import { SETTINGS_KEYS } from '@openwork/shared';
-import type { PrefixedString, SettingsKey } from '@openwork/shared';
+import { SETTINGS_KEYS } from '@openwork/shared/settings/types';
+import type { PrefixedString } from '@openwork/shared/id';
+import type { SettingsKey } from '@openwork/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { agents, userSettings } from '@/db/schema.js';

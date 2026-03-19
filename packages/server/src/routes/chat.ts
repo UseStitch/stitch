@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import type { PrefixedString } from '@openwork/shared';
+import type { PrefixedString } from '@openwork/shared/id';
 import {
   abortSessionRun,
   createSession,

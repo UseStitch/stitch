@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { QuestionRequest } from '@openwork/shared';
+import type { QuestionRequest } from '@openwork/shared/questions/types';
 
 import { serverFetch } from '@/lib/api';
 

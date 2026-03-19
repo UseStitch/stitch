@@ -5,7 +5,7 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
-import type { PermissionSuggestion } from '@openwork/shared';
+import type { PermissionSuggestion } from '@openwork/shared/permissions/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/bash-families.js';

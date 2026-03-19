@@ -1,6 +1,7 @@
 import { streamText, smoothStream } from 'ai';
 
-import type { PrefixedString, StoredPart } from '@openwork/shared';
+import type { StoredPart } from '@openwork/shared/chat/messages';
+import type { PrefixedString } from '@openwork/shared/id';
 
 import { StreamAccumulator } from './stream-accumulator.js';
 

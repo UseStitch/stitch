@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import { SettingsKey } from '@openwork/shared';
+import { SettingsKey } from '@openwork/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { userSettings, providerConfig } from '@/db/schema.js';
