@@ -3,6 +3,7 @@ import { useMemo, useRef, useCallback, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { Message } from '@openwork/shared';
+import { toUserFacingStreamError } from '@openwork/shared';
 
 import {
   MessageBubble,
@@ -35,7 +36,7 @@ type RowData =
     }
   | { kind: 'compaction'; id: string; summaryParts?: Message['parts'] }
   | { kind: 'streaming' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; title: string; message: string; suggestion?: string };
 
 function buildRows(
   messages: Message[],
@@ -100,7 +101,16 @@ function buildRows(
 
   if (hasStreamContent) {
     if (streamState.error) {
-      rows.push({ kind: 'error', message: streamState.error });
+      const userFacing = toUserFacingStreamError({
+        error: streamState.error.message,
+        details: streamState.error.details,
+      });
+      rows.push({
+        kind: 'error',
+        title: userFacing.title,
+        message: userFacing.message,
+        suggestion: userFacing.suggestion,
+      });
     } else {
       rows.push({ kind: 'streaming' });
     }
@@ -280,7 +290,9 @@ export function MessageList({
         return (
           <div key="error" className="flex justify-start">
             <div className="max-w-[85%] rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-              {row.message}
+              <p className="font-medium">{row.title}</p>
+              <p>{row.message}</p>
+              {row.suggestion ? <p className="mt-1 text-xs text-destructive/80">{row.suggestion}</p> : null}
             </div>
           </div>
         );

@@ -1,6 +1,7 @@
 import type { PartId, PrefixedString, StoredPart } from '@openwork/shared';
 import { createPartId } from '@openwork/shared';
 
+import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import {
@@ -317,7 +318,8 @@ export class StreamAccumulator {
       }
 
       case 'error': {
-        const errorText = String(part.error);
+        const mappedError = mapAIError(part.error);
+        const errorText = mappedError.message;
         const errorName = part.error instanceof Error ? part.error.name : typeof part.error;
         const errorStack = part.error instanceof Error ? part.error.stack : undefined;
         log.error(
@@ -338,6 +340,7 @@ export class StreamAccumulator {
           sessionId: this.sessionId,
           messageId: this.messageId,
           error: errorText,
+          details: toStreamErrorDetails(mappedError),
         });
 
         if (part.error instanceof Error) {

@@ -12,6 +12,7 @@ import type {
   ToolCallStreamPart,
   ToolResultStreamPart,
 } from './messages.js';
+import type { StreamErrorDetails } from './errors.js';
 import type { PrefixedString } from '../id/index.js';
 import type { PermissionResponse } from '../permissions/types.js';
 import type { QuestionRequest } from '../questions/types.js';
@@ -78,6 +79,7 @@ export type StreamErrorPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   error: string;
+  details?: StreamErrorDetails;
 };
 
 export type StreamRetryPayload = {

@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import type { LanguageModelUsage } from 'ai';
 
+import { mapAIError } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { createProvider } from '@/provider/provider.js';
@@ -56,7 +57,15 @@ export async function generateTitle(
       modelId: resolved.modelId,
     };
   } catch (error) {
-    log.error({ error }, 'title generation failed');
+    const mappedError = mapAIError(error, resolved.providerId);
+    log.error(
+      {
+        error: mappedError.message,
+        errorCategory: mappedError.category,
+        aiErrorName: mappedError.aiErrorName,
+      },
+      'title generation failed',
+    );
     return null;
   }
 }

@@ -262,6 +262,8 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
           attempt,
           error: errorInfo.message,
           errorCode: getErrorCode(error),
+          aiErrorName: errorInfo.aiErrorName,
+          errorCategory: errorInfo.category,
           isContextOverflow: errorInfo.isContextOverflow,
           isRetryable: errorInfo.isRetryable,
         },
@@ -287,6 +289,12 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
           sessionId: opts.sessionId,
           messageId: opts.messageId,
           error: errorInfo.message,
+          details: {
+            category: errorInfo.category,
+            isRetryable: errorInfo.isRetryable,
+            aiErrorName: errorInfo.aiErrorName,
+            statusCode: errorInfo.statusCode,
+          },
         });
         throw error;
       }

@@ -38,6 +38,13 @@ export {
   type ToolSet,
 } from './chat/messages.js';
 export {
+  STREAM_ERROR_CATEGORIES,
+  toUserFacingStreamError,
+  type StreamErrorCategory,
+  type StreamErrorDetails,
+  type UserFacingStreamError,
+} from './chat/errors.js';
+export {
   type CompactionCompletePayload,
   type CompactionStartPayload,
   type DataChangePayload,

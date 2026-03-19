@@ -6,6 +6,7 @@ import { createMessageId, createPartId } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, sessions, userSettings } from '@/db/schema.js';
+import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';
@@ -532,10 +533,13 @@ export async function compact(input: {
 
     return 'continue';
   } catch (error) {
+    const mappedError = mapAIError(error, input.providerId);
     log.error(
       {
         sessionId,
-        error: error instanceof Error ? error.message : String(error),
+        error: mappedError.message,
+        errorCategory: mappedError.category,
+        aiErrorName: mappedError.aiErrorName,
       },
       'compaction failed',
     );
@@ -543,7 +547,8 @@ export async function compact(input: {
     await Sse.broadcast('stream-error', {
       sessionId,
       messageId: summaryMessageId,
-      error: `Compaction failed: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Compaction failed: ${mappedError.message}`,
+      details: toStreamErrorDetails(mappedError),
     });
 
     return 'error';

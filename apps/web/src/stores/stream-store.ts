@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { LanguageModelUsage, LanguageModelV3Source } from '@openwork/shared';
 import type { PartDelta, PartUpdate, ToolCallStatus } from '@openwork/shared';
+import type { StreamErrorDetails } from '@openwork/shared';
 
 import { serverFetch } from '@/lib/api';
 
@@ -82,7 +83,7 @@ export type SessionStreamState = {
   partIds: string[];
   parts: Record<string, StreamingPart>;
   isStreaming: boolean;
-  error: string | null;
+  error: { message: string; details?: StreamErrorDetails } | null;
   finishReason: string | null;
   usage: LanguageModelUsage | null;
   retry: RetryInfo | null;
@@ -135,7 +136,12 @@ type StreamStoreActions = {
     finishReason: string,
     usage?: LanguageModelUsage,
   ) => void;
-  errorStream: (sessionId: string, messageId: string, error: string) => void;
+  errorStream: (
+    sessionId: string,
+    messageId: string,
+    error: string,
+    details?: StreamErrorDetails,
+  ) => void;
   retryStream: (sessionId: string, messageId: string, retry: RetryInfo) => void;
   doomLoopDetected: (
     sessionId: string,
@@ -448,7 +454,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       };
     }),
 
-  errorStream: (sessionId, messageId, error) =>
+  errorStream: (sessionId, messageId, error, details) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
@@ -458,7 +464,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
           [sessionId]: {
             ...session!,
             isStreaming: false,
-            error,
+            error: { message: error, details },
             retry: null,
             doomLoop: null,
           },

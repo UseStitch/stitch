@@ -61,8 +61,8 @@ function useStreamSync(): void {
       finishStream(sessionId, messageId, finishReason, usage);
     },
     'stream-error': (data) => {
-      const { sessionId, messageId, error } = data as StreamErrorPayload;
-      errorStream(sessionId, messageId, error);
+      const { sessionId, messageId, error, details } = data as StreamErrorPayload;
+      errorStream(sessionId, messageId, error, details);
     },
     'stream-retry': (data) => {
       const { sessionId, messageId, attempt, maxRetries, delayMs, message } =

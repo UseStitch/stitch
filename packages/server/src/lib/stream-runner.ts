@@ -5,6 +5,7 @@ import type { PrefixedString, StoredPart } from '@openwork/shared';
 
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
+import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import {
@@ -596,6 +597,8 @@ class StreamRunner {
   }
 
   private async handleUnknownError(error: unknown): Promise<void> {
+    const mappedError = mapAIError(error, this.ctx.providerId);
+
     const fallbackSucceeded = this.runFinalSynthesis({
       triggerEvent: 'stream.error_fallback_synthesis.triggered',
       triggerReason: 'error-path',
@@ -621,7 +624,8 @@ class StreamRunner {
     await this.deps.broadcast('stream-error', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
-      error: getErrorMessage(error),
+      error: mappedError.message,
+      details: toStreamErrorDetails(mappedError),
     });
 
     log.error(
