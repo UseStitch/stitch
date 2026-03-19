@@ -1,7 +1,7 @@
 import { streamText } from 'ai';
 import { eq, asc } from 'drizzle-orm';
 
-import type { Message, StoredPart } from '@openwork/shared/chat/messages';
+import type { StoredPart } from '@openwork/shared/chat/messages';
 import type { PrefixedString } from '@openwork/shared/id';
 import { createMessageId, createPartId } from '@openwork/shared/id';
 
@@ -10,7 +10,7 @@ import { agents, messages, sessions, userSettings } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
-import { buildSystemPrompt } from '@/llm/prompt/builder.js';
+import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import * as Models from '@/provider/models.js';
 import { createProvider } from '@/provider/provider.js';
@@ -191,141 +191,6 @@ When constructing the summary, try to stick to this template:
 
 [Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
 ---`;
-
-/**
- * Build LLM-compatible messages from stored messages, stopping at the most
- * recent compaction summary. If a summary exists, it becomes the first
- * message in the returned array.
- */
-export function buildHistoryMessages(
-  msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
-  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
-): ModelMessage[] {
-  if (msgs.length === 0) {
-    throw new Error('buildHistoryMessages requires at least one message');
-  }
-
-  const llmMessages: ModelMessage[] = [];
-
-  for (const msg of msgs) {
-    const hasSessionTitle = msg.parts.some((p) => p.type === 'session-title');
-    if (hasSessionTitle) {
-      continue;
-    }
-
-    if (msg.role === 'user') {
-      const hasCompaction = msg.parts.some((p) => p.type === 'compaction');
-      if (hasCompaction) continue;
-
-      const text = msg.parts
-        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-        .map((p) => p.text)
-        .join('');
-      if (text) {
-        llmMessages.push({ role: 'user', content: text });
-      }
-      continue;
-    }
-
-    // For compaction context: if this is a summary message, present it as assistant text
-    if (msg.role === 'assistant' && msg.isSummary) {
-      const text = msg.parts
-        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-        .map((p) => p.text)
-        .join('');
-      if (text) {
-        llmMessages.push({ role: 'assistant', content: text });
-      }
-      continue;
-    }
-
-    if (msg.role === 'assistant') {
-      const textParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta',
-      );
-      const toolCallParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call',
-      );
-      const toolResultParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
-      );
-
-      const toolResultById = new Map(toolResultParts.map((part) => [part.toolCallId, part]));
-      const matchedToolCalls = toolCallParts.filter((part) => toolResultById.has(part.toolCallId));
-      const matchedToolCallIds = new Set(matchedToolCalls.map((part) => part.toolCallId));
-      const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
-
-      if (unmatchedToolCalls > 0) {
-        log.warn(
-          {
-            count: unmatchedToolCalls,
-          },
-          'dropping unmatched tool-call parts from LLM history',
-        );
-      }
-
-      if (textParts.length > 0 || matchedToolCalls.length > 0) {
-        const assistantContent: Array<
-          | { type: 'text'; text: string }
-          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
-        > = [];
-
-        const combinedText = textParts.map((p) => p.text).join('');
-        if (combinedText) {
-          assistantContent.push({ type: 'text', text: combinedText });
-        }
-
-        for (const tc of matchedToolCalls) {
-          assistantContent.push({
-            type: 'tool-call',
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            input: tc.input,
-          });
-        }
-
-        llmMessages.push({ role: 'assistant', content: assistantContent });
-      }
-
-      if (matchedToolCallIds.size > 0) {
-        llmMessages.push({
-          role: 'tool',
-          content: toolResultParts
-            .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
-            .map((tr) => {
-              const isError =
-                tr.output !== null &&
-                tr.output !== undefined &&
-                typeof tr.output === 'object' &&
-                'error' in (tr.output as object);
-              return {
-                type: 'tool-result' as const,
-                toolCallId: tr.toolCallId,
-                toolName: tr.toolName,
-                output: isError
-                  ? { type: 'error-json' as const, value: tr.output as never }
-                  : { type: 'json' as const, value: tr.output as never },
-              };
-            }),
-        });
-      }
-    }
-  }
-
-  if (llmMessages[0]?.role !== 'system') {
-    const latestModelId = msgs[msgs.length - 1].modelId;
-    llmMessages.unshift({
-      role: 'system',
-      content: buildSystemPrompt({
-        modelId: latestModelId,
-        useBasePrompt: promptConfig?.useBasePrompt ?? true,
-        systemPrompt: promptConfig?.systemPrompt ?? null,
-      }),
-    });
-  }
-
-  return llmMessages;
-}
 
 async function resolveCompactionModel(
   fallbackProviderId: string,

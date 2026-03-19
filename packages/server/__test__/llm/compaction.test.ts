@@ -2,7 +2,8 @@ import { describe, test, expect } from 'vitest';
 
 import type { StoredPart } from '@openwork/shared/chat/messages';
 
-import { buildHistoryMessages, isOverflow } from '@/llm/compaction.js';
+import { isOverflow } from '@/llm/compaction.js';
+import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { estimate } from '@/utils/token.js';
 
 describe('estimate', () => {

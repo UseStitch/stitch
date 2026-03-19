@@ -1,0 +1,136 @@
+import type { Message, StoredPart } from '@openwork/shared/chat/messages';
+
+import * as Log from '@/lib/log.js';
+import { buildSystemPrompt } from '@/llm/prompt/builder.js';
+import type { ModelMessage } from 'ai';
+
+const log = Log.create({ service: 'history-messages' });
+
+export function buildHistoryMessages(
+  msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
+  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
+): ModelMessage[] {
+  if (msgs.length === 0) {
+    throw new Error('buildHistoryMessages requires at least one message');
+  }
+
+  const llmMessages: ModelMessage[] = [];
+
+  for (const msg of msgs) {
+    const hasSessionTitle = msg.parts.some((p) => p.type === 'session-title');
+    if (hasSessionTitle) {
+      continue;
+    }
+
+    if (msg.role === 'user') {
+      const hasCompaction = msg.parts.some((p) => p.type === 'compaction');
+      if (hasCompaction) continue;
+
+      const text = msg.parts
+        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
+        .map((p) => p.text)
+        .join('');
+      if (text) {
+        llmMessages.push({ role: 'user', content: text });
+      }
+      continue;
+    }
+
+    if (msg.role === 'assistant' && msg.isSummary) {
+      const text = msg.parts
+        .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
+        .map((p) => p.text)
+        .join('');
+      if (text) {
+        llmMessages.push({ role: 'assistant', content: text });
+      }
+      continue;
+    }
+
+    if (msg.role === 'assistant') {
+      const textParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta',
+      );
+      const toolCallParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call',
+      );
+      const toolResultParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
+      );
+
+      const toolResultById = new Map(toolResultParts.map((part) => [part.toolCallId, part]));
+      const matchedToolCalls = toolCallParts.filter((part) => toolResultById.has(part.toolCallId));
+      const matchedToolCallIds = new Set(matchedToolCalls.map((part) => part.toolCallId));
+      const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
+
+      if (unmatchedToolCalls > 0) {
+        log.warn(
+          {
+            count: unmatchedToolCalls,
+          },
+          'dropping unmatched tool-call parts from LLM history',
+        );
+      }
+
+      if (textParts.length > 0 || matchedToolCalls.length > 0) {
+        const assistantContent: Array<
+          | { type: 'text'; text: string }
+          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+        > = [];
+
+        const combinedText = textParts.map((p) => p.text).join('');
+        if (combinedText) {
+          assistantContent.push({ type: 'text', text: combinedText });
+        }
+
+        for (const tc of matchedToolCalls) {
+          assistantContent.push({
+            type: 'tool-call',
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            input: tc.input,
+          });
+        }
+
+        llmMessages.push({ role: 'assistant', content: assistantContent });
+      }
+
+      if (matchedToolCallIds.size > 0) {
+        llmMessages.push({
+          role: 'tool',
+          content: toolResultParts
+            .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
+            .map((tr) => {
+              const isError =
+                tr.output !== null &&
+                tr.output !== undefined &&
+                typeof tr.output === 'object' &&
+                'error' in (tr.output as object);
+              return {
+                type: 'tool-result' as const,
+                toolCallId: tr.toolCallId,
+                toolName: tr.toolName,
+                output: isError
+                  ? { type: 'error-json' as const, value: tr.output as never }
+                  : { type: 'json' as const, value: tr.output as never },
+              };
+            }),
+        });
+      }
+    }
+  }
+
+  if (llmMessages[0]?.role !== 'system') {
+    const latestModelId = msgs[msgs.length - 1].modelId;
+    llmMessages.unshift({
+      role: 'system',
+      content: buildSystemPrompt({
+        modelId: latestModelId,
+        useBasePrompt: promptConfig?.useBasePrompt ?? true,
+        systemPrompt: promptConfig?.systemPrompt ?? null,
+      }),
+    });
+  }
+
+  return llmMessages;
+}
