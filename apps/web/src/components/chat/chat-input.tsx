@@ -336,7 +336,7 @@ function ChatInputInner({
           <Button
             type="button"
             size="icon-xs"
-            variant="outline"
+            variant="destructive"
             onClick={onStop}
             className="shrink-0"
           >
