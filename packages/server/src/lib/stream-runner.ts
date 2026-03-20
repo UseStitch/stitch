@@ -492,7 +492,7 @@ class StreamRunner {
     }
 
     if (isPermissionRejectedError(error)) {
-      this.handlePermissionRejected(error);
+      await this.handlePermissionRejected(error);
       return;
     }
 
@@ -554,7 +554,7 @@ class StreamRunner {
     }
   }
 
-  private handlePermissionRejected(error: unknown): void {
+  private async handlePermissionRejected(error: unknown): Promise<void> {
     const rejectionMessage = getErrorMessage(error);
     this.setFinishReason('blocked', 'permission-rejected');
 
@@ -577,6 +577,28 @@ class StreamRunner {
       },
       'stream.permission.rejected',
     );
+
+    const resolvedToolCallIds = new Set(
+      this.state.accumulatedParts
+        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
+        .map((p) => p.toolCallId),
+    );
+
+    const unresolvedToolCalls = this.state.accumulatedParts.filter(
+      (p): p is StoredPart & { type: 'tool-call' } =>
+        p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+    );
+
+    for (const call of unresolvedToolCalls) {
+      await this.deps.broadcast('stream-tool-state', {
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        status: 'error',
+        error: 'Blocked before completion',
+      });
+    }
   }
 
   private handleContextOverflow(): void {
@@ -850,7 +872,11 @@ class StreamRunner {
       return;
     }
 
-    const fallbackError = this.state.wasAborted ? 'Aborted' : 'Missing tool result';
+    const fallbackError = this.state.wasAborted
+      ? 'Aborted'
+      : this.state.finalFinishReason === 'blocked'
+        ? 'Blocked before completion'
+        : 'Missing tool result';
     const now = this.deps.now();
 
     for (const call of missingToolCalls) {

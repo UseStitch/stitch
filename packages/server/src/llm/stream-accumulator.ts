@@ -20,6 +20,7 @@ export class StreamAccumulator {
   private currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
   private currentReasoningPart: { id: PartId; text: string; startedAt: number } | null = null;
   private protocolViolationCount = 0;
+  private permissionRejected: PermissionRejectedError | null = null;
 
   constructor(
     private readonly sessionId: PrefixedString<'ses'>,
@@ -32,6 +33,10 @@ export class StreamAccumulator {
 
   getProtocolViolationCount(): number {
     return this.protocolViolationCount;
+  }
+
+  getPermissionRejected(): PermissionRejectedError | null {
+    return this.permissionRejected;
   }
 
   async handlePart(part: any): Promise<void> {
@@ -313,7 +318,7 @@ export class StreamAccumulator {
         } as StoredPart);
 
         if (isPermissionRejectedError(part.error)) {
-          throw new PermissionRejectedError(part.toolName ?? 'unknown');
+          this.permissionRejected = new PermissionRejectedError(part.toolName ?? 'unknown');
         }
         break;
       }

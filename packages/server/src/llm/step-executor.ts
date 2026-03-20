@@ -167,6 +167,8 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     for await (const part of result.fullStream) {
       if (part.type === 'finish') {
         accumulator.flush();
+        const permissionRejected = accumulator.getPermissionRejected();
+        if (permissionRejected) throw permissionRejected;
         return {
           finishReason: part.finishReason,
           usage: part.totalUsage,

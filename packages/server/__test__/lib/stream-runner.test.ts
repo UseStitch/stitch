@@ -5,7 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
 import type { ProviderCredentials } from '@/provider/provider.js';
 
-import { ContextOverflowError, StreamAbortedError } from '@/lib/stream-errors.js';
+import { ContextOverflowError, PermissionRejectedError, StreamAbortedError } from '@/lib/stream-errors.js';
 import { runStream } from '@/lib/stream-runner.js';
 
 const mocks = vi.hoisted(() => {
@@ -528,5 +528,73 @@ describe('runStream', () => {
         }),
       ]),
     );
+  });
+
+  test('preserves real tool results from parallel calls when permission is rejected', async () => {
+    mocks.executeStepWithRetryMock.mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+      opts.accumulatedParts.push({
+        type: 'tool-call',
+        id: 'prt_call_search' as StoredPart['id'],
+        toolCallId: 'call_search',
+        toolName: 'web_search_exa',
+        input: { query: 'frc 2026' },
+        startedAt: 1,
+        endedAt: 1,
+      } as StoredPart);
+      opts.accumulatedParts.push({
+        type: 'tool-call',
+        id: 'prt_call_fetch' as StoredPart['id'],
+        toolCallId: 'call_fetch',
+        toolName: 'webfetch',
+        input: { url: 'https://example.com' },
+        startedAt: 1,
+        endedAt: 1,
+      } as StoredPart);
+      opts.accumulatedParts.push({
+        type: 'tool-result',
+        id: 'prt_result_fetch' as StoredPart['id'],
+        toolCallId: 'call_fetch',
+        toolName: 'webfetch',
+        output: { error: 'PermissionRejectedError: User rejected tool execution for webfetch' },
+        truncated: false,
+        startedAt: 1,
+        endedAt: 1,
+      } as StoredPart);
+      opts.accumulatedParts.push({
+        type: 'tool-result',
+        id: 'prt_result_search' as StoredPart['id'],
+        toolCallId: 'call_search',
+        toolName: 'web_search_exa',
+        output: { results: 'Blue Alliance won' },
+        truncated: false,
+        startedAt: 1,
+        endedAt: 1,
+      } as StoredPart);
+      throw new PermissionRejectedError('webfetch');
+    });
+
+    await runStream(getDefaultOpts());
+
+    const insertedAssistant = mocks.insertValuesMock.mock.calls.at(0)?.at(0) as
+      | { finishReason: string; parts: StoredPart[] }
+      | undefined;
+    if (!insertedAssistant) {
+      throw new Error('assistant message was not inserted');
+    }
+
+    expect(insertedAssistant.finishReason).toBe('blocked');
+
+    const searchResult = insertedAssistant.parts.find(
+      (p): p is StoredPart & { type: 'tool-result' } =>
+        p.type === 'tool-result' && p.toolCallId === 'call_search',
+    );
+    expect(searchResult).toBeDefined();
+    expect(searchResult?.output).toEqual({ results: 'Blue Alliance won' });
+
+    const syntheticResults = insertedAssistant.parts.filter(
+      (p): p is StoredPart & { type: 'tool-result' } =>
+        p.type === 'tool-result' && (p.output as Record<string, unknown>)?.error === 'Missing tool result',
+    );
+    expect(syntheticResults).toHaveLength(0);
   });
 });

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { LanguageModelUsage } from 'ai';
-import { StreamAbortedError } from '@/lib/stream-errors.js';
+import { PermissionRejectedError, StreamAbortedError } from '@/lib/stream-errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
 
 const ZERO_USAGE: LanguageModelUsage = {
@@ -185,6 +185,47 @@ describe('executeStepWithRetry', () => {
     expect(result.toolCalls).toEqual([
       expect.objectContaining({ toolName: 'bash', inputJson: '{"command":"pwd"}' }),
     ]);
+  });
+
+  test('collects parallel tool results before propagating permission rejection', async () => {
+    const permissionError = new PermissionRejectedError('webfetch');
+
+    mocks.streamTextMock.mockReturnValue({
+      fullStream: (async function* () {
+        yield { type: 'tool-call', toolCallId: 'call_search', toolName: 'web_search_exa', input: { query: 'frc 2026' } };
+        yield { type: 'tool-call', toolCallId: 'call_fetch', toolName: 'webfetch', input: { url: 'https://example.com' } };
+        yield { type: 'tool-error', toolCallId: 'call_fetch', toolName: 'webfetch', error: permissionError };
+        yield { type: 'tool-result', toolCallId: 'call_search', toolName: 'web_search_exa', input: { query: 'frc 2026' }, output: { results: 'Blue Alliance won' } };
+        yield { type: 'finish', finishReason: 'tool-calls', totalUsage: ZERO_USAGE };
+      })(),
+      response: Promise.resolve({ messages: [] }),
+    });
+
+    const accumulatedParts: StoredPart[] = [];
+    const model = {} as unknown as StepOptions['model'];
+    const tools = {} as unknown as StepOptions['tools'];
+
+    await expect(
+      executeStepWithRetry({
+        sessionId: 'ses_1',
+        messageId: 'msg_1',
+        step: 0,
+        model,
+        conversation: [],
+        accumulatedParts,
+        providerId: 'openai',
+        tools,
+        abortSignal: new AbortController().signal,
+        streamRunId: 'run_1',
+      }),
+    ).rejects.toBeInstanceOf(PermissionRejectedError);
+
+    const searchResult = accumulatedParts.find(
+      (p): p is StoredPart & { type: 'tool-result' } =>
+        p.type === 'tool-result' && p.toolCallId === 'call_search',
+    );
+    expect(searchResult).toBeDefined();
+    expect(searchResult?.output).toEqual({ results: 'Blue Alliance won' });
   });
 
 });
