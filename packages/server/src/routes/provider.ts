@@ -1,4 +1,6 @@
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import * as Log from '@/lib/log.js';
 import {
@@ -14,6 +16,8 @@ import {
 import { isServiceError } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'provider-routes' });
+
+const providerConfigSchema = z.record(z.string(), z.unknown());
 
 export const providerRouter = new Hono();
 
@@ -76,9 +80,9 @@ providerRouter.get('/:providerId/config', async (c) => {
   return c.json(result.data);
 });
 
-providerRouter.put('/:providerId/config', async (c) => {
+providerRouter.put('/:providerId/config', zValidator('json', providerConfigSchema), async (c) => {
   const providerId = c.req.param('providerId');
-  const body = await c.req.json();
+  const body = c.req.valid('json');
   const result = await upsertProviderCredentials(providerId, body);
   if (isServiceError(result)) {
     log.warn({ providerId }, 'provider config update failed');

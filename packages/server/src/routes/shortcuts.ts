@@ -1,4 +1,6 @@
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import {
   deleteShortcut,
@@ -8,6 +10,10 @@ import {
 } from '@/shortcuts/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 
+const shortcutSchema = z.object({
+  hotkey: z.string().optional(),
+});
+
 export const shortcutsRouter = new Hono();
 
 shortcutsRouter.get('/', async (c) => {
@@ -15,10 +21,10 @@ shortcutsRouter.get('/', async (c) => {
   return c.json(result);
 });
 
-shortcutsRouter.put('/:actionId', async (c) => {
+shortcutsRouter.put('/:actionId', zValidator('json', shortcutSchema), async (c) => {
   const actionId = c.req.param('actionId');
-  const body = (await c.req.json()) as { hotkey?: unknown };
-  const result = await saveShortcut(actionId, body.hotkey);
+  const { hotkey } = c.req.valid('json');
+  const result = await saveShortcut(actionId, hotkey);
   if (isServiceError(result)) {
     return c.json({ error: result.error }, result.status);
   }

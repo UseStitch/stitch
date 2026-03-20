@@ -1,13 +1,37 @@
 import { eq } from 'drizzle-orm';
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { QuestionInfo } from '@stitch/shared/questions/types';
 import { createQuestionId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { questions, sessions } from '@/db/schema.js';
 import { replyQuestion, rejectQuestion, getPendingQuestions } from '@/question/service.js';
+
+const questionOptionSchema = z.object({
+  label: z.string(),
+  description: z.string(),
+});
+
+const questionInfoSchema = z.object({
+  question: z.string(),
+  header: z.string(),
+  options: z.array(questionOptionSchema),
+  multiple: z.boolean().optional(),
+  custom: z.boolean().optional(),
+});
+
+const createQuestionsSchema = z.object({
+  questions: z.array(questionInfoSchema).min(1),
+  toolCallId: z.string().min(1),
+  messageId: z.templateLiteral(['msg_', z.string()]),
+});
+
+const replySchema = z.object({
+  answers: z.array(z.array(z.string())),
+});
 
 export const questionsRouter = new Hono();
 
@@ -23,26 +47,14 @@ questionsRouter.get('/sessions/:id/questions', async (c) => {
   return c.json(rows);
 });
 
-questionsRouter.post('/sessions/:id/questions', async (c) => {
+questionsRouter.post('/sessions/:id/questions', zValidator('json', createQuestionsSchema), async (c) => {
   const db = getDb();
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
 
-  const body = (await c.req.json()) as {
-    questions: QuestionInfo[];
-    toolCallId: string;
-    messageId: PrefixedString<'msg'>;
-  };
-
-  if (!body.questions || !Array.isArray(body.questions) || body.questions.length === 0) {
-    return c.json({ error: 'questions array is required' }, 400);
-  }
-
-  if (!body.toolCallId || !body.messageId) {
-    return c.json({ error: 'toolCallId and messageId are required' }, 400);
-  }
+  const body = c.req.valid('json');
 
   const id = createQuestionId();
   const now = Date.now();
@@ -62,15 +74,11 @@ questionsRouter.post('/sessions/:id/questions', async (c) => {
   return c.json(row, 201);
 });
 
-questionsRouter.post('/sessions/:sessionId/questions/:questionId/reply', async (c) => {
+questionsRouter.post('/sessions/:sessionId/questions/:questionId/reply', zValidator('json', replySchema), async (c) => {
   const questionId = c.req.param('questionId') as PrefixedString<'quest'>;
-  const body = (await c.req.json()) as { answers: string[][] };
+  const { answers } = c.req.valid('json');
 
-  if (!body.answers || !Array.isArray(body.answers)) {
-    return c.json({ error: 'answers array is required' }, 400);
-  }
-
-  await replyQuestion(questionId, body.answers);
+  await replyQuestion(questionId, answers);
 
   return c.json({ ok: true });
 });
