@@ -52,6 +52,7 @@ export function useSessionDetailsStats(): SessionDetailsStats {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.role !== 'assistant') continue;
+      if (msg.parts?.some((p) => p.type === 'session-title')) continue;
       const usage = msg.usage;
       const tokenSum =
         (usage?.inputTokens ?? 0) +
