@@ -23,6 +23,7 @@ type MessageListProps = {
   isFetchingMore: boolean;
   onLoadMore: () => void;
   onAbortTool?: () => void;
+  onSplit?: (msgId: string) => void;
 };
 
 type RowData =
@@ -33,6 +34,7 @@ type RowData =
       role: 'user' | 'assistant';
       parts: Message['parts'];
       finishReason: Message['finishReason'];
+      isFirstUserMessage: boolean;
     }
   | { kind: 'compaction'; id: string; summaryParts?: Message['parts'] }
   | { kind: 'streaming' }
@@ -87,12 +89,15 @@ function buildRows(
       continue;
     }
 
+    const isFirstUserMessage = msg.role === 'user' && !rows.some((r) => r.kind === 'message' && r.role === 'user');
+
     rows.push({
       kind: 'message',
       id: msg.id,
       role: msg.role,
       parts: msg.parts,
       finishReason: msg.finishReason,
+      isFirstUserMessage,
     });
   }
 
@@ -172,6 +177,7 @@ export function MessageList({
   isFetchingMore,
   onLoadMore,
   onAbortTool,
+  onSplit,
 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -272,6 +278,7 @@ export function MessageList({
             parts={row.parts}
             finishReason={row.finishReason}
             onAbortTool={onAbortTool}
+            onSplit={row.role === 'user' && !row.isFirstUserMessage && onSplit ? () => onSplit(row.id) : undefined}
           />
         );
 

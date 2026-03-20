@@ -163,6 +163,32 @@ export function useRenameSession() {
   });
 }
 
+type SplitSessionInput = {
+  sessionId: PrefixedString<'ses'>;
+  msgId: PrefixedString<'msg'>;
+};
+
+type SplitSessionResult = {
+  session: Session;
+  prefillText: string;
+};
+
+export function useSplitSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SplitSessionInput): Promise<SplitSessionResult> => {
+      const res = await serverFetch(`/chat/sessions/${input.sessionId}/split/${input.msgId}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to split session');
+      return res.json() as Promise<SplitSessionResult>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
 export function useDeleteSession() {
   const queryClient = useQueryClient();
   return useMutation({

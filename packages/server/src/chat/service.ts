@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -342,6 +342,84 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
   cancelDecision(sessionId);
   await abortQuestions(sessionId);
   await abortPermissionResponses(sessionId);
+}
+
+function getSplitTitle(baseTitle: string, n: number): string {
+  return `${baseTitle} Split #${n}`;
+}
+
+function parseSplitTitle(title: string): { base: string; n: number } | null {
+  const match = title.match(/^(.+) Split #(\d+)$/);
+  if (!match) return null;
+  return { base: match[1]!, n: parseInt(match[2]!, 10) };
+}
+
+export async function splitSession(
+  sessionId: PrefixedString<'ses'>,
+  msgId: PrefixedString<'msg'>,
+): Promise<ServiceResult<{ session: (typeof sessions.$inferSelect); prefillText: string }>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  if (!session) return err('Session not found', 404);
+
+  const [splitMsg] = await db.select().from(messages).where(eq(messages.id, msgId));
+  if (!splitMsg) return err('Message not found', 404);
+  if (splitMsg.role !== 'user') return err('Can only split from user messages', 400);
+
+  const priorMessages = await db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.sessionId, sessionId), lt(messages.createdAt, splitMsg.createdAt)))
+    .orderBy(asc(messages.createdAt));
+
+  const baseTitle = session.title ?? 'Session';
+  const parsed = parseSplitTitle(baseTitle);
+  const lookupBase = parsed ? parsed.base : baseTitle;
+
+  const existing = await db
+    .select({ title: sessions.title })
+    .from(sessions)
+    .where(like(sessions.title, `${lookupBase} Split #%`));
+
+  let maxN = 0;
+  for (const row of existing) {
+    if (!row.title) continue;
+    const p = parseSplitTitle(row.title);
+    if (p && p.base === lookupBase && p.n > maxN) maxN = p.n;
+  }
+
+  const newTitle = getSplitTitle(lookupBase, maxN + 1);
+  const newSessionId = createSessionId();
+  const now = Date.now();
+
+  await db.insert(sessions).values({
+    id: newSessionId,
+    title: newTitle,
+    parentSessionId: sessionId,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  for (const msg of priorMessages) {
+    const newMsgId = createMessageId();
+    await db.insert(messages).values({
+      ...msg,
+      id: newMsgId,
+      sessionId: newSessionId,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+    });
+  }
+
+  const [newSession] = await db.select().from(sessions).where(eq(sessions.id, newSessionId));
+
+  const prefillText = splitMsg.parts
+    .filter((p): p is StoredPart & { type: 'text-delta'; text: string } => p.type === 'text-delta')
+    .map((p) => p.text)
+    .join('');
+
+  return ok({ session: newSession!, prefillText });
 }
 
 export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {

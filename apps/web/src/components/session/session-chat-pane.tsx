@@ -2,7 +2,7 @@ import * as React from 'react';
 import { StickToBottom } from 'use-stick-to-bottom';
 
 import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
@@ -21,12 +21,14 @@ import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import {
   consumeNextSessionInputSeed,
   getTransitionSeedClearDelayMs,
+  setNextSessionInputSeed,
 } from '@/lib/chat-input-transition-seed';
 import { parseModelId } from '@/lib/model-id';
 import {
   flattenMessages,
   sessionMessagesInfiniteQueryOptions,
   useSendMessage,
+  useSplitSession,
 } from '@/lib/queries/chat';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -34,6 +36,7 @@ const MODEL_SEPARATOR = ':::';
 
 export function SessionChatPane() {
   const { id } = useParams({ from: '/session/$id' });
+  const navigate = useNavigate();
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
@@ -68,6 +71,7 @@ export function SessionChatPane() {
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
   const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
   const sendMessage = useSendMessage();
+  const splitSession = useSplitSession();
   const streamState = useSessionStreamState(id);
   const startStream = useStreamStore((state) => state.startStream);
   const abortStream = useStreamStore((state) => state.abortStream);
@@ -128,6 +132,15 @@ export function SessionChatPane() {
     });
   }
 
+  async function handleSplit(msgId: string) {
+    const result = await splitSession.mutateAsync({
+      sessionId: id as PrefixedString<'ses'>,
+      msgId: msgId as PrefixedString<'msg'>,
+    });
+    setNextSessionInputSeed(result.prefillText);
+    void navigate({ to: '/session/$id', params: { id: result.session.id }, viewTransition: true });
+  }
+
   const canSubmit = !sendMessage.isPending && !streamState.isStreaming && !isCompacting;
 
   return (
@@ -142,6 +155,7 @@ export function SessionChatPane() {
               isFetchingMore={messagesQuery.isFetchingNextPage}
               onLoadMore={() => void messagesQuery.fetchNextPage()}
               onAbortTool={() => void abortStream(id)}
+              onSplit={handleSplit}
             />
           </div>
         </StickToBottom.Content>

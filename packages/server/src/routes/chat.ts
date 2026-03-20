@@ -12,6 +12,7 @@ import {
   requestCompaction,
   resolveDoomLoop,
   sendMessage,
+  splitSession,
 } from '@/chat/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 import type { DoomLoopResponse } from '@/llm/doom-loop.js';
@@ -135,6 +136,18 @@ chatRouter.post('/sessions/:id/abort', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
   await abortSessionRun(sessionId);
   return c.json({ ok: true });
+});
+
+chatRouter.post('/sessions/:id/split/:msgId', async (c) => {
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+  const msgId = c.req.param('msgId') as PrefixedString<'msg'>;
+
+  const result = await splitSession(sessionId, msgId);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data, 201);
 });
 
 chatRouter.post('/sessions/:id/compact', async (c) => {

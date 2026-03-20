@@ -1,4 +1,4 @@
-import { FileIcon, FileTextIcon } from 'lucide-react';
+import { FileIcon, FileTextIcon, GitForkIcon } from 'lucide-react';
 import * as React from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -108,6 +108,7 @@ type MessageBubbleProps = {
   parts: StoredPart[];
   finishReason?: string | null;
   onAbortTool?: () => void;
+  onSplit?: () => void;
 };
 
 export const MessageBubble = React.memo(function MessageBubble({
@@ -115,6 +116,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   parts,
   finishReason,
   onAbortTool,
+  onSplit,
 }: MessageBubbleProps) {
   if (role === 'user') {
     const text = extractTextFromParts(parts);
@@ -130,7 +132,7 @@ export const MessageBubble = React.memo(function MessageBubble({
     const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
 
     return (
-      <div className="flex justify-end">
+      <div className="group flex justify-end">
         <div className="max-w-[80%] space-y-2">
           {hasAttachments && (
             <div className="flex flex-wrap gap-2 justify-end">
@@ -171,6 +173,19 @@ export const MessageBubble = React.memo(function MessageBubble({
           {text && (
             <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
               <p className="whitespace-pre-wrap">{text}</p>
+            </div>
+          )}
+          {onSplit && (
+            <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={onSplit}
+                title="Split from here"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <GitForkIcon className="size-3" />
+                Split
+              </button>
             </div>
           )}
         </div>
