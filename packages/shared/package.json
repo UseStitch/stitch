@@ -20,11 +20,13 @@
     "./shortcuts/types": "./src/shortcuts/types.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@ai-sdk/provider": "catalog:ai",
     "ai": "catalog:ai",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
   }
 }

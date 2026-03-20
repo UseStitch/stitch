@@ -110,6 +110,7 @@
         "@ai-sdk/provider": "catalog:ai",
         "ai": "catalog:ai",
         "typescript": "catalog:",
+        "vitest": "catalog:testing",
       },
     },
   },
