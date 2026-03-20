@@ -62,9 +62,6 @@ export class StreamPartError extends StreamControlError {
   }
 }
 
-export function isPermissionRejectedMessage(message: string): boolean {
-  return message.startsWith('User rejected tool execution for ');
-}
 
 export function getErrorCode(error: unknown): string | undefined {
   if (error instanceof StreamControlError) {

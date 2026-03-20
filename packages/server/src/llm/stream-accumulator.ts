@@ -9,7 +9,7 @@ import {
   PermissionRejectedError,
   StreamAbortedError,
   StreamPartError,
-  isPermissionRejectedMessage,
+  isPermissionRejectedError,
 } from '@/lib/stream-errors.js';
 import type { ToolCallRecord } from '@/llm/doom-loop.js';
 import { stableStringify } from '@/utils/stable-stringify.js';
@@ -312,7 +312,7 @@ export class StreamAccumulator {
           endedAt: now,
         } as StoredPart);
 
-        if (isPermissionRejectedMessage(errorText)) {
+        if (isPermissionRejectedError(part.error)) {
           throw new PermissionRejectedError(part.toolName ?? 'unknown');
         }
         break;
