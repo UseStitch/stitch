@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { AgentType } from '@stitch/shared/agents/types';
+import type { AgentToolType, AgentType } from '@stitch/shared/agents/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@stitch/shared/permissions/types';
@@ -192,5 +192,29 @@ export const agentPermissions = sqliteTable(
       table.toolName,
       table.pattern,
     ),
+  ],
+);
+
+export const agentTools = sqliteTable(
+  'agent_tools',
+  {
+    id: text('id').$type<PrefixedString<'agttool'>>().primaryKey(),
+    agentId: text('agent_id')
+      .$type<PrefixedString<'agt'>>()
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    toolType: text('tool_type').$type<AgentToolType>().notNull(),
+    toolName: text('tool_name').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('agent_tools_agent_type_name_idx').on(table.agentId, table.toolType, table.toolName),
+    check('agent_tools_type_check', sql`${table.toolType} in ('stitch', 'mcp', 'plugin')`),
   ],
 );

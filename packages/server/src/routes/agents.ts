@@ -2,8 +2,15 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { AGENT_TOOL_TYPES } from '@stitch/shared/agents/types';
+import type { PrefixedString } from '@stitch/shared/id';
+
 import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
+import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { createTools } from '@/tools/index.js';
+
+const STITCH_KNOWN_TOOLS = (Object.keys(createTools({ sessionId: 'ses_' as PrefixedString<'ses'>, messageId: 'msg_' as PrefixedString<'msg'>, agentId: 'agt_' as PrefixedString<'agt'>, streamRunId: '' })) as string[]).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
 
 export const agentsRouter = new Hono();
 
@@ -32,6 +39,12 @@ const updateAgentSchema = z
   .refine((value) => value.name !== undefined || value.useBasePrompt !== undefined || value.systemPrompt !== undefined, {
     message: 'At least one field is required',
   });
+
+const setToolEnabledSchema = z.object({
+  toolType: z.enum(AGENT_TOOL_TYPES),
+  toolName: z.string().min(1),
+  enabled: z.boolean(),
+});
 
 agentsRouter.get('/', async (c) => {
   const rows = await listAgents();
@@ -78,3 +91,17 @@ agentsRouter.delete('/:id', async (c) => {
 
   return c.body(null, 204);
 });
+
+agentsRouter.get('/:id/tool-config', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const tools = await getAgentToolConfig(agentId, STITCH_KNOWN_TOOLS);
+  return c.json({ tools });
+});
+
+agentsRouter.put('/:id/tool-config', zValidator('json', setToolEnabledSchema), async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const body = c.req.valid('json');
+  await setAgentToolEnabled(agentId, body.toolType, body.toolName, body.enabled);
+  return c.body(null, 204);
+});
+

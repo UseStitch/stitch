@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
   const compactMock = vi.fn(async () => 'continue' as const);
   const isOverflowMock = vi.fn(() => false);
   const createToolsMock = vi.fn(() => ({}));
+  const getDisabledToolNamesMock = vi.fn(async () => new Set<string>());
   const insertValuesMock = vi.fn(async () => {});
   const dbInsertMock = vi.fn(() => ({ values: insertValuesMock }));
   return {
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
     compactMock,
     isOverflowMock,
     createToolsMock,
+    getDisabledToolNamesMock,
     insertValuesMock,
     dbInsertMock,
   };
@@ -56,6 +58,10 @@ vi.mock('@/tools/index.js', () => ({
   createTools: mocks.createToolsMock,
   MAX_STEPS: 3,
   MAX_STEPS_WARNING: vi.fn((maxSteps: number) => `warning-${maxSteps}`),
+}));
+
+vi.mock('@/agents/tool-config.js', () => ({
+  getDisabledToolNames: mocks.getDisabledToolNamesMock,
 }));
 
 vi.mock('@/provider/provider.js', () => ({
@@ -108,11 +114,13 @@ describe('runStream', () => {
     mocks.compactMock.mockReset();
     mocks.isOverflowMock.mockReset();
     mocks.createToolsMock.mockReset();
+    mocks.getDisabledToolNamesMock.mockReset();
     mocks.insertValuesMock.mockReset();
     mocks.dbInsertMock.mockReset();
 
     mocks.broadcastMock.mockResolvedValue(undefined);
     mocks.createToolsMock.mockReturnValue({});
+    mocks.getDisabledToolNamesMock.mockResolvedValue(new Set<string>());
     mocks.dbInsertMock.mockReturnValue({ values: mocks.insertValuesMock });
     mocks.insertValuesMock.mockResolvedValue(undefined);
 

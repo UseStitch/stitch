@@ -9,6 +9,7 @@ export const ID_PREFIXES = {
   permissionResponse: 'permres',
   agentPermission: 'perm',
   agent: 'agt',
+  agentTool: 'agttool',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -62,6 +63,7 @@ export const createQuestionId = createIdFactory(ID_PREFIXES.question);
 export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permissionResponse);
 export const createAgentPermissionId = createIdFactory(ID_PREFIXES.agentPermission);
 export const createAgentId = createIdFactory(ID_PREFIXES.agent);
+export const createAgentToolId = createIdFactory(ID_PREFIXES.agentTool);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

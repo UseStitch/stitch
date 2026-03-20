@@ -12,9 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  agentToolConfigQueryOptions,
   agentsQueryOptions,
   useCreateAgent,
   useDeleteAgent,
+  useSetAgentToolEnabled,
   useSetDefaultAgent,
   useUpdateAgent,
 } from '@/lib/queries/agents';
@@ -39,6 +41,51 @@ function toFormState(agent: Agent): AgentFormState {
     useBasePrompt: agent.useBasePrompt,
     systemPrompt: agent.systemPrompt ?? '',
   };
+}
+
+const TOOL_DISPLAY_NAMES: Record<string, string> = {
+  bash: 'Bash',
+  read: 'Read',
+  edit: 'Edit',
+  write: 'Write',
+  glob: 'Glob',
+  grep: 'Grep',
+  webfetch: 'Web Fetch',
+  question: 'Question',
+};
+
+function AgentToolConfig({ agentId }: { agentId: string }) {
+  const { data: toolConfig } = useSuspenseQuery(agentToolConfigQueryOptions(agentId));
+  const setToolEnabled = useSetAgentToolEnabled();
+
+  const handleToggle = (toolName: string, enabled: boolean) => {
+    void setToolEnabled.mutateAsync({ agentId, toolType: 'stitch', toolName, enabled }).catch(
+      (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update tool');
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">Tools</p>
+      <div className="overflow-hidden rounded-md border border-border/50">
+        {toolConfig.map((tool) => (
+          <div
+            key={tool.toolName}
+            className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
+          >
+            <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
+            <Switch
+              checked={tool.enabled}
+              onCheckedChange={(checked) => handleToggle(tool.toolName, checked)}
+              disabled={setToolEnabled.isPending}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => void }) {
@@ -140,6 +187,12 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
             className="min-h-36"
           />
         </div>
+
+        {mode.type === 'edit' && (
+          <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
+            <AgentToolConfig agentId={mode.agent.id} />
+          </React.Suspense>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onBack} disabled={isPending}>

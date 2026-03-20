@@ -25,6 +25,7 @@ import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
+import { getDisabledToolNames } from '@/agents/tool-config.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -102,6 +103,8 @@ type RunStreamOptions = {
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
+  tools: ReturnType<typeof createTools>;
+  streamRunId: string;
 };
 
 type StreamRunnerDeps = {
@@ -170,7 +173,7 @@ class StreamRunner {
   constructor(opts: RunStreamOptions, deps: Partial<StreamRunnerDeps> = {}) {
     const provider = createProvider(opts.credentials);
     const model = provider(opts.modelId);
-    const streamRunId = randomUUID();
+    const streamRunId = opts.streamRunId;
     const agentId = opts.agentId;
     const startedAt = Date.now();
 
@@ -184,12 +187,7 @@ class StreamRunner {
       streamRunId,
       startedAt,
       model,
-      tools: createTools({
-        sessionId: opts.sessionId,
-        messageId: opts.assistantMessageId,
-        agentId,
-        streamRunId,
-      }),
+      tools: opts.tools,
     };
 
     this.state = {
@@ -954,6 +952,19 @@ export async function runStream(opts: {
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
 }): Promise<void> {
-  const runner = new StreamRunner(opts);
+  const streamRunId = randomUUID();
+  const allTools = createTools({
+    sessionId: opts.sessionId,
+    messageId: opts.assistantMessageId,
+    agentId: opts.agentId,
+    streamRunId,
+  });
+
+  const disabledNames = await getDisabledToolNames(opts.agentId);
+  const tools = Object.fromEntries(
+    Object.entries(allTools).filter(([name]) => !disabledNames.has(name)),
+  ) as ReturnType<typeof createTools>;
+
+  const runner = new StreamRunner({ ...opts, tools, streamRunId });
   await runner.run();
 }

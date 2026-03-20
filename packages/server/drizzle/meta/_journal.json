@@ -50,6 +50,13 @@
       "when": 1773961976140,
       "tag": "0006_giant_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1773968076669,
+      "tag": "0007_good_titanium_man",
+      "breakpoints": true
     }
   ]
 }

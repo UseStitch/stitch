@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { Agent } from '@stitch/shared/agents/types';
+import type { Agent, AgentToolEntry, AgentToolType } from '@stitch/shared/agents/types';
 
 import { serverFetch } from '@/lib/api';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -8,6 +8,7 @@ import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/
 const agentKeys = {
   all: ['agents'] as const,
   list: () => [...agentKeys.all, 'list'] as const,
+  toolConfig: (agentId: string) => [...agentKeys.all, 'tool-config', agentId] as const,
 };
 
 export const agentsQueryOptions = queryOptions({
@@ -19,6 +20,48 @@ export const agentsQueryOptions = queryOptions({
     return res.json() as Promise<Agent[]>;
   },
 });
+
+export function agentToolConfigQueryOptions(agentId: string) {
+  return queryOptions({
+    queryKey: agentKeys.toolConfig(agentId),
+    staleTime: Infinity,
+    queryFn: async (): Promise<AgentToolEntry[]> => {
+      const res = await serverFetch(`/agents/${agentId}/tool-config`);
+      if (!res.ok) throw new Error('Failed to fetch agent tool config');
+      const data = (await res.json()) as { tools: AgentToolEntry[] };
+      return data.tools;
+    },
+  });
+}
+
+export function useSetAgentToolEnabled() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      agentId: string;
+      toolType: AgentToolType;
+      toolName: string;
+      enabled: boolean;
+    }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/tool-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolType: input.toolType,
+          toolName: input.toolName,
+          enabled: input.enabled,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to update tool config');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.toolConfig(input.agentId) });
+    },
+  });
+}
 
 export function useCreateAgent() {
   const queryClient = useQueryClient();
