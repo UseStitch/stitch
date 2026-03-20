@@ -19,6 +19,7 @@ import {
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
+import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
@@ -1006,6 +1007,12 @@ export async function runStream(opts: {
     Object.entries(allTools).filter(([name]) => !disabledNames.has(name)),
   ) as ReturnType<typeof createTools>;
 
-  const runner = new StreamRunner({ ...opts, tools, streamRunId });
+  const transformedMessages = await transformAttachmentsForModel(
+    opts.llmMessages,
+    opts.credentials.providerId,
+    opts.modelId,
+  );
+
+  const runner = new StreamRunner({ ...opts, llmMessages: transformedMessages, tools, streamRunId });
   await runner.run();
 }

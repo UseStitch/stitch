@@ -26,4 +26,8 @@ contextBridge.exposeInMainWorld('api', {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   },
+  files: {
+    writeTmp: (data: ArrayBuffer, ext: string) =>
+      ipcRenderer.invoke('files:writeTmp', data, ext) as Promise<string>,
+  },
 });

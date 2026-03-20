@@ -6,7 +6,7 @@ import { useParams } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
-import { ChatInput } from '@/components/chat/chat-input';
+import { ChatInput, type Attachment } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
@@ -104,8 +104,8 @@ export function SessionChatPane() {
     alternativePermissionResponse: pendingItems.alternativePermissionResponse,
   });
 
-  async function handleSubmit(text: string) {
-    if (!text.trim() || !selectedModel || !selectedAgent) return;
+  async function handleSubmit(text: string, attachments: Attachment[]) {
+    if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
 
     const parsed = parseModelId(selectedModel);
     if (!parsed) return;
@@ -118,6 +118,9 @@ export function SessionChatPane() {
     await sendMessage.mutateAsync({
       sessionId: id as PrefixedString<'ses'>,
       content: text,
+      attachments: attachments.length > 0
+        ? attachments.map((a) => ({ path: a.path, previewUrl: a.previewUrl, mime: a.mime, filename: a.filename }))
+        : undefined,
       providerId: parsed.providerId,
       modelId: parsed.modelId,
       agentId: selectedAgent,
@@ -152,8 +155,8 @@ export function SessionChatPane() {
                 <ChatInput
                   value={value}
                   onChange={setValue}
-                  onSubmit={(text) => {
-                    void handleSubmit(text);
+                  onSubmit={(text, attachments) => {
+                    void handleSubmit(text, attachments);
                   }}
                   onStop={() => void abortStream(id)}
                   isStreaming={streamState.isStreaming}

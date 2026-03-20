@@ -1,4 +1,6 @@
 import { and, asc, desc, eq, lt } from 'drizzle-orm';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -31,6 +33,11 @@ type CreateSessionInput = {
 type SendMessageInput = {
   sessionId: PrefixedString<'ses'>;
   content: string;
+  attachments?: Array<{
+    path: string;
+    mime: string;
+    filename: string;
+  }>;
   providerId: string;
   modelId: string;
   agentId: string;
@@ -223,11 +230,54 @@ export async function sendMessage(input: SendMessageInput): Promise<ServiceResul
     endedAt: now,
   };
 
+  const attachmentParts: StoredPart[] = await Promise.all(
+    (input.attachments ?? []).map(async (att): Promise<StoredPart> => {
+      const resolvedPath = path.resolve(att.path);
+      const fileBuffer = await fs.readFile(resolvedPath);
+
+      if (att.mime.startsWith('image/')) {
+        const dataUrl = `data:${att.mime};base64,${fileBuffer.toString('base64')}`;
+        return {
+          type: 'user-image' as const,
+          id: createPartId(),
+          dataUrl,
+          mime: att.mime,
+          filename: att.filename,
+          startedAt: now,
+          endedAt: now,
+        };
+      }
+
+      if (att.mime === 'application/pdf') {
+        const dataUrl = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+        return {
+          type: 'user-file' as const,
+          id: createPartId(),
+          dataUrl,
+          mime: att.mime,
+          filename: att.filename,
+          startedAt: now,
+          endedAt: now,
+        };
+      }
+
+      return {
+        type: 'user-text-file' as const,
+        id: createPartId(),
+        content: fileBuffer.toString('utf8'),
+        mime: att.mime,
+        filename: att.filename,
+        startedAt: now,
+        endedAt: now,
+      };
+    }),
+  );
+
   await db.insert(messages).values({
     id: userMessageId,
     sessionId: input.sessionId,
     role: 'user',
-    parts: [userPart],
+    parts: [userPart, ...attachmentParts],
     modelId: input.modelId,
     providerId: input.providerId,
     agentId: agent.id,

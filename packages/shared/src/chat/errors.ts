@@ -13,6 +13,7 @@ export const STREAM_ERROR_CATEGORIES = [
   'retry_exhausted',
   'no_output',
   'api_error',
+  'download_error',
   'unknown',
 ] as const;
 
@@ -122,6 +123,12 @@ export function toUserFacingStreamError(input: {
         title: 'Provider error',
         message: 'The provider request failed unexpectedly.',
         suggestion: details.isRetryable ? 'Retry in a moment.' : undefined,
+      };
+    case 'download_error':
+      return {
+        title: 'Attachment error',
+        message: 'A file attachment could not be processed.',
+        suggestion: 'Check the file is accessible and try again.',
       };
     case 'unknown':
       return {

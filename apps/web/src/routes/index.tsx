@@ -8,7 +8,7 @@ import type { Session, MessagesPage } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId } from '@stitch/shared/id';
 
-import { ChatInput } from '@/components/chat/chat-input';
+import { ChatInput, type Attachment } from '@/components/chat/chat-input';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
@@ -43,8 +43,8 @@ function IndexComponent() {
 
   const isSubmitting = createSession.isPending || sendMessage.isPending;
 
-  async function handleSubmit(text: string) {
-    if (!text.trim() || !selectedModel || !selectedAgent) return;
+  async function handleSubmit(text: string, attachments: Attachment[]) {
+    if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
 
     const parsed = parseModelId(selectedModel);
     if (!parsed) return;
@@ -67,6 +67,9 @@ function IndexComponent() {
     void sendMessage.mutateAsync({
       sessionId: session.id as PrefixedString<'ses'>,
       content: text,
+      attachments: attachments.length > 0
+        ? attachments.map((a) => ({ path: a.path, previewUrl: a.previewUrl, mime: a.mime, filename: a.filename }))
+        : undefined,
       providerId,
       modelId,
       agentId: selectedAgent as PrefixedString<'agt'>,
@@ -87,8 +90,8 @@ function IndexComponent() {
           <ChatInput
             value={value}
             onChange={setValue}
-            onSubmit={(text) => {
-              void handleSubmit(text);
+            onSubmit={(text, attachments) => {
+              void handleSubmit(text, attachments);
             }}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}

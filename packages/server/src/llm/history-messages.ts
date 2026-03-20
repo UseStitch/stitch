@@ -30,9 +30,64 @@ export function buildHistoryMessages(
         .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
         .map((p) => p.text)
         .join('');
-      if (text) {
+
+      const imageParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'user-image' } => p.type === 'user-image',
+      );
+      const fileParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'user-file' } => p.type === 'user-file',
+      );
+      const textFileParts = msg.parts.filter(
+        (p): p is StoredPart & { type: 'user-text-file' } => p.type === 'user-text-file',
+      );
+
+      const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+
+      if (!text && !hasAttachments) continue;
+
+      if (!hasAttachments) {
         llmMessages.push({ role: 'user', content: text });
+        continue;
       }
+
+      type UserContentPart =
+        | { type: 'text'; text: string }
+        | { type: 'image'; image: string; mediaType?: string }
+        | { type: 'file'; data: string; mediaType: string; filename?: string };
+
+      const content: UserContentPart[] = [];
+
+      if (text) {
+        content.push({ type: 'text', text });
+      }
+
+      for (const img of imageParts) {
+        const base64 = img.dataUrl.includes(',') ? img.dataUrl.split(',')[1] : img.dataUrl;
+        content.push({
+          type: 'image',
+          image: base64,
+          mediaType: img.mime,
+        });
+      }
+
+      for (const file of fileParts) {
+        const base64 = file.dataUrl.includes(',') ? file.dataUrl.split(',')[1] : file.dataUrl;
+        content.push({
+          type: 'file',
+          data: base64,
+          mediaType: file.mime,
+          filename: file.filename,
+        });
+      }
+
+      for (const tf of textFileParts) {
+        content.push({
+          type: 'text',
+          text: `<file name="${tf.filename}">\n${tf.content}\n</file>`,
+        });
+      }
+
+      llmMessages.push({ role: 'user', content });
       continue;
     }
 

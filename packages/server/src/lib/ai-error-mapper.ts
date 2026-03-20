@@ -65,7 +65,7 @@ const NO_OUTPUT_ERROR_NAMES = new Set([
 ]);
 
 const NAME_TO_CATEGORY: Record<string, StreamErrorCategory> = {
-  DownloadError: 'api_error',
+  DownloadError: 'download_error',
   EmptyResponseBodyError: 'invalid_response',
   InvalidArgumentError: 'invalid_input',
   InvalidDataContentError: 'invalid_input',
@@ -234,6 +234,7 @@ function isRetryableCategory(category: StreamErrorCategory, statusCode?: number)
   if (category === 'unsupported') return false;
   if (category === 'retry_exhausted') return false;
   if (category === 'no_output') return false;
+  if (category === 'download_error') return false;
   if (category === 'rate_limited') return true;
 
   if (statusCode && statusCode >= 500) return true;

@@ -26,7 +26,10 @@ export type ModelSummary = {
     input?: number;
     output: number;
   };
-  modalities?: string[];
+  modalities?: {
+    input: string[];
+    output: string[];
+  };
 };
 
 export type ProviderModels = {

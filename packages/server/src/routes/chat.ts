@@ -79,6 +79,11 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     modelId: string;
     agentId: string;
     assistantMessageId: string;
+    attachments?: Array<{
+      path: string;
+      mime: string;
+      filename: string;
+    }>;
   };
 
   if (
@@ -97,6 +102,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
   const result = await sendMessage({
     sessionId,
     content: body.content,
+    attachments: body.attachments,
     providerId: body.providerId,
     modelId: body.modelId,
     agentId: body.agentId,

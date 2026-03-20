@@ -95,9 +95,17 @@ type CreateSessionInput = {
   parentSessionId?: string;
 };
 
+type Attachment = {
+  path: string;
+  previewUrl: string | null;
+  mime: string;
+  filename: string;
+};
+
 type SendMessageInput = {
   sessionId: PrefixedString<'ses'>;
   content: string;
+  attachments?: Attachment[];
   providerId: string;
   modelId: string;
   agentId: PrefixedString<'agt'>;
@@ -181,6 +189,7 @@ export function useSendMessage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: input.content,
+          attachments: input.attachments?.map(({ path, mime, filename }) => ({ path, mime, filename })),
           providerId: input.providerId,
           modelId: input.modelId,
           agentId: input.agentId,
@@ -198,18 +207,54 @@ export function useSendMessage() {
 
       if (previous) {
         const now = Date.now();
-        const optimisticPart: StoredPart = {
-          type: 'text-delta' as const,
-          id: createPartId(),
-          text: input.content,
-          startedAt: now,
-          endedAt: now,
-        };
+        const optimisticParts: StoredPart[] = [
+          {
+            type: 'text-delta' as const,
+            id: createPartId(),
+            text: input.content,
+            startedAt: now,
+            endedAt: now,
+          },
+          ...(input.attachments ?? []).map((att): StoredPart => {
+            if (att.mime.startsWith('image/')) {
+              return {
+                type: 'user-image' as const,
+                id: createPartId(),
+                dataUrl: att.previewUrl ?? '',
+                mime: att.mime,
+                filename: att.filename,
+                startedAt: now,
+                endedAt: now,
+              };
+            }
+            if (att.mime === 'application/pdf') {
+              return {
+                type: 'user-file' as const,
+                id: createPartId(),
+                dataUrl: '',
+                mime: att.mime,
+                filename: att.filename,
+                startedAt: now,
+                endedAt: now,
+              };
+            }
+            return {
+              type: 'user-text-file' as const,
+              id: createPartId(),
+              content: '',
+              mime: att.mime,
+              filename: att.filename,
+              startedAt: now,
+              endedAt: now,
+            };
+          }),
+        ];
+
         const optimisticMessage: Message = {
           id: createMessageId(),
           sessionId: input.sessionId as PrefixedString<'ses'>,
           role: 'user',
-          parts: [optimisticPart],
+          parts: optimisticParts,
           modelId: input.modelId,
             providerId: input.providerId,
             agentId: input.agentId as PrefixedString<'agt'>,

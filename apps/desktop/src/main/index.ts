@@ -1,5 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 
@@ -96,6 +99,15 @@ ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
 
 ipcMain.handle('shell:openExternal', (_event, url: string) => {
   shell.openExternal(url);
+});
+
+ipcMain.handle('files:writeTmp', async (_event, data: ArrayBuffer, ext: string) => {
+  const dir = join(tmpdir(), 'stitch-paste');
+  await mkdir(dir, { recursive: true });
+  const filename = `${randomUUID()}.${ext}`;
+  const filePath = join(dir, filename);
+  await writeFile(filePath, Buffer.from(data));
+  return filePath;
 });
 
 app.whenReady().then(async () => {

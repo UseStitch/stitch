@@ -8,6 +8,27 @@ export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet
 
 export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
+export type UserImagePart = {
+  type: 'user-image';
+  dataUrl: string;
+  mime: string;
+  filename: string;
+};
+
+export type UserFilePart = {
+  type: 'user-file';
+  dataUrl: string;
+  mime: string;
+  filename: string;
+};
+
+export type UserTextFilePart = {
+  type: 'user-text-file';
+  content: string;
+  mime: string;
+  filename: string;
+};
+
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
 export type PartId = PrefixedString<'prt'>;
@@ -77,7 +98,10 @@ export type AllPart =
   | StepFinishPart
   | CompactionPart
   | SessionTitlePart
-  | StreamErrorPart;
+  | StreamErrorPart
+  | UserImagePart
+  | UserFilePart
+  | UserTextFilePart;
 
 export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 

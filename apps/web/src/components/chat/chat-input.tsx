@@ -7,6 +7,10 @@ import {
   ChevronDownIcon,
   SquareIcon,
   BotIcon,
+  PaperclipIcon,
+  XIcon,
+  FileIcon,
+  FileTextIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -17,17 +21,76 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { visibleProviderModelsQueryOptions, type ProviderModels, type ModelSummary } from '@/lib/queries/providers';
+import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
+
+export type Attachment = {
+  id: string;
+  /** Absolute filesystem path - sent to server, never base64 encoded */
+  path: string;
+  /** Blob URL for local preview only, never sent over the wire */
+  previewUrl: string | null;
+  mime: string;
+  filename: string;
+};
+
+// Electron exposes the full path on File objects in the renderer process
+type ElectronFile = File & { path?: string };
+
+function mimeToExt(mime: string): string {
+  const map: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/bmp': 'bmp',
+  };
+  return map[mime] ?? 'bin';
+}
+
+async function fileToAttachment(file: File): Promise<Attachment | null> {
+  const ef = file as ElectronFile;
+
+  if (ef.path && ef.path.length > 0) {
+    // Electron: full path available directly
+    const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    return {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      path: ef.path,
+      previewUrl,
+      mime: file.type || 'application/octet-stream',
+      filename: file.name,
+    };
+  }
+
+  // Clipboard paste: no path - write to temp file via IPC
+  if (!window.api?.files?.writeTmp) return null;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const ext = mimeToExt(file.type);
+  const filePath = await window.api.files.writeTmp(arrayBuffer, ext);
+  const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    path: filePath,
+    previewUrl,
+    mime: file.type,
+    filename: file.name || `paste.${ext}`,
+  };
+}
 
 type ModelOption = {
   providerId: string;
   providerName: string;
   modelId: string;
   modelName: string;
-  value: string; // `${providerId}:::${modelId}`
+  value: string;
+  modelSummary: ModelSummary;
 };
 
 function buildModelOptions(providerModels: ProviderModels[]): ModelOption[] {
@@ -38,6 +101,7 @@ function buildModelOptions(providerModels: ProviderModels[]): ModelOption[] {
       modelId: model.id,
       modelName: model.name,
       value: `${provider.providerId}${SEPARATOR}${model.id}`,
+      modelSummary: model,
     })),
   );
 }
@@ -228,10 +292,64 @@ function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelector
   );
 }
 
+type AttachmentPreviewProps = {
+  attachment: Attachment;
+  onRemove: (id: string) => void;
+};
+
+function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
+  const isImage = attachment.mime.startsWith('image/');
+  const isPdf = attachment.mime === 'application/pdf';
+
+  return (
+    <div className="relative group shrink-0">
+      {isImage && attachment.previewUrl ? (
+        <div className="relative size-16 rounded-lg overflow-hidden border border-border/60 bg-muted">
+          <img
+            src={attachment.previewUrl}
+            alt={attachment.filename}
+            className="size-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/60 bg-muted max-w-40">
+          {isPdf ? (
+            <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="text-xs text-muted-foreground truncate">{attachment.filename}</span>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => onRemove(attachment.id)}
+        className={cn(
+          'absolute -top-1.5 -right-1.5 size-4 rounded-full',
+          'bg-foreground text-background flex items-center justify-center',
+          'opacity-0 group-hover:opacity-100 transition-opacity',
+          'focus-visible:opacity-100 focus-visible:outline-none',
+        )}
+      >
+        <XIcon className="size-2.5" />
+      </button>
+    </div>
+  );
+}
+
+const TEXT_FILE_ACCEPT = [
+  '.txt', '.md', '.csv', '.json', '.yaml', '.yml',
+  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
+  '.py', '.go', '.rs', '.java', '.c', '.cpp', '.h',
+  '.html', '.css', '.scss', '.sh', '.toml', '.xml',
+].join(',');
+
+const ACCEPT_ALL = `image/*,.pdf,${TEXT_FILE_ACCEPT}`;
+
 type ChatInputInnerProps = {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string, attachments: Attachment[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
   selectedModel: string | null;
@@ -262,14 +380,39 @@ function ChatInputInner({
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = React.useState<Attachment[]>([]);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  const allOptions = React.useMemo(
+    () =>
+      providerModels.flatMap((p) =>
+        p.models.map((m) => ({
+          value: `${p.providerId}${SEPARATOR}${m.id}`,
+          modelSummary: m,
+        })),
+      ),
+    [providerModels],
+  );
+
+  const selectedModelSummary = selectedModel
+    ? (allOptions.find((o) => o.value === selectedModel)?.modelSummary ?? null)
+    : null;
+
+  const canAttach = supportsAnyAttachment(selectedModelSummary);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() && !disabled) {
-        onSubmit(value);
+      if ((value.trim() || attachments.length > 0) && !disabled) {
+        submit();
       }
     }
+  }
+
+  function submit() {
+    onSubmit(value, attachments);
+    setAttachments([]);
   }
 
   // Auto-resize textarea
@@ -280,7 +423,61 @@ function ChatInputInner({
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
 
-  const canSubmit = value.trim().length > 0 && !disabled;
+  async function addFiles(files: FileList | File[]) {
+    const fileArray = Array.from(files);
+    const processed = await Promise.all(fileArray.map(fileToAttachment));
+    const valid = processed.filter((a): a is Attachment => a !== null);
+    setAttachments((prev) => [...prev, ...valid]);
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => {
+      const att = prev.find((a) => a.id === id);
+      if (att?.previewUrl) URL.revokeObjectURL(att.previewUrl);
+      return prev.filter((a) => a.id !== id);
+    });
+  }
+
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter((item) => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+    const files = imageItems
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    await addFiles(files);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      await addFiles(e.dataTransfer.files);
+    }
+  }
+
+  async function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      await addFiles(e.target.files);
+    }
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !disabled;
 
   return (
     <div
@@ -291,14 +488,45 @@ function ChatInputInner({
         embedded && 'rounded-none border-0 bg-transparent shadow-none',
         hasDockAbove && !embedded && 'rounded-t-none border-t-0 shadow-none',
         disabled && 'opacity-60',
+        isDragging && 'ring-2 ring-primary/50 border-primary/50',
       )}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={(e) => { void handleDrop(e); }}
     >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5 pointer-events-none">
+          <p className="text-sm font-medium text-primary">Drop files here</p>
+        </div>
+      )}
+
+      {/* Attachment previews */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-4 pt-3">
+          {attachments.map((att) => (
+            <AttachmentPreview key={att.id} attachment={att} onRemove={removeAttachment} />
+          ))}
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={ACCEPT_ALL}
+        className="hidden"
+        onChange={(e) => { void handleFileInputChange(e); }}
+      />
+
       {/* Textarea */}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
+        onPaste={(e) => { void handlePaste(e); }}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
@@ -313,7 +541,7 @@ function ChatInputInner({
 
       {/* Bottom bar */}
       <div className="flex items-center justify-between px-3 pb-3 pt-1">
-        {/* Left: model selector */}
+        {/* Left: selectors + attach */}
         <div className="flex items-center gap-1">
           {agents.filter((a) => a.type === 'primary').length > 1 && (
             <AgentSelectorPopover
@@ -328,6 +556,22 @@ function ChatInputInner({
               onSelect={onModelChange}
               providerModels={providerModels}
             />
+          )}
+          {canAttach && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+              className={cn(
+                'flex items-center justify-center rounded-md p-1 transition-colors',
+                'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                disabled && 'pointer-events-none',
+              )}
+              title="Attach files"
+            >
+              <PaperclipIcon className="size-3.5" />
+            </button>
           )}
         </div>
 
@@ -349,7 +593,7 @@ function ChatInputInner({
             variant={canSubmit ? 'default' : 'outline'}
             disabled={!canSubmit}
             onClick={() => {
-              if (canSubmit) onSubmit(value);
+              if (canSubmit) submit();
             }}
             className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
           >
@@ -364,7 +608,7 @@ function ChatInputInner({
 type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string, attachments: Attachment[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
   selectedModel: string | null;

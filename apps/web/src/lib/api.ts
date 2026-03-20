@@ -20,6 +20,9 @@ declare global {
       shell?: {
         openExternal: (url: string) => Promise<void>;
       };
+      files?: {
+        writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
+      };
     };
   }
 }

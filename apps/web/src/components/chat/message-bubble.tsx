@@ -1,4 +1,4 @@
-import { FileIcon } from 'lucide-react';
+import { FileIcon, FileTextIcon } from 'lucide-react';
 import * as React from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -118,10 +118,61 @@ export const MessageBubble = React.memo(function MessageBubble({
 }: MessageBubbleProps) {
   if (role === 'user') {
     const text = extractTextFromParts(parts);
+    const imageParts = parts.filter(
+      (p): p is StoredPart & { type: 'user-image' } => p.type === 'user-image',
+    );
+    const fileParts = parts.filter(
+      (p): p is StoredPart & { type: 'user-file' } => p.type === 'user-file',
+    );
+    const textFileParts = parts.filter(
+      (p): p is StoredPart & { type: 'user-text-file' } => p.type === 'user-text-file',
+    );
+    const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
-          <p className="whitespace-pre-wrap">{text}</p>
+        <div className="max-w-[80%] space-y-2">
+          {hasAttachments && (
+            <div className="flex flex-wrap gap-2 justify-end">
+              {imageParts.map((p) => (
+                <div
+                  key={p.id}
+                  className="size-20 rounded-lg overflow-hidden border border-white/20 shadow-sm bg-primary/20"
+                >
+                  {p.dataUrl ? (
+                    <img src={p.dataUrl} alt={p.filename} className="size-full object-cover" />
+                  ) : (
+                    <div className="size-full flex items-center justify-center">
+                      <FileIcon className="size-5 text-primary-foreground/50" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {fileParts.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary/20 border border-primary/30 max-w-48"
+                >
+                  <FileIcon className="size-3.5 shrink-0 text-primary-foreground/70" />
+                  <span className="text-xs text-primary-foreground/90 truncate">{p.filename}</span>
+                </div>
+              ))}
+              {textFileParts.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary/20 border border-primary/30 max-w-48"
+                >
+                  <FileTextIcon className="size-3.5 shrink-0 text-primary-foreground/70" />
+                  <span className="text-xs text-primary-foreground/90 truncate">{p.filename}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {text && (
+            <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
+              <p className="whitespace-pre-wrap">{text}</p>
+            </div>
+          )}
         </div>
       </div>
     );
