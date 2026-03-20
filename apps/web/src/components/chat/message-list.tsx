@@ -289,7 +289,7 @@ export function MessageList({
       case 'error':
         return (
           <div key="error" className="flex justify-start">
-            <div className="max-w-[85%] rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+            <div className="w-full rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
               <p className="font-medium">{row.title}</p>
               <p>{row.message}</p>
               {row.suggestion ? <p className="mt-1 text-xs text-destructive/80">{row.suggestion}</p> : null}

@@ -621,6 +621,16 @@ class StreamRunner {
     this.setFinishReason('error', 'unhandled-error');
     this.state.streamError = error;
 
+    const errorDetails = toStreamErrorDetails(mappedError);
+    this.state.accumulatedParts.push({
+      type: 'stream-error',
+      id: createPartId(),
+      error: mappedError.message,
+      details: errorDetails,
+      startedAt: this.deps.now(),
+      endedAt: this.deps.now(),
+    } as StoredPart);
+
     await this.deps.broadcast('stream-error', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,

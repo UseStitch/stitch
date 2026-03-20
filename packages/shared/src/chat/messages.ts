@@ -2,6 +2,7 @@ import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
 
 import type { PrefixedString } from '../id/index.js';
+import type { StreamErrorDetails } from '../chat/errors.js';
 
 export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
 
@@ -55,6 +56,12 @@ export type SessionTitlePart = {
   title: string;
 };
 
+export type StreamErrorPart = {
+  type: 'stream-error';
+  error: string;
+  details?: StreamErrorDetails;
+};
+
 export type AllPart =
   | TextStartPart
   | TextDeltaPart
@@ -69,7 +76,8 @@ export type AllPart =
   | StepStartPart
   | StepFinishPart
   | CompactionPart
-  | SessionTitlePart;
+  | SessionTitlePart
+  | StreamErrorPart;
 
 export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 

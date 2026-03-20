@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { APICallError } from 'ai';
 
 import { mapAIError } from '@/lib/ai-error-mapper.js';
+import { StreamPartError } from '@/lib/stream-errors.js';
 
 describe('mapAIError', () => {
   test('maps APICallError 429 to rate_limited and retryable', () => {
@@ -41,6 +42,25 @@ describe('mapAIError', () => {
     expect(result.isRetryable).toBe(false);
   });
 
+  test('maps unsupported model APICallError to unsupported and non-retryable', () => {
+    const error = new APICallError({
+      message:
+        'undefined: You invoked an unsupported model or your request did not allow prompt caching. See the documentation for more information.',
+      url: 'https://api.example.com/v1/chat',
+      requestBodyValues: {},
+      statusCode: 403,
+      responseHeaders: {},
+      responseBody: '',
+      isRetryable: true,
+    });
+
+    const result = mapAIError(error);
+
+    expect(result.category).toBe('unsupported');
+    expect(result.isRetryable).toBe(false);
+    expect(result.isContextOverflow).toBe(false);
+  });
+
   test('maps named SDK-style errors without APICallError shape', () => {
     const result = mapAIError({
       name: 'UnsupportedFunctionalityError',
@@ -50,6 +70,26 @@ describe('mapAIError', () => {
     expect(result.category).toBe('unsupported');
     expect(result.aiErrorName).toBe('UnsupportedFunctionalityError');
     expect(result.isRetryable).toBe(false);
+  });
+
+  test('unwraps StreamPartError cause to preserve original APICallError context', () => {
+    const cause = new APICallError({
+      message:
+        'undefined: You invoked an unsupported model or your request did not allow prompt caching. See the documentation for more information.',
+      url: 'https://api.example.com/v1/chat',
+      requestBodyValues: {},
+      statusCode: 403,
+      responseHeaders: {},
+      responseBody: '',
+      isRetryable: true,
+    });
+    const wrapped = new StreamPartError(cause.message, { cause });
+
+    const result = mapAIError(wrapped);
+
+    expect(result.category).toBe('unsupported');
+    expect(result.isRetryable).toBe(false);
+    expect(result.statusCode).toBe(403);
   });
 
   test('maps retry exhaustion and no-output classes', () => {

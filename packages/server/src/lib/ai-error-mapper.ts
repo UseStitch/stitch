@@ -1,5 +1,6 @@
 import { APICallError } from 'ai';
 import type { StreamErrorCategory, StreamErrorDetails } from '@stitch/shared/chat/errors';
+import { StreamPartError } from '@/lib/stream-errors.js';
 
 const OVERFLOW_PATTERNS = [
   /prompt is too long/i,
@@ -23,6 +24,7 @@ const TOO_MANY_REQUESTS_PATTERN = /too many requests|rate limit|rate_limit/i;
 const OVERLOADED_PATTERN = /overloaded|temporarily unavailable|service unavailable|server busy/i;
 const QUOTA_PATTERN = /insufficient_quota|quota exceeded|credit balance is too low|billing/i;
 const AUTH_PATTERN = /unauthorized|forbidden|invalid api key|authentication/i;
+const UNSUPPORTED_PATTERN = /unsupported model|prompt caching/i;
 
 type MappedAIError = {
   category: StreamErrorCategory;
@@ -192,6 +194,10 @@ function inferCategoryFromPayload(input: {
     return 'invalid_prompt';
   }
 
+  if (UNSUPPORTED_PATTERN.test(combined)) {
+    return 'unsupported';
+  }
+
   if ((statusCode === 401 || statusCode === 403) || AUTH_PATTERN.test(combined)) {
     return 'auth';
   }
@@ -235,6 +241,10 @@ function isRetryableCategory(category: StreamErrorCategory, statusCode?: number)
 }
 
 export function mapAIError(error: unknown, providerId?: string): MappedAIError {
+  if (error instanceof StreamPartError && error.cause !== null && error.cause !== undefined) {
+    return mapAIError(error.cause, providerId);
+  }
+
   if (error instanceof APICallError) {
     const responseHeaders = normalizeHeaders(error.responseHeaders);
     const body = parseErrorBody(error.responseBody);

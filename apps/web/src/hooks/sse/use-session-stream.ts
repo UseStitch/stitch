@@ -24,7 +24,8 @@ export function useSessionStream({ sessionId }: UseSessionStreamOptions): void {
     if (
       !streamState.isStreaming &&
       streamState.activeMessageId !== null &&
-      streamState.finishReason !== null
+      streamState.finishReason !== null &&
+      streamState.error === null
     ) {
       void queryClient
         .resetQueries({ queryKey: sessionKeys.messages(sessionId) })
@@ -34,6 +35,7 @@ export function useSessionStream({ sessionId }: UseSessionStreamOptions): void {
     streamState.isStreaming,
     streamState.finishReason,
     streamState.activeMessageId,
+    streamState.error,
     sessionId,
     queryClient,
     resetSession,
