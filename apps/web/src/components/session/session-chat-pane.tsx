@@ -149,9 +149,9 @@ export function SessionChatPane() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pb-5 pt-10" />
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
           <div className="mx-auto max-w-4xl">
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
               <DockContainer docks={docks} />
-              <div style={{ viewTransitionName: 'chat-input' }}>
+              <div>
                 <ChatInput
                   value={value}
                   onChange={setValue}

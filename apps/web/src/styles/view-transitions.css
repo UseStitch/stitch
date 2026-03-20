@@ -1,9 +1,9 @@
 :root {
   --motion-ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --motion-ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-duration-chat-enter: 220ms;
+  --motion-duration-chat-enter: 350ms;
   --motion-duration-chat-exit: 160ms;
-  --motion-duration-chat-shared: 220ms;
+  --motion-duration-chat-shared: 350ms;
 }
 
 /* Keep route switches calm by avoiding root crossfades. */
@@ -12,10 +12,10 @@
   animation: none;
 }
 
-/* Shared composer movement between index/session and session/session navigations. */
+/* Shared composer movement between index/session and session/session navigations.
+   Allow the default cross-fade so content doesn't abruptly snap during the morph. */
 ::view-transition-old(chat-input),
 ::view-transition-new(chat-input) {
-  animation: none;
   mix-blend-mode: normal;
 }
 
@@ -46,8 +46,8 @@
 
 @keyframes chat-thread-enter {
   from {
-    opacity: 0.84;
-    transform: translateY(8px);
+    opacity: 0;
+    transform: translateY(16px);
   }
 
   to {

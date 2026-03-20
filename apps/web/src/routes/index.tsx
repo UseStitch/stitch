@@ -15,7 +15,7 @@ import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { parseModelId } from '@/lib/model-id';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { enabledProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -23,6 +23,7 @@ export const Route = createFileRoute('/')({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
+      context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),

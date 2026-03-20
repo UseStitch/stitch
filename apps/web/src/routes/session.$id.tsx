@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/resizable';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { enabledProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/session/$id')({
@@ -23,6 +23,7 @@ export const Route = createFileRoute('/session/$id')({
       context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
       context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
+      context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
   component: SessionComponent,
