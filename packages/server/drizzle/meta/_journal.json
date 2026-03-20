@@ -57,6 +57,13 @@
       "when": 1773968076669,
       "tag": "0007_good_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1773974151619,
+      "tag": "0008_unusual_luminals",
+      "breakpoints": true
     }
   ]
 }

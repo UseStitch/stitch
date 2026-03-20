@@ -5,13 +5,18 @@ import {
   AlertCircleIcon,
   LoaderIcon,
   SquareIcon,
+  WrenchIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { McpServer } from '@stitch/shared/mcp/types';
 
 type ToolCardState = {
   hasError: boolean;
@@ -523,6 +528,46 @@ function FileToolBlock({
   );
 }
 
+function McpToolBlock({
+  toolName,
+  status,
+  error,
+}: {
+  toolName: string;
+  status: ToolCallStatus;
+  error?: string;
+}) {
+  const queryClient = useQueryClient();
+  const parsed = parseMcpToolName(toolName);
+  const label = getToolLabel(status, error);
+
+  const serverName = React.useMemo(() => {
+    if (!parsed) return null;
+    const servers = queryClient.getQueryData<McpServer[]>(['mcp', 'list']);
+    return servers?.find((s) => s.id === parsed.serverId)?.name ?? null;
+  }, [parsed, queryClient]);
+
+  const displayName = parsed?.toolName ?? toolName;
+
+  return (
+    <ToolCard.Root status={status}>
+      <ToolCard.Header>
+        <ToolCard.StatusIndicator status={status} />
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <ToolCard.Title>{displayName}</ToolCard.Title>
+            <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <WrenchIcon className="size-2.5" />
+              {serverName ?? 'MCP'}
+            </span>
+          </div>
+          {label ? <ToolCard.TitleContent truncate className="block">{label}</ToolCard.TitleContent> : null}
+        </div>
+      </ToolCard.Header>
+    </ToolCard.Root>
+  );
+}
+
 type ToolCallBlockProps = {
   toolName: string;
   status: ToolCallStatus;
@@ -540,12 +585,17 @@ export function ToolCallBlock({
   error,
   onAbort,
 }: ToolCallBlockProps) {
+  const isMcp = parseMcpToolName(toolName) !== null;
   const isQuestion = toolName === 'question' && args !== undefined && args !== null;
   const isWebfetch = toolName === 'webfetch' && args !== undefined && args !== null;
   const isBash = toolName === 'bash' && args !== undefined && args !== null;
   const isWrite = toolName === 'write' && args !== undefined && args !== null;
   const isEdit = toolName === 'edit' && args !== undefined && args !== null;
   const isRead = toolName === 'read' && args !== undefined && args !== null;
+
+  if (isMcp) {
+    return <McpToolBlock toolName={toolName} status={status} error={error} />;
+  }
 
   if (isQuestion) {
     return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;

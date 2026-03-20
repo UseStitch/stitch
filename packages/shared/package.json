@@ -10,6 +10,7 @@
     "./chat/messages": "./src/chat/messages.ts",
     "./chat/realtime": "./src/chat/realtime.ts",
     "./id": "./src/id/index.ts",
+    "./mcp/types": "./src/mcp/types.ts",
     "./permissions/types": "./src/permissions/types.ts",
     "./providers/catalog": "./src/providers/catalog.ts",
     "./providers/model-visibility": "./src/providers/model-visibility.ts",

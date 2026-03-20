@@ -15,6 +15,7 @@
     "@ai-sdk/anthropic": "catalog:ai",
     "@ai-sdk/google": "catalog:ai",
     "@ai-sdk/google-vertex": "catalog:ai",
+    "@ai-sdk/mcp": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
     "@aws-sdk/credential-providers": "^3.1008.0",
     "@hono/node-server": "^1.19.11",

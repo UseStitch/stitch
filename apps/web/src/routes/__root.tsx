@@ -34,6 +34,7 @@ const settingsSearchSchema = z.object({
       'providers',
       'models',
       'agents',
+      'mcp-servers',
     ])
     .optional(),
 });

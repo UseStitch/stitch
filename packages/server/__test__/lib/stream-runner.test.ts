@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
   const isOverflowMock = vi.fn(() => false);
   const createToolsMock = vi.fn(() => ({}));
   const getDisabledToolNamesMock = vi.fn(async () => new Set<string>());
+  const createMcpToolsForAgentMock = vi.fn(async () => ({}));
   const insertValuesMock = vi.fn(async () => {});
   const dbInsertMock = vi.fn(() => ({ values: insertValuesMock }));
   return {
@@ -30,6 +31,7 @@ const mocks = vi.hoisted(() => {
     isOverflowMock,
     createToolsMock,
     getDisabledToolNamesMock,
+    createMcpToolsForAgentMock,
     insertValuesMock,
     dbInsertMock,
   };
@@ -62,6 +64,10 @@ vi.mock('@/tools/index.js', () => ({
 
 vi.mock('@/agents/tool-config.js', () => ({
   getDisabledToolNames: mocks.getDisabledToolNamesMock,
+}));
+
+vi.mock('@/mcp/tool-executor.js', () => ({
+  createMcpToolsForAgent: mocks.createMcpToolsForAgentMock,
 }));
 
 vi.mock('@/provider/provider.js', () => ({

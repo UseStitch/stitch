@@ -4,6 +4,7 @@ import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'driz
 import type { AgentToolType, AgentType } from '@stitch/shared/agents/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
@@ -216,5 +217,44 @@ export const agentTools = sqliteTable(
   (table) => [
     uniqueIndex('agent_tools_agent_type_name_idx').on(table.agentId, table.toolType, table.toolName),
     check('agent_tools_type_check', sql`${table.toolType} in ('stitch', 'mcp', 'plugin')`),
+  ],
+);
+
+export const mcpServers = sqliteTable('mcp_servers', {
+  id: text('id').$type<PrefixedString<'mcp'>>().primaryKey(),
+  name: text('name').notNull(),
+  transport: text('transport').$type<McpTransport>().notNull().default('http'),
+  url: text('url').notNull(),
+  authConfig: blob('auth_config', { mode: 'json' }).$type<McpAuthConfig>().notNull(),
+  tools: blob('tools', { mode: 'json' }).$type<McpTool[]>(),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
+export const agentMcpServers = sqliteTable(
+  'agent_mcp_servers',
+  {
+    id: text('id').$type<PrefixedString<'agtmcp'>>().primaryKey(),
+    agentId: text('agent_id')
+      .$type<PrefixedString<'agt'>>()
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    mcpServerId: text('mcp_server_id')
+      .$type<PrefixedString<'mcp'>>()
+      .notNull()
+      .references(() => mcpServers.id, { onDelete: 'cascade' }),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('agent_mcp_servers_agent_server_idx').on(table.agentId, table.mcpServerId),
   ],
 );

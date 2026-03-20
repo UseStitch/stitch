@@ -4,9 +4,16 @@ import { z } from 'zod';
 
 import { AGENT_TOOL_TYPES } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
+import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
 import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
 import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
+import {
+  addMcpServerToAgent,
+  getAgentMcpServers,
+  removeMcpServerFromAgent,
+} from '@/agents/mcp-config.js';
+import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { createTools } from '@/tools/index.js';
 
@@ -44,6 +51,10 @@ const setToolEnabledSchema = z.object({
   toolType: z.enum(AGENT_TOOL_TYPES),
   toolName: z.string().min(1),
   enabled: z.boolean(),
+});
+
+const addMcpServerSchema = z.object({
+  mcpServerId: z.string().min(1),
 });
 
 agentsRouter.get('/', async (c) => {
@@ -94,7 +105,16 @@ agentsRouter.delete('/:id', async (c) => {
 
 agentsRouter.get('/:id/tool-config', async (c) => {
   const agentId = c.req.param('id') as PrefixedString<'agt'>;
-  const tools = await getAgentToolConfig(agentId, STITCH_KNOWN_TOOLS);
+
+  const mcpServersWithTools = await getMcpServersWithCachedToolsForAgent(agentId);
+  const mcpKnownTools = mcpServersWithTools.flatMap((s) =>
+    (s.tools ?? []).map((t) => ({
+      toolType: 'mcp' as const,
+      toolName: formatMcpToolName(s.id, t.name),
+    })),
+  );
+
+  const tools = await getAgentToolConfig(agentId, [...STITCH_KNOWN_TOOLS, ...mcpKnownTools]);
   return c.json({ tools });
 });
 
@@ -105,3 +125,28 @@ agentsRouter.put('/:id/tool-config', zValidator('json', setToolEnabledSchema), a
   return c.body(null, 204);
 });
 
+agentsRouter.get('/:id/mcp-servers', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const servers = await getAgentMcpServers(agentId);
+  return c.json(servers);
+});
+
+agentsRouter.post('/:id/mcp-servers', zValidator('json', addMcpServerSchema), async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const body = c.req.valid('json');
+  const result = await addMcpServerToAgent(agentId, body.mcpServerId as PrefixedString<'mcp'>);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.body(null, 204);
+});
+
+agentsRouter.delete('/:id/mcp-servers/:mcpServerId', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const mcpServerId = c.req.param('mcpServerId') as PrefixedString<'mcp'>;
+  const result = await removeMcpServerFromAgent(agentId, mcpServerId);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.body(null, 204);
+});

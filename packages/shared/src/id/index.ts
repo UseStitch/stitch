@@ -10,6 +10,8 @@ export const ID_PREFIXES = {
   agentPermission: 'perm',
   agent: 'agt',
   agentTool: 'agttool',
+  mcpServer: 'mcp',
+  agentMcpServer: 'agtmcp',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -64,6 +66,8 @@ export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permission
 export const createAgentPermissionId = createIdFactory(ID_PREFIXES.agentPermission);
 export const createAgentId = createIdFactory(ID_PREFIXES.agent);
 export const createAgentToolId = createIdFactory(ID_PREFIXES.agentTool);
+export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
+export const createAgentMcpServerId = createIdFactory(ID_PREFIXES.agentMcpServer);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

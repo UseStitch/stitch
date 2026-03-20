@@ -15,6 +15,10 @@ const config: KnipConfig = {
       entry: ['src/main/index.ts', 'src/preload/index.ts'],
       project: ['src/**/*.{ts,tsx}'],
     },
+    'packages/shared': {
+      entry: ['src/**/*.ts'],
+      project: ['src/**/*.ts'],
+    },
     'packages/*': {
       entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],

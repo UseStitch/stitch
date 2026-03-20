@@ -22,6 +22,7 @@ import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
+import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
@@ -953,12 +954,16 @@ export async function runStream(opts: {
   abortSignal: AbortSignal;
 }): Promise<void> {
   const streamRunId = randomUUID();
-  const allTools = createTools({
+  const allStitchTools = createTools({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     agentId: opts.agentId,
     streamRunId,
   });
+
+  const mcpTools = await createMcpToolsForAgent(opts.agentId);
+
+  const allTools = { ...allStitchTools, ...mcpTools };
 
   const disabledNames = await getDisabledToolNames(opts.agentId);
   const tools = Object.fromEntries(

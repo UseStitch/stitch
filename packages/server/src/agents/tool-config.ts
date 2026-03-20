@@ -36,7 +36,8 @@ export async function getAgentToolConfig(
 }
 
 /**
- * Returns the names of stitch tools that have been explicitly disabled for the given agent.
+ * Returns the names of all tools (stitch and mcp) that have been explicitly disabled for
+ * the given agent. MCP tool names are stored in prefixed form (e.g. "mcp_xxx_toolname").
  */
 export async function getDisabledToolNames(
   agentId: PrefixedString<'agt'>,
@@ -48,7 +49,6 @@ export async function getDisabledToolNames(
     .where(
       and(
         eq(agentTools.agentId, agentId),
-        eq(agentTools.toolType, 'stitch'),
         eq(agentTools.enabled, false),
       ),
     );

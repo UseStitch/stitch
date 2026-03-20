@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { Agent, AgentToolEntry, AgentToolType } from '@stitch/shared/agents/types';
+import type { McpServer } from '@stitch/shared/mcp/types';
 
 import { serverFetch } from '@/lib/api';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -9,6 +10,7 @@ const agentKeys = {
   all: ['agents'] as const,
   list: () => [...agentKeys.all, 'list'] as const,
   toolConfig: (agentId: string) => [...agentKeys.all, 'tool-config', agentId] as const,
+  mcpServers: (agentId: string) => [...agentKeys.all, 'mcp-servers', agentId] as const,
 };
 
 export const agentsQueryOptions = queryOptions({
@@ -145,6 +147,58 @@ export function useSetDefaultAgent() {
     ...saveSettingMutationOptions('agent.default', queryClient, { silent: true }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsQueryOptions.queryKey });
+    },
+  });
+}
+
+export function agentMcpServersQueryOptions(agentId: string) {
+  return queryOptions({
+    queryKey: agentKeys.mcpServers(agentId),
+    staleTime: Infinity,
+    queryFn: async (): Promise<McpServer[]> => {
+      const res = await serverFetch(`/agents/${agentId}/mcp-servers`);
+      if (!res.ok) throw new Error('Failed to fetch agent MCP servers');
+      return res.json() as Promise<McpServer[]>;
+    },
+  });
+}
+
+export function useAddMcpServerToAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { agentId: string; mcpServerId: string }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/mcp-servers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mcpServerId: input.mcpServerId }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to add MCP server to agent');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.mcpServers(input.agentId) });
+      void queryClient.invalidateQueries({ queryKey: agentKeys.toolConfig(input.agentId) });
+    },
+  });
+}
+
+export function useRemoveMcpServerFromAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { agentId: string; mcpServerId: string }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/mcp-servers/${input.mcpServerId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to remove MCP server from agent');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.mcpServers(input.agentId) });
+      void queryClient.invalidateQueries({ queryKey: agentKeys.toolConfig(input.agentId) });
     },
   });
 }

@@ -1,10 +1,12 @@
-import { ArrowLeftIcon, PlusIcon } from 'lucide-react';
+import { ArrowLeftIcon, PlusIcon, SearchIcon, ServerIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@stitch/shared/agents/types';
+import type { McpServer } from '@stitch/shared/mcp/types';
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,14 +15,18 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  agentMcpServersQueryOptions,
   agentToolConfigQueryOptions,
   agentsQueryOptions,
+  useAddMcpServerToAgent,
   useCreateAgent,
   useDeleteAgent,
+  useRemoveMcpServerFromAgent,
   useSetAgentToolEnabled,
   useSetDefaultAgent,
   useUpdateAgent,
 } from '@/lib/queries/agents';
+import { mcpServersQueryOptions } from '@/lib/queries/mcp';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type AgentEditorMode =
@@ -57,10 +63,32 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
 
 function AgentToolConfig({ agentId }: { agentId: string }) {
   const { data: toolConfig } = useSuspenseQuery(agentToolConfigQueryOptions(agentId));
+  const { data: linkedServers } = useSuspenseQuery(agentMcpServersQueryOptions(agentId));
   const setToolEnabled = useSetAgentToolEnabled();
+  const [search, setSearch] = React.useState('');
 
-  const handleToggle = (toolName: string, enabled: boolean) => {
-    void setToolEnabled.mutateAsync({ agentId, toolType: 'stitch', toolName, enabled }).catch(
+  const serverNameMap = new Map(linkedServers.map((s) => [s.id as string, s.name]));
+
+  const query = search.trim().toLowerCase();
+
+  const stitchTools = toolConfig.filter(
+    (t) => t.toolType === 'stitch' && (query === '' || (TOOL_DISPLAY_NAMES[t.toolName] ?? t.toolName).toLowerCase().includes(query)),
+  );
+
+  // Group MCP tools by server ID
+  const mcpGroups = new Map<string, { toolName: string; enabled: boolean }[]>();
+  for (const tool of toolConfig) {
+    if (tool.toolType !== 'mcp') continue;
+    const parsed = parseMcpToolName(tool.toolName);
+    if (!parsed) continue;
+    if (query !== '' && !parsed.toolName.toLowerCase().includes(query)) continue;
+    const group = mcpGroups.get(parsed.serverId) ?? [];
+    group.push({ toolName: tool.toolName, enabled: tool.enabled });
+    mcpGroups.set(parsed.serverId, group);
+  }
+
+  const handleToggle = (toolType: 'stitch' | 'mcp', toolName: string, enabled: boolean) => {
+    void setToolEnabled.mutateAsync({ agentId, toolType, toolName, enabled }).catch(
       (error: unknown) => {
         toast.error(error instanceof Error ? error.message : 'Failed to update tool');
       },
@@ -68,20 +96,174 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-md border border-border/50">
-      {toolConfig.map((tool) => (
-        <div
-          key={tool.toolName}
-          className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
-        >
-          <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
-          <Switch
-            checked={tool.enabled}
-            onCheckedChange={(checked) => handleToggle(tool.toolName, checked)}
-            disabled={setToolEnabled.isPending}
-          />
+    <div className="space-y-4">
+      <div className="relative">
+        <SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-8"
+          placeholder="Search tools..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {stitchTools.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Stitch</p>
+          <div className="overflow-hidden rounded-md border border-border/50">
+            {stitchTools.map((tool) => (
+              <div
+                key={tool.toolName}
+                className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
+              >
+                <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
+                <Switch
+                  checked={tool.enabled}
+                  onCheckedChange={(checked) => handleToggle('stitch', tool.toolName, checked)}
+                  disabled={setToolEnabled.isPending}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {Array.from(mcpGroups.entries()).map(([serverId, tools]) => (
+        <div key={serverId} className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">
+            {serverNameMap.get(serverId) ?? serverId}
+          </p>
+          <div className="overflow-hidden rounded-md border border-border/50">
+            {tools.map((tool) => {
+              const parsed = parseMcpToolName(tool.toolName);
+              return (
+                <div
+                  key={tool.toolName}
+                  className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
+                >
+                  <p className="text-sm font-mono">{parsed?.toolName ?? tool.toolName}</p>
+                  <Switch
+                    checked={tool.enabled}
+                    onCheckedChange={(checked) => handleToggle('mcp', tool.toolName, checked)}
+                    disabled={setToolEnabled.isPending}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       ))}
+
+      {stitchTools.length === 0 && mcpGroups.size === 0 && (
+        <p className="text-sm text-muted-foreground">No tools match &ldquo;{search}&rdquo;.</p>
+      )}
+    </div>
+  );
+}
+
+function AgentMcpServers({ agentId }: { agentId: string }) {
+  const { data: linked } = useSuspenseQuery(agentMcpServersQueryOptions(agentId));
+  const { data: allServers } = useSuspenseQuery(mcpServersQueryOptions);
+  const addServer = useAddMcpServerToAgent();
+  const removeServer = useRemoveMcpServerFromAgent();
+
+  const linkedIds = new Set(linked.map((s) => s.id));
+  const available = allServers.filter((s) => !linkedIds.has(s.id));
+
+  const handleAdd = async (server: McpServer) => {
+    try {
+      await addServer.mutateAsync({ agentId, mcpServerId: server.id });
+      toast.success(`${server.name} added`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server');
+    }
+  };
+
+  const handleRemove = async (server: McpServer) => {
+    try {
+      await removeServer.mutateAsync({ agentId, mcpServerId: server.id });
+      toast.success(`${server.name} removed`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {linked.length > 0 && (
+        <div className="overflow-hidden rounded-md border border-border/50">
+          {linked.map((server) => (
+            <div
+              key={server.id}
+              className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <ServerIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{server.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{server.url}</p>
+                </div>
+              </div>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => void handleRemove(server)}
+                disabled={removeServer.isPending}
+                aria-label={`Remove ${server.name}`}
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2Icon className="size-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {linked.length === 0 && (
+        <p className="text-sm text-muted-foreground">No MCP servers linked to this agent.</p>
+      )}
+
+      {available.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Add server</p>
+          <div className="overflow-hidden rounded-md border border-border/50">
+            {available.map((server) => (
+              <div
+                key={server.id}
+                className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <ServerIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{server.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{server.url}</p>
+                  </div>
+                </div>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => void handleAdd(server)}
+                  disabled={addServer.isPending}
+                  aria-label={`Add ${server.name}`}
+                  className="shrink-0"
+                >
+                  <PlusIcon className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {available.length === 0 && allServers.length > 0 && linked.length === allServers.length && (
+        <p className="text-xs text-muted-foreground">All configured MCP servers are linked.</p>
+      )}
+
+      {allServers.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No MCP servers configured. Add one in the MCP Servers settings.
+        </p>
+      )}
     </div>
   );
 }
@@ -154,6 +336,7 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
         <TabsList className="mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           {mode.type === 'edit' && <TabsTrigger value="tools">Tools</TabsTrigger>}
+          {mode.type === 'edit' && <TabsTrigger value="mcp">MCP Servers</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="general">
@@ -208,6 +391,14 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
           <TabsContent value="tools">
             <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
               <AgentToolConfig agentId={mode.agent.id} />
+            </React.Suspense>
+          </TabsContent>
+        )}
+
+        {mode.type === 'edit' && (
+          <TabsContent value="mcp">
+            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+              <AgentMcpServers agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>
         )}
