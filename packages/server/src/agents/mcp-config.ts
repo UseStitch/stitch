@@ -10,9 +10,7 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { fetchMcpTools } from '@/mcp/service.js';
 
-export async function getAgentMcpServers(
-  agentId: PrefixedString<'agt'>,
-): Promise<McpServer[]> {
+export async function getAgentMcpServers(agentId: PrefixedString<'agt'>): Promise<McpServer[]> {
   const db = getDb();
   const rows = await db
     .select({
@@ -48,12 +46,7 @@ export async function addMcpServerToAgent(
   const [alreadyLinked] = await db
     .select({ id: agentMcpServers.id })
     .from(agentMcpServers)
-    .where(
-      and(
-        eq(agentMcpServers.agentId, agentId),
-        eq(agentMcpServers.mcpServerId, mcpServerId),
-      ),
-    );
+    .where(and(eq(agentMcpServers.agentId, agentId), eq(agentMcpServers.mcpServerId, mcpServerId)));
   if (alreadyLinked) {
     return err('MCP server already added to agent', 400);
   }
@@ -90,19 +83,12 @@ export async function removeMcpServerFromAgent(
   const [existing] = await db
     .select({ id: agentMcpServers.id })
     .from(agentMcpServers)
-    .where(
-      and(
-        eq(agentMcpServers.agentId, agentId),
-        eq(agentMcpServers.mcpServerId, mcpServerId),
-      ),
-    );
+    .where(and(eq(agentMcpServers.agentId, agentId), eq(agentMcpServers.mcpServerId, mcpServerId)));
   if (!existing) {
     return err('MCP server not linked to agent', 404);
   }
 
-  await db
-    .delete(agentMcpServers)
-    .where(eq(agentMcpServers.id, existing.id));
+  await db.delete(agentMcpServers).where(eq(agentMcpServers.id, existing.id));
 
   return ok(null);
 }

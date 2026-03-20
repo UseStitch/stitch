@@ -1,14 +1,15 @@
+import { z } from 'zod';
+
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
-import { z } from 'zod';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { CommandPalette } from '@/components/command-palette';
 import { TitleBar } from '@/components/layout/title-bar';
+import { OnboardingDialog } from '@/components/onboarding-dialog';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { RightClickMenu } from '@/components/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
-import { OnboardingDialog } from '@/components/onboarding-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
@@ -40,7 +41,6 @@ const settingsSearchSchema = z.object({
 });
 
 export type SettingsTab = z.infer<typeof settingsSearchSchema>['settings'];
-
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,

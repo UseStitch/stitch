@@ -2,8 +2,8 @@ import { useMemo, useRef, useCallback, useEffect } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-import type { Message } from '@stitch/shared/chat/messages';
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
+import type { Message } from '@stitch/shared/chat/messages';
 
 import {
   MessageBubble,
@@ -89,7 +89,8 @@ function buildRows(
       continue;
     }
 
-    const isFirstUserMessage = msg.role === 'user' && !rows.some((r) => r.kind === 'message' && r.role === 'user');
+    const isFirstUserMessage =
+      msg.role === 'user' && !rows.some((r) => r.kind === 'message' && r.role === 'user');
 
     rows.push({
       kind: 'message',
@@ -278,7 +279,11 @@ export function MessageList({
             parts={row.parts}
             finishReason={row.finishReason}
             onAbortTool={onAbortTool}
-            onSplit={row.role === 'user' && !row.isFirstUserMessage && onSplit ? () => onSplit(row.id) : undefined}
+            onSplit={
+              row.role === 'user' && !row.isFirstUserMessage && onSplit
+                ? () => onSplit(row.id)
+                : undefined
+            }
           />
         );
 
@@ -298,7 +303,9 @@ export function MessageList({
             <div className="w-full rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
               <p className="font-medium">{row.title}</p>
               <p>{row.message}</p>
-              {row.suggestion ? <p className="mt-1 text-xs text-destructive/80">{row.suggestion}</p> : null}
+              {row.suggestion ? (
+                <p className="mt-1 text-xs text-destructive/80">{row.suggestion}</p>
+              ) : null}
             </div>
           </div>
         );

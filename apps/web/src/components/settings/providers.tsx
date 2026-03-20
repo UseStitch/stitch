@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 

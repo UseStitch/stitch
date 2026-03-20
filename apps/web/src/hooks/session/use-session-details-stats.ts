@@ -125,14 +125,16 @@ export function useSessionDetailsStats(): SessionDetailsStats {
   const selectedModelSummary = React.useMemo(() => {
     if (!latestMessage || !providerModelsQuery.data) return null;
 
-    const provider = providerModelsQuery.data.find((item) => item.providerId === latestMessage.providerId);
+    const provider = providerModelsQuery.data.find(
+      (item) => item.providerId === latestMessage.providerId,
+    );
     return provider?.models.find((item) => item.id === latestMessage.modelId) ?? null;
   }, [latestMessage, providerModelsQuery.data]);
 
   const providerLabel =
     latestMessage && providersQuery.data
-      ? providersQuery.data.find((provider) => provider.id === latestMessage.providerId)?.name ??
-        latestMessage.providerId
+      ? (providersQuery.data.find((provider) => provider.id === latestMessage.providerId)?.name ??
+        latestMessage.providerId)
       : '-';
 
   return {

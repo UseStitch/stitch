@@ -11,8 +11,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mcpServersQueryOptions, mcpToolsQueryOptions, useAddMcpServer, useDeleteMcpServer } from '@/lib/queries/mcp';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  mcpServersQueryOptions,
+  mcpToolsQueryOptions,
+  useAddMcpServer,
+  useDeleteMcpServer,
+} from '@/lib/queries/mcp';
 
 const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description: string }> = {
   none: { label: 'No auth', description: 'Open server, no credentials needed' },
@@ -111,9 +122,7 @@ function McpToolsPreview({ server, onBack }: { server: McpServer; onBack: () => 
         </div>
       </div>
 
-      {isLoading && (
-        <p className="text-sm text-muted-foreground">Connecting to server...</p>
-      )}
+      {isLoading && <p className="text-sm text-muted-foreground">Connecting to server...</p>}
 
       {isError && (
         <p className="text-sm text-destructive">
@@ -226,21 +235,18 @@ function AddMcpServer({ onBack }: { onBack: () => void }) {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-          <Select
-            value={form.authType}
-            onValueChange={(v) => set('authType', v as McpAuthType)}
-          >
+          <Select value={form.authType} onValueChange={(v) => set('authType', v as McpAuthType)}>
             <SelectTrigger className="w-full">
-              <SelectValue>
-                {AUTH_TYPE_LABELS[form.authType].label}
-              </SelectValue>
+              <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
             </SelectTrigger>
             <SelectContent className="w-72" alignItemWithTrigger={false}>
               {MCP_AUTH_TYPES.map((type) => (
                 <SelectItem key={type} value={type} className="items-start py-2">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium">{AUTH_TYPE_LABELS[type].label}</span>
-                    <span className="text-xs text-muted-foreground leading-snug">{AUTH_TYPE_LABELS[type].description}</span>
+                    <span className="text-xs text-muted-foreground leading-snug">
+                      {AUTH_TYPE_LABELS[type].description}
+                    </span>
                   </div>
                 </SelectItem>
               ))}
@@ -263,10 +269,7 @@ function AddMcpServer({ onBack }: { onBack: () => void }) {
         {form.authType === 'headers' && (
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
-            <HeaderRows
-              rows={form.headers}
-              onChange={(rows) => set('headers', rows)}
-            />
+            <HeaderRows rows={form.headers} onChange={(rows) => set('headers', rows)} />
           </div>
         )}
 
@@ -360,10 +363,7 @@ function McpServerList({
   );
 }
 
-type View =
-  | { type: 'list' }
-  | { type: 'add' }
-  | { type: 'preview'; server: McpServer };
+type View = { type: 'list' } | { type: 'add' } | { type: 'preview'; server: McpServer };
 
 function McpServersContent() {
   const [view, setView] = React.useState<View>({ type: 'list' });
@@ -373,12 +373,7 @@ function McpServersContent() {
   }
 
   if (view.type === 'preview') {
-    return (
-      <McpToolsPreview
-        server={view.server}
-        onBack={() => setView({ type: 'list' })}
-      />
-    );
+    return <McpToolsPreview server={view.server} onBack={() => setView({ type: 'list' })} />;
   }
 
   return (

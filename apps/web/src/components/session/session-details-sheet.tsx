@@ -55,7 +55,15 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DetailRow({ label, value, sublabel }: { label: string; value: string; sublabel?: string }) {
+function DetailRow({
+  label,
+  value,
+  sublabel,
+}: {
+  label: string;
+  value: string;
+  sublabel?: string;
+}) {
   return (
     <div className="space-y-1">
       <p className="text-[13px] text-muted-foreground">{label}</p>
@@ -105,13 +113,20 @@ export function SessionDetailsSheet({
             <DetailItem label="Last Activity" value={formatDate(lastActivityAt)} />
             <DetailItem label="User Messages" value={formatNumber(userMessageCount)} />
             <DetailItem label="Assistant Messages" value={formatNumber(assistantMessageCount)} />
-            <DetailItem label="Context Limit" value={contextLimit ? formatNumber(contextLimit) : '-'} />
+            <DetailItem
+              label="Context Limit"
+              value={contextLimit ? formatNumber(contextLimit) : '-'}
+            />
             <DetailItem label="Reasoning Tokens" value={formatNumber(reasoningTokens)} />
             <DetailItem label="Input Tokens" value={formatNumber(inputTokens)} />
             <DetailItem label="Output Tokens" value={formatNumber(outputTokens)} />
             <DetailItem label="Cache Read" value={formatNumber(cacheReadTokens)} />
             <DetailItem label="Cache Write" value={formatNumber(cacheWriteTokens)} />
-            <DetailRow label="Total Tokens" value={formatNumber(totalTokens)} sublabel={`(${usagePercent})`} />
+            <DetailRow
+              label="Total Tokens"
+              value={formatNumber(totalTokens)}
+              sublabel={`(${usagePercent})`}
+            />
             <DetailItem label="Total Cost" value={USD_FORMATTER.format(totalCostUsd)} />
           </div>
         </div>

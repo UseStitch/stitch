@@ -39,9 +39,7 @@ export async function deleteVisibility(
   const db = getDb();
   const deleted = await db
     .delete(modelVisibility)
-    .where(
-      and(eq(modelVisibility.providerId, providerId), eq(modelVisibility.modelId, modelId)),
-    )
+    .where(and(eq(modelVisibility.providerId, providerId), eq(modelVisibility.modelId, modelId)))
     .returning({ providerId: modelVisibility.providerId });
 
   if (deleted.length === 0) {

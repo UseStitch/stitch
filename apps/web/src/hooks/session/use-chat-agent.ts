@@ -46,7 +46,10 @@ export function useChatAgent(input?: UseChatAgentInput): UseChatAgentResult {
   }, [input?.lastUsedAgentId, primaryAgents]);
 
   const savedPrimaryAgentId = React.useMemo(() => {
-    return resolvePrimaryAgentId(settings['agent.default'] as PrefixedString<'agt'> | undefined, primaryAgents);
+    return resolvePrimaryAgentId(
+      settings['agent.default'] as PrefixedString<'agt'> | undefined,
+      primaryAgents,
+    );
   }, [primaryAgents, settings]);
 
   const selectedAgent =

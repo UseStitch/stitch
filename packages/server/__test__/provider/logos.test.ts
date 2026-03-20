@@ -30,9 +30,9 @@ describe('provider logos cache', () => {
   test('fetches and caches logo on cache miss', async () => {
     await using tmp = await tmpdir();
 
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response('<svg>remote</svg>', { status: 200 }),
-    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('<svg>remote</svg>', { status: 200 }));
 
     const logo = await ProviderLogos.get('openai', { cacheDir: tmp.path, fetchImpl });
     const cached = await fs.readFile(path.join(tmp.path, 'openai.svg'), 'utf8');
@@ -45,10 +45,14 @@ describe('provider logos cache', () => {
   test('returns undefined when upstream logo is missing', async () => {
     await using tmp = await tmpdir();
 
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response('missing', { status: 404 }));
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('missing', { status: 404 }));
 
     const logo = await ProviderLogos.get('openai', { cacheDir: tmp.path, fetchImpl });
-    const cached = await fs.readFile(path.join(tmp.path, 'openai.svg'), 'utf8').catch(() => undefined);
+    const cached = await fs
+      .readFile(path.join(tmp.path, 'openai.svg'), 'utf8')
+      .catch(() => undefined);
 
     expect(logo).toBeUndefined();
     expect(cached).toBeUndefined();

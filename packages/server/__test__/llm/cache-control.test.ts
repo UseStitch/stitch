@@ -1,8 +1,11 @@
 import { describe, test, expect } from 'vitest';
 
+import {
+  addCacheControlToMessages,
+  getCacheConfig,
+  getProviderOptions,
+} from '@/llm/cache-control.js';
 import type { ModelMessage } from 'ai';
-
-import { addCacheControlToMessages, getCacheConfig, getProviderOptions } from '@/llm/cache-control.js';
 
 describe('getCacheConfig', () => {
   test('returns anthropic config for anthropic provider', () => {

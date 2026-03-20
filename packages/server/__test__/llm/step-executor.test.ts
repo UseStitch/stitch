@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import type { LanguageModelUsage } from 'ai';
+
 import { PermissionRejectedError, StreamAbortedError } from '@/lib/stream-errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
+import type { LanguageModelUsage } from 'ai';
 
 const ZERO_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -157,7 +158,12 @@ describe('executeStepWithRetry', () => {
   test('suppresses retry when step fails after tool side effects', async () => {
     mocks.streamTextMock.mockReturnValue({
       fullStream: (async function* () {
-        yield { type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: { command: 'pwd' } };
+        yield {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+        };
         throw new Error('provider stream failed after tool call');
       })(),
       response: Promise.resolve({ messages: [] }),
@@ -192,10 +198,31 @@ describe('executeStepWithRetry', () => {
 
     mocks.streamTextMock.mockReturnValue({
       fullStream: (async function* () {
-        yield { type: 'tool-call', toolCallId: 'call_search', toolName: 'web_search_exa', input: { query: 'frc 2026' } };
-        yield { type: 'tool-call', toolCallId: 'call_fetch', toolName: 'webfetch', input: { url: 'https://example.com' } };
-        yield { type: 'tool-error', toolCallId: 'call_fetch', toolName: 'webfetch', error: permissionError };
-        yield { type: 'tool-result', toolCallId: 'call_search', toolName: 'web_search_exa', input: { query: 'frc 2026' }, output: { results: 'Blue Alliance won' } };
+        yield {
+          type: 'tool-call',
+          toolCallId: 'call_search',
+          toolName: 'web_search_exa',
+          input: { query: 'frc 2026' },
+        };
+        yield {
+          type: 'tool-call',
+          toolCallId: 'call_fetch',
+          toolName: 'webfetch',
+          input: { url: 'https://example.com' },
+        };
+        yield {
+          type: 'tool-error',
+          toolCallId: 'call_fetch',
+          toolName: 'webfetch',
+          error: permissionError,
+        };
+        yield {
+          type: 'tool-result',
+          toolCallId: 'call_search',
+          toolName: 'web_search_exa',
+          input: { query: 'frc 2026' },
+          output: { results: 'Blue Alliance won' },
+        };
         yield { type: 'finish', finishReason: 'tool-calls', totalUsage: ZERO_USAGE };
       })(),
       response: Promise.resolve({ messages: [] }),
@@ -227,5 +254,4 @@ describe('executeStepWithRetry', () => {
     expect(searchResult).toBeDefined();
     expect(searchResult?.output).toEqual({ results: 'Blue Alliance won' });
   });
-
 });

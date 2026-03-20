@@ -1,8 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 

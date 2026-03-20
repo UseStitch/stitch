@@ -2,7 +2,10 @@ import * as React from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
-import type { CompactionStartPayload, CompactionCompletePayload } from '@stitch/shared/chat/realtime';
+import type {
+  CompactionStartPayload,
+  CompactionCompletePayload,
+} from '@stitch/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';

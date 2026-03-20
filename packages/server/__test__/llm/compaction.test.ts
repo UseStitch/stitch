@@ -5,7 +5,6 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { isOverflow } from '@/llm/compaction.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 
-
 describe('isOverflow', () => {
   const defaultLimits = { context: 200_000, output: 8_192 };
 

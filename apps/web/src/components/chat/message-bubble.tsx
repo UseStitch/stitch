@@ -1,9 +1,9 @@
 import { FileIcon, FileTextIcon, GitForkIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { StoredPart } from '@stitch/shared/chat/messages';
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
+import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
@@ -129,7 +129,8 @@ export const MessageBubble = React.memo(function MessageBubble({
     const textFileParts = parts.filter(
       (p): p is StoredPart & { type: 'user-text-file' } => p.type === 'user-text-file',
     );
-    const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+    const hasAttachments =
+      imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
 
     return (
       <div className="group flex justify-end">
@@ -199,13 +200,18 @@ export const MessageBubble = React.memo(function MessageBubble({
   const hadError = finishReason === 'error';
 
   const streamErrorPart = hadError
-    ? (parts.find((p) => p.type === 'stream-error') as (StoredPart & { type: 'stream-error'; error: string; details?: StreamErrorDetails }) | undefined)
+    ? (parts.find((p) => p.type === 'stream-error') as
+        | (StoredPart & { type: 'stream-error'; error: string; details?: StreamErrorDetails })
+        | undefined)
     : undefined;
 
   const userFacingError = streamErrorPart
     ? toUserFacingStreamError({ error: streamErrorPart.error, details: streamErrorPart.details })
     : hadError && segments.length === 0
-      ? { title: 'Request failed', message: 'The request failed. Check your model and provider settings and try again.' }
+      ? {
+          title: 'Request failed',
+          message: 'The request failed. Check your model and provider settings and try again.',
+        }
       : undefined;
 
   return (
@@ -214,7 +220,9 @@ export const MessageBubble = React.memo(function MessageBubble({
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           <p className="font-medium">{userFacingError.title}</p>
           <p>{userFacingError.message}</p>
-          {userFacingError.suggestion ? <p className="mt-1 text-xs text-destructive/80">{userFacingError.suggestion}</p> : null}
+          {userFacingError.suggestion ? (
+            <p className="mt-1 text-xs text-destructive/80">{userFacingError.suggestion}</p>
+          ) : null}
         </div>
       )}
       {segments.map((seg) => {

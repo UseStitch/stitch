@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import {
   deleteProviderCredentials,
   getProvider,
@@ -13,7 +14,6 @@ import {
   listProviders,
   upsertProviderCredentials,
 } from '@/provider/service.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'provider-routes' });
 

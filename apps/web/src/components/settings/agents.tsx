@@ -72,7 +72,10 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   const query = search.trim().toLowerCase();
 
   const stitchTools = toolConfig.filter(
-    (t) => t.toolType === 'stitch' && (query === '' || (TOOL_DISPLAY_NAMES[t.toolName] ?? t.toolName).toLowerCase().includes(query)),
+    (t) =>
+      t.toolType === 'stitch' &&
+      (query === '' ||
+        (TOOL_DISPLAY_NAMES[t.toolName] ?? t.toolName).toLowerCase().includes(query)),
   );
 
   // Group MCP tools by server ID
@@ -88,11 +91,11 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   }
 
   const handleToggle = (toolType: 'stitch' | 'mcp', toolName: string, enabled: boolean) => {
-    void setToolEnabled.mutateAsync({ agentId, toolType, toolName, enabled }).catch(
-      (error: unknown) => {
+    void setToolEnabled
+      .mutateAsync({ agentId, toolType, toolName, enabled })
+      .catch((error: unknown) => {
         toast.error(error instanceof Error ? error.message : 'Failed to update tool');
-      },
-    );
+      });
   };
 
   return (
@@ -323,7 +326,9 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div>
-          <h2 className="text-base font-bold">{mode.type === 'create' ? 'Add Agent' : 'Edit Agent'}</h2>
+          <h2 className="text-base font-bold">
+            {mode.type === 'create' ? 'Add Agent' : 'Edit Agent'}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode.type === 'create'
               ? 'Create a new primary agent'
@@ -353,11 +358,15 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
             <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Use base prompt</p>
-                <p className="text-xs text-muted-foreground">Use the default system prompt for this agent</p>
+                <p className="text-xs text-muted-foreground">
+                  Use the default system prompt for this agent
+                </p>
               </div>
               <Switch
                 checked={form.useBasePrompt}
-                onCheckedChange={(checked) => setForm((prev) => ({ ...prev, useBasePrompt: checked }))}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, useBasePrompt: checked }))
+                }
               />
             </div>
 
@@ -389,7 +398,9 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
 
         {mode.type === 'edit' && (
           <TabsContent value="tools">
-            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}
+            >
               <AgentToolConfig agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>
@@ -397,7 +408,9 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
 
         {mode.type === 'edit' && (
           <TabsContent value="mcp">
-            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading...</div>}
+            >
               <AgentMcpServers agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>
@@ -407,7 +420,13 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
   );
 }
 
-function AgentsList({ onEdit, onCreate }: { onEdit: (agent: Agent) => void; onCreate: () => void }) {
+function AgentsList({
+  onEdit,
+  onCreate,
+}: {
+  onEdit: (agent: Agent) => void;
+  onCreate: () => void;
+}) {
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const deleteAgent = useDeleteAgent();
@@ -438,7 +457,9 @@ function AgentsList({ onEdit, onCreate }: { onEdit: (agent: Agent) => void; onCr
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-bold">Agents</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Manage primary agents and prompt settings</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage primary agents and prompt settings
+          </p>
         </div>
         <Button size="icon-sm" onClick={onCreate} aria-label="Add agent">
           <PlusIcon className="size-4" />
@@ -502,7 +523,10 @@ function AgentsContent() {
   }
 
   return (
-    <AgentsList onCreate={() => setMode({ type: 'create' })} onEdit={(agent) => setMode({ type: 'edit', agent })} />
+    <AgentsList
+      onCreate={() => setMode({ type: 'create' })}
+      onEdit={(agent) => setMode({ type: 'edit', agent })}
+    />
   );
 }
 

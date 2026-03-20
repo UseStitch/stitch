@@ -17,15 +17,10 @@ export async function getAgentToolConfig(
   knownTools: { toolType: AgentToolType; toolName: string }[],
 ): Promise<AgentToolEntry[]> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(agentTools)
-    .where(eq(agentTools.agentId, agentId));
+  const rows = await db.select().from(agentTools).where(eq(agentTools.agentId, agentId));
 
   const disabledSet = new Set(
-    rows
-      .filter((r) => !r.enabled)
-      .map((r) => `${r.toolType}:${r.toolName}`),
+    rows.filter((r) => !r.enabled).map((r) => `${r.toolType}:${r.toolName}`),
   );
 
   return knownTools.map((t) => ({
@@ -39,19 +34,12 @@ export async function getAgentToolConfig(
  * Returns the names of all tools (stitch and mcp) that have been explicitly disabled for
  * the given agent. MCP tool names are stored in prefixed form (e.g. "mcp_xxx_toolname").
  */
-export async function getDisabledToolNames(
-  agentId: PrefixedString<'agt'>,
-): Promise<Set<string>> {
+export async function getDisabledToolNames(agentId: PrefixedString<'agt'>): Promise<Set<string>> {
   const db = getDb();
   const rows = await db
     .select({ toolName: agentTools.toolName })
     .from(agentTools)
-    .where(
-      and(
-        eq(agentTools.agentId, agentId),
-        eq(agentTools.enabled, false),
-      ),
-    );
+    .where(and(eq(agentTools.agentId, agentId), eq(agentTools.enabled, false)));
 
   return new Set(rows.map((r) => r.toolName));
 }

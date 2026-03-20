@@ -9,14 +9,14 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
-
-import { useQueryClient } from '@tanstack/react-query';
+import type { McpServer } from '@stitch/shared/mcp/types';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { McpServer } from '@stitch/shared/mcp/types';
 
 type ToolCardState = {
   hasError: boolean;
@@ -114,7 +114,11 @@ function ToolCardStatusIndicator({
 }
 
 function ToolCardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('text-sm leading-tight font-medium capitalize', className)}>{children}</span>;
+  return (
+    <span className={cn('text-sm leading-tight font-medium capitalize', className)}>
+      {children}
+    </span>
+  );
 }
 
 function ToolCardTitleContent({
@@ -341,7 +345,11 @@ function GenericToolBlock({
         <ToolCard.StatusIndicator status={status} />
         <div className="min-w-0 flex-1 space-y-1">
           <ToolCard.Title>{toolName}</ToolCard.Title>
-          {label ? <ToolCard.TitleContent truncate className="block">{label}</ToolCard.TitleContent> : null}
+          {label ? (
+            <ToolCard.TitleContent truncate className="block">
+              {label}
+            </ToolCard.TitleContent>
+          ) : null}
         </div>
       </ToolCard.Header>
     </ToolCard.Root>
@@ -561,7 +569,11 @@ function McpToolBlock({
               {serverName ?? 'MCP'}
             </span>
           </div>
-          {label ? <ToolCard.TitleContent truncate className="block">{label}</ToolCard.TitleContent> : null}
+          {label ? (
+            <ToolCard.TitleContent truncate className="block">
+              {label}
+            </ToolCard.TitleContent>
+          ) : null}
         </div>
       </ToolCard.Header>
     </ToolCard.Root>
@@ -614,14 +626,7 @@ export function ToolCallBlock({
   }
 
   if (isBash) {
-    return (
-      <BashToolBlock
-        toolName={toolName}
-        status={status}
-        args={args}
-        onAbort={onAbort}
-      />
-    );
+    return <BashToolBlock toolName={toolName} status={status} args={args} onAbort={onAbort} />;
   }
 
   if (isWrite) {

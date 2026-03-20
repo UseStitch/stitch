@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import type { SessionTitleUpdatePayload } from '@stitch/shared/chat/realtime';
 import type { Session } from '@stitch/shared/chat/messages';
+import type { SessionTitleUpdatePayload } from '@stitch/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';

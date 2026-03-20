@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
 import { zValidator } from '@hono/zod-validator';
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -24,8 +24,6 @@ const alternativeBodySchema = z.object({
 });
 
 export const permissionsRouter = new Hono();
-
-
 
 permissionsRouter.get('/sessions/:id/permission-responses', async (c) => {
   const db = getDb();

@@ -2,11 +2,15 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { LanguageModelUsage, ModelMessage } from 'ai';
-import type { ProviderCredentials } from '@/provider/provider.js';
 
-import { ContextOverflowError, PermissionRejectedError, StreamAbortedError } from '@/lib/stream-errors.js';
+import {
+  ContextOverflowError,
+  PermissionRejectedError,
+  StreamAbortedError,
+} from '@/lib/stream-errors.js';
 import { runStream } from '@/lib/stream-runner.js';
+import type { ProviderCredentials } from '@/provider/provider.js';
+import type { LanguageModelUsage, ModelMessage } from 'ai';
 
 const mocks = vi.hoisted(() => {
   const broadcastMock = vi.fn(async () => {});
@@ -156,14 +160,13 @@ describe('runStream', () => {
   });
 
   test('continues to next step when tool calls exist even if finish reason is stop', async () => {
-    mocks.executeStepWithRetryMock
-      .mockResolvedValueOnce({
-        finishReason: 'stop',
-        usage: ZERO_USAGE,
-        toolCalls: [{ toolName: 'bash', inputJson: '{"command":"pwd"}' }],
-        responseMessages: [],
-        protocolViolationCount: 0,
-      });
+    mocks.executeStepWithRetryMock.mockResolvedValueOnce({
+      finishReason: 'stop',
+      usage: ZERO_USAGE,
+      toolCalls: [{ toolName: 'bash', inputJson: '{"command":"pwd"}' }],
+      responseMessages: [],
+      protocolViolationCount: 0,
+    });
 
     await runStream(getDefaultOpts());
 
@@ -172,8 +175,8 @@ describe('runStream', () => {
   });
 
   test('runs final synthesis fallback when tool results exist without user-facing text', async () => {
-    mocks.executeStepWithRetryMock
-      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
         opts.accumulatedParts.push({
           type: 'tool-call',
           id: 'prt_call_1' as StoredPart['id'],
@@ -201,7 +204,8 @@ describe('runStream', () => {
           responseMessages: [],
           protocolViolationCount: 0,
         };
-      });
+      },
+    );
 
     await runStream(getDefaultOpts());
 
@@ -224,8 +228,8 @@ describe('runStream', () => {
   });
 
   test('runs final synthesis when only pre-tool text exists without trailing answer', async () => {
-    mocks.executeStepWithRetryMock
-      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
         opts.accumulatedParts.push({
           type: 'text-delta',
           id: 'prt_text_1' as StoredPart['id'],
@@ -260,7 +264,8 @@ describe('runStream', () => {
           responseMessages: [],
           protocolViolationCount: 0,
         };
-      });
+      },
+    );
 
     await runStream(getDefaultOpts());
 
@@ -385,18 +390,20 @@ describe('runStream', () => {
   });
 
   test('marks in-flight tool calls as aborted and skips compaction on abort', async () => {
-    mocks.executeStepWithRetryMock.mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
-      opts.accumulatedParts.push({
-        type: 'tool-call',
-        id: 'prt_call_1' as StoredPart['id'],
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        input: { command: 'pwd' },
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
-      throw new StreamAbortedError();
-    });
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_1' as StoredPart['id'],
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        throw new StreamAbortedError();
+      },
+    );
 
     await runStream(getDefaultOpts());
 
@@ -434,8 +441,8 @@ describe('runStream', () => {
   test('runs error-path synthesis when tools completed but no trailing user text', async () => {
     const boom = new Error('boom');
 
-    mocks.executeStepWithRetryMock
-      .mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
         opts.accumulatedParts.push({
           type: 'tool-call',
           id: 'prt_call_1' as StoredPart['id'],
@@ -456,7 +463,8 @@ describe('runStream', () => {
           endedAt: 1,
         } as StoredPart);
         throw boom;
-      });
+      },
+    );
 
     await expect(runStream(getDefaultOpts())).rejects.toThrow('boom');
 
@@ -490,25 +498,27 @@ describe('runStream', () => {
   });
 
   test('repairs missing tool results before persist', async () => {
-    mocks.executeStepWithRetryMock.mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
-      opts.accumulatedParts.push({
-        type: 'tool-call',
-        id: 'prt_call_1' as StoredPart['id'],
-        toolCallId: 'call_missing',
-        toolName: 'webfetch',
-        input: { url: 'https://example.com' },
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_1' as StoredPart['id'],
+          toolCallId: 'call_missing',
+          toolName: 'webfetch',
+          input: { url: 'https://example.com' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
 
-      return {
-        finishReason: 'stop',
-        usage: ZERO_USAGE,
-        toolCalls: [],
-        responseMessages: [],
-        protocolViolationCount: 0,
-      };
-    });
+        return {
+          finishReason: 'stop',
+          usage: ZERO_USAGE,
+          toolCalls: [],
+          responseMessages: [],
+          protocolViolationCount: 0,
+        };
+      },
+    );
 
     await runStream(getDefaultOpts());
 
@@ -531,47 +541,49 @@ describe('runStream', () => {
   });
 
   test('preserves real tool results from parallel calls when permission is rejected', async () => {
-    mocks.executeStepWithRetryMock.mockImplementationOnce(async (opts: { accumulatedParts: StoredPart[] }) => {
-      opts.accumulatedParts.push({
-        type: 'tool-call',
-        id: 'prt_call_search' as StoredPart['id'],
-        toolCallId: 'call_search',
-        toolName: 'web_search_exa',
-        input: { query: 'frc 2026' },
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
-      opts.accumulatedParts.push({
-        type: 'tool-call',
-        id: 'prt_call_fetch' as StoredPart['id'],
-        toolCallId: 'call_fetch',
-        toolName: 'webfetch',
-        input: { url: 'https://example.com' },
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
-      opts.accumulatedParts.push({
-        type: 'tool-result',
-        id: 'prt_result_fetch' as StoredPart['id'],
-        toolCallId: 'call_fetch',
-        toolName: 'webfetch',
-        output: { error: 'PermissionRejectedError: User rejected tool execution for webfetch' },
-        truncated: false,
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
-      opts.accumulatedParts.push({
-        type: 'tool-result',
-        id: 'prt_result_search' as StoredPart['id'],
-        toolCallId: 'call_search',
-        toolName: 'web_search_exa',
-        output: { results: 'Blue Alliance won' },
-        truncated: false,
-        startedAt: 1,
-        endedAt: 1,
-      } as StoredPart);
-      throw new PermissionRejectedError('webfetch');
-    });
+    mocks.executeStepWithRetryMock.mockImplementationOnce(
+      async (opts: { accumulatedParts: StoredPart[] }) => {
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_search' as StoredPart['id'],
+          toolCallId: 'call_search',
+          toolName: 'web_search_exa',
+          input: { query: 'frc 2026' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-call',
+          id: 'prt_call_fetch' as StoredPart['id'],
+          toolCallId: 'call_fetch',
+          toolName: 'webfetch',
+          input: { url: 'https://example.com' },
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-result',
+          id: 'prt_result_fetch' as StoredPart['id'],
+          toolCallId: 'call_fetch',
+          toolName: 'webfetch',
+          output: { error: 'PermissionRejectedError: User rejected tool execution for webfetch' },
+          truncated: false,
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        opts.accumulatedParts.push({
+          type: 'tool-result',
+          id: 'prt_result_search' as StoredPart['id'],
+          toolCallId: 'call_search',
+          toolName: 'web_search_exa',
+          output: { results: 'Blue Alliance won' },
+          truncated: false,
+          startedAt: 1,
+          endedAt: 1,
+        } as StoredPart);
+        throw new PermissionRejectedError('webfetch');
+      },
+    );
 
     await runStream(getDefaultOpts());
 
@@ -593,7 +605,8 @@ describe('runStream', () => {
 
     const syntheticResults = insertedAssistant.parts.filter(
       (p): p is StoredPart & { type: 'tool-result' } =>
-        p.type === 'tool-result' && (p.output as Record<string, unknown>)?.error === 'Missing tool result',
+        p.type === 'tool-result' &&
+        (p.output as Record<string, unknown>)?.error === 'Missing tool result',
     );
     expect(syntheticResults).toHaveLength(0);
   });

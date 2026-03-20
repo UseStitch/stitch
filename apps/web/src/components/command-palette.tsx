@@ -53,7 +53,10 @@ export function CommandPalette() {
                     {hotkey && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
                         {info?.isSequence
-                          ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')].map((key, i) => (
+                          ? [
+                              ...formatForDisplay(hotkey).split('+'),
+                              ...formatForDisplay(hotkey).split('+'),
+                            ].map((key, i) => (
                               <kbd
                                 key={i}
                                 className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
@@ -61,14 +64,16 @@ export function CommandPalette() {
                                 {key}
                               </kbd>
                             ))
-                          : formatForDisplay(hotkey).split('+').map((key, i) => (
-                              <kbd
-                                key={i}
-                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
-                              >
-                                {key}
-                              </kbd>
-                            ))}
+                          : formatForDisplay(hotkey)
+                              .split('+')
+                              .map((key, i) => (
+                                <kbd
+                                  key={i}
+                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                                >
+                                  {key}
+                                </kbd>
+                              ))}
                       </span>
                     )}
                   </CommandItem>

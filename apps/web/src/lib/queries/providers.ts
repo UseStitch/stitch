@@ -1,9 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import {
-  buildDefaultVisibleSet,
-  isModelVisible,
-} from '@stitch/shared/providers/model-visibility';
+import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
 import { serverFetch } from '@/lib/api';
 
@@ -105,7 +102,12 @@ export const visibleProviderModelsQueryOptions = queryOptions({
     const allProviderModels = await Promise.all(
       enabled.map(async (provider) => {
         const res = await serverFetch(`/provider/${provider.id}/models`);
-        if (!res.ok) return { providerId: provider.id, providerName: provider.name, models: [] as ModelSummary[] };
+        if (!res.ok)
+          return {
+            providerId: provider.id,
+            providerName: provider.name,
+            models: [] as ModelSummary[],
+          };
         const models = (await res.json()) as ModelSummary[];
         return { providerId: provider.id, providerName: provider.name, models };
       }),

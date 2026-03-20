@@ -41,7 +41,8 @@ export function buildHistoryMessages(
         (p): p is StoredPart & { type: 'user-text-file' } => p.type === 'user-text-file',
       );
 
-      const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+      const hasAttachments =
+        imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
 
       if (!text && !hasAttachments) continue;
 

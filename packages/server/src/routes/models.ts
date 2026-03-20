@@ -18,17 +18,21 @@ visibilityRouter.get('/', async (c) => {
   return c.json(overrides);
 });
 
-visibilityRouter.put('/:providerId/:modelId', zValidator('json', upsertVisibilitySchema), async (c) => {
-  const providerId = c.req.param('providerId');
-  const modelId = c.req.param('modelId');
-  const { visibility } = c.req.valid('json');
+visibilityRouter.put(
+  '/:providerId/:modelId',
+  zValidator('json', upsertVisibilitySchema),
+  async (c) => {
+    const providerId = c.req.param('providerId');
+    const modelId = c.req.param('modelId');
+    const { visibility } = c.req.valid('json');
 
-  const result = await upsertVisibility(providerId, modelId, visibility);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.body(null, 204);
-});
+    const result = await upsertVisibility(providerId, modelId, visibility);
+    if (isServiceError(result)) {
+      return c.json({ error: result.error }, result.status);
+    }
+    return c.body(null, 204);
+  },
+);
 
 visibilityRouter.delete('/:providerId/:modelId', async (c) => {
   const providerId = c.req.param('providerId');

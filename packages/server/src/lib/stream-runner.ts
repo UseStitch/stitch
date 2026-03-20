@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { createPartId } from '@stitch/shared/id';
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { getDisabledToolNames } from '@/agents/tool-config.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
@@ -16,18 +17,17 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/lib/stream-errors.js';
+import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
-import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
+import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
-import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
-import { getDisabledToolNames } from '@/agents/tool-config.js';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -290,7 +290,9 @@ class StreamRunner {
       }
 
       if (Array.isArray(content)) {
-        const textPart = content.find((part) => typeof part === 'object' && part !== null && part.type === 'text');
+        const textPart = content.find(
+          (part) => typeof part === 'object' && part !== null && part.type === 'text',
+        );
         if (textPart && typeof textPart.text === 'string') {
           return textPart.text.slice(0, 200);
         }
@@ -376,7 +378,10 @@ class StreamRunner {
           continue;
         }
 
-        if (stepResult.finishReason === 'unknown' && this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT) {
+        if (
+          stepResult.finishReason === 'unknown' &&
+          this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT
+        ) {
           this.state.unknownRecoveryAttempts += 1;
           log.warn(
             {
@@ -719,7 +724,8 @@ class StreamRunner {
           unknownRecoveryAttempts: this.state.unknownRecoveryAttempts,
           toolCallFinishRecoveryAttempts: this.state.toolCallFinishRecoveryAttempts,
           hasToolResultPart: this.hasToolResultPart(),
-          hasTrailingUserFacingTextAfterLastToolResult: this.hasTrailingUserFacingTextAfterLastToolResult(),
+          hasTrailingUserFacingTextAfterLastToolResult:
+            this.hasTrailingUserFacingTextAfterLastToolResult(),
         },
       },
       'synthetic fallback response triggered because message had tool results without trailing user-facing text',
@@ -825,7 +831,8 @@ class StreamRunner {
 
   private hasUserFacingTextPart(): boolean {
     return this.state.accumulatedParts.some(
-      (part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
+      (part) =>
+        part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
     );
   }
 
@@ -845,7 +852,11 @@ class StreamRunner {
 
     for (let i = lastToolResultIndex + 1; i < this.state.accumulatedParts.length; i++) {
       const part = this.state.accumulatedParts[i];
-      if (part?.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
+      if (
+        part?.type === 'text-delta' &&
+        typeof part.text === 'string' &&
+        part.text.trim().length > 0
+      ) {
         return true;
       }
     }
@@ -1013,6 +1024,11 @@ export async function runStream(opts: {
     opts.modelId,
   );
 
-  const runner = new StreamRunner({ ...opts, llmMessages: transformedMessages, tools, streamRunId });
+  const runner = new StreamRunner({
+    ...opts,
+    llmMessages: transformedMessages,
+    tools,
+    streamRunId,
+  });
   await runner.run();
 }

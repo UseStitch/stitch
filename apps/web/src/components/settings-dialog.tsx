@@ -65,7 +65,10 @@ export function SettingsDialog() {
   const { settingsTab, setSettingsTab } = useDialogContext();
 
   return (
-    <Dialog open={!!settingsTab} onOpenChange={(open) => setSettingsTab(open ? 'general' : undefined)}>
+    <Dialog
+      open={!!settingsTab}
+      onOpenChange={(open) => setSettingsTab(open ? 'general' : undefined)}
+    >
       <DialogHeader className="sr-only">
         <DialogTitle>Settings</DialogTitle>
       </DialogHeader>

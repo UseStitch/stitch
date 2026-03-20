@@ -1,8 +1,14 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { AgentPermissionValue, PermissionDecisionResult, PermissionResponse, PermissionResponseStatus, PermissionSuggestion } from '@stitch/shared/permissions/types';
 import { createAgentPermissionId, createPermissionResponseId } from '@stitch/shared/id';
+import type {
+  AgentPermissionValue,
+  PermissionDecisionResult,
+  PermissionResponse,
+  PermissionResponseStatus,
+  PermissionSuggestion,
+} from '@stitch/shared/permissions/types';
 
 import { getDb } from '@/db/client.js';
 import { agentPermissions, permissionResponses } from '@/db/schema.js';

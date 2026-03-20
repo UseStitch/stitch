@@ -1,12 +1,12 @@
 import { createMCPClient } from '@ai-sdk/mcp';
-import type { MCPClient } from '@ai-sdk/mcp';
 
-import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import type { PrefixedString } from '@stitch/shared/id';
+import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
 import * as Log from '@/lib/log.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
+import type { MCPClient } from '@ai-sdk/mcp';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'mcp-tool-executor' });
@@ -97,7 +97,11 @@ export async function createMcpToolsForAgent(
       event: 'mcp.tools.loading',
       agentId,
       serverCount: servers.length,
-      servers: servers.map((s) => ({ id: s.id, name: s.name, cachedToolCount: s.tools?.length ?? 0 })),
+      servers: servers.map((s) => ({
+        id: s.id,
+        name: s.name,
+        cachedToolCount: s.tools?.length ?? 0,
+      })),
     },
     'loading MCP tools for agent',
   );
@@ -119,7 +123,12 @@ export async function createMcpToolsForAgent(
     if (result.status === 'fulfilled') {
       const keys = Object.keys(result.value);
       log.info(
-        { event: 'mcp.tools.loaded', serverId: servers[i]?.id, toolCount: keys.length, toolNames: keys },
+        {
+          event: 'mcp.tools.loaded',
+          serverId: servers[i]?.id,
+          toolCount: keys.length,
+          toolNames: keys,
+        },
         'MCP tools loaded for server',
       );
       Object.assign(merged, result.value);
@@ -132,7 +141,12 @@ export async function createMcpToolsForAgent(
   }
 
   log.info(
-    { event: 'mcp.tools.ready', agentId, totalToolCount: Object.keys(merged).length, toolNames: Object.keys(merged) },
+    {
+      event: 'mcp.tools.ready',
+      agentId,
+      totalToolCount: Object.keys(merged).length,
+      toolNames: Object.keys(merged),
+    },
     'MCP tools ready for agent',
   );
 

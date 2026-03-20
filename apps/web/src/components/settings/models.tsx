@@ -3,10 +3,7 @@ import { toast } from 'sonner';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import {
-  buildDefaultVisibleSet,
-  isModelVisible,
-} from '@stitch/shared/providers/model-visibility';
+import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -27,11 +24,7 @@ function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50 last:border-none">
       <span className="text-sm text-foreground truncate">{modelName}</span>
-      <Switch
-        checked={checked}
-        onCheckedChange={onToggle}
-        aria-label={`Toggle ${modelName}`}
-      />
+      <Switch checked={checked} onCheckedChange={onToggle} aria-label={`Toggle ${modelName}`} />
     </div>
   );
 }
@@ -73,8 +66,7 @@ function ModelsListContent() {
         ...provider,
         models: provider.models.filter(
           (m) =>
-            m.name.toLowerCase().includes(q) ||
-            provider.providerName.toLowerCase().includes(q),
+            m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
         ),
       }))
       .filter((p) => p.models.length > 0);
@@ -120,7 +112,9 @@ function ModelsListContent() {
       />
 
       {filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">No models match your search.</p>
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No models match your search.
+        </p>
       )}
 
       {filtered.map((provider) => (
@@ -133,7 +127,12 @@ function ModelsListContent() {
               <ModelRow
                 key={model.id}
                 modelName={model.name}
-                checked={isModelVisible(provider.providerId, model.id, overridesMap, defaultVisibleSet)}
+                checked={isModelVisible(
+                  provider.providerId,
+                  model.id,
+                  overridesMap,
+                  defaultVisibleSet,
+                )}
                 onToggle={(checked) => void handleToggle(provider, model.id, checked)}
               />
             ))}

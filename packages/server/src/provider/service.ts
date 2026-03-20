@@ -73,7 +73,9 @@ export async function listProviders(): Promise<ProviderSummary[]> {
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
-  return Object.values(providers).map((provider) => toProviderSummary(provider, enabledIds.has(provider.id)));
+  return Object.values(providers).map((provider) =>
+    toProviderSummary(provider, enabledIds.has(provider.id)),
+  );
 }
 
 export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
@@ -91,7 +93,9 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   return ok(toProviderSummary(providerResult.data, config !== undefined));
 }
 
-export async function listProviderModels(providerId: string): Promise<ServiceResult<ModelSummary[]>> {
+export async function listProviderModels(
+  providerId: string,
+): Promise<ServiceResult<ModelSummary[]>> {
   const providerResult = await resolveProvider(providerId);
   if (isServiceError(providerResult)) {
     return providerResult;
@@ -136,7 +140,10 @@ export async function getProviderCredentials(providerId: string): Promise<Servic
   }
 
   const db = getDb();
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  const [config] = await db
+    .select()
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, providerId));
   if (!config) {
     return err('Provider not configured', 404);
   }
@@ -152,7 +159,10 @@ export async function upsertProviderCredentials(
     return err('Provider not found', 404);
   }
 
-  const parsed = ProviderCredentialsSchema.safeParse({ ...(body as Record<string, unknown>), providerId });
+  const parsed = ProviderCredentialsSchema.safeParse({
+    ...(body as Record<string, unknown>),
+    providerId,
+  });
   if (!parsed.success) {
     return err('Invalid credentials', 400, parsed.error.flatten());
   }

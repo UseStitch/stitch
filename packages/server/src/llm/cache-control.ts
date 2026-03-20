@@ -1,4 +1,5 @@
 import type { ProviderId } from '@stitch/shared/providers/types';
+
 import type { ModelMessage, JSONValue } from 'ai';
 
 type ProviderCacheConfig = {
@@ -25,7 +26,10 @@ const OPENROUTER_CACHE: ProviderCacheConfig = {
   value: { type: 'ephemeral' },
 };
 
-export function getCacheConfig(providerId: ProviderId, modelId: string): ProviderCacheConfig | null {
+export function getCacheConfig(
+  providerId: ProviderId,
+  modelId: string,
+): ProviderCacheConfig | null {
   switch (providerId) {
     case 'anthropic':
       return ANTHROPIC_CACHE;

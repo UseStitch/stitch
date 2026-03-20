@@ -15,7 +15,10 @@ import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { parseModelId } from '@/lib/model-id';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { useCreateSession, useSendMessage, sessionKeys } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import {
+  enabledProviderModelsQueryOptions,
+  visibleProviderModelsQueryOptions,
+} from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -68,9 +71,15 @@ function IndexComponent() {
     void sendMessage.mutateAsync({
       sessionId: session.id as PrefixedString<'ses'>,
       content: text,
-      attachments: attachments.length > 0
-        ? attachments.map((a) => ({ path: a.path, previewUrl: a.previewUrl, mime: a.mime, filename: a.filename }))
-        : undefined,
+      attachments:
+        attachments.length > 0
+          ? attachments.map((a) => ({
+              path: a.path,
+              previewUrl: a.previewUrl,
+              mime: a.mime,
+              filename: a.filename,
+            }))
+          : undefined,
       providerId,
       modelId,
       agentId: selectedAgent as PrefixedString<'agt'>,

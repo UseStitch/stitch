@@ -2,8 +2,8 @@ import { and, asc, desc, eq, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
@@ -48,7 +48,8 @@ export async function createSession(input: CreateSessionInput) {
   const db = getDb();
   const id = createSessionId();
   const now = Date.now();
-  const title = input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
+  const title =
+    input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
 
   await db.insert(sessions).values({
     id,
@@ -73,7 +74,11 @@ export async function getSessionById(sessionId: PrefixedString<'ses'>) {
   return session;
 }
 
-export async function listSessionMessages(sessionId: PrefixedString<'ses'>, limit?: number, cursor?: number) {
+export async function listSessionMessages(
+  sessionId: PrefixedString<'ses'>,
+  limit?: number,
+  cursor?: number,
+) {
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
@@ -178,14 +183,19 @@ async function maybeGenerateTitle(input: {
         .set({ title: generatedTitle.title, updatedAt: Date.now() })
         .where(eq(sessions.id, input.sessionId));
 
-      await broadcast('session-title-update', { sessionId: input.sessionId, title: generatedTitle.title });
+      await broadcast('session-title-update', {
+        sessionId: input.sessionId,
+        title: generatedTitle.title,
+      });
     })
     .catch((error) => {
       log.error({ sessionId: input.sessionId, error }, 'title generation failed');
     });
 }
 
-export async function sendMessage(input: SendMessageInput): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
+export async function sendMessage(
+  input: SendMessageInput,
+): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
   const db = getDb();
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId));
@@ -357,7 +367,7 @@ function parseSplitTitle(title: string): { base: string; n: number } | null {
 export async function splitSession(
   sessionId: PrefixedString<'ses'>,
   msgId: PrefixedString<'msg'>,
-): Promise<ServiceResult<{ session: (typeof sessions.$inferSelect); prefillText: string }>> {
+): Promise<ServiceResult<{ session: typeof sessions.$inferSelect; prefillText: string }>> {
   const db = getDb();
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
@@ -422,7 +432,9 @@ export async function splitSession(
   return ok({ session: newSession!, prefillText });
 }
 
-export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {
+export async function requestCompaction(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<{ ok: true }>> {
   const db = getDb();
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));

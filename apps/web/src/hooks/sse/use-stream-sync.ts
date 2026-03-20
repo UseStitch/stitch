@@ -1,4 +1,14 @@
-import type { DoomLoopDetectedPayload, StreamErrorPayload, StreamFinishPayload, StreamPartDeltaPayload, StreamPartUpdatePayload, StreamRetryPayload, StreamStartPayload, StreamToolInputDeltaPayload, StreamToolStatePayload } from '@stitch/shared/chat/realtime';
+import type {
+  DoomLoopDetectedPayload,
+  StreamErrorPayload,
+  StreamFinishPayload,
+  StreamPartDeltaPayload,
+  StreamPartUpdatePayload,
+  StreamRetryPayload,
+  StreamStartPayload,
+  StreamToolInputDeltaPayload,
+  StreamToolStatePayload,
+} from '@stitch/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';

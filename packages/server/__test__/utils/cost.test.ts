@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { LanguageModelUsage } from 'ai';
-
-import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Models from '@/provider/models.js';
+import { calculateMessageCostUsd } from '@/utils/cost.js';
+import type { LanguageModelUsage } from 'ai';
 
 vi.mock('@/provider/models.js', () => ({
   get: vi.fn(),

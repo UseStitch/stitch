@@ -20,9 +20,13 @@ import type { Agent } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
-import { agentsQueryOptions } from '@/lib/queries/agents';
-import { visibleProviderModelsQueryOptions, type ProviderModels, type ModelSummary } from '@/lib/queries/providers';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
+import { agentsQueryOptions } from '@/lib/queries/agents';
+import {
+  visibleProviderModelsQueryOptions,
+  type ProviderModels,
+  type ModelSummary,
+} from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
 const SEPARATOR = ':::';
@@ -338,10 +342,31 @@ function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
 }
 
 const TEXT_FILE_ACCEPT = [
-  '.txt', '.md', '.csv', '.json', '.yaml', '.yml',
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-  '.py', '.go', '.rs', '.java', '.c', '.cpp', '.h',
-  '.html', '.css', '.scss', '.sh', '.toml', '.xml',
+  '.txt',
+  '.md',
+  '.csv',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+  '.go',
+  '.rs',
+  '.java',
+  '.c',
+  '.cpp',
+  '.h',
+  '.html',
+  '.css',
+  '.scss',
+  '.sh',
+  '.toml',
+  '.xml',
 ].join(',');
 
 const ACCEPT_ALL = `image/*,.pdf,${TEXT_FILE_ACCEPT}`;
@@ -444,9 +469,7 @@ function ChatInputInner({
     if (imageItems.length === 0) return;
 
     e.preventDefault();
-    const files = imageItems
-      .map((item) => item.getAsFile())
-      .filter((f): f is File => f !== null);
+    const files = imageItems.map((item) => item.getAsFile()).filter((f): f is File => f !== null);
     await addFiles(files);
   }
 
@@ -492,7 +515,9 @@ function ChatInputInner({
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onDrop={(e) => { void handleDrop(e); }}
+      onDrop={(e) => {
+        void handleDrop(e);
+      }}
     >
       {/* Drag overlay */}
       {isDragging && (
@@ -517,7 +542,9 @@ function ChatInputInner({
         multiple
         accept={ACCEPT_ALL}
         className="hidden"
-        onChange={(e) => { void handleFileInputChange(e); }}
+        onChange={(e) => {
+          void handleFileInputChange(e);
+        }}
       />
 
       {/* Textarea */}
@@ -526,7 +553,9 @@ function ChatInputInner({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        onPaste={(e) => { void handlePaste(e); }}
+        onPaste={(e) => {
+          void handlePaste(e);
+        }}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}

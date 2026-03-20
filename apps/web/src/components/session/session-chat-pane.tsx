@@ -23,7 +23,6 @@ import {
   getTransitionSeedClearDelayMs,
   setNextSessionInputSeed,
 } from '@/lib/chat-input-transition-seed';
-import { cn } from '@/lib/utils';
 import { parseModelId } from '@/lib/model-id';
 import {
   flattenMessages,
@@ -31,6 +30,7 @@ import {
   useSendMessage,
   useSplitSession,
 } from '@/lib/queries/chat';
+import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
 const MODEL_SEPARATOR = ':::';
@@ -123,9 +123,15 @@ export function SessionChatPane() {
     await sendMessage.mutateAsync({
       sessionId: id as PrefixedString<'ses'>,
       content: text,
-      attachments: attachments.length > 0
-        ? attachments.map((a) => ({ path: a.path, previewUrl: a.previewUrl, mime: a.mime, filename: a.filename }))
-        : undefined,
+      attachments:
+        attachments.length > 0
+          ? attachments.map((a) => ({
+              path: a.path,
+              previewUrl: a.previewUrl,
+              mime: a.mime,
+              filename: a.filename,
+            }))
+          : undefined,
       providerId: parsed.providerId,
       modelId: parsed.modelId,
       agentId: selectedAgent,
@@ -146,7 +152,11 @@ export function SessionChatPane() {
 
   return (
     <div className="h-full min-w-0 pr-4 pt-4">
-      <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
+      <StickToBottom
+        className="relative h-full min-w-0 flex-1 overflow-hidden"
+        resize="smooth"
+        initial="smooth"
+      >
         <StickToBottom.Content scrollClassName="no-scrollbar" className="pb-40 pt-2">
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
@@ -164,13 +174,18 @@ export function SessionChatPane() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pb-5 pt-10" />
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
           <div className="mx-auto max-w-4xl">
-            <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
+            <div
+              className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}
+            >
               <div className="streaming-border-wrapper-inner">
                 <div className="streaming-border-wrapper-clip">
                   <div className="streaming-border-spinner" />
                 </div>
               </div>
-              <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
+              <div
+                className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+                style={{ viewTransitionName: 'chat-input' }}
+              >
                 <DockContainer docks={docks} />
                 <div>
                   <ChatInput

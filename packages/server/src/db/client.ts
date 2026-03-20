@@ -3,8 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
-
 import { createAgentId, createAgentPermissionId } from '@stitch/shared/id';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
@@ -12,6 +10,7 @@ import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 type Db = BunSQLiteDatabase<typeof schema>;
 
@@ -35,8 +34,7 @@ function seedDb(db: Db): boolean {
     db.transaction((tx) => {
       const id = createAgentId();
 
-      tx
-        .insert(schema.agents)
+      tx.insert(schema.agents)
         .values({
           id,
           name: 'My Assistant',
@@ -45,8 +43,7 @@ function seedDb(db: Db): boolean {
         })
         .run();
 
-      tx
-        .insert(schema.agentPermissions)
+      tx.insert(schema.agentPermissions)
         .values({
           id: createAgentPermissionId(),
           agentId: id,
@@ -56,8 +53,7 @@ function seedDb(db: Db): boolean {
         })
         .run();
 
-      tx
-        .insert(schema.userSettings)
+      tx.insert(schema.userSettings)
         .values({
           key: 'agent.default',
           value: id,

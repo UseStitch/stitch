@@ -6,14 +6,13 @@ import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
 import { SessionDetailsPanel } from '@/components/session/session-details-panel';
 import { SessionPageHeader } from '@/components/session/session-page-header';
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
-import { enabledProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import {
+  enabledProviderModelsQueryOptions,
+  visibleProviderModelsQueryOptions,
+} from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/session/$id')({

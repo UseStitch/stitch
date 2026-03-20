@@ -2,8 +2,14 @@ import { ArrowLeftIcon, CheckCircle2Icon, SparklesIcon, PlusIcon } from 'lucide-
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
+import {
+  PROVIDER_IDS,
+  type AuthMethodDef,
+  type FieldDef,
+  type ProviderId,
+} from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -42,7 +48,9 @@ function FieldGroup({
         <div key={field.key} className="flex flex-col gap-1.5">
           <Label htmlFor={`${providerId}-${field.key}`}>
             {field.label}
-            {!field.required && <span className="text-muted-foreground text-xs ml-1">(optional)</span>}
+            {!field.required && (
+              <span className="text-muted-foreground text-xs ml-1">(optional)</span>
+            )}
           </Label>
           <Input
             id={`${providerId}-${field.key}`}
@@ -100,7 +108,9 @@ function OnboardingProviderConfig({
   const defaultMethod =
     (existingMethod && enabledAuthMethods.some((method) => method.method === existingMethod)
       ? existingMethod
-      : undefined) ?? enabledAuthMethods[0]?.method ?? '';
+      : undefined) ??
+    enabledAuthMethods[0]?.method ??
+    '';
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
@@ -202,7 +212,11 @@ function OnboardingProviderConfig({
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div className="text-muted-foreground shrink-0">
-          <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
+          <ProviderLogo
+            providerId={provider.id}
+            providerName={meta.displayName}
+            className="size-5"
+          />
         </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
@@ -399,7 +413,10 @@ export function OnboardingDialog() {
       <DialogHeader className="sr-only">
         <DialogTitle>Stitch Onboarding</DialogTitle>
       </DialogHeader>
-      <DialogContent className="max-w-3xl! h-140 p-0 gap-0 overflow-hidden flex flex-col" showCloseButton={false}>
+      <DialogContent
+        className="max-w-3xl! h-140 p-0 gap-0 overflow-hidden flex flex-col"
+        showCloseButton={false}
+      >
         <div className="flex h-full flex-col p-8">
           {step === 'welcome' && (
             <div className="flex h-full flex-col items-center justify-center text-center gap-6">
@@ -409,7 +426,8 @@ export function OnboardingDialog() {
               <div className="space-y-2 max-w-lg">
                 <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
                 <p className="text-muted-foreground text-sm">
-                  Let&apos;s set up your first provider so you can start chatting in less than a minute.
+                  Let&apos;s set up your first provider so you can start chatting in less than a
+                  minute.
                 </p>
               </div>
               <Button size="lg" onClick={() => setStep('provider')}>
@@ -437,7 +455,9 @@ export function OnboardingDialog() {
               </div>
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold">You&apos;re all set</h2>
-                <p className="text-muted-foreground text-sm">Provider connected. Launching your workspace...</p>
+                <p className="text-muted-foreground text-sm">
+                  Provider connected. Launching your workspace...
+                </p>
               </div>
             </div>
           )}

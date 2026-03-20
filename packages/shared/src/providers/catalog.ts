@@ -115,7 +115,13 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     displayName: 'Amazon Bedrock',
     description: 'Access to foundation models via AWS',
     extraFields: [
-      { key: 'region', label: 'Region', placeholder: 'Select a region', required: true, secret: false },
+      {
+        key: 'region',
+        label: 'Region',
+        placeholder: 'Select a region',
+        required: true,
+        secret: false,
+      },
     ],
     authMethods: [
       {

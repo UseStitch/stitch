@@ -4,14 +4,13 @@ import { eq, asc, like } from 'drizzle-orm';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
+import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, sessions, userSettings } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
-import type { ProviderId } from '@stitch/shared/providers/types';
-
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -54,10 +53,7 @@ function parseReservedSetting(value: string | undefined): number | undefined {
 
 export async function getCompactionSettings(): Promise<CompactionSettings> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(userSettings)
-    .where(like(userSettings.key, 'compaction.%'));
+  const rows = await db.select().from(userSettings).where(like(userSettings.key, 'compaction.%'));
   const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
   return {
@@ -131,10 +127,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
   log.info({ pruned, total }, 'prune scan');
 
   if (pruned > PRUNE_MINIMUM) {
-    const grouped = new Map<
-      PrefixedString<'msg'>,
-      Array<number>
-    >();
+    const grouped = new Map<PrefixedString<'msg'>, Array<number>>();
     for (const entry of toPrune) {
       let arr = grouped.get(entry.messageId);
       if (!arr) {

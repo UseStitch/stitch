@@ -2,14 +2,12 @@ import { streamText, smoothStream } from 'ai';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
-import type { ProviderId } from '@stitch/shared/providers/types';
-
-import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import * as Sse from '@/lib/sse.js';
 import {
@@ -19,6 +17,7 @@ import {
   isStreamAbortedError,
   StreamAbortedError,
 } from '@/lib/stream-errors.js';
+import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { createProvider } from '@/provider/provider.js';
 import type { createTools } from '@/tools/index.js';
 import * as Usage from '@/utils/usage.js';
@@ -66,7 +65,11 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     'step execution started',
   );
 
-  const cachedMessages = addCacheControlToMessages(conversation, opts.providerId as ProviderId, model.modelId);
+  const cachedMessages = addCacheControlToMessages(
+    conversation,
+    opts.providerId as ProviderId,
+    model.modelId,
+  );
   const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
 
   const result = streamText({

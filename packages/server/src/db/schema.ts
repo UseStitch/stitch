@@ -1,11 +1,23 @@
 import { sql } from 'drizzle-orm';
-import { blob, check, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  blob,
+  check,
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import type { AgentToolType, AgentType } from '@stitch/shared/agents/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
-import type { AgentPermissionValue, PermissionResponseStatus, PermissionSuggestion } from '@stitch/shared/permissions/types';
+import type {
+  AgentPermissionValue,
+  PermissionResponseStatus,
+  PermissionSuggestion,
+} from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
@@ -66,9 +78,7 @@ export const agents = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [
-    check('agents_type_check', sql`${table.type} in ('primary', 'sub')`),
-  ],
+  (table) => [check('agents_type_check', sql`${table.type} in ('primary', 'sub')`)],
 );
 
 export const sessions = sqliteTable('sessions', {
@@ -215,7 +225,11 @@ export const agentTools = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [
-    uniqueIndex('agent_tools_agent_type_name_idx').on(table.agentId, table.toolType, table.toolName),
+    uniqueIndex('agent_tools_agent_type_name_idx').on(
+      table.agentId,
+      table.toolType,
+      table.toolName,
+    ),
     check('agent_tools_type_check', sql`${table.toolType} in ('stitch', 'mcp', 'plugin')`),
   ],
 );

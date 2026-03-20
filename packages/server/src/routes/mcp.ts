@@ -4,9 +4,9 @@ import { z } from 'zod';
 
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
+import { isServiceError } from '@/lib/service-result.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
 import { evictMcpClient } from '@/mcp/tool-executor.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const noneAuthSchema = z.object({ type: z.literal('none') });
 const apiKeyAuthSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });

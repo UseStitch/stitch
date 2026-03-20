@@ -30,10 +30,14 @@ export function useGlobalHotkeys(actions: Action[]) {
     preventDefault: true,
     enabled: !!newSession?.hotkey,
   });
-  useHotkey(switchPrimaryAgent?.hotkey ?? 'Mod+T', () => actionMap.get('switch-primary-agent')?.run(), {
-    preventDefault: true,
-    enabled: !!switchPrimaryAgent?.hotkey,
-  });
+  useHotkey(
+    switchPrimaryAgent?.hotkey ?? 'Mod+T',
+    () => actionMap.get('switch-primary-agent')?.run(),
+    {
+      preventDefault: true,
+      enabled: !!switchPrimaryAgent?.hotkey,
+    },
+  );
   useHotkey(renameSession?.hotkey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
     preventDefault: true,
     enabled: !!renameSession?.hotkey && isSessionPage,

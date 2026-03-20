@@ -1,10 +1,10 @@
 import { generateText } from 'ai';
-import type { LanguageModelUsage } from 'ai';
 
 import { mapAIError } from '@/lib/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { createProvider } from '@/provider/provider.js';
+import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'title-generator' });
 

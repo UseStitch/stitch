@@ -138,25 +138,29 @@ export function create(tags?: Record<string, any>) {
   const result: Logger = {
     debug(extraOrMessage: Record<string, any> | string, message?: string) {
       if (shouldLog('DEBUG')) {
-        const [extra, msg] = typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
+        const [extra, msg] =
+          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
         write(build('debug', extra, msg));
       }
     },
     info(extraOrMessage: Record<string, any> | string, message?: string) {
       if (shouldLog('INFO')) {
-        const [extra, msg] = typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
+        const [extra, msg] =
+          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
         write(build('info', extra, msg));
       }
     },
     error(extraOrMessage: Record<string, any> | string, message?: string) {
       if (shouldLog('ERROR')) {
-        const [extra, msg] = typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
+        const [extra, msg] =
+          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
         write(build('error', extra, msg));
       }
     },
     warn(extraOrMessage: Record<string, any> | string, message?: string) {
       if (shouldLog('WARN')) {
-        const [extra, msg] = typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
+        const [extra, msg] =
+          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
         write(build('warn', extra, msg));
       }
     },
@@ -171,11 +175,14 @@ export function create(tags?: Record<string, any>) {
       const now = Date.now();
       result.info({ status: 'started', ...extra }, message);
       function stop() {
-        result.info({
-          status: 'completed',
-          duration: Date.now() - now,
-          ...extra,
-        }, message);
+        result.info(
+          {
+            status: 'completed',
+            duration: Date.now() - now,
+            ...extra,
+          },
+          message,
+        );
       }
       return {
         stop,

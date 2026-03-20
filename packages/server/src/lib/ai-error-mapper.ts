@@ -1,5 +1,7 @@
 import { APICallError } from 'ai';
+
 import type { StreamErrorCategory, StreamErrorDetails } from '@stitch/shared/chat/errors';
+
 import { StreamPartError } from '@/lib/stream-errors.js';
 
 const OVERFLOW_PATTERNS = [
@@ -123,7 +125,11 @@ function resolveAIErrorName(error: unknown): string | undefined {
     return error.name;
   }
 
-  if (typeof error === 'object' && error !== null && typeof (error as MinimalError).name === 'string') {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as MinimalError).name === 'string'
+  ) {
     return (error as MinimalError).name;
   }
 
@@ -132,7 +138,11 @@ function resolveAIErrorName(error: unknown): string | undefined {
 
 function resolveMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null && typeof (error as MinimalError).message === 'string') {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as MinimalError).message === 'string'
+  ) {
     const message = (error as { message: string }).message;
     return message;
   }
@@ -150,7 +160,9 @@ function parseErrorBody(input: string | undefined): Record<string, unknown> | un
   return undefined;
 }
 
-function getErrorObject(body: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function getErrorObject(
+  body: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   const value = body?.error;
   if (typeof value === 'object' && value !== null) {
     return value as Record<string, unknown>;
@@ -179,7 +191,8 @@ function inferCategoryFromPayload(input: {
   const errorObject = getErrorObject(body);
   const code = typeof errorObject?.code === 'string' ? errorObject.code : undefined;
   const bodyMessage = typeof body?.message === 'string' ? body.message : undefined;
-  const bodyErrorMessage = typeof errorObject?.message === 'string' ? errorObject.message : undefined;
+  const bodyErrorMessage =
+    typeof errorObject?.message === 'string' ? errorObject.message : undefined;
   const combined = `${message} ${bodyMessage ?? ''} ${bodyErrorMessage ?? ''}`.trim();
 
   if (isContextOverflow(combined, statusCode) || code === 'context_length_exceeded') {
@@ -198,7 +211,7 @@ function inferCategoryFromPayload(input: {
     return 'unsupported';
   }
 
-  if ((statusCode === 401 || statusCode === 403) || AUTH_PATTERN.test(combined)) {
+  if (statusCode === 401 || statusCode === 403 || AUTH_PATTERN.test(combined)) {
     return 'auth';
   }
 
@@ -266,7 +279,9 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
       body,
       aiErrorName,
     });
-    const baseRetryable = providerId?.startsWith('openai') ? isOpenAiErrorRetryable(error) : error.isRetryable;
+    const baseRetryable = providerId?.startsWith('openai')
+      ? isOpenAiErrorRetryable(error)
+      : error.isRetryable;
     const isRetryable = baseRetryable && isRetryableCategory(category, error.statusCode);
 
     return {
@@ -285,7 +300,9 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
   const aiErrorName = resolveAIErrorName(error);
   const message = resolveMessage(error);
   const statusCode =
-    typeof error === 'object' && error !== null && typeof (error as MinimalError).statusCode === 'number'
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as MinimalError).statusCode === 'number'
       ? (error as MinimalError).statusCode
       : undefined;
   const body =
@@ -299,7 +316,10 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
     aiErrorName,
   });
   const namedCategory = categoryFromName(aiErrorName);
-  const category = inferredCategory === 'context_overflow' ? inferredCategory : namedCategory ?? inferredCategory;
+  const category =
+    inferredCategory === 'context_overflow'
+      ? inferredCategory
+      : (namedCategory ?? inferredCategory);
 
   return {
     category,
@@ -307,7 +327,9 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
     message,
     statusCode,
     responseBody:
-      typeof error === 'object' && error !== null ? (error as MinimalError).responseBody : undefined,
+      typeof error === 'object' && error !== null
+        ? (error as MinimalError).responseBody
+        : undefined,
     isRetryable: isRetryableCategory(category, statusCode),
     isContextOverflow: category === 'context_overflow',
   };

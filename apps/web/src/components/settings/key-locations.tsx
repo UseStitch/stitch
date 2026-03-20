@@ -70,11 +70,7 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
         aria-label="Copy path"
         title="Copy path"
       >
-        {copied ? (
-          <Check className="w-4 h-4 text-emerald-500" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
+        {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
       </button>
     </div>
   );

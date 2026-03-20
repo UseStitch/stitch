@@ -1,5 +1,7 @@
-import type { LanguageModelUsage } from 'ai';
-
+import type { PrefixedString } from '../id/index.js';
+import type { PermissionResponse } from '../permissions/types.js';
+import type { QuestionRequest } from '../questions/types.js';
+import type { StreamErrorDetails } from './errors.js';
 import type {
   FileStreamPart,
   ReasoningDeltaPart,
@@ -12,10 +14,7 @@ import type {
   ToolCallStreamPart,
   ToolResultStreamPart,
 } from './messages.js';
-import type { StreamErrorDetails } from './errors.js';
-import type { PrefixedString } from '../id/index.js';
-import type { PermissionResponse } from '../permissions/types.js';
-import type { QuestionRequest } from '../questions/types.js';
+import type { LanguageModelUsage } from 'ai';
 
 export type ToolCallStatus = 'pending' | 'in-progress' | 'completed' | 'error';
 

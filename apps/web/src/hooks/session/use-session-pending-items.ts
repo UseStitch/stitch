@@ -8,7 +8,11 @@ import {
   useAlternativePermissionResponse,
   useRejectPermissionResponse,
 } from '@/lib/queries/permissions';
-import { questionsQueryOptions, useRejectQuestion, useReplyQuestion } from '@/lib/queries/questions';
+import {
+  questionsQueryOptions,
+  useRejectQuestion,
+  useReplyQuestion,
+} from '@/lib/queries/questions';
 
 export function useSessionPendingItems(sessionId: string) {
   const questionsQuery = useQuery(questionsQueryOptions(sessionId));
@@ -20,7 +24,8 @@ export function useSessionPendingItems(sessionId: string) {
   );
 
   const pendingPermissionResponses = React.useMemo(
-    () => permissionResponsesQuery.data?.filter((permission) => permission.status === 'pending') ?? [],
+    () =>
+      permissionResponsesQuery.data?.filter((permission) => permission.status === 'pending') ?? [],
     [permissionResponsesQuery.data],
   );
 

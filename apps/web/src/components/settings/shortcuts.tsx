@@ -186,9 +186,7 @@ function ShortcutsContent() {
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase();
-    return q
-      ? shortcuts.filter((e) => e.label.toLowerCase().includes(q))
-      : shortcuts;
+    return q ? shortcuts.filter((e) => e.label.toLowerCase().includes(q)) : shortcuts;
   }, [search, shortcuts]);
 
   const groups = React.useMemo(() => groupByCategory(filtered), [filtered]);
@@ -239,7 +237,9 @@ function ShortcutsContent() {
 
       {Array.from(groups.entries()).map(([category, entries]) => (
         <div key={category}>
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{category}</h3>
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+            {category}
+          </h3>
           <div>
             {entries.map((entry) => (
               <ShortcutRow

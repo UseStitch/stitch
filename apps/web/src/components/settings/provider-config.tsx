@@ -4,7 +4,14 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type AuthMethodDef, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
+import {
+  PROVIDER_IDS,
+  type AuthMethodDef,
+  type FieldDef,
+  type ProviderId,
+} from '@stitch/shared/providers/types';
+
+import { ProviderLogo } from './provider-logo';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,11 +28,7 @@ import {
   useDeleteProviderConfigMutation,
   useSaveProviderConfigMutation,
 } from '@/lib/mutations/provider-config';
-import {
-  providerConfigQueryOptions,
-  type ProviderSummary,
-} from '@/lib/queries/providers';
-import { ProviderLogo } from './provider-logo';
+import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 const AWS_BEDROCK_REGIONS = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
@@ -150,7 +153,9 @@ export function ProviderConfig({ provider, onBack }: Props) {
   const defaultMethod =
     (existingMethod && enabledAuthMethods.some((method) => method.method === existingMethod)
       ? existingMethod
-      : undefined) ?? enabledAuthMethods[0]?.method ?? '';
+      : undefined) ??
+    enabledAuthMethods[0]?.method ??
+    '';
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
@@ -260,7 +265,11 @@ export function ProviderConfig({ provider, onBack }: Props) {
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div className="text-muted-foreground shrink-0">
-          <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
+          <ProviderLogo
+            providerId={provider.id}
+            providerName={meta.displayName}
+            className="size-5"
+          />
         </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
@@ -288,7 +297,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
         {/* Auth method section */}
         {hasMultipleMethods ? (
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList>
+            <TabsList>
               {enabledAuthMethods.map((m) => (
                 <TabsTrigger key={m.method} value={m.method}>
                   {m.label}

@@ -2,13 +2,13 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { isServiceError } from '@/lib/service-result.js';
 import {
   deleteShortcut,
   listShortcuts,
   resetShortcuts,
   saveShortcut,
 } from '@/shortcuts/service.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const shortcutSchema = z.object({
   hotkey: z.string().optional(),

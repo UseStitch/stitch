@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { SETTINGS_KEYS } from '@stitch/shared/settings/types';
 import type { PrefixedString } from '@stitch/shared/id';
+import { SETTINGS_KEYS } from '@stitch/shared/settings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
@@ -33,7 +33,10 @@ export async function saveSetting(key: string, value: unknown): Promise<ServiceR
   if (key === 'onboarding.status' && !ONBOARDING_STATUSES.has(value)) {
     return err('Invalid onboarding status', 400);
   }
-  if ((key === 'compaction.auto' || key === 'compaction.prune') && !BOOLEAN_SETTING_VALUES.has(value)) {
+  if (
+    (key === 'compaction.auto' || key === 'compaction.prune') &&
+    !BOOLEAN_SETTING_VALUES.has(value)
+  ) {
     return err('Invalid boolean setting value', 400);
   }
   if (key === 'compaction.reserved') {
@@ -48,7 +51,7 @@ export async function saveSetting(key: string, value: unknown): Promise<ServiceR
     const [agent] = await db
       .select()
       .from(agents)
-    .where(eq(agents.id, value as PrefixedString<'agt'>));
+      .where(eq(agents.id, value as PrefixedString<'agt'>));
     if (!agent || agent.type !== 'primary') {
       return err('Invalid primary agent id', 400);
     }

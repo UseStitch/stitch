@@ -1,13 +1,15 @@
-import type { LanguageModelUsage } from 'ai';
-
 import * as Models from '@/provider/models.js';
+import type { LanguageModelUsage } from 'ai';
 
 const TOKENS_PER_MILLION = 1_000_000;
 const CONTEXT_200K_THRESHOLD = 200_000;
 
 type ModelCost = NonNullable<Models.RawModel['cost']>;
 
-function getEffectiveCostModel(cost: ModelCost, usage: LanguageModelUsage): Omit<ModelCost, 'context_over_200k'> {
+function getEffectiveCostModel(
+  cost: ModelCost,
+  usage: LanguageModelUsage,
+): Omit<ModelCost, 'context_over_200k'> {
   if ((usage.inputTokens ?? 0) > CONTEXT_200K_THRESHOLD && cost.context_over_200k) {
     return cost.context_over_200k;
   }

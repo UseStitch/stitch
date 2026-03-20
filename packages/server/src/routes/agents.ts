@@ -6,18 +6,27 @@ import { AGENT_TOOL_TYPES } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
-import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
-import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
 import {
   addMcpServerToAgent,
   getAgentMcpServers,
   removeMcpServerFromAgent,
 } from '@/agents/mcp-config.js';
-import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
+import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
+import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import { createTools } from '@/tools/index.js';
 
-const STITCH_KNOWN_TOOLS = (Object.keys(createTools({ sessionId: 'ses_' as PrefixedString<'ses'>, messageId: 'msg_' as PrefixedString<'msg'>, agentId: 'agt_' as PrefixedString<'agt'>, streamRunId: '' })) as string[]).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
+const STITCH_KNOWN_TOOLS = (
+  Object.keys(
+    createTools({
+      sessionId: 'ses_' as PrefixedString<'ses'>,
+      messageId: 'msg_' as PrefixedString<'msg'>,
+      agentId: 'agt_' as PrefixedString<'agt'>,
+      streamRunId: '',
+    }),
+  ) as string[]
+).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
 
 export const agentsRouter = new Hono();
 
@@ -43,9 +52,15 @@ const updateAgentSchema = z
     useBasePrompt: z.boolean().optional(),
     systemPrompt: z.string().nullable().optional(),
   })
-  .refine((value) => value.name !== undefined || value.useBasePrompt !== undefined || value.systemPrompt !== undefined, {
-    message: 'At least one field is required',
-  });
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.useBasePrompt !== undefined ||
+      value.systemPrompt !== undefined,
+    {
+      message: 'At least one field is required',
+    },
+  );
 
 const setToolEnabledSchema = z.object({
   toolType: z.enum(AGENT_TOOL_TYPES),

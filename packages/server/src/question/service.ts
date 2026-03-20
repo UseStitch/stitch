@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/types';
 import { createQuestionId } from '@stitch/shared/id';
+import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/types';
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';

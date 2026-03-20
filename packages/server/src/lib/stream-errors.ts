@@ -62,7 +62,6 @@ export class StreamPartError extends StreamControlError {
   }
 }
 
-
 export function getErrorCode(error: unknown): string | undefined {
   if (error instanceof StreamControlError) {
     return error.code;

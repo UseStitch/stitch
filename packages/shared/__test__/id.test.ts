@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createAgentId, createAgentPermissionId, createMessageId, createPartId, createPermissionResponseId, createQuestionId, createSessionId, createToolResultId, extractTimestamp } from '@stitch/shared/id';
+import {
+  createAgentId,
+  createAgentPermissionId,
+  createMessageId,
+  createPartId,
+  createPermissionResponseId,
+  createQuestionId,
+  createSessionId,
+  createToolResultId,
+  extractTimestamp,
+} from '@stitch/shared/id';
 
 describe('id helpers', () => {
   const TIMESTAMP_MASK = (1n << 36n) - 1n;

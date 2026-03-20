@@ -6,7 +6,13 @@ import {
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 
-import type { Message, Session, MessagesPage, LanguageModelUsage, StoredPart } from '@stitch/shared/chat/messages';
+import type {
+  Message,
+  Session,
+  MessagesPage,
+  LanguageModelUsage,
+  StoredPart,
+} from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 
@@ -215,7 +221,11 @@ export function useSendMessage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: input.content,
-          attachments: input.attachments?.map(({ path, mime, filename }) => ({ path, mime, filename })),
+          attachments: input.attachments?.map(({ path, mime, filename }) => ({
+            path,
+            mime,
+            filename,
+          })),
           providerId: input.providerId,
           modelId: input.modelId,
           agentId: input.agentId,
@@ -282,11 +292,11 @@ export function useSendMessage() {
           role: 'user',
           parts: optimisticParts,
           modelId: input.modelId,
-            providerId: input.providerId,
-            agentId: input.agentId as PrefixedString<'agt'>,
-            usage: EMPTY_USAGE,
-            costUsd: null,
-            finishReason: 'stop',
+          providerId: input.providerId,
+          agentId: input.agentId as PrefixedString<'agt'>,
+          usage: EMPTY_USAGE,
+          costUsd: null,
+          finishReason: 'stop',
           isSummary: false,
           createdAt: now,
           updatedAt: now,
