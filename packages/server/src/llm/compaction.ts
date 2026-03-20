@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, like } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -54,7 +54,10 @@ function parseReservedSetting(value: string | undefined): number | undefined {
 
 export async function getCompactionSettings(): Promise<CompactionSettings> {
   const db = getDb();
-  const rows = await db.select().from(userSettings);
+  const rows = await db
+    .select()
+    .from(userSettings)
+    .where(like(userSettings.key, 'compaction.%'));
   const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
   return {
@@ -94,6 +97,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
   log.info({ sessionId }, 'pruning');
 
   const db = getDb();
+  const now = Date.now();
   const msgs = await db
     .select()
     .from(messages)
@@ -102,8 +106,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
 
   let total = 0;
   let pruned = 0;
-  const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number; part: StoredPart }> =
-    [];
+  const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
@@ -119,7 +122,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
         total += est;
         if (total > PRUNE_PROTECT) {
           pruned += est;
-          toPrune.push({ messageId: msg.id, partIndex, part });
+          toPrune.push({ messageId: msg.id, partIndex });
         }
       }
     }
@@ -130,7 +133,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
   if (pruned > PRUNE_MINIMUM) {
     const grouped = new Map<
       PrefixedString<'msg'>,
-      Array<{ partIndex: number; part: StoredPart }>
+      Array<number>
     >();
     for (const entry of toPrune) {
       let arr = grouped.get(entry.messageId);
@@ -138,28 +141,31 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
         arr = [];
         grouped.set(entry.messageId, arr);
       }
-      arr.push(entry);
+      arr.push(entry.partIndex);
     }
 
-    for (const [messageId, entries] of grouped) {
-      const [msg] = await db.select().from(messages).where(eq(messages.id, messageId));
-      if (!msg) continue;
+    await Promise.all(
+      Array.from(grouped.entries()).map(async ([messageId, partIndices]) => {
+        const [msg] = await db.select().from(messages).where(eq(messages.id, messageId));
+        if (!msg) return;
 
-      const updatedParts = [...msg.parts];
-      for (const { partIndex, part } of entries) {
-        if (updatedParts[partIndex]?.type === 'tool-result') {
-          updatedParts[partIndex] = {
-            ...part,
-            output: '[Old tool result content cleared]',
-          } as StoredPart;
+        const updatedParts = [...msg.parts];
+        for (const partIndex of partIndices) {
+          const part = updatedParts[partIndex];
+          if (part?.type === 'tool-result') {
+            updatedParts[partIndex] = {
+              ...part,
+              output: '[Old tool result content cleared]',
+            } as StoredPart;
+          }
         }
-      }
 
-      await db
-        .update(messages)
-        .set({ parts: updatedParts, updatedAt: Date.now() })
-        .where(eq(messages.id, messageId));
-    }
+        await db
+          .update(messages)
+          .set({ parts: updatedParts, updatedAt: now })
+          .where(eq(messages.id, messageId));
+      }),
+    );
 
     log.info({ count: toPrune.length }, 'pruned');
   }
@@ -225,14 +231,6 @@ async function resolveCompactionModel(
 // Prevent concurrent compaction for the same session
 const activeCompactions = new Set<string>();
 
-/**
- * Run a full compaction cycle for a session:
- * 1. Insert a compaction marker (user message with compaction part)
- * 2. Prune old tool outputs
- * 3. Send history to LLM for summarization
- * 4. Store the summary as an assistant message with isSummary=true
- * 5. Optionally replay the last user message for continuation
- */
 export async function compact(input: {
   sessionId: PrefixedString<'ses'>;
   providerId: string;
@@ -258,9 +256,18 @@ export async function compact(input: {
 
     await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
 
-    // Step 1: Insert compaction marker as a user message
-    const compactionMarkerId = createMessageId();
+    const db = getDb();
     const now = Date.now();
+
+    const [agent] = await db
+      .select({
+        useBasePrompt: agents.useBasePrompt,
+        systemPrompt: agents.systemPrompt,
+      })
+      .from(agents)
+      .where(eq(agents.id, input.agentId));
+
+    const compactionMarkerId = createMessageId();
     const compactionPart: StoredPart = {
       type: 'compaction',
       id: createPartId(),
@@ -270,41 +277,31 @@ export async function compact(input: {
       endedAt: now,
     } as StoredPart;
 
-    const db = getDb();
-    const [agent] = await db
-      .select({
-        useBasePrompt: agents.useBasePrompt,
-        systemPrompt: agents.systemPrompt,
-      })
-      .from(agents)
-      .where(eq(agents.id, input.agentId));
+    await db.transaction(async (tx) => {
+      await tx.insert(messages).values({
+        id: compactionMarkerId,
+        sessionId,
+        role: 'user',
+        parts: [compactionPart],
+        modelId: input.modelId,
+        providerId: input.providerId,
+        agentId: input.agentId as PrefixedString<'agt'>,
+        costUsd: 0,
+        createdAt: now,
+        updatedAt: now,
+        startedAt: now,
+        duration: null,
+      });
 
-    await db.insert(messages).values({
-      id: compactionMarkerId,
-      sessionId,
-      role: 'user',
-      parts: [compactionPart],
-      modelId: input.modelId,
-      providerId: input.providerId,
-      agentId: input.agentId as PrefixedString<'agt'>,
-      costUsd: 0,
-      createdAt: now,
-      updatedAt: now,
-      startedAt: now,
-      duration: null,
+      if (compactionSettings.prune) {
+        await prune(sessionId);
+      }
     });
 
-    // Step 2: Prune old tool outputs
-    if (compactionSettings.prune) {
-      await prune(sessionId);
-    }
-
-    // Step 3: Resolve the compaction model and send history for summarization
     const resolved = await resolveCompactionModel(input.providerId, input.modelId);
     const provider = createProvider(resolved.credentials);
     const model = provider(resolved.modelId);
 
-    // Fetch all messages up to (but not including) the compaction marker
     const allMsgs = await db
       .select()
       .from(messages)
@@ -314,7 +311,6 @@ export async function compact(input: {
     const markerIndex = allMsgs.findIndex((m) => m.id === compactionMarkerId);
     const historyMsgs = allMsgs.slice(0, markerIndex);
 
-    // Find the last compaction boundary and only use messages after it
     let startIndex = 0;
     for (let i = historyMsgs.length - 1; i >= 0; i--) {
       if (historyMsgs[i].isSummary) {
@@ -329,7 +325,6 @@ export async function compact(input: {
       systemPrompt: agent?.systemPrompt ?? null,
     });
 
-    // Append the compaction prompt
     const llmMessages: ModelMessage[] = [
       ...historyMessages,
       { role: 'user', content: COMPACTION_PROMPT },
@@ -342,6 +337,7 @@ export async function compact(input: {
     );
     const providerOptions = getProviderOptions(resolved.providerId as ProviderId, sessionId);
 
+    let summaryText = '';
     const result = await streamText({
       model,
       messages: cachedMessages,
@@ -349,17 +345,16 @@ export async function compact(input: {
       maxOutputTokens: 4096,
     });
 
-    let summaryText = '';
     for await (const chunk of result.textStream) {
       summaryText += chunk;
     }
 
     if (!summaryText.trim()) {
       log.error({ sessionId }, 'compaction produced empty summary');
+      await db.delete(messages).where(eq(messages.id, compactionMarkerId));
       return 'error';
     }
 
-    // Step 4: Store the summary as an assistant message
     const usage = await result.usage;
     const costUsd = await calculateMessageCostUsd({
       providerId: resolved.providerId,
@@ -375,25 +370,27 @@ export async function compact(input: {
       endedAt: summaryNow,
     } as StoredPart;
 
-    await db.insert(messages).values({
-      id: summaryMessageId,
-      sessionId,
-      role: 'assistant',
-      parts: [summaryPart],
-      modelId: resolved.modelId,
-      providerId: resolved.providerId,
-      agentId: input.agentId as PrefixedString<'agt'>,
-      usage,
-      costUsd,
-      finishReason: 'stop',
-      isSummary: true,
-      createdAt: summaryNow,
-      updatedAt: summaryNow,
-      startedAt: summaryNow,
-      duration: Date.now() - now,
-    });
+    await db.transaction(async (tx) => {
+      await tx.insert(messages).values({
+        id: summaryMessageId,
+        sessionId,
+        role: 'assistant',
+        parts: [summaryPart],
+        modelId: resolved.modelId,
+        providerId: resolved.providerId,
+        agentId: input.agentId as PrefixedString<'agt'>,
+        usage,
+        costUsd,
+        finishReason: 'stop',
+        isSummary: true,
+        createdAt: summaryNow,
+        updatedAt: summaryNow,
+        startedAt: summaryNow,
+        duration: summaryNow - now,
+      });
 
-    await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, sessionId));
+      await tx.update(sessions).set({ updatedAt: summaryNow }).where(eq(sessions.id, sessionId));
+    });
 
     log.info(
       {
