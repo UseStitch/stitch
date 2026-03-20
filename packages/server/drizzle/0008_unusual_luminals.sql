@@ -18,5 +18,4 @@ CREATE TABLE IF NOT EXISTS `mcp_servers` (
 	`tools` blob,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL
-);--> statement-breakpoint
-ALTER TABLE `mcp_servers` ADD COLUMN `tools` blob;
+);
