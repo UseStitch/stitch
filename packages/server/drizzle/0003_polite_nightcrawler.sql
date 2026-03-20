@@ -1,1 +1,0 @@
-ALTER TABLE `user_settings` ADD `description` text DEFAULT '' NOT NULL;

@@ -5,64 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773793139012,
-      "tag": "0000_glossy_ego",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773847126272,
-      "tag": "0001_strong_wild_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1773874043832,
-      "tag": "0002_nasty_venom",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1773877570563,
-      "tag": "0003_polite_nightcrawler",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1773877577265,
-      "tag": "0004_init_settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1773961238819,
-      "tag": "0005_opposite_junta",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1773961976140,
-      "tag": "0006_giant_misty_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1773968076669,
-      "tag": "0007_good_titanium_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1773974151619,
-      "tag": "0008_unusual_luminals",
+      "when": 1773975664453,
+      "tag": "0000_tiny_cammi",
       "breakpoints": true
     }
   ]
