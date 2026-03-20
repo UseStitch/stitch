@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   agentToolConfigQueryOptions,
@@ -67,23 +68,20 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   };
 
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">Tools</p>
-      <div className="overflow-hidden rounded-md border border-border/50">
-        {toolConfig.map((tool) => (
-          <div
-            key={tool.toolName}
-            className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
-          >
-            <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
-            <Switch
-              checked={tool.enabled}
-              onCheckedChange={(checked) => handleToggle(tool.toolName, checked)}
-              disabled={setToolEnabled.isPending}
-            />
-          </div>
-        ))}
-      </div>
+    <div className="overflow-hidden rounded-md border border-border/50">
+      {toolConfig.map((tool) => (
+        <div
+          key={tool.toolName}
+          className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
+        >
+          <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
+          <Switch
+            checked={tool.enabled}
+            onCheckedChange={(checked) => handleToggle(tool.toolName, checked)}
+            disabled={setToolEnabled.isPending}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -152,57 +150,68 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Name</p>
-          <Input
-            value={form.name}
-            onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-            placeholder="Agent name"
-          />
-        </div>
+      <Tabs defaultValue="general">
+        <TabsList className="mb-4">
+          <TabsTrigger value="general">General</TabsTrigger>
+          {mode.type === 'edit' && <TabsTrigger value="tools">Tools</TabsTrigger>}
+        </TabsList>
 
-        <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
-          <div>
-            <p className="text-sm font-medium">Use base prompt</p>
-            <p className="text-xs text-muted-foreground">Use the default system prompt for this agent</p>
+        <TabsContent value="general">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Name</p>
+              <Input
+                value={form.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Agent name"
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+              <div>
+                <p className="text-sm font-medium">Use base prompt</p>
+                <p className="text-xs text-muted-foreground">Use the default system prompt for this agent</p>
+              </div>
+              <Switch
+                checked={form.useBasePrompt}
+                onCheckedChange={(checked) => setForm((prev) => ({ ...prev, useBasePrompt: checked }))}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">System prompt</p>
+              <Textarea
+                value={form.systemPrompt}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    systemPrompt: event.target.value,
+                  }))
+                }
+                placeholder="Custom system prompt"
+                className="min-h-36"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={onBack} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleSave()} disabled={isPending}>
+                {isPending ? 'Saving...' : mode.type === 'create' ? 'Create agent' : 'Save changes'}
+              </Button>
+            </div>
           </div>
-          <Switch
-            checked={form.useBasePrompt}
-            onCheckedChange={(checked) => setForm((prev) => ({ ...prev, useBasePrompt: checked }))}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">System prompt</p>
-          <Textarea
-            value={form.systemPrompt}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                systemPrompt: event.target.value,
-              }))
-            }
-            placeholder="Custom system prompt"
-            className="min-h-36"
-          />
-        </div>
+        </TabsContent>
 
         {mode.type === 'edit' && (
-          <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
-            <AgentToolConfig agentId={mode.agent.id} />
-          </React.Suspense>
+          <TabsContent value="tools">
+            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
+              <AgentToolConfig agentId={mode.agent.id} />
+            </React.Suspense>
+          </TabsContent>
         )}
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onBack} disabled={isPending}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSave()} disabled={isPending}>
-            {isPending ? 'Saving...' : mode.type === 'create' ? 'Create agent' : 'Save changes'}
-          </Button>
-        </div>
-      </div>
+      </Tabs>
     </div>
   );
 }
