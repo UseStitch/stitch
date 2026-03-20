@@ -288,7 +288,6 @@ export function MessageList({
             key="streaming"
             partIds={streamState.partIds}
             parts={streamState.parts}
-            isStreaming={streamState.isStreaming}
             onAbortTool={onAbortTool}
           />
         );

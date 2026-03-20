@@ -282,14 +282,12 @@ export const MessageBubble = React.memo(function MessageBubble({
 type StreamingMessageBubbleProps = {
   partIds: string[];
   parts: Record<string, StreamingPart>;
-  isStreaming: boolean;
   onAbortTool?: () => void;
 };
 
 export const StreamingMessageBubble = React.memo(function StreamingMessageBubble({
   partIds,
   parts,
-  isStreaming,
   onAbortTool,
 }: StreamingMessageBubbleProps) {
   const visibleIds = partIds.filter((id) => id in parts);
@@ -304,16 +302,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
   });
 
   if (!hasAnyContent) {
-    if (!isStreaming) return null;
-    return (
-      <div className="flex justify-start">
-        <div className="flex items-center gap-1 px-1 py-2">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce" />
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

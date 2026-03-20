@@ -75,6 +75,58 @@
   }
 }
 
+@keyframes streaming-border-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.streaming-border-wrapper {
+  position: relative;
+}
+
+.streaming-border-wrapper-inner {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  height: calc(100% + 2px);
+  width: calc(100% + 2px);
+}
+
+.streaming-border-wrapper-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+}
+
+.streaming-border-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%, var(--primary) 0deg, transparent 360deg);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: streaming-border-spin 2s linear infinite paused;
+}
+
+.streaming-border-wrapper.is-streaming .streaming-border-spinner {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+.streaming-border-wrapper > .streaming-border-wrapper-inner + * {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streaming-border-spinner {
+    animation: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
