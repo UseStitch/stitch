@@ -16,6 +16,9 @@ const config: Configuration = {
     },
   ],
   icon: 'resources/icon.png',
+  nsis: {
+    include: 'installer/installer.nsh',
+  },
   win: {
     icon: 'resources/icon.ico',
     target: ['nsis'],
