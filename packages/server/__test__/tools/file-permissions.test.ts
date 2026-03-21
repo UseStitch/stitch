@@ -26,9 +26,10 @@ describe('file permission helpers', () => {
 
     const suggestion = getParentDirPermissionSuggestion({ filePath: absolutePath });
 
+    const parentDir = path.dirname(path.resolve(absolutePath));
     expect(suggestion).toEqual({
-      message: 'Always allow in parent dir',
-      pattern: path.join(path.dirname(path.resolve(absolutePath)), '*'),
+      message: `Always allow in ${parentDir}`,
+      pattern: path.join(parentDir, '*'),
     });
   });
 

@@ -13,6 +13,8 @@ type PermissionResponseDockProps = {
   onApplySuggestion: (permissionResponseId: string, pattern: string) => Promise<void>;
 };
 
+const DIR_PREFIX = 'Always allow in ';
+
 export function PermissionResponseDock({
   permissionResponses,
   onAllow,
@@ -32,6 +34,8 @@ export function PermissionResponseDock({
   if (!pending) return null;
 
   const canSubmitAlternative = entry.trim().length > 0;
+  const isDirectorySuggestion = suggestion?.message.startsWith(DIR_PREFIX) ?? false;
+  const dir = isDirectorySuggestion ? suggestion!.message.slice(DIR_PREFIX.length) : null;
 
   return (
     <div className="flex flex-col gap-3 text-sm">
@@ -40,7 +44,7 @@ export function PermissionResponseDock({
       </div>
       <div className="text-muted-foreground text-xs">{pending.systemReminder}</div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => void onAllow(pending.id)}>
           Allow
         </Button>
@@ -50,18 +54,28 @@ export function PermissionResponseDock({
         <Button size="sm" variant="destructive" onClick={() => void onReject(pending.id)}>
           Reject
         </Button>
-        {suggestion ? (
+        {suggestion && !isDirectorySuggestion ? (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              void onApplySuggestion(pending.id, suggestion.pattern);
-            }}
+            onClick={() => void onApplySuggestion(pending.id, suggestion.pattern)}
           >
             {suggestion.message}
           </Button>
         ) : null}
       </div>
+
+      {suggestion && isDirectorySuggestion ? (
+        <button
+          type="button"
+          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <span className="underline-offset-2 group-hover:underline">Always allow in directory</span>
+          <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">
+            {dir}
+          </span>
+        </button>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <input

@@ -23,7 +23,7 @@ export function getParentDirPermissionSuggestion(input: unknown): PermissionSugg
   const pattern = path.join(parentDir, '*');
 
   return {
-    message: 'Always allow in parent dir',
+    message: `Always allow in ${parentDir}`,
     pattern,
   };
 }
