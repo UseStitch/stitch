@@ -11,6 +11,13 @@ const WEB_DIST = join(__dirname, '../../web/dist/index.html');
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 
+// Enforce single instance before any other initialization.
+// app.exit() is used instead of app.quit() to avoid ghost processes on Windows.
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.exit(0);
+}
+
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
 
@@ -118,6 +125,20 @@ ipcMain.handle('dialog:openPath', async () => {
 });
 
 void app.whenReady().then(async () => {
+  // Register launch at startup for packaged builds only.
+  if (app.isPackaged) {
+    app.setLoginItemSettings({ openAtLogin: true });
+  }
+
+  // When a second instance attempts to launch, focus the existing window.
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
   const port = await findAvailablePort();
   serverUrl = await spawnServer(port);
 
