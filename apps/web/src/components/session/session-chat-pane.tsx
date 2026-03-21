@@ -30,12 +30,27 @@ import {
   useSendMessage,
   useSplitSession,
 } from '@/lib/queries/chat';
+import { useAddToQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
+import type { EditQueuedMessagePayload, SendQueuedMessageFn } from '@/routes/session.$id';
+
 const MODEL_SEPARATOR = ':::';
 
-export function SessionChatPane() {
+type SessionChatPaneProps = {
+  onOpenQueue: () => void;
+  editPayload: EditQueuedMessagePayload | null;
+  onConsumeEditPayload: () => void;
+  sendQueuedRef: React.RefObject<SendQueuedMessageFn | null>;
+};
+
+export function SessionChatPane({
+  onOpenQueue,
+  editPayload,
+  onConsumeEditPayload,
+  sendQueuedRef,
+}: SessionChatPaneProps) {
   const { id } = useParams({ from: '/session/$id' });
   const navigate = useNavigate();
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
@@ -73,11 +88,15 @@ export function SessionChatPane() {
   const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
   const sendMessage = useSendMessage();
   const splitSession = useSplitSession();
+  const addToQueue = useAddToQueue();
   const streamState = useSessionStreamState(id);
   const startStream = useStreamStore((state) => state.startStream);
   const abortStream = useStreamStore((state) => state.abortStream);
   const { isCompacting } = useCompactionUpdates(id);
   const pendingItems = useSessionPendingItems(id);
+  const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[] | undefined>(
+    undefined,
+  );
 
   useQuestionSync(id);
   usePermissionResponseSync(id);
@@ -96,6 +115,30 @@ export function SessionChatPane() {
     };
   }, []);
 
+  // Handle edit payload from the queue panel
+  React.useEffect(() => {
+    if (!editPayload) return;
+
+    setValue(editPayload.content);
+
+    if (editPayload.attachments.length > 0) {
+      const converted: Attachment[] = editPayload.attachments.map((a, i) => ({
+        id: `edit_${Date.now()}_${String(i)}`,
+        path: a.path,
+        previewUrl: null,
+        mime: a.mime,
+        filename: a.filename,
+      }));
+      setPendingAttachments(converted);
+    }
+
+    onConsumeEditPayload();
+  }, [editPayload, onConsumeEditPayload]);
+
+  const handlePendingAttachmentsConsumed = React.useCallback(() => {
+    setPendingAttachments(undefined);
+  }, []);
+
   const docks = useSessionDocks({
     sessionId: id,
     retry: streamState.retry,
@@ -109,8 +152,30 @@ export function SessionChatPane() {
     alternativePermissionResponse: pendingItems.alternativePermissionResponse,
   });
 
+  const isStreaming = streamState.isStreaming;
+  const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
+
   async function handleSubmit(text: string, attachments: Attachment[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
+
+    // If streaming or a send is in-flight, queue the message instead
+    if (!canSend) {
+      addToQueue.mutate({
+        sessionId: id as PrefixedString<'ses'>,
+        content: text,
+        attachments:
+          attachments.length > 0
+            ? attachments.map((a) => ({
+                path: a.path,
+                mime: a.mime,
+                filename: a.filename,
+              }))
+            : undefined,
+      });
+      setValue('');
+      onOpenQueue();
+      return;
+    }
 
     const parsed = parseModelId(selectedModel);
     if (!parsed) return;
@@ -148,7 +213,42 @@ export function SessionChatPane() {
     void navigate({ to: '/session/$id', params: { id: result.session.id }, viewTransition: true });
   }
 
-  const canSubmit = !sendMessage.isPending && !streamState.isStreaming && !isCompacting;
+  // Expose a function for the queue panel to send queued messages
+  React.useEffect(() => {
+    sendQueuedRef.current = (content, queueAttachments) => {
+      if (!canSend || !selectedModel || !selectedAgent) return;
+
+      const parsed = parseModelId(selectedModel);
+      if (!parsed) return;
+
+      const assistantMessageId = createMessageId();
+      startStream(id, assistantMessageId);
+
+      void sendMessage.mutateAsync({
+        sessionId: id as PrefixedString<'ses'>,
+        content,
+        attachments:
+          queueAttachments.length > 0
+            ? queueAttachments.map((a) => ({
+                path: a.path,
+                previewUrl: null,
+                mime: a.mime,
+                filename: a.filename,
+              }))
+            : undefined,
+        providerId: parsed.providerId,
+        modelId: parsed.modelId,
+        agentId: selectedAgent,
+        assistantMessageId,
+      });
+    };
+
+    return () => {
+      sendQueuedRef.current = null;
+    };
+  }, [canSend, selectedModel, selectedAgent, id, sendQueuedRef, startStream, sendMessage]);
+
+  const inputMode = canSend ? 'send' : 'queue';
 
   return (
     <div className="h-full min-w-0 pr-4 pt-4">
@@ -203,11 +303,14 @@ export function SessionChatPane() {
                     placeholder={
                       isCompacting
                         ? 'Compacting conversation...'
-                        : canSubmit
+                        : canSend
                           ? 'Ask anything...'
-                          : 'Waiting for response...'
+                          : 'Type to queue a message...'
                     }
-                    disabled={!canSubmit}
+                    disabled={isCompacting}
+                    mode={inputMode}
+                    pendingAttachments={pendingAttachments}
+                    onPendingAttachmentsConsumed={handlePendingAttachmentsConsumed}
                     embedded
                   />
                 </div>

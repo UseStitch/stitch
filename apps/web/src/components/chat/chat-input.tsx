@@ -11,6 +11,7 @@ import {
   XIcon,
   FileIcon,
   FileTextIcon,
+  ListOrderedIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -385,6 +386,9 @@ type ChatInputInnerProps = {
   disabled?: boolean;
   hasDockAbove?: boolean;
   embedded?: boolean;
+  mode?: 'send' | 'queue';
+  pendingAttachments?: Attachment[];
+  onPendingAttachmentsConsumed?: () => void;
 };
 
 function ChatInputInner({
@@ -401,6 +405,9 @@ function ChatInputInner({
   disabled,
   hasDockAbove,
   embedded,
+  mode = 'send',
+  pendingAttachments,
+  onPendingAttachmentsConsumed,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
@@ -408,6 +415,13 @@ function ChatInputInner({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = React.useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = React.useState(false);
+
+  React.useEffect(() => {
+    if (pendingAttachments && pendingAttachments.length > 0) {
+      setAttachments(pendingAttachments);
+      onPendingAttachmentsConsumed?.();
+    }
+  }, [pendingAttachments, onPendingAttachmentsConsumed]);
 
   const allOptions = React.useMemo(
     () =>
@@ -604,31 +618,40 @@ function ChatInputInner({
           )}
         </div>
 
-        {/* Right: stop or submit */}
-        {isStreaming ? (
-          <Button
-            type="button"
-            size="icon-xs"
-            variant="destructive"
-            onClick={onStop}
-            className="shrink-0"
-          >
-            <SquareIcon className="size-3.5" />
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            size="icon-xs"
-            variant={canSubmit ? 'default' : 'outline'}
-            disabled={!canSubmit}
-            onClick={() => {
-              if (canSubmit) submit();
-            }}
-            className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
-          >
-            <ArrowUpIcon className="size-3.5" />
-          </Button>
-        )}
+        {/* Right: stop and/or submit */}
+        <div className="flex items-center gap-1">
+          {isStreaming ? (
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="destructive"
+              onClick={onStop}
+              className="shrink-0"
+            >
+              <SquareIcon className="size-3.5" />
+            </Button>
+          ) : null}
+
+          {!(isStreaming && mode === 'send') ? (
+            <Button
+              type="button"
+              size="icon-xs"
+              variant={canSubmit ? (mode === 'queue' ? 'secondary' : 'default') : 'outline'}
+              disabled={!canSubmit}
+              onClick={() => {
+                if (canSubmit) submit();
+              }}
+              className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
+              title={mode === 'queue' ? 'Add to queue' : 'Send message'}
+            >
+              {mode === 'queue' ? (
+                <ListOrderedIcon className="size-3.5" />
+              ) : (
+                <ArrowUpIcon className="size-3.5" />
+              )}
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -649,6 +672,9 @@ type ChatInputProps = {
   className?: string;
   hasDockAbove?: boolean;
   embedded?: boolean;
+  mode?: 'send' | 'queue';
+  pendingAttachments?: Attachment[];
+  onPendingAttachmentsConsumed?: () => void;
 };
 
 export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatInputProps) {

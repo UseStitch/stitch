@@ -15,6 +15,13 @@
       "when": 1774050802506,
       "tag": "0001_aspiring_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774053228572,
+      "tag": "0002_fresh_peter_quill",
+      "breakpoints": true
     }
   ]
 }

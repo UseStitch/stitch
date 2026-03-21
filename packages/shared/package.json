@@ -8,6 +8,7 @@
     "./appearance/types": "./src/appearance/types.ts",
     "./chat/errors": "./src/chat/errors.ts",
     "./chat/messages": "./src/chat/messages.ts",
+    "./chat/queue": "./src/chat/queue.ts",
     "./chat/realtime": "./src/chat/realtime.ts",
     "./id": "./src/id/index.ts",
     "./mcp/types": "./src/mcp/types.ts",

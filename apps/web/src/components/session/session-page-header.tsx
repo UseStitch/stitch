@@ -1,8 +1,9 @@
-import { EllipsisIcon, InfoIcon, PencilLineIcon, Trash2Icon } from 'lucide-react';
+import { EllipsisIcon, InfoIcon, ListOrderedIcon, PencilLineIcon, Trash2Icon } from 'lucide-react';
 
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
+import type { RightPanel } from '@/routes/session.$id';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,21 +13,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
+import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
+import { cn } from '@/lib/utils';
 
 type SessionPageHeaderProps = {
-  detailsOpen: boolean;
+  rightPanel: RightPanel;
   onToggleDetails: () => void;
+  onToggleQueue: () => void;
   onDeleteSession: () => void;
 };
 
 export function SessionPageHeader({
-  detailsOpen,
+  rightPanel,
   onToggleDetails,
+  onToggleQueue,
   onDeleteSession,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
   const { id } = useParams({ from: '/session/$id' });
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
+  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(id));
+
+  const queueCount = queuedMessages?.length ?? 0;
 
   return (
     <header className="border-b border-border/60 bg-muted/40">
@@ -37,9 +45,24 @@ export function SessionPageHeader({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="hidden lg:inline-flex"
+            className={cn('relative hidden lg:inline-flex', rightPanel === 'queue' && 'bg-accent')}
+            onClick={onToggleQueue}
+            aria-label={rightPanel === 'queue' ? 'Hide message queue' : 'Show message queue'}
+          >
+            <ListOrderedIcon className="size-4" />
+            {queueCount > 0 ? (
+              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                {queueCount > 9 ? '9+' : queueCount}
+              </span>
+            ) : null}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
             onClick={onToggleDetails}
-            aria-label={detailsOpen ? 'Hide session details' : 'Show session details'}
+            aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}
           >
             <InfoIcon className="size-4" />
           </Button>
