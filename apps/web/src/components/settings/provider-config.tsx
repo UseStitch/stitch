@@ -141,7 +141,10 @@ export function ProviderConfig({ provider, onBack }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
     : undefined;
-  const enabledAuthMethods = meta?.authMethods.filter((method) => method.enabled) ?? [];
+  const enabledAuthMethods = React.useMemo(
+    () => meta?.authMethods.filter((method) => method.enabled) ?? [],
+    [meta],
+  );
   const queryClient = useQueryClient();
   const { data: existingConfig } = useQuery({
     ...providerConfigQueryOptions(provider.id),

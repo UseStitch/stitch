@@ -4,7 +4,8 @@ import { spawnSync } from 'bun';
 const steps = [
   { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
-  { name: 'lint', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '.'] },
+  { name: 'lint', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--fix', '--fix-suggestions', '.'] },
+  { name: 'lint:check', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--deny-warnings', '.'] },
   { name: 'knip', cmd: ['bunx', 'knip'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
 ];

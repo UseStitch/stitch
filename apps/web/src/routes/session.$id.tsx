@@ -70,7 +70,7 @@ function SessionComponent() {
 
   React.useEffect(() => {
     markRead.mutate(id);
-  }, [id]);
+  }, [id, markRead]);
 
   return (
     <>

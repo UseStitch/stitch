@@ -19,6 +19,7 @@ const MAX_METADATA_LENGTH = 30_000;
 
 function stripAnsi(value: string): string {
   return value.replace(
+    // oxlint-disable-next-line no-control-regex -- intentionally matches ANSI escape sequences
     /[\u001B\u009B][[\]()#;?]*(?:(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><~])/g,
     '',
   );

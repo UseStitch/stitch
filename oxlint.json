@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import"],
+  "plugins": ["unicorn", "typescript", "oxc", "import", "react"],
   "options": {
     "typeAware": true
   },
@@ -16,7 +16,15 @@
       {
         "esmodule": true
       }
-    ]
+    ],
+    "react/jsx-key": "error",
+    "react/no-direct-mutation-state": "error",
+    "react/no-danger-with-children": "error",
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/no-deprecated": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/hooks-extra/no-direct-set-state-in-use-effect": "error"
   },
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
   "env": {
