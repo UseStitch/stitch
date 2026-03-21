@@ -379,7 +379,7 @@ function getSplitTitle(baseTitle: string, n: number): string {
 function parseSplitTitle(title: string): { base: string; n: number } | null {
   const match = title.match(/^(.+) Split #(\d+)$/);
   if (!match) return null;
-  return { base: match[1]!, n: parseInt(match[2]!, 10) };
+  return { base: match[1], n: parseInt(match[2], 10) };
 }
 
 export async function splitSession(
@@ -447,7 +447,7 @@ export async function splitSession(
     .map((p) => p.text)
     .join('');
 
-  return ok({ session: newSession!, prefillText });
+  return ok({ session: newSession, prefillText });
 }
 
 export async function requestCompaction(
@@ -475,7 +475,7 @@ export async function requestCompaction(
     sessionId,
     providerId: lastMessage.providerId,
     modelId: lastMessage.modelId,
-    agentId: lastMessage.agentId as PrefixedString<'agt'>,
+    agentId: lastMessage.agentId,
     auto: false,
   });
 

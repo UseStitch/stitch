@@ -301,12 +301,12 @@ export function useSendMessage() {
 
         const optimisticMessage: Message = {
           id: createMessageId(),
-          sessionId: input.sessionId as PrefixedString<'ses'>,
+          sessionId: input.sessionId,
           role: 'user',
           parts: optimisticParts,
           modelId: input.modelId,
           providerId: input.providerId,
-          agentId: input.agentId as PrefixedString<'agt'>,
+          agentId: input.agentId,
           usage: EMPTY_USAGE,
           costUsd: null,
           finishReason: 'stop',

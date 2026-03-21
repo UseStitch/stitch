@@ -32,10 +32,10 @@ export type StreamingToolCallPart = {
   type: 'tool-call';
   toolCallId: string;
   toolName: string;
-  input: unknown | null;
+  input: unknown;
   partialInput: string;
   status: ToolCallStatus;
-  output: unknown | null;
+  output: unknown;
   error: string | null;
   startedAt: number;
   endedAt: number | null;

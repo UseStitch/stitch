@@ -107,18 +107,18 @@ function filterProviders(raw: Record<string, RawProvider>): Record<string, RawPr
 }
 
 export async function get(): Promise<Record<string, RawProvider>> {
-  if (data) return data as Record<string, RawProvider>;
+  if (data) return data;
   const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
     data = filterProviders(JSON.parse(cached) as Record<string, RawProvider>);
-    return data as Record<string, RawProvider>;
+    return data;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
   data = filterProviders(JSON.parse(json) as Record<string, RawProvider>);
 
-  return data as Record<string, RawProvider>;
+  return data;
 }
 
 export async function refresh() {

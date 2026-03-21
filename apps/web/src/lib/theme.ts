@@ -68,7 +68,7 @@ export const DEFAULT_THEME = 'default';
 export const DEFAULT_MODE: AppearanceMode = 'system';
 
 export function getTheme(name: string): ThemeDefinition {
-  return THEMES.find((t) => t.name === name) ?? (THEMES[0] as ThemeDefinition);
+  return THEMES.find((t) => t.name === name) ?? THEMES[0];
 }
 
 function buildCssVars(tokens: ThemeTokens): string {

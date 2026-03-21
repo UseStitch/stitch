@@ -278,7 +278,7 @@ export async function compact(input: {
         parts: [compactionPart],
         modelId: input.modelId,
         providerId: input.providerId,
-        agentId: input.agentId as PrefixedString<'agt'>,
+        agentId: input.agentId,
         costUsd: 0,
         createdAt: now,
         updatedAt: now,
@@ -331,7 +331,7 @@ export async function compact(input: {
     const providerOptions = getProviderOptions(resolved.providerId as ProviderId, sessionId);
 
     let summaryText = '';
-    const result = await streamText({
+    const result = streamText({
       model,
       messages: cachedMessages,
       providerOptions,
@@ -371,7 +371,7 @@ export async function compact(input: {
         parts: [summaryPart],
         modelId: resolved.modelId,
         providerId: resolved.providerId,
-        agentId: input.agentId as PrefixedString<'agt'>,
+        agentId: input.agentId,
         usage,
         costUsd,
         finishReason: 'stop',

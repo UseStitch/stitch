@@ -70,11 +70,7 @@ async function getToolsForServer(
   context: ToolContext,
 ): Promise<Record<string, Tool>> {
   let client: MCPClient;
-  try {
-    client = await getClient(server);
-  } catch (err) {
-    throw err;
-  }
+  client = await getClient(server);
 
   let rawTools: Record<string, Tool>;
   try {

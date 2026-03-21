@@ -45,7 +45,7 @@ export async function saveShortcut(
     return err('hotkey must be a string or null', 400);
   }
 
-  const hotkey = (hotkeyValue as string | null) ?? null;
+  const hotkey = hotkeyValue ?? null;
   const db = getDb();
   await db
     .update(keyboardShortcuts)

@@ -90,7 +90,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
       });
     };
 
-    initEventSource();
+    void initEventSource();
 
     return () => {
       cancelled = true;

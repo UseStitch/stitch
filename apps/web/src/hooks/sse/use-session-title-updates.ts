@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { Session } from '@stitch/shared/chat/messages';
-import type { SessionTitleUpdatePayload } from '@stitch/shared/chat/realtime';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
@@ -13,7 +12,7 @@ export function useSessionTitleUpdates(
 
   useSSE({
     'session-title-update': (data) => {
-      const { sessionId, title } = data as SessionTitleUpdatePayload;
+      const { sessionId, title } = data;
 
       // Update the session list cache
       queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev) =>

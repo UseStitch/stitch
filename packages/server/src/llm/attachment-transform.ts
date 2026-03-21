@@ -15,17 +15,17 @@ type UserPart = TextPart | ImagePart | FilePart;
 
 function getPartMime(part: UserPart): string | null {
   if (part.type === 'image') {
-    return (part as ImagePart).mediaType ?? 'image/unknown';
+    return part.mediaType ?? 'image/unknown';
   }
   if (part.type === 'file') {
-    return (part as FilePart).mediaType;
+    return part.mediaType;
   }
   return null;
 }
 
 function getPartFilename(part: UserPart): string | null {
   if (part.type === 'file') {
-    return (part as FilePart).filename ?? null;
+    return part.filename ?? null;
   }
   return null;
 }

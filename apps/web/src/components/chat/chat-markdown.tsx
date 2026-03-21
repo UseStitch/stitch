@@ -21,7 +21,6 @@ import { useTheme } from '@/hooks/ui/use-theme';
 import {
   getHighlighterPromise,
   type SupportedLanguage,
-  type Highlighter,
   normalizeLanguage,
   highlightedCodeCache,
   createHighlightCacheKey,
@@ -135,7 +134,7 @@ function SuspenseShikiCodeBlock({
     );
   }
 
-  const highlighter = use(getHighlighterPromise(language, theme)) as Highlighter;
+  const highlighter = use(getHighlighterPromise(language, theme));
 
   const highlightedHtml = React.useMemo(() => {
     try {

@@ -3,7 +3,7 @@ type Callback = () => void | Promise<void>;
 type Task = {
   id: string;
   callback: Callback;
-  timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
+  timer: ReturnType<typeof setInterval>;
   recurring: boolean;
 };
 
@@ -16,7 +16,7 @@ export function scheduleRecurring(
   options: { immediate?: boolean } = {},
 ): void {
   cancel(id);
-  if (options.immediate) callback();
+  if (options.immediate) void callback();
   const timer = setInterval(callback, intervalMs);
   tasks.set(id, { id, callback, timer, recurring: true });
 }
@@ -24,8 +24,8 @@ export function scheduleRecurring(
 function cancel(id: string): boolean {
   const task = tasks.get(id);
   if (!task) return false;
-  if (task.recurring) clearInterval(task.timer as ReturnType<typeof setInterval>);
-  else clearTimeout(task.timer as ReturnType<typeof setTimeout>);
+  if (task.recurring) clearInterval(task.timer);
+  else clearTimeout(task.timer);
   tasks.delete(id);
   return true;
 }

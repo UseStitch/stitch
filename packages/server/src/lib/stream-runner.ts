@@ -70,7 +70,7 @@ async function saveAssistantMessage(opts: {
     parts: accumulatedParts,
     modelId,
     providerId,
-    agentId: agentId as PrefixedString<'agt'>,
+    agentId: agentId,
     usage: totalUsage,
     costUsd,
     finishReason: finalFinishReason,

@@ -53,7 +53,7 @@ export function AppSidebar() {
   const streamingIds = useStreamingSessionIds();
   const streamingIdSet = React.useMemo(() => new Set(streamingIds), [streamingIds]);
 
-  const params = useParams({ strict: false }) as { id?: string };
+  const params = useParams({ strict: false });
   const currentId = params.id;
 
   return (

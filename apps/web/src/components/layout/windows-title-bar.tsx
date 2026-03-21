@@ -17,11 +17,11 @@ export function WindowsTitleBar() {
         setIsMaximized(maximized);
       }
     };
-    checkMaximized();
+    void checkMaximized();
   }, []);
 
   const handleMinimize = () => {
-    window.api?.window?.minimize();
+    void window.api?.window?.minimize();
   };
 
   const handleMaximize = async () => {
@@ -31,7 +31,7 @@ export function WindowsTitleBar() {
   };
 
   const handleClose = () => {
-    window.api?.window?.close();
+    void window.api?.window?.close();
   };
 
   return (

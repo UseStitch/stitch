@@ -35,7 +35,7 @@ export function RenameSessionDialog() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleRename();
+      void handleRename();
     }
   };
 

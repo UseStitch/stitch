@@ -102,5 +102,5 @@ describe('theme validation', () => {
 function parseOklchLightness(value: string): number {
   const match = value.match(/^oklch\(\s*([\d.]+)/);
   if (!match) throw new Error(`Cannot parse oklch lightness from: ${value}`);
-  return parseFloat(match[1] as string);
+  return parseFloat(match[1]);
 }

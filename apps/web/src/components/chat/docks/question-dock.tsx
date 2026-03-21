@@ -1,7 +1,7 @@
 import { CheckIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { QuestionRequest, QuestionInfo } from '@stitch/shared/questions/types';
+import type { QuestionRequest } from '@stitch/shared/questions/types';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,7 +15,7 @@ type QuestionDockProps = {
 
 export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps) {
   const request = questions[0];
-  const items = request.questions as QuestionInfo[];
+  const items = request.questions;
   const total = items.length;
 
   const [tab, setTab] = React.useState(0);
@@ -55,7 +55,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
   function handleSubmit() {
     const finalAnswers = answers.map((a, i) => {
       if (customOn[i] && customAnswers[i]?.trim()) {
-        return [...a, customAnswers[i]!.trim()];
+        return [...a, customAnswers[i].trim()];
       }
       return a;
     });

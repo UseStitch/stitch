@@ -20,10 +20,10 @@ queueRouter.get('/sessions/:id/queue', (c) => {
 
 queueRouter.post('/sessions/:id/queue', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = (await c.req.json()) as {
+  const body = await c.req.json<{
     content: string;
     attachments?: QueuedMessageAttachment[];
-  };
+  }>();
 
   if (!body.content?.trim() && (!body.attachments || body.attachments.length === 0)) {
     return c.json({ error: 'content or attachments are required' }, 400);
@@ -40,10 +40,10 @@ queueRouter.post('/sessions/:id/queue', async (c) => {
 
 queueRouter.patch('/sessions/:id/queue/:queueId', async (c) => {
   const queueId = c.req.param('queueId') as PrefixedString<'qmsg'>;
-  const body = (await c.req.json()) as {
+  const body = await c.req.json<{
     content?: string;
     attachments?: QueuedMessageAttachment[];
-  };
+  }>();
 
   const row = updateQueuedMessage(queueId, {
     content: body.content,

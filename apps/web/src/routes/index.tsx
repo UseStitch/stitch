@@ -5,7 +5,6 @@ import type { InfiniteData } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
 import type { Session, MessagesPage } from '@stitch/shared/chat/messages';
-import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId } from '@stitch/shared/id';
 
 import { ChatInput, type Attachment } from '@/components/chat/chat-input';
@@ -69,7 +68,7 @@ function IndexComponent() {
 
     startStream(session.id, assistantMessageId);
     void sendMessage.mutateAsync({
-      sessionId: session.id as PrefixedString<'ses'>,
+      sessionId: session.id,
       content: text,
       attachments:
         attachments.length > 0
@@ -82,7 +81,7 @@ function IndexComponent() {
           : undefined,
       providerId,
       modelId,
-      agentId: selectedAgent as PrefixedString<'agt'>,
+      agentId: selectedAgent,
       assistantMessageId,
     });
 

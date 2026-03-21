@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import {
   PROVIDER_IDS,
-  type AuthMethodDef,
   type FieldDef,
   type ProviderId,
 } from '@stitch/shared/providers/types';
@@ -95,7 +94,7 @@ function FieldGroup({
               <SelectTrigger id={`${providerId}-${field.key}`} className="w-full">
                 <SelectValue placeholder={field.placeholder} />
               </SelectTrigger>
-              <SelectContent className="max-w-none max-h-[320px]">
+              <SelectContent className="max-w-none max-h-80">
                 {AWS_BEDROCK_REGIONS.map((region) => (
                   <SelectItem key={region.value} value={region.value}>
                     {region.label} ({region.value})
@@ -253,9 +252,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
   }
 
   const hasMultipleMethods = enabledAuthMethods.length > 1;
-  const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab) as
-    | AuthMethodDef
-    | undefined;
+  const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
 
   return (
     <div className="flex flex-col h-full">

@@ -22,7 +22,7 @@ import type { DoomLoopResponse } from '@/llm/doom-loop.js';
 export const chatRouter = new Hono();
 
 chatRouter.post('/sessions', async (c) => {
-  const body = (await c.req.json()) as { title?: string; parentSessionId?: string };
+  const body = await c.req.json<{ title?: string; parentSessionId?: string }>();
   const session = await createSession(body);
   return c.json(session, 201);
 });
@@ -63,7 +63,7 @@ chatRouter.delete('/sessions/:id', async (c) => {
 
 chatRouter.patch('/sessions/:id', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = (await c.req.json()) as { title: string };
+  const body = await c.req.json<{ title: string }>();
 
   if (!body.title) {
     return c.json({ error: 'Title is required' }, 400);
@@ -83,7 +83,7 @@ chatRouter.patch('/sessions/:id/read', async (c) => {
 
 chatRouter.post('/sessions/:id/messages', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = (await c.req.json()) as {
+  const body = await c.req.json<{
     content: string;
     providerId: string;
     modelId: string;
@@ -94,7 +94,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
       mime: string;
       filename: string;
     }>;
-  };
+  }>();
 
   if (
     !body.content ||
@@ -127,7 +127,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
 
 chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = (await c.req.json()) as { response: DoomLoopResponse };
+  const body = await c.req.json<{ response: DoomLoopResponse }>();
 
   if (body.response !== 'continue' && body.response !== 'stop') {
     return c.json({ error: 'response must be "continue" or "stop"' }, 400);

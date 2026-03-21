@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import {
   PROVIDER_IDS,
-  type AuthMethodDef,
   type FieldDef,
   type ProviderId,
 } from '@stitch/shared/providers/types';
@@ -201,9 +200,7 @@ function OnboardingProviderConfig({
   }
 
   const hasMultipleMethods = enabledAuthMethods.length > 1;
-  const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab) as
-    | AuthMethodDef
-    | undefined;
+  const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
 
   return (
     <div className="flex flex-col h-full">

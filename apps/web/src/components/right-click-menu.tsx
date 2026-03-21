@@ -23,7 +23,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
   }, []);
 
   const handleOpenDevTools = useCallback(() => {
-    window.api?.devtools?.toggle();
+    void window.api?.devtools?.toggle();
   }, []);
 
   useEffect(() => {

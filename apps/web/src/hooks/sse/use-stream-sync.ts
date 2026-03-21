@@ -1,15 +1,3 @@
-import type {
-  DoomLoopDetectedPayload,
-  StreamErrorPayload,
-  StreamFinishPayload,
-  StreamPartDeltaPayload,
-  StreamPartUpdatePayload,
-  StreamRetryPayload,
-  StreamStartPayload,
-  StreamToolInputDeltaPayload,
-  StreamToolStatePayload,
-} from '@stitch/shared/chat/realtime';
-
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -35,38 +23,35 @@ function useStreamSync(): void {
 
   useSSE({
     'stream-start': (data) => {
-      const { sessionId, messageId } = data as StreamStartPayload;
+      const { sessionId, messageId } = data;
       applyStreamStart(sessionId, messageId);
     },
     'stream-part-update': (data) => {
-      const { sessionId, messageId, partId, part } = data as StreamPartUpdatePayload;
+      const { sessionId, messageId, partId, part } = data;
       applyPartUpdate(sessionId, messageId, partId, part);
     },
     'stream-part-delta': (data) => {
-      const { sessionId, messageId, partId, delta } = data as StreamPartDeltaPayload;
+      const { sessionId, messageId, partId, delta } = data;
       applyPartDelta(sessionId, messageId, partId, delta);
     },
     'stream-tool-input-delta': (data) => {
-      const { sessionId, messageId, toolCallId, toolName, inputTextDelta } =
-        data as StreamToolInputDeltaPayload;
+      const { sessionId, messageId, toolCallId, toolName, inputTextDelta } = data;
       applyToolInputDelta(sessionId, messageId, toolCallId, toolName, inputTextDelta);
     },
     'stream-tool-state': (data) => {
-      const { sessionId, messageId, toolCallId, toolName, status, input, output, error } =
-        data as StreamToolStatePayload;
+      const { sessionId, messageId, toolCallId, toolName, status, input, output, error } = data;
       applyToolState(sessionId, messageId, toolCallId, toolName, status, input, output, error);
     },
     'stream-finish': (data) => {
-      const { sessionId, messageId, finishReason, usage } = data as StreamFinishPayload;
+      const { sessionId, messageId, finishReason, usage } = data;
       finishStream(sessionId, messageId, finishReason, usage);
     },
     'stream-error': (data) => {
-      const { sessionId, messageId, error, details } = data as StreamErrorPayload;
+      const { sessionId, messageId, error, details } = data;
       errorStream(sessionId, messageId, error, details);
     },
     'stream-retry': (data) => {
-      const { sessionId, messageId, attempt, maxRetries, delayMs, message } =
-        data as StreamRetryPayload;
+      const { sessionId, messageId, attempt, maxRetries, delayMs, message } = data;
       retryStream(sessionId, messageId, {
         attempt,
         maxRetries,
@@ -76,7 +61,7 @@ function useStreamSync(): void {
       });
     },
     'doom-loop-detected': (data) => {
-      const { sessionId, messageId, toolName, consecutiveCount } = data as DoomLoopDetectedPayload;
+      const { sessionId, messageId, toolName, consecutiveCount } = data;
       doomLoopDetected(sessionId, messageId, toolName, consecutiveCount);
     },
   });

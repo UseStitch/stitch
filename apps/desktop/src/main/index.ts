@@ -48,18 +48,18 @@ async function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    void shell.openExternal(url);
     return { action: 'deny' };
   });
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     await waitForDevServer(process.env['ELECTRON_RENDERER_URL']);
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else if (!app.isPackaged) {
     await waitForDevServer(WEB_DEV_URL);
-    mainWindow.loadURL(WEB_DEV_URL);
+    void mainWindow.loadURL(WEB_DEV_URL);
   } else {
-    mainWindow.loadFile(WEB_DIST);
+    void mainWindow.loadFile(WEB_DIST);
   }
 
   if (!app.isPackaged) {
@@ -98,7 +98,7 @@ ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
 });
 
 ipcMain.handle('shell:openExternal', (_event, url: string) => {
-  shell.openExternal(url);
+  void shell.openExternal(url);
 });
 
 ipcMain.handle('files:writeTmp', async (_event, data: ArrayBuffer, ext: string) => {
@@ -117,7 +117,7 @@ ipcMain.handle('dialog:openPath', async () => {
   return result.canceled ? [] : result.filePaths;
 });
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   const port = await findAvailablePort();
   serverUrl = await spawnServer(port);
 
@@ -125,7 +125,7 @@ app.whenReady().then(async () => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      void createWindow();
     }
   });
 });

@@ -20,7 +20,7 @@ export function useActions(): Action[] {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
-  const sessionId = params.id as string | undefined;
+  const sessionId = params.id;
   const agentsQuery = useQuery(agentsQueryOptions);
   const settingsQuery = useQuery(settingsQueryOptions);
   const saveDefaultAgent = useMutation(

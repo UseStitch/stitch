@@ -30,7 +30,7 @@ const STITCH_KNOWN_TOOLS = (
       agentId: 'agt_' as PrefixedString<'agt'>,
       streamRunId: '',
     }),
-  ) as string[]
+  )
 ).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
 
 export const agentsRouter = new Hono();

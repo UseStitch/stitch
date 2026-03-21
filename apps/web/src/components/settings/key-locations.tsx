@@ -94,7 +94,7 @@ function KeyLocationsContent() {
         setLoading(false);
       }
     }
-    fetchHealth();
+    void fetchHealth();
   }, []);
 
   if (loading) {
