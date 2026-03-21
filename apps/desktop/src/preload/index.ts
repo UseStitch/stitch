@@ -29,5 +29,6 @@ contextBridge.exposeInMainWorld('api', {
   files: {
     writeTmp: (data: ArrayBuffer, ext: string) =>
       ipcRenderer.invoke('files:writeTmp', data, ext) as Promise<string>,
+    openPath: () => ipcRenderer.invoke('dialog:openPath') as Promise<string[]>,
   },
 });

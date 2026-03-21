@@ -1014,7 +1014,12 @@ export async function runStream(opts: {
     streamRunId,
   });
 
-  const mcpTools = await createMcpToolsForAgent(opts.agentId);
+  const mcpTools = await createMcpToolsForAgent(opts.agentId, {
+    sessionId: opts.sessionId,
+    messageId: opts.assistantMessageId,
+    agentId: opts.agentId,
+    streamRunId,
+  });
 
   const allTools = { ...allStitchTools, ...mcpTools };
 

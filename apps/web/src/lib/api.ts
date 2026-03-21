@@ -22,6 +22,7 @@ declare global {
       };
       files?: {
         writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
+        openPath: () => Promise<string[]>;
       };
     };
   }

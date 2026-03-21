@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -108,6 +108,13 @@ ipcMain.handle('files:writeTmp', async (_event, data: ArrayBuffer, ext: string) 
   const filePath = join(dir, filename);
   await writeFile(filePath, Buffer.from(data));
   return filePath;
+});
+
+ipcMain.handle('dialog:openPath', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'openDirectory', 'multiSelections'],
+  });
+  return result.canceled ? [] : result.filePaths;
 });
 
 app.whenReady().then(async () => {

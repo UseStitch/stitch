@@ -1,4 +1,12 @@
-import { ArrowLeftIcon, PlusIcon, SearchIcon, ServerIcon, Trash2Icon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  FolderOpenIcon,
+  PlusIcon,
+  SearchIcon,
+  ServerIcon,
+  Settings2Icon,
+  Trash2Icon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -7,24 +15,37 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { Agent } from '@stitch/shared/agents/types';
 import type { McpServer } from '@stitch/shared/mcp/types';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
+import type { AgentPermission, AgentPermissionValue } from '@stitch/shared/permissions/types';
+import type { BashPreset } from '@stitch/shared/tools/bash-presets';
+import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   agentMcpServersQueryOptions,
+  agentPermissionsQueryOptions,
   agentToolConfigQueryOptions,
   agentsQueryOptions,
   useAddMcpServerToAgent,
   useCreateAgent,
   useDeleteAgent,
+  useDeleteAgentPermission,
   useRemoveMcpServerFromAgent,
   useSetAgentToolEnabled,
   useSetDefaultAgent,
   useUpdateAgent,
+  useUpsertAgentPermission,
 } from '@/lib/queries/agents';
 import { mcpServersQueryOptions } from '@/lib/queries/mcp';
 import { settingsQueryOptions } from '@/lib/queries/settings';
@@ -61,13 +82,330 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   question: 'Question',
 };
 
+// Stitch tools that support file path pattern rules
+const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
+// Stitch tools that support command family pattern rules
+const COMMAND_PATTERN_TOOLS = new Set(['bash']);
+// All tools that have pattern-based policy editors
+const PATTERN_POLICY_TOOLS = new Set([...FILE_PATTERN_TOOLS, ...COMMAND_PATTERN_TOOLS]);
+
+// ─── Permission select ────────────────────────────────────────────────────────
+
+const PERMISSION_OPTION_LABELS: Record<AgentPermissionValue, string> = {
+  allow: 'Allow',
+  ask: 'Ask',
+  deny: 'Deny',
+};
+
+function PermissionSelect({
+  value,
+  onChange,
+  includeDeny = false,
+  disabled = false,
+}: {
+  value: AgentPermissionValue;
+  onChange: (v: AgentPermissionValue) => void;
+  includeDeny?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <Select
+      value={value}
+      onValueChange={(v) => onChange(v as AgentPermissionValue)}
+      disabled={disabled}
+    >
+      <SelectTrigger size="sm" className="w-20 shrink-0">
+        <SelectValue>{PERMISSION_OPTION_LABELS[value]}</SelectValue>
+      </SelectTrigger>
+      <SelectContent className="min-w-0">
+        <SelectItem value="allow">{PERMISSION_OPTION_LABELS.allow}</SelectItem>
+        <SelectItem value="ask">{PERMISSION_OPTION_LABELS.ask}</SelectItem>
+        {includeDeny && <SelectItem value="deny">{PERMISSION_OPTION_LABELS.deny}</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ─── Permission Policy Editor ─────────────────────────────────────────────────
+
+function PermissionPolicyEditor({
+  agentId,
+  toolName,
+  onBack,
+}: {
+  agentId: string;
+  toolName: string;
+  onBack: () => void;
+}) {
+  const { data: permissions } = useSuspenseQuery(agentPermissionsQueryOptions(agentId));
+  const upsertPermission = useUpsertAgentPermission();
+  const deletePermission = useDeleteAgentPermission();
+
+  const [newPattern, setNewPattern] = React.useState('');
+  const [newPermission, setNewPermission] = React.useState<AgentPermissionValue>('ask');
+
+  const toolPermissions = permissions.filter((p) => p.toolName === toolName);
+  const globalRule = toolPermissions.find((p) => p.pattern === null);
+  const patternRules = toolPermissions.filter((p) => p.pattern !== null);
+
+  const globalPermission: AgentPermissionValue = globalRule?.permission ?? 'ask';
+
+  const isFileTool = FILE_PATTERN_TOOLS.has(toolName);
+  const displayName = TOOL_DISPLAY_NAMES[toolName] ?? toolName;
+
+  const isMutating = upsertPermission.isPending || deletePermission.isPending;
+
+  const handleGlobalChange = (permission: AgentPermissionValue) => {
+    void upsertPermission
+      .mutateAsync({ agentId, toolName, pattern: null, permission })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to update permission');
+      });
+  };
+
+  const handlePatternPermissionChange = (rule: AgentPermission, permission: AgentPermissionValue) => {
+    void upsertPermission
+      .mutateAsync({ agentId, toolName, pattern: rule.pattern, permission })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to update permission');
+      });
+  };
+
+  const handleDeleteRule = (rule: AgentPermission) => {
+    void deletePermission
+      .mutateAsync({ agentId, permissionId: rule.id })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete rule');
+      });
+  };
+
+  const handleAddRule = () => {
+    const pattern = newPattern.trim();
+    if (!pattern) return;
+
+    void upsertPermission
+      .mutateAsync({ agentId, toolName, pattern, permission: newPermission })
+      .then(() => {
+        setNewPattern('');
+        setNewPermission('ask');
+      })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : 'Failed to add rule');
+      });
+  };
+
+  const handleBrowse = () => {
+    void window.api?.files?.openPath?.().then((paths) => {
+      if (!paths || paths.length === 0) return;
+      const picked = paths[0];
+      if (!picked) return;
+      // Append wildcard for directories (heuristic: no file extension in last segment)
+      const lastSegment = picked.split(/[/\\]/).at(-1) ?? '';
+      const isLikelyDir = !lastSegment.includes('.');
+      setNewPattern(isLikelyDir ? `${picked}/*` : picked);
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to tools">
+          <ArrowLeftIcon className="size-4" />
+        </Button>
+        <div>
+          <p className="text-sm font-semibold">{displayName} permissions</p>
+          <p className="text-xs text-muted-foreground">
+            Configure when this tool requires approval
+          </p>
+        </div>
+      </div>
+
+      {/* Global (catch-all) rule */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Default behavior</p>
+        <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+          <div>
+            <p className="text-sm">All uses</p>
+            <p className="text-xs text-muted-foreground">
+              Applied when no specific rule matches
+            </p>
+          </div>
+          <PermissionSelect
+            value={globalPermission}
+            onChange={handleGlobalChange}
+            includeDeny
+            disabled={isMutating}
+          />
+        </div>
+      </div>
+
+      {/* Pattern rules list */}
+      {patternRules.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Specific rules</p>
+          <div className="overflow-hidden rounded-md border border-border/50">
+            {patternRules.map((rule) => (
+              <div
+                key={rule.id}
+                className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
+              >
+                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+                <PermissionSelect
+                  value={rule.permission}
+                  onChange={(v) => handlePatternPermissionChange(rule, v)}
+                  includeDeny
+                  disabled={isMutating}
+                />
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => handleDeleteRule(rule)}
+                  disabled={isMutating}
+                  aria-label="Delete rule"
+                  className="shrink-0 text-muted-foreground/60 hover:text-destructive"
+                >
+                  <Trash2Icon className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bash common presets */}
+      {toolName === 'bash' && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Common commands</p>
+          <div className="flex flex-wrap gap-1.5">
+            {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
+              const existing = patternRules.find((r) => r.pattern === preset.pattern);
+              return (
+                <button
+                  key={preset.pattern}
+                  type="button"
+                  disabled={isMutating}
+                  onClick={() => {
+                    if (existing) {
+                      handleDeleteRule(existing);
+                    } else {
+                      void upsertPermission
+                        .mutateAsync({ agentId, toolName, pattern: preset.pattern, permission: 'allow' })
+                        .catch((err: unknown) => {
+                          toast.error(err instanceof Error ? err.message : 'Failed to add rule');
+                        });
+                    }
+                  }}
+                  className={[
+                    'inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-xs transition-colors',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                    existing
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : 'border-border/50 bg-transparent text-muted-foreground hover:border-border hover:text-foreground',
+                  ].join(' ')}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add rule form */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">
+          {isFileTool ? 'Add path rule' : 'Add command rule'}
+        </p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={newPattern}
+              onChange={(e) => setNewPattern(e.target.value)}
+              placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
+              className={isFileTool ? 'pr-8 font-mono text-xs' : 'font-mono text-xs'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddRule();
+              }}
+            />
+            {isFileTool && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
+                onClick={handleBrowse}
+                aria-label="Browse for path"
+                tabIndex={-1}
+              >
+                <FolderOpenIcon className="size-3.5" />
+              </Button>
+            )}
+          </div>
+          <PermissionSelect
+            value={newPermission}
+            onChange={setNewPermission}
+            includeDeny
+            disabled={isMutating}
+          />
+          <Button
+            size="sm"
+            onClick={handleAddRule}
+            disabled={!newPattern.trim() || isMutating}
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AgentToolConfig ──────────────────────────────────────────────────────────
+
 function AgentToolConfig({ agentId }: { agentId: string }) {
   const { data: toolConfig } = useSuspenseQuery(agentToolConfigQueryOptions(agentId));
   const { data: linkedServers } = useSuspenseQuery(agentMcpServersQueryOptions(agentId));
+  const { data: permissions } = useSuspenseQuery(agentPermissionsQueryOptions(agentId));
   const setToolEnabled = useSetAgentToolEnabled();
+  const upsertPermission = useUpsertAgentPermission();
+
   const [search, setSearch] = React.useState('');
+  const [editingTool, setEditingTool] = React.useState<string | null>(null);
 
   const serverNameMap = new Map(linkedServers.map((s) => [s.id as string, s.name]));
+
+  const getGlobalPermission = (toolName: string): AgentPermissionValue => {
+    const rule = permissions.find((p) => p.toolName === toolName && p.pattern === null);
+    return rule?.permission ?? 'ask';
+  };
+
+  const handleToggle = (toolType: 'stitch' | 'mcp', toolName: string, enabled: boolean) => {
+    void setToolEnabled
+      .mutateAsync({ agentId, toolType, toolName, enabled })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update tool');
+      });
+  };
+
+  const handlePermissionChange = (toolName: string, permission: AgentPermissionValue) => {
+    void upsertPermission
+      .mutateAsync({ agentId, toolName, pattern: null, permission })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+      });
+  };
+
+  if (editingTool) {
+    return (
+      <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+        <PermissionPolicyEditor
+          agentId={agentId}
+          toolName={editingTool}
+          onBack={() => setEditingTool(null)}
+        />
+      </React.Suspense>
+    );
+  }
 
   const query = search.trim().toLowerCase();
 
@@ -90,13 +428,8 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
     mcpGroups.set(parsed.serverId, group);
   }
 
-  const handleToggle = (toolType: 'stitch' | 'mcp', toolName: string, enabled: boolean) => {
-    void setToolEnabled
-      .mutateAsync({ agentId, toolType, toolName, enabled })
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update tool');
-      });
-  };
+  const isTogglePending = setToolEnabled.isPending;
+  const isPermissionPending = upsertPermission.isPending;
 
   return (
     <div className="space-y-4">
@@ -114,19 +447,51 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground">Stitch</p>
           <div className="overflow-hidden rounded-md border border-border/50">
-            {stitchTools.map((tool) => (
-              <div
-                key={tool.toolName}
-                className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
-              >
-                <p className="text-sm">{TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}</p>
-                <Switch
-                  checked={tool.enabled}
-                  onCheckedChange={(checked) => handleToggle('stitch', tool.toolName, checked)}
-                  disabled={setToolEnabled.isPending}
-                />
-              </div>
-            ))}
+            {stitchTools.map((tool) => {
+              const hasPatternEditor = PATTERN_POLICY_TOOLS.has(tool.toolName);
+              const perm = getGlobalPermission(tool.toolName);
+              return (
+                <div
+                  key={tool.toolName}
+                  className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
+                >
+                  <p className="flex-1 text-sm">
+                    {TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}
+                  </p>
+                  {tool.enabled ? (
+                    <>
+                      <PermissionSelect
+                        value={perm}
+                        onChange={(v) => handlePermissionChange(tool.toolName, v)}
+                        disabled={isPermissionPending}
+                      />
+                      {/* Always reserve space for gear icon to keep alignment consistent */}
+                      <div className="size-7 flex items-center justify-center">
+                        {hasPatternEditor && (
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => setEditingTool(tool.toolName)}
+                            aria-label={`Configure ${tool.toolName} permissions`}
+                            className="size-7 text-muted-foreground/60 hover:text-foreground"
+                          >
+                            <Settings2Icon className="size-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* Reserve same total width when disabled so switch stays aligned */
+                    <div className="w-28.75 shrink-0" />
+                  )}
+                  <Switch
+                    checked={tool.enabled}
+                    onCheckedChange={(checked) => handleToggle('stitch', tool.toolName, checked)}
+                    disabled={isTogglePending}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -139,16 +504,26 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
           <div className="overflow-hidden rounded-md border border-border/50">
             {tools.map((tool) => {
               const parsed = parseMcpToolName(tool.toolName);
+              const perm = getGlobalPermission(tool.toolName);
               return (
                 <div
                   key={tool.toolName}
-                  className="flex items-center justify-between border-b border-border/40 px-3 py-2 last:border-b-0"
+                  className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
                 >
-                  <p className="text-sm font-mono">{parsed?.toolName ?? tool.toolName}</p>
+                  <p className="flex-1 font-mono text-sm">{parsed?.toolName ?? tool.toolName}</p>
+                  {tool.enabled ? (
+                    <PermissionSelect
+                      value={perm}
+                      onChange={(v) => handlePermissionChange(tool.toolName, v)}
+                      disabled={isPermissionPending}
+                    />
+                  ) : (
+                    <div className="w-20 shrink-0" />
+                  )}
                   <Switch
                     checked={tool.enabled}
                     onCheckedChange={(checked) => handleToggle('mcp', tool.toolName, checked)}
-                    disabled={setToolEnabled.isPending}
+                    disabled={isTogglePending}
                   />
                 </div>
               );

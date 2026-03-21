@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import type { Agent, AgentToolEntry, AgentToolType } from '@stitch/shared/agents/types';
 import type { McpServer } from '@stitch/shared/mcp/types';
+import type { AgentPermission, AgentPermissionValue } from '@stitch/shared/permissions/types';
 
 import { serverFetch } from '@/lib/api';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -11,6 +12,7 @@ const agentKeys = {
   list: () => [...agentKeys.all, 'list'] as const,
   toolConfig: (agentId: string) => [...agentKeys.all, 'tool-config', agentId] as const,
   mcpServers: (agentId: string) => [...agentKeys.all, 'mcp-servers', agentId] as const,
+  permissions: (agentId: string) => [...agentKeys.all, 'permissions', agentId] as const,
 };
 
 export const agentsQueryOptions = queryOptions({
@@ -199,6 +201,66 @@ export function useRemoveMcpServerFromAgent() {
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: agentKeys.mcpServers(input.agentId) });
       void queryClient.invalidateQueries({ queryKey: agentKeys.toolConfig(input.agentId) });
+    },
+  });
+}
+
+export function agentPermissionsQueryOptions(agentId: string) {
+  return queryOptions({
+    queryKey: agentKeys.permissions(agentId),
+    staleTime: Infinity,
+    queryFn: async (): Promise<AgentPermission[]> => {
+      const res = await serverFetch(`/agents/${agentId}/permissions`);
+      if (!res.ok) throw new Error('Failed to fetch agent permissions');
+      return res.json() as Promise<AgentPermission[]>;
+    },
+  });
+}
+
+export function useUpsertAgentPermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      agentId: string;
+      toolName: string;
+      pattern: string | null;
+      permission: AgentPermissionValue;
+    }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolName: input.toolName,
+          pattern: input.pattern,
+          permission: input.permission,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to update permission');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.permissions(input.agentId) });
+    },
+  });
+}
+
+export function useDeleteAgentPermission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { agentId: string; permissionId: string }) => {
+      const res = await serverFetch(
+        `/agents/${input.agentId}/permissions/${input.permissionId}`,
+        { method: 'DELETE' },
+      );
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to delete permission');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.permissions(input.agentId) });
     },
   });
 }

@@ -35,7 +35,16 @@ describe('bash command families', () => {
   });
 
   test('returns empty families when command is not in allowlist mapping', () => {
-    expect(deriveCommandFamilies('git status')).toEqual([]);
+    expect(deriveCommandFamilies('ffmpeg -i input.mp4 output.avi')).toEqual([]);
+  });
+
+  test('derives dev tool family', () => {
+    expect(deriveCommandFamilies('git status')).toEqual([
+      {
+        pattern: 'git *',
+        description: 'run git commands',
+      },
+    ]);
   });
 
   test('suggestion uses plain-language message', () => {

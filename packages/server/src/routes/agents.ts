@@ -15,6 +15,11 @@ import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/serv
 import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
+import {
+  deleteAgentPermission,
+  listAgentPermissions,
+  upsertAgentPermission,
+} from '@/permission/service.js';
 import { createTools } from '@/tools/index.js';
 
 const STITCH_KNOWN_TOOLS = (
@@ -70,6 +75,12 @@ const setToolEnabledSchema = z.object({
 
 const addMcpServerSchema = z.object({
   mcpServerId: z.string().min(1),
+});
+
+const upsertPermissionSchema = z.object({
+  toolName: z.string().min(1),
+  pattern: z.string().nullable().optional(),
+  permission: z.enum(['allow', 'deny', 'ask']),
 });
 
 agentsRouter.get('/', async (c) => {
@@ -163,5 +174,33 @@ agentsRouter.delete('/:id/mcp-servers/:mcpServerId', async (c) => {
   if (isServiceError(result)) {
     return c.json({ error: result.error }, result.status);
   }
+  return c.body(null, 204);
+});
+
+agentsRouter.get('/:id/permissions', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const permissions = await listAgentPermissions(agentId);
+  return c.json(permissions);
+});
+
+agentsRouter.put(
+  '/:id/permissions',
+  zValidator('json', upsertPermissionSchema),
+  async (c) => {
+    const agentId = c.req.param('id') as PrefixedString<'agt'>;
+    const body = c.req.valid('json');
+    await upsertAgentPermission({
+      agentId,
+      toolName: body.toolName,
+      pattern: body.pattern ?? null,
+      permission: body.permission,
+    });
+    return c.body(null, 204);
+  },
+);
+
+agentsRouter.delete('/:id/permissions/:permissionId', async (c) => {
+  const permissionId = c.req.param('permissionId') as PrefixedString<'perm'>;
+  await deleteAgentPermission(permissionId);
   return c.body(null, 204);
 });

@@ -6,6 +6,8 @@ import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import * as Log from '@/lib/log.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
+import type { ToolContext } from '@/tools/wrappers.js';
+import { withPermissionGate } from '@/tools/wrappers.js';
 import type { MCPClient } from '@ai-sdk/mcp';
 import type { Tool } from 'ai';
 
@@ -63,7 +65,10 @@ export function evictMcpClient(serverId: string): void {
   clientCache.delete(serverId);
 }
 
-async function getToolsForServer(server: McpServerWithTools): Promise<Record<string, Tool>> {
+async function getToolsForServer(
+  server: McpServerWithTools,
+  context: ToolContext,
+): Promise<Record<string, Tool>> {
   let client: MCPClient;
   try {
     client = await getClient(server);
@@ -82,13 +87,20 @@ async function getToolsForServer(server: McpServerWithTools): Promise<Record<str
 
   const prefixed: Record<string, Tool> = {};
   for (const [toolName, toolDef] of Object.entries(rawTools)) {
-    prefixed[formatMcpToolName(server.id, toolName)] = toolDef;
+    const prefixedName = formatMcpToolName(server.id, toolName);
+    prefixed[prefixedName] = withPermissionGate(
+      prefixedName,
+      { getPatternTargets: () => [], getSuggestion: () => null },
+      toolDef,
+      context,
+    );
   }
   return prefixed;
 }
 
 export async function createMcpToolsForAgent(
   agentId: PrefixedString<'agt'>,
+  context: ToolContext,
 ): Promise<Record<string, Tool>> {
   const servers = await getMcpServersWithCachedToolsForAgent(agentId);
 
@@ -114,7 +126,7 @@ export async function createMcpToolsForAgent(
         { event: 'mcp.tools.fetching', serverId: server.id, serverName: server.name },
         'fetching tools from MCP server',
       );
-      return getToolsForServer(server);
+      return getToolsForServer(server, context);
     }),
   );
 

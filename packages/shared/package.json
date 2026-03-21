@@ -18,7 +18,9 @@
     "./providers/types": "./src/providers/types.ts",
     "./questions/types": "./src/questions/types.ts",
     "./settings/types": "./src/settings/types.ts",
-    "./shortcuts/types": "./src/shortcuts/types.ts"
+    "./shortcuts/types": "./src/shortcuts/types.ts",
+    "./tools/bash-families": "./src/tools/bash-families.ts",
+    "./tools/bash-presets": "./src/tools/bash-presets.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

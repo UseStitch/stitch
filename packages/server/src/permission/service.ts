@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createAgentPermissionId, createPermissionResponseId } from '@stitch/shared/id';
 import type {
+  AgentPermission,
   AgentPermissionValue,
   PermissionDecisionResult,
   PermissionResponse,
@@ -41,7 +42,7 @@ type SetPermissionRule = {
   pattern?: string | null;
 };
 
-async function upsertAgentPermission(opts: {
+export async function upsertAgentPermission(opts: {
   agentId: PrefixedString<'agt'>;
   toolName: string;
   permission: AgentPermissionValue;
@@ -89,6 +90,22 @@ async function upsertAgentPermission(opts: {
     createdAt: now,
     updatedAt: now,
   });
+}
+
+export async function listAgentPermissions(
+  agentId: PrefixedString<'agt'>,
+): Promise<AgentPermission[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(agentPermissions)
+    .where(eq(agentPermissions.agentId, agentId));
+  return rows;
+}
+
+export async function deleteAgentPermission(permissionId: PrefixedString<'perm'>): Promise<void> {
+  const db = getDb();
+  await db.delete(agentPermissions).where(eq(agentPermissions.id, permissionId));
 }
 
 export async function getAgentPermissionDecision(opts: {
