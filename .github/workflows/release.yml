@@ -1,0 +1,229 @@
+name: release
+run-name: "release ${{ inputs.bump }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Version: compute the next semver tag
+  # ---------------------------------------------------------------------------
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: bump
+        shell: bash
+        run: |
+          # Get latest version tag, default to 0.0.0 if none exist
+          LATEST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          if [ -z "$LATEST" ]; then
+            LATEST="v0.0.0"
+          fi
+          LATEST="${LATEST#v}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+          MAJOR="${MAJOR:-0}"
+          MINOR="${MINOR:-0}"
+          PATCH="${PATCH:-0}"
+
+          BUMP="${{ inputs.bump }}"
+          case "$BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          TAG="v${VERSION}"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Bumping ${LATEST} -> ${VERSION} (${BUMP})"
+
+  # ---------------------------------------------------------------------------
+  # Quality gates: test + typecheck (per OS, in parallel)
+  # ---------------------------------------------------------------------------
+  quality-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - name: Run tests and typecheck
+        shell: bash
+        run: |
+          bun run --filter '*' test &
+          PID_TEST=$!
+          bun run typecheck &
+          PID_TC=$!
+          wait $PID_TEST || exit 1
+          wait $PID_TC || exit 1
+
+  quality-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+      - name: Run tests and typecheck
+        shell: bash
+        run: |
+          bun run --filter '*' test &
+          PID_TEST=$!
+          bun run typecheck &
+          PID_TC=$!
+          wait $PID_TEST || exit 1
+          wait $PID_TC || exit 1
+
+  # ---------------------------------------------------------------------------
+  # Build: Windows x64
+  # ---------------------------------------------------------------------------
+  build-windows:
+    needs: [version, quality-windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+
+      - name: Set version in desktop package.json
+        shell: bash
+        run: |
+          cd apps/desktop
+          TMPFILE=$(mktemp)
+          jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' package.json > "$TMPFILE"
+          mv "$TMPFILE" package.json
+
+      - name: Build all packages
+        shell: bash
+        run: bun run build
+
+      - name: Copy server binary to desktop resources
+        shell: bash
+        run: |
+          mkdir -p apps/desktop/resources
+          cp packages/server/dist/stitch-server.exe apps/desktop/resources/
+
+      - name: Package Electron app
+        shell: bash
+        run: npx electron-builder --win --x64 --config electron-builder.config.ts
+        working-directory: apps/desktop
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stitch-windows-x64
+          path: |
+            apps/desktop/dist/*.exe
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Build: macOS ARM64
+  # ---------------------------------------------------------------------------
+  build-macos:
+    needs: [version, quality-macos]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+
+      - name: Set version in desktop package.json
+        shell: bash
+        run: |
+          cd apps/desktop
+          TMPFILE=$(mktemp)
+          jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' package.json > "$TMPFILE"
+          mv "$TMPFILE" package.json
+
+      - name: Build all packages
+        shell: bash
+        run: bun run build
+
+      - name: Copy server binary to desktop resources
+        shell: bash
+        run: |
+          mkdir -p apps/desktop/resources
+          cp packages/server/dist/stitch-server apps/desktop/resources/
+
+      - name: Package Electron app
+        shell: bash
+        run: npx electron-builder --mac --arm64 --config electron-builder.config.ts
+        working-directory: apps/desktop
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stitch-macos-arm64
+          path: |
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Release: create GitHub Release and upload all installers
+  # ---------------------------------------------------------------------------
+  release:
+    needs: [version, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: stitch-windows-x64
+          path: artifacts/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: stitch-macos-arm64
+          path: artifacts/macos
+
+      - name: Create Git tag
+        run: |
+          git tag "${{ needs.version.outputs.tag }}"
+          git push origin "${{ needs.version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Stitch ${{ needs.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            artifacts/windows/*
+            artifacts/macos/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
