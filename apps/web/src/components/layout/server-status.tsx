@@ -1,4 +1,5 @@
 import { HardDrive, Check } from 'lucide-react';
+import { useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
@@ -6,7 +7,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useSSE } from '@/hooks/sse/sse-context';
 import { serverFetch } from '@/lib/api';
 
+type Tab = 'servers' | 'info';
+
 export function ServerStatus() {
+  const [activeTab, setActiveTab] = useState<Tab>('servers');
+
   const { data: isHealthy } = useQuery({
     queryKey: ['health'],
     queryFn: async () => {
@@ -37,23 +42,30 @@ export function ServerStatus() {
         align="start"
         className="w-70 p-0 rounded-xl overflow-hidden shadow-lg border-border"
       >
-        {/* Header Tab */}
+        {/* Header Tabs */}
         <div className="flex items-center gap-5 text-[13px] px-4 pt-3 border-b border-border bg-muted/30">
-          <div className="pb-2.5 border-b-2 border-primary text-foreground font-medium cursor-default">
-            Servers
-          </div>
+          <TabButton label="Servers" active={activeTab === 'servers'} onClick={() => setActiveTab('servers')} />
+          <TabButton label="Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
         </div>
 
-        {/* Servers List */}
+        {/* Tab Content */}
         <div className="flex flex-col p-4 gap-4 bg-popover">
-          <StatusItem active={!!isHealthy} label="Local Server" />
-          <StatusItem
-            active={isSseConnected}
-            label="Event Bus"
-            subtitle={
-              lastHeartbeat ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}` : undefined
-            }
-          />
+          {activeTab === 'servers' ? (
+            <>
+              <StatusItem active={!!isHealthy} label="Local Server" />
+              <StatusItem
+                active={isSseConnected}
+                label="Event Bus"
+                subtitle={
+                  lastHeartbeat
+                    ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}`
+                    : undefined
+                }
+              />
+            </>
+          ) : (
+            <InfoPanel />
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -92,4 +104,48 @@ function formatRelativeTime(date: Date): string {
   if (seconds < 5) return 'just now';
   if (seconds < 60) return `${seconds}s ago`;
   return `${Math.floor(seconds / 60)}m ago`;
+}
+
+type TabButtonProps = {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+};
+
+function TabButton({ label, active, onClick }: TabButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`pb-2.5 border-b-2 transition-colors cursor-default ${
+        active
+          ? 'border-primary text-foreground font-medium'
+          : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function InfoPanel() {
+  return (
+    <div className="flex flex-col gap-3">
+      <InfoRow label="Version" value={__APP_VERSION__} />
+    </div>
+  );
+}
+
+type InfoRowProps = {
+  label: string;
+  value: string;
+};
+
+function InfoRow({ label, value }: InfoRowProps) {
+  return (
+    <div className="flex items-center justify-between cursor-default">
+      <span className="text-[13px] text-muted-foreground">{label}</span>
+      <span className="text-[13px] text-foreground font-medium">{value}</span>
+    </div>
+  );
 }

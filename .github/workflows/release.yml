@@ -117,13 +117,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-bun
 
-      - name: Set version in desktop package.json
+      - name: Set version in package manifests
         shell: bash
         run: |
-          cd apps/desktop
-          TMPFILE=$(mktemp)
-          jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' package.json > "$TMPFILE"
-          mv "$TMPFILE" package.json
+          for PKG in apps/desktop apps/web; do
+            TMPFILE=$(mktemp)
+            jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' "$PKG/package.json" > "$TMPFILE"
+            mv "$TMPFILE" "$PKG/package.json"
+          done
 
       - name: Build all packages
         shell: bash
@@ -158,13 +159,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-bun
 
-      - name: Set version in desktop package.json
+      - name: Set version in package manifests
         shell: bash
         run: |
-          cd apps/desktop
-          TMPFILE=$(mktemp)
-          jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' package.json > "$TMPFILE"
-          mv "$TMPFILE" package.json
+          for PKG in apps/desktop apps/web; do
+            TMPFILE=$(mktemp)
+            jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' "$PKG/package.json" > "$TMPFILE"
+            mv "$TMPFILE" "$PKG/package.json"
+          done
 
       - name: Build all packages
         shell: bash
