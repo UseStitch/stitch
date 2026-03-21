@@ -59,6 +59,18 @@ async function createWindow() {
     return { action: 'deny' };
   });
 
+  mainWindow.webContents.on('context-menu', (_e, params) => {
+    mainWindow?.webContents.send('context-menu', {
+      x: params.x,
+      y: params.y,
+      misspelledWord: params.misspelledWord,
+      dictionarySuggestions: params.dictionarySuggestions,
+      selectionText: params.selectionText,
+      isEditable: params.isEditable,
+      editFlags: params.editFlags,
+    });
+  });
+
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     await waitForDevServer(process.env['ELECTRON_RENDERER_URL']);
     void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
@@ -102,6 +114,14 @@ ipcMain.handle('devtools:toggle', () => {
 
 ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
   mainWindow?.webContents.inspectElement(x, y);
+});
+
+ipcMain.handle('spellcheck:replaceMisspelling', (_event, word: string) => {
+  mainWindow?.webContents.replaceMisspelling(word);
+});
+
+ipcMain.handle('spellcheck:addToDictionary', (_event, word: string) => {
+  mainWindow?.webContents.session.addWordToSpellCheckerDictionary(word);
 });
 
 ipcMain.handle('shell:openExternal', (_event, url: string) => {

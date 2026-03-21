@@ -1,3 +1,18 @@
+export type ContextMenuParams = {
+  x: number;
+  y: number;
+  misspelledWord: string;
+  dictionarySuggestions: string[];
+  selectionText: string;
+  isEditable: boolean;
+  editFlags: {
+    canCut: boolean;
+    canCopy: boolean;
+    canPaste: boolean;
+    canSelectAll: boolean;
+  };
+};
+
 declare global {
   interface Window {
     electron?: {
@@ -23,6 +38,10 @@ declare global {
       files?: {
         writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
         openPath: () => Promise<string[]>;
+      };
+      spellcheck?: {
+        replaceMisspelling: (word: string) => Promise<void>;
+        addToDictionary: (word: string) => Promise<void>;
       };
     };
   }

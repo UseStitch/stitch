@@ -1,5 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+export type ContextMenuParams = {
+  x: number;
+  y: number;
+  misspelledWord: string;
+  dictionarySuggestions: string[];
+  selectionText: string;
+  isEditable: boolean;
+  editFlags: {
+    canCut: boolean;
+    canCopy: boolean;
+    canPaste: boolean;
+    canSelectAll: boolean;
+  };
+};
+
 contextBridge.exposeInMainWorld('electron', {
   platform: process.platform,
   send: (channel: string, data?: unknown) => ipcRenderer.send(channel, data),
@@ -30,5 +45,9 @@ contextBridge.exposeInMainWorld('api', {
     writeTmp: (data: ArrayBuffer, ext: string) =>
       ipcRenderer.invoke('files:writeTmp', data, ext) as Promise<string>,
     openPath: () => ipcRenderer.invoke('dialog:openPath') as Promise<string[]>,
+  },
+  spellcheck: {
+    replaceMisspelling: (word: string) => ipcRenderer.invoke('spellcheck:replaceMisspelling', word),
+    addToDictionary: (word: string) => ipcRenderer.invoke('spellcheck:addToDictionary', word),
   },
 });
