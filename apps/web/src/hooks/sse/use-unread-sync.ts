@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
+import type { Session } from '@stitch/shared/chat/messages';
 import type {
   QuestionAskedPayload,
   PermissionResponseRequestedPayload,
@@ -8,7 +9,6 @@ import type {
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
-import type { Session } from '@stitch/shared/chat/messages';
 
 function useUnreadSync(): void {
   const queryClient = useQueryClient();

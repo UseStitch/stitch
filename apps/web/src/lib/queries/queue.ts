@@ -81,10 +81,9 @@ export function useRemoveFromQueue() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: RemoveFromQueueInput): Promise<void> => {
-      const res = await serverFetch(
-        `/chat/sessions/${input.sessionId}/queue/${input.queueId}`,
-        { method: 'DELETE' },
-      );
+      const res = await serverFetch(`/chat/sessions/${input.sessionId}/queue/${input.queueId}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) throw new Error('Failed to remove from queue');
     },
     onMutate: async (input) => {

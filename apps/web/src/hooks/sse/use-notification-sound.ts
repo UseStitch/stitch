@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useSSE } from '@/hooks/sse/sse-context';
-import { playNotificationSound } from '@/lib/sounds';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { playNotificationSound } from '@/lib/sounds';
 
 function useNotificationSound(): void {
   const queryClient = useQueryClient();

@@ -183,21 +183,17 @@ agentsRouter.get('/:id/permissions', async (c) => {
   return c.json(permissions);
 });
 
-agentsRouter.put(
-  '/:id/permissions',
-  zValidator('json', upsertPermissionSchema),
-  async (c) => {
-    const agentId = c.req.param('id') as PrefixedString<'agt'>;
-    const body = c.req.valid('json');
-    await upsertAgentPermission({
-      agentId,
-      toolName: body.toolName,
-      pattern: body.pattern ?? null,
-      permission: body.permission,
-    });
-    return c.body(null, 204);
-  },
-);
+agentsRouter.put('/:id/permissions', zValidator('json', upsertPermissionSchema), async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const body = c.req.valid('json');
+  await upsertAgentPermission({
+    agentId,
+    toolName: body.toolName,
+    pattern: body.pattern ?? null,
+    permission: body.permission,
+  });
+  return c.body(null, 204);
+});
 
 agentsRouter.delete('/:id/permissions/:permissionId', async (c) => {
   const permissionId = c.req.param('permissionId') as PrefixedString<'perm'>;

@@ -3,7 +3,6 @@ import { EllipsisIcon, InfoIcon, ListOrderedIcon, PencilLineIcon, Trash2Icon } f
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
-import type { RightPanel } from '@/routes/session.$id';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +14,7 @@ import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
 import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
+import type { RightPanel } from '@/routes/session.$id';
 
 type SessionPageHeaderProps = {
   rightPanel: RightPanel;

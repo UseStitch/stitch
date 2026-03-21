@@ -1,12 +1,11 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
+import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import { createQueuedMessageId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { queuedMessages } from '@/db/schema.js';
-
-import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 
 type AddToQueueInput = {
   sessionId: PrefixedString<'ses'>;
@@ -59,10 +58,7 @@ export function addToQueue(input: AddToQueueInput) {
   return row;
 }
 
-export function updateQueuedMessage(
-  id: PrefixedString<'qmsg'>,
-  input: UpdateQueuedMessageInput,
-) {
+export function updateQueuedMessage(id: PrefixedString<'qmsg'>, input: UpdateQueuedMessageInput) {
   const db = getDb();
   const now = Date.now();
 
@@ -83,11 +79,7 @@ export function updateQueuedMessage(
 export function removeFromQueue(id: PrefixedString<'qmsg'>) {
   const db = getDb();
 
-  const row = db
-    .delete(queuedMessages)
-    .where(eq(queuedMessages.id, id))
-    .returning()
-    .get();
+  const row = db.delete(queuedMessages).where(eq(queuedMessages.id, id)).returning().get();
 
   return row ?? null;
 }

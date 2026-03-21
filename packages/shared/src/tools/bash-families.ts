@@ -24,7 +24,12 @@ export const FAMILY_RULES: FamilyRule[] = [
   { tokens: ['curl'], arity: 1, description: 'make HTTP requests', showAsPreset: true },
   { tokens: ['wget'], arity: 1, description: 'download files', showAsPreset: true },
   // ── Shell primitives ───────────────────────────────────────────────────────
-  { tokens: ['get-childitem'], arity: 1, description: 'list files and folders', showAsPreset: false },
+  {
+    tokens: ['get-childitem'],
+    arity: 1,
+    description: 'list files and folders',
+    showAsPreset: false,
+  },
   { tokens: ['ls'], arity: 1, description: 'list files and folders', showAsPreset: true },
   { tokens: ['dir'], arity: 1, description: 'list files and folders', showAsPreset: false },
   { tokens: ['pwd'], arity: 1, description: 'show the current folder', showAsPreset: false },

@@ -163,7 +163,10 @@ function PermissionPolicyEditor({
       });
   };
 
-  const handlePatternPermissionChange = (rule: AgentPermission, permission: AgentPermissionValue) => {
+  const handlePatternPermissionChange = (
+    rule: AgentPermission,
+    permission: AgentPermissionValue,
+  ) => {
     void upsertPermission
       .mutateAsync({ agentId, toolName, pattern: rule.pattern, permission })
       .catch((err: unknown) => {
@@ -172,11 +175,9 @@ function PermissionPolicyEditor({
   };
 
   const handleDeleteRule = (rule: AgentPermission) => {
-    void deletePermission
-      .mutateAsync({ agentId, permissionId: rule.id })
-      .catch((err: unknown) => {
-        toast.error(err instanceof Error ? err.message : 'Failed to delete rule');
-      });
+    void deletePermission.mutateAsync({ agentId, permissionId: rule.id }).catch((err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete rule');
+    });
   };
 
   const handleAddRule = () => {
@@ -226,9 +227,7 @@ function PermissionPolicyEditor({
         <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
           <div>
             <p className="text-sm">All uses</p>
-            <p className="text-xs text-muted-foreground">
-              Applied when no specific rule matches
-            </p>
+            <p className="text-xs text-muted-foreground">Applied when no specific rule matches</p>
           </div>
           <PermissionSelect
             value={globalPermission}
@@ -249,7 +248,9 @@ function PermissionPolicyEditor({
                 key={rule.id}
                 className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
               >
-                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                  {rule.pattern}
+                </p>
                 <PermissionSelect
                   value={rule.permission}
                   onChange={(v) => handlePatternPermissionChange(rule, v)}
@@ -289,7 +290,12 @@ function PermissionPolicyEditor({
                       handleDeleteRule(existing);
                     } else {
                       void upsertPermission
-                        .mutateAsync({ agentId, toolName, pattern: preset.pattern, permission: 'allow' })
+                        .mutateAsync({
+                          agentId,
+                          toolName,
+                          pattern: preset.pattern,
+                          permission: 'allow',
+                        })
                         .catch((err: unknown) => {
                           toast.error(err instanceof Error ? err.message : 'Failed to add rule');
                         });
@@ -347,11 +353,7 @@ function PermissionPolicyEditor({
             includeDeny
             disabled={isMutating}
           />
-          <Button
-            size="sm"
-            onClick={handleAddRule}
-            disabled={!newPattern.trim() || isMutating}
-          >
+          <Button size="sm" onClick={handleAddRule} disabled={!newPattern.trim() || isMutating}>
             Add
           </Button>
         </div>

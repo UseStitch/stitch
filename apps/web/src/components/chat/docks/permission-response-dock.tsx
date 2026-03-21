@@ -70,7 +70,9 @@ export function PermissionResponseDock({
           type="button"
           className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          <span className="underline-offset-2 group-hover:underline">Always allow in directory</span>
+          <span className="underline-offset-2 group-hover:underline">
+            Always allow in directory
+          </span>
           <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">
             {dir}
           </span>

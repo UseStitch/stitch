@@ -32,9 +32,8 @@ import {
 } from '@/lib/queries/chat';
 import { useAddToQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
-import { useStreamStore } from '@/stores/stream-store';
-
 import type { EditQueuedMessagePayload, SendQueuedMessageFn } from '@/routes/session.$id';
+import { useStreamStore } from '@/stores/stream-store';
 
 const MODEL_SEPARATOR = ':::';
 

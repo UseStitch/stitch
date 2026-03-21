@@ -250,10 +250,9 @@ export function useDeleteAgentPermission() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { agentId: string; permissionId: string }) => {
-      const res = await serverFetch(
-        `/agents/${input.agentId}/permissions/${input.permissionId}`,
-        { method: 'DELETE' },
-      );
+      const res = await serverFetch(`/agents/${input.agentId}/permissions/${input.permissionId}`, {
+        method: 'DELETE',
+      });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? 'Failed to delete permission');

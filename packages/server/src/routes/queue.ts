@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import {
   addToQueue,

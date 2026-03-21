@@ -4,10 +4,10 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 
+import { MessageQueuePanel } from '@/components/session/message-queue-panel';
 import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
 import { SessionDetailsPanel } from '@/components/session/session-details-panel';
-import { MessageQueuePanel } from '@/components/session/message-queue-panel';
 import { SessionPageHeader } from '@/components/session/session-page-header';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { agentsQueryOptions } from '@/lib/queries/agents';
@@ -16,11 +16,11 @@ import {
   sessionMessagesInfiniteQueryOptions,
   useMarkSessionRead,
 } from '@/lib/queries/chat';
-import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import {
   enabledProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
 } from '@/lib/queries/providers';
+import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export type RightPanel = 'closed' | 'details' | 'queue';
