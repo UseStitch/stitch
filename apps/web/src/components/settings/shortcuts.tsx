@@ -18,7 +18,7 @@ import {
 } from '@/lib/queries/shortcuts';
 import { cn } from '@/lib/utils';
 
-const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R'];
+const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M'];
 
 const defaultsByActionId = new Map<string, (typeof SHORTCUT_DEFAULTS)[number]>(
   SHORTCUT_DEFAULTS.map((d) => [d.actionId, d]),
