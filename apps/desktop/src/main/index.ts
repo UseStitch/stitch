@@ -43,6 +43,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    icon: join(__dirname, '../../resources/icon.png'),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,

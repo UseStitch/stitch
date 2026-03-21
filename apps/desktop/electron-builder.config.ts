@@ -15,14 +15,18 @@ const config: Configuration = {
       filter: ['stitch-server*'],
     },
   ],
+  icon: 'resources/icon.png',
   win: {
+    icon: 'resources/icon.ico',
     target: ['nsis'],
   },
   mac: {
+    icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
     target: ['dmg', 'zip'],
   },
   linux: {
+    icon: 'resources/icon.png',
     category: 'Development',
     target: ['AppImage', 'deb'],
   },
