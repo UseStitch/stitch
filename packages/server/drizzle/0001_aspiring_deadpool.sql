@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` ADD `is_unread` integer DEFAULT false NOT NULL;

@@ -23,11 +23,11 @@ export async function listSettings(): Promise<Record<string, string>> {
   return result;
 }
 
-export async function saveSetting(key: string, value: unknown): Promise<ServiceResult<null>> {
+export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
   if (!ALLOWED_KEYS.has(key)) {
     return err('Invalid setting key', 400);
   }
-  if (typeof value !== 'string' || value.length === 0) {
+  if (value.length === 0) {
     return err('Invalid value', 400);
   }
   if (key === 'onboarding.status' && !ONBOARDING_STATUSES.has(value)) {

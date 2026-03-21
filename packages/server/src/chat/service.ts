@@ -119,6 +119,24 @@ export async function renameSession(sessionId: PrefixedString<'ses'>, title: str
   return updated;
 }
 
+export async function markSessionUnread(sessionId: PrefixedString<'ses'>) {
+  const db = getDb();
+  await db
+    .update(sessions)
+    .set({ isUnread: true, updatedAt: Date.now() })
+    .where(eq(sessions.id, sessionId));
+}
+
+export async function markSessionRead(sessionId: PrefixedString<'ses'>) {
+  const db = getDb();
+  const [updated] = await db
+    .update(sessions)
+    .set({ isUnread: false, updatedAt: Date.now() })
+    .where(eq(sessions.id, sessionId))
+    .returning();
+  return updated ?? null;
+}
+
 async function maybeGenerateTitle(input: {
   sessionId: PrefixedString<'ses'>;
   userText: string;

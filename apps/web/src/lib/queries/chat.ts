@@ -212,6 +212,19 @@ export function useDeleteSession() {
   });
 }
 
+export function useMarkSessionRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string): Promise<void> => {
+      const res = await serverFetch(`/chat/sessions/${sessionId}/read`, { method: 'PATCH' });
+      if (!res.ok && res.status !== 404) throw new Error('Failed to mark session as read');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
 export function useSendMessage() {
   const queryClient = useQueryClient();
   return useMutation({

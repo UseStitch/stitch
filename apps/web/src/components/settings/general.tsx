@@ -15,6 +15,7 @@ import {
   ComboboxSeparator,
 } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
@@ -174,6 +175,41 @@ export function GeneralSettings() {
           <ModelsContent />
         </React.Suspense>
       </section>
+      <section className="space-y-3 mt-8">
+        <h3 className="text-sm font-medium">Notifications</h3>
+        <React.Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
+          <NotificationsContent />
+        </React.Suspense>
+      </section>
+    </div>
+  );
+}
+
+function NotificationsContent() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+
+  const soundEnabled = settings['notifications.sound.enabled'] !== 'false';
+
+  const saveMutation = useMutation(
+    saveSettingMutationOptions('notifications.sound.enabled', queryClient, { silent: true }),
+  );
+
+  function handleSoundToggle(checked: boolean) {
+    saveMutation.mutate(checked ? 'true' : 'false');
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <Label htmlFor="sound-toggle" className="text-sm font-medium">
+          Sound alerts
+        </Label>
+        <p className="text-muted-foreground text-xs">
+          Play an attention sound when the AI needs your input
+        </p>
+      </div>
+      <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
     </div>
   );
 }

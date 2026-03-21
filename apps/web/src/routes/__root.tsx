@@ -13,7 +13,9 @@ import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
+import { NotificationSound } from '@/hooks/sse/use-notification-sound';
 import { StreamSync } from '@/hooks/sse/use-stream-sync';
+import { UnreadSync } from '@/hooks/sse/use-unread-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { useActions } from '@/lib/actions';
 import { providersQueryOptions } from '@/lib/queries/providers';
@@ -66,6 +68,8 @@ function RootLayout() {
           <AppSidebar />
           <SidebarInset className="bg-muted rounded-tl-2xl border-l border-border/50 overflow-hidden shadow-sm">
             <StreamSync />
+            <NotificationSound />
+            <UnreadSync />
             <Outlet />
           </SidebarInset>
         </div>

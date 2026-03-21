@@ -19,16 +19,27 @@ import {
 import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsQueryOptions } from '@/lib/queries/chat';
+import { cn } from '@/lib/utils';
 
 const SessionStatusIcon = React.memo(function SessionStatusIcon({
   isStreaming,
+  isUnread,
 }: {
   isStreaming: boolean;
+  isUnread: boolean;
 }) {
   if (isStreaming) {
     return (
       <div className="size-3.5 shrink-0 flex items-center justify-center">
         <div className="size-2 rounded-full bg-primary animate-pulse" />
+      </div>
+    );
+  }
+
+  if (isUnread) {
+    return (
+      <div className="size-3.5 shrink-0 flex items-center justify-center">
+        <div className="size-2 rounded-full bg-primary" />
       </div>
     );
   }
@@ -62,27 +73,31 @@ export function AppSidebar() {
             <SidebarGroupLabel>Recent</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {[...sessions].reverse().map((session) => (
-                  <SidebarMenuItem key={session.id}>
-                    <SidebarMenuButton
-                      isActive={session.id === currentId}
-                      render={
-                        <Link
-                          to="/session/$id"
-                          params={{ id: session.id }}
-                          viewTransition
-                          className="flex items-center gap-2 truncate"
+                {[...sessions].reverse().map((session) => {
+                  const isStreaming = streamingIdSet.has(session.id);
+                  const isUnread = session.isUnread && session.id !== currentId && !isStreaming;
+                  return (
+                    <SidebarMenuItem key={session.id}>
+                      <SidebarMenuButton
+                        isActive={session.id === currentId}
+                        render={
+                          <Link
+                            to="/session/$id"
+                            params={{ id: session.id }}
+                            viewTransition
+                            className="flex items-center gap-2 truncate"
+                          />
+                        }
+                      >
+                        <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
+                        <AnimatedTitle
+                          title={session.title ?? 'New conversation'}
+                          className={cn('truncate', isUnread && 'font-semibold')}
                         />
-                      }
-                    >
-                      <SessionStatusIcon isStreaming={streamingIdSet.has(session.id)} />
-                      <AnimatedTitle
-                        title={session.title ?? 'New conversation'}
-                        className="truncate"
-                      />
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

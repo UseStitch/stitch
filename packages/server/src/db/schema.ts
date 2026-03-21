@@ -87,6 +87,7 @@ export const sessions = sqliteTable('sessions', {
   parentSessionId: text('parent_session_id')
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),
+  isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

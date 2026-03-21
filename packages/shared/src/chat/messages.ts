@@ -126,6 +126,7 @@ export type Session = {
   id: PrefixedString<'ses'>;
   title: string | null;
   parentSessionId: PrefixedString<'ses'> | null;
+  isUnread: boolean;
   createdAt: number;
   updatedAt: number;
 };

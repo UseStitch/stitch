@@ -9,6 +9,7 @@ export const SETTINGS_KEYS = [
   'appearance.mode',
   'appearance.theme',
   'onboarding.status',
+  'notifications.sound.enabled',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -54,5 +55,10 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'onboarding.status',
     value: 'pending',
     description: 'Tracks whether onboarding is pending or completed.',
+  },
+  {
+    key: 'notifications.sound.enabled',
+    value: 'true',
+    description: 'Play an attention sound when the AI needs your input (question or permission).',
   },
 ];

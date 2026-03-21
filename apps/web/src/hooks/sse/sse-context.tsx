@@ -31,20 +31,14 @@ function parseEventData<K extends SseEventName>(eventName: K, raw: string): SseE
   return parseJson(raw) as SseEventPayloadMap[K];
 }
 
-function dispatchEvent<K extends SseEventName>(
-  handlers: SseHandlers,
-  eventName: K,
-  payload: SseEventPayloadMap[K],
-): void {
-  const handler = handlers[eventName] as ((data: SseEventPayloadMap[K]) => void) | undefined;
-  handler?.(payload);
-}
+type AnyHandler = (data: SseEventPayloadMap[SseEventName]) => void;
 
 export function SseProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = React.useState(false);
   const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
 
-  const handlersRef = React.useRef<SseHandlers>({});
+  // Map from event name → set of handlers so multiple subscribers can coexist per event.
+  const handlersRef = React.useRef<Map<SseEventName, Set<AnyHandler>>>(new Map());
 
   React.useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -63,7 +57,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
 
       eventSource.addEventListener('heartbeat', () => {
         setLastHeartbeat(new Date());
-        handlersRef.current.heartbeat?.({ ts: Date.now() });
+        handlersRef.current.get('heartbeat')?.forEach((h) => h({ ts: Date.now() }));
       });
 
       const eventNames: SseEventName[] = [
@@ -90,7 +84,8 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
 
       eventNames.forEach((eventName) => {
         eventSource!.addEventListener(eventName, (e) => {
-          dispatchEvent(handlersRef.current, eventName, parseEventData(eventName, e.data));
+          const payload = parseEventData(eventName, e.data);
+          handlersRef.current.get(eventName)?.forEach((h) => h(payload as never));
         });
       });
     };
@@ -105,12 +100,18 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const subscribe = React.useCallback((handlers: SseHandlers) => {
-    handlersRef.current = { ...handlersRef.current, ...handlers };
+    const entries = Object.entries(handlers) as [SseEventName, AnyHandler][];
+
+    entries.forEach(([eventName, handler]) => {
+      if (!handlersRef.current.has(eventName)) {
+        handlersRef.current.set(eventName, new Set());
+      }
+      handlersRef.current.get(eventName)!.add(handler);
+    });
 
     return () => {
-      const keys = Object.keys(handlers) as SseEventName[];
-      keys.forEach((key) => {
-        delete handlersRef.current[key];
+      entries.forEach(([eventName, handler]) => {
+        handlersRef.current.get(eventName)?.delete(handler);
       });
     };
   }, []);
@@ -133,9 +134,27 @@ function useSseContext(): SseContextValue {
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {
   const { isConnected, lastHeartbeat, subscribe } = useSseContext();
 
+  // Stable ref so the subscribe effect only runs once per mount, not on every render.
+  const handlersRef = React.useRef(handlers);
+  handlersRef.current = handlers;
+
   React.useEffect(() => {
-    return subscribe(handlers);
-  }, [subscribe, handlers]);
+    // Wrap each handler in a stable indirection so the Set entry identity is stable,
+    // but the call always dispatches through the latest ref value.
+    const stableHandlers = Object.fromEntries(
+      Object.keys(handlersRef.current).map((key) => [
+        key,
+        (data: unknown) => {
+          const h = handlersRef.current[key as SseEventName] as AnyHandler | undefined;
+          h?.(data as never);
+        },
+      ]),
+    ) as SseHandlers;
+
+    return subscribe(stableHandlers);
+    // subscribe is stable (useCallback [] deps), so this runs once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribe]);
 
   return { isConnected, lastHeartbeat };
 }

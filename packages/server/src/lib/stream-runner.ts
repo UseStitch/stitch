@@ -5,6 +5,7 @@ import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDisabledToolNames } from '@/agents/tool-config.js';
+import { markSessionUnread } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
@@ -116,6 +117,7 @@ type StreamRunnerDeps = {
   getCompactionSettings: typeof getCompactionSettings;
   compact: typeof compact;
   saveAssistantMessage: typeof saveAssistantMessage;
+  markSessionUnread: typeof markSessionUnread;
   broadcast: typeof Sse.broadcast;
   now: () => number;
 };
@@ -163,6 +165,7 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   getCompactionSettings,
   compact,
   saveAssistantMessage,
+  markSessionUnread,
   broadcast: Sse.broadcast,
   now: Date.now,
 };
@@ -797,6 +800,8 @@ class StreamRunner {
       finalFinishReason: this.state.finalFinishReason,
       startedAt: this.ctx.startedAt,
     });
+
+    await this.deps.markSessionUnread(this.ctx.sessionId);
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(

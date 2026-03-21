@@ -84,6 +84,10 @@ vi.mock('@/db/client.js', () => ({
   })),
 }));
 
+vi.mock('@/chat/service.js', () => ({
+  markSessionUnread: vi.fn(async () => {}),
+}));
+
 const ZERO_USAGE: LanguageModelUsage = {
   inputTokens: 0,
   outputTokens: 0,

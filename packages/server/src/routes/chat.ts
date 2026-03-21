@@ -9,6 +9,7 @@ import {
   getSessionById,
   listSessionMessages,
   listSessions,
+  markSessionRead,
   renameSession,
   requestCompaction,
   resolveDoomLoop,
@@ -71,6 +72,13 @@ chatRouter.patch('/sessions/:id', async (c) => {
   const updated = await renameSession(sessionId, body.title);
   if (!updated) return c.json({ error: 'Session not found' }, 404);
   return c.json(updated);
+});
+
+chatRouter.patch('/sessions/:id/read', async (c) => {
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+  const updated = await markSessionRead(sessionId);
+  if (!updated) return c.json({ error: 'Session not found' }, 404);
+  return c.body(null, 204);
 });
 
 chatRouter.post('/sessions/:id/messages', async (c) => {

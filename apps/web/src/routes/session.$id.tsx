@@ -8,7 +8,11 @@ import { SessionDetailsPanel } from '@/components/session/session-details-panel'
 import { SessionPageHeader } from '@/components/session/session-page-header';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
+import {
+  sessionQueryOptions,
+  sessionMessagesInfiniteQueryOptions,
+  useMarkSessionRead,
+} from '@/lib/queries/chat';
 import {
   enabledProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -29,8 +33,14 @@ export const Route = createFileRoute('/session/$id')({
 });
 
 function SessionComponent() {
+  const { id } = Route.useParams();
+  const markRead = useMarkSessionRead();
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    markRead.mutate(id);
+  }, [id]);
 
   return (
     <>

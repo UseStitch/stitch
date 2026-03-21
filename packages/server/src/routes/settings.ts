@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { isServiceError } from '@/lib/service-result.js';
 import { deleteSetting, listSettings, saveSetting } from '@/settings/service.js';
 
-const settingValueSchema = z.unknown();
+const settingValueSchema = z.object({ value: z.string() });
 
 export const settingsRouter = new Hono();
 
@@ -16,7 +16,7 @@ settingsRouter.get('/', async (c) => {
 
 settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) => {
   const key = c.req.param('key');
-  const value = c.req.valid('json');
+  const { value } = c.req.valid('json');
   const result = await saveSetting(key, value);
   if (isServiceError(result)) {
     return c.json({ error: result.error }, result.status);
