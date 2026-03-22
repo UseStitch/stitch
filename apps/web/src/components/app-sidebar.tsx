@@ -77,30 +77,30 @@ export function AppSidebar() {
                   .filter((session) => session.parentSessionId === null)
                   .reverse()
                   .map((session) => {
-                  const isStreaming = streamingIdSet.has(session.id);
-                  const isUnread = session.isUnread && session.id !== currentId && !isStreaming;
-                  return (
-                    <SidebarMenuItem key={session.id}>
-                      <SidebarMenuButton
-                        isActive={session.id === currentId}
-                        render={
-                          <Link
-                            to="/session/$id"
-                            params={{ id: session.id }}
-                            viewTransition
-                            className="flex items-center gap-2 truncate"
+                    const isStreaming = streamingIdSet.has(session.id);
+                    const isUnread = session.isUnread && session.id !== currentId && !isStreaming;
+                    return (
+                      <SidebarMenuItem key={session.id}>
+                        <SidebarMenuButton
+                          isActive={session.id === currentId}
+                          render={
+                            <Link
+                              to="/session/$id"
+                              params={{ id: session.id }}
+                              viewTransition
+                              className="flex items-center gap-2 truncate"
+                            />
+                          }
+                        >
+                          <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
+                          <AnimatedTitle
+                            title={session.title ?? 'New conversation'}
+                            className={cn('truncate', isUnread && 'font-semibold')}
                           />
-                        }
-                      >
-                        <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
-                        <AnimatedTitle
-                          title={session.title ?? 'New conversation'}
-                          className={cn('truncate', isUnread && 'font-semibold')}
-                        />
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

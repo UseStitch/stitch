@@ -67,9 +67,7 @@ export async function addSubAgentToAgent(
   const [alreadyLinked] = await db
     .select({ id: agentSubAgents.id })
     .from(agentSubAgents)
-    .where(
-      and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)),
-    );
+    .where(and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)));
   if (alreadyLinked) {
     return err('Sub-agent already assigned to this agent', 400);
   }
@@ -96,9 +94,7 @@ export async function updateSubAgentConfig(
   const [existing] = await db
     .select({ id: agentSubAgents.id })
     .from(agentSubAgents)
-    .where(
-      and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)),
-    );
+    .where(and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)));
   if (!existing) {
     return err('Sub-agent not linked to this agent', 404);
   }
@@ -124,9 +120,7 @@ export async function removeSubAgentFromAgent(
   const [existing] = await db
     .select({ id: agentSubAgents.id })
     .from(agentSubAgents)
-    .where(
-      and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)),
-    );
+    .where(and(eq(agentSubAgents.agentId, agentId), eq(agentSubAgents.subAgentId, subAgentId)));
   if (!existing) {
     return err('Sub-agent not linked to this agent', 404);
   }

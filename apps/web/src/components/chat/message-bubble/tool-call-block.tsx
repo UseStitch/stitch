@@ -595,7 +595,8 @@ function getSubAgentResult(result: unknown): {
   subAgentName: string | null;
   text: string | null;
 } {
-  if (!result || typeof result !== 'object') return { childSessionId: null, subAgentName: null, text: null };
+  if (!result || typeof result !== 'object')
+    return { childSessionId: null, subAgentName: null, text: null };
   const r = result as Record<string, unknown>;
   return {
     childSessionId: typeof r.childSessionId === 'string' ? r.childSessionId : null,

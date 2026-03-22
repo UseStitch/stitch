@@ -55,10 +55,7 @@ import {
 } from '@/lib/queries/agents';
 import type { SubAgentLink } from '@/lib/queries/agents';
 import { mcpServersQueryOptions } from '@/lib/queries/mcp';
-import {
-  visibleProviderModelsQueryOptions,
-  type ProviderModels,
-} from '@/lib/queries/providers';
+import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type AgentEditorMode =
@@ -89,14 +86,19 @@ function encodeModelValue(providerId: string, modelId: string): string {
 function decodeModelValue(value: string): { providerId: string; modelId: string } | null {
   try {
     const parsed = JSON.parse(value) as { providerId?: string; modelId?: string };
-    if (parsed.providerId && parsed.modelId) return { providerId: parsed.providerId, modelId: parsed.modelId };
+    if (parsed.providerId && parsed.modelId)
+      return { providerId: parsed.providerId, modelId: parsed.modelId };
     return null;
   } catch {
     return null;
   }
 }
 
-function buildModelLabel(providerModels: ProviderModels[], providerId: string, modelId: string): string {
+function buildModelLabel(
+  providerModels: ProviderModels[],
+  providerId: string,
+  modelId: string,
+): string {
   for (const p of providerModels) {
     if (p.providerId !== providerId) continue;
     const model = p.models.find((m) => m.id === modelId);
@@ -709,7 +711,12 @@ function SubAgentModelSelect({
       const decoded = decodeModelValue(value);
       if (!decoded) return;
       void updateConfig
-        .mutateAsync({ agentId, subAgentId: subAgent.id, providerId: decoded.providerId, modelId: decoded.modelId })
+        .mutateAsync({
+          agentId,
+          subAgentId: subAgent.id,
+          providerId: decoded.providerId,
+          modelId: decoded.modelId,
+        })
         .catch((error: unknown) => {
           toast.error(error instanceof Error ? error.message : 'Failed to update model');
         });

@@ -108,4 +108,3 @@ function IndexComponent() {
     </div>
   );
 }
-

@@ -1,3 +1,4 @@
+import { tool } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -10,10 +11,9 @@ import { getDb } from '@/db/client.js';
 import { agents, messages, providerConfig, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { runStream } from '@/lib/stream-runner.js';
+import { buildCompactedHistory } from '@/llm/compaction';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { Tool } from 'ai';
-import { tool } from 'ai';
-import { buildCompactedHistory } from '@/llm/compaction';
 
 const log = Log.create({ service: 'sub-agent-tool' });
 
@@ -84,7 +84,8 @@ function createSubAgentTool(
   parentContext: SubAgentToolContext,
 ): Tool {
   return tool({
-    description: `Invoke the "${subAgent.name}" sub-agent. ${subAgent.systemPrompt ? `This agent: ${subAgent.systemPrompt.slice(0, 200)}` : ''}`.trim(),
+    description:
+      `Invoke the "${subAgent.name}" sub-agent. ${subAgent.systemPrompt ? `This agent: ${subAgent.systemPrompt.slice(0, 200)}` : ''}`.trim(),
     inputSchema: subAgentInputSchema,
     execute: async (input, meta) => {
       const { toolCallId } = meta;

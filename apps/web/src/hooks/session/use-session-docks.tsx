@@ -95,9 +95,7 @@ export function useSessionDocks({
 
     if (pendingQuestions.length > 0) {
       const subAgentLabel = resolveSubAgentLabel(pendingQuestions[0]?.subAgentId);
-      const questionTitle = subAgentLabel
-        ? `Questions (from ${subAgentLabel})`
-        : 'Questions';
+      const questionTitle = subAgentLabel ? `Questions (from ${subAgentLabel})` : 'Questions';
 
       items.push({
         id: 'questions',

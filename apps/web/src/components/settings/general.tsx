@@ -123,7 +123,10 @@ function ModelSelect({
       isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
       items={groups}
     >
-      <ComboboxInput placeholder="Search models..." showClear={!!(currentProviderId && currentModelId)} />
+      <ComboboxInput
+        placeholder="Search models..."
+        showClear={!!(currentProviderId && currentModelId)}
+      />
       <ComboboxContent side="bottom" sideOffset={4} align="start">
         <ComboboxEmpty>No models found</ComboboxEmpty>
         <ComboboxList>

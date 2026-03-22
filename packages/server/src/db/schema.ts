@@ -302,9 +302,7 @@ export const agentSubAgents = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [
-    uniqueIndex('agent_sub_agents_agent_sub_idx').on(table.agentId, table.subAgentId),
-  ],
+  (table) => [uniqueIndex('agent_sub_agents_agent_sub_idx').on(table.agentId, table.subAgentId)],
 );
 
 export const queuedMessages = sqliteTable('queued_messages', {
