@@ -159,7 +159,7 @@ function ContextMenuCheckboxItem({
       checked={checked}
       {...props}
     >
-      <span className="absolute right-2 pointer-events-none">
+      <span className="pointer-events-none absolute right-2">
         <ContextMenuPrimitive.CheckboxItemIndicator>
           <CheckIcon />
         </ContextMenuPrimitive.CheckboxItemIndicator>
@@ -191,7 +191,7 @@ function ContextMenuRadioItem({
       )}
       {...props}
     >
-      <span className="absolute right-2 pointer-events-none">
+      <span className="pointer-events-none absolute right-2">
         <ContextMenuPrimitive.RadioItemIndicator>
           <CheckIcon />
         </ContextMenuPrimitive.RadioItemIndicator>

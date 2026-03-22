@@ -51,31 +51,31 @@ export function ProviderRow({ provider, onSelect }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 px-2 -mx-2 group">
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="text-muted-foreground shrink-0">
+    <div className="group -mx-2 flex items-center justify-between border-b border-border/50 px-2 py-3 last:border-0">
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="shrink-0 text-muted-foreground">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
         </div>
-        <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-foreground">{meta.displayName}</span>
             {provider.enabled && badgeText && (
-              <span className="text-[10px] leading-none border border-border/60 px-1.5 py-0.75 rounded text-muted-foreground font-medium bg-muted/20">
+              <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.75 text-[10px] leading-none font-medium text-muted-foreground">
                 {badgeText}
               </span>
             )}
           </div>
           {!provider.enabled && meta.description && (
-            <span className="text-muted-foreground text-[12px] truncate">{meta.description}</span>
+            <span className="truncate text-[12px] text-muted-foreground">{meta.description}</span>
           )}
         </div>
       </div>
-      <div className="flex items-center shrink-0 ml-4">
+      <div className="ml-4 flex shrink-0 items-center">
         {provider.enabled ? (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-3 text-[13px] font-semibold text-foreground hover:bg-transparent hover:text-destructive transition-colors opacity-90 hover:opacity-100"
+            className="h-7 px-3 text-[13px] font-semibold text-foreground opacity-90 transition-colors hover:bg-transparent hover:text-destructive hover:opacity-100"
             onClick={handleDisconnect}
             disabled={deleteMutation.isPending}
           >
@@ -85,13 +85,13 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2.5 text-[12px] font-semibold rounded-[6px] bg-transparent border-border/60 hover:bg-muted/50 text-foreground/90 transition-colors"
+            className="h-7 rounded-[6px] border-border/60 bg-transparent px-2.5 text-[12px] font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
             }}
           >
-            <PlusIcon className="size-3.5 mr-0.75 text-muted-foreground" />
+            <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />
             Connect
           </Button>
         )}

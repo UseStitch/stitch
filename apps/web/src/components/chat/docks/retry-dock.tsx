@@ -26,7 +26,7 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
     <div className="flex items-start gap-3">
       <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-destructive" />
       <div className="min-w-0">
-        <div className="text-sm text-destructive line-clamp-2" title={retry.message}>
+        <div className="line-clamp-2 text-sm text-destructive" title={retry.message}>
           {retry.message}
         </div>
         <div className="mt-1 text-xs text-destructive/70">{retryText}</div>

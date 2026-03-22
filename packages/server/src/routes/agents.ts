@@ -22,15 +22,13 @@ import {
 } from '@/permission/service.js';
 import { createTools } from '@/tools/index.js';
 
-const STITCH_KNOWN_TOOLS = (
-  Object.keys(
-    createTools({
-      sessionId: 'ses_' as PrefixedString<'ses'>,
-      messageId: 'msg_' as PrefixedString<'msg'>,
-      agentId: 'agt_' as PrefixedString<'agt'>,
-      streamRunId: '',
-    }),
-  )
+const STITCH_KNOWN_TOOLS = Object.keys(
+  createTools({
+    sessionId: 'ses_' as PrefixedString<'ses'>,
+    messageId: 'msg_' as PrefixedString<'msg'>,
+    agentId: 'agt_' as PrefixedString<'agt'>,
+    streamRunId: '',
+  }),
 ).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
 
 export const agentsRouter = new Hono();

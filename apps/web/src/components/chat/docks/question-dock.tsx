@@ -90,8 +90,8 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
 
           return (
             <TabsContent key={idx} value={String(idx)} className="mt-0">
-              <div className="text-sm text-foreground mb-1">{item.question}</div>
-              <div className="text-[11px] text-muted-foreground mb-2">
+              <div className="mb-1 text-sm text-foreground">{item.question}</div>
+              <div className="mb-2 text-[11px] text-muted-foreground">
                 {isMultiQ ? 'Select all that apply' : 'Select one option'}
               </div>
 
@@ -120,9 +120,9 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-foreground truncate">{option.label}</div>
+                      <div className="truncate text-foreground">{option.label}</div>
                       {option.description && (
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="truncate text-xs text-muted-foreground">
                           {option.description}
                         </div>
                       )}
@@ -156,7 +156,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
                     value={customAnswers[idx] ?? ''}
                     onChange={(e) => handleCustomChange(idx, e.target.value)}
                     placeholder="Type your answer..."
-                    className="w-full p-2 rounded-md border border-primary bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-md border border-primary bg-background p-2 text-sm text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                     autoFocus
                   />
                 )}
@@ -168,7 +168,7 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
 
       <div className="flex items-center justify-between gap-2 pt-1">
         <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="h-7 px-2">
-          <XIcon className="size-3 mr-1" />
+          <XIcon className="mr-1 size-3" />
           Dismiss
         </Button>
         <Button

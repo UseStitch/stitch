@@ -103,7 +103,7 @@ export function SessionDetailsSheet({
           <p className="text-sm text-muted-foreground">Session metadata and token usage.</p>
         </div>
 
-        <div className="h-[calc(100%-74px)] overflow-y-auto px-5 pb-6 pt-4">
+        <div className="h-[calc(100%-74px)] overflow-y-auto px-5 pt-4 pb-6">
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
             <DetailItem label="Session" value={sessionTitle} />
             <DetailItem label="Messages" value={formatNumber(messagesCount)} />

@@ -86,7 +86,7 @@ function DockItem({
         }}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="px-4 pb-4 pt-1">{children}</div>
+          <div className="px-4 pt-1 pb-4">{children}</div>
         </div>
       </div>
     </div>

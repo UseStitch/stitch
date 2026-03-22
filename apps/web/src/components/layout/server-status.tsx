@@ -29,27 +29,35 @@ export function ServerStatus() {
   return (
     <Popover>
       <PopoverTrigger
-        className="relative flex items-center justify-center w-7 h-7 rounded-md hover:bg-muted/50 transition-colors"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted/50"
         aria-label="Server status"
       >
-        <HardDrive className="w-3.75 h-3.75 text-muted-foreground" />
+        <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
         <div
-          className={`absolute top-1 right-1 w-2 h-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-green-500' : 'bg-red-500'}`}
+          className={`absolute top-1 right-1 h-2 w-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-green-500' : 'bg-red-500'}`}
         />
       </PopoverTrigger>
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-70 p-0 rounded-xl overflow-hidden shadow-lg border-border"
+        className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg"
       >
         {/* Header Tabs */}
-        <div className="flex items-center gap-5 text-[13px] px-4 pt-3 border-b border-border bg-muted/30">
-          <TabButton label="Servers" active={activeTab === 'servers'} onClick={() => setActiveTab('servers')} />
-          <TabButton label="Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
+        <div className="flex items-center gap-5 border-b border-border bg-muted/30 px-4 pt-3 text-[13px]">
+          <TabButton
+            label="Servers"
+            active={activeTab === 'servers'}
+            onClick={() => setActiveTab('servers')}
+          />
+          <TabButton
+            label="Info"
+            active={activeTab === 'info'}
+            onClick={() => setActiveTab('info')}
+          />
         </div>
 
         {/* Tab Content */}
-        <div className="flex flex-col p-4 gap-4 bg-popover">
+        <div className="flex flex-col gap-4 bg-popover p-4">
           {activeTab === 'servers' ? (
             <>
               <StatusItem active={!!isHealthy} label="Local Server" />
@@ -57,9 +65,7 @@ export function ServerStatus() {
                 active={isSseConnected}
                 label="Event Bus"
                 subtitle={
-                  lastHeartbeat
-                    ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}`
-                    : undefined
+                  lastHeartbeat ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}` : undefined
                 }
               />
             </>
@@ -80,21 +86,21 @@ type StatusItemProps = {
 
 function StatusItem({ active, label, subtitle }: StatusItemProps) {
   return (
-    <div className="flex items-center justify-between cursor-default">
+    <div className="flex cursor-default items-center justify-between">
       <div className="flex items-center gap-3">
         <div
-          className={`w-2 h-2 rounded-full shrink-0 ${active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}
         />
         <div className="flex flex-col gap-0.5">
           <span
-            className={`text-[13px] ${active ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+            className={`text-[13px] ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
           >
             {label}
           </span>
           {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
         </div>
       </div>
-      {active && <Check className="w-3.5 h-3.5 text-muted-foreground" />}
+      {active && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
     </div>
   );
 }
@@ -117,9 +123,9 @@ function TabButton({ label, active, onClick }: TabButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`pb-2.5 border-b-2 transition-colors cursor-default ${
+      className={`cursor-default border-b-2 pb-2.5 transition-colors ${
         active
-          ? 'border-primary text-foreground font-medium'
+          ? 'border-primary font-medium text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground'
       }`}
     >
@@ -143,9 +149,9 @@ type InfoRowProps = {
 
 function InfoRow({ label, value }: InfoRowProps) {
   return (
-    <div className="flex items-center justify-between cursor-default">
+    <div className="flex cursor-default items-center justify-between">
       <span className="text-[13px] text-muted-foreground">{label}</span>
-      <span className="text-[13px] text-foreground font-medium">{value}</span>
+      <span className="text-[13px] font-medium text-foreground">{value}</span>
     </div>
   );
 }

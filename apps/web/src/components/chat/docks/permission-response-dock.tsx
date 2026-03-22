@@ -42,7 +42,7 @@ export function PermissionResponseDock({
       <div className="text-foreground/90">
         <span className="font-medium">Tool:</span> {pending.toolName}
       </div>
-      <div className="text-muted-foreground text-xs">{pending.systemReminder}</div>
+      <div className="text-xs text-muted-foreground">{pending.systemReminder}</div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => void onAllow(pending.id)}>
@@ -85,7 +85,7 @@ export function PermissionResponseDock({
           value={entry}
           onChange={(e) => setEntry(e.target.value)}
           placeholder="Do something else..."
-          className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus:outline-none"
         />
         <Button
           size="sm"

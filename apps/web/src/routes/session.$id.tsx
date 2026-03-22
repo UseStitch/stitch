@@ -84,7 +84,7 @@ function SessionComponent() {
 
         <ResizablePanelGroup
           orientation="horizontal"
-          className="h-full min-h-0 w-full pl-6 pr-0 pt-0 pb-0"
+          className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
         >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
             <SessionChatPane
@@ -97,7 +97,7 @@ function SessionComponent() {
 
           {rightPanelOpen ? (
             <>
-              <ResizableHandle className="hidden lg:flex bg-foreground/25 after:w-0" />
+              <ResizableHandle className="hidden bg-foreground/25 after:w-0 lg:flex" />
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
                 {rightPanel === 'details' ? (

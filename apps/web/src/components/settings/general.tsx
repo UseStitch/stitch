@@ -132,7 +132,7 @@ function ModelsContent() {
 
   if (providerModels.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         No providers are connected. Configure a provider first to select preferred models.
       </p>
     );
@@ -145,9 +145,9 @@ function ModelsContent() {
           key={pref.key}
           className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
         >
-          <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <Label className="text-sm font-medium">{pref.label}</Label>
-            <p className="text-muted-foreground text-xs">{pref.description}</p>
+            <p className="text-xs text-muted-foreground">{pref.description}</p>
           </div>
           <div className="w-52 shrink-0">
             <ModelSelect
@@ -164,20 +164,20 @@ function ModelsContent() {
 
 export function GeneralSettings() {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="mb-6">
         <h2 className="text-base font-bold">General</h2>
-        <p className="text-sm text-muted-foreground mt-1">Configure models for different tasks</p>
+        <p className="mt-1 text-sm text-muted-foreground">Configure models for different tasks</p>
       </div>
       <section className="space-y-3">
         <h3 className="text-sm font-medium">Models</h3>
-        <React.Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
           <ModelsContent />
         </React.Suspense>
       </section>
-      <section className="space-y-3 mt-8">
+      <section className="mt-8 space-y-3">
         <h3 className="text-sm font-medium">Notifications</h3>
-        <React.Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
           <NotificationsContent />
         </React.Suspense>
       </section>
@@ -201,11 +201,11 @@ function NotificationsContent() {
 
   return (
     <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex flex-col gap-0.5 min-w-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
         <Label htmlFor="sound-toggle" className="text-sm font-medium">
           Sound alerts
         </Label>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-xs text-muted-foreground">
           Play an attention sound when the AI needs your input
         </p>
       </div>

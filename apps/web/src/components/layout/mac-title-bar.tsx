@@ -12,22 +12,22 @@ export function MacTitleBar() {
 
   return (
     <div
-      className="h-9 bg-sidebar flex items-center justify-between select-none"
+      className="flex h-9 items-center justify-between bg-sidebar select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div
-        className="flex items-center h-full"
+        className="flex h-full items-center"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <div style={{ width: MAC_TRAFFIC_LIGHTS_SPACE_PX }} />
         <button
           onClick={toggleSidebar}
-          className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
         >
           {open ? (
-            <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <PanelLeftOpen className="w-4 h-4 text-muted-foreground" />
+            <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
       </div>
@@ -38,10 +38,10 @@ export function MacTitleBar() {
         <ServerStatus />
         <button
           onClick={() => setSettingsTab('general')}
-          className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
           aria-label="Open settings"
         >
-          <Settings2 className="w-4 h-4 text-muted-foreground" />
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
         </button>
       </div>
     </div>

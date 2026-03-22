@@ -1,11 +1,11 @@
 name: release
-run-name: "release ${{ inputs.bump }}"
+run-name: 'release ${{ inputs.bump }}'
 
 on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Version bump type"
+        description: 'Version bump type'
         required: true
         type: choice
         default: patch

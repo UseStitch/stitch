@@ -26,7 +26,7 @@ export function AppearanceSettings() {
     <div className="space-y-8">
       <div>
         <h2 className="text-base font-bold">Appearance</h2>
-        <p className="text-sm text-muted-foreground mt-1">Customize how Stitch looks</p>
+        <p className="mt-1 text-sm text-muted-foreground">Customize how Stitch looks</p>
       </div>
 
       <section className="space-y-3">
@@ -76,11 +76,11 @@ export function AppearanceSettings() {
 function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
     <div
-      className="h-12 rounded-md overflow-hidden flex gap-1 p-1.5"
+      className="flex h-12 gap-1 overflow-hidden rounded-md p-1.5"
       style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}
     >
-      <div className="w-5 rounded-sm shrink-0" style={{ background: tokens['sidebar'] }} />
-      <div className="flex-1 flex flex-col gap-1">
+      <div className="w-5 shrink-0 rounded-sm" style={{ background: tokens['sidebar'] }} />
+      <div className="flex flex-1 flex-col gap-1">
         <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />
         <div className="h-2 w-1/2 rounded-sm" style={{ background: tokens['primary'] }} />
       </div>

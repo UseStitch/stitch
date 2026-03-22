@@ -250,13 +250,13 @@ export function SessionChatPane({
   const inputMode = canSend ? 'send' : 'queue';
 
   return (
-    <div className="h-full min-w-0 pr-4 pt-4">
+    <div className="h-full min-w-0 pt-4 pr-4">
       <StickToBottom
         className="relative h-full min-w-0 flex-1 overflow-hidden"
         resize="smooth"
         initial="smooth"
       >
-        <StickToBottom.Content scrollClassName="no-scrollbar" className="pb-40 pt-2">
+        <StickToBottom.Content scrollClassName="no-scrollbar" className="pt-2 pb-40">
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
               messages={messages}
@@ -270,7 +270,7 @@ export function SessionChatPane({
           </div>
         </StickToBottom.Content>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pb-5 pt-10" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pt-10 pb-5" />
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
           <div className="mx-auto max-w-4xl">
             <div

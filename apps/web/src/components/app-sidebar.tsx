@@ -30,15 +30,15 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
 }) {
   if (isStreaming) {
     return (
-      <div className="size-3.5 shrink-0 flex items-center justify-center">
-        <div className="size-2 rounded-full bg-primary animate-pulse" />
+      <div className="flex size-3.5 shrink-0 items-center justify-center">
+        <div className="size-2 animate-pulse rounded-full bg-primary" />
       </div>
     );
   }
 
   if (isUnread) {
     return (
-      <div className="size-3.5 shrink-0 flex items-center justify-center">
+      <div className="flex size-3.5 shrink-0 items-center justify-center">
         <div className="size-2 rounded-full bg-primary" />
       </div>
     );

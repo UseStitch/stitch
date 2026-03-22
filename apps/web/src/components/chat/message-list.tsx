@@ -260,7 +260,7 @@ export function MessageList({
               <button
                 type="button"
                 onClick={onLoadMore}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 Load older messages
               </button>
@@ -330,7 +330,7 @@ export function MessageList({
                 key={rowKey}
                 data-index={virtualRow.index}
                 ref={rowVirtualizer.measureElement}
-                className="absolute left-0 top-0 w-full"
+                className="absolute top-0 left-0 w-full"
                 style={{ transform: `translateY(${virtualRow.start}px)` }}
               >
                 {renderRowContent(row)}

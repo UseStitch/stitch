@@ -54,23 +54,23 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
 
   return (
     <div
-      className={`group flex items-center justify-between py-3 transition-colors w-full min-w-0 overflow-hidden ${
+      className={`group flex w-full min-w-0 items-center justify-between overflow-hidden py-3 transition-colors ${
         !isLast ? 'border-b border-border/50' : ''
       }`}
     >
-      <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-4">
         <span className="text-sm font-medium text-foreground">{item.label}</span>
-        <span className="text-xs font-mono text-muted-foreground truncate" title={item.path}>
+        <span className="truncate font-mono text-xs text-muted-foreground" title={item.path}>
           {item.path}
         </span>
       </div>
       <button
         onClick={handleCopy}
-        className="flex shrink-0 items-center justify-center p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-all hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         aria-label="Copy path"
         title="Copy path"
       >
-        {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+        {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
       </button>
     </div>
   );
@@ -100,7 +100,7 @@ function KeyLocationsContent() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-4 text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm">Loading paths...</span>
       </div>
     );
@@ -108,11 +108,11 @@ function KeyLocationsContent() {
 
   if (error || !data?.paths) {
     return (
-      <div className="flex items-start gap-3 p-4 bg-destructive/10 text-destructive text-sm rounded-lg border border-destructive/20">
-        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold">Connection Error</span>
-          <span className="opacity-90 text-xs">{error || 'Unable to load paths.'}</span>
+          <span className="text-xs opacity-90">{error || 'Unable to load paths.'}</span>
         </div>
       </div>
     );
@@ -121,7 +121,7 @@ function KeyLocationsContent() {
   const pathItems = formatPaths(data.paths);
 
   return (
-    <div className="flex flex-col w-full min-w-0">
+    <div className="flex w-full min-w-0 flex-col">
       {pathItems.map((item, index) => (
         <PathRow key={item.label} item={item} isLast={index === pathItems.length - 1} />
       ))}
@@ -131,10 +131,10 @@ function KeyLocationsContent() {
 
 export function KeyLocationsSettings() {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="mb-6">
         <h2 className="text-base font-bold">Key Locations</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Storage directories and configuration files used by the application
         </p>
       </div>

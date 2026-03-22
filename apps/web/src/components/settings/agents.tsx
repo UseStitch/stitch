@@ -338,7 +338,7 @@ function PermissionPolicyEditor({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
                 onClick={handleBrowse}
                 aria-label="Browse for path"
                 tabIndex={-1}
@@ -436,7 +436,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   return (
     <div className="space-y-4">
       <div className="relative">
-        <SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-8"
           placeholder="Search tools..."
@@ -468,7 +468,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
                         disabled={isPermissionPending}
                       />
                       {/* Always reserve space for gear icon to keep alignment consistent */}
-                      <div className="size-7 flex items-center justify-center">
+                      <div className="flex size-7 items-center justify-center">
                         {hasPatternEditor && (
                           <Button
                             size="icon-sm"

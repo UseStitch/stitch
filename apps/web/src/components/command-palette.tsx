@@ -36,7 +36,7 @@ export function CommandPalette() {
         <DialogDescription>Search for a command to run...</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className="rounded-xl! top-1/3! translate-y-0! overflow-hidden p-0 sm:max-w-lg!"
+        className="top-1/3! translate-y-0! overflow-hidden rounded-xl! p-0 sm:max-w-lg!"
         showCloseButton={false}
       >
         <Command>
@@ -59,7 +59,7 @@ export function CommandPalette() {
                             ].map((key, i) => (
                               <kbd
                                 key={i}
-                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
                               >
                                 {key}
                               </kbd>
@@ -69,7 +69,7 @@ export function CommandPalette() {
                               .map((key, i) => (
                                 <kbd
                                   key={i}
-                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] font-medium leading-none"
+                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
                                 >
                                   {key}
                                 </kbd>

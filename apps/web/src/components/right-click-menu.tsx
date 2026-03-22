@@ -10,8 +10,8 @@ import {
 import { useEffect, useCallback, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import { cn } from '@/lib/utils';
 import type { ContextMenuParams } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface RightClickMenuProps {
   children: React.ReactNode;
@@ -26,32 +26,33 @@ interface MenuItemProps {
   onMouseLeave?: () => void;
 }
 
-const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
-  function MenuItem({ onClick, children, className, hasSubmenu, onMouseEnter, onMouseLeave }, ref) {
-    return (
-      <button
-        ref={ref}
-        type="button"
-        className={cn(
-          'flex w-full cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-none',
-          'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
-          '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-          className,
-        )}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
-        {children}
-        {hasSubmenu && <ChevronRight className="ml-auto" />}
-      </button>
-    );
-  },
-);
+const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
+  { onClick, children, className, hasSubmenu, onMouseEnter, onMouseLeave },
+  ref,
+) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={cn(
+        'flex w-full cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-none',
+        'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+        '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+        className,
+      )}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+      {hasSubmenu && <ChevronRight className="ml-auto" />}
+    </button>
+  );
+});
 
 function Separator() {
-  return <div className="bg-border -mx-1 my-1 h-px" />;
+  return <div className="-mx-1 my-1 h-px bg-border" />;
 }
 
 interface SpellingSubmenuProps {
@@ -65,7 +66,16 @@ interface SpellingSubmenuProps {
   onMouseLeave: () => void;
 }
 
-function SpellingSubmenu({ suggestions, misspelledWord, anchorRef, panelRef, onReplace, onAddToDictionary, onMouseEnter, onMouseLeave }: SpellingSubmenuProps) {
+function SpellingSubmenu({
+  suggestions,
+  misspelledWord,
+  anchorRef,
+  panelRef,
+  onReplace,
+  onAddToDictionary,
+  onMouseEnter,
+  onMouseLeave,
+}: SpellingSubmenuProps) {
   const [style, setStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
@@ -80,13 +90,13 @@ function SpellingSubmenu({ suggestions, misspelledWord, anchorRef, panelRef, onR
   return createPortal(
     <div
       ref={panelRef}
-      className="ring-foreground/10 bg-popover text-popover-foreground fixed z-60 min-w-48 rounded-lg p-1 shadow-md ring-1"
+      className="fixed z-60 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
       style={style}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {suggestions.length === 0 && (
-        <div className="text-muted-foreground px-1.5 py-1 text-sm">No suggestions</div>
+        <div className="px-1.5 py-1 text-sm text-muted-foreground">No suggestions</div>
       )}
       {suggestions.slice(0, 5).map((s) => (
         <MenuItem key={s} onClick={() => onReplace(s)}>
@@ -167,10 +177,13 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     spellingCloseTimer.current = setTimeout(() => setSpellingOpen(false), 150);
   }, []);
 
-  const handleReplaceMisspelling = useCallback((suggestion: string) => {
-    void window.api?.spellcheck?.replaceMisspelling(suggestion);
-    close();
-  }, [close]);
+  const handleReplaceMisspelling = useCallback(
+    (suggestion: string) => {
+      void window.api?.spellcheck?.replaceMisspelling(suggestion);
+      close();
+    },
+    [close],
+  );
 
   const handleAddToDictionary = useCallback(() => {
     if (params?.misspelledWord) {
@@ -179,10 +192,22 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     close();
   }, [params?.misspelledWord, close]);
 
-  const handleCut = useCallback(() => { document.execCommand('cut'); close(); }, [close]);
-  const handleCopy = useCallback(() => { document.execCommand('copy'); close(); }, [close]);
-  const handlePaste = useCallback(() => { document.execCommand('paste'); close(); }, [close]);
-  const handleOpenDevTools = useCallback(() => { void window.api?.devtools?.toggle(); close(); }, [close]);
+  const handleCut = useCallback(() => {
+    document.execCommand('cut');
+    close();
+  }, [close]);
+  const handleCopy = useCallback(() => {
+    document.execCommand('copy');
+    close();
+  }, [close]);
+  const handlePaste = useCallback(() => {
+    document.execCommand('paste');
+    close();
+  }, [close]);
+  const handleOpenDevTools = useCallback(() => {
+    void window.api?.devtools?.toggle();
+    close();
+  }, [close]);
 
   const isMisspelled = !!params?.misspelledWord;
   const isEditable = params?.isEditable ?? false;
@@ -201,7 +226,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="ring-foreground/10 bg-popover text-popover-foreground fixed z-50 min-w-48 rounded-lg p-1 shadow-md ring-1"
+            className="fixed z-50 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
             style={{ left: params.x, top: params.y }}
           >
             {isMisspelled && (

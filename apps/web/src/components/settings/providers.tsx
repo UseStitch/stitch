@@ -25,7 +25,7 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
     <div className="flex flex-col gap-6">
       {connected.length > 0 && (
         <div className="flex flex-col">
-          <h3 className="text-[13px] font-semibold mb-2">Connected providers</h3>
+          <h3 className="mb-2 text-[13px] font-semibold">Connected providers</h3>
           <div className="flex flex-col">
             {connected.map((provider) => (
               <ProviderRow
@@ -40,7 +40,7 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
 
       {unconnected.length > 0 && (
         <div className="flex flex-col">
-          <h3 className="text-[13px] font-semibold mb-2">Popular providers</h3>
+          <h3 className="mb-2 text-[13px] font-semibold">Popular providers</h3>
           <div className="flex flex-col">
             {unconnected.map((provider) => (
               <ProviderRow
@@ -60,17 +60,17 @@ export function ProvidersSettings() {
   const [selected, setSelected] = React.useState<ProviderSummary | null>(null);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {!selected && (
         <div className="mb-6">
           <h2 className="text-base font-bold">Providers</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             Connect your AI providers and API keys
           </p>
         </div>
       )}
       <React.Suspense
-        fallback={<div className="text-muted-foreground text-sm">Loading providers...</div>}
+        fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
       >
         {selected ? (
           <ProviderConfig provider={selected} onBack={() => setSelected(null)} />

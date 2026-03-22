@@ -22,8 +22,8 @@ type ModelRowProps = {
 
 function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50 last:border-none">
-      <span className="text-sm text-foreground truncate">{modelName}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3 last:border-none">
+      <span className="truncate text-sm text-foreground">{modelName}</span>
       <Switch checked={checked} onCheckedChange={onToggle} aria-label={`Toggle ${modelName}`} />
     </div>
   );
@@ -112,14 +112,14 @@ function ModelsListContent() {
       />
 
       {filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="py-4 text-center text-sm text-muted-foreground">
           No models match your search.
         </p>
       )}
 
       {filtered.map((provider) => (
         <div key={provider.providerId}>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+          <p className="mb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">
             {provider.providerName}
           </p>
           <div>
@@ -145,10 +145,10 @@ function ModelsListContent() {
 
 export function ModelsSettings() {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="mb-6">
         <h2 className="text-base font-bold">Models</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Choose which models appear in the model selector
         </p>
       </div>

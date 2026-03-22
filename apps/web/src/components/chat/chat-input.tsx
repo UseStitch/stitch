@@ -172,8 +172,8 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             )}
           >
             {/* Search */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
-              <SearchIcon className="size-3.5 text-muted-foreground shrink-0" />
+            <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+              <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
               <input
                 autoFocus
                 value={search}
@@ -187,12 +187,12 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
             <div className="no-scrollbar max-h-70 overflow-y-auto overscroll-contain">
               <div className="p-1">
                 {filtered.length === 0 && (
-                  <p className="text-muted-foreground text-xs text-center py-4">No models found</p>
+                  <p className="py-4 text-center text-xs text-muted-foreground">No models found</p>
                 )}
                 {filtered.map((provider, idx) => (
                   <div key={provider.providerId}>
                     {idx > 0 && <div className="my-1 h-px bg-border/50" />}
-                    <p className="text-muted-foreground px-2 py-1 text-xs font-medium">
+                    <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
                       {provider.providerName}
                     </p>
                     {provider.models.map((model) => {
@@ -268,7 +268,7 @@ function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelector
             <div className="no-scrollbar max-h-70 overflow-y-auto overscroll-contain">
               <div className="p-1">
                 {agents.length === 0 && (
-                  <p className="text-muted-foreground text-xs text-center py-4">No agents found</p>
+                  <p className="py-4 text-center text-xs text-muted-foreground">No agents found</p>
                 )}
                 {agents.map((agent) => {
                   const isSelected = selectedValue === agent.id;
@@ -307,9 +307,9 @@ function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
   const isPdf = attachment.mime === 'application/pdf';
 
   return (
-    <div className="relative group shrink-0">
+    <div className="group relative shrink-0">
       {isImage && attachment.previewUrl ? (
-        <div className="relative size-16 rounded-lg overflow-hidden border border-border/60 bg-muted">
+        <div className="relative size-16 overflow-hidden rounded-lg border border-border/60 bg-muted">
           <img
             src={attachment.previewUrl}
             alt={attachment.filename}
@@ -317,13 +317,13 @@ function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
           />
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/60 bg-muted max-w-40">
+        <div className="flex h-8 max-w-40 items-center gap-1.5 rounded-lg border border-border/60 bg-muted px-2.5">
           {isPdf ? (
             <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
           ) : (
             <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
           )}
-          <span className="text-xs text-muted-foreground truncate">{attachment.filename}</span>
+          <span className="truncate text-xs text-muted-foreground">{attachment.filename}</span>
         </div>
       )}
       <button
@@ -535,7 +535,7 @@ function ChatInputInner({
     >
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5 pointer-events-none">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5">
           <p className="text-sm font-medium text-primary">Drop files here</p>
         </div>
       )}
@@ -583,7 +583,7 @@ function ChatInputInner({
       />
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-3 pb-3 pt-1">
+      <div className="flex items-center justify-between px-3 pt-1 pb-3">
         {/* Left: selectors + attach */}
         <div className="flex items-center gap-1">
           {agents.filter((a) => a.type === 'primary').length > 1 && (
@@ -690,11 +690,11 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
             )}
           >
             <div className="px-4 pt-4 pb-2">
-              <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+              <div className="h-5 w-32 animate-pulse rounded bg-muted" />
             </div>
-            <div className="flex items-center justify-between px-3 pb-3 pt-1">
-              <div className="h-6 w-24 rounded bg-muted animate-pulse" />
-              <div className="size-6 rounded bg-muted animate-pulse" />
+            <div className="flex items-center justify-between px-3 pt-1 pb-3">
+              <div className="h-6 w-24 animate-pulse rounded bg-muted" />
+              <div className="size-6 animate-pulse rounded bg-muted" />
             </div>
           </div>
         }

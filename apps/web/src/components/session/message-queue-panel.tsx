@@ -37,7 +37,7 @@ export function MessageQueuePanel({ className, onEdit, sendQueuedRef }: MessageQ
           </p>
         </div>
 
-        <div className="h-[calc(100%-74px)] overflow-y-auto px-3 pb-6 pt-3">
+        <div className="h-[calc(100%-74px)] overflow-y-auto px-3 pt-3 pb-6">
           {items.length === 0 ? (
             <div className="flex h-32 items-center justify-center">
               <p className="text-center text-sm text-muted-foreground/70">

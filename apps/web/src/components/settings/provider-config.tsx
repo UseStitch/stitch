@@ -4,11 +4,7 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import {
-  PROVIDER_IDS,
-  type FieldDef,
-  type ProviderId,
-} from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from './provider-logo';
 
@@ -83,7 +79,7 @@ function FieldGroup({
           <Label htmlFor={`${providerId}-${field.key}`}>
             {field.label}
             {!field.required && (
-              <span className="text-muted-foreground text-xs ml-1">(optional)</span>
+              <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
             )}
           </Label>
           {isBedrock && field.key === 'region' ? (
@@ -94,7 +90,7 @@ function FieldGroup({
               <SelectTrigger id={`${providerId}-${field.key}`} className="w-full">
                 <SelectValue placeholder={field.placeholder} />
               </SelectTrigger>
-              <SelectContent className="max-w-none max-h-80">
+              <SelectContent className="max-h-80 max-w-none">
                 {AWS_BEDROCK_REGIONS.map((region) => (
                   <SelectItem key={region.value} value={region.value}>
                     {region.label} ({region.value})
@@ -120,7 +116,7 @@ function FieldGroup({
 function NoFieldsNote({ method }: { method: string }) {
   if (method === 'adc') {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Uses Application Default Credentials from your environment. No additional configuration
         needed.
       </p>
@@ -128,7 +124,7 @@ function NoFieldsNote({ method }: { method: string }) {
   }
   if (method === 'credential-provider') {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Uses the AWS credential provider chain (environment variables, shared credentials file, IAM
         role, etc.). No additional configuration needed.
       </p>
@@ -258,13 +254,13 @@ export function ProviderConfig({ provider, onBack }: Props) {
   const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="mb-6 flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to providers">
           <ArrowLeftIcon className="size-4" />
         </Button>
-        <div className="text-muted-foreground shrink-0">
+        <div className="shrink-0 text-muted-foreground">
           <ProviderLogo
             providerId={provider.id}
             providerName={meta.displayName}
@@ -273,17 +269,17 @@ export function ProviderConfig({ provider, onBack }: Props) {
         </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
-          <p className="text-muted-foreground text-xs">{provider.model_count} models available</p>
+          <p className="text-xs text-muted-foreground">{provider.model_count} models available</p>
         </div>
         {provider.enabled && (
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+          <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
             Connected
           </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-5 flex-1">
+      <div className="flex flex-1 flex-col gap-5">
         {/* Extra top-level fields (region, project, location, etc.) */}
         {meta.extraFields.length > 0 && (
           <FieldGroup

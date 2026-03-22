@@ -31,5 +31,15 @@
       ["value-parent", "value-sibling", "value-index"],
       "unknown"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/**"],
+      "options": {
+        "sortTailwindcss": {
+          "stylesheet": "apps/web/src/styles/global.css"
+        }
+      }
+    }
+  ]
 }

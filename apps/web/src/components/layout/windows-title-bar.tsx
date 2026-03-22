@@ -36,21 +36,21 @@ export function WindowsTitleBar() {
 
   return (
     <div
-      className="h-9 bg-sidebar flex items-center justify-between select-none"
+      className="flex h-9 items-center justify-between bg-sidebar select-none"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div
-        className="flex items-center h-full"
+        className="flex h-full items-center"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <button
           onClick={toggleSidebar}
-          className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
         >
           {open ? (
-            <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+            <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <PanelLeftOpen className="w-4 h-4 text-muted-foreground" />
+            <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
       </div>
@@ -61,32 +61,32 @@ export function WindowsTitleBar() {
         <ServerStatus />
         <button
           onClick={() => setSettingsTab('general')}
-          className="w-9 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
           aria-label="Open settings"
         >
-          <Settings2 className="w-4 h-4 text-muted-foreground" />
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
         </button>
         <button
           onClick={handleMinimize}
-          className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted"
         >
-          <Minus className="w-4 h-4 text-muted-foreground" />
+          <Minus className="h-4 w-4 text-muted-foreground" />
         </button>
         <button
           onClick={handleMaximize}
-          className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted"
         >
           {isMaximized ? (
-            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <Square className="w-3.5 h-3.5 text-muted-foreground" />
+            <Square className="h-3.5 w-3.5 text-muted-foreground" />
           )}
         </button>
         <button
           onClick={handleClose}
-          className="w-12 h-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors group"
+          className="group flex h-full w-12 items-center justify-center transition-colors hover:bg-destructive hover:text-destructive-foreground"
         >
-          <X className="w-4 h-4 text-muted-foreground group-hover:text-white" />
+          <X className="h-4 w-4 text-muted-foreground group-hover:text-white" />
         </button>
       </div>
     </div>

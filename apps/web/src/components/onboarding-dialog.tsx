@@ -4,11 +4,7 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import {
-  PROVIDER_IDS,
-  type FieldDef,
-  type ProviderId,
-} from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -48,7 +44,7 @@ function FieldGroup({
           <Label htmlFor={`${providerId}-${field.key}`}>
             {field.label}
             {!field.required && (
-              <span className="text-muted-foreground text-xs ml-1">(optional)</span>
+              <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
             )}
           </Label>
           <Input
@@ -67,7 +63,7 @@ function FieldGroup({
 function NoFieldsNote({ method }: { method: string }) {
   if (method === 'adc') {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Uses Application Default Credentials from your environment. No additional configuration
         needed.
       </p>
@@ -75,7 +71,7 @@ function NoFieldsNote({ method }: { method: string }) {
   }
   if (method === 'credential-provider') {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Uses the AWS credential provider chain (environment variables, shared credentials file, IAM
         role, etc.). No additional configuration needed.
       </p>
@@ -159,7 +155,7 @@ function OnboardingProviderConfig({
   });
 
   if (provider.enabled && isPending) {
-    return <div className="text-muted-foreground text-sm">Loading provider configuration...</div>;
+    return <div className="text-sm text-muted-foreground">Loading provider configuration...</div>;
   }
 
   if (!meta || enabledAuthMethods.length === 0) return null;
@@ -206,12 +202,12 @@ function OnboardingProviderConfig({
   const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="flex h-full flex-col">
+      <div className="mb-6 flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to providers">
           <ArrowLeftIcon className="size-4" />
         </Button>
-        <div className="text-muted-foreground shrink-0">
+        <div className="shrink-0 text-muted-foreground">
           <ProviderLogo
             providerId={provider.id}
             providerName={meta.displayName}
@@ -220,11 +216,11 @@ function OnboardingProviderConfig({
         </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
-          <p className="text-muted-foreground text-xs">{provider.model_count} models available</p>
+          <p className="text-xs text-muted-foreground">{provider.model_count} models available</p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 flex-1">
+      <div className="flex flex-1 flex-col gap-5">
         {meta.extraFields.length > 0 && (
           <FieldGroup
             fields={meta.extraFields}
@@ -301,7 +297,7 @@ function OnboardingProviderStep({ onConnected }: { onConnected: () => void }) {
   }, [providers]);
 
   if (!providers) {
-    return <div className="text-muted-foreground text-sm">Loading providers...</div>;
+    return <div className="text-sm text-muted-foreground">Loading providers...</div>;
   }
 
   if (selected) {
@@ -318,32 +314,32 @@ function OnboardingProviderStep({ onConnected }: { onConnected: () => void }) {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-lg font-semibold">Setup Provider</h2>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Connect one provider to unlock models and start chatting.
         </p>
       </div>
 
-      <div className="flex flex-col border border-border/60 rounded-xl overflow-hidden">
+      <div className="flex flex-col overflow-hidden rounded-xl border border-border/60">
         {selectableProviders.map((provider) => {
           const meta = PROVIDER_META[provider.id as ProviderId];
           return (
             <div
               key={provider.id}
-              className="flex items-center justify-between py-3 px-4 border-b border-border/50 last:border-0"
+              className="flex items-center justify-between border-b border-border/50 px-4 py-3 last:border-0"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="text-muted-foreground shrink-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="shrink-0 text-muted-foreground">
                   <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{meta.displayName}</p>
+                  <p className="truncate text-sm font-medium">{meta.displayName}</p>
                   {meta.description && (
-                    <p className="text-muted-foreground text-xs truncate">{meta.description}</p>
+                    <p className="truncate text-xs text-muted-foreground">{meta.description}</p>
                   )}
                 </div>
               </div>
               <Button size="sm" variant="outline" onClick={() => setSelected(provider)}>
-                <PlusIcon className="size-3.5 mr-1" />
+                <PlusIcon className="mr-1 size-3.5" />
                 Connect
               </Button>
             </div>
@@ -414,18 +410,18 @@ export function OnboardingDialog() {
         <DialogTitle>Stitch Onboarding</DialogTitle>
       </DialogHeader>
       <DialogContent
-        className="max-w-3xl! h-140 p-0 gap-0 overflow-hidden flex flex-col"
+        className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         <div className="flex h-full flex-col p-8">
           {step === 'welcome' && (
-            <div className="flex h-full flex-col items-center justify-center text-center gap-6">
-              <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+            <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <SparklesIcon className="size-6" />
               </div>
-              <div className="space-y-2 max-w-lg">
+              <div className="max-w-lg space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                   Let&apos;s set up your first provider so you can start chatting in less than a
                   minute.
                 </p>
@@ -449,13 +445,13 @@ export function OnboardingDialog() {
           )}
 
           {step === 'success' && (
-            <div className="flex h-full flex-col items-center justify-center text-center gap-4">
-              <div className="size-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
                 <CheckCircle2Icon className="size-8" />
               </div>
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold">You&apos;re all set</h2>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                   Provider connected. Launching your workspace...
                 </p>
               </div>

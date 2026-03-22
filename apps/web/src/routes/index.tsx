@@ -90,8 +90,8 @@ function IndexComponent() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center px-6">
-      <div className="w-full max-w-4xl flex flex-col gap-8">
-        <div className="text-center space-y-3">
+      <div className="flex w-full max-w-4xl flex-col gap-8">
+        <div className="space-y-3 text-center">
           <h1 className="text-3xl font-bold tracking-tight">What can I help you with?</h1>
           <p className="text-base text-muted-foreground">Select a model and start a conversation</p>
         </div>

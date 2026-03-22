@@ -41,7 +41,7 @@ function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]>
 
 function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
-    return <span className="text-muted-foreground text-sm">Unassigned</span>;
+    return <span className="text-sm text-muted-foreground">Unassigned</span>;
   }
 
   const displayKeys = formatForDisplay(hotkey).split('+');
@@ -99,11 +99,11 @@ function ShortcutRow({
   const isRecording = recordingId === entry.actionId;
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+    <div className="flex items-center justify-between border-b border-border/50 py-3 last:border-0">
       <div className="flex items-center gap-2">
         <span className="text-sm">{entry.label}</span>
         {!isDefault && (
-          <span className="text-xs text-muted-foreground rounded bg-muted px-1.5 py-0.5">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
             custom
           </span>
         )}
@@ -212,7 +212,7 @@ function ShortcutsContent() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <SearchIcon className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-8"
             placeholder="Search shortcuts"
@@ -232,12 +232,12 @@ function ShortcutsContent() {
       </div>
 
       {groups.size === 0 && (
-        <p className="text-muted-foreground text-sm text-center py-4">No shortcuts found</p>
+        <p className="py-4 text-center text-sm text-muted-foreground">No shortcuts found</p>
       )}
 
       {Array.from(groups.entries()).map(([category, entries]) => (
         <div key={category}>
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+          <h3 className="mb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">
             {category}
           </h3>
           <div>
@@ -256,7 +256,7 @@ function ShortcutsContent() {
       ))}
 
       {recordingId && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-center text-xs text-muted-foreground">
           Press Escape to cancel · Backspace to unassign
         </p>
       )}
@@ -266,14 +266,14 @@ function ShortcutsContent() {
 
 export function ShortcutsSettings() {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="mb-6">
         <h2 className="text-base font-bold">Keyboard shortcuts</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Customize keyboard shortcuts for quick actions
         </p>
       </div>
-      <React.Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
+      <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
         <ShortcutsContent />
       </React.Suspense>
     </div>

@@ -24,7 +24,7 @@ export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             {open ? (
               <ChevronDownIcon className="size-3 shrink-0" />
@@ -34,7 +34,7 @@ export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
             <span>Session compacted</span>
           </button>
         ) : (
-          <span className="text-xs text-muted-foreground font-medium">Session compacted</span>
+          <span className="text-xs font-medium text-muted-foreground">Session compacted</span>
         )}
         <div className="h-px flex-1 bg-border/60" />
       </div>

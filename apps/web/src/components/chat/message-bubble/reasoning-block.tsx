@@ -23,7 +23,7 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
         )}
         <span className="font-medium">{isStreaming ? 'Thinking...' : 'Reasoning'}</span>
         {isStreaming && (
-          <span className="ml-auto inline-block h-1.5 w-1.5 rounded-full bg-info animate-pulse" />
+          <span className="ml-auto inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-info" />
         )}
       </button>
       {open && (

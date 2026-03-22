@@ -36,10 +36,10 @@ function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
     case 'pending':
       return (
-        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-info/35 border-t-info animate-spin" />
+        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-info/35 border-t-info" />
       );
     case 'in-progress':
-      return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 text-info animate-spin" />;
+      return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 animate-spin text-info" />;
     case 'completed':
       return <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-success" />;
     case 'error':
@@ -267,7 +267,7 @@ function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) 
                 {answer.join(', ')}
               </span>
             ) : (
-              <span className="text-xs italic text-muted-foreground/70">Waiting for answer...</span>
+              <span className="text-xs text-muted-foreground/70 italic">Waiting for answer...</span>
             )}
           </div>
         );
@@ -481,7 +481,7 @@ function BashToolBlock({
       <ToolCard.Content open={open}>
         <div className="space-y-1.5">
           <div className="font-medium text-foreground">Command</div>
-          <div className="font-mono text-xs text-muted-foreground break-all whitespace-pre-wrap">
+          <div className="font-mono text-xs break-all whitespace-pre-wrap text-muted-foreground">
             {showFullCommand ? (command ?? commandPreview) : commandPreview}
           </div>
           {canExpandCommand ? (

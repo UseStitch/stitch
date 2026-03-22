@@ -93,10 +93,10 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
   }, []);
 
   return (
-    <div className="relative group">
+    <div className="group relative">
       <button
         type="button"
-        className="absolute right-2 top-2 z-10 rounded-md border border-border/50 bg-background/80 px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
+        className="absolute top-2 right-2 z-10 rounded-md border border-border/50 bg-background/80 px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
         onClick={handleCopy}
         title={copied ? 'Copied' : 'Copy code'}
         aria-label={copied ? 'Copied' : 'Copy code'}
