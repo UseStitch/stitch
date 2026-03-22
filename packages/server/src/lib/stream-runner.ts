@@ -26,6 +26,7 @@ import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
+import { createSubAgentTools } from '@/tools/sub-agent-tool.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
@@ -1005,6 +1006,8 @@ export async function runStream(opts: {
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
+  /** When running as a sub-agent, set to the sub-agent's ID so questions/permissions are tagged. */
+  subAgentId?: PrefixedString<'agt'>;
 }): Promise<void> {
   const streamRunId = randomUUID();
   const allStitchTools = createTools({
@@ -1012,6 +1015,7 @@ export async function runStream(opts: {
     messageId: opts.assistantMessageId,
     agentId: opts.agentId,
     streamRunId,
+    subAgentId: opts.subAgentId,
   });
 
   const mcpTools = await createMcpToolsForAgent(opts.agentId, {
@@ -1019,9 +1023,17 @@ export async function runStream(opts: {
     messageId: opts.assistantMessageId,
     agentId: opts.agentId,
     streamRunId,
+    subAgentId: opts.subAgentId,
   });
 
-  const allTools = { ...allStitchTools, ...mcpTools };
+  const subAgentTools = await createSubAgentTools(opts.agentId, {
+    sessionId: opts.sessionId,
+    credentials: opts.credentials,
+    modelId: opts.modelId,
+    parentAbortSignal: opts.abortSignal,
+  });
+
+  const allTools = { ...allStitchTools, ...mcpTools, ...subAgentTools };
 
   const disabledNames = await getDisabledToolNames(opts.agentId);
   const tools = Object.fromEntries(

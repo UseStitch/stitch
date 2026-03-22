@@ -27,9 +27,10 @@ export function useSessionStream({ sessionId }: UseSessionStreamOptions): void {
       streamState.finishReason !== null &&
       streamState.error === null
     ) {
-      void queryClient
-        .resetQueries({ queryKey: sessionKeys.messages(sessionId) })
-        .then(() => resetSession(sessionId));
+      void Promise.all([
+        queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: sessionKeys.stats(sessionId) }),
+      ]).then(() => resetSession(sessionId));
     }
   }, [
     streamState.isStreaming,

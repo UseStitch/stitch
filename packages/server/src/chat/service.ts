@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, like, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -18,6 +19,8 @@ import { buildCompactedHistory, compact } from '@/llm/compaction.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/doom-loop.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortPermissionResponses } from '@/permission/service.js';
+import * as Models from '@/provider/models.js';
+import { listProviders } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 
@@ -370,6 +373,22 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
   cancelDecision(sessionId);
   await abortQuestions(sessionId);
   await abortPermissionResponses(sessionId);
+
+  // Also abort child sessions (sub-agent runs)
+  const db = getDb();
+  const childSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.parentSessionId, sessionId));
+
+  for (const child of childSessions) {
+    log.info(
+      { event: 'stream.abort.child_session', parentSessionId: sessionId, childSessionId: child.id },
+      'aborting child session',
+    );
+    await abortQuestions(child.id);
+    await abortPermissionResponses(child.id);
+  }
 }
 
 function getSplitTitle(baseTitle: string, n: number): string {
@@ -480,4 +499,121 @@ export async function requestCompaction(
   });
 
   return ok({ ok: true });
+}
+
+export async function getSessionStats(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<SessionStats>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  if (!session) {
+    return err('Session not found', 404);
+  }
+
+  // Fetch messages for this session and all child sessions in parallel
+  const childSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.parentSessionId, sessionId));
+  const allSessionIds = [sessionId, ...childSessions.map((s) => s.id)];
+
+  const allMessages = await db
+    .select()
+    .from(messages)
+    .where(inArray(messages.sessionId, allSessionIds))
+    .orderBy(asc(messages.createdAt));
+
+  // Only parent session messages count for message counts / context tokens
+  const parentMessages = allMessages.filter((m) => m.sessionId === sessionId);
+
+  const totalCostUsd = allMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+  const userMessageCount = parentMessages.filter((m) => m.role === 'user').length;
+  const assistantMessageCount = parentMessages.filter((m) => m.role === 'assistant').length;
+
+  // Find the latest assistant message with token usage (for context window stats)
+  let latestAssistantWithTokens: (typeof parentMessages)[number] | null = null;
+  for (let i = parentMessages.length - 1; i >= 0; i--) {
+    const msg = parentMessages[i];
+    if (!msg || msg.role !== 'assistant') continue;
+    if (msg.parts?.some((p) => p.type === 'session-title')) continue;
+    const usage = msg.usage;
+    const tokenSum =
+      (usage?.inputTokens ?? 0) +
+      (usage?.outputTokens ?? 0) +
+      (usage?.inputTokenDetails?.cacheReadTokens ?? 0) +
+      (usage?.inputTokenDetails?.cacheWriteTokens ?? 0) +
+      (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+    if (tokenSum > 0) {
+      latestAssistantWithTokens = msg;
+      break;
+    }
+  }
+
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let reasoningTokens = 0;
+  let cacheReadTokens = 0;
+  let cacheWriteTokens = 0;
+
+  if (latestAssistantWithTokens) {
+    const usage = latestAssistantWithTokens.usage;
+    inputTokens = usage?.inputTokens ?? 0;
+    outputTokens = usage?.outputTokens ?? 0;
+    cacheReadTokens = usage?.inputTokenDetails?.cacheReadTokens ?? 0;
+    cacheWriteTokens = usage?.inputTokenDetails?.cacheWriteTokens ?? 0;
+    reasoningTokens = usage?.outputTokenDetails?.reasoningTokens ?? 0;
+  }
+
+  const totalTokens =
+    inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens + reasoningTokens;
+
+  // Resolve provider/model labels and context limit
+  const latestMessage =
+    parentMessages.length > 0 ? parentMessages[parentMessages.length - 1] : null;
+  const [providers, modelCatalog] = await Promise.all([listProviders(), Models.get()]);
+
+  let providerLabel = '-';
+  let modelLabel = '-';
+  let contextLimit: number | null = null;
+
+  if (latestMessage) {
+    const provider = providers.find((p) => p.id === latestMessage.providerId);
+    providerLabel = provider?.name ?? latestMessage.providerId;
+
+    const providerModels = modelCatalog[latestMessage.providerId];
+    const model = providerModels?.models[latestMessage.modelId];
+    modelLabel = model?.name ?? latestMessage.modelId;
+  }
+
+  if (latestAssistantWithTokens) {
+    const providerModels = modelCatalog[latestAssistantWithTokens.providerId];
+    const model = providerModels?.models[latestAssistantWithTokens.modelId];
+    contextLimit = model?.limit?.context ?? null;
+  }
+
+  const usagePercent =
+    contextLimit && contextLimit > 0
+      ? `${Math.min(100, Math.round((totalTokens / contextLimit) * 100))}%`
+      : '-';
+
+  return ok({
+    sessionTitle: session.title ?? 'New conversation',
+    providerLabel,
+    modelLabel,
+    contextLimit,
+    messagesCount: parentMessages.length,
+    usagePercent,
+    totalTokens,
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    userMessageCount,
+    assistantMessageCount,
+    totalCostUsd,
+    sessionCreatedAt: session.createdAt,
+    lastActivityAt: session.updatedAt,
+  });
 }

@@ -44,6 +44,7 @@ export type PermissionResponse = {
   suggestion: PermissionSuggestion | null;
   status: PermissionResponseStatus;
   entry: string | null;
+  subAgentId?: PrefixedString<'agt'>;
   createdAt: number;
   resolvedAt?: number;
 };

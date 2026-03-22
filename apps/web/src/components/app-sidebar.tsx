@@ -73,7 +73,10 @@ export function AppSidebar() {
             <SidebarGroupLabel>Recent</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {[...sessions].reverse().map((session) => {
+                {[...sessions]
+                  .filter((session) => session.parentSessionId === null)
+                  .reverse()
+                  .map((session) => {
                   const isStreaming = streamingIdSet.has(session.id);
                   const isUnread = session.isUnread && session.id !== currentId && !isStreaming;
                   return (

@@ -137,3 +137,23 @@ export type MessagesPage = {
   messages: Message[];
   hasMore: boolean;
 };
+
+export type SessionStats = {
+  sessionTitle: string;
+  providerLabel: string;
+  modelLabel: string;
+  contextLimit: number | null;
+  messagesCount: number;
+  usagePercent: string;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  userMessageCount: number;
+  assistantMessageCount: number;
+  totalCostUsd: number;
+  sessionCreatedAt: number | null;
+  lastActivityAt: number | null;
+};

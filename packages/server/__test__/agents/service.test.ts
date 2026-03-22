@@ -6,6 +6,7 @@ describe('agents service validation', () => {
   test('requires systemPrompt when useBasePrompt is false', async () => {
     const result = await createAgent({
       name: 'Custom Agent',
+      type: 'primary',
       useBasePrompt: false,
       systemPrompt: '   ',
     });

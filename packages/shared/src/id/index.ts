@@ -12,6 +12,7 @@ export const ID_PREFIXES = {
   agentTool: 'agttool',
   mcpServer: 'mcp',
   agentMcpServer: 'agtmcp',
+  agentSubAgent: 'agtsub',
   queuedMessage: 'qmsg',
 } as const;
 
@@ -69,6 +70,7 @@ export const createAgentId = createIdFactory(ID_PREFIXES.agent);
 export const createAgentToolId = createIdFactory(ID_PREFIXES.agentTool);
 export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
 export const createAgentMcpServerId = createIdFactory(ID_PREFIXES.agentMcpServer);
+export const createAgentSubAgentId = createIdFactory(ID_PREFIXES.agentSubAgent);
 export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
 
 export function extractTimestamp(id: string): number {

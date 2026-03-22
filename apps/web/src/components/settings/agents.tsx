@@ -1,5 +1,6 @@
 import {
   ArrowLeftIcon,
+  BotIcon,
   FolderOpenIcon,
   PlusIcon,
   SearchIcon,
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@stitch/shared/agents/types';
+import type { AgentType } from '@stitch/shared/agents/types';
 import type { McpServer } from '@stitch/shared/mcp/types';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { AgentPermission, AgentPermissionValue } from '@stitch/shared/permissions/types';
@@ -35,23 +37,32 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   agentMcpServersQueryOptions,
   agentPermissionsQueryOptions,
+  agentSubAgentsQueryOptions,
   agentToolConfigQueryOptions,
   agentsQueryOptions,
   useAddMcpServerToAgent,
+  useAddSubAgentToAgent,
   useCreateAgent,
   useDeleteAgent,
   useDeleteAgentPermission,
   useRemoveMcpServerFromAgent,
+  useRemoveSubAgentFromAgent,
   useSetAgentToolEnabled,
   useSetDefaultAgent,
   useUpdateAgent,
+  useUpdateSubAgentConfig,
   useUpsertAgentPermission,
 } from '@/lib/queries/agents';
+import type { SubAgentLink } from '@/lib/queries/agents';
 import { mcpServersQueryOptions } from '@/lib/queries/mcp';
+import {
+  visibleProviderModelsQueryOptions,
+  type ProviderModels,
+} from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type AgentEditorMode =
-  | { type: 'create' }
+  | { type: 'create'; agentType: AgentType }
   | {
       type: 'edit';
       agent: Agent;
@@ -69,6 +80,29 @@ function toFormState(agent: Agent): AgentFormState {
     useBasePrompt: agent.useBasePrompt,
     systemPrompt: agent.systemPrompt ?? '',
   };
+}
+
+function encodeModelValue(providerId: string, modelId: string): string {
+  return JSON.stringify({ providerId, modelId });
+}
+
+function decodeModelValue(value: string): { providerId: string; modelId: string } | null {
+  try {
+    const parsed = JSON.parse(value) as { providerId?: string; modelId?: string };
+    if (parsed.providerId && parsed.modelId) return { providerId: parsed.providerId, modelId: parsed.modelId };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function buildModelLabel(providerModels: ProviderModels[], providerId: string, modelId: string): string {
+  for (const p of providerModels) {
+    if (p.providerId !== providerId) continue;
+    const model = p.models.find((m) => m.id === modelId);
+    if (model) return `${p.providerName} / ${model.name}`;
+  }
+  return `${providerId} / ${modelId}`;
 }
 
 const TOOL_DISPLAY_NAMES: Record<string, string> = {
@@ -648,9 +682,201 @@ function AgentMcpServers({ agentId }: { agentId: string }) {
   );
 }
 
+function SubAgentModelSelect({
+  agentId,
+  subAgent,
+  providerModels,
+}: {
+  agentId: string;
+  subAgent: SubAgentLink;
+  providerModels: ProviderModels[];
+}) {
+  const updateConfig = useUpdateSubAgentConfig();
+
+  const currentValue =
+    subAgent.providerId && subAgent.modelId
+      ? encodeModelValue(subAgent.providerId, subAgent.modelId)
+      : 'inherit';
+
+  const handleChange = (value: string | null) => {
+    if (!value || value === 'inherit') {
+      void updateConfig
+        .mutateAsync({ agentId, subAgentId: subAgent.id, providerId: null, modelId: null })
+        .catch((error: unknown) => {
+          toast.error(error instanceof Error ? error.message : 'Failed to update model');
+        });
+    } else {
+      const decoded = decodeModelValue(value);
+      if (!decoded) return;
+      void updateConfig
+        .mutateAsync({ agentId, subAgentId: subAgent.id, providerId: decoded.providerId, modelId: decoded.modelId })
+        .catch((error: unknown) => {
+          toast.error(error instanceof Error ? error.message : 'Failed to update model');
+        });
+    }
+  };
+
+  return (
+    <Select value={currentValue} onValueChange={handleChange} disabled={updateConfig.isPending}>
+      <SelectTrigger size="sm" className="w-52 shrink-0">
+        <SelectValue>
+          {currentValue === 'inherit'
+            ? 'Use parent model'
+            : subAgent.providerId && subAgent.modelId
+              ? buildModelLabel(providerModels, subAgent.providerId, subAgent.modelId)
+              : 'Use parent model'}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-60">
+        <SelectItem value="inherit">Use parent model</SelectItem>
+        {providerModels.map((provider) => (
+          <React.Fragment key={provider.providerId}>
+            {provider.models.map((model) => (
+              <SelectItem
+                key={encodeModelValue(provider.providerId, model.id)}
+                value={encodeModelValue(provider.providerId, model.id)}
+              >
+                {provider.providerName} / {model.name}
+              </SelectItem>
+            ))}
+          </React.Fragment>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function AgentSubAgentsConfig({ agentId }: { agentId: string }) {
+  const { data: linked } = useSuspenseQuery(agentSubAgentsQueryOptions(agentId));
+  const { data: allAgents } = useSuspenseQuery(agentsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const addSubAgent = useAddSubAgentToAgent();
+  const removeSubAgent = useRemoveSubAgentFromAgent();
+
+  const linkedIds = new Set(linked.map((a) => a.id));
+  const available = allAgents.filter(
+    (a) => a.type === 'sub' && !linkedIds.has(a.id) && a.id !== agentId,
+  );
+
+  const handleAdd = async (agent: Agent) => {
+    try {
+      await addSubAgent.mutateAsync({ agentId, subAgentId: agent.id });
+      toast.success(`${agent.name} added as sub-agent`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add sub-agent');
+    }
+  };
+
+  const handleRemove = async (subAgent: SubAgentLink) => {
+    try {
+      await removeSubAgent.mutateAsync({ agentId, subAgentId: subAgent.id });
+      toast.success(`${subAgent.name} removed`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove sub-agent');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {linked.length > 0 && (
+        <div className="overflow-hidden rounded-md border border-border/50">
+          {linked.map((subAgent) => (
+            <div
+              key={subAgent.id}
+              className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{subAgent.name}</p>
+                  {subAgent.systemPrompt && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {subAgent.systemPrompt.slice(0, 80)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <SubAgentModelSelect
+                  agentId={agentId}
+                  subAgent={subAgent}
+                  providerModels={providerModels}
+                />
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => void handleRemove(subAgent)}
+                  disabled={removeSubAgent.isPending}
+                  aria-label={`Remove ${subAgent.name}`}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2Icon className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {linked.length === 0 && (
+        <p className="text-sm text-muted-foreground">No sub-agents assigned to this agent.</p>
+      )}
+
+      {available.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Add sub-agent</p>
+          <div className="overflow-hidden rounded-md border border-border/50">
+            {available.map((agent) => (
+              <div
+                key={agent.id}
+                className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{agent.name}</p>
+                    {agent.systemPrompt && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {agent.systemPrompt.slice(0, 80)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => void handleAdd(agent)}
+                  disabled={addSubAgent.isPending}
+                  aria-label={`Add ${agent.name}`}
+                  className="shrink-0"
+                >
+                  <PlusIcon className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {available.length === 0 && linked.length > 0 && (
+        <p className="text-xs text-muted-foreground">All available sub-agents are assigned.</p>
+      )}
+
+      {allAgents.filter((a) => a.type === 'sub').length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No sub-agents exist. Create one using the &ldquo;+ Sub Agent&rdquo; button in the agents
+          list.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => void }) {
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
+
+  const agentType = mode.type === 'edit' ? mode.agent.type : mode.agentType;
 
   const [form, setForm] = React.useState<AgentFormState>(() =>
     mode.type === 'edit'
@@ -676,10 +902,11 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
       if (mode.type === 'create') {
         await createAgent.mutateAsync({
           name,
+          type: mode.agentType,
           useBasePrompt: form.useBasePrompt,
           systemPrompt: form.useBasePrompt ? null : form.systemPrompt,
         });
-        toast.success('Agent created');
+        toast.success(mode.agentType === 'sub' ? 'Sub-agent created' : 'Agent created');
       } else {
         await updateAgent.mutateAsync({
           id: mode.agent.id,
@@ -703,12 +930,21 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div>
-          <h2 className="text-base font-bold">
-            {mode.type === 'create' ? 'Add Agent' : 'Edit Agent'}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold">
+              {mode.type === 'create'
+                ? agentType === 'sub'
+                  ? 'Add Sub Agent'
+                  : 'Add Agent'
+                : 'Edit Agent'}
+            </h2>
+            {agentType === 'sub' && <Badge variant="outline">Sub Agent</Badge>}
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode.type === 'create'
-              ? 'Create a new primary agent'
+              ? agentType === 'sub'
+                ? 'Create a new sub-agent that can be assigned to primary agents'
+                : 'Create a new primary agent'
               : 'Update agent configuration and prompt behavior'}
           </p>
         </div>
@@ -719,6 +955,9 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
           <TabsTrigger value="general">General</TabsTrigger>
           {mode.type === 'edit' && <TabsTrigger value="tools">Tools</TabsTrigger>}
           {mode.type === 'edit' && <TabsTrigger value="mcp">MCP Servers</TabsTrigger>}
+          {mode.type === 'edit' && agentType === 'primary' && (
+            <TabsTrigger value="sub-agents">Sub Agents</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="general">
@@ -792,6 +1031,16 @@ function AgentEditor({ mode, onBack }: { mode: AgentEditorMode; onBack: () => vo
             </React.Suspense>
           </TabsContent>
         )}
+
+        {mode.type === 'edit' && agentType === 'primary' && (
+          <TabsContent value="sub-agents">
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading...</div>}
+            >
+              <AgentSubAgentsConfig agentId={mode.agent.id} />
+            </React.Suspense>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -802,7 +1051,7 @@ function AgentsList({
   onCreate,
 }: {
   onEdit: (agent: Agent) => void;
-  onCreate: () => void;
+  onCreate: (agentType: AgentType) => void;
 }) {
   const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
@@ -810,6 +1059,9 @@ function AgentsList({
   const setDefaultAgent = useSetDefaultAgent();
 
   const defaultAgentId = settings['agent.default'];
+
+  const primaryAgents = agents.filter((a) => a.type === 'primary');
+  const subAgents = agents.filter((a) => a.type === 'sub');
 
   const handleDelete = async (agent: Agent) => {
     try {
@@ -835,41 +1087,92 @@ function AgentsList({
         <div>
           <h2 className="text-base font-bold">Agents</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage primary agents and prompt settings
+            Manage primary agents, sub-agents, and prompt settings
           </p>
         </div>
-        <Button size="icon-sm" onClick={onCreate} aria-label="Add agent">
-          <PlusIcon className="size-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => onCreate('sub')}>
+            <PlusIcon className="mr-1 size-3.5" />
+            Sub Agent
+          </Button>
+          <Button size="sm" onClick={() => onCreate('primary')}>
+            <PlusIcon className="mr-1 size-3.5" />
+            Agent
+          </Button>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border/60">
-        {agents.length === 0 && (
-          <p className="px-4 py-5 text-sm text-muted-foreground">No agents found.</p>
-        )}
+      {/* Primary Agents */}
+      <div className="mb-4">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Primary Agents</p>
+        <div className="overflow-hidden rounded-lg border border-border/60">
+          {primaryAgents.length === 0 && (
+            <p className="px-4 py-5 text-sm text-muted-foreground">No primary agents found.</p>
+          )}
 
-        {agents.map((agent) => {
-          const isDefault = agent.id === defaultAgentId;
-          return (
+          {primaryAgents.map((agent) => {
+            const isDefault = agent.id === defaultAgentId;
+            return (
+              <div
+                key={agent.id}
+                className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{agent.name}</p>
+                  {isDefault && <Badge variant="secondary">Default</Badge>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isDefault && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleSetDefault(agent)}
+                      disabled={setDefaultAgent.isPending}
+                    >
+                      Make default
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => onEdit(agent)}>
+                    Edit
+                  </Button>
+                  {agent.isDeletable && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => void handleDelete(agent)}
+                      disabled={deleteAgent.isPending}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sub Agents */}
+      <div>
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Sub Agents</p>
+        <div className="overflow-hidden rounded-lg border border-border/60">
+          {subAgents.length === 0 && (
+            <p className="px-4 py-5 text-sm text-muted-foreground">
+              No sub-agents yet. Create one to assign to primary agents.
+            </p>
+          )}
+
+          {subAgents.map((agent) => (
             <div
               key={agent.id}
               className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
             >
               <div className="flex items-center gap-2">
+                <BotIcon className="size-3.5 text-muted-foreground" />
                 <p className="text-sm font-medium">{agent.name}</p>
-                {isDefault && <Badge variant="secondary">Default</Badge>}
+                <Badge variant="outline">Sub</Badge>
               </div>
               <div className="flex items-center gap-2">
-                {!isDefault && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void handleSetDefault(agent)}
-                    disabled={setDefaultAgent.isPending}
-                  >
-                    Make default
-                  </Button>
-                )}
                 <Button size="sm" variant="outline" onClick={() => onEdit(agent)}>
                   Edit
                 </Button>
@@ -885,8 +1188,8 @@ function AgentsList({
                 )}
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -901,7 +1204,7 @@ function AgentsContent() {
 
   return (
     <AgentsList
-      onCreate={() => setMode({ type: 'create' })}
+      onCreate={(agentType) => setMode({ type: 'create', agentType })}
       onEdit={(agent) => setMode({ type: 'edit', agent })}
     />
   );

@@ -14,6 +14,7 @@ export type ToolContext = {
   messageId: PrefixedString<'msg'>;
   agentId: PrefixedString<'agt'>;
   streamRunId: string;
+  subAgentId?: PrefixedString<'agt'>;
 };
 
 type ToolPermissionBehavior = {
@@ -90,6 +91,7 @@ export function withPermissionGate<T extends Tool>(
       toolInput: input,
       systemReminder: 'Tool execution requires user approval',
       suggestion: behavior.getSuggestion(input),
+      subAgentId: context.subAgentId,
       abortSignal: meta?.abortSignal,
     });
 

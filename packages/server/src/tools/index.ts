@@ -19,6 +19,7 @@ export function createTools(context: {
   messageId: PrefixedString<'msg'>;
   agentId: PrefixedString<'agt'>;
   streamRunId: string;
+  subAgentId?: PrefixedString<'agt'>;
 }) {
   return {
     webfetch: WebfetchTool.createRegisteredTool(context),

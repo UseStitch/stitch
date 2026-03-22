@@ -34,6 +34,7 @@ function createQuestionTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
+  subAgentId?: PrefixedString<'agt'>;
 }) {
   return tool({
     description:
@@ -46,6 +47,7 @@ function createQuestionTool(context: {
         toolCallId,
         messageId: context.messageId,
         streamRunId: context.streamRunId,
+        subAgentId: context.subAgentId,
         abortSignal,
       });
 
@@ -70,6 +72,7 @@ function createTool(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
+  subAgentId?: PrefixedString<'agt'>;
 }) {
   return createQuestionTool(context);
 }

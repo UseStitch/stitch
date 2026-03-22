@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { StickToBottom } from 'use-stick-to-bottom';
 
-import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
+import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
@@ -26,6 +26,7 @@ import {
 import {
   flattenMessages,
   sessionMessagesInfiniteQueryOptions,
+  sessionQueryOptions,
   useSendMessage,
   useSplitSession,
 } from '@/lib/queries/chat';
@@ -49,6 +50,8 @@ export function SessionChatPane({
 }: SessionChatPaneProps) {
   const { id } = useParams({ from: '/session/$id' });
   const navigate = useNavigate();
+  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
+  const isChildSession = session.parentSessionId !== null;
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
@@ -247,7 +250,10 @@ export function SessionChatPane({
         resize="smooth"
         initial="smooth"
       >
-        <StickToBottom.Content scrollClassName="no-scrollbar" className="pt-2 pb-40">
+        <StickToBottom.Content
+          scrollClassName="no-scrollbar"
+          className={cn('pt-2', isChildSession ? 'pb-8' : 'pb-40')}
+        >
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
               messages={messages}
@@ -256,58 +262,65 @@ export function SessionChatPane({
               isFetchingMore={messagesQuery.isFetchingNextPage}
               onLoadMore={() => void messagesQuery.fetchNextPage()}
               onAbortTool={() => void abortStream(id)}
-              onSplit={handleSplit}
+              onSplit={isChildSession ? undefined : handleSplit}
             />
           </div>
         </StickToBottom.Content>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pt-10 pb-5" />
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
-          <div className="mx-auto max-w-4xl">
-            <div
-              className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}
-            >
-              <div className="streaming-border-wrapper-inner">
-                <div className="streaming-border-wrapper-clip">
-                  <div className="streaming-border-spinner" />
-                </div>
-              </div>
-              <div
-                className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
-                style={{ viewTransitionName: 'chat-input' }}
-              >
-                <DockContainer docks={docks} />
-                <div>
-                  <ChatInput
-                    value={value}
-                    onChange={setValue}
-                    onSubmit={(text, attachments) => {
-                      void handleSubmit(text, attachments);
-                    }}
-                    onStop={() => void abortStream(id)}
-                    isStreaming={streamState.isStreaming}
-                    selectedModel={selectedModel}
-                    onModelChange={handleModelChange}
-                    selectedAgent={selectedAgent}
-                    onAgentChange={handleAgentChange}
-                    placeholder={
-                      isCompacting
-                        ? 'Compacting conversation...'
-                        : canSend
-                          ? 'Ask anything...'
-                          : 'Type to queue a message...'
-                    }
-                    disabled={isCompacting}
-                    mode={inputMode}
-                    pendingAttachments={pendingAttachments}
-                    onPendingAttachmentsConsumed={handlePendingAttachmentsConsumed}
-                    embedded
-                  />
+        {isChildSession ? null : (
+          <>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pt-10 pb-5" />
+            <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
+              <div className="mx-auto max-w-4xl">
+                <div
+                  className={cn(
+                    'streaming-border-wrapper',
+                    streamState.isStreaming && 'is-streaming',
+                  )}
+                >
+                  <div className="streaming-border-wrapper-inner">
+                    <div className="streaming-border-wrapper-clip">
+                      <div className="streaming-border-spinner" />
+                    </div>
+                  </div>
+                  <div
+                    className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+                    style={{ viewTransitionName: 'chat-input' }}
+                  >
+                    <DockContainer docks={docks} />
+                    <div>
+                      <ChatInput
+                        value={value}
+                        onChange={setValue}
+                        onSubmit={(text, attachments) => {
+                          void handleSubmit(text, attachments);
+                        }}
+                        onStop={() => void abortStream(id)}
+                        isStreaming={streamState.isStreaming}
+                        selectedModel={selectedModel}
+                        onModelChange={handleModelChange}
+                        selectedAgent={selectedAgent}
+                        onAgentChange={handleAgentChange}
+                        placeholder={
+                          isCompacting
+                            ? 'Compacting conversation...'
+                            : canSend
+                              ? 'Ask anything...'
+                              : 'Type to queue a message...'
+                        }
+                        disabled={isCompacting}
+                        mode={inputMode}
+                        pendingAttachments={pendingAttachments}
+                        onPendingAttachmentsConsumed={handlePendingAttachmentsConsumed}
+                        embedded
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </StickToBottom>
     </div>
   );

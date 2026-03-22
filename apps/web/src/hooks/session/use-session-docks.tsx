@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { UseMutationResult } from '@tanstack/react-query';
+import { useSuspenseQuery, type UseMutationResult } from '@tanstack/react-query';
 
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
@@ -10,6 +10,7 @@ import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { PermissionResponseDock } from '@/components/chat/docks/permission-response-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
+import { agentsQueryOptions } from '@/lib/queries/agents';
 import type { RetryInfo, DoomLoopInfo } from '@/stores/stream-store';
 
 type UseSessionDocksOptions = {
@@ -61,7 +62,15 @@ export function useSessionDocks({
   rejectPermissionResponse,
   alternativePermissionResponse,
 }: UseSessionDocksOptions): DockItem[] {
+  const { data: agents } = useSuspenseQuery(agentsQueryOptions);
+
   return React.useMemo(() => {
+    const agentNameById = new Map<string, string>(agents.map((a) => [a.id, a.name]));
+    const resolveSubAgentLabel = (subAgentId?: string): string | null => {
+      if (!subAgentId) return null;
+      return agentNameById.get(subAgentId) ?? 'sub-agent';
+    };
+
     const items: DockItem[] = [];
 
     if (doomLoop) {
@@ -85,9 +94,14 @@ export function useSessionDocks({
     }
 
     if (pendingQuestions.length > 0) {
+      const subAgentLabel = resolveSubAgentLabel(pendingQuestions[0]?.subAgentId);
+      const questionTitle = subAgentLabel
+        ? `Questions (from ${subAgentLabel})`
+        : 'Questions';
+
       items.push({
         id: 'questions',
-        title: 'Questions',
+        title: questionTitle,
         defaultExpanded: true,
         variant: 'primary',
         children: (
@@ -114,9 +128,15 @@ export function useSessionDocks({
 
     if (pendingPermissionResponses.length > 0) {
       const first = pendingPermissionResponses[0];
+      const toolLabel = first?.toolName ?? 'tool';
+      const permSubAgentLabel = resolveSubAgentLabel(first?.subAgentId);
+      const permTitle = permSubAgentLabel
+        ? `Allow ${toolLabel}? (from ${permSubAgentLabel})`
+        : `Allow ${toolLabel}?`;
+
       items.push({
         id: 'permission-response',
-        title: `Allow ${first?.toolName ?? 'tool'}?`,
+        title: permTitle,
         defaultExpanded: true,
         variant: 'primary',
         children: (
@@ -182,6 +202,7 @@ export function useSessionDocks({
 
     return items;
   }, [
+    agents,
     doomLoop,
     retry,
     pendingQuestions,

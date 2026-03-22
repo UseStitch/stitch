@@ -1,5 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 
+import type { AgentType } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createAgentId } from '@stitch/shared/id';
 
@@ -30,6 +31,7 @@ export async function listAgents() {
 
 export async function createAgent(input: {
   name: string;
+  type: AgentType;
   useBasePrompt: boolean;
   systemPrompt: string | null;
 }): Promise<ServiceResult<{ id: PrefixedString<'agt'> }>> {
@@ -46,7 +48,7 @@ export async function createAgent(input: {
   await db.insert(agents).values({
     id,
     name: input.name,
-    type: 'primary',
+    type: input.type,
     useBasePrompt: input.useBasePrompt,
     systemPrompt: input.systemPrompt,
   });

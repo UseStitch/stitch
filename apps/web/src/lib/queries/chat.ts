@@ -9,6 +9,7 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type {
   Message,
   Session,
+  SessionStats,
   MessagesPage,
   LanguageModelUsage,
   StoredPart,
@@ -35,6 +36,7 @@ export const sessionKeys = {
   list: () => [...sessionKeys.all, 'list'] as const,
   detail: (id: string) => [...sessionKeys.all, 'detail', id] as const,
   messages: (id: string) => [...sessionKeys.all, 'messages', id] as const,
+  stats: (id: string) => [...sessionKeys.all, 'stats', id] as const,
 };
 
 export const sessionsQueryOptions = queryOptions({
@@ -56,6 +58,17 @@ export const sessionQueryOptions = (id: string) =>
       return res.json() as Promise<Session>;
     },
     staleTime: Infinity,
+  });
+
+export const sessionStatsQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: sessionKeys.stats(id),
+    queryFn: async (): Promise<SessionStats> => {
+      const res = await serverFetch(`/chat/sessions/${id}/stats`);
+      if (!res.ok) throw new Error('Failed to fetch session stats');
+      return res.json() as Promise<SessionStats>;
+    },
+    staleTime: 30_000,
   });
 
 const PAGE_SIZE = 50;

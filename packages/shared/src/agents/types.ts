@@ -24,3 +24,13 @@ export type AgentToolEntry = {
   toolName: string;
   enabled: boolean;
 };
+
+export type AgentSubAgent = {
+  id: PrefixedString<'agtsub'>;
+  agentId: PrefixedString<'agt'>;
+  subAgentId: PrefixedString<'agt'>;
+  providerId: string | null;
+  modelId: string | null;
+  createdAt: number;
+  updatedAt: number;
+};

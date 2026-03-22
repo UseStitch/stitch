@@ -6,19 +6,16 @@ import { permissionResponseKeys } from '@/lib/queries/permissions';
 export function usePermissionResponseSync(sessionId: string): void {
   const queryClient = useQueryClient();
 
-  const invalidate = (incomingSessionId: string) => {
-    if (incomingSessionId !== sessionId) return;
+  const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(sessionId) });
   };
 
   useSSE({
-    'permission-response-requested': (data) => {
-      const payload = data as { permissionResponse: { sessionId: string } };
-      invalidate(payload.permissionResponse?.sessionId);
+    'permission-response-requested': () => {
+      invalidate();
     },
-    'permission-response-resolved': (data) => {
-      const payload = data as { sessionId: string };
-      invalidate(payload.sessionId);
+    'permission-response-resolved': () => {
+      invalidate();
     },
   });
 }

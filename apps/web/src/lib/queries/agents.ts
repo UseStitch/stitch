@@ -1,17 +1,24 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { Agent, AgentToolEntry, AgentToolType } from '@stitch/shared/agents/types';
+import type { AgentType } from '@stitch/shared/agents/types';
 import type { McpServer } from '@stitch/shared/mcp/types';
 import type { AgentPermission, AgentPermissionValue } from '@stitch/shared/permissions/types';
 
 import { serverFetch } from '@/lib/api';
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
+export type SubAgentLink = Agent & {
+  providerId: string | null;
+  modelId: string | null;
+};
+
 const agentKeys = {
   all: ['agents'] as const,
   list: () => [...agentKeys.all, 'list'] as const,
   toolConfig: (agentId: string) => [...agentKeys.all, 'tool-config', agentId] as const,
   mcpServers: (agentId: string) => [...agentKeys.all, 'mcp-servers', agentId] as const,
+  subAgents: (agentId: string) => [...agentKeys.all, 'sub-agents', agentId] as const,
   permissions: (agentId: string) => [...agentKeys.all, 'permissions', agentId] as const,
 };
 
@@ -72,6 +79,7 @@ export function useCreateAgent() {
   return useMutation({
     mutationFn: async (input: {
       name: string;
+      type?: AgentType;
       useBasePrompt: boolean;
       systemPrompt: string | null;
     }): Promise<{ id: string }> => {
@@ -260,6 +268,84 @@ export function useDeleteAgentPermission() {
     },
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: agentKeys.permissions(input.agentId) });
+    },
+  });
+}
+
+export function agentSubAgentsQueryOptions(agentId: string) {
+  return queryOptions({
+    queryKey: agentKeys.subAgents(agentId),
+    staleTime: Infinity,
+    queryFn: async (): Promise<SubAgentLink[]> => {
+      const res = await serverFetch(`/agents/${agentId}/sub-agents`);
+      if (!res.ok) throw new Error('Failed to fetch agent sub-agents');
+      return res.json() as Promise<SubAgentLink[]>;
+    },
+  });
+}
+
+export function useAddSubAgentToAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { agentId: string; subAgentId: string }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/sub-agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subAgentId: input.subAgentId }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to add sub-agent');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.subAgents(input.agentId) });
+    },
+  });
+}
+
+export function useRemoveSubAgentFromAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { agentId: string; subAgentId: string }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/sub-agents/${input.subAgentId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to remove sub-agent');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.subAgents(input.agentId) });
+    },
+  });
+}
+
+export function useUpdateSubAgentConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      agentId: string;
+      subAgentId: string;
+      providerId: string | null;
+      modelId: string | null;
+    }) => {
+      const res = await serverFetch(`/agents/${input.agentId}/sub-agents/${input.subAgentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          providerId: input.providerId,
+          modelId: input.modelId,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to update sub-agent config');
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: agentKeys.subAgents(input.agentId) });
     },
   });
 }

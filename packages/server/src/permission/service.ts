@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createAgentPermissionId, createPermissionResponseId } from '@stitch/shared/id';
@@ -12,7 +12,7 @@ import type {
 } from '@stitch/shared/permissions/types';
 
 import { getDb } from '@/db/client.js';
-import { agentPermissions, permissionResponses } from '@/db/schema.js';
+import { agentPermissions, permissionResponses, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
 import { PermissionResponseAbortedError } from '@/lib/stream-errors.js';
@@ -26,6 +26,7 @@ function toPermissionResponse(row: PermissionResponseRow): PermissionResponse {
   return {
     ...row,
     resolvedAt: row.resolvedAt ?? undefined,
+    subAgentId: row.subAgentId ?? undefined,
   };
 }
 
@@ -134,6 +135,7 @@ export async function requestPermissionResponse(opts: {
   toolInput: unknown;
   systemReminder: string;
   suggestion?: PermissionSuggestion | null;
+  subAgentId?: PrefixedString<'agt'>;
   abortSignal?: AbortSignal;
 }): Promise<PermissionDecisionResult> {
   const db = getDb();
@@ -150,6 +152,7 @@ export async function requestPermissionResponse(opts: {
     toolInput: opts.toolInput,
     systemReminder: opts.systemReminder,
     suggestion: opts.suggestion ?? null,
+    subAgentId: opts.subAgentId ?? null,
     status: 'pending',
     createdAt: now,
   });
@@ -307,10 +310,20 @@ export async function getPendingPermissionResponses(
   sessionId: PrefixedString<'ses'>,
 ): Promise<PermissionResponse[]> {
   const db = getDb();
+
+  // Find child session IDs for sub-agent permission requests
+  const childSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.parentSessionId, sessionId));
+  const childSessionIds = childSessions.map((s) => s.id);
+
+  const allSessionIds = [sessionId, ...childSessionIds];
   const rows = await db
     .select()
     .from(permissionResponses)
-    .where(eq(permissionResponses.sessionId, sessionId));
+    .where(or(...allSessionIds.map((id) => eq(permissionResponses.sessionId, id))));
+
   return rows.filter((p) => p.status === 'pending').map(toPermissionResponse);
 }
 

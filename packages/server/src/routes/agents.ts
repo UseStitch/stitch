@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AGENT_TOOL_TYPES } from '@stitch/shared/agents/types';
+import { AGENT_TOOL_TYPES, AGENT_TYPES } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
@@ -12,6 +12,12 @@ import {
   removeMcpServerFromAgent,
 } from '@/agents/mcp-config.js';
 import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
+import {
+  addSubAgentToAgent,
+  getAgentSubAgents,
+  removeSubAgentFromAgent,
+  updateSubAgentConfig,
+} from '@/agents/sub-agent-config.js';
 import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
@@ -36,6 +42,7 @@ export const agentsRouter = new Hono();
 const createAgentSchema = z
   .object({
     name: z.string().trim().min(1),
+    type: z.enum(AGENT_TYPES).optional().default('primary'),
     useBasePrompt: z.boolean().optional().default(true),
     systemPrompt: z.string().nullable().optional(),
   })
@@ -72,7 +79,16 @@ const setToolEnabledSchema = z.object({
 });
 
 const addMcpServerSchema = z.object({
-  mcpServerId: z.string().min(1),
+  mcpServerId: z.templateLiteral(['mcp_', z.string()]),
+});
+
+const addSubAgentSchema = z.object({
+  subAgentId: z.templateLiteral(['agt_', z.string()]),
+});
+
+const updateSubAgentConfigSchema = z.object({
+  providerId: z.string().nullable(),
+  modelId: z.string().nullable(),
 });
 
 const upsertPermissionSchema = z.object({
@@ -91,6 +107,7 @@ agentsRouter.post('/', zValidator('json', createAgentSchema), async (c) => {
 
   const result = await createAgent({
     name: body.name,
+    type: body.type,
     useBasePrompt: body.useBasePrompt,
     systemPrompt: body.systemPrompt ?? null,
   });
@@ -174,6 +191,50 @@ agentsRouter.delete('/:id/mcp-servers/:mcpServerId', async (c) => {
   }
   return c.body(null, 204);
 });
+
+agentsRouter.get('/:id/sub-agents', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const subAgents = await getAgentSubAgents(agentId);
+  return c.json(subAgents);
+});
+
+agentsRouter.post('/:id/sub-agents', zValidator('json', addSubAgentSchema), async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const body = c.req.valid('json');
+  const result = await addSubAgentToAgent(agentId, body.subAgentId as PrefixedString<'agt'>);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.body(null, 204);
+});
+
+agentsRouter.delete('/:id/sub-agents/:subAgentId', async (c) => {
+  const agentId = c.req.param('id') as PrefixedString<'agt'>;
+  const subAgentId = c.req.param('subAgentId') as PrefixedString<'agt'>;
+  const result = await removeSubAgentFromAgent(agentId, subAgentId);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.body(null, 204);
+});
+
+agentsRouter.patch(
+  '/:id/sub-agents/:subAgentId',
+  zValidator('json', updateSubAgentConfigSchema),
+  async (c) => {
+    const agentId = c.req.param('id') as PrefixedString<'agt'>;
+    const subAgentId = c.req.param('subAgentId') as PrefixedString<'agt'>;
+    const body = c.req.valid('json');
+    const result = await updateSubAgentConfig(agentId, subAgentId, {
+      providerId: body.providerId,
+      modelId: body.modelId,
+    });
+    if (isServiceError(result)) {
+      return c.json({ error: result.error }, result.status);
+    }
+    return c.body(null, 204);
+  },
+);
 
 agentsRouter.get('/:id/permissions', async (c) => {
   const agentId = c.req.param('id') as PrefixedString<'agt'>;

@@ -136,6 +136,9 @@ export const questions = sqliteTable('questions', {
   status: text('status').$type<QuestionRequestStatus>().notNull().default('pending'),
   toolCallId: text('tool_call_id').notNull(),
   messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
+  subAgentId: text('sub_agent_id')
+    .$type<PrefixedString<'agt'> | null>()
+    .references(() => agents.id),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -160,6 +163,9 @@ export const permissionResponses = sqliteTable('permission_responses', {
   suggestion: blob('suggestion', { mode: 'json' }).$type<PermissionSuggestion | null>(),
   status: text('status').$type<PermissionResponseStatus>().notNull().default('pending'),
   entry: text('entry'),
+  subAgentId: text('sub_agent_id')
+    .$type<PrefixedString<'agt'> | null>()
+    .references(() => agents.id),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -272,6 +278,32 @@ export const agentMcpServers = sqliteTable(
   },
   (table) => [
     uniqueIndex('agent_mcp_servers_agent_server_idx').on(table.agentId, table.mcpServerId),
+  ],
+);
+
+export const agentSubAgents = sqliteTable(
+  'agent_sub_agents',
+  {
+    id: text('id').$type<PrefixedString<'agtsub'>>().primaryKey(),
+    agentId: text('agent_id')
+      .$type<PrefixedString<'agt'>>()
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    subAgentId: text('sub_agent_id')
+      .$type<PrefixedString<'agt'>>()
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    providerId: text('provider_id'),
+    modelId: text('model_id'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('agent_sub_agents_agent_sub_idx').on(table.agentId, table.subAgentId),
   ],
 );
 

@@ -1,11 +1,11 @@
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createQuestionId } from '@stitch/shared/id';
 import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/types';
 
 import { getDb } from '@/db/client.js';
-import { questions } from '@/db/schema.js';
+import { questions, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
 import { QuestionAbortedError } from '@/lib/stream-errors.js';
@@ -19,6 +19,7 @@ function toQuestionRequest(row: QuestionRow): QuestionRequest {
     ...row,
     answers: row.answers ?? undefined,
     answeredAt: row.answeredAt ?? undefined,
+    subAgentId: row.subAgentId ?? undefined,
   };
 }
 
@@ -36,6 +37,7 @@ export async function askQuestion(opts: {
   toolCallId: string;
   messageId: PrefixedString<'msg'>;
   streamRunId?: string;
+  subAgentId?: PrefixedString<'agt'>;
   abortSignal?: AbortSignal;
 }): Promise<string[][]> {
   const db = getDb();
@@ -51,6 +53,7 @@ export async function askQuestion(opts: {
       messageId: opts.messageId,
       toolCallId: opts.toolCallId,
       count: opts.questions.length,
+      subAgentId: opts.subAgentId,
     },
     'asking question',
   );
@@ -62,6 +65,7 @@ export async function askQuestion(opts: {
     status: 'pending',
     toolCallId: opts.toolCallId,
     messageId: opts.messageId,
+    subAgentId: opts.subAgentId ?? null,
     createdAt: now,
   });
 
@@ -218,7 +222,19 @@ export async function getPendingQuestions(
   sessionId: PrefixedString<'ses'>,
 ): Promise<QuestionRequest[]> {
   const db = getDb();
-  const rows = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
+
+  // Find child session IDs for sub-agent questions
+  const childSessions = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.parentSessionId, sessionId));
+  const childSessionIds = childSessions.map((s) => s.id);
+
+  const allSessionIds = [sessionId, ...childSessionIds];
+  const rows = await db
+    .select()
+    .from(questions)
+    .where(or(...allSessionIds.map((id) => eq(questions.sessionId, id))));
 
   return rows.filter((q) => q.status === 'pending').map(toQuestionRequest);
 }

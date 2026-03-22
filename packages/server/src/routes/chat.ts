@@ -7,6 +7,7 @@ import {
   createSession,
   deleteSession,
   getSessionById,
+  getSessionStats,
   listSessionMessages,
   listSessions,
   markSessionRead,
@@ -39,6 +40,17 @@ chatRouter.get('/sessions/:id', async (c) => {
   if (!session) return c.json({ error: 'Session not found' }, 404);
 
   return c.json(session);
+});
+
+chatRouter.get('/sessions/:id/stats', async (c) => {
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+
+  const result = await getSessionStats(sessionId);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data);
 });
 
 chatRouter.get('/sessions/:id/messages', async (c) => {
