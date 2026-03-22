@@ -189,7 +189,10 @@ export function useSplitSession() {
       if (!res.ok) throw new Error('Failed to split session');
       return res.json() as Promise<SplitSessionResult>;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev) =>
+        prev ? [...prev, data.session] : [data.session],
+      );
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
     },
   });
