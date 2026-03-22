@@ -23,11 +23,10 @@ import {
   settingsQueryOptions,
 } from '@/lib/queries/settings';
 
-const SEPARATOR = ':::';
-
 type ModelOption = {
-  value: string;
   label: string;
+  providerId: string;
+  modelId: string;
 };
 
 type ModelGroup = {
@@ -37,17 +36,20 @@ type ModelGroup = {
 
 const MODEL_PREFERENCES = [
   {
-    key: 'model.default',
+    providerIdKey: 'model.default.providerId',
+    modelIdKey: 'model.default.modelId',
     label: 'Default Model',
     description: 'Used for general chat and coding tasks',
   },
   {
-    key: 'model.compaction',
+    providerIdKey: 'model.compaction.providerId',
+    modelIdKey: 'model.compaction.modelId',
     label: 'Compaction Model',
     description: 'Used for compacting conversation context',
   },
   {
-    key: 'model.title',
+    providerIdKey: 'model.title.providerId',
+    modelIdKey: 'model.title.modelId',
     label: 'Title Generation Model',
     description: 'Used for generating conversation titles',
   },
@@ -57,8 +59,9 @@ function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
     value: provider.providerName,
     items: provider.models.map((model) => ({
-      value: `${provider.providerId}${SEPARATOR}${model.id}`,
       label: model.name,
+      providerId: provider.providerId,
+      modelId: model.id,
     })),
   }));
 }
@@ -68,12 +71,16 @@ function flattenGroups(groups: ModelGroup[]): ModelOption[] {
 }
 
 function ModelSelect({
-  settingKey,
-  currentValue,
+  providerIdKey,
+  modelIdKey,
+  currentProviderId,
+  currentModelId,
   providerModels,
 }: {
-  settingKey: string;
-  currentValue: string | undefined;
+  providerIdKey: string;
+  modelIdKey: string;
+  currentProviderId: string | undefined;
+  currentModelId: string | undefined;
   providerModels: ProviderModels[];
 }) {
   const queryClient = useQueryClient();
@@ -81,29 +88,42 @@ function ModelSelect({
   const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
   const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
 
-  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient));
-  const deleteMutation = useMutation(deleteSettingMutationOptions(settingKey, queryClient));
+  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
+  const saveModelMutation = useMutation(
+    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
+  );
+  const deleteProviderMutation = useMutation(
+    deleteSettingMutationOptions(providerIdKey, queryClient),
+  );
+  const deleteModelMutation = useMutation(
+    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
+  );
 
   function handleValueChange(value: ModelOption | null) {
     if (!value) {
-      if (currentValue) deleteMutation.mutate();
+      if (currentProviderId) deleteProviderMutation.mutate();
+      if (currentModelId) deleteModelMutation.mutate();
       return;
     }
-    saveMutation.mutate(value.value);
+    saveProviderMutation.mutate(value.providerId);
+    saveModelMutation.mutate(value.modelId);
   }
 
-  const selectedOption = currentValue
-    ? (allOptions.find((o) => o.value === currentValue) ?? null)
-    : null;
+  const selectedOption =
+    currentProviderId && currentModelId
+      ? (allOptions.find(
+          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
+        ) ?? null)
+      : null;
 
   return (
     <Combobox<ModelOption>
       value={selectedOption}
       onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.value === b.value}
+      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
       items={groups}
     >
-      <ComboboxInput placeholder="Search models..." showClear={!!currentValue} />
+      <ComboboxInput placeholder="Search models..." showClear={!!(currentProviderId && currentModelId)} />
       <ComboboxContent side="bottom" sideOffset={4} align="start">
         <ComboboxEmpty>No models found</ComboboxEmpty>
         <ComboboxList>
@@ -142,7 +162,7 @@ function ModelsContent() {
     <div className="flex flex-col">
       {MODEL_PREFERENCES.map((pref, index) => (
         <div
-          key={pref.key}
+          key={pref.providerIdKey}
           className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
         >
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -151,8 +171,10 @@ function ModelsContent() {
           </div>
           <div className="w-52 shrink-0">
             <ModelSelect
-              settingKey={pref.key}
-              currentValue={settings[pref.key]}
+              providerIdKey={pref.providerIdKey}
+              modelIdKey={pref.modelIdKey}
+              currentProviderId={settings[pref.providerIdKey]}
+              currentModelId={settings[pref.modelIdKey]}
               providerModels={providerModels}
             />
           </div>

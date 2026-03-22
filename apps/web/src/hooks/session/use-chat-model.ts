@@ -2,25 +2,28 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import type { ModelSpec } from '@/components/chat/chat-input';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type UseChatModelResult = {
-  selectedModel: string | null;
-  handleModelChange: (model: string | null) => void;
+  selectedModel: ModelSpec | null;
+  handleModelChange: (model: ModelSpec | null) => void;
 };
 
 type UseChatModelInput = {
-  lastUsedModel?: string | null;
+  lastUsedModel?: ModelSpec | null;
 };
 
 export function useChatModel(input?: UseChatModelInput): UseChatModelResult {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const [modelOverride, setModelOverride] = React.useState<string | null>(null);
+  const [modelOverride, setModelOverride] = React.useState<ModelSpec | null>(null);
 
-  const savedModel = settings['model.default']?.trim() ? settings['model.default'] : null;
+  const providerId = settings['model.default.providerId']?.trim();
+  const modelId = settings['model.default.modelId']?.trim();
+  const savedModel = providerId && modelId ? { providerId, modelId } : null;
   const selectedModel = modelOverride ?? input?.lastUsedModel ?? savedModel;
 
-  const handleModelChange = (model: string | null) => {
+  const handleModelChange = (model: ModelSpec | null) => {
     setModelOverride(model);
   };
 

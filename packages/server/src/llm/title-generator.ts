@@ -27,7 +27,8 @@ export async function generateTitle(
   fallbackModelId: string,
 ): Promise<GeneratedTitle | null> {
   const resolved = await resolveCheapModel({
-    settingsKey: 'model.title',
+    providerIdKey: 'model.title.providerId',
+    modelIdKey: 'model.title.modelId',
     fallbackProviderId,
     fallbackModelId,
   });

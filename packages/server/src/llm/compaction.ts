@@ -204,7 +204,8 @@ async function resolveCompactionModel(
   limits: ModelLimits;
 }> {
   const resolved = await resolveCheapModel({
-    settingsKey: 'model.compaction',
+    providerIdKey: 'model.compaction.providerId',
+    modelIdKey: 'model.compaction.modelId',
     fallbackProviderId,
     fallbackModelId,
   });

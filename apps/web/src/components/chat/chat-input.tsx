@@ -30,7 +30,10 @@ import {
 } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
-const SEPARATOR = ':::';
+export type ModelSpec = {
+  providerId: string;
+  modelId: string;
+};
 
 export type Attachment = {
   id: string;
@@ -94,7 +97,6 @@ type ModelOption = {
   providerName: string;
   modelId: string;
   modelName: string;
-  value: string;
   modelSummary: ModelSummary;
 };
 
@@ -105,15 +107,14 @@ function buildModelOptions(providerModels: ProviderModels[]): ModelOption[] {
       providerName: provider.providerName,
       modelId: model.id,
       modelName: model.name,
-      value: `${provider.providerId}${SEPARATOR}${model.id}`,
       modelSummary: model,
     })),
   );
 }
 
 type ModelSelectorProps = {
-  selectedValue: string | null;
-  onSelect: (value: string) => void;
+  selectedValue: ModelSpec | null;
+  onSelect: (value: ModelSpec) => void;
   providerModels: ProviderModels[];
 };
 
@@ -137,7 +138,9 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
   }, [providerModels, search]);
 
   const selectedOption = selectedValue
-    ? (allOptions.find((o) => o.value === selectedValue) ?? null)
+    ? (allOptions.find(
+        (o) => o.providerId === selectedValue.providerId && o.modelId === selectedValue.modelId,
+      ) ?? null)
     : null;
 
   return (
@@ -196,12 +199,15 @@ function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: Model
                       {provider.providerName}
                     </p>
                     {provider.models.map((model) => {
-                      const val = `${provider.providerId}${SEPARATOR}${model.id}`;
-                      const isSelected = selectedValue === val;
+                      const isSelected =
+                        selectedValue?.providerId === provider.providerId &&
+                        selectedValue?.modelId === model.id;
                       return (
                         <PopoverPrimitive.Close
-                          key={val}
-                          onClick={() => onSelect(val)}
+                          key={model.id}
+                          onClick={() =>
+                            onSelect({ providerId: provider.providerId, modelId: model.id })
+                          }
                           className={cn(
                             'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
                             'transition-colors hover:bg-accent hover:text-accent-foreground',
@@ -378,8 +384,8 @@ type ChatInputInnerProps = {
   onSubmit: (value: string, attachments: Attachment[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
-  selectedModel: string | null;
-  onModelChange: (value: string) => void;
+  selectedModel: ModelSpec | null;
+  onModelChange: (value: ModelSpec) => void;
   selectedAgent: string | null;
   onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;
@@ -427,7 +433,8 @@ function ChatInputInner({
     () =>
       providerModels.flatMap((p) =>
         p.models.map((m) => ({
-          value: `${p.providerId}${SEPARATOR}${m.id}`,
+          providerId: p.providerId,
+          modelId: m.id,
           modelSummary: m,
         })),
       ),
@@ -435,7 +442,9 @@ function ChatInputInner({
   );
 
   const selectedModelSummary = selectedModel
-    ? (allOptions.find((o) => o.value === selectedModel)?.modelSummary ?? null)
+    ? (allOptions.find(
+        (o) => o.providerId === selectedModel.providerId && o.modelId === selectedModel.modelId,
+      )?.modelSummary ?? null)
     : null;
 
   const canAttach = supportsAnyAttachment(selectedModelSummary);
@@ -663,8 +672,8 @@ type ChatInputProps = {
   onSubmit: (value: string, attachments: Attachment[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
-  selectedModel: string | null;
-  onModelChange: (value: string) => void;
+  selectedModel: ModelSpec | null;
+  onModelChange: (value: ModelSpec | null) => void;
   selectedAgent: string | null;
   onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;

@@ -6,7 +6,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
-import { ChatInput, type Attachment } from '@/components/chat/chat-input';
+import { ChatInput, type Attachment, type ModelSpec } from '@/components/chat/chat-input';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
@@ -23,7 +23,6 @@ import {
   getTransitionSeedClearDelayMs,
   setNextSessionInputSeed,
 } from '@/lib/chat-input-transition-seed';
-import { parseModelId } from '@/lib/model-id';
 import {
   flattenMessages,
   sessionMessagesInfiniteQueryOptions,
@@ -34,8 +33,6 @@ import { useAddToQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
 import type { EditQueuedMessagePayload, SendQueuedMessageFn } from '@/routes/session.$id';
 import { useStreamStore } from '@/stores/stream-store';
-
-const MODEL_SEPARATOR = ':::';
 
 type SessionChatPaneProps = {
   onOpenQueue: () => void;
@@ -55,14 +52,14 @@ export function SessionChatPane({
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
-  const lastUsedModel = React.useMemo(() => {
+  const lastUsedModel = React.useMemo((): ModelSpec | null => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
       if (!message) continue;
       if (message.parts.some((part) => part.type === 'session-title')) continue;
       if (message.isSummary) continue;
       if (message.parts.some((part) => part.type === 'compaction')) continue;
-      return `${message.providerId}${MODEL_SEPARATOR}${message.modelId}`;
+      return { providerId: message.providerId, modelId: message.modelId };
     }
 
     return null;
@@ -176,9 +173,6 @@ export function SessionChatPane({
       return;
     }
 
-    const parsed = parseModelId(selectedModel);
-    if (!parsed) return;
-
     setValue('');
 
     const assistantMessageId = createMessageId();
@@ -196,8 +190,8 @@ export function SessionChatPane({
               filename: a.filename,
             }))
           : undefined,
-      providerId: parsed.providerId,
-      modelId: parsed.modelId,
+      providerId: selectedModel.providerId,
+      modelId: selectedModel.modelId,
       agentId: selectedAgent,
       assistantMessageId,
     });
@@ -217,9 +211,6 @@ export function SessionChatPane({
     sendQueuedRef.current = (content, queueAttachments) => {
       if (!canSend || !selectedModel || !selectedAgent) return;
 
-      const parsed = parseModelId(selectedModel);
-      if (!parsed) return;
-
       const assistantMessageId = createMessageId();
       startStream(id, assistantMessageId);
 
@@ -235,8 +226,8 @@ export function SessionChatPane({
                 filename: a.filename,
               }))
             : undefined,
-        providerId: parsed.providerId,
-        modelId: parsed.modelId,
+        providerId: selectedModel.providerId,
+        modelId: selectedModel.modelId,
         agentId: selectedAgent,
         assistantMessageId,
       });

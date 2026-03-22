@@ -1,7 +1,10 @@
 export const SETTINGS_KEYS = [
-  'model.default',
-  'model.compaction',
-  'model.title',
+  'model.default.providerId',
+  'model.default.modelId',
+  'model.compaction.providerId',
+  'model.compaction.modelId',
+  'model.title.providerId',
+  'model.title.modelId',
   'compaction.auto',
   'compaction.prune',
   'compaction.reserved',
@@ -21,13 +24,36 @@ export type SettingDefault = {
 };
 
 export const SETTINGS_DEFAULTS: SettingDefault[] = [
-  { key: 'model.default', value: '', description: 'Default model for chat and coding tasks.' },
   {
-    key: 'model.compaction',
+    key: 'model.default.providerId',
     value: '',
-    description: 'Preferred model for conversation compaction summaries.',
+    description: 'Provider ID for the default model used for chat and coding tasks.',
   },
-  { key: 'model.title', value: '', description: 'Preferred model for generating session titles.' },
+  {
+    key: 'model.default.modelId',
+    value: '',
+    description: 'Model ID for the default model used for chat and coding tasks.',
+  },
+  {
+    key: 'model.compaction.providerId',
+    value: '',
+    description: 'Provider ID for the preferred model for conversation compaction summaries.',
+  },
+  {
+    key: 'model.compaction.modelId',
+    value: '',
+    description: 'Model ID for the preferred model for conversation compaction summaries.',
+  },
+  {
+    key: 'model.title.providerId',
+    value: '',
+    description: 'Provider ID for the preferred model for generating session titles.',
+  },
+  {
+    key: 'model.title.modelId',
+    value: '',
+    description: 'Model ID for the preferred model for generating session titles.',
+  },
   {
     key: 'compaction.auto',
     value: 'true',

@@ -49,6 +49,7 @@ export function saveSettingMutationOptions(
 export function deleteSettingMutationOptions(
   key: string,
   queryClient: QueryClient,
+  options?: { silent?: boolean },
 ): MutationOptions<void, Error, void> {
   return {
     mutationFn: async () => {
@@ -57,7 +58,7 @@ export function deleteSettingMutationOptions(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      toast.success('Model preference reset');
+      if (!options?.silent) toast.success('Model preference reset');
     },
     onError: (err: Error) => toast.error(err.message),
   };
