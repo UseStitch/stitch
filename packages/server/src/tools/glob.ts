@@ -1,9 +1,9 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { validateAbsoluteDirectoryPath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
@@ -31,14 +31,6 @@ type GlobResult = {
   output: string;
   path: string;
 };
-
-function validateAbsoluteDirectoryPath(dirPath: string): string {
-  if (!path.isAbsolute(dirPath)) {
-    throw new Error('path must be an absolute directory path');
-  }
-
-  return path.resolve(dirPath);
-}
 
 export async function globPaths(input: z.infer<typeof globInputSchema>): Promise<GlobResult> {
   const parsed = globInputSchema.parse(input);

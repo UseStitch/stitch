@@ -1,7 +1,5 @@
 import { tool } from 'ai';
 import { spawn, type ChildProcess } from 'node:child_process';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
@@ -9,6 +7,7 @@ import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/bash-families.js';
+import { validateExistingDirectoryPath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
@@ -37,20 +36,6 @@ const bashInputSchema = z.object({
     .min(1)
     .describe('Short plain-language description (5-10 words) of what this command does'),
 });
-
-async function validateAbsoluteDirectoryPath(workdir: string): Promise<string> {
-  if (!path.isAbsolute(workdir)) {
-    throw new Error('workdir must be an absolute directory path');
-  }
-
-  const resolved = path.resolve(workdir);
-  const stat = await fs.stat(resolved);
-  if (!stat.isDirectory()) {
-    throw new Error('workdir must point to an existing directory');
-  }
-
-  return resolved;
-}
 
 function normalizeTimeout(timeout: number | undefined): number {
   if (timeout === undefined) return DEFAULT_TIMEOUT_MS;
@@ -105,7 +90,7 @@ Usage:
 - Output may be truncated for metadata safety.`,
     inputSchema: bashInputSchema,
     execute: async (input, { abortSignal }) => {
-      const workdir = await validateAbsoluteDirectoryPath(input.workdir);
+      const workdir = await validateExistingDirectoryPath(input.workdir);
       const timeout = normalizeTimeout(input.timeout);
       const shell = resolvePreferredShell().shell;
       const proc = spawn(input.command, {

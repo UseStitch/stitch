@@ -1,17 +1,16 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
 } from '@/tools/file-permissions.js';
+import { isTextFileBuffer, truncateLine, validateAbsoluteFilePath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
 const DEFAULT_LIMIT = 2000;
-const MAX_LINE_LENGTH = 2000;
 
 const DESCRIPTION = `Read a file or directory from the local filesystem. If the path does not exist, an error is returned.
 
@@ -45,25 +44,12 @@ type ReadResult = {
   filePath: string;
 };
 
-function validateAbsoluteFilePath(filePath: string): string {
-  if (!path.isAbsolute(filePath)) {
-    throw new Error('filePath must be an absolute path');
-  }
-
-  return path.resolve(filePath);
-}
-
 function normalizePositiveInteger(value: number | undefined, fallback: number): number {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
     return fallback;
   }
 
   return Math.max(1, Math.trunc(value));
-}
-
-function truncateLine(value: string): string {
-  if (value.length <= MAX_LINE_LENGTH) return value;
-  return value.slice(0, MAX_LINE_LENGTH);
 }
 
 function formatNumberedContent(content: string, offset: number, limit: number): string {
@@ -76,18 +62,6 @@ function formatNumberedContent(content: string, offset: number, limit: number): 
   const selected = lines.slice(startIndex, startIndex + limit);
 
   return selected.map((line, index) => `${offset + index}: ${truncateLine(line)}`).join('\n');
-}
-
-function isTextFileBuffer(buffer: Buffer): boolean {
-  if (buffer.length === 0) return true;
-  if (buffer.includes(0)) return false;
-
-  try {
-    new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function readPathContent(input: z.infer<typeof readInputSchema>): Promise<ReadResult> {

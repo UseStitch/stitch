@@ -1,12 +1,12 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
 } from '@/tools/file-permissions.js';
+import { validateAbsoluteFilePath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
@@ -16,14 +16,6 @@ const writeInputSchema = z.object({
     .string()
     .describe('The absolute path to the file to write (must be absolute, not relative)'),
 });
-
-export function validateAbsoluteFilePath(filePath: string): string {
-  if (!path.isAbsolute(filePath)) {
-    throw new Error('filePath must be an absolute path');
-  }
-
-  return path.resolve(filePath);
-}
 
 export async function writeFileContent(filePath: string, content: string): Promise<string> {
   const targetPath = validateAbsoluteFilePath(filePath);

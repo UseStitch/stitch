@@ -1,14 +1,13 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { isTextFileBuffer, truncateLine, validateAbsoluteDirectoryPath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
 const MAX_MATCHES = 100;
-const MAX_LINE_LENGTH = 2000;
 const MAX_FILES_SCANNED = 2000;
 const MAX_FILE_BYTES = 512 * 1024;
 
@@ -43,31 +42,6 @@ type Match = {
   lineText: string;
   mtimeMs: number;
 };
-
-function validateAbsoluteDirectoryPath(dirPath: string): string {
-  if (!path.isAbsolute(dirPath)) {
-    throw new Error('path must be an absolute directory path');
-  }
-
-  return path.resolve(dirPath);
-}
-
-function truncateLine(value: string): string {
-  if (value.length <= MAX_LINE_LENGTH) return value;
-  return `${value.slice(0, MAX_LINE_LENGTH)}...`;
-}
-
-function isTextFileBuffer(buffer: Buffer): boolean {
-  if (buffer.length === 0) return true;
-  if (buffer.includes(0)) return false;
-
-  try {
-    new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function grepContent(input: z.infer<typeof grepInputSchema>): Promise<GrepResult> {
   const parsed = grepInputSchema.parse(input);

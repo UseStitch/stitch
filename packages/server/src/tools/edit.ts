@@ -1,12 +1,12 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
 } from '@/tools/file-permissions.js';
+import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/shared.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
@@ -30,14 +30,6 @@ const editInputSchema = z
     path: ['newString'],
   });
 
-function validateAbsoluteFilePath(filePath: string): string {
-  if (!path.isAbsolute(filePath)) {
-    throw new Error('filePath must be an absolute path');
-  }
-
-  return path.resolve(filePath);
-}
-
 function countOccurrences(content: string, oldString: string): number {
   let count = 0;
   let startIndex = 0;
@@ -47,18 +39,6 @@ function countOccurrences(content: string, oldString: string): number {
     if (index === -1) return count;
     count += 1;
     startIndex = index + oldString.length;
-  }
-}
-
-function isTextFileBuffer(buffer: Buffer): boolean {
-  if (buffer.length === 0) return true;
-  if (buffer.includes(0)) return false;
-
-  try {
-    new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-    return true;
-  } catch {
-    return false;
   }
 }
 
