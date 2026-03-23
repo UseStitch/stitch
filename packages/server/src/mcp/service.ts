@@ -8,6 +8,7 @@ import { getDb } from '@/db/client.js';
 import { agentMcpServers, mcpServers } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { buildAuthHeaders } from '@/mcp/auth.js';
 
 export async function listMcpServers() {
   const db = getDb();
@@ -43,16 +44,6 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
   }
   await db.delete(mcpServers).where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   return ok(null);
-}
-
-function buildAuthHeaders(authConfig: McpAuthConfig): Record<string, string> {
-  if (authConfig.type === 'api_key') {
-    return { Authorization: `Bearer ${authConfig.apiKey}` };
-  }
-  if (authConfig.type === 'headers') {
-    return authConfig.headers;
-  }
-  return {};
 }
 
 export async function fetchMcpTools(serverId: string): Promise<ServiceResult<McpTool[]>> {

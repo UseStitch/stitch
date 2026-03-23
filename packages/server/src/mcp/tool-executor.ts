@@ -4,6 +4,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
 import * as Log from '@/lib/log.js';
+import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';
@@ -17,16 +18,6 @@ const log = Log.create({ service: 'mcp-tool-executor' });
 // Clients are never closed between requests — they live for the process lifetime.
 // If a client dies (transport error), we evict it and reconnect on next use.
 const clientCache = new Map<string, Promise<MCPClient>>();
-
-function buildAuthHeaders(authConfig: McpServerWithTools['authConfig']): Record<string, string> {
-  if (authConfig.type === 'api_key') {
-    return { Authorization: `Bearer ${authConfig.apiKey}` };
-  }
-  if (authConfig.type === 'headers') {
-    return authConfig.headers;
-  }
-  return {};
-}
 
 function openClient(server: McpServerWithTools): Promise<MCPClient> {
   const headers = buildAuthHeaders(server.authConfig);
