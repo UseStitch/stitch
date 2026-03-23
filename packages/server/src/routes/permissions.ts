@@ -13,6 +13,7 @@ import {
   getPendingPermissionResponses,
   rejectPermissionResponse,
 } from '@/permission/service.js';
+import { isServiceError } from '@/lib/service-result.js';
 
 const setPermissionRuleSchema = z.object({
   permission: z.enum(['allow', 'deny', 'ask']),
@@ -43,7 +44,8 @@ permissionsRouter.post(
     const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
     const { setPermission } = c.req.valid('json');
 
-    await allowPermissionResponse(permissionResponseId, setPermission);
+    const result = await allowPermissionResponse(permissionResponseId, setPermission);
+    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
     return c.json({ ok: true });
   },
 );
@@ -55,7 +57,8 @@ permissionsRouter.post(
     const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
     const { setPermission } = c.req.valid('json');
 
-    await rejectPermissionResponse(permissionResponseId, setPermission);
+    const result = await rejectPermissionResponse(permissionResponseId, setPermission);
+    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
     return c.json({ ok: true });
   },
 );
@@ -67,7 +70,8 @@ permissionsRouter.post(
     const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
     const { entry } = c.req.valid('json');
 
-    await alternativePermissionResponse(permissionResponseId, entry.trim());
+    const result = await alternativePermissionResponse(permissionResponseId, entry.trim());
+    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
     return c.json({ ok: true });
   },
 );

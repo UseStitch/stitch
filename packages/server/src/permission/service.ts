@@ -14,6 +14,8 @@ import type {
 import { getDb } from '@/db/client.js';
 import { agentPermissions, permissionResponses, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { err, ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import { broadcast } from '@/lib/sse.js';
 import { PermissionResponseAbortedError } from '@/lib/stream-errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
@@ -211,7 +213,7 @@ async function resolvePermissionResponse(opts: {
   decision: PermissionDecisionResult;
   entry?: string;
   setPermission?: SetPermissionRule;
-}): Promise<void> {
+}): Promise<ServiceResult<null>> {
   const db = getDb();
   const now = Date.now();
 
@@ -221,7 +223,7 @@ async function resolvePermissionResponse(opts: {
     .where(eq(permissionResponses.id, opts.permissionResponseId));
 
   if (!existing) {
-    throw new Error(`Permission response not found: ${opts.permissionResponseId}`);
+    return err(`Permission response not found: ${opts.permissionResponseId}`, 404);
   }
 
   if (opts.setPermission) {
@@ -268,13 +270,15 @@ async function resolvePermissionResponse(opts: {
     pending.resolve(opts.decision);
     pendingPermissionResponses.delete(opts.permissionResponseId);
   }
+
+  return ok(null);
 }
 
 export async function allowPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
-): Promise<void> {
-  await resolvePermissionResponse({
+): Promise<ServiceResult<null>> {
+  return resolvePermissionResponse({
     permissionResponseId,
     status: 'allowed',
     decision: { decision: 'allow' },
@@ -285,8 +289,8 @@ export async function allowPermissionResponse(
 export async function rejectPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
-): Promise<void> {
-  await resolvePermissionResponse({
+): Promise<ServiceResult<null>> {
+  return resolvePermissionResponse({
     permissionResponseId,
     status: 'rejected',
     decision: { decision: 'reject' },
@@ -297,8 +301,8 @@ export async function rejectPermissionResponse(
 export async function alternativePermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   entry: string,
-): Promise<void> {
-  await resolvePermissionResponse({
+): Promise<ServiceResult<null>> {
+  return resolvePermissionResponse({
     permissionResponseId,
     status: 'alternative',
     entry,
