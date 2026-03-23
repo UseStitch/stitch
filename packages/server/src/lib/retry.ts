@@ -1,4 +1,4 @@
-import { mapAIError } from '@/lib/ai-error-mapper.js';
+import { mapAIError, OVERLOADED_PATTERN } from '@/lib/ai-error-mapper.js';
 
 const RETRY_INITIAL_DELAY = 2000;
 const RETRY_BACKOFF_FACTOR = 2;
@@ -69,29 +69,15 @@ export function isRetryable(errorInfo: ErrorInfo): string | undefined {
     return 'Rate limited';
   }
 
-  if (errorInfo.category === 'api_error' && errorInfo.statusCode && errorInfo.statusCode >= 500) {
-    return 'Provider server error';
-  }
-
-  const msg = errorInfo.message.toLowerCase();
-
-  if (msg.includes('overloaded')) {
+  if (OVERLOADED_PATTERN.test(errorInfo.message)) {
     return 'Provider is overloaded';
-  }
-
-  if (
-    msg.includes('rate limit') ||
-    msg.includes('too many requests') ||
-    msg.includes('rate_limit')
-  ) {
-    return 'Rate limited';
   }
 
   if (errorInfo.statusCode) {
     if (errorInfo.statusCode === 429 || errorInfo.statusCode === 503) {
       return errorInfo.message;
     }
-    if (errorInfo.statusCode >= 500 && errorInfo.statusCode < 600) {
+    if (errorInfo.statusCode >= 500) {
       return 'Provider server error';
     }
   }

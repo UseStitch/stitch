@@ -23,10 +23,10 @@ const OVERFLOW_PATTERNS = [
 ];
 
 const TOO_MANY_REQUESTS_PATTERN = /too many requests|rate limit|rate_limit/i;
-const OVERLOADED_PATTERN = /overloaded|temporarily unavailable|service unavailable|server busy/i;
 const QUOTA_PATTERN = /insufficient_quota|quota exceeded|credit balance is too low|billing/i;
 const AUTH_PATTERN = /unauthorized|forbidden|invalid api key|authentication/i;
 const UNSUPPORTED_PATTERN = /unsupported model|prompt caching/i;
+export const OVERLOADED_PATTERN = /overloaded|temporarily unavailable|service unavailable|server busy/i;
 
 type MappedAIError = {
   category: StreamErrorCategory;
