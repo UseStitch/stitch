@@ -11,6 +11,10 @@ const URL = 'https://models.dev';
 
 export const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
 
+export function isAllowedProvider(providerId: string): boolean {
+  return (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
+}
+
 export const ModelSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -98,7 +102,7 @@ function sortModels(models: Record<string, RawModel>): Record<string, RawModel> 
 function filterProviders(raw: Record<string, RawProvider>): Record<string, RawProvider> {
   return Object.fromEntries(
     Object.entries(raw)
-      .filter(([key]) => (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(key))
+      .filter(([key]) => isAllowedProvider(key))
       .map(([key, provider]) => [
         key,
         { ...provider, models: sortModels(filterModels(provider.models)) },

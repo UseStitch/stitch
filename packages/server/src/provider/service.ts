@@ -4,6 +4,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { isAllowedProvider } from '@/provider/models.js';
 import * as ProviderLogos from '@/provider/logos.js';
 import * as Models from '@/provider/models.js';
 import { ProviderCredentialsSchema } from '@/provider/provider.js';
@@ -46,10 +47,6 @@ function toModelSummary(model: Models.RawModel): ModelSummary {
     limit: model.limit,
     modalities: model.modalities,
   };
-}
-
-function isAllowedProvider(providerId: string): boolean {
-  return (Models.ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
 }
 
 async function resolveProvider(providerId: string): Promise<ServiceResult<Models.RawProvider>> {

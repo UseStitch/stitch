@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { ALLOWERD_PROVIDER_IDS } from '@/provider/models.js';
+import { isAllowedProvider } from '@/provider/models.js';
 
 const log = Log.create({ service: 'provider-logos' });
 const LOGO_BASE_URL = 'https://models.dev/logos';
@@ -17,15 +17,11 @@ function getLogoPath(providerId: string, cacheDir: string): string {
   return path.join(cacheDir, `${providerId}.svg`);
 }
 
-function isAllowedProviderId(providerId: string): boolean {
-  return (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
-}
-
 export async function get(
   providerId: string,
   options: GetProviderLogoOptions = {},
 ): Promise<string | undefined> {
-  if (!isAllowedProviderId(providerId)) return undefined;
+  if (!isAllowedProvider(providerId)) return undefined;
 
   const cacheDir = options.cacheDir ?? PATHS.dirPaths.providerLogos;
   const filePath = getLogoPath(providerId, cacheDir);
