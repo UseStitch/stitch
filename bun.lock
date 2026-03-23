@@ -73,6 +73,16 @@
         "vitest": "catalog:testing",
       },
     },
+    "packages/recordings": {
+      "name": "@stitch/recordings",
+      "version": "0.0.0",
+      "dependencies": {
+        "native-audio-node": "^0.3.5",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
     "packages/server": {
       "name": "@stitch/server",
       "version": "0.0.0",
@@ -418,6 +428,14 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.1", "", { "dependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1", "@tybys/wasm-util": "^0.10.1" } }, "sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A=="],
 
+    "@native-audio-node/darwin-arm64": ["@native-audio-node/darwin-arm64@0.3.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-LLgYOIljA6lPYoyjZE4nt7EHXUCp7Y+oxCjRAaDgGMnqvGqcppPw5qrSF3zWQBWA4x4ciIljyPN7hFdYLmqcpA=="],
+
+    "@native-audio-node/darwin-x64": ["@native-audio-node/darwin-x64@0.3.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-ygRwNH0aexRDdLGYzz4uJrfxqZSXKkKbFgKKJCb8VLN6dyB7VCTAO40+oZULc2eQtWkZhdil3ArQW+Y7CTnK7g=="],
+
+    "@native-audio-node/win32-arm64": ["@native-audio-node/win32-arm64@0.3.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-4Oc1aeOkYkBaDCsmtW9t2a4muXB/WpnvU+xI2SJo8GSg5oOQ4mNMKLkcDAH+JMXx8KA/ROBNqsQsEyJjLIRvIA=="],
+
+    "@native-audio-node/win32-x64": ["@native-audio-node/win32-x64@0.3.3", "", { "os": "win32", "cpu": "x64" }, "sha512-ESJVq6kqBCCc1c2Q+6Owjbg5rHgCd2KRLfIHxL6noFbuabFl/vjBAP7RMhu3SOknxt1GtQlmenJ0u31qmnRDVQ=="],
+
     "@noble/ciphers": ["@noble/ciphers@1.3.0", "", {}, "sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw=="],
 
     "@noble/curves": ["@noble/curves@1.9.7", "", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw=="],
@@ -753,6 +771,8 @@
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@stitch/desktop": ["@stitch/desktop@workspace:apps/desktop"],
+
+    "@stitch/recordings": ["@stitch/recordings@workspace:packages/recordings"],
 
     "@stitch/server": ["@stitch/server@workspace:packages/server"],
 
@@ -1734,6 +1754,8 @@
 
     "napi-build-utils": ["napi-build-utils@2.0.0", "", {}, "sha512-GEbrYkbfF7MoNaoh2iGG84Mnf/WZfB0GdGEsM8wz7Expx/LlWf5U8t9nvJKXSp3qr5IsEbK04cBGhol/KwOsWA=="],
 
+    "native-audio-node": ["native-audio-node@0.3.5", "", { "optionalDependencies": { "@native-audio-node/darwin-arm64": "0.3.1", "@native-audio-node/darwin-x64": "0.3.0", "@native-audio-node/win32-arm64": "0.3.0", "@native-audio-node/win32-x64": "0.3.3" }, "os": [ "win32", "darwin", ], "cpu": [ "x64", "arm64", ] }, "sha512-1ZeUwSkJ9HHLX2LdbFz3YCfzIajhgw6uVKv8ZgWz92xQ37izRYm1aQHSdGOgwwIhUC1th3COuRhW9Te+A6+rJA=="],
+
     "negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
     "node-abi": ["node-abi@4.27.0", "", { "dependencies": { "semver": "^7.6.3" } }, "sha512-M6PypnnjGwr6Wv1O7twPpnJiie8MeLoBSh99zF1jnRRU2NLgxO/fUEQW1rfAhAKzPa/fvQ4PKitt1O+c8l243Q=="],
@@ -2395,6 +2417,8 @@
     "@radix-ui/react-portal/@radix-ui/react-primitive": ["@radix-ui/react-primitive@2.1.3", "", { "dependencies": { "@radix-ui/react-slot": "1.2.3" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-m9gTwRkhy2lvCPe6QJp4d3G1TYEUHn/FzJUtq9MjH46an1wJU+GdoGC5VLof8RX8Ft/DlpshApkhswDLZzHIcQ=="],
 
     "@radix-ui/react-primitive/@radix-ui/react-slot": ["@radix-ui/react-slot@1.2.4", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.2" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-Jl+bCv8HxKnlTLVrcDE8zTMJ09R9/ukw4qBs/oZClOfoQk/cOTbDn+NceXfV7j09YPVQUryJPHurafcSg6EVKA=="],
+
+    "@stitch/recordings/typescript": ["typescript@6.0.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ=="],
 
     "@tailwindcss/node/lightningcss": ["lightningcss@1.31.1", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.31.1", "lightningcss-darwin-arm64": "1.31.1", "lightningcss-darwin-x64": "1.31.1", "lightningcss-freebsd-x64": "1.31.1", "lightningcss-linux-arm-gnueabihf": "1.31.1", "lightningcss-linux-arm64-gnu": "1.31.1", "lightningcss-linux-arm64-musl": "1.31.1", "lightningcss-linux-x64-gnu": "1.31.1", "lightningcss-linux-x64-musl": "1.31.1", "lightningcss-win32-arm64-msvc": "1.31.1", "lightningcss-win32-x64-msvc": "1.31.1" } }, "sha512-l51N2r93WmGUye3WuFoN5k10zyvrVs0qfKBhyC5ogUQ6Ew6JUSswh78mbSO+IU3nTWsyOArqPCcShdQSadghBQ=="],
 

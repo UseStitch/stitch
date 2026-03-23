@@ -1,0 +1,18 @@
+{
+  "name": "@stitch/recordings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./meeting": "./src/meeting.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "native-audio-node": "^0.3.5"
+  }
+}
