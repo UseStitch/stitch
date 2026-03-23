@@ -43,5 +43,5 @@ export async function validateExistingDirectoryPath(dirPath: string): Promise<st
 
 export function truncateLine(value: string): string {
   if (value.length <= MAX_LINE_LENGTH) return value;
-  return `${value.slice(0, MAX_LINE_LENGTH)}...`;
+  return value.slice(0, MAX_LINE_LENGTH);
 }

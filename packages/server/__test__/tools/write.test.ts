@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { validateAbsoluteFilePath, writeFileContent } from '@/tools/write.js';
+import { validateAbsoluteFilePath } from '@/tools/shared.js';
+import { writeFileContent } from '@/tools/write.js';
 
 const tempDirs: string[] = [];
 
