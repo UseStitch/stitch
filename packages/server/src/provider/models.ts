@@ -9,7 +9,7 @@ import { PATHS } from '@/lib/paths.js';
 const log = Log.create({ service: 'models.dev' });
 const URL = 'https://models.dev';
 
-export const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
+const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
 
 export function isAllowedProvider(providerId: string): boolean {
   return (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
