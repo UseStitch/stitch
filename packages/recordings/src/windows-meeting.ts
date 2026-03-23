@@ -1,39 +1,7 @@
-import { EventEmitter } from "events";
-import type { ActiveRecording, RecordingResult } from "./recording-writer.js";
+import type { ActiveRecording } from "./recording-writer.js";
 import { RecordingWriter } from "./recording-writer.js";
-
-// ============================================================
-// MeetingService
-// ============================================================
-
-export interface MeetingInfo {
-  /** Unique ID for this meeting session */
-  id: string;
-  /** App that triggered the meeting (e.g. "slack.exe") */
-  app: string;
-  /** Full exe path */
-  appPath: string;
-  /** When the meeting started */
-  startedAt: Date;
-}
-
-export interface MeetingServiceEvents {
-  "meeting:start": (meeting: MeetingInfo) => void;
-  "meeting:stop": (meeting: MeetingInfo) => void;
-  "recording:write": (meeting: MeetingInfo, result: RecordingResult) => void;
-  error: (err: Error) => void;
-}
-
-export interface MeetingService {
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  on<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this;
-  off<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this;
-}
-
-// ============================================================
-// WindowsMeetingService
-// ============================================================
+import type { MeetingInfo, MeetingService } from "./meeting-service.js";
+import { MeetingEventEmitter } from "./meeting-service.js";
 
 const REG_BASE =
   "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone";
@@ -59,8 +27,7 @@ export interface WindowsMeetingServiceOptions {
   pollIntervalMs?: number;
 }
 
-export class WindowsMeetingService implements MeetingService {
-  private readonly events = new EventEmitter();
+export class WindowsMeetingService extends MeetingEventEmitter implements MeetingService {
   private readonly apps: Set<string>;
   private readonly writer: RecordingWriter;
   private readonly pollIntervalMs: number;
@@ -71,26 +38,10 @@ export class WindowsMeetingService implements MeetingService {
   private running = false;
 
   constructor(options: WindowsMeetingServiceOptions) {
+    super();
     this.apps = new Set(options.apps.map((a) => a.toLowerCase()));
     this.writer = options.writer;
     this.pollIntervalMs = options.pollIntervalMs ?? 1000;
-  }
-
-  on<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this {
-    this.events.on(event, listener as (...args: unknown[]) => void);
-    return this;
-  }
-
-  off<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this {
-    this.events.off(event, listener as (...args: unknown[]) => void);
-    return this;
-  }
-
-  private emit<K extends keyof MeetingServiceEvents>(
-    event: K,
-    ...args: Parameters<MeetingServiceEvents[K]>
-  ): void {
-    this.events.emit(event, ...args);
   }
 
   async start(): Promise<void> {
