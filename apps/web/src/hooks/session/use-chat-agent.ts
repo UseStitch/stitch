@@ -6,6 +6,7 @@ import { PrefixedString } from '@stitch/shared/id';
 
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { useAgentStore } from '@/stores/agent-store';
 
 type UseChatAgentResult = {
   selectedAgent: PrefixedString<'agt'> | null;
@@ -58,6 +59,22 @@ export function useChatAgent(input?: UseChatAgentInput): UseChatAgentResult {
   const handleAgentChange = (agentId: PrefixedString<'agt'> | null) => {
     setAgentOverride(agentId);
   };
+
+  const cycleAgent = React.useCallback(() => {
+    if (primaryAgents.length < 2) return;
+    const currentId = selectedOverrideAgentId ?? lastUsedPrimaryAgentId ?? savedPrimaryAgentId ?? firstPrimaryAgentId;
+    const currentIndex = primaryAgents.findIndex((agent) => agent.id === currentId);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % primaryAgents.length;
+    const nextAgent = primaryAgents[nextIndex];
+    if (nextAgent) setAgentOverride(nextAgent.id);
+  }, [primaryAgents, selectedOverrideAgentId, lastUsedPrimaryAgentId, savedPrimaryAgentId, firstPrimaryAgentId]);
+
+  const setCycleAgent = useAgentStore((s) => s.setCycleAgent);
+
+  React.useEffect(() => {
+    setCycleAgent(cycleAgent);
+    return () => setCycleAgent(null);
+  }, [cycleAgent, setCycleAgent]);
 
   return { selectedAgent, handleAgentChange };
 }

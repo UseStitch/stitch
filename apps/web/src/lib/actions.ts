@@ -1,13 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import type { PrefixedString } from '@stitch/shared/id';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { useDialogContext } from '@/context/dialog-context';
 import { serverFetch } from '@/lib/api';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
+import { useAgentStore } from '@/stores/agent-store';
 import { useStreamStore } from '@/stores/stream-store';
 
 export interface Action {
@@ -17,15 +16,11 @@ export interface Action {
 }
 
 export function useActions(): Action[] {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const sessionId = params.id;
   const agentsQuery = useQuery(agentsQueryOptions);
-  const settingsQuery = useQuery(settingsQueryOptions);
-  const saveDefaultAgent = useMutation(
-    saveSettingMutationOptions('agent.default', queryClient, { silent: true }),
-  );
+  const cycleAgent = useAgentStore((s) => s.cycleAgent);
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
@@ -37,21 +32,10 @@ export function useActions(): Action[] {
   const abortStream = useStreamStore((s) => s.abortStream);
 
   const primaryAgents = (agentsQuery.data ?? []).filter((agent) => agent.type === 'primary');
-  const currentAgentId = settingsQuery.data?.['agent.default'] as PrefixedString<'agt'> | undefined;
 
   const switchPrimaryAgent = () => {
-    if (primaryAgents.length < 2) {
-      return;
-    }
-
-    const currentIndex = primaryAgents.findIndex((agent) => agent.id === currentAgentId);
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % primaryAgents.length;
-    const nextAgent = primaryAgents[nextIndex];
-    if (!nextAgent) {
-      return;
-    }
-
-    saveDefaultAgent.mutate(nextAgent.id);
+    if (primaryAgents.length < 2) return;
+    cycleAgent?.();
   };
 
   const actions: Action[] = [
