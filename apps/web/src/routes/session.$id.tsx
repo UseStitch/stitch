@@ -48,7 +48,7 @@ export const Route = createFileRoute('/session/$id')({
 
 function SessionComponent() {
   const { id } = Route.useParams();
-  const markRead = useMarkSessionRead();
+  const { mutate: markReadMutate } = useMarkSessionRead();
   const [rightPanel, setRightPanel] = React.useState<RightPanel>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
@@ -69,8 +69,8 @@ function SessionComponent() {
   }, []);
 
   React.useEffect(() => {
-    markRead.mutate(id);
-  }, [id, markRead]);
+    markReadMutate(id);
+  }, [id, markReadMutate]);
 
   return (
     <>
