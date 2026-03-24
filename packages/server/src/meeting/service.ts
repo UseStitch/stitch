@@ -15,7 +15,7 @@ import { broadcast } from '@/lib/sse.js';
 const log = Log.create({ service: 'meeting-service' });
 const detectionLog = Log.create({ service: 'meeting-detection' });
 
-const MONITORED_APPS = ['slack', 'discord', 'zoom', 'teams'];
+const MONITORED_APPS = ['slack', 'discord', 'zoom', 'teams', 'chrome'];
 const GRACE_PERIOD_MS = 10_000;
 
 let meetingService: MeetingService | null = null;
