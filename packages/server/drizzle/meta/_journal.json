@@ -43,6 +43,13 @@
       "when": 1774396800000,
       "tag": "0005_merge_recording_files",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1774315284034,
+      "tag": "0006_ancient_sunset_bain",
+      "breakpoints": true
     }
   ]
 }

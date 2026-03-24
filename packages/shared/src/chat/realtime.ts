@@ -171,6 +171,22 @@ export type MeetingEndedPayload = {
   meetingId: PrefixedString<'rec'>;
 };
 
+export type TranscriptionStartedPayload = {
+  meetingId: PrefixedString<'rec'>;
+  transcriptionId: PrefixedString<'transcr'>;
+};
+
+export type TranscriptionCompletedPayload = {
+  meetingId: PrefixedString<'rec'>;
+  transcriptionId: PrefixedString<'transcr'>;
+};
+
+export type TranscriptionFailedPayload = {
+  meetingId: PrefixedString<'rec'>;
+  transcriptionId: PrefixedString<'transcr'>;
+  error: string;
+};
+
 export type SseEventPayloadMap = {
   heartbeat: { ts: number };
   connected: Record<string, never>;
@@ -197,6 +213,9 @@ export type SseEventPayloadMap = {
   'meeting-detected': MeetingDetectedPayload;
   'meeting-recording-finished': MeetingRecordingFinishedPayload;
   'meeting-ended': MeetingEndedPayload;
+  'transcription-started': TranscriptionStartedPayload;
+  'transcription-completed': TranscriptionCompletedPayload;
+  'transcription-failed': TranscriptionFailedPayload;
 };
 
 export type SseEventName = keyof SseEventPayloadMap;

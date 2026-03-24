@@ -1,6 +1,6 @@
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
-import type { Meeting } from '@stitch/shared/meetings/types';
+import type { Meeting, Transcription } from '@stitch/shared/meetings/types';
 
 import { getServerUrl, serverFetch } from '@/lib/api';
 import { useMeetingStore } from '@/stores/meeting-store';
@@ -8,6 +8,8 @@ import { useMeetingStore } from '@/stores/meeting-store';
 const meetingKeys = {
   all: ['meetings'] as const,
   list: () => [...meetingKeys.all, 'list'] as const,
+  transcription: (meetingId: string) =>
+    [...meetingKeys.all, 'transcription', meetingId] as const,
 };
 
 export const recordingsQueryOptions = queryOptions({
@@ -18,6 +20,17 @@ export const recordingsQueryOptions = queryOptions({
     return res.json() as Promise<Meeting[]>;
   },
 });
+
+export const transcriptionQueryOptions = (meetingId: string) =>
+  queryOptions({
+    queryKey: meetingKeys.transcription(meetingId),
+    queryFn: async (): Promise<Transcription | null> => {
+      const res = await serverFetch(`/meetings/${meetingId}/transcription`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('Failed to fetch transcription');
+      return res.json() as Promise<Transcription>;
+    },
+  });
 
 export async function getAudioUrl(meetingId: string): Promise<string> {
   const baseUrl = await getServerUrl();
@@ -57,3 +70,29 @@ export function useDismissMeeting() {
     },
   });
 }
+
+export function useTranscribeMeeting() {
+  return useMutation({
+    mutationFn: async (input: {
+      meetingId: string;
+      providerId: string;
+      modelId: string;
+    }): Promise<{ transcriptionId: string }> => {
+      const res = await serverFetch(`/meetings/${input.meetingId}/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          providerId: input.providerId,
+          modelId: input.modelId,
+        }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        throw new Error(body.error ?? 'Failed to start transcription');
+      }
+      return res.json() as Promise<{ transcriptionId: string }>;
+    },
+  });
+}
+
+export { meetingKeys };

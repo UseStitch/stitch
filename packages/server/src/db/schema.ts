@@ -14,7 +14,7 @@ import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
-import type { MeetingStatus } from '@stitch/shared/meetings/types';
+import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
 import type {
   AgentPermissionValue,
   PermissionResponseStatus,
@@ -348,6 +348,40 @@ export const meetings = sqliteTable(
     check(
       'meetings_status_check',
       sql`${table.status} in ('detected', 'recording', 'completed', 'dismissed')`,
+    ),
+  ],
+);
+
+export const recordingTranscriptions = sqliteTable(
+  'recording_transcriptions',
+  {
+    id: text('id').$type<PrefixedString<'transcr'>>().primaryKey(),
+    meetingId: text('meeting_id')
+      .$type<PrefixedString<'rec'>>()
+      .notNull()
+      .references(() => meetings.id, { onDelete: 'cascade' }),
+    filePath: text('file_path').notNull().default(''),
+    transcript: text('transcript').notNull().default(''),
+    summary: text('summary').notNull().default(''),
+    title: text('title').notNull().default(''),
+    status: text('status').$type<TranscriptionStatus>().notNull().default('pending'),
+    errorMessage: text('error_message'),
+    modelId: text('model_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
+    costUsd: real('cost_usd').notNull().default(0),
+    durationMs: integer('duration_ms'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    check(
+      'transcription_status_check',
+      sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
     ),
   ],
 );

@@ -1,10 +1,13 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { Readable } from 'node:stream';
 
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { getDb } from '@/db/client.js';
+import { providerConfig } from '@/db/schema.js';
 import {
   acceptMeeting,
   dismissMeeting,
@@ -12,6 +15,11 @@ import {
   getAllMeetings,
   getMeetingById,
 } from '@/meeting/service.js';
+import {
+  getLatestTranscription,
+  getTranscriptions,
+  startTranscription,
+} from '@/meeting/transcription-service.js';
 
 export const meetingsRouter = new Hono();
 
@@ -74,4 +82,57 @@ meetingsRouter.post('/:meetingId/dismiss', async (c) => {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return c.json({ error: message }, 400);
   }
+});
+
+meetingsRouter.post('/:meetingId/transcribe', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+  const body = (await c.req.json());
+
+  if (!body.providerId || !body.modelId) {
+    return c.json({ error: 'providerId and modelId are required' }, 400);
+  }
+
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) {
+    return c.json({ error: 'Meeting not found' }, 404);
+  }
+  if (!meeting.recordingFilePath || !existsSync(meeting.recordingFilePath)) {
+    return c.json({ error: 'No recording available for this meeting' }, 400);
+  }
+
+  const db = getDb();
+  const [config] = await db
+    .select()
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, body.providerId));
+
+  if (!config) {
+    return c.json({ error: `Provider "${body.providerId}" is not configured` }, 400);
+  }
+
+  const transcriptionId = await startTranscription({
+    meetingId,
+    providerId: body.providerId,
+    modelId: body.modelId,
+    credentials: config.credentials,
+  });
+
+  return c.json({ transcriptionId });
+});
+
+meetingsRouter.get('/:meetingId/transcription', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+
+  const transcription = await getLatestTranscription(meetingId);
+  if (!transcription) {
+    return c.json({ error: 'No transcription found' }, 404);
+  }
+
+  return c.json(transcription);
+});
+
+meetingsRouter.get('/:meetingId/transcriptions', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+  const transcriptions = await getTranscriptions(meetingId);
+  return c.json(transcriptions);
 });

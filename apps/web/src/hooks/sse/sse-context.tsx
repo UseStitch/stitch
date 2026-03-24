@@ -83,6 +83,9 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
         'meeting-detected',
         'meeting-recording-finished',
         'meeting-ended',
+        'transcription-started',
+        'transcription-completed',
+        'transcription-failed',
       ];
 
       eventNames.forEach((eventName) => {
