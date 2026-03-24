@@ -9,11 +9,13 @@
     "./meeting-service": "./src/meeting-service.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
   },
   "dependencies": {
     "@stitch/shared": "workspace:*",
