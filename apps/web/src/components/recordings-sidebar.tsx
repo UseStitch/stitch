@@ -1,4 +1,5 @@
 import { MicIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
@@ -17,20 +18,63 @@ import {
 } from '@/components/ui/sidebar';
 import {
   formatAppName,
-  formatDate,
   formatDuration,
   StatusBadge,
 } from '@/components/recording-detail';
 import { recordingsQueryOptions, transcriptionQueryOptions } from '@/lib/queries/meetings';
 
-function RecordingSidebarItem({ recording, isActive }: { recording: Meeting; isActive: boolean }) {
+const ONE_MINUTE_MS = 60_000;
+const ONE_HOUR_MS = 60 * ONE_MINUTE_MS;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+const ONE_WEEK_MS = 7 * ONE_DAY_MS;
+
+function formatShortDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+function formatSidebarTimestamp(timestamp: number, nowMs: number): string {
+  const diffMs = Math.max(0, nowMs - timestamp);
+
+  if (diffMs < ONE_HOUR_MS) {
+    const minutes = Math.max(1, Math.floor(diffMs / ONE_MINUTE_MS));
+    return `${minutes}m ago`;
+  }
+
+  if (diffMs < ONE_DAY_MS) {
+    const hours = Math.floor(diffMs / ONE_HOUR_MS);
+    return `${hours}h ago`;
+  }
+
+  if (diffMs < ONE_WEEK_MS) {
+    const days = Math.floor(diffMs / ONE_DAY_MS);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  return formatShortDate(timestamp);
+}
+
+function RecordingSidebarItem({
+  recording,
+  isActive,
+  nowMs,
+}: {
+  recording: Meeting;
+  isActive: boolean;
+  nowMs: number;
+}) {
   const { data: transcription } = useQuery(transcriptionQueryOptions(recording.id));
   const title = transcription?.title || formatAppName(recording.app);
+  const shouldShowStatusBadge = transcription?.status !== 'completed';
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={isActive}
+        className="h-auto items-start py-2"
         render={
           <Link
             to="/recordings/$id"
@@ -41,10 +85,10 @@ function RecordingSidebarItem({ recording, isActive }: { recording: Meeting; isA
       >
         <div className="flex w-full items-center gap-2">
           <span className="truncate text-sm">{title}</span>
-          <StatusBadge status={recording.status} />
+          {shouldShowStatusBadge && <StatusBadge status={recording.status} />}
         </div>
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span>{formatDate(recording.startedAt)}</span>
+          <span>{formatSidebarTimestamp(recording.startedAt, nowMs)}</span>
           {recording.durationSecs !== null && (
             <>
               <span className="text-border">|</span>
@@ -61,6 +105,22 @@ export function RecordingsSidebarContent() {
   const { data: recordings } = useQuery(recordingsQueryOptions);
   const params = useParams({ strict: false });
   const currentId = params.id;
+  const [nowMs, setNowMs] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, ONE_MINUTE_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  const sortedRecordings = React.useMemo(
+    () => (recordings ? [...recordings].sort((a, b) => b.startedAt - a.startedAt) : []),
+    [recordings],
+  );
 
   return (
     <>
@@ -77,11 +137,12 @@ export function RecordingsSidebarContent() {
             <SidebarGroupLabel>Recent</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {[...recordings].reverse().map((recording) => (
+                {sortedRecordings.map((recording) => (
                   <RecordingSidebarItem
                     key={recording.id}
                     recording={recording}
                     isActive={recording.id === currentId}
+                    nowMs={nowMs}
                   />
                 ))}
               </SidebarMenu>

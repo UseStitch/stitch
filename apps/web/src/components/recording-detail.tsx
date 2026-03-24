@@ -32,7 +32,7 @@ import {
 } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
-export function formatDate(timestamp: number): string {
+function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
