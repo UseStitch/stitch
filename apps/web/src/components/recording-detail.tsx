@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Meeting, MeetingStatus } from '@stitch/shared/meetings/types';
 
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSSE } from '@/hooks/sse/sse-context';
 import {
   getAudioUrl,
@@ -428,24 +429,26 @@ function TranscriptionSection({
           <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="text-sm font-medium">Transcript</span>
         </div>
-        <div className="p-4 sm:p-6 space-y-6">
-          {transcription.transcript.length > 0 ? (
-            transcription.transcript.map((entry, index) => (
-              <div key={`${entry.speaker}-${index}`} className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
-                  {entry.speaker}
-                </span>
-                <p className="text-[14px] leading-relaxed text-foreground/90">
-                  {entry.content}
-                </p>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="p-4 sm:p-6 space-y-6">
+            {transcription.transcript.length > 0 ? (
+              transcription.transcript.map((entry, index) => (
+                <div key={`${entry.speaker}-${index}`} className="flex flex-col gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                    {entry.speaker}
+                  </span>
+                  <p className="text-[14px] leading-relaxed text-foreground/90">
+                    {entry.content}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                No transcript available.
               </div>
-            ))
-          ) : (
-            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-              No transcript available.
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );
