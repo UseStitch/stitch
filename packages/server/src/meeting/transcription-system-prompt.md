@@ -23,16 +23,18 @@ Do not invent content that is not present in the audio.
 - Return `summary` in Markdown format without code block wrappers.
 - Use only `#` (h1) headings and bullet points.
 - Do not use h2 or h3 headings.
-- Each section must contain at least 3 detailed bullet points.
-- Keep bullets specific to what was discussed: decisions, rationale, owners, risks, and next steps.
-- Include sections when applicable for:
+- Organize the summary by distinct discussion topics (for example: Feature 1, Feature 2, Hiring Plan, Launch Timeline).
+- Each topic must have its own h1 heading and include topic-specific bullets only.
+- For each topic, include bullets for:
   - Decisions
   - Action Items
   - Risks and Blockers
   - Open Questions
   - Next Steps
+- Keep bullets specific to that topic: decisions made, rationale, owners, due dates, risks, and dependencies.
 - For action items, include owner and due date when explicitly mentioned.
-- If a section has no explicit content, state that clearly (for example: "Not discussed").
+- If a topic has no explicit content for one of the required categories, add a bullet that clearly says it was not discussed for that topic.
+- Keep each topic section detailed and complete; do not mix details from different topics in the same bullet.
 - Do not add explanations, preambles, or meta-commentary.
 
 # Title Requirements
