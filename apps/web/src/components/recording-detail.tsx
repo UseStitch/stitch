@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
+import ReactMarkdown from 'react-markdown';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { Meeting, MeetingStatus, Transcription } from '@stitch/shared/meetings/types';
+import type { Meeting, MeetingStatus } from '@stitch/shared/meetings/types';
 
 import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/sse/sse-context';
@@ -141,12 +143,11 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
   if (!audioSrc) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 min-w-75">
       <audio ref={audioRef} src={audioSrc} preload="metadata" />
-      <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="shrink-0">
+      <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="shrink-0 size-7">
         {playing ? <PauseIcon className="size-3.5" /> : <PlayIcon className="size-3.5" />}
       </Button>
-      <MicIcon className="size-3 shrink-0 text-muted-foreground" />
       <div
         className="h-1.5 flex-1 cursor-pointer rounded-full bg-muted"
         onClick={handleSeek}
@@ -162,7 +163,7 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
         />
       </div>
       {duration > 0 && (
-        <span className="min-w-10 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+        <span className="min-w-10 text-right font-mono text-[11px] tabular-nums text-muted-foreground pr-2">
           {formatDuration(duration)}
         </span>
       )}
@@ -325,59 +326,13 @@ function TranscriptionModelSelector({
   );
 }
 
-function TranscriptionView({ transcription }: { transcription: Transcription }) {
-  const [showFull, setShowFull] = React.useState(false);
-
-  return (
-    <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
-      <div className="flex items-center gap-2">
-        <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="text-xs font-medium">{transcription.title || 'Transcription'}</span>
-        {transcription.costUsd > 0 && (
-          <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
-            {formatCost(transcription.costUsd)}
-          </span>
-        )}
-      </div>
-
-      {transcription.summary && (
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          {transcription.summary}
-        </p>
-      )}
-
-      {transcription.transcript.length > 0 && (
-        <>
-          <button
-            type="button"
-            onClick={() => setShowFull((v) => !v)}
-            className="mt-2 text-xs font-medium text-primary hover:underline"
-          >
-            {showFull ? 'Hide transcript' : 'Show full transcript'}
-          </button>
-
-          {showFull && (
-            <div className="mt-2 max-h-96 overflow-y-auto rounded border border-border/50 bg-background p-2.5 text-xs leading-relaxed">
-              {transcription.transcript.map((entry, index) => (
-                <p key={`${entry.speaker}-${index}`} className="mb-2 last:mb-0">
-                  <span className="font-medium">{entry.speaker}:</span> {entry.content}
-                </p>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function TranscriptionSection({ meetingId }: { meetingId: string }) {
+function TranscriptionSection({
+  meetingId,
+}: {
+  meetingId: string;
+}) {
   const queryClient = useQueryClient();
   const { data: transcription, isLoading } = useQuery(transcriptionQueryOptions(meetingId));
-  const { data: allProviderModels } = useQuery(enabledProviderModelsQueryOptions);
-  const transcribeMutation = useTranscribeMeeting();
-
-  const [selectedModel, setSelectedModel] = React.useState<AudioModelSpec | null>(null);
 
   useSSE({
     'transcription-started': (data) => {
@@ -403,112 +358,95 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
     },
   });
 
-  const audioModels = React.useMemo(
-    () => filterAudioCapableModels(allProviderModels ?? []),
-    [allProviderModels],
-  );
-
   const isTranscribing =
     transcription?.status === 'pending' || transcription?.status === 'processing';
 
-  function handleTranscribe() {
-    if (!selectedModel) return;
-    transcribeMutation.mutate({
-      meetingId,
-      providerId: selectedModel.providerId,
-      modelId: selectedModel.modelId,
-    });
-  }
-
-  if (isLoading) {
+  if (isLoading || isTranscribing || !transcription || transcription.status !== 'completed') {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2Icon className="size-3 animate-spin" />
-        <span>Loading transcription...</span>
-      </div>
-    );
-  }
-
-  if (isTranscribing) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
-        <Loader2Icon className="size-3.5 animate-spin text-primary" />
-        <span className="text-xs font-medium text-muted-foreground">Transcribing...</span>
-      </div>
-    );
-  }
-
-  if (transcription?.status === 'completed') {
-    return (
-      <div className="space-y-3">
-        <TranscriptionView transcription={transcription} />
-        <div className="flex items-center gap-2">
-          <TranscriptionModelSelector
-            selectedValue={selectedModel}
-            onSelect={setSelectedModel}
-            providerModels={audioModels}
-          />
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={handleTranscribe}
-            disabled={!selectedModel || transcribeMutation.isPending}
-          >
-            <SparklesIcon className="size-3" />
-            Re-transcribe
-          </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-4 items-start gap-6 h-full">
+        <div className="w-full lg:col-span-3 space-y-5 lg:sticky lg:top-0">
+          <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-4">
+            {isLoading && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2Icon className="size-3 animate-spin" />
+                <span>Loading transcription...</span>
+              </div>
+            )}
+            {isTranscribing && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2Icon className="size-3.5 animate-spin text-primary" />
+                <span className="font-medium text-foreground">Transcribing...</span>
+              </div>
+            )}
+            {transcription?.status === 'failed' && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                Transcription failed: {transcription.errorMessage ?? 'Unknown error'}
+              </div>
+            )}
+            {(!transcription || transcription.status === 'failed') && !isLoading && !isTranscribing && (
+              <div className="text-sm text-muted-foreground py-2">
+                Click transcribe in the header to generate a transcription.
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="w-full lg:col-span-1 min-w-0 rounded-lg border border-border/50 bg-muted/10 p-8 flex items-center justify-center min-h-100">
+          <p className="text-sm text-muted-foreground">
+            {isTranscribing ? 'Transcription in progress...' : 'Transcript will appear here'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (transcription?.status === 'failed') {
-    return (
-      <div className="space-y-3">
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          Transcription failed: {transcription.errorMessage ?? 'Unknown error'}
-        </div>
-        <div className="flex items-center gap-2">
-          <TranscriptionModelSelector
-            selectedValue={selectedModel}
-            onSelect={setSelectedModel}
-            providerModels={audioModels}
-          />
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={handleTranscribe}
-            disabled={!selectedModel || transcribeMutation.isPending}
-          >
-            <SparklesIcon className="size-3" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // No transcription yet
   return (
-    <div className="flex items-center gap-2">
-      <TranscriptionModelSelector
-        selectedValue={selectedModel}
-        onSelect={setSelectedModel}
-        providerModels={audioModels}
-      />
-      <Button
-        variant="ghost"
-        size="xs"
-        onClick={handleTranscribe}
-        disabled={!selectedModel || transcribeMutation.isPending}
-      >
-        {transcribeMutation.isPending ? (
-          <Loader2Icon className="size-3 animate-spin" />
-        ) : (
-          <SparklesIcon className="size-3" />
-        )}
-        Transcribe
-      </Button>
+    <div className="grid grid-cols-1 lg:grid-cols-4 items-start gap-6 h-full">
+      {/* Left Column */}
+      <div className="w-full lg:col-span-3 space-y-5 lg:sticky lg:top-0">
+        <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <SparklesIcon className="size-4 shrink-0 text-primary" />
+            <span className="text-sm font-medium">Summary</span>
+            {transcription.costUsd > 0 && (
+              <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
+                {formatCost(transcription.costUsd)}
+              </span>
+            )}
+          </div>
+
+          {transcription.summary && (
+            <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+              <ReactMarkdown>{transcription.summary}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Column */}
+      <div className="w-full lg:col-span-1 min-w-0 rounded-lg border border-border/50 bg-background shadow-sm overflow-hidden flex flex-col h-[calc(100vh-120px)] lg:h-200 lg:sticky lg:top-0">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/20 shrink-0">
+          <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="text-sm font-medium">Transcript</span>
+        </div>
+        <div className="p-4 sm:p-6 space-y-6">
+          {transcription.transcript.length > 0 ? (
+            transcription.transcript.map((entry, index) => (
+              <div key={`${entry.speaker}-${index}`} className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                  {entry.speaker}
+                </span>
+                <p className="text-[14px] leading-relaxed text-foreground/90">
+                  {entry.content}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+              No transcript available.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -518,29 +456,80 @@ export function RecordingDetail({ meeting }: { meeting: Meeting }) {
   const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
   const title = transcription?.title || formatAppName(meeting.app);
 
+  const { data: allProviderModels } = useQuery(enabledProviderModelsQueryOptions);
+  const transcribeMutation = useTranscribeMeeting();
+
+  const [selectedModel, setSelectedModel] = React.useState<AudioModelSpec | null>(null);
+
+  const audioModels = React.useMemo(
+    () => filterAudioCapableModels(allProviderModels ?? []),
+    [allProviderModels],
+  );
+
+  function handleTranscribe() {
+    if (!selectedModel) return;
+    transcribeMutation.mutate({
+      meetingId: meeting.id,
+      providerId: selectedModel.providerId,
+      modelId: selectedModel.modelId,
+    });
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-border/50 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold">{title}</h1>
-          <StatusBadge status={meeting.status} />
+      <div className="border-b border-border/50 px-6 py-4 shrink-0 flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold">{title}</h1>
+            <StatusBadge status={meeting.status} />
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{formatDate(meeting.startedAt)}</span>
+            <span>{formatTime(meeting.startedAt)}</span>
+            {meeting.durationSecs !== null && (
+              <>
+                <span className="text-border">|</span>
+                <span>{formatDuration(meeting.durationSecs)}</span>
+              </>
+            )}
+          </div>
         </div>
-        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{formatDate(meeting.startedAt)}</span>
-          <span>{formatTime(meeting.startedAt)}</span>
-          {meeting.durationSecs !== null && (
-            <>
-              <span className="text-border">|</span>
-              <span>{formatDuration(meeting.durationSecs)}</span>
-            </>
-          )}
-        </div>
+        
+        {hasAudio && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <TranscriptionModelSelector
+                selectedValue={selectedModel}
+                onSelect={setSelectedModel}
+                providerModels={audioModels}
+              />
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={handleTranscribe}
+                disabled={!selectedModel || transcribeMutation.isPending}
+              >
+                {transcribeMutation.isPending ? (
+                  <Loader2Icon className="size-3 animate-spin" />
+                ) : (
+                  <SparklesIcon className="size-3" />
+                )}
+                {(!transcription || transcription.status === 'failed') ? (transcription?.status === 'failed' ? 'Retry' : 'Transcribe') : 'Re-transcribe'}
+              </Button>
+            </div>
+            <div className="h-6 w-px bg-border/50" />
+            <AudioPlayer meetingId={meeting.id} />
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">
-        <div className="mx-auto max-w-2xl space-y-5">
-          {hasAudio && <AudioPlayer meetingId={meeting.id} />}
-          {hasAudio && <TranscriptionSection meetingId={meeting.id} />}
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 relative isolate">
+        <div className="mx-auto w-full max-w-350">
+          {hasAudio && (
+            <TranscriptionSection
+              meetingId={meeting.id}
+            />
+          )}
           {!hasAudio && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MicIcon className="mb-3 size-8 text-muted-foreground/50" />
