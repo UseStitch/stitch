@@ -346,7 +346,7 @@ function TranscriptionView({ transcription }: { transcription: Transcription }) 
         </p>
       )}
 
-      {transcription.transcript && (
+      {transcription.transcript.length > 0 && (
         <>
           <button
             type="button"
@@ -357,8 +357,12 @@ function TranscriptionView({ transcription }: { transcription: Transcription }) 
           </button>
 
           {showFull && (
-            <div className="mt-2 max-h-96 overflow-y-auto rounded border border-border/50 bg-background p-2.5 text-xs leading-relaxed whitespace-pre-wrap">
-              {transcription.transcript}
+            <div className="mt-2 max-h-96 overflow-y-auto rounded border border-border/50 bg-background p-2.5 text-xs leading-relaxed">
+              {transcription.transcript.map((entry, index) => (
+                <p key={`${entry.speaker}-${index}`} className="mb-2 last:mb-0">
+                  <span className="font-medium">{entry.speaker}:</span> {entry.content}
+                </p>
+              ))}
             </div>
           )}
         </>

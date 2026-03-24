@@ -19,11 +19,16 @@ export type Meeting = {
 
 export type TranscriptionStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
+export type TranscriptEntry = {
+  speaker: string;
+  content: string;
+};
+
 export type Transcription = {
   id: PrefixedString<'transcr'>;
   meetingId: PrefixedString<'rec'>;
   filePath: string;
-  transcript: string;
+  transcript: TranscriptEntry[];
   summary: string;
   title: string;
   status: TranscriptionStatus;

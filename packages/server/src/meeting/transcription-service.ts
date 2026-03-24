@@ -19,15 +19,26 @@ import { calculateMessageCostUsd } from '@/utils/cost.js';
 
 const log = Log.create({ service: 'transcription' });
 
-const SYSTEM_PROMPT = `You are a professional audio transcription assistant. Please transcribe the provided audio file into English.
+const SYSTEM_PROMPT_TEMPLATE = fs
+  .readFileSync(new URL('./transcription-system-prompt.md', import.meta.url), 'utf8')
+  .trim();
 
-The audio contains a discussion between distinct speakers. If possible, differentiate and label each speaker (e.g., Speaker 1, Speaker 2, or if names are mentioned: use their names). The discussion may pertain to any topic — prioritize accuracy in transcription, including punctuation and sentence structure, to reflect natural speech flow. Ensure accurate capture of specialized terminology if present.`;
+const transcriptEntrySchema = z.object({
+  speaker: z
+    .string()
+    .min(1)
+    .describe('Speaker identifier such as Speaker 1 or an explicit speaker name'),
+  content: z.string().min(1).describe('The spoken utterance text for this speaker turn'),
+});
 
 const transcriptionSchema = z.object({
-  transcript: z.string().describe('The full transcription text with speaker labels'),
+  transcript: z
+    .array(transcriptEntrySchema)
+    .min(1)
+    .describe('Ordered speaker turns for the full transcript'),
   summary: z
     .string()
-    .describe('A concise 2-4 sentence summary of the discussion'),
+    .describe('Structured markdown meeting summary using only h1 headings and bullet points'),
   title: z
     .string()
     .max(60)
@@ -40,6 +51,36 @@ type TranscriptionInput = {
   modelId: string;
   credentials: ProviderCredentials;
 };
+
+function buildSystemPrompt(): string {
+  return SYSTEM_PROMPT_TEMPLATE.replaceAll('{{CURRENT_DATE}}', new Date().toISOString().slice(0, 10));
+}
+
+function stringifyTranscript(entries: { speaker: string; content: string }[]): string {
+  return JSON.stringify(entries);
+}
+
+function formatTranscriptForFile(entries: { speaker: string; content: string }[]): string {
+  return entries.map((entry) => `${entry.speaker}: ${entry.content}`).join('\n\n');
+}
+
+function parseTranscript(transcript: string): { speaker: string; content: string }[] {
+  try {
+    const parsed = transcriptEntrySchema.array().safeParse(JSON.parse(transcript));
+    if (parsed.success) {
+      return parsed.data;
+    }
+  } catch {
+    // Legacy transcript rows may be plain text, not JSON.
+  }
+
+  const fallback = transcript.trim();
+  if (!fallback) {
+    return [];
+  }
+
+  return [{ speaker: 'Speaker 1', content: fallback }];
+}
 
 export async function startTranscription(
   input: TranscriptionInput,
@@ -122,7 +163,7 @@ async function runTranscription(
           ],
         },
       ],
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(),
     });
 
     const transcriptionResult = result.output;
@@ -132,7 +173,7 @@ async function runTranscription(
 
     const recordingDir = path.dirname(meeting.recordingFilePath);
     const transcriptFilePath = path.join(recordingDir, `transcript-${transcriptionId}.txt`);
-    fs.writeFileSync(transcriptFilePath, transcriptionResult.transcript, 'utf8');
+    fs.writeFileSync(transcriptFilePath, formatTranscriptForFile(transcriptionResult.transcript), 'utf8');
 
     const costUsd = await calculateMessageCostUsd({
       providerId: input.providerId,
@@ -147,7 +188,7 @@ async function runTranscription(
       .set({
         status: 'completed',
         filePath: transcriptFilePath,
-        transcript: transcriptionResult.transcript,
+        transcript: stringifyTranscript(transcriptionResult.transcript),
         summary: transcriptionResult.summary,
         title: transcriptionResult.title,
         usage: result.usage,
@@ -203,7 +244,14 @@ export async function getLatestTranscription(
     .where(eq(recordingTranscriptions.meetingId, meetingId))
     .orderBy(desc(recordingTranscriptions.createdAt))
     .limit(1);
-  return row as Transcription | undefined;
+  if (!row) {
+    return undefined;
+  }
+
+  return {
+    ...row,
+    transcript: parseTranscript(row.transcript),
+  } as Transcription;
 }
 
 export async function getTranscriptions(
@@ -215,5 +263,8 @@ export async function getTranscriptions(
     .from(recordingTranscriptions)
     .where(eq(recordingTranscriptions.meetingId, meetingId))
     .orderBy(desc(recordingTranscriptions.createdAt));
-  return rows as Transcription[];
+  return rows.map((row) => ({
+    ...row,
+    transcript: parseTranscript(row.transcript),
+  })) as Transcription[];
 }
