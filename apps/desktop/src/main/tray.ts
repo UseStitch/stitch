@@ -11,19 +11,20 @@ let tray: Tray | null = null;
 let currentState: TrayState = 'idle';
 let detectedMeetingId: string | null = null;
 
-function getAppIconPath(): string {
-  return join(__dirname, '../../resources/icon.png');
+function getAppIcon(): Electron.NativeImage {
+  const iconPath = join(__dirname, '../../resources/icon.png');
+  const image = nativeImage.createFromPath(iconPath);
+  // Resize to 16x16 for tray — avoids platform issues with large icons
+  return image.resize({ width: 16, height: 16 });
 }
 
 function createRecordingIcon(): Electron.NativeImage {
-  // Minimal 16x16 red circle PNG encoded as base64.
-  // Generated from a solid red (#DC2626) anti-aliased circle on transparent background.
+  // Generate a 16x16 red circle PNG for the tray recording indicator.
   const SIZE = 16;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
   const R = SIZE / 2 - 1;
 
-  // Build raw RGBA pixel data then encode as a minimal PNG.
   const pixels = Buffer.alloc(SIZE * SIZE * 4);
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
@@ -39,10 +40,9 @@ function createRecordingIcon(): Electron.NativeImage {
     }
   }
 
-  // Encode as minimal uncompressed PNG using zlib
+  // Encode as a valid PNG using zlib deflate
   const { deflateSync } = require('node:zlib') as typeof import('node:zlib');
 
-  // PNG raw image data: filter byte (0) + row pixels
   const rawData = Buffer.alloc(SIZE * (1 + SIZE * 4));
   for (let y = 0; y < SIZE; y++) {
     const rowOffset = y * (1 + SIZE * 4);
@@ -57,7 +57,6 @@ function createRecordingIcon(): Electron.NativeImage {
   // PNG signature
   chunks.push(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
 
-  // Helper to write a PNG chunk
   const writeChunk = (type: string, data: Buffer) => {
     const len = Buffer.alloc(4);
     len.writeUInt32BE(data.length);
@@ -178,10 +177,10 @@ function updateTray(
     tray.setImage(createRecordingIcon());
     tray.setToolTip('Stitch — Recording');
   } else if (currentState === 'detected') {
-    tray.setImage(getAppIconPath());
+    tray.setImage(getAppIcon());
     tray.setToolTip('Stitch — Meeting detected');
   } else {
-    tray.setImage(getAppIconPath());
+    tray.setImage(getAppIcon());
     tray.setToolTip('Stitch');
   }
 
@@ -193,7 +192,7 @@ export function initTray(
   serverUrl: string,
   getWindow: () => BrowserWindow | null,
 ): void {
-  tray = new Tray(getAppIconPath());
+  tray = new Tray(getAppIcon());
   tray.setToolTip('Stitch');
   tray.setContextMenu(buildContextMenu(getWindow, serverUrl));
 
