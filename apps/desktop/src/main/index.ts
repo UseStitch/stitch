@@ -11,6 +11,7 @@ import { destroyTray, initTray } from './tray';
 
 const WEB_DEV_URL = 'http://localhost:5173';
 const WEB_DIST = join(__dirname, '../../web/dist/index.html');
+const WINDOW_ICON_NAME = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 
@@ -19,6 +20,10 @@ const DEV_SERVER_TIMEOUT_MS = 30_000;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit(0);
+}
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.stitch.desktop');
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -48,7 +53,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: join(__dirname, '../../resources/icon.png'),
+    icon: join(__dirname, `../../resources/${WINDOW_ICON_NAME}`),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
