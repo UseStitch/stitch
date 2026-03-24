@@ -187,6 +187,39 @@ export type TranscriptionFailedPayload = {
   error: string;
 };
 
+export const SSE_EVENT_NAMES = [
+  'heartbeat',
+  'connected',
+  'data-change',
+  'session-title-update',
+  'stream-start',
+  'stream-part-update',
+  'stream-part-delta',
+  'stream-finish',
+  'stream-error',
+  'stream-retry',
+  'stream-tool-state',
+  'stream-tool-input-delta',
+  'step-start',
+  'step-finish',
+  'doom-loop-detected',
+  'compaction-start',
+  'compaction-complete',
+  'question-asked',
+  'question-replied',
+  'question-rejected',
+  'permission-response-requested',
+  'permission-response-resolved',
+  'meeting-detected',
+  'meeting-recording-finished',
+  'meeting-ended',
+  'transcription-started',
+  'transcription-completed',
+  'transcription-failed',
+] as const;
+
+export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
+
 export type SseEventPayloadMap = {
   heartbeat: { ts: number };
   connected: Record<string, never>;
@@ -217,8 +250,6 @@ export type SseEventPayloadMap = {
   'transcription-completed': TranscriptionCompletedPayload;
   'transcription-failed': TranscriptionFailedPayload;
 };
-
-export type SseEventName = keyof SseEventPayloadMap;
 
 export type SseEvent = {
   event: SseEventName;
