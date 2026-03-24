@@ -47,12 +47,25 @@ export function CommandPalette() {
               {actions.map((action) => {
                 const info = shortcuts.get(action.id);
                 const hotkey = info?.hotkey ?? null;
+                const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
+                const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
                 return (
                   <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                     <span className="flex-1">{action.label}</span>
                     {hotkey && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
-                        {info?.isSequence
+                        {isLeaderShortcut
+                          ? ['Leader', ...formatForDisplay(leaderSuffix ?? '').split('+').filter(Boolean)].map(
+                              (key, i) => (
+                              <kbd
+                                key={i}
+                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
+                              >
+                                {key}
+                              </kbd>
+                              ),
+                            )
+                          : info?.isSequence
                           ? [
                               ...formatForDisplay(hotkey).split('+'),
                               ...formatForDisplay(hotkey).split('+'),

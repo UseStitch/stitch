@@ -4,6 +4,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
+import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
+import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import type { Action } from '@/lib/actions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
@@ -12,6 +14,13 @@ import { useShortcuts } from '@/lib/shortcuts';
 const LEADER_PREFIX = 'LEADER+';
 
 const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
+const defaultShortcutHotkeys = new Map(
+  SHORTCUT_DEFAULTS.map((shortcut) => [shortcut.actionId, shortcut.hotkey]),
+);
+
+function getDefaultShortcutHotkey(actionId: ShortcutActionId): string | null {
+  return defaultShortcutHotkeys.get(actionId) ?? null;
+}
 
 function resolveLeaderHotkey(
   hotkey: string,
@@ -37,6 +46,7 @@ export function useGlobalHotkeys(actions: Action[]) {
   const switchPrimaryAgent = shortcuts.get('switch-primary-agent');
   const renameSession = shortcuts.get('rename-session');
   const stopStream = shortcuts.get('stop-stream');
+  const openChat = shortcuts.get('open-chat');
   const openRecordings = shortcuts.get('open-recordings');
 
   useHotkey(commandPalette?.hotkey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
@@ -70,9 +80,21 @@ export function useGlobalHotkeys(actions: Action[]) {
   );
 
   // Leader key sequences
-  const recordingsResolved = openRecordings?.hotkey
-    ? resolveLeaderHotkey(openRecordings.hotkey as string, leaderKey)
-    : null;
+  const defaultChatHotkey = getDefaultShortcutHotkey('open-chat');
+  const defaultRecordingsHotkey = getDefaultShortcutHotkey('open-recordings');
+
+  const chatResolved =
+    resolveLeaderHotkey(openChat?.hotkey ?? defaultChatHotkey ?? '', leaderKey) ??
+    (defaultChatHotkey ? resolveLeaderHotkey(defaultChatHotkey, leaderKey) : null);
+  const recordingsResolved =
+    resolveLeaderHotkey(openRecordings?.hotkey ?? defaultRecordingsHotkey ?? '', leaderKey) ??
+    (defaultRecordingsHotkey ? resolveLeaderHotkey(defaultRecordingsHotkey, leaderKey) : null);
+
+  useHotkeySequence(
+    chatResolved ? [chatResolved.leader, chatResolved.suffix] : ['Mod+X', 'C'],
+    () => actionMap.get('open-chat')?.run(),
+    { enabled: !!chatResolved, timeout: 1000 },
+  );
 
   useHotkeySequence(
     recordingsResolved

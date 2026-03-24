@@ -49,6 +49,7 @@ export function useActions(): Action[] {
       label: 'Open settings',
       run: () => setSettingsTab(settingsTab ? undefined : 'general'),
     },
+    { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
     {
       id: 'switch-primary-agent',

@@ -22,7 +22,7 @@ import type {
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
-import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
+import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -44,7 +44,7 @@ export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
   hotkey: text('hotkey'),
   isSequence: integer('is_sequence', { mode: 'boolean' }).notNull().default(false),
   label: text('label').notNull().default(''),
-  category: text('category').notNull().default(''),
+  category: text('category').$type<ShortcutCategory>().notNull().default('Workspace'),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

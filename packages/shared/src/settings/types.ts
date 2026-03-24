@@ -24,6 +24,12 @@ export type SettingDefault = {
   description: string;
 };
 
+const LEADER_KEY_HOTKEY_PATTERN = /^Mod\+[A-Za-z0-9]$/;
+
+export function isValidLeaderKeyHotkey(value: string): boolean {
+  return LEADER_KEY_HOTKEY_PATTERN.test(value);
+}
+
 export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'model.default.providerId',
