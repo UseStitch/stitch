@@ -7,12 +7,15 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { CommandPalette } from '@/components/command-palette';
 import { TitleBar } from '@/components/layout/title-bar';
 import { OnboardingDialog } from '@/components/onboarding-dialog';
+import { RecordingBanner } from '@/components/recording-banner/recording-banner';
+import { RecordingsDialog } from '@/components/recordings-dialog';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { RightClickMenu } from '@/components/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
+import { MeetingSync } from '@/hooks/sse/use-meeting-sync';
 import { NotificationSound } from '@/hooks/sse/use-notification-sound';
 import { StreamSync } from '@/hooks/sse/use-stream-sync';
 import { UnreadSync } from '@/hooks/sse/use-unread-sync';
@@ -70,6 +73,8 @@ function RootLayout() {
             <StreamSync />
             <NotificationSound />
             <UnreadSync />
+            <MeetingSync />
+            <RecordingBanner />
             <Outlet />
           </SidebarInset>
         </div>
@@ -78,6 +83,7 @@ function RootLayout() {
       <SettingsDialog />
       <OnboardingDialog />
       <RenameSessionDialog />
+      <RecordingsDialog />
       <Toaster position="bottom-right" />
     </SidebarProvider>
   );

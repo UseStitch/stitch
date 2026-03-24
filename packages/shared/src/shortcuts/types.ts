@@ -7,6 +7,7 @@ export const SHORTCUT_ACTION_IDS = [
   'rename-session',
   'compact-session',
   'stop-stream',
+  'open-recordings',
 ] as const;
 
 export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
@@ -75,5 +76,12 @@ export const SHORTCUT_DEFAULTS: ShortcutDefault[] = [
     isSequence: true,
     label: 'Stop stream (double press)',
     category: 'Chat',
+  },
+  {
+    actionId: 'open-recordings',
+    hotkey: 'LEADER+R',
+    isSequence: true,
+    label: 'Recordings',
+    category: 'General',
   },
 ];

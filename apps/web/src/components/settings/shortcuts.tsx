@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
   useResetAllShortcuts,
   type ShortcutEntry,
 } from '@/lib/queries/shortcuts';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M'];
@@ -39,9 +41,45 @@ function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]>
   return groups;
 }
 
-function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
+const KBD_CLASS =
+  'inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground';
+
+const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
+
+function HotkeyBadge({
+  hotkey,
+  isSequence,
+  leaderKey,
+}: {
+  hotkey: string | null;
+  isSequence: boolean;
+  leaderKey: string;
+}) {
   if (!hotkey) {
     return <span className="text-sm text-muted-foreground">Unassigned</span>;
+  }
+
+  // Handle LEADER+ prefixed hotkeys: show resolved leader key, then arrow, then suffix
+  if (hotkey.startsWith('LEADER+')) {
+    const suffix = hotkey.slice('LEADER+'.length);
+    const leaderDisplayKeys = formatForDisplay(leaderKey).split('+');
+    const suffixDisplayKeys = formatForDisplay(suffix).split('+');
+
+    return (
+      <span className="inline-flex items-center gap-1">
+        {leaderDisplayKeys.map((key, i) => (
+          <kbd key={`leader-${i}`} className={KBD_CLASS}>
+            {key}
+          </kbd>
+        ))}
+        <span className="text-xs text-muted-foreground">then</span>
+        {suffixDisplayKeys.map((key, i) => (
+          <kbd key={`suffix-${i}`} className={KBD_CLASS}>
+            {key}
+          </kbd>
+        ))}
+      </span>
+    );
   }
 
   const displayKeys = formatForDisplay(hotkey).split('+');
@@ -50,18 +88,12 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex gap-1">
         {displayKeys.map((key, i) => (
-          <kbd
-            key={`first-${i}`}
-            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-          >
+          <kbd key={`first-${i}`} className={KBD_CLASS}>
             {key}
           </kbd>
         ))}
         {displayKeys.map((key, i) => (
-          <kbd
-            key={`second-${i}`}
-            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-          >
+          <kbd key={`second-${i}`} className={KBD_CLASS}>
             {key}
           </kbd>
         ))}
@@ -72,10 +104,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
   return (
     <span className="inline-flex gap-1">
       {displayKeys.map((key, i) => (
-        <kbd
-          key={i}
-          className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-        >
+        <kbd key={i} className={KBD_CLASS}>
           {key}
         </kbd>
       ))}
@@ -88,15 +117,18 @@ function ShortcutRow({
   isDefault,
   conflict,
   recordingId,
+  leaderKey,
   onStartRecording,
 }: {
   entry: ShortcutEntry;
   isDefault: boolean;
   conflict: string | null;
   recordingId: string | null;
+  leaderKey: string;
   onStartRecording: (id: string) => void;
 }) {
   const isRecording = recordingId === entry.actionId;
+  const isLeaderShortcut = entry.hotkey?.startsWith('LEADER+');
 
   return (
     <div className="flex items-center justify-between border-b border-border/50 py-3 last:border-0">
@@ -109,22 +141,24 @@ function ShortcutRow({
         )}
       </div>
       <button
-        onClick={() => onStartRecording(entry.actionId)}
+        onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
           'text-sm rounded px-2 py-1 transition-colors min-w-30 text-right',
-          isRecording
-            ? 'text-foreground bg-accent ring-1 ring-ring'
-            : conflict
-              ? 'text-destructive'
-              : 'hover:bg-accent/50 cursor-pointer',
+          isLeaderShortcut
+            ? 'cursor-default'
+            : isRecording
+              ? 'text-foreground bg-accent ring-1 ring-ring'
+              : conflict
+                ? 'text-destructive'
+                : 'hover:bg-accent/50 cursor-pointer',
         )}
       >
         {isRecording ? (
-          <span className="text-muted-foreground italic">Press keys…</span>
+          <span className="text-muted-foreground italic">Press keys...</span>
         ) : conflict ? (
           <span className="text-xs text-destructive">Conflicts with {conflict}</span>
         ) : (
-          <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} />
+          <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} leaderKey={leaderKey} />
         )}
       </button>
     </div>
@@ -133,9 +167,12 @@ function ShortcutRow({
 
 function ShortcutsContent() {
   const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const saveShortcut = useSaveShortcut();
   const deleteShortcut = useDeleteShortcut();
   const resetAll = useResetAllShortcuts();
+
+  const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
 
   const [search, setSearch] = React.useState('');
   const [recordingId, setRecordingId] = React.useState<string | null>(null);
@@ -248,6 +285,7 @@ function ShortcutsContent() {
                 isDefault={isDefaultHotkey(entry)}
                 conflict={conflicts.get(entry.actionId) ?? null}
                 recordingId={recordingId}
+                leaderKey={leaderKey}
                 onStartRecording={handleStartRecording}
               />
             ))}

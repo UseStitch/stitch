@@ -155,6 +155,22 @@ export type PermissionResponseResolvedPayload = {
   sessionId: PrefixedString<'ses'>;
 };
 
+export type MeetingDetectedPayload = {
+  meetingId: PrefixedString<'rec'>;
+  app: string;
+  startedAt: number;
+};
+
+export type MeetingRecordingFinishedPayload = {
+  meetingId: PrefixedString<'rec'>;
+  app: string;
+  durationSecs: number;
+};
+
+export type MeetingEndedPayload = {
+  meetingId: PrefixedString<'rec'>;
+};
+
 export type SseEventPayloadMap = {
   heartbeat: { ts: number };
   connected: Record<string, never>;
@@ -178,6 +194,9 @@ export type SseEventPayloadMap = {
   'question-rejected': QuestionRejectedPayload;
   'permission-response-requested': PermissionResponseRequestedPayload;
   'permission-response-resolved': PermissionResponseResolvedPayload;
+  'meeting-detected': MeetingDetectedPayload;
+  'meeting-recording-finished': MeetingRecordingFinishedPayload;
+  'meeting-ended': MeetingEndedPayload;
 };
 
 export type SseEventName = keyof SseEventPayloadMap;

@@ -1,10 +1,14 @@
-import type { ActiveRecording } from "./recording-writer.js";
-import { RecordingWriter } from "./recording-writer.js";
-import type { MeetingInfo, MeetingService } from "./meeting-service.js";
-import { MeetingEventEmitter } from "./meeting-service.js";
+import { execFile } from 'node:child_process';
+
+import { createRecordingId } from '@stitch/shared/id';
+
+import type { MeetingInfo, MeetingService, MeetingServiceLogger } from './meeting-service.js';
+import { MeetingEventEmitter } from './meeting-service.js';
+import type { ActiveRecording, RecordingResult } from './recording-writer.js';
+import type { RecordingWriter } from './recording-writer.js';
 
 const REG_BASE =
-  "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone";
+  'HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone';
 
 interface MicRegistryEntry {
   app: string;
@@ -12,45 +16,74 @@ interface MicRegistryEntry {
   key: string;
 }
 
-interface ActiveSession {
+/** A meeting that was detected but not yet recording */
+interface DetectedMeeting {
+  meeting: MeetingInfo;
+  registryKey: string;
+}
+
+/** A meeting that has an active recording */
+interface RecordingSession {
   meeting: MeetingInfo;
   recording: ActiveRecording;
   registryKey: string;
 }
 
-export interface WindowsMeetingServiceOptions {
-  /** List of exe names to monitor (e.g. ["slack.exe", "Discord.exe", "Zoom.exe"]). Case-insensitive. */
+interface WindowsMeetingServiceOptions {
+  /** Keywords to match against app names (e.g. ["slack", "discord", "zoom"]). Case-insensitive substring match. */
   apps: string[];
   /** RecordingWriter instance */
   writer: RecordingWriter;
   /** Polling interval in ms (default 1000) */
   pollIntervalMs?: number;
+  /** Optional logger — if omitted, logging is silently skipped */
+  logger?: MeetingServiceLogger;
 }
 
+const noopLogger: MeetingServiceLogger = {
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+};
+
 export class WindowsMeetingService extends MeetingEventEmitter implements MeetingService {
-  private readonly apps: Set<string>;
+  private readonly apps: string[];
   private readonly writer: RecordingWriter;
   private readonly pollIntervalMs: number;
+  private readonly log: MeetingServiceLogger;
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private baseline = new Set<string>();
-  private sessions = new Map<string, ActiveSession>();
+
+  /** Detected meetings that are not yet recording */
+  private detected = new Map<string, DetectedMeeting>();
+  /** Map from meetingId -> registryKey for quick lookup */
+  private meetingIdToKey = new Map<string, string>();
+  /** Meetings that are actively recording */
+  private recordings = new Map<string, RecordingSession>();
+
   private running = false;
 
   constructor(options: WindowsMeetingServiceOptions) {
     super();
-    this.apps = new Set(options.apps.map((a) => a.toLowerCase()));
+    this.apps = options.apps.map((a) => a.toLowerCase());
     this.writer = options.writer;
     this.pollIntervalMs = options.pollIntervalMs ?? 1000;
+    this.log = options.logger ?? noopLogger;
   }
 
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
 
-    // Snapshot baseline — ignore pre-existing mic sessions
     const initial = await this.queryActiveMicApps();
     this.baseline = new Set(initial.map((e) => e.key));
+
+    this.log.info(
+      { baselineCount: initial.length, baselineApps: initial.map((e) => e.app), keywords: this.apps },
+      'meeting detection started',
+    );
 
     this.pollTimer = setInterval(() => this.poll(), this.pollIntervalMs);
   }
@@ -64,11 +97,54 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
       this.pollTimer = null;
     }
 
-    // Discard any in-progress recordings
-    for (const [, session] of this.sessions) {
+    for (const [, session] of this.recordings) {
       await this.writer.discard(session.recording);
     }
-    this.sessions.clear();
+    this.detected.clear();
+    this.meetingIdToKey.clear();
+    this.recordings.clear();
+    this.log.info({}, 'meeting detection stopped');
+  }
+
+  async startRecording(meetingId: string): Promise<void> {
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) {
+      throw new Error(`No detected meeting with id: ${meetingId}`);
+    }
+
+    const detected = this.detected.get(registryKey);
+    if (!detected) {
+      throw new Error(`Meeting already ended or is already recording: ${meetingId}`);
+    }
+
+    const recording = await this.writer.start(meetingId);
+    this.detected.delete(registryKey);
+    this.recordings.set(registryKey, {
+      meeting: detected.meeting,
+      recording,
+      registryKey,
+    });
+    this.log.info({ meetingId, app: detected.meeting.app }, 'recording started');
+  }
+
+  async stopRecording(meetingId: string): Promise<RecordingResult> {
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) {
+      throw new Error(`No meeting with id: ${meetingId}`);
+    }
+
+    const session = this.recordings.get(registryKey);
+    if (!session) {
+      throw new Error(`No active recording for meeting: ${meetingId}`);
+    }
+
+    this.recordings.delete(registryKey);
+    this.meetingIdToKey.delete(meetingId);
+
+    const result = await this.writer.stop(session.recording);
+    this.emit('recording:write', session.meeting, result);
+    this.log.info({ meetingId }, 'recording stopped');
+    return result;
   }
 
   // -- Internals --
@@ -76,16 +152,33 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
   private async poll(): Promise<void> {
     try {
       const entries = await this.queryActiveMicApps();
+      this.log.debug({ entryCount: entries.length }, 'poll tick');
       const currentKeys = new Set(entries.map((e) => e.key));
 
-      // Detect new meetings
+      if (entries.length > 0) {
+        this.log.debug(
+          {
+            entries: entries.map((e) => ({
+              app: e.app,
+              isBaseline: this.baseline.has(e.key),
+              isDetected: this.detected.has(e.key),
+              isRecording: this.recordings.has(e.key),
+              isMonitored: this.isMonitoredApp(e.app),
+            })),
+          },
+          'poll: active mic entries',
+        );
+      }
+
+      // Detect new meetings (don't auto-record)
       for (const entry of entries) {
         if (this.baseline.has(entry.key)) continue;
-        if (this.sessions.has(entry.key)) continue;
+        if (this.detected.has(entry.key)) continue;
+        if (this.recordings.has(entry.key)) continue;
         if (!this.isMonitoredApp(entry.app)) continue;
 
         const now = new Date();
-        const id = this.buildRecordingId(entry.app, now);
+        const id = createRecordingId();
 
         const meeting: MeetingInfo = {
           id,
@@ -94,61 +187,66 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
           startedAt: now,
         };
 
-        const recording = await this.writer.start(id);
-        this.sessions.set(entry.key, { meeting, recording, registryKey: entry.key });
-        this.emit("meeting:start", meeting);
+        this.log.info({ meetingId: id, app: entry.app }, 'new meeting detected');
+        this.detected.set(entry.key, { meeting, registryKey: entry.key });
+        this.meetingIdToKey.set(id, entry.key);
+        this.emit('meeting:start', meeting);
       }
 
       // Detect ended meetings
-      for (const [key, session] of this.sessions) {
+      for (const [key, detected] of this.detected) {
         if (!currentKeys.has(key)) {
-          this.sessions.delete(key);
-          this.emit("meeting:stop", session.meeting);
-
-          const result = await this.writer.stop(session.recording);
-          this.emit("recording:write", session.meeting, result);
+          this.log.info({ meetingId: detected.meeting.id, app: detected.meeting.app }, 'meeting ended (detected)');
+          this.detected.delete(key);
+          this.meetingIdToKey.delete(detected.meeting.id);
+          this.emit('meeting:stop', detected.meeting);
         }
       }
 
-      // Promote baseline entries that disappeared (so they're detected fresh next time)
+      for (const [key, session] of this.recordings) {
+        if (!currentKeys.has(key)) {
+          this.log.info({ meetingId: session.meeting.id, app: session.meeting.app }, 'meeting ended (recording)');
+          this.recordings.delete(key);
+          this.meetingIdToKey.delete(session.meeting.id);
+          this.emit('meeting:stop', session.meeting);
+
+          const result = await this.writer.stop(session.recording);
+          this.emit('recording:write', session.meeting, result);
+        }
+      }
+
+      // Promote baseline entries that disappeared
       for (const key of this.baseline) {
         if (!currentKeys.has(key)) {
           this.baseline.delete(key);
         }
       }
     } catch (err) {
-      this.emit("error", err instanceof Error ? err : new Error(String(err)));
+      this.log.error({ err }, 'poll error');
+      this.emit('error', err instanceof Error ? err : new Error(String(err)));
     }
   }
 
   private isMonitoredApp(appName: string): boolean {
-    return this.apps.has(appName.toLowerCase());
+    const lower = appName.toLowerCase();
+    return this.apps.some((keyword) => lower.includes(keyword));
   }
 
-  private buildRecordingId(app: string, date: Date): string {
-    const ts = date
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .replace("T", "_")
-      .replace("Z", "");
-    const slug = app.replace(/\.exe$/i, "").toLowerCase();
-    return `${ts}_${slug}`;
-  }
-
-  private async queryActiveMicApps(): Promise<MicRegistryEntry[]> {
-    const proc = Bun.spawn(
-      [
-        "powershell",
-        "-NoProfile",
-        "-Command",
-        `reg query '${REG_BASE}' /s /v LastUsedTimeStop`,
-      ],
-      { stdout: "pipe", stderr: "pipe" }
-    );
-    const text = await new Response(proc.stdout).text();
-    await proc.exited;
-
-    return this.parseRegistryOutput(text);
+  private queryActiveMicApps(): Promise<MicRegistryEntry[]> {
+    return new Promise((resolve) => {
+      execFile(
+        'reg',
+        ['query', REG_BASE, '/s', '/v', 'LastUsedTimeStop'],
+        (err, stdout) => {
+          if (err) {
+            this.log.warn({ err: err.message }, 'registry query failed');
+            resolve([]);
+            return;
+          }
+          resolve(this.parseRegistryOutput(stdout));
+        },
+      );
+    });
   }
 
   private parseRegistryOutput(output: string): MicRegistryEntry[] {
@@ -162,7 +260,7 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
       const keyLine = lines[0];
       if (!keyLine) continue;
 
-      const valueLine = lines.find((l) => l.includes("LastUsedTimeStop"));
+      const valueLine = lines.find((l) => l.includes('LastUsedTimeStop'));
       if (!valueLine) continue;
 
       const match = valueLine.match(/REG_QWORD\s+(0x[0-9a-fA-F]+)/);
@@ -170,9 +268,9 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
 
       if (BigInt(match[1]) !== 0n) continue;
 
-      const subkey = keyLine.split("\\").pop() || "";
-      const exePath = subkey.replace(/#/g, "\\");
-      const appName = exePath.split("\\").pop() || subkey;
+      const subkey = keyLine.split('\\').pop() || '';
+      const exePath = subkey.replace(/#/g, '\\');
+      const appName = exePath.split('\\').pop() || subkey;
 
       entries.push({ app: appName, path: exePath, key: subkey });
     }

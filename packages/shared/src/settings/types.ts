@@ -13,6 +13,7 @@ export const SETTINGS_KEYS = [
   'appearance.theme',
   'onboarding.status',
   'notifications.sound.enabled',
+  'shortcuts.leaderKey',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -86,5 +87,10 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'notifications.sound.enabled',
     value: 'true',
     description: 'Play an attention sound when the AI needs your input (question or permission).',
+  },
+  {
+    key: 'shortcuts.leaderKey',
+    value: 'Mod+X',
+    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
   },
 ];

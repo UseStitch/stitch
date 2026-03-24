@@ -28,6 +28,8 @@ export function useActions(): Action[] {
     setSettingsTab,
     renameSessionOpen,
     setRenameSessionOpen,
+    recordingsOpen,
+    setRecordingsOpen,
   } = useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
 
@@ -59,6 +61,11 @@ export function useActions(): Action[] {
       id: 'rename-session',
       label: 'Rename session',
       run: () => setRenameSessionOpen(!renameSessionOpen),
+    },
+    {
+      id: 'open-recordings',
+      label: 'Recordings',
+      run: () => setRecordingsOpen(!recordingsOpen),
     },
   ];
 

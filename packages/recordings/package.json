@@ -4,15 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./meeting": "./src/meeting.ts"
+    ".": "./src/index.ts",
+    "./recording-writer": "./src/recording-writer.ts",
+    "./meeting-service": "./src/meeting-service.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/bun": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@stitch/shared": "workspace:*",
     "native-audio-node": "^0.3.5"
   }
 }

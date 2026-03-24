@@ -14,6 +14,7 @@ import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
+import type { MeetingStatus } from '@stitch/shared/meetings/types';
 import type {
   AgentPermissionValue,
   PermissionResponseStatus,
@@ -324,3 +325,30 @@ export const queuedMessages = sqliteTable('queued_messages', {
     .notNull()
     .$defaultFn(() => Date.now()),
 });
+
+export const meetings = sqliteTable(
+  'meetings',
+  {
+    id: text('id').$type<PrefixedString<'rec'>>().primaryKey(),
+    app: text('app').notNull(),
+    appPath: text('app_path').notNull(),
+    status: text('status').$type<MeetingStatus>().notNull().default('detected'),
+    micFilePath: text('mic_file_path'),
+    speakerFilePath: text('speaker_file_path'),
+    durationSecs: real('duration_secs'),
+    startedAt: integer('started_at', { mode: 'number' }).notNull(),
+    endedAt: integer('ended_at', { mode: 'number' }),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    check(
+      'meetings_status_check',
+      sql`${table.status} in ('detected', 'recording', 'completed', 'dismissed')`,
+    ),
+  ],
+);
