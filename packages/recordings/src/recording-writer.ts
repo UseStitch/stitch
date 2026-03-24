@@ -8,23 +8,37 @@ import {
 const SAMPLE_RATE = 16000;
 const CHUNK_DURATION_MS = 100;
 
-/** Convert float32 LE PCM buffers to int16 LE PCM */
-function float32ToInt16(f32Buffers: Buffer[]): Buffer {
-  const f32 = Buffer.concat(f32Buffers);
-  const sampleCount = f32.length / 4;
-  const int16 = Buffer.alloc(sampleCount * 2);
+/** Interleave two mono float32 buffer arrays into a stereo int16 LE PCM buffer.
+ *  Left channel = mic, right channel = speaker. The shorter stream is zero-padded. */
+function interleaveStereoInt16(micBuffers: Buffer[], sysBuffers: Buffer[]): Buffer {
+  const mic = Buffer.concat(micBuffers);
+  const sys = Buffer.concat(sysBuffers);
+
+  const micSamples = mic.length / 4;
+  const sysSamples = sys.length / 4;
+  const sampleCount = Math.max(micSamples, sysSamples);
+
+  // 2 channels * 2 bytes per sample
+  const int16 = Buffer.alloc(sampleCount * 4);
 
   for (let i = 0; i < sampleCount; i++) {
-    let sample = f32.readFloatLE(i * 4);
-    sample = Math.max(-1, Math.min(1, sample));
-    int16.writeInt16LE(Math.round(sample * 32767), i * 2);
+    const micSample = i < micSamples
+      ? Math.max(-1, Math.min(1, mic.readFloatLE(i * 4)))
+      : 0;
+    const sysSample = i < sysSamples
+      ? Math.max(-1, Math.min(1, sys.readFloatLE(i * 4)))
+      : 0;
+
+    int16.writeInt16LE(Math.round(micSample * 32767), i * 4);
+    int16.writeInt16LE(Math.round(sysSample * 32767), i * 4 + 2);
   }
 
   return int16;
 }
 
-function buildWavBuffer(pcmFloat32Buffers: Buffer[], sampleRate: number, channels: number = 1): Buffer {
-  const pcm = float32ToInt16(pcmFloat32Buffers);
+function buildStereoWavBuffer(micBuffers: Buffer[], sysBuffers: Buffer[], sampleRate: number): Buffer {
+  const pcm = interleaveStereoInt16(micBuffers, sysBuffers);
+  const channels = 2;
   const bitsPerSample = 16;
   const byteRate = (sampleRate * channels * bitsPerSample) / 8;
   const blockAlign = (channels * bitsPerSample) / 8;
@@ -58,7 +72,8 @@ export interface RecordingFile {
 export interface RecordingResult {
   id: string;
   dir: string;
-  files: RecordingFile[];
+  /** Single stereo WAV: left channel = mic, right channel = speaker */
+  file: RecordingFile;
 }
 
 export interface ActiveRecording {
@@ -123,29 +138,25 @@ export class RecordingWriter {
     return recording;
   }
 
-  /** Stop recording and write WAV files to <baseDir>/<recordingId>/. */
+  /** Stop recording and write a stereo WAV file to <baseDir>/<recordingId>/. */
   async stop(recording: ActiveRecording): Promise<RecordingResult> {
     await Promise.all([
       recording.micRecorder.stop(),
       recording.sysRecorder.stop(),
     ]);
 
-    const micPath = join(recording.dir, "mic.wav");
-    const sysPath = join(recording.dir, "speaker.wav");
+    const filePath = join(recording.dir, "recording.wav");
 
-    writeFileSync(micPath, buildWavBuffer(recording.micChunks, SAMPLE_RATE));
-    writeFileSync(sysPath, buildWavBuffer(recording.sysChunks, SAMPLE_RATE));
+    writeFileSync(filePath, buildStereoWavBuffer(recording.micChunks, recording.sysChunks, SAMPLE_RATE));
 
-    const micDuration = recording.micChunks.reduce((n, b) => n + b.length, 0) / 4 / SAMPLE_RATE;
-    const sysDuration = recording.sysChunks.reduce((n, b) => n + b.length, 0) / 4 / SAMPLE_RATE;
+    const micSamples = recording.micChunks.reduce((n, b) => n + b.length, 0) / 4;
+    const sysSamples = recording.sysChunks.reduce((n, b) => n + b.length, 0) / 4;
+    const durationSecs = Math.max(micSamples, sysSamples) / SAMPLE_RATE;
 
     return {
       id: recording.id,
       dir: recording.dir,
-      files: [
-        { name: "mic.wav", path: micPath, durationSecs: micDuration },
-        { name: "speaker.wav", path: sysPath, durationSecs: sysDuration },
-      ],
+      file: { name: "recording.wav", path: filePath, durationSecs },
     };
   }
 

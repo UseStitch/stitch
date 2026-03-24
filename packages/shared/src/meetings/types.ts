@@ -7,8 +7,7 @@ export type Meeting = {
   app: string;
   appPath: string;
   status: MeetingStatus;
-  micFilePath: string | null;
-  speakerFilePath: string | null;
+  recordingFilePath: string | null;
   durationSecs: number | null;
   startedAt: number;
   endedAt: number | null;

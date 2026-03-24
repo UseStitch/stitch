@@ -19,9 +19,9 @@ export const recordingsQueryOptions = queryOptions({
   },
 });
 
-export async function getAudioUrl(meetingId: string, track: 'mic' | 'speaker'): Promise<string> {
+export async function getAudioUrl(meetingId: string): Promise<string> {
   const baseUrl = await getServerUrl();
-  return `${baseUrl}/meetings/${meetingId}/audio/${track}`;
+  return `${baseUrl}/meetings/${meetingId}/audio`;
 }
 
 export function useAcceptMeeting() {

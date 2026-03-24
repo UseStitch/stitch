@@ -95,19 +95,14 @@ async function onRecordingWrite(meeting: MeetingInfo, result: RecordingResult): 
   const meetingId = meeting.id as PrefixedString<'rec'>;
   const now = Date.now();
 
-  const micFile = result.files.find((f) => f.name === 'mic.wav');
-  const speakerFile = result.files.find((f) => f.name === 'speaker.wav');
-  const totalDuration = result.files.reduce((sum, f) => Math.max(sum, f.durationSecs), 0);
-
-  log.info({ meetingId, durationSecs: totalDuration }, 'recording finished');
+  log.info({ meetingId, durationSecs: result.file.durationSecs }, 'recording finished');
 
   await db
     .update(meetings)
     .set({
       status: 'completed',
-      micFilePath: micFile?.path ?? null,
-      speakerFilePath: speakerFile?.path ?? null,
-      durationSecs: totalDuration,
+      recordingFilePath: result.file.path,
+      durationSecs: result.file.durationSecs,
       endedAt: now,
       updatedAt: now,
     })
@@ -116,7 +111,7 @@ async function onRecordingWrite(meeting: MeetingInfo, result: RecordingResult): 
   await broadcast('meeting-recording-finished', {
     meetingId,
     app: meeting.app,
-    durationSecs: totalDuration,
+    durationSecs: result.file.durationSecs,
   });
 }
 

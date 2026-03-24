@@ -1,4 +1,4 @@
-import { ChevronRightIcon, MicIcon, PauseIcon, PlayIcon, Volume2Icon } from 'lucide-react';
+import { ChevronRightIcon, MicIcon, PauseIcon, PlayIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -54,7 +54,7 @@ function StatusBadge({ status }: { status: MeetingStatus }) {
   );
 }
 
-function AudioPlayer({ meetingId, track }: { meetingId: string; track: 'mic' | 'speaker' }) {
+function AudioPlayer({ meetingId }: { meetingId: string }) {
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
@@ -63,13 +63,13 @@ function AudioPlayer({ meetingId, track }: { meetingId: string; track: 'mic' | '
 
   React.useEffect(() => {
     let cancelled = false;
-    void getAudioUrl(meetingId, track).then((url) => {
+    void getAudioUrl(meetingId).then((url) => {
       if (!cancelled) setAudioSrc(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [meetingId, track]);
+  }, [meetingId]);
 
   React.useEffect(() => {
     const audio = audioRef.current;
@@ -113,7 +113,6 @@ function AudioPlayer({ meetingId, track }: { meetingId: string; track: 'mic' | '
   }
 
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
-  const Icon = track === 'mic' ? MicIcon : Volume2Icon;
 
   if (!audioSrc) return null;
 
@@ -123,7 +122,7 @@ function AudioPlayer({ meetingId, track }: { meetingId: string; track: 'mic' | '
       <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="shrink-0">
         {playing ? <PauseIcon className="size-3.5" /> : <PlayIcon className="size-3.5" />}
       </Button>
-      <Icon className="size-3 shrink-0 text-muted-foreground" />
+      <MicIcon className="size-3 shrink-0 text-muted-foreground" />
       <div
         className="h-1.5 flex-1 cursor-pointer rounded-full bg-muted"
         onClick={handleSeek}
@@ -148,7 +147,7 @@ function AudioPlayer({ meetingId, track }: { meetingId: string; track: 'mic' | '
 }
 
 function RecordingRow({ meeting }: { meeting: Meeting }) {
-  const hasAudio = meeting.status === 'completed' && (meeting.micFilePath || meeting.speakerFilePath);
+  const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
   const [expanded, setExpanded] = React.useState(false);
 
   return (
@@ -162,14 +161,6 @@ function RecordingRow({ meeting }: { meeting: Meeting }) {
         onClick={() => hasAudio && setExpanded((v) => !v)}
         disabled={!hasAudio}
       >
-        {hasAudio && (
-          <ChevronRightIcon
-            className={cn(
-              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
-              expanded && 'rotate-90',
-            )}
-          />
-        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{formatAppName(meeting.app)}</span>
@@ -186,12 +177,19 @@ function RecordingRow({ meeting }: { meeting: Meeting }) {
             )}
           </div>
         </div>
+        {hasAudio && (
+          <ChevronRightIcon
+            className={cn(
+              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
+              expanded && 'rotate-90',
+            )}
+          />
+        )}
       </button>
 
       {hasAudio && expanded && (
-        <div className="mt-2.5 flex flex-col gap-1.5 pl-6">
-          {meeting.micFilePath && <AudioPlayer meetingId={meeting.id} track="mic" />}
-          {meeting.speakerFilePath && <AudioPlayer meetingId={meeting.id} track="speaker" />}
+        <div className="mt-2.5">
+          <AudioPlayer meetingId={meeting.id} />
         </div>
       )}
     </div>

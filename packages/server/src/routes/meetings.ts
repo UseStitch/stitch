@@ -25,22 +25,17 @@ meetingsRouter.get('/active', async (c) => {
   return c.json(rows);
 });
 
-meetingsRouter.get('/:meetingId/audio/:track', async (c) => {
+meetingsRouter.get('/:meetingId/audio', async (c) => {
   const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
-  const track = c.req.param('track');
-
-  if (track !== 'mic' && track !== 'speaker') {
-    return c.json({ error: 'Invalid track. Must be "mic" or "speaker".' }, 400);
-  }
 
   const meeting = await getMeetingById(meetingId);
   if (!meeting) {
     return c.json({ error: 'Meeting not found' }, 404);
   }
 
-  const filePath = track === 'mic' ? meeting.micFilePath : meeting.speakerFilePath;
+  const filePath = meeting.recordingFilePath;
   if (!filePath || !existsSync(filePath)) {
-    return c.json({ error: `No ${track} recording available` }, 404);
+    return c.json({ error: 'No recording available' }, 404);
   }
 
   const stat = statSync(filePath);
