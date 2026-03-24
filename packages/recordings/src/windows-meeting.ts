@@ -4,7 +4,7 @@ import { createRecordingId } from '@stitch/shared/id';
 
 import type { MeetingInfo, MeetingService, MeetingServiceLogger } from './meeting-service.js';
 import { MeetingEventEmitter } from './meeting-service.js';
-import type { ActiveRecording, RecordingResult } from './recording-writer.js';
+import type { RecordingHandle, RecordingResult } from './recording-writer.js';
 import type { RecordingWriter } from './recording-writer.js';
 
 const REG_BASE =
@@ -25,7 +25,7 @@ interface DetectedMeeting {
 /** A meeting that has an active recording */
 interface RecordingSession {
   meeting: MeetingInfo;
-  recording: ActiveRecording;
+  handle: RecordingHandle;
   registryKey: string;
 }
 
@@ -64,6 +64,7 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
   private recordings = new Map<string, RecordingSession>();
 
   private running = false;
+  private polling = false;
 
   constructor(options: WindowsMeetingServiceOptions) {
     super();
@@ -98,7 +99,7 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
     }
 
     for (const [, session] of this.recordings) {
-      await this.writer.discard(session.recording);
+      await this.writer.discard(session.handle);
     }
     this.detected.clear();
     this.meetingIdToKey.clear();
@@ -117,11 +118,15 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
       throw new Error(`Meeting already ended or is already recording: ${meetingId}`);
     }
 
-    const recording = await this.writer.start(meetingId);
+    const handle = await this.writer.start(meetingId, (err) => {
+      this.log.warn({ meetingId, err: err.message }, 'recording error');
+      this.emit('error', err);
+    });
+
     this.detected.delete(registryKey);
     this.recordings.set(registryKey, {
       meeting: detected.meeting,
-      recording,
+      handle,
       registryKey,
     });
     this.log.info({ meetingId, app: detected.meeting.app }, 'recording started');
@@ -141,7 +146,7 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
     this.recordings.delete(registryKey);
     this.meetingIdToKey.delete(meetingId);
 
-    const result = await this.writer.stop(session.recording);
+    const result = await this.writer.stop(session.handle);
     this.emit('recording:write', session.meeting, result);
     this.log.info({ meetingId }, 'recording stopped');
     return result;
@@ -150,6 +155,9 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
   // -- Internals --
 
   private async poll(): Promise<void> {
+    if (this.polling) return;
+    this.polling = true;
+
     try {
       const entries = await this.queryActiveMicApps();
       this.log.debug({ entryCount: entries.length }, 'poll tick');
@@ -193,37 +201,55 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
         this.emit('meeting:start', meeting);
       }
 
-      // Detect ended meetings
+      // Collect ended meetings before mutating maps
+      const endedDetected: [string, DetectedMeeting][] = [];
       for (const [key, detected] of this.detected) {
         if (!currentKeys.has(key)) {
-          this.log.info({ meetingId: detected.meeting.id, app: detected.meeting.app }, 'meeting ended (detected)');
-          this.detected.delete(key);
-          this.meetingIdToKey.delete(detected.meeting.id);
-          this.emit('meeting:stop', detected.meeting);
+          endedDetected.push([key, detected]);
         }
       }
 
+      const endedRecordings: [string, RecordingSession][] = [];
       for (const [key, session] of this.recordings) {
         if (!currentKeys.has(key)) {
-          this.log.info({ meetingId: session.meeting.id, app: session.meeting.app }, 'meeting ended (recording)');
-          this.recordings.delete(key);
-          this.meetingIdToKey.delete(session.meeting.id);
-          this.emit('meeting:stop', session.meeting);
-
-          const result = await this.writer.stop(session.recording);
-          this.emit('recording:write', session.meeting, result);
+          endedRecordings.push([key, session]);
         }
+      }
+
+      // Process ended detected meetings
+      for (const [key, detected] of endedDetected) {
+        this.log.info({ meetingId: detected.meeting.id, app: detected.meeting.app }, 'meeting ended (detected)');
+        this.detected.delete(key);
+        this.meetingIdToKey.delete(detected.meeting.id);
+        this.emit('meeting:stop', detected.meeting);
+      }
+
+      // Process ended recording sessions
+      for (const [key, session] of endedRecordings) {
+        this.log.info({ meetingId: session.meeting.id, app: session.meeting.app }, 'meeting ended (recording)');
+        this.recordings.delete(key);
+        this.meetingIdToKey.delete(session.meeting.id);
+        this.emit('meeting:stop', session.meeting);
+
+        const result = await this.writer.stop(session.handle);
+        this.emit('recording:write', session.meeting, result);
       }
 
       // Promote baseline entries that disappeared
+      const removedBaseline: string[] = [];
       for (const key of this.baseline) {
         if (!currentKeys.has(key)) {
-          this.baseline.delete(key);
+          removedBaseline.push(key);
         }
+      }
+      for (const key of removedBaseline) {
+        this.baseline.delete(key);
       }
     } catch (err) {
       this.log.error({ err }, 'poll error');
       this.emit('error', err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      this.polling = false;
     }
   }
 

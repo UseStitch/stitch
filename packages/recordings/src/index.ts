@@ -8,7 +8,13 @@ export type {
   MeetingService,
   MeetingServiceLogger,
 } from './meeting-service.js';
-export type { RecordingFile, RecordingResult } from './recording-writer.js';
+export type {
+  RecordingFile,
+  RecordingHandle,
+  RecordingResult,
+  RecordingWriterOptions,
+  RecordingErrorCallback,
+} from './recording-writer.js';
 export { MeetingEventEmitter } from './meeting-service.js';
 export { RecordingWriter } from './recording-writer.js';
 
