@@ -172,11 +172,17 @@ jobs:
         shell: bash
         run: bun run build
 
-      - name: Copy server binary to desktop resources
+      - name: Build native mic-status helper
+        shell: bash
+        run: bun run build:native
+        working-directory: packages/recordings
+
+      - name: Copy server binary and native helpers to desktop resources
         shell: bash
         run: |
           mkdir -p apps/desktop/resources
           cp packages/server/dist/stitch-server apps/desktop/resources/
+          cp packages/recordings/native/mic-status apps/desktop/resources/
 
       - name: Package Electron app
         shell: bash

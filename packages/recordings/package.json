@@ -9,6 +9,7 @@
     "./meeting-service": "./src/meeting-service.ts"
   },
   "scripts": {
+    "build:native": "clang -fobjc-arc -o native/mic-status native/mic-status.m -framework CoreAudio -framework Foundation -O2",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

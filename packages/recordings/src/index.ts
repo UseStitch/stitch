@@ -1,5 +1,6 @@
 import type { MeetingService } from './meeting-service.js';
 import type { RecordingWriter } from './recording-writer.js';
+import { MacMeetingService } from './mac-meeting.js';
 import { WindowsMeetingService } from './windows-meeting.js';
 
 export type {
@@ -38,7 +39,12 @@ export function createMeetingService(options: CreateMeetingServiceOptions): Meet
   }
 
   if (platform === 'darwin') {
-    throw new Error('macOS meeting service is not implemented yet');
+    return new MacMeetingService({
+      apps: options.apps,
+      writer: options.writer,
+      pollIntervalMs: options.pollIntervalMs,
+      logger: options.logger,
+    });
   }
 
   throw new Error(`Unsupported platform: ${platform}`);

@@ -30,7 +30,7 @@ interface MockRecorderInstance {
 }
 
 vi.mock("native-audio-node", () => {
-  const { EventEmitter } = require("node:events") as typeof import("node:events");
+  const { EventEmitter } = require("node:events");
 
   class MockRecorder extends EventEmitter {
     started = false;
