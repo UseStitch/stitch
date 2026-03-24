@@ -26,6 +26,7 @@ import {
   listAgentPermissions,
   upsertAgentPermission,
 } from '@/permission/service.js';
+import { getAgentSpecificKnownTools } from '@/tools/agent-tool-providers.js';
 import { createTools } from '@/tools/index.js';
 
 const STITCH_KNOWN_TOOLS = Object.keys(
@@ -155,7 +156,12 @@ agentsRouter.get('/:id/tool-config', async (c) => {
     })),
   );
 
-  const tools = await getAgentToolConfig(agentId, [...STITCH_KNOWN_TOOLS, ...mcpKnownTools]);
+  const agentSpecificKnown = await getAgentSpecificKnownTools(agentId);
+  const tools = await getAgentToolConfig(agentId, [
+    ...STITCH_KNOWN_TOOLS,
+    ...mcpKnownTools,
+    ...agentSpecificKnown,
+  ]);
   return c.json({ tools });
 });
 

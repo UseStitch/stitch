@@ -1,75 +1,23 @@
-import { eq } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createAgentId, createAgentPermissionId } from '@stitch/shared/id';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { seedMeetingsAgent } from '@/agents/meetings-agent.js';
+import { seedPrimaryAgent } from '@/agents/primary-agent.js';
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-type Db = BunSQLiteDatabase<typeof schema>;
+export type Db = BunSQLiteDatabase<typeof schema>;
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
-
-function hasPrimaryAgents(db: Db): boolean {
-  const primaryAgents = db
-    .select({ id: schema.agents.id })
-    .from(schema.agents)
-    .where(eq(schema.agents.type, 'primary'))
-    .all();
-
-  return primaryAgents.length > 0;
-}
-
-function seedDb(db: Db): boolean {
-  try {
-    db.transaction((tx) => {
-      const id = createAgentId();
-
-      tx.insert(schema.agents)
-        .values({
-          id,
-          name: 'My Assistant',
-          type: 'primary',
-          isDeletable: false,
-        })
-        .run();
-
-      tx.insert(schema.agentPermissions)
-        .values({
-          id: createAgentPermissionId(),
-          agentId: id,
-          toolName: 'question',
-          permission: 'allow',
-          pattern: null,
-        })
-        .run();
-
-      tx.insert(schema.userSettings)
-        .values({
-          key: 'agent.default',
-          value: id,
-        })
-        .run();
-
-      return true;
-    });
-
-    log.info('seeded initial database records');
-    return true;
-  } catch (error) {
-    log.error({ error }, 'failed to seed initial database records');
-    return false;
-  }
-}
 
 function seedShortcuts(db: Db): void {
   for (const def of SHORTCUT_DEFAULTS) {
@@ -129,16 +77,10 @@ export async function initDb(): Promise<void> {
   _db = drizzle({ client: sqlite, schema }) as Db;
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
 
-  if (!hasPrimaryAgents(_db)) {
-    const seeded = seedDb(_db);
-
-    if (!seeded) {
-      throw new Error('Database seeding failed');
-    }
-  }
-
+  seedPrimaryAgent(_db);
   seedShortcuts(_db);
   seedSettings(_db);
+  seedMeetingsAgent(_db);
 
   log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
 }
