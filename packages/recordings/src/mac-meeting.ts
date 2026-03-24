@@ -1,7 +1,4 @@
-import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { MicrophoneActivityMonitor } from 'native-audio-node';
 
 import { createRecordingId } from '@stitch/shared/id';
 
@@ -9,25 +6,6 @@ import type { MeetingInfo, MeetingService, MeetingServiceLogger } from './meetin
 import { MeetingEventEmitter } from './meeting-service.js';
 import type { RecordingHandle, RecordingResult } from './recording-writer.js';
 import type { RecordingWriter } from './recording-writer.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/**
- * Resolve the mic-status binary path.
- * In development: relative to this source file (../native/mic-status).
- * In production (bun --compile): next to the server binary (same directory as process.execPath).
- */
-function resolveMicStatusBinary(): string {
-  const devPath = join(__dirname, '..', 'native', 'mic-status');
-  if (existsSync(devPath)) return devPath;
-
-  const prodPath = join(dirname(process.execPath), 'mic-status');
-  if (existsSync(prodPath)) return prodPath;
-
-  throw new Error(
-    `mic-status binary not found. Checked:\n  ${devPath}\n  ${prodPath}\nRun "bun run build:native" in packages/recordings.`,
-  );
-}
 
 interface MicStatusEntry {
   pid: number;
@@ -53,7 +31,7 @@ interface MacMeetingServiceOptions {
   apps: string[];
   /** RecordingWriter instance */
   writer: RecordingWriter;
-  /** Polling interval in ms (default 1000) */
+  /** Fallback polling interval in ms when native events are unavailable (default 1000) */
   pollIntervalMs?: number;
   /** Optional logger -- if omitted, logging is silently skipped */
   logger?: MeetingServiceLogger;
@@ -69,11 +47,11 @@ const noopLogger: MeetingServiceLogger = {
 export class MacMeetingService extends MeetingEventEmitter implements MeetingService {
   private readonly apps: string[];
   private readonly writer: RecordingWriter;
-  private readonly pollIntervalMs: number;
   private readonly log: MeetingServiceLogger;
+  private readonly monitor: MicrophoneActivityMonitor;
+  private readonly onMonitorChange: () => void;
+  private readonly onMonitorError: (err: Error) => void;
 
-  private micStatusBinary: string | null = null;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private baseline = new Set<string>();
 
   /** Detected meetings that are not yet recording */
@@ -90,35 +68,46 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
     super();
     this.apps = options.apps.map((a) => a.toLowerCase());
     this.writer = options.writer;
-    this.pollIntervalMs = options.pollIntervalMs ?? 1000;
     this.log = options.logger ?? noopLogger;
+
+    this.monitor = new MicrophoneActivityMonitor({
+      fallbackPollInterval: options.pollIntervalMs ?? 1000,
+    });
+
+    this.onMonitorChange = () => {
+      void this.reconcileActiveMeetings();
+    };
+
+    this.onMonitorError = (err: Error) => {
+      this.log.warn({ err: err.message }, 'microphone activity monitor error');
+      this.emit('error', err);
+    };
   }
 
   async start(): Promise<void> {
     if (this.running) return;
-
-    this.micStatusBinary = resolveMicStatusBinary();
     this.running = true;
 
-    const initial = await this.queryActiveMicApps();
+    this.monitor.on('change', this.onMonitorChange);
+    this.monitor.on('error', this.onMonitorError);
+    this.monitor.start();
+
+    const initial =  this.queryActiveMicApps();
     this.baseline = new Set(initial.map((e) => buildProcessKey(e)));
 
     this.log.info(
       { baselineCount: initial.length, baselineApps: initial.map((e) => e.name), keywords: this.apps },
       'meeting detection started',
     );
-
-    this.pollTimer = setInterval(() => this.poll(), this.pollIntervalMs);
   }
 
   async stop(): Promise<void> {
     if (!this.running) return;
     this.running = false;
 
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
+    this.monitor.off('change', this.onMonitorChange);
+    this.monitor.off('error', this.onMonitorError);
+    this.monitor.stop();
 
     for (const [, session] of this.recordings) {
       await this.writer.discard(session.handle);
@@ -176,13 +165,13 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 
   // -- Internals --
 
-  private async poll(): Promise<void> {
+  private async reconcileActiveMeetings(): Promise<void> {
     if (this.polling) return;
     this.polling = true;
 
     try {
-      const entries = await this.queryActiveMicApps();
-      this.log.debug({ entryCount: entries.length }, 'poll tick');
+      const entries =  this.queryActiveMicApps();
+      this.log.debug({ entryCount: entries.length }, 'reconcile tick');
       const currentKeys = new Set(entries.map((e) => buildProcessKey(e)));
 
       if (entries.length > 0) {
@@ -200,7 +189,7 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
               };
             }),
           },
-          'poll: active mic entries',
+          'reconcile: active mic entries',
         );
       }
 
@@ -273,7 +262,7 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
         this.baseline.delete(key);
       }
     } catch (err) {
-      this.log.error({ err }, 'poll error');
+      this.log.error({ err }, 'reconcile error');
       this.emit('error', err instanceof Error ? err : new Error(String(err)));
     } finally {
       this.polling = false;
@@ -286,36 +275,13 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
     return this.apps.some((keyword) => name.includes(keyword) || bundleId.includes(keyword));
   }
 
-  private queryActiveMicApps(): Promise<MicStatusEntry[]> {
-    return new Promise((resolve) => {
-      execFile(this.micStatusBinary!, (err, stdout) => {
-        if (err) {
-          this.log.warn({ err: err.message }, 'mic-status query failed');
-          resolve([]);
-          return;
-        }
-        resolve(this.parseOutput(stdout));
-      });
-    });
-  }
-
-  private parseOutput(output: string): MicStatusEntry[] {
-    try {
-      const entries: unknown = JSON.parse(output.trim());
-      if (!Array.isArray(entries)) return [];
-
-      return entries.filter(
-        (e): e is MicStatusEntry =>
-          typeof e === 'object' &&
-          e !== null &&
-          typeof (e as MicStatusEntry).pid === 'number' &&
-          typeof (e as MicStatusEntry).name === 'string' &&
-          typeof (e as MicStatusEntry).bundleId === 'string',
-      );
-    } catch {
-      this.log.warn({ output }, 'failed to parse mic-status output');
-      return [];
-    }
+  private queryActiveMicApps(): MicStatusEntry[] {
+    const processes = this.monitor.getActiveProcesses();
+    return processes.map((processInfo) => ({
+      pid: processInfo.pid,
+      name: processInfo.name,
+      bundleId: processInfo.bundleId,
+    }));
   }
 }
 
