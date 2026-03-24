@@ -2,7 +2,6 @@ import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
   CheckIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
   CpuIcon,
   FileTextIcon,
   Loader2Icon,
@@ -14,19 +13,15 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
-import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Meeting, MeetingStatus, Transcription } from '@stitch/shared/meetings/types';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useDialogContext } from '@/context/dialog-context';
 import { useSSE } from '@/hooks/sse/sse-context';
 import {
   getAudioUrl,
   meetingKeys,
-  recordingsQueryOptions,
   transcriptionQueryOptions,
   useTranscribeMeeting,
 } from '@/lib/queries/meetings';
@@ -37,7 +32,7 @@ import {
 } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
-function formatDate(timestamp: number): string {
+export function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -52,14 +47,14 @@ function formatTime(timestamp: number): string {
   });
 }
 
-function formatDuration(secs: number): string {
+export function formatDuration(secs: number): string {
   const mins = Math.floor(secs / 60);
   const remainder = Math.floor(secs % 60);
   if (mins === 0) return `${remainder}s`;
   return `${mins}m ${remainder}s`;
 }
 
-function formatAppName(app: string): string {
+export function formatAppName(app: string): string {
   return app.replace(/\.exe$/i, '');
 }
 
@@ -75,7 +70,7 @@ const STATUS_STYLES: Record<MeetingStatus, { label: string; className: string }>
   dismissed: { label: 'Dismissed', className: 'bg-muted text-muted-foreground' },
 };
 
-function StatusBadge({ status }: { status: MeetingStatus }) {
+export function StatusBadge({ status }: { status: MeetingStatus }) {
   const style = STATUS_STYLES[status];
   return (
     <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', style.className)}>
@@ -147,7 +142,7 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
   if (!audioSrc) return null;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
       <audio ref={audioRef} src={audioSrc} preload="metadata" />
       <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="shrink-0">
         {playing ? <PauseIcon className="size-3.5" /> : <PlayIcon className="size-3.5" />}
@@ -253,9 +248,7 @@ function TranscriptionModelSelector({
         )}
       >
         <CpuIcon className="size-3.5 shrink-0" />
-        <span className="max-w-32 truncate">
-          {selectedOption?.modelName ?? 'Select model'}
-        </span>
+        <span className="max-w-32 truncate">{selectedOption?.modelName ?? 'Select model'}</span>
         <ChevronDownIcon className="size-3 shrink-0 opacity-60" />
       </PopoverPrimitive.Trigger>
 
@@ -337,12 +330,10 @@ function TranscriptionView({ transcription }: { transcription: Transcription }) 
   const [showFull, setShowFull] = React.useState(false);
 
   return (
-    <div className="mt-3 rounded-lg border border-border/50 bg-muted/30 p-3">
+    <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
       <div className="flex items-center gap-2">
         <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="text-xs font-medium">
-          {transcription.title || 'Transcription'}
-        </span>
+        <span className="text-xs font-medium">{transcription.title || 'Transcription'}</span>
         {transcription.costUsd > 0 && (
           <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
             {formatCost(transcription.costUsd)}
@@ -367,7 +358,7 @@ function TranscriptionView({ transcription }: { transcription: Transcription }) 
           </button>
 
           {showFull && (
-            <div className="mt-2 max-h-60 overflow-y-auto rounded border border-border/50 bg-background p-2.5 text-xs leading-relaxed whitespace-pre-wrap">
+            <div className="mt-2 max-h-96 overflow-y-auto rounded border border-border/50 bg-background p-2.5 text-xs leading-relaxed whitespace-pre-wrap">
               {transcription.transcript}
             </div>
           )}
@@ -428,7 +419,7 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
 
   if (isLoading) {
     return (
-      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Loader2Icon className="size-3 animate-spin" />
         <span>Loading transcription...</span>
       </div>
@@ -437,7 +428,7 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
 
   if (isTranscribing) {
     return (
-      <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+      <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
         <Loader2Icon className="size-3.5 animate-spin text-primary" />
         <span className="text-xs font-medium text-muted-foreground">Transcribing...</span>
       </div>
@@ -446,9 +437,9 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
 
   if (transcription?.status === 'completed') {
     return (
-      <div>
+      <div className="space-y-3">
         <TranscriptionView transcription={transcription} />
-        <div className="mt-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <TranscriptionModelSelector
             selectedValue={selectedModel}
             onSelect={setSelectedModel}
@@ -470,11 +461,11 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
 
   if (transcription?.status === 'failed') {
     return (
-      <div className="mt-3">
+      <div className="space-y-3">
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           Transcription failed: {transcription.errorMessage ?? 'Unknown error'}
         </div>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <TranscriptionModelSelector
             selectedValue={selectedModel}
             onSelect={setSelectedModel}
@@ -496,7 +487,7 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
 
   // No transcription yet
   return (
-    <div className="mt-3 flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <TranscriptionModelSelector
         selectedValue={selectedModel}
         onSelect={setSelectedModel}
@@ -519,105 +510,46 @@ function TranscriptionSection({ meetingId }: { meetingId: string }) {
   );
 }
 
-function RecordingRow({ meeting }: { meeting: Meeting }) {
+export function RecordingDetail({ meeting }: { meeting: Meeting }) {
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
-  const [expanded, setExpanded] = React.useState(false);
+  const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
+  const title = transcription?.title || formatAppName(meeting.app);
 
   return (
-    <div className="border-b border-border/50 px-1 py-3 last:border-0">
-      <button
-        type="button"
-        className={cn(
-          'flex w-full items-center gap-3 text-left',
-          hasAudio && 'cursor-pointer',
-        )}
-        onClick={() => hasAudio && setExpanded((v) => !v)}
-        disabled={!hasAudio}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{formatAppName(meeting.app)}</span>
-            <StatusBadge status={meeting.status} />
-          </div>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{formatDate(meeting.startedAt)}</span>
-            <span>{formatTime(meeting.startedAt)}</span>
-            {meeting.durationSecs !== null && (
-              <>
-                <span className="text-border">|</span>
-                <span>{formatDuration(meeting.durationSecs)}</span>
-              </>
-            )}
-          </div>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="border-b border-border/50 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold">{title}</h1>
+          <StatusBadge status={meeting.status} />
         </div>
-        {hasAudio && (
-          <ChevronRightIcon
-            className={cn(
-              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
-              expanded && 'rotate-90',
-            )}
-          />
-        )}
-      </button>
-
-      {hasAudio && expanded && (
-        <div className="mt-2.5">
-          <AudioPlayer meetingId={meeting.id} />
-          <TranscriptionSection meetingId={meeting.id} />
+        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{formatDate(meeting.startedAt)}</span>
+          <span>{formatTime(meeting.startedAt)}</span>
+          {meeting.durationSecs !== null && (
+            <>
+              <span className="text-border">|</span>
+              <span>{formatDuration(meeting.durationSecs)}</span>
+            </>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
-
-function RecordingsContent() {
-  const { data: recordings } = useSuspenseQuery(recordingsQueryOptions);
-
-  if (recordings.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <MicIcon className="mb-3 size-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No recordings yet</p>
-        <p className="mt-1 text-xs text-muted-foreground/70">
-          Recordings will appear here when a meeting is detected and recorded.
-        </p>
       </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col">
-      {recordings.map((recording) => (
-        <RecordingRow key={recording.id} meeting={recording} />
-      ))}
-    </div>
-  );
-}
-
-export function RecordingsDialog() {
-  const { recordingsOpen, setRecordingsOpen } = useDialogContext();
-
-  return (
-    <Dialog open={recordingsOpen} onOpenChange={setRecordingsOpen}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>Recordings</DialogTitle>
-      </DialogHeader>
-      <DialogContent className="flex h-120 max-w-xl! flex-col gap-0 overflow-hidden p-0">
-        <div className="flex items-center border-b px-5 py-4">
-          <h2 className="text-base font-semibold">Recordings</h2>
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="mx-auto max-w-2xl space-y-5">
+          {hasAudio && <AudioPlayer meetingId={meeting.id} />}
+          {hasAudio && <TranscriptionSection meetingId={meeting.id} />}
+          {!hasAudio && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <MicIcon className="mb-3 size-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                {meeting.status === 'recording'
+                  ? 'Recording in progress...'
+                  : 'No audio available for this recording'}
+              </p>
+            </div>
+          )}
         </div>
-        <ScrollArea className="min-h-0 flex-1 overflow-hidden">
-          <div className="px-5 py-2">
-            <React.Suspense
-              fallback={
-                <div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
-              }
-            >
-              <RecordingsContent />
-            </React.Suspense>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

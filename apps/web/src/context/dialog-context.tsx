@@ -11,8 +11,6 @@ interface DialogContextValue {
   setSettingsTab: (tab: SettingsTab) => void;
   renameSessionOpen: boolean;
   setRenameSessionOpen: (open: boolean) => void;
-  recordingsOpen: boolean;
-  setRecordingsOpen: (open: boolean) => void;
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null);
@@ -24,7 +22,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
 
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [renameSessionOpen, setRenameSessionOpen] = React.useState(false);
-  const [recordingsOpen, setRecordingsOpen] = React.useState(false);
 
   const setSettingsTab = React.useCallback(
     (tab: SettingsTab) => {
@@ -48,8 +45,6 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
         setSettingsTab,
         renameSessionOpen,
         setRenameSessionOpen,
-        recordingsOpen,
-        setRecordingsOpen,
       }}
     >
       {children}
