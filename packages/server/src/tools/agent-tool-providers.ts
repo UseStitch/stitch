@@ -55,18 +55,18 @@ export async function createAgentSpecificTools(
 }
 
 /**
- * Return the known tool name/type pairs for agent-specific tools.
+ * Return the known tool name/type/displayName triples for agent-specific tools.
  * Used by routes/agents.ts for the tool-config UI endpoint.
  */
 export async function getAgentSpecificKnownTools(
   agentId: PrefixedString<'agt'>,
-): Promise<{ toolType: AgentToolType; toolName: string }[]> {
+): Promise<{ toolType: AgentToolType; toolName: string; displayName: string }[]> {
   if (providers.length === 0) return [];
 
   const agent = await resolveAgent(agentId);
   if (!agent) return [];
 
-  const knownTools: { toolType: AgentToolType; toolName: string }[] = [];
+  const knownTools: { toolType: AgentToolType; toolName: string; displayName: string }[] = [];
   for (const provider of providers) {
     if (provider.appliesTo(agent)) {
       knownTools.push(...provider.knownTools());

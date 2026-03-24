@@ -142,8 +142,8 @@ export const meetingsToolProvider: AgentToolProvider = {
   name: 'meetings',
   appliesTo: (agent) => agent.kind === MEETINGS_AGENT_KIND,
   knownTools: () => [
-    { toolType: 'stitch', toolName: 'meetings_list' },
-    { toolType: 'stitch', toolName: 'meetings_transcriptions' },
+    { toolType: 'stitch', toolName: 'meetings_list', displayName: 'Meetings List' },
+    { toolType: 'stitch', toolName: 'meetings_transcriptions', displayName: 'Meetings Transcriptions' },
   ],
   createTools: (context) => ({
     meetings_list: withTruncation(

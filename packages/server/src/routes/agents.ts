@@ -27,16 +27,7 @@ import {
   upsertAgentPermission,
 } from '@/permission/service.js';
 import { getAgentSpecificKnownTools } from '@/tools/agent-tool-providers.js';
-import { createTools } from '@/tools/index.js';
-
-const STITCH_KNOWN_TOOLS = Object.keys(
-  createTools({
-    sessionId: 'ses_' as PrefixedString<'ses'>,
-    messageId: 'msg_' as PrefixedString<'msg'>,
-    agentId: 'agt_' as PrefixedString<'agt'>,
-    streamRunId: '',
-  }),
-).map((name) => ({ toolType: 'stitch' as const, toolName: name }));
+import { STITCH_KNOWN_TOOLS } from '@/tools/index.js';
 
 export const agentsRouter = new Hono();
 
@@ -153,6 +144,7 @@ agentsRouter.get('/:id/tool-config', async (c) => {
     (s.tools ?? []).map((t) => ({
       toolType: 'mcp' as const,
       toolName: formatMcpToolName(s.id, t.name),
+      displayName: t.name,
     })),
   );
 

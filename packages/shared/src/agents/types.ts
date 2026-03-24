@@ -27,6 +27,7 @@ export type Agent = {
 export type AgentToolEntry = {
   toolType: AgentToolType;
   toolName: string;
+  displayName: string;
   enabled: boolean;
 };
 

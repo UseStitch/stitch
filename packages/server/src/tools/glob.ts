@@ -100,6 +100,8 @@ function getSuggestion() {
 
 const shouldTruncate = true;
 
+export const DISPLAY_NAME = 'Glob';
+
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createGlobTool();
   const gatedTool = withPermissionGate(

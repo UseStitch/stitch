@@ -15,8 +15,8 @@ export type AgentToolProvider = {
   name: string;
   /** Return true if this provider should inject tools for the given agent */
   appliesTo: (agent: AgentInfo) => boolean;
-  /** Tool name/type pairs for the UI tool-config endpoint */
-  knownTools: () => { toolType: AgentToolType; toolName: string }[];
+  /** Tool name/type/displayName triples for the UI tool-config endpoint */
+  knownTools: () => { toolType: AgentToolType; toolName: string; displayName: string }[];
   /** Create the actual tool instances for runtime use */
   createTools: (context: ToolContext) => Record<string, Tool>;
 };
