@@ -121,17 +121,13 @@ function onError(err: Error): void {
 
 async function autoDismiss(meetingId: PrefixedString<'rec'>): Promise<void> {
   const db = getDb();
-  const now = Date.now();
 
   const [row] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   if (!row || row.status !== 'detected') return;
 
   log.info({ meetingId }, 'auto-dismissing meeting after grace period');
 
-  await db
-    .update(meetings)
-    .set({ status: 'dismissed', endedAt: now, updatedAt: now })
-    .where(eq(meetings.id, meetingId));
+  await db.delete(meetings).where(eq(meetings.id, meetingId));
 
   await broadcast('meeting-ended', { meetingId });
 }
@@ -171,7 +167,6 @@ export async function acceptMeeting(meetingId: PrefixedString<'rec'>): Promise<v
 
 export async function dismissMeeting(meetingId: PrefixedString<'rec'>): Promise<void> {
   const db = getDb();
-  const now = Date.now();
 
   // Clear any grace timer
   const timer = graceTimers.get(meetingId);
@@ -188,10 +183,7 @@ export async function dismissMeeting(meetingId: PrefixedString<'rec'>): Promise<
     throw new Error(`Meeting is not in detected state: ${meetingId} (status: ${row.status})`);
   }
 
-  await db
-    .update(meetings)
-    .set({ status: 'dismissed', endedAt: now, updatedAt: now })
-    .where(eq(meetings.id, meetingId));
+  await db.delete(meetings).where(eq(meetings.id, meetingId));
 
   await broadcast('meeting-ended', { meetingId });
 

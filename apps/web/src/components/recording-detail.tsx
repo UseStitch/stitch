@@ -67,7 +67,6 @@ const STATUS_STYLES: Record<MeetingStatus, { label: string; className: string }>
   completed: { label: 'Completed', className: 'bg-emerald-500/10 text-emerald-600' },
   recording: { label: 'Recording', className: 'bg-red-500/10 text-red-600' },
   detected: { label: 'Detected', className: 'bg-primary/10 text-primary' },
-  dismissed: { label: 'Dismissed', className: 'bg-muted text-muted-foreground' },
 };
 
 export function StatusBadge({ status }: { status: MeetingStatus }) {

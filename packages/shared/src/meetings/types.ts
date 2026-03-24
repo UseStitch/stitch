@@ -2,7 +2,7 @@ import type { LanguageModelUsage } from 'ai';
 
 import type { PrefixedString } from '../id/index.js';
 
-export type MeetingStatus = 'detected' | 'recording' | 'completed' | 'dismissed';
+export type MeetingStatus = 'detected' | 'recording' | 'completed';
 
 export type Meeting = {
   id: PrefixedString<'rec'>;

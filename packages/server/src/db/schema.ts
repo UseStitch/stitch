@@ -347,7 +347,7 @@ export const meetings = sqliteTable(
   (table) => [
     check(
       'meetings_status_check',
-      sql`${table.status} in ('detected', 'recording', 'completed', 'dismissed')`,
+      sql`${table.status} in ('detected', 'recording', 'completed')`,
     ),
   ],
 );
