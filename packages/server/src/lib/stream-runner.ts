@@ -324,7 +324,7 @@ class StreamRunner {
       const isLastStep = step === MAX_STEPS - 1;
       if (isLastStep) {
         this.state.conversation.push({
-          role: 'system',
+          role: 'user',
           content: MAX_STEPS_WARNING(MAX_STEPS),
         });
       }
