@@ -29,10 +29,11 @@ import {
   useTranscribeMeeting,
 } from '@/lib/queries/meetings';
 import {
-  enabledProviderModelsQueryOptions,
+  enabledAudioProviderModelsQueryOptions,
   type ModelSummary,
   type ProviderModels,
 } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 function formatDate(timestamp: number): string {
@@ -170,15 +171,6 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
       )}
     </div>
   );
-}
-
-function filterAudioCapableModels(providerModels: ProviderModels[]): ProviderModels[] {
-  return providerModels
-    .map((provider) => ({
-      ...provider,
-      models: provider.models.filter((m) => m.modalities?.input?.includes('audio')),
-    }))
-    .filter((p) => p.models.length > 0);
 }
 
 type AudioModelSpec = {
@@ -457,17 +449,45 @@ function TranscriptionSection({
 export function RecordingDetail({ meeting }: { meeting: Meeting }) {
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
   const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
+  const { data: settings } = useQuery(settingsQueryOptions);
   const title = transcription?.title || formatAppName(meeting.app);
 
-  const { data: allProviderModels } = useQuery(enabledProviderModelsQueryOptions);
+  const { data: audioModels = [] } = useQuery(enabledAudioProviderModelsQueryOptions);
   const transcribeMutation = useTranscribeMeeting();
 
   const [selectedModel, setSelectedModel] = React.useState<AudioModelSpec | null>(null);
 
-  const audioModels = React.useMemo(
-    () => filterAudioCapableModels(allProviderModels ?? []),
-    [allProviderModels],
-  );
+  React.useEffect(() => {
+    setSelectedModel(null);
+  }, [meeting.id]);
+
+  React.useEffect(() => {
+    if (selectedModel || audioModels.length === 0) {
+      return;
+    }
+
+    const defaultProviderId = settings?.['recordings.default.providerId'];
+    const defaultModelId = settings?.['recordings.default.modelId'];
+
+    if (defaultProviderId && defaultModelId) {
+      const hasDefault = audioModels.some(
+        (provider) =>
+          provider.providerId === defaultProviderId &&
+          provider.models.some((model) => model.id === defaultModelId),
+      );
+
+      if (hasDefault) {
+        setSelectedModel({ providerId: defaultProviderId, modelId: defaultModelId });
+        return;
+      }
+    }
+
+    const [firstProvider] = audioModels;
+    const [firstModel] = firstProvider.models;
+    if (firstModel) {
+      setSelectedModel({ providerId: firstProvider.providerId, modelId: firstModel.id });
+    }
+  }, [audioModels, selectedModel, settings]);
 
   function handleTranscribe() {
     if (!selectedModel) return;

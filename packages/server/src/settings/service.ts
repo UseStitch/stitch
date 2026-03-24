@@ -35,7 +35,9 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     return err('Invalid onboarding status', 400);
   }
   if (
-    (key === 'compaction.auto' || key === 'compaction.prune') &&
+    (key === 'compaction.auto' ||
+      key === 'compaction.prune' ||
+      key === 'recordings.autoTranscribe') &&
     !BOOLEAN_SETTING_VALUES.has(value)
   ) {
     return err('Invalid boolean setting value', 400);
