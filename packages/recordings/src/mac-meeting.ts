@@ -17,6 +17,7 @@ interface MicStatusEntry {
 interface DetectedMeeting {
   meeting: MeetingInfo;
   processKey: string;
+  pid: number;
 }
 
 /** A meeting that has an active recording */
@@ -24,6 +25,7 @@ interface RecordingSession {
   meeting: MeetingInfo;
   handle: RecordingHandle;
   processKey: string;
+  pid: number;
 }
 
 interface MacMeetingServiceOptions {
@@ -139,6 +141,7 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       meeting: detected.meeting,
       handle,
       processKey,
+      pid: detected.pid,
     });
     this.log.info({ meetingId, app: detected.meeting.app }, 'recording started');
   }
@@ -161,6 +164,28 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
     this.emit('recording:write', session.meeting, result);
     this.log.info({ meetingId }, 'recording stopped');
     return result;
+  }
+
+  async cancelMeeting(meetingId: string): Promise<void> {
+    const processKey = this.meetingIdToKey.get(meetingId);
+    if (!processKey) return; // Already gone — nothing to clean up
+
+    // If it was only detected (not yet recording), just remove from maps
+    if (this.detected.has(processKey)) {
+      this.detected.delete(processKey);
+      this.meetingIdToKey.delete(meetingId);
+      this.log.info({ meetingId }, 'detected meeting cancelled');
+      return;
+    }
+
+    // If it was actively recording, discard the recording
+    const session = this.recordings.get(processKey);
+    if (session) {
+      this.recordings.delete(processKey);
+      this.meetingIdToKey.delete(meetingId);
+      await this.writer.discard(session.handle);
+      this.log.info({ meetingId }, 'active recording cancelled');
+    }
   }
 
   // -- Internals --
@@ -211,8 +236,8 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
           startedAt: now,
         };
 
-        this.log.info({ meetingId: id, app: entry.name, bundleId: entry.bundleId }, 'new meeting detected');
-        this.detected.set(key, { meeting, processKey: key });
+        this.log.info({ meetingId: id, app: entry.name, bundleId: entry.bundleId, pid: entry.pid }, 'new meeting detected');
+        this.detected.set(key, { meeting, processKey: key, pid: entry.pid });
         this.meetingIdToKey.set(id, key);
         this.emit('meeting:start', meeting);
       }
@@ -220,7 +245,7 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       // Collect ended meetings before mutating maps
       const endedDetected: [string, DetectedMeeting][] = [];
       for (const [key, detected] of this.detected) {
-        if (!currentKeys.has(key)) {
+        if (!currentKeys.has(key) || !isProcessAlive(detected.pid)) {
           endedDetected.push([key, detected]);
         }
       }
@@ -228,6 +253,14 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       const endedRecordings: [string, RecordingSession][] = [];
       for (const [key, session] of this.recordings) {
         if (!currentKeys.has(key)) {
+          endedRecordings.push([key, session]);
+        } else if (!isProcessAlive(session.pid)) {
+          // The OS still reports mic usage but the process is dead (e.g. Chrome
+          // tab closed but the audio handle hasn't been cleaned up yet).
+          this.log.info(
+            { meetingId: session.meeting.id, pid: session.pid },
+            'recording process no longer alive',
+          );
           endedRecordings.push([key, session]);
         }
       }
@@ -286,12 +319,38 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 }
 
 /**
- * Build a stable key for a process. Uses bundleId when available (preferred)
- * because PIDs can be reused. Falls back to pid for the "unknown" fallback case.
+ * Build a stable key for a process.
+ *
+ * Most apps (Zoom, Slack, etc.) get a bundle-based key so that PID recycling
+ * doesn't cause false "new meeting" detections.
+ *
+ * Multi-process apps like Chrome spawn many "Helper" subprocesses that share
+ * the same bundleId. Each helper represents a separate tab / media context,
+ * so we key those by PID to track them independently. This ensures that when
+ * one helper releases the mic the recording stops, even if a different helper
+ * still has mic access.
  */
 function buildProcessKey(entry: MicStatusEntry): string {
   if (entry.bundleId !== 'unknown') {
+    const lower = entry.name.toLowerCase();
+    if (lower.includes('helper')) {
+      return `pid:${entry.pid}`;
+    }
     return `bundle:${entry.bundleId}`;
   }
   return `pid:${entry.pid}`;
+}
+
+/**
+ * Check whether a process is still running.
+ * Uses signal 0 which doesn't actually send a signal — it just checks
+ * whether the process exists and is reachable.
+ */
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
