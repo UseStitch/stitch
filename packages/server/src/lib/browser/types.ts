@@ -53,9 +53,31 @@ export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
 /** Server-side ref entry mapping a snapshot ref (e.g. "e5") to a CDP node. */
 export type RefEntry = {
-  backendNodeId: number;
+  backendNodeId: number | null;
   role: string;
   name: string;
+};
+
+export type SearchPageMatch = {
+  match: string;
+  context: string;
+  index: number;
+};
+
+export type SearchPageResult = {
+  matches: SearchPageMatch[];
+  total: number;
+};
+
+export type FindElementEntry = {
+  tag: string;
+  text?: string;
+  attributes?: Record<string, string>;
+};
+
+export type FindElementsResult = {
+  elements: FindElementEntry[];
+  total: number;
 };
 
 export const BROWSER_ACTIONS = [
@@ -77,4 +99,6 @@ export const BROWSER_ACTIONS = [
   'evaluate',
   'wait',
   'resize',
+  'search_page',
+  'find_elements',
 ] as const;

@@ -51,7 +51,44 @@ const browserInputSchema = z.object({
   height: z.number().optional().describe('Viewport height in pixels. For resize action.'),
   tabId: z.string().optional().describe('Tab ID for tab_focus or tab_close actions.'),
   timeMs: z.number().optional().describe('Time to wait in milliseconds. For wait action.'),
-  selector: z.string().optional().describe('CSS selector to wait for. For wait action.'),
+  selector: z
+    .string()
+    .optional()
+    .describe('CSS selector. For wait action or find_elements action.'),
+  pattern: z
+    .string()
+    .optional()
+    .describe('Text pattern to search for. For search_page action.'),
+  regex: z
+    .boolean()
+    .optional()
+    .describe('Treat pattern as regex. For search_page action.'),
+  caseSensitive: z
+    .boolean()
+    .optional()
+    .describe('Case-sensitive search. For search_page action.'),
+  contextChars: z
+    .number()
+    .optional()
+    .describe('Characters of surrounding context per match. For search_page action.'),
+  cssScope: z
+    .string()
+    .optional()
+    .describe('CSS selector to scope search within. For search_page action.'),
+  maxResults: z
+    .number()
+    .optional()
+    .describe('Max results to return. For search_page or find_elements actions.'),
+  attributes: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Specific attributes to extract (e.g. ["href", "src"]). For find_elements action.',
+    ),
+  includeText: z
+    .boolean()
+    .optional()
+    .describe('Include element text content. For find_elements action. Default true.'),
 });
 
 type BrowserInput = z.infer<typeof browserInputSchema>;
@@ -62,6 +99,11 @@ const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. T
 1. Use **snapshot** to get a YAML accessibility tree with element refs (e.g. [ref=e1])
 2. Use refs to interact: click ref=e3, type into ref=e5, hover ref=e7
 3. After actions that change the page, take a new **snapshot** to get updated refs
+
+## Action hierarchy (prefer actions higher in the list)
+1. **snapshot** + ref-based actions (click, type, hover, select) — primary workflow
+2. **search_page** / **find_elements** — lightweight, zero-cost lookups (no full snapshot needed)
+3. **evaluate** — last resort for complex DOM manipulation only
 
 ## Actions
 - **snapshot**: Get accessibility tree with element refs. Always do this first.
@@ -78,9 +120,21 @@ const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. T
 - **tab_list**: List all open tabs
 - **tab_focus**: Focus a tab (set \`tabId\`)
 - **tab_close**: Close a tab (set \`tabId\`, defaults to active)
-- **evaluate**: Run JavaScript in the page (set \`fn\`)
+- **search_page**: Search visible page text for a pattern (set \`pattern\`, optionally \`regex\`, \`caseSensitive\`, \`contextChars\`, \`cssScope\`, \`maxResults\`). Fast, zero LLM cost. Use to find text, verify content exists, or locate data without a full snapshot.
+- **find_elements**: Query DOM elements by CSS selector (set \`selector\`, optionally \`attributes\`, \`maxResults\`, \`includeText\`). Fast, zero LLM cost. Use to explore page structure, count items, or extract attributes like href/src.
+- **evaluate**: Run JavaScript in the page (set \`fn\`). Use only when ref-based actions and search/find tools are insufficient.
 - **wait**: Wait for time or selector (set \`timeMs\` and/or \`selector\`)
-- **resize**: Resize viewport (set \`width\` and \`height\`)`;
+- **resize**: Resize viewport (set \`width\` and \`height\`)
+
+## Failure recovery
+- If a ref is not found, the page has likely changed — take a fresh **snapshot** first.
+- If the same action fails twice, change strategy: try a different selector, scroll to reveal the element, or use **search_page** to verify the content exists.
+- If blocked by a modal, cookie banner, or dialog, dismiss the blocker first before continuing.
+
+## Tab discipline
+- Open research/reference pages in a **new tab** to keep the main task tab clean.
+- Close tabs you no longer need with **tab_close**.`;
+
 
 async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
   const browser = getBrowserManager();
@@ -209,6 +263,56 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
       if (!input.height) throw new Error('Missing required field: height');
       const result = await browser.resize(input.width, input.height);
       return { output: result };
+    }
+
+    case 'search_page': {
+      if (!input.pattern) throw new Error('Missing required field: pattern');
+      const result = await browser.searchPage({
+        pattern: input.pattern,
+        regex: input.regex,
+        caseSensitive: input.caseSensitive,
+        contextChars: input.contextChars,
+        cssScope: input.cssScope,
+        maxResults: input.maxResults,
+      });
+      const matchLines = result.matches.map(
+        (m, i) => `  ${i + 1}. "${m.match}" — ...${m.context}...`,
+      );
+      const showing = result.matches.length;
+      const total = result.total;
+      const summary =
+        total === 0
+          ? `No matches for "${input.pattern}".`
+          : `Found ${total} match${total !== 1 ? 'es' : ''} for "${input.pattern}"${showing < total ? ` (showing ${showing})` : ''}:\n${matchLines.join('\n')}`;
+      return { output: summary };
+    }
+
+    case 'find_elements': {
+      if (!input.selector) throw new Error('Missing required field: selector');
+      const result = await browser.findElements({
+        selector: input.selector,
+        attributes: input.attributes,
+        maxResults: input.maxResults,
+        includeText: input.includeText,
+      });
+      const elemLines = result.elements.map((el, i) => {
+        let line = `  ${i + 1}. <${el.tag}>`;
+        if (el.text) line += ` "${el.text}"`;
+        if (el.attributes && Object.keys(el.attributes).length > 0) {
+          const attrStr = Object.entries(el.attributes)
+            .map(([k, v]) => `${k}="${v}"`)
+            .join(' ');
+          line += ` [${attrStr}]`;
+        }
+        return line;
+      });
+      const showing = result.elements.length;
+      const total = result.total;
+      const summary =
+        total === 0
+          ? `No elements matching "${input.selector}".`
+          : `Found ${total} element${total !== 1 ? 's' : ''} matching "${input.selector}"${showing < total ? ` (showing ${showing})` : ''}:\n${elemLines.join('\n')}`;
+      return { output: summary };
     }
   }
 }
