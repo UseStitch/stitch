@@ -10,10 +10,12 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
 import {
   acceptMeeting,
+  deleteMeeting,
   dismissMeeting,
   getActiveMeetings,
   getAllMeetings,
   getMeetingById,
+  stopMeetingRecording,
 } from '@/meeting/service.js';
 import {
   getLatestTranscription,
@@ -72,11 +74,35 @@ meetingsRouter.post('/:meetingId/accept', async (c) => {
   }
 });
 
+meetingsRouter.post('/:meetingId/stop', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+
+  try {
+    await stopMeetingRecording(meetingId);
+    return c.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ error: message }, 400);
+  }
+});
+
 meetingsRouter.post('/:meetingId/dismiss', async (c) => {
   const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
 
   try {
     await dismissMeeting(meetingId);
+    return c.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ error: message }, 400);
+  }
+});
+
+meetingsRouter.delete('/:meetingId', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+
+  try {
+    await deleteMeeting(meetingId);
     return c.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

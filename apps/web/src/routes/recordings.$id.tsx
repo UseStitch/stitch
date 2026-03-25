@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RecordingDeleteDialog } from '@/components/recording-delete-dialog';
 import { RecordingDetail } from '@/components/recording-detail';
 import { recordingsQueryOptions } from '@/lib/queries/meetings';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
@@ -19,6 +20,7 @@ export const Route = createFileRoute('/recordings/$id')({
 function RecordingDetailComponent() {
   const { id } = Route.useParams();
   const { data: recordings } = useSuspenseQuery(recordingsQueryOptions);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
   const meeting = React.useMemo(
     () => recordings.find((r) => r.id === id),
@@ -33,5 +35,14 @@ function RecordingDetailComponent() {
     );
   }
 
-  return <RecordingDetail meeting={meeting} />;
+  return (
+    <>
+      <RecordingDetail meeting={meeting} onDelete={() => setDeleteDialogOpen(true)} />
+      <RecordingDeleteDialog
+        meetingId={meeting.id}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
+    </>
+  );
 }

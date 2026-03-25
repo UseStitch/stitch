@@ -1,4 +1,4 @@
-import { queryOptions, useMutation } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { Meeting, Transcription } from '@stitch/shared/meetings/types';
 
@@ -54,6 +54,23 @@ export function useAcceptMeeting() {
   });
 }
 
+export function useStopRecording() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (meetingId: string) => {
+      const res = await serverFetch(`/meetings/${meetingId}/stop`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to stop recording');
+      return res.json();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.list() });
+    },
+  });
+}
+
 export function useDismissMeeting() {
   const clear = useMeetingStore((s) => s.clear);
 
@@ -91,6 +108,22 @@ export function useTranscribeMeeting() {
         throw new Error(body.error ?? 'Failed to start transcription');
       }
       return res.json() as Promise<{ transcriptionId: string }>;
+    },
+  });
+}
+
+export function useDeleteMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (meetingId: string): Promise<void> => {
+      const res = await serverFetch(`/meetings/${meetingId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete recording');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.list() });
     },
   });
 }

@@ -3,6 +3,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CpuIcon,
+  EllipsisIcon,
   FileTextIcon,
   Loader2Icon,
   MicIcon,
@@ -10,6 +11,7 @@ import {
   PlayIcon,
   SearchIcon,
   SparklesIcon,
+  Trash2Icon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -20,6 +22,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Meeting, MeetingStatus } from '@stitch/shared/meetings/types';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSSE } from '@/hooks/sse/sse-context';
 import {
   getAudioUrl,
@@ -451,7 +459,13 @@ function TranscriptionSection({
   );
 }
 
-export function RecordingDetail({ meeting }: { meeting: Meeting }) {
+export function RecordingDetail({
+  meeting,
+  onDelete,
+}: {
+  meeting: Meeting;
+  onDelete: () => void;
+}) {
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
   const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
   const title = transcription?.title || formatAppName(meeting.app);
@@ -519,7 +533,40 @@ export function RecordingDetail({ meeting }: { meeting: Meeting }) {
             </div>
             <div className="h-6 w-px bg-border/50" />
             <AudioPlayer meetingId={meeting.id} />
+            <div className="h-6 w-px bg-border/50" />
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" aria-label="Recording actions">
+                    <EllipsisIcon className="size-4" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  <Trash2Icon className="size-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        )}
+        {!hasAudio && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" aria-label="Recording actions">
+                  <EllipsisIcon className="size-4" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                <Trash2Icon className="size-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 

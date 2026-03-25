@@ -1,4 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
+import path from 'node:path';
 
 import { desc, eq } from 'drizzle-orm';
 
@@ -214,4 +216,64 @@ export async function getMeetingById(
   const db = getDb();
   const [row] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   return row;
+}
+
+export async function deleteMeeting(meetingId: PrefixedString<'rec'>): Promise<void> {
+  const db = getDb();
+
+  const [row] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
+  if (!row) {
+    throw new Error(`Meeting not found: ${meetingId}`);
+  }
+
+  // Clear any grace timer
+  const timer = graceTimers.get(meetingId);
+  if (timer) {
+    clearTimeout(timer);
+    graceTimers.delete(meetingId);
+  }
+
+  // Cancel the meeting in the service so it cleans up internal state
+  // and stops any active recorders. This must happen before deleting
+  // files from disk since the service holds handles to them.
+  if (meetingService) {
+    await meetingService.cancelMeeting(meetingId);
+  }
+
+  // Remove the recording directory from disk if it exists
+  if (row.recordingFilePath) {
+    const recordingDir = path.dirname(row.recordingFilePath);
+    if (existsSync(recordingDir)) {
+      await rm(recordingDir, { recursive: true, force: true });
+    }
+  }
+
+  // Delete from DB (cascades to recording_transcriptions)
+  await db.delete(meetings).where(eq(meetings.id, meetingId));
+
+  await broadcast('meeting-ended', { meetingId });
+
+  log.info({ meetingId }, 'meeting deleted');
+}
+
+export async function stopMeetingRecording(meetingId: PrefixedString<'rec'>): Promise<void> {
+  if (!meetingService) {
+    throw new Error('Meeting service not initialized');
+  }
+
+  const db = getDb();
+
+  const [row] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
+  if (!row) {
+    throw new Error(`Meeting not found: ${meetingId}`);
+  }
+  if (row.status !== 'recording') {
+    throw new Error(`Meeting is not recording: ${meetingId} (status: ${row.status})`);
+  }
+
+  // stopRecording finalizes the WAV, emits recording:write (which updates DB),
+  // and emits meeting:stop (which broadcasts meeting-ended to the UI).
+  await meetingService.stopRecording(meetingId);
+
+  log.info({ meetingId }, 'meeting recording manually stopped');
 }
