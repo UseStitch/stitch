@@ -1,6 +1,7 @@
 import type { PrefixedString } from '@stitch/shared/id';
 
 import * as BashTool from '@/tools/bash.js';
+import * as BrowserTool from '@/tools/browser.js';
 import * as EditTool from '@/tools/edit.js';
 import * as GlobTool from '@/tools/glob.js';
 import * as GrepTool from '@/tools/grep.js';
@@ -30,5 +31,6 @@ export function createTools(context: {
     grep: GrepTool.createRegisteredTool(context),
     edit: EditTool.createRegisteredTool(context),
     write: WriteTool.createRegisteredTool(context),
+    browser: BrowserTool.createRegisteredTool(context),
   };
 }
