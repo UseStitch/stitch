@@ -2,17 +2,18 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type { MeetingInfo, MeetingService, RecordingResult } from '@stitch/recordings';
 import { createMeetingService, RecordingWriter } from '@stitch/recordings';
 
 import { getDb } from '@/db/client.js';
-import { meetings } from '@/db/schema.js';
+import { meetings, providerConfig, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { broadcast } from '@/lib/sse.js';
+import { startTranscription } from '@/meeting/transcription-service.js';
 
 const log = Log.create({ service: 'meeting-service' });
 const detectionLog = Log.create({ service: 'meeting-detection' });
@@ -115,6 +116,64 @@ async function onRecordingWrite(meeting: MeetingInfo, result: RecordingResult): 
     app: meeting.app,
     durationSecs: result.file.durationSecs,
   });
+
+  void maybeAutoTranscribeRecording(meetingId);
+}
+
+async function maybeAutoTranscribeRecording(meetingId: PrefixedString<'rec'>): Promise<void> {
+  const db = getDb();
+  const settingsRows = await db
+    .select()
+    .from(userSettings)
+    .where(
+      inArray(userSettings.key, [
+        'recordings.autoTranscribe',
+        'recordings.default.providerId',
+        'recordings.default.modelId',
+      ]),
+    );
+
+  const autoTranscribe = settingsRows.find((row) => row.key === 'recordings.autoTranscribe')?.value;
+  if (autoTranscribe !== 'true') {
+    return;
+  }
+
+  const providerId = settingsRows.find((row) => row.key === 'recordings.default.providerId')?.value;
+  const modelId = settingsRows.find((row) => row.key === 'recordings.default.modelId')?.value;
+
+  if (!providerId || !modelId) {
+    log.warn({ meetingId }, 'auto-transcribe is enabled but recording model is not configured');
+    return;
+  }
+
+  const [config] = await db
+    .select()
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, providerId));
+
+  if (!config) {
+    log.warn(
+      { meetingId, providerId, modelId },
+      'auto-transcribe skipped because provider is not configured',
+    );
+    return;
+  }
+
+  try {
+    const transcriptionId = await startTranscription({
+      meetingId,
+      providerId,
+      modelId,
+      credentials: config.credentials,
+    });
+    log.info({ meetingId, transcriptionId, providerId, modelId }, 'auto-transcription started');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log.error(
+      { meetingId, providerId, modelId, error: errorMessage },
+      'failed to auto-start transcription',
+    );
+  }
 }
 
 function onError(err: Error): void {

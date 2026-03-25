@@ -192,6 +192,8 @@ function getSuggestion(input: unknown): PermissionSuggestion | null {
 
 const shouldTruncate = true;
 
+export const DISPLAY_NAME = 'Bash';
+
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createBashTool();
   const gatedTool = withPermissionGate(

@@ -16,7 +16,11 @@ import {
 } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import {
+  enabledAudioProviderModelsQueryOptions,
+  visibleProviderModelsQueryOptions,
+  type ProviderModels,
+} from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -54,6 +58,13 @@ const MODEL_PREFERENCES = [
     description: 'Used for generating conversation titles',
   },
 ] as const;
+
+const RECORDINGS_MODEL_PREFERENCE = {
+  providerIdKey: 'recordings.default.providerId',
+  modelIdKey: 'recordings.default.modelId',
+  label: 'Default Transcription Model',
+  description: 'Used when transcribing recordings',
+} as const;
 
 function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
@@ -206,6 +217,12 @@ export function GeneralSettings() {
           <NotificationsContent />
         </React.Suspense>
       </section>
+      <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-medium">Recordings</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <RecordingsContent />
+        </React.Suspense>
+      </section>
     </div>
   );
 }
@@ -235,6 +252,62 @@ function NotificationsContent() {
         </p>
       </div>
       <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
+    </div>
+  );
+}
+
+function RecordingsContent() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: audioProviderModels } = useSuspenseQuery(enabledAudioProviderModelsQueryOptions);
+
+  const autoTranscribeEnabled = settings['recordings.autoTranscribe'] === 'true';
+
+  const saveAutoTranscribeMutation = useMutation(
+    saveSettingMutationOptions('recordings.autoTranscribe', queryClient, { silent: true }),
+  );
+
+  function handleAutoTranscribeToggle(checked: boolean) {
+    saveAutoTranscribeMutation.mutate(checked ? 'true' : 'false');
+  }
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">{RECORDINGS_MODEL_PREFERENCE.label}</Label>
+          <p className="text-xs text-muted-foreground">{RECORDINGS_MODEL_PREFERENCE.description}</p>
+        </div>
+        <div className="w-52 shrink-0">
+          {audioProviderModels.length > 0 ? (
+            <ModelSelect
+              providerIdKey={RECORDINGS_MODEL_PREFERENCE.providerIdKey}
+              modelIdKey={RECORDINGS_MODEL_PREFERENCE.modelIdKey}
+              currentProviderId={settings[RECORDINGS_MODEL_PREFERENCE.providerIdKey]}
+              currentModelId={settings[RECORDINGS_MODEL_PREFERENCE.modelIdKey]}
+              providerModels={audioProviderModels}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">No audio-capable models available</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label htmlFor="auto-transcribe-toggle" className="text-sm font-medium">
+            Auto-transcribe recordings
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Automatically start transcription when a recording finishes
+          </p>
+        </div>
+        <Switch
+          id="auto-transcribe-toggle"
+          checked={autoTranscribeEnabled}
+          onCheckedChange={handleAutoTranscribeToggle}
+        />
+      </div>
     </div>
   );
 }

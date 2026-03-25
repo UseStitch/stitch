@@ -43,6 +43,13 @@
       "when": 1774371542826,
       "tag": "0005_lush_nicolaos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1774392329065,
+      "tag": "0006_nosy_quasar",
+      "breakpoints": true
     }
   ]
 }

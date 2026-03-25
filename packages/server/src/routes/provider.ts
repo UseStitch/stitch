@@ -10,6 +10,7 @@ import {
   getProviderCredentials,
   getProviderLogo,
   getProviderModel,
+  listEnabledProviderAudioModels,
   listProviderModels,
   listProviders,
   upsertProviderCredentials,
@@ -23,6 +24,11 @@ export const providerRouter = new Hono();
 
 providerRouter.get('/', async (c) => {
   const providers = await listProviders();
+  return c.json(providers);
+});
+
+providerRouter.get('/audio-models', async (c) => {
+  const providers = await listEnabledProviderAudioModels();
   return c.json(providers);
 });
 

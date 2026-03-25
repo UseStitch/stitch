@@ -5,6 +5,9 @@ export const SETTINGS_KEYS = [
   'model.compaction.modelId',
   'model.title.providerId',
   'model.title.modelId',
+  'recordings.default.providerId',
+  'recordings.default.modelId',
+  'recordings.autoTranscribe',
   'compaction.auto',
   'compaction.prune',
   'compaction.reserved',
@@ -60,6 +63,21 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'model.title.modelId',
     value: '',
     description: 'Model ID for the preferred model for generating session titles.',
+  },
+  {
+    key: 'recordings.default.providerId',
+    value: '',
+    description: 'Provider ID for the default model used for recording transcriptions.',
+  },
+  {
+    key: 'recordings.default.modelId',
+    value: '',
+    description: 'Model ID for the default model used for recording transcriptions.',
+  },
+  {
+    key: 'recordings.autoTranscribe',
+    value: 'false',
+    description: 'Automatically start transcription when a recording finishes.',
   },
   {
     key: 'compaction.auto',

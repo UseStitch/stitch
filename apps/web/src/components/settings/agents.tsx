@@ -107,17 +107,6 @@ function buildModelLabel(
   return `${providerId} / ${modelId}`;
 }
 
-const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  bash: 'Bash',
-  read: 'Read',
-  edit: 'Edit',
-  write: 'Write',
-  glob: 'Glob',
-  grep: 'Grep',
-  webfetch: 'Web Fetch',
-  question: 'Question',
-};
-
 // Stitch tools that support file path pattern rules
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 // Stitch tools that support command family pattern rules
@@ -167,10 +156,12 @@ function PermissionSelect({
 function PermissionPolicyEditor({
   agentId,
   toolName,
+  displayName,
   onBack,
 }: {
   agentId: string;
   toolName: string;
+  displayName: string;
   onBack: () => void;
 }) {
   const { data: permissions } = useSuspenseQuery(agentPermissionsQueryOptions(agentId));
@@ -187,7 +178,6 @@ function PermissionPolicyEditor({
   const globalPermission: AgentPermissionValue = globalRule?.permission ?? 'ask';
 
   const isFileTool = FILE_PATTERN_TOOLS.has(toolName);
-  const displayName = TOOL_DISPLAY_NAMES[toolName] ?? toolName;
 
   const isMutating = upsertPermission.isPending || deletePermission.isPending;
 
@@ -439,6 +429,9 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
         <PermissionPolicyEditor
           agentId={agentId}
           toolName={editingTool}
+          displayName={
+            toolConfig.find((t) => t.toolName === editingTool)?.displayName ?? editingTool
+          }
           onBack={() => setEditingTool(null)}
         />
       </React.Suspense>
@@ -450,8 +443,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   const stitchTools = toolConfig.filter(
     (t) =>
       t.toolType === 'stitch' &&
-      (query === '' ||
-        (TOOL_DISPLAY_NAMES[t.toolName] ?? t.toolName).toLowerCase().includes(query)),
+      (query === '' || t.displayName.toLowerCase().includes(query)),
   );
 
   // Group MCP tools by server ID
@@ -494,7 +486,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
                   className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
                 >
                   <p className="flex-1 text-sm">
-                    {TOOL_DISPLAY_NAMES[tool.toolName] ?? tool.toolName}
+                    {tool.displayName}
                   </p>
                   {tool.enabled ? (
                     <>
