@@ -1,8 +1,8 @@
-import { CheckIcon, MicIcon, XIcon } from 'lucide-react';
+import { CheckIcon, MicIcon, SquareIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useAcceptMeeting, useDismissMeeting } from '@/lib/queries/meetings';
+import { useAcceptMeeting, useDismissMeeting, useStopRecording } from '@/lib/queries/meetings';
 import { cn } from '@/lib/utils';
 import { useMeetingStore } from '@/stores/meeting-store';
 
@@ -73,6 +73,7 @@ function DetectedBanner() {
 
 function RecordingBannerContent() {
   const meeting = useMeetingStore((s) => s.meeting);
+  const stopRecording = useStopRecording();
   const [, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -93,6 +94,15 @@ function RecordingBannerContent() {
       <span className="font-mono text-xs tabular-nums text-muted-foreground">
         {formatElapsed(meeting.startedAt)}
       </span>
+      <Button
+        variant="destructive"
+        size="xs"
+        onClick={() => stopRecording.mutate(meeting.meetingId)}
+        disabled={stopRecording.isPending}
+      >
+        <SquareIcon data-icon="inline-start" className="size-3" />
+        {stopRecording.isPending ? 'Stopping...' : 'Stop'}
+      </Button>
     </div>
   );
 }
