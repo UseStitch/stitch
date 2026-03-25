@@ -1,8 +1,10 @@
 import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { platform, tmpdir } from 'node:os';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+const IS_MACOS = platform() === 'darwin';
 
 import type { RecordingHandle, RecordingResult } from '../src/recording-writer.js';
 import type { MeetingInfo } from '../src/meeting-service.js';
@@ -182,7 +184,7 @@ afterEach(async () => {
 // Tests: Chrome helper PID-based tracking (the core fix)
 // ---------------------------------------------------------------------------
 
-describe('Chrome helper PID-based tracking', () => {
+describe.skipIf(!IS_MACOS)('Chrome helper PID-based tracking', () => {
   test('detects Chrome Helper as a new meeting by PID', async () => {
     const service = createService();
     const events = collectEvents(service);
@@ -362,7 +364,7 @@ describe('Chrome helper PID-based tracking', () => {
 // Tests: General meeting lifecycle
 // ---------------------------------------------------------------------------
 
-describe('meeting lifecycle', () => {
+describe.skipIf(!IS_MACOS)('meeting lifecycle', () => {
   test('does not detect baseline processes as meetings', async () => {
     const service = createService();
     const events = collectEvents(service);
