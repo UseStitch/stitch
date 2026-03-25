@@ -285,21 +285,17 @@ export async function deleteMeeting(meetingId: PrefixedString<'rec'>): Promise<v
     throw new Error(`Meeting not found: ${meetingId}`);
   }
 
-  // Clear any grace timer
   const timer = graceTimers.get(meetingId);
   if (timer) {
     clearTimeout(timer);
     graceTimers.delete(meetingId);
   }
 
-  // Cancel the meeting in the service so it cleans up internal state
-  // and stops any active recorders. This must happen before deleting
-  // files from disk since the service holds handles to them.
+  // Must cancel before deleting files since the service holds handles to them
   if (meetingService) {
     await meetingService.cancelMeeting(meetingId);
   }
 
-  // Remove the recording directory from disk if it exists
   if (row.recordingFilePath) {
     const recordingDir = path.dirname(row.recordingFilePath);
     if (existsSync(recordingDir)) {
@@ -307,7 +303,7 @@ export async function deleteMeeting(meetingId: PrefixedString<'rec'>): Promise<v
     }
   }
 
-  // Delete from DB (cascades to recording_transcriptions)
+  // Cascades to recording_transcriptions
   await db.delete(meetings).where(eq(meetings.id, meetingId));
 
   await broadcast('meeting-ended', { meetingId });
@@ -330,8 +326,6 @@ export async function stopMeetingRecording(meetingId: PrefixedString<'rec'>): Pr
     throw new Error(`Meeting is not recording: ${meetingId} (status: ${row.status})`);
   }
 
-  // stopRecording finalizes the WAV, emits recording:write (which updates DB),
-  // and emits meeting:stop (which broadcasts meeting-ended to the UI).
   await meetingService.stopRecording(meetingId);
 
   log.info({ meetingId }, 'meeting recording manually stopped');

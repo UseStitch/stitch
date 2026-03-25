@@ -13,14 +13,12 @@ interface MicStatusEntry {
   bundleId: string;
 }
 
-/** A meeting that was detected but not yet recording */
 interface DetectedMeeting {
   meeting: MeetingInfo;
   processKey: string;
   pid: number;
 }
 
-/** A meeting that has an active recording */
 interface RecordingSession {
   meeting: MeetingInfo;
   handle: RecordingHandle;
@@ -55,12 +53,8 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
   private readonly onMonitorError: (err: Error) => void;
 
   private baseline = new Set<string>();
-
-  /** Detected meetings that are not yet recording */
   private detected = new Map<string, DetectedMeeting>();
-  /** Map from meetingId -> processKey for quick lookup */
   private meetingIdToKey = new Map<string, string>();
-  /** Meetings that are actively recording */
   private recordings = new Map<string, RecordingSession>();
 
   private running = false;
@@ -168,9 +162,8 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 
   async cancelMeeting(meetingId: string): Promise<void> {
     const processKey = this.meetingIdToKey.get(meetingId);
-    if (!processKey) return; // Already gone — nothing to clean up
+    if (!processKey) return;
 
-    // If it was only detected (not yet recording), just remove from maps
     if (this.detected.has(processKey)) {
       this.detected.delete(processKey);
       this.meetingIdToKey.delete(meetingId);
@@ -178,7 +171,6 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       return;
     }
 
-    // If it was actively recording, discard the recording
     const session = this.recordings.get(processKey);
     if (session) {
       this.recordings.delete(processKey);
@@ -255,8 +247,6 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
         if (!currentKeys.has(key)) {
           endedRecordings.push([key, session]);
         } else if (!isProcessAlive(session.pid)) {
-          // The OS still reports mic usage but the process is dead (e.g. Chrome
-          // tab closed but the audio handle hasn't been cleaned up yet).
           this.log.info(
             { meetingId: session.meeting.id, pid: session.pid },
             'recording process no longer alive',
