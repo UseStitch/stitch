@@ -32,6 +32,8 @@ export interface MeetingService {
   stop(): Promise<void>;
   startRecording(meetingId: string): Promise<void>;
   stopRecording(meetingId: string): Promise<RecordingResult>;
+  /** Cancel a detected or recording meeting without producing output files. */
+  cancelMeeting(meetingId: string): Promise<void>;
   on<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this;
   off<K extends keyof MeetingServiceEvents>(event: K, listener: MeetingServiceEvents[K]): this;
 }

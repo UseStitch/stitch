@@ -152,6 +152,26 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
     return result;
   }
 
+  async cancelMeeting(meetingId: string): Promise<void> {
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) return;
+
+    if (this.detected.has(registryKey)) {
+      this.detected.delete(registryKey);
+      this.meetingIdToKey.delete(meetingId);
+      this.log.info({ meetingId }, 'detected meeting cancelled');
+      return;
+    }
+
+    const session = this.recordings.get(registryKey);
+    if (session) {
+      this.recordings.delete(registryKey);
+      this.meetingIdToKey.delete(meetingId);
+      await this.writer.discard(session.handle);
+      this.log.info({ meetingId }, 'active recording cancelled');
+    }
+  }
+
   // -- Internals --
 
   private async poll(): Promise<void> {
