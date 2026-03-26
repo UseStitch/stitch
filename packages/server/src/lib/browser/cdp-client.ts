@@ -68,7 +68,11 @@ export class CDPClient {
     });
   }
 
-  async send(method: string, params?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async send(method: string, params?: Record<string, unknown>, signal?: AbortSignal): Promise<Record<string, unknown>> {
+    if (signal?.aborted) {
+      throw new DOMException('CDP request aborted', 'AbortError');
+    }
+
     if (!this.ws || this.closed) {
       throw new Error('CDPClient is not connected');
     }
@@ -84,22 +88,34 @@ export class CDPClient {
     }
 
     return new Promise<Record<string, unknown>>((resolve, reject) => {
-      const timeout = setTimeout(() => {
+      const cleanup = () => {
+        clearTimeout(timeout);
+        signal?.removeEventListener('abort', onAbort);
         this.pending.delete(id);
+      };
+
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException('CDP request aborted', 'AbortError'));
+      };
+
+      const timeout = setTimeout(() => {
+        cleanup();
         reject(new Error(`CDP request timed out: ${method} (id=${id})`));
       }, CDP_TIMEOUT_MS);
 
       this.pending.set(id, {
         resolve: (result) => {
-          clearTimeout(timeout);
+          cleanup();
           resolve(result);
         },
         reject: (error) => {
-          clearTimeout(timeout);
+          cleanup();
           reject(error);
         },
       });
 
+      signal?.addEventListener('abort', onAbort, { once: true });
       this.ws!.send(JSON.stringify(request));
     });
   }

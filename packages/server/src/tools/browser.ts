@@ -136,7 +136,7 @@ const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. T
 - Close tabs you no longer need with **tab_close**.`;
 
 
-async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
+async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
 
   // Auto-launch on first use
@@ -146,13 +146,13 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
 
   switch (input.action) {
     case 'snapshot': {
-      const tree = await browser.snapshot();
+      const tree = await browser.snapshot(signal);
       return { output: tree };
     }
 
     case 'navigate': {
       if (!input.url) throw new Error('Missing required field: url');
-      const result = await browser.navigate(input.url);
+      const result = await browser.navigate(input.url, signal);
       return { output: result };
     }
 
@@ -162,6 +162,7 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
         doubleClick: input.doubleClick,
         button: input.button,
         modifiers: input.modifiers,
+        signal,
       });
       return { output: result };
     }
@@ -172,37 +173,38 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
       const result = await browser.type(input.ref, input.text, {
         slowly: input.slowly,
         submit: input.submit,
+        signal,
       });
       return { output: result };
     }
 
     case 'press': {
       if (!input.key) throw new Error('Missing required field: key');
-      const result = await browser.press(input.key);
+      const result = await browser.press(input.key, signal);
       return { output: result };
     }
 
     case 'hover': {
       if (!input.ref) throw new Error('Missing required field: ref');
-      const result = await browser.hover(input.ref);
+      const result = await browser.hover(input.ref, signal);
       return { output: result };
     }
 
     case 'select': {
       if (!input.ref) throw new Error('Missing required field: ref');
       if (!input.values) throw new Error('Missing required field: values');
-      const result = await browser.select(input.ref, input.values);
+      const result = await browser.select(input.ref, input.values, signal);
       return { output: result };
     }
 
     case 'scroll': {
       if (!input.direction) throw new Error('Missing required field: direction');
-      const result = await browser.scroll(input.ref, input.direction as ScrollDirection);
+      const result = await browser.scroll(input.ref, input.direction as ScrollDirection, signal);
       return { output: result };
     }
 
     case 'screenshot': {
-      const result = await browser.screenshot();
+      const result = await browser.screenshot(signal);
       return {
         output: `Screenshot taken (${result.format})`,
         data: result.data,
@@ -211,22 +213,22 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
     }
 
     case 'go_back': {
-      const result = await browser.goBack();
+      const result = await browser.goBack(signal);
       return { output: result };
     }
 
     case 'go_forward': {
-      const result = await browser.goForward();
+      const result = await browser.goForward(signal);
       return { output: result };
     }
 
     case 'tab_new': {
-      const tab = await browser.newTab(input.url);
+      const tab = await browser.newTab(input.url, signal);
       return { output: `Opened new tab: ${tab.id} (${tab.url})` };
     }
 
     case 'tab_list': {
-      const tabs = await browser.listTabs();
+      const tabs = await browser.listTabs(signal);
       const tabList = tabs
         .filter((t) => t.type === 'page')
         .map((t) => `  ${t.id}: ${t.title || '(untitled)'} — ${t.url}`)
@@ -236,32 +238,32 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
 
     case 'tab_focus': {
       if (!input.tabId) throw new Error('Missing required field: tabId');
-      await browser.focusTab(input.tabId);
+      await browser.focusTab(input.tabId, signal);
       return { output: `Focused tab: ${input.tabId}` };
     }
 
     case 'tab_close': {
-      await browser.closeTab(input.tabId);
+      await browser.closeTab(input.tabId, signal);
       return { output: `Closed tab: ${input.tabId ?? 'active'}` };
     }
 
     case 'evaluate': {
       if (!input.fn) throw new Error('Missing required field: fn');
-      const result = await browser.evaluate(input.fn);
+      const result = await browser.evaluate(input.fn, signal);
       return {
         output: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
       };
     }
 
     case 'wait': {
-      const result = await browser.wait(input.timeMs, input.selector);
+      const result = await browser.wait(input.timeMs, input.selector, signal);
       return { output: result };
     }
 
     case 'resize': {
       if (!input.width) throw new Error('Missing required field: width');
       if (!input.height) throw new Error('Missing required field: height');
-      const result = await browser.resize(input.width, input.height);
+      const result = await browser.resize(input.width, input.height, signal);
       return { output: result };
     }
 
@@ -274,7 +276,7 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
         contextChars: input.contextChars,
         cssScope: input.cssScope,
         maxResults: input.maxResults,
-      });
+      }, signal);
       const matchLines = result.matches.map(
         (m, i) => `  ${i + 1}. "${m.match}" — ...${m.context}...`,
       );
@@ -294,7 +296,7 @@ async function executeBrowserAction(input: BrowserInput): Promise<unknown> {
         attributes: input.attributes,
         maxResults: input.maxResults,
         includeText: input.includeText,
-      });
+      }, signal);
       const elemLines = result.elements.map((el, i) => {
         let line = `  ${i + 1}. <${el.tag}>`;
         if (el.text) line += ` "${el.text}"`;
@@ -321,10 +323,11 @@ function createBrowserTool() {
   return tool({
     description: TOOL_DESCRIPTION,
     inputSchema: browserInputSchema,
-    execute: async (input) => {
+    execute: async (input, { abortSignal }) => {
       try {
-        return await executeBrowserAction(input);
+        return await executeBrowserAction(input, abortSignal);
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') throw error;
         const message = error instanceof Error ? error.message : String(error);
         return { error: message };
       }

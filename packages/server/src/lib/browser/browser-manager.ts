@@ -282,6 +282,33 @@ class BrowserManager {
   private sessionHealthWatchdog = new SessionHealthWatchdog();
   private storageStateManager = new StorageStateManager();
 
+  // ── Abort helpers ───────────────────────────────────────────
+
+  private throwIfAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw new DOMException('Browser action aborted', 'AbortError');
+    }
+  }
+
+  private async abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+    if (!signal) {
+      await new Promise<void>((resolve) => setTimeout(resolve, ms));
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new DOMException('Browser action aborted', 'AbortError'));
+        return;
+      }
+      const id = setTimeout(resolve, ms);
+      signal.addEventListener('abort', () => {
+        clearTimeout(id);
+        reject(new DOMException('Browser action aborted', 'AbortError'));
+      }, { once: true });
+    });
+  }
+
   async launch(options: LaunchOptions = {}): Promise<void> {
     if (this.client?.isConnected) {
       log.info('Browser already running');
@@ -393,16 +420,18 @@ class BrowserManager {
 
   // ── Tab management ──────────────────────────────────────────
 
-  async listTabs(): Promise<BrowserTab[]> {
+  async listTabs(signal?: AbortSignal): Promise<BrowserTab[]> {
+    this.throwIfAborted(signal);
     const response = await fetch(`http://127.0.0.1:${this.port}/json/list`);
     return (await response.json()) as BrowserTab[];
   }
 
-  async newTab(url?: string): Promise<BrowserTab> {
+  async newTab(url?: string, signal?: AbortSignal): Promise<BrowserTab> {
+    this.throwIfAborted(signal);
     this.ensureConnected();
     const result = await this.client!.send('Target.createTarget', {
       url: url ?? 'about:blank',
-    });
+    }, signal);
     const targetId = result.targetId as string;
     this.activeTargetId = targetId;
     this.refMap.clear();
@@ -411,20 +440,22 @@ class BrowserManager {
     return { id: targetId, title: '', url: url ?? 'about:blank', type: 'page' };
   }
 
-  async focusTab(targetId: string): Promise<void> {
+  async focusTab(targetId: string, signal?: AbortSignal): Promise<void> {
+    this.throwIfAborted(signal);
     this.ensureConnected();
-    await this.client!.send('Target.activateTarget', { targetId });
+    await this.client!.send('Target.activateTarget', { targetId }, signal);
     this.activeTargetId = targetId;
     this.refMap.clear();
     await this.ensurePageSession();
   }
 
-  async closeTab(targetId?: string): Promise<void> {
+  async closeTab(targetId?: string, signal?: AbortSignal): Promise<void> {
+    this.throwIfAborted(signal);
     this.ensureConnected();
     const id = targetId ?? this.activeTargetId;
     if (!id) throw new Error('No active tab to close');
 
-    await this.client!.send('Target.closeTarget', { targetId: id });
+    await this.client!.send('Target.closeTarget', { targetId: id }, signal);
 
     const session = this.targetSessions.get(id);
     if (session) {
@@ -434,7 +465,7 @@ class BrowserManager {
 
     if (this.activeTargetId === id) {
       this.refMap.clear();
-      const remaining = await this.listTabs();
+      const remaining = await this.listTabs(signal);
       const page = remaining.find((t) => t.type === 'page');
       this.activeTargetId = page?.id ?? null;
       if (this.activeTargetId) {
@@ -445,13 +476,14 @@ class BrowserManager {
 
   // ── Navigation ──────────────────────────────────────────────
 
-  async navigate(url: string): Promise<string> {
+  async navigate(url: string, signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     this.refMap.clear();
 
-    await session.send('Page.navigate', { url });
-    await this.waitForLoad(session);
-    await this.settle();
+    await session.send('Page.navigate', { url }, signal);
+    await this.waitForLoad(session, signal);
+    await this.settle(undefined, signal);
 
     const [title, pageUrl] = await Promise.all([
       this.getPageTitle(session),
@@ -461,27 +493,29 @@ class BrowserManager {
     return `Navigated to ${pageUrl} — "${title}"`;
   }
 
-  async goBack(): Promise<string> {
+  async goBack(signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const entry = await this.getHistoryEntry(session, -1);
     if (!entry) throw new Error('No previous history entry');
 
     this.refMap.clear();
-    await session.send('Page.navigateToHistoryEntry', { entryId: entry.id });
-    await this.waitForLoad(session);
-    await this.settle();
+    await session.send('Page.navigateToHistoryEntry', { entryId: entry.id }, signal);
+    await this.waitForLoad(session, signal);
+    await this.settle(undefined, signal);
     return `Navigated back to ${entry.url} — "${entry.title}"`;
   }
 
-  async goForward(): Promise<string> {
+  async goForward(signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const entry = await this.getHistoryEntry(session, 1);
     if (!entry) throw new Error('No forward history entry');
 
     this.refMap.clear();
-    await session.send('Page.navigateToHistoryEntry', { entryId: entry.id });
-    await this.waitForLoad(session);
-    await this.settle();
+    await session.send('Page.navigateToHistoryEntry', { entryId: entry.id }, signal);
+    await this.waitForLoad(session, signal);
+    await this.settle(undefined, signal);
     return `Navigated forward to ${entry.url} — "${entry.title}"`;
   }
 
@@ -489,8 +523,10 @@ class BrowserManager {
 
   async click(
     ref: string,
-    options?: { doubleClick?: boolean; button?: string; modifiers?: string[] },
+    options?: { doubleClick?: boolean; button?: string; modifiers?: string[]; signal?: AbortSignal },
   ): Promise<string> {
+    const signal = options?.signal;
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const resolved = await this.resolveRef(session, ref);
     if (!resolved) throw new Error(`Ref "${ref}" not found. Take a new snapshot first.`);
@@ -513,7 +549,7 @@ class BrowserManager {
       button,
       clickCount,
       modifiers,
-    });
+    }, signal);
     await session.send('Input.dispatchMouseEvent', {
       type: 'mouseReleased',
       x: resolved.x,
@@ -521,21 +557,22 @@ class BrowserManager {
       button,
       clickCount,
       modifiers,
-    });
+    }, signal);
 
-    await this.settle();
+    await this.settle(undefined, signal);
 
     if (navigated) {
       this.refMap.clear();
-      await this.waitForLoad(session);
-      await this.settle();
+      await this.waitForLoad(session, signal);
+      await this.settle(undefined, signal);
     }
 
     session.off('Page.frameNavigated', navHandler);
     return `Clicked ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
-  async hover(ref: string): Promise<string> {
+  async hover(ref: string, signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const resolved = await this.resolveRef(session, ref);
     if (!resolved) throw new Error(`Ref "${ref}" not found. Take a new snapshot first.`);
@@ -544,12 +581,14 @@ class BrowserManager {
       type: 'mouseMoved',
       x: resolved.x,
       y: resolved.y,
-    });
+    }, signal);
 
     return `Hovered over ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
-  async type(ref: string, text: string, options?: { slowly?: boolean; submit?: boolean }): Promise<string> {
+  async type(ref: string, text: string, options?: { slowly?: boolean; submit?: boolean; signal?: AbortSignal }): Promise<string> {
+    const signal = options?.signal;
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
 
     // Focus the element first
@@ -558,22 +597,24 @@ class BrowserManager {
 
     if (options?.slowly) {
       for (const char of text) {
+        this.throwIfAborted(signal);
         const keyDef = resolveKey(char);
-        await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef });
-        await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef });
+        await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef }, signal);
+        await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef }, signal);
       }
     } else {
-      await session.send('Input.insertText', { text });
+      await session.send('Input.insertText', { text }, signal);
     }
 
     if (options?.submit) {
-      await this.press('Enter');
+      await this.press('Enter', signal);
     }
 
     return `Typed "${text}" into ${ref}${options?.submit ? ' and submitted' : ''}`;
   }
 
-  async press(key: string): Promise<string> {
+  async press(key: string, signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const keyDef = resolveKey(key);
 
@@ -587,15 +628,15 @@ class BrowserManager {
       session.on('Page.frameNavigated', navHandler);
     }
 
-    await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef });
-    await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef });
+    await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef }, signal);
+    await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef }, signal);
 
     if (key === 'Enter') {
-      await this.settle();
+      await this.settle(undefined, signal);
       if (navigated) {
         this.refMap.clear();
-        await this.waitForLoad(session);
-        await this.settle();
+        await this.waitForLoad(session, signal);
+        await this.settle(undefined, signal);
       }
       session.off('Page.frameNavigated', navHandler);
     }
@@ -603,7 +644,8 @@ class BrowserManager {
     return `Pressed "${key}"`;
   }
 
-  async select(ref: string, values: string[]): Promise<string> {
+  async select(ref: string, values: string[], signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const result = await this.evalInPage(session, buildSelectScript(ref, values));
     const selected = Array.isArray(result) ? (result as string[]) : [];
@@ -613,7 +655,9 @@ class BrowserManager {
   async scroll(
     ref: string | undefined,
     direction: ScrollDirection,
+    signal?: AbortSignal,
   ): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
 
     let x = DEFAULT_WIDTH / 2;
@@ -636,7 +680,7 @@ class BrowserManager {
       y,
       deltaX,
       deltaY,
-    });
+    }, signal);
 
     const target = ref ? `at ${ref}` : 'page';
     return `Scrolled ${direction} on ${target}`;
@@ -644,7 +688,8 @@ class BrowserManager {
 
   // ── Page inspection ─────────────────────────────────────────
 
-  async snapshot(): Promise<string> {
+  async snapshot(signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
 
     const result = await this.evalInPage(session, SNAPSHOT_SCRIPT);
@@ -679,23 +724,25 @@ class BrowserManager {
     return `${header}\n### Snapshot\n${snapshot}${truncNote}`;
   }
 
-  async screenshot(): Promise<ScreenshotResult> {
+  async screenshot(signal?: AbortSignal): Promise<ScreenshotResult> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const result = await session.send('Page.captureScreenshot', {
       format: 'png',
       quality: 80,
-    });
+    }, signal);
 
     return { data: result.data as string, format: 'png' };
   }
 
-  async evaluate(expression: string): Promise<unknown> {
+  async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const result = await session.send('Runtime.evaluate', {
       expression,
       returnByValue: true,
       awaitPromise: true,
-    });
+    }, signal);
 
     const exceptionDetails = result.exceptionDetails as Record<string, unknown> | undefined;
     if (exceptionDetails) {
@@ -715,7 +762,8 @@ class BrowserManager {
     contextChars?: number;
     cssScope?: string;
     maxResults?: number;
-  }): Promise<SearchPageResult> {
+  }, signal?: AbortSignal): Promise<SearchPageResult> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const js = buildSearchPageScript(options);
     const result = await this.evalInPage(session, js);
@@ -734,7 +782,8 @@ class BrowserManager {
     attributes?: string[];
     maxResults?: number;
     includeText?: boolean;
-  }): Promise<FindElementsResult> {
+  }, signal?: AbortSignal): Promise<FindElementsResult> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const js = buildFindElementsScript(options);
     const result = await this.evalInPage(session, js);
@@ -748,34 +797,37 @@ class BrowserManager {
     return { elements: data.elements ?? [], total: data.total ?? 0 };
   }
 
-  async resize(width: number, height: number): Promise<string> {
+  async resize(width: number, height: number, signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
     const session = await this.getPageSession();
     await session.send('Emulation.setDeviceMetricsOverride', {
       width,
       height,
       deviceScaleFactor: 1,
       mobile: false,
-    });
+    }, signal);
     return `Resized viewport to ${width}x${height}`;
   }
 
-  async wait(timeMs?: number, selector?: string): Promise<string> {
+  async wait(timeMs?: number, selector?: string, signal?: AbortSignal): Promise<string> {
     if (selector) {
+      this.throwIfAborted(signal);
       const session = await this.getPageSession();
       const start = Date.now();
       const timeout = timeMs ?? 5000;
       while (Date.now() - start < timeout) {
+        this.throwIfAborted(signal);
         const found = await this.evalInPage(
           session,
           `!!document.querySelector(${JSON.stringify(selector)})`,
         );
         if (found) return `Found selector "${selector}"`;
-        await this.settle(200);
+        await this.abortableSleep(200, signal);
       }
       throw new Error(`Timeout waiting for selector "${selector}" after ${timeout}ms`);
     }
 
-    await new Promise<void>((resolve) => setTimeout(resolve, timeMs ?? 1000));
+    await this.abortableSleep(timeMs ?? 1000, signal);
     return `Waited ${timeMs ?? 1000}ms`;
   }
 
@@ -869,8 +921,13 @@ class BrowserManager {
     this.port = 0;
   }
 
-  private async waitForLoad(session: CDPClient): Promise<void> {
-    return new Promise<void>((resolve) => {
+  private async waitForLoad(session: CDPClient, signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException('Browser action aborted', 'AbortError'));
+        return;
+      }
+
       let resolved = false;
       let loadFired = false;
       let domContentLoadedFired = false;
@@ -884,12 +941,26 @@ class BrowserManager {
         resolved = true;
         clearTimeout(hardTimeout);
         if (networkIdleTimer) clearTimeout(networkIdleTimer);
+        signal?.removeEventListener('abort', onAbort);
         session.off('Page.loadEventFired', onLoad);
         session.off('Page.domContentEventFired', onDomContentLoaded);
         session.off('Network.requestWillBeSent', onRequestStart);
         session.off('Network.loadingFinished', onRequestEnd);
         session.off('Network.loadingFailed', onRequestEnd);
         resolve();
+      };
+
+      const onAbort = () => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(hardTimeout);
+        if (networkIdleTimer) clearTimeout(networkIdleTimer);
+        session.off('Page.loadEventFired', onLoad);
+        session.off('Page.domContentEventFired', onDomContentLoaded);
+        session.off('Network.requestWillBeSent', onRequestStart);
+        session.off('Network.loadingFinished', onRequestEnd);
+        session.off('Network.loadingFailed', onRequestEnd);
+        reject(new DOMException('Browser action aborted', 'AbortError'));
       };
 
       const tryNetworkIdle = () => {
@@ -933,6 +1004,7 @@ class BrowserManager {
 
       const hardTimeout = setTimeout(finish, LOAD_TIMEOUT_MS);
 
+      signal?.addEventListener('abort', onAbort, { once: true });
       session.on('Page.domContentEventFired', onDomContentLoaded);
       session.on('Page.loadEventFired', onLoad);
       session.on('Network.requestWillBeSent', onRequestStart);
@@ -941,8 +1013,8 @@ class BrowserManager {
     });
   }
 
-  private async settle(ms?: number): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms ?? SETTLE_MS));
+  private async settle(ms?: number, signal?: AbortSignal): Promise<void> {
+    await this.abortableSleep(ms ?? SETTLE_MS, signal);
   }
 
   private async getPageTitle(session: CDPClient): Promise<string> {

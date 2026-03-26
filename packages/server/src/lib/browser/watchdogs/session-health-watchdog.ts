@@ -3,14 +3,6 @@ import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'browser.watchdog.session' });
 
-type TargetInfo = {
-  targetId: string;
-  type: string;
-  title: string;
-  url: string;
-  attached: boolean;
-};
-
 type TargetDestroyedHandler = (targetId: string) => void;
 type TargetCrashedHandler = (targetId: string) => void;
 
