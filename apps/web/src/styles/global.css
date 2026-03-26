@@ -139,3 +139,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .shadow-success-glow {
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  .shadow-destructive-glow {
+    box-shadow: 0 0 8px var(--destructive);
+  }
+
+  .shadow-warning-glow {
+    box-shadow: 0 0 8px var(--warning);
+  }
+
+  .shadow-info-glow {
+    box-shadow: 0 0 8px var(--info);
+  }
+}

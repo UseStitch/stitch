@@ -27,8 +27,8 @@ function formatDuration(secs: number): string {
 function RecordingDot() {
   return (
     <span className="relative flex size-2.5">
-      <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-      <span className="relative inline-flex size-2.5 rounded-full bg-red-500" />
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-destructive opacity-75" />
+      <span className="relative inline-flex size-2.5 rounded-full bg-destructive" />
     </span>
   );
 }
@@ -129,7 +129,7 @@ function FinishedBanner() {
 
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
-      <CheckIcon className="size-4 shrink-0 text-emerald-500" />
+      <CheckIcon className="size-4 shrink-0 text-success" />
       <span className="min-w-0 flex-1 truncate text-sm text-foreground">
         Recording finished
         {durationSecs !== null && (
@@ -174,9 +174,9 @@ export function RecordingBanner() {
         visible
           ? 'duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] opacity-100'
           : 'duration-200 ease-in opacity-0',
-        status === 'recording' && 'bg-red-500/5',
+        status === 'recording' && 'bg-destructive/10',
         status === 'detected' && 'bg-primary/5',
-        status === 'finished' && 'bg-emerald-500/5',
+        status === 'finished' && 'bg-success/10',
       )}
       style={{ gridTemplateRows: visible ? '1fr' : '0fr' }}
       onTransitionEnd={handleTransitionEnd}

@@ -76,8 +76,8 @@ function formatCost(costUsd: number): string {
 }
 
 const STATUS_STYLES: Record<MeetingStatus, { label: string; className: string }> = {
-  completed: { label: 'Completed', className: 'bg-emerald-500/10 text-emerald-600' },
-  recording: { label: 'Recording', className: 'bg-red-500/10 text-red-600' },
+  completed: { label: 'Completed', className: 'bg-success/10 text-success' },
+  recording: { label: 'Recording', className: 'bg-destructive/10 text-destructive' },
   detected: { label: 'Detected', className: 'bg-primary/10 text-primary' },
 };
 
