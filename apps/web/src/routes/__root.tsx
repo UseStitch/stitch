@@ -32,6 +32,7 @@ const settingsSearchSchema = z.object({
     .enum([
       'general',
       'appearance',
+      'browser',
       'shortcuts',
       'key-locations',
       'providers',

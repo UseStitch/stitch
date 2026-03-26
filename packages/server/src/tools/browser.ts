@@ -2,8 +2,15 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import {
+  importChromeProfile,
+  listChromeProfiles,
+} from '@/lib/browser/chrome-profile-importer.js';
 import { BROWSER_ACTIONS } from '@/lib/browser/types.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
+import * as Log from '@/lib/log.js';
+import { askQuestion } from '@/question/service.js';
+import { listSettings, saveSetting } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withTruncation } from '@/tools/wrappers.js';
 
@@ -319,6 +326,94 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
   }
 }
 
+const log = Log.create({ service: 'tools.browser' });
+
+let hasPromptedImport = false;
+
+async function maybePromptProfileImport(context: ToolContext, toolCallId: string, abortSignal?: AbortSignal): Promise<void> {
+  if (hasPromptedImport) return;
+
+  const settings = await listSettings();
+  const imported = settings['browser.profileImported'];
+  if (imported) {
+    hasPromptedImport = true;
+    return;
+  }
+
+  const profiles = await listChromeProfiles();
+  if (profiles.length === 0) {
+    hasPromptedImport = true;
+    return;
+  }
+
+  hasPromptedImport = true;
+
+  const answers = await askQuestion({
+    sessionId: context.sessionId,
+    messageId: context.messageId,
+    streamRunId: context.streamRunId,
+    toolCallId,
+    subAgentId: context.subAgentId,
+    abortSignal,
+    questions: [
+      {
+        question:
+          'Would you like to import your Chrome profile? This lets the browser use your existing logins, cookies, and sessions.',
+        header: 'Chrome Profile',
+        options: [
+          { label: 'Import Chrome profile', description: 'Copy your Chrome logins and cookies into the Stitch browser' },
+          { label: 'Skip', description: 'Use a clean browser without existing logins' },
+        ],
+      },
+    ],
+  });
+
+  const answer = answers[0]?.[0];
+  if (!answer || answer === 'Skip') {
+    await saveSetting('browser.profileImported', 'skipped');
+    return;
+  }
+
+  // User chose to import — pick which profile
+  let profileId: string;
+  if (profiles.length === 1) {
+    profileId = profiles[0].id;
+  } else {
+    const profileAnswers = await askQuestion({
+      sessionId: context.sessionId,
+      messageId: context.messageId,
+      streamRunId: context.streamRunId,
+      toolCallId,
+      subAgentId: context.subAgentId,
+      abortSignal,
+      questions: [
+        {
+          question: 'Which Chrome profile would you like to import?',
+          header: 'Select Profile',
+          options: profiles.map((p) => ({
+            label: p.name,
+            description: p.email || p.id,
+          })),
+        },
+      ],
+    });
+
+    const selectedName = profileAnswers[0]?.[0];
+    const selected = profiles.find((p) => p.name === selectedName);
+    profileId = selected?.id ?? profiles[0].id;
+  }
+
+  const profile = profiles.find((p) => p.id === profileId);
+  const profileLabel = profile
+    ? `${profile.name}${profile.email ? ` (${profile.email})` : ''}`
+    : profileId;
+
+  log.info({ profileId, profileLabel }, 'Importing Chrome profile from first-use prompt');
+  await importChromeProfile(profileId);
+  const timestamp = new Date().toISOString();
+  await saveSetting('browser.profileImported', `${profileLabel} — ${timestamp}`);
+}
+
 function createBrowserTool() {
   return tool({
     description: TOOL_DESCRIPTION,
@@ -335,7 +430,20 @@ function createBrowserTool() {
   });
 }
 
-export function createRegisteredTool(_context: ToolContext) {
+export function createRegisteredTool(context: ToolContext) {
   const baseTool = createBrowserTool();
-  return withTruncation(baseTool);
+
+  const originalExecute = baseTool.execute!;
+  const wrappedExecute: typeof originalExecute = async (input, execContext) => {
+    try {
+      await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
+    } catch (error) {
+      // If the prompt was aborted or rejected, log and continue with a clean browser
+      log.info({ error: error instanceof Error ? error.message : String(error) }, 'Profile import prompt skipped');
+    }
+    return originalExecute(input, execContext);
+  };
+
+  const toolWithImport = { ...baseTool, execute: wrappedExecute };
+  return withTruncation(toolWithImport);
 }
