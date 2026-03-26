@@ -2,6 +2,7 @@ import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import {
   CheckIcon,
   ChevronDownIcon,
+  CopyIcon,
   CpuIcon,
   EllipsisIcon,
   FileTextIcon,
@@ -334,6 +335,8 @@ function TranscriptionSection({
 }) {
   const queryClient = useQueryClient();
   const { data: transcription, isLoading } = useQuery(transcriptionQueryOptions(meetingId));
+  const [copiedSummary, setCopiedSummary] = React.useState(false);
+  const [copiedTranscript, setCopiedTranscript] = React.useState(false);
 
   useSSE({
     'transcription-started': (data) => {
@@ -361,6 +364,18 @@ function TranscriptionSection({
 
   const isTranscribing =
     transcription?.status === 'pending' || transcription?.status === 'processing';
+
+  React.useEffect(() => {
+    if (!copiedSummary) return;
+    const timeoutId = setTimeout(() => setCopiedSummary(false), 1200);
+    return () => clearTimeout(timeoutId);
+  }, [copiedSummary]);
+
+  React.useEffect(() => {
+    if (!copiedTranscript) return;
+    const timeoutId = setTimeout(() => setCopiedTranscript(false), 1200);
+    return () => clearTimeout(timeoutId);
+  }, [copiedTranscript]);
 
   if (isLoading || isTranscribing || !transcription || transcription.status !== 'completed') {
     return (
@@ -404,22 +419,51 @@ function TranscriptionSection({
     <div className="grid grid-cols-1 lg:grid-cols-4 items-start gap-6 h-full">
       {/* Left Column */}
       <div className="w-full lg:col-span-3 space-y-5 lg:sticky lg:top-0">
-        <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-4">
-          <div className="flex items-center gap-2">
+        <div className="w-full rounded-lg border border-border/50 bg-muted/30 shadow-sm overflow-hidden flex flex-col max-h-[60vh] lg:max-h-none lg:h-[calc(100vh-200px)]">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/20 shrink-0">
             <SparklesIcon className="size-4 shrink-0 text-primary" />
             <span className="text-sm font-medium">Summary</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="ml-auto text-muted-foreground hover:text-foreground"
+              disabled={!transcription.summary}
+              onClick={() => {
+                if (!transcription.summary) return;
+                if (typeof navigator === 'undefined' || navigator.clipboard === null) {
+                  return;
+                }
+
+                void navigator.clipboard.writeText(transcription.summary).then(() => {
+                  setCopiedSummary(true);
+                });
+              }}
+              title={copiedSummary ? 'Copied' : 'Copy summary'}
+              aria-label={copiedSummary ? 'Copied' : 'Copy summary'}
+            >
+              {copiedSummary ? (
+                <CheckIcon className="size-3.5 text-success" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
+            </Button>
             {transcription.costUsd > 0 && (
-              <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
+              <span className="text-[10px] tabular-nums text-muted-foreground">
                 {formatCost(transcription.costUsd)}
               </span>
             )}
           </div>
 
-          {transcription.summary && (
-            <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
-              <ReactMarkdown>{transcription.summary}</ReactMarkdown>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="p-4 sm:p-6">
+              {transcription.summary && (
+                <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+                  <ReactMarkdown>{transcription.summary}</ReactMarkdown>
+                </div>
+              )}
             </div>
-          )}
+          </ScrollArea>
         </div>
       </div>
 
@@ -428,6 +472,38 @@ function TranscriptionSection({
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/20 shrink-0">
           <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="text-sm font-medium">Transcript</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              if (typeof navigator === 'undefined' || navigator.clipboard === null) {
+                return;
+              }
+
+              const transcriptText = transcription.transcript
+                .map((entry) => `${entry.speaker}: ${entry.content}`)
+                .join('\n');
+
+              const sections = [
+                transcription.title ? `Title\n${transcription.title}` : null,
+                transcription.summary ? `Summary\n${transcription.summary}` : null,
+                transcriptText ? `Transcript\n${transcriptText}` : null,
+              ].filter((section): section is string => section !== null);
+
+              const payload = sections.join('\n\n');
+              void navigator.clipboard.writeText(payload).then(() => setCopiedTranscript(true));
+            }}
+            title={copiedTranscript ? 'Copied' : 'Copy transcription details'}
+            aria-label={copiedTranscript ? 'Copied' : 'Copy transcription details'}
+          >
+            {copiedTranscript ? (
+              <CheckIcon className="size-3.5 text-success" />
+            ) : (
+              <CopyIcon className="size-3.5" />
+            )}
+          </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1">
           <div className="p-4 sm:p-6 space-y-6">
