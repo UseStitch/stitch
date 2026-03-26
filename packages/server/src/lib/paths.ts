@@ -89,6 +89,7 @@ export const PATHS = {
     toolOutput: path.join(paths.data, 'tool-output'),
     providerLogos: path.join(paths.cache, 'provider-logos'),
     browsers: path.join(paths.data, 'browsers'),
+    recordings: path.join(paths.data, 'recordings'),
   },
 } as const;
 

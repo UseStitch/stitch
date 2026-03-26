@@ -27,6 +27,12 @@ type ModelSummary = {
   modalities: Models.RawModel['modalities'];
 };
 
+type ProviderModelsSummary = {
+  providerId: string;
+  providerName: string;
+  models: ModelSummary[];
+};
+
 function toProviderSummary(provider: Models.RawProvider, enabled: boolean): ProviderSummary {
   return {
     id: provider.id,
@@ -99,6 +105,23 @@ export async function listProviderModels(
   }
 
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
+}
+
+export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSummary[]> {
+  const db = getDb();
+  const [providers, configs] = await Promise.all([
+    Models.getAudioModels(),
+    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+  ]);
+  const enabledIds = new Set(configs.map((row) => row.providerId));
+
+  return Object.values(providers)
+    .filter((provider) => enabledIds.has(provider.id))
+    .map((provider) => ({
+      providerId: provider.id,
+      providerName: provider.name,
+      models: Object.values(provider.models).map(toModelSummary),
+    }));
 }
 
 export async function getProviderModel(

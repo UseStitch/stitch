@@ -21,6 +21,7 @@
     "@hono/node-server": "^1.19.11",
     "@hono/zod-validator": "^0.7.6",
     "@openrouter/ai-sdk-provider": "catalog:ai",
+    "@stitch/recordings": "workspace:*",
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
     "drizzle-orm": "^0.45.1",

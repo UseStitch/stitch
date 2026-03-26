@@ -1,0 +1,24 @@
+{
+  "name": "@stitch/recordings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./recording-writer": "./src/recording-writer.ts",
+    "./meeting-service": "./src/meeting-service.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
+  },
+  "dependencies": {
+    "@stitch/shared": "workspace:*",
+    "native-audio-node": "^0.3.5"
+  }
+}

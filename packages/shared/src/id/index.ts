@@ -14,6 +14,8 @@ export const ID_PREFIXES = {
   agentMcpServer: 'agtmcp',
   agentSubAgent: 'agtsub',
   queuedMessage: 'qmsg',
+  recording: 'rec',
+  transcription: 'transcr',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -72,6 +74,8 @@ export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
 export const createAgentMcpServerId = createIdFactory(ID_PREFIXES.agentMcpServer);
 export const createAgentSubAgentId = createIdFactory(ID_PREFIXES.agentSubAgent);
 export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
+export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
+export const createTranscriptionId = createIdFactory(ID_PREFIXES.transcription);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

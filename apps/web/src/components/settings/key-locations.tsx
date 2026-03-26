@@ -14,6 +14,7 @@ interface Paths {
   };
   dirPaths: {
     toolOutput: string;
+    recordings: string;
   };
 }
 
@@ -27,15 +28,36 @@ interface PathItem {
   path: string;
 }
 
-function formatPaths(paths: Paths): PathItem[] {
+interface PathGroup {
+  title: string;
+  items: PathItem[];
+}
+
+function formatPaths(paths: Paths): PathGroup[] {
   return [
-    { label: 'Configuration', path: paths.configDir },
-    { label: 'Data', path: paths.dataDir },
-    { label: 'Cache', path: paths.cacheDir },
-    { label: 'Logs', path: paths.logDir },
-    { label: 'Database', path: paths.filePaths.db },
-    { label: 'Models', path: paths.filePaths.models },
-    { label: 'Tool Output', path: paths.dirPaths.toolOutput },
+    {
+      title: 'System Directories',
+      items: [
+        { label: 'Configuration', path: paths.configDir },
+        { label: 'Data', path: paths.dataDir },
+        { label: 'Cache', path: paths.cacheDir },
+        { label: 'Logs', path: paths.logDir },
+      ],
+    },
+    {
+      title: 'Application Files',
+      items: [
+        { label: 'Database', path: paths.filePaths.db },
+        { label: 'Models', path: paths.filePaths.models },
+      ],
+    },
+    {
+      title: 'Output & Media',
+      items: [
+        { label: 'Tool Output', path: paths.dirPaths.toolOutput },
+        { label: 'Recordings', path: paths.dirPaths.recordings },
+      ],
+    },
   ];
 }
 
@@ -54,7 +76,7 @@ function PathRow({ item, isLast }: { item: PathItem; isLast: boolean }) {
 
   return (
     <div
-      className={`group flex w-full min-w-0 items-center justify-between overflow-hidden py-3 transition-colors ${
+      className={`group flex w-full min-w-0 items-center justify-between overflow-hidden px-4 py-3 transition-colors hover:bg-muted/50 ${
         !isLast ? 'border-b border-border/50' : ''
       }`}
     >
@@ -118,12 +140,21 @@ function KeyLocationsContent() {
     );
   }
 
-  const pathItems = formatPaths(data.paths);
+  const pathGroups = formatPaths(data.paths);
 
   return (
-    <div className="flex w-full min-w-0 flex-col">
-      {pathItems.map((item, index) => (
-        <PathRow key={item.label} item={item} isLast={index === pathItems.length - 1} />
+    <div className="flex w-full min-w-0 flex-col gap-6">
+      {pathGroups.map((group) => (
+        <div key={group.title} className="flex flex-col gap-3">
+          <h3 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {group.title}
+          </h3>
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-card/50 shadow-sm">
+            {group.items.map((item, index) => (
+              <PathRow key={item.label} item={item} isLast={index === group.items.length - 1} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -199,6 +199,8 @@ function getSuggestion() {
 
 const shouldTruncate = true;
 
+export const DISPLAY_NAME = 'Grep';
+
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createGrepTool();
   const gatedTool = withPermissionGate(
