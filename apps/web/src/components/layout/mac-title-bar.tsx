@@ -1,14 +1,12 @@
-import { PanelLeftClose, PanelLeftOpen, Settings2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import { ServerStatus } from '@/components/layout/server-status';
 import { useSidebar } from '@/components/ui/sidebar';
-import { useDialogContext } from '@/context/dialog-context';
 
 const MAC_TRAFFIC_LIGHTS_SPACE_PX = 76;
 
 export function MacTitleBar() {
   const { open, toggleSidebar } = useSidebar();
-  const { setSettingsTab } = useDialogContext();
 
   return (
     <div
@@ -36,13 +34,6 @@ export function MacTitleBar() {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <ServerStatus />
-        <button
-          onClick={() => setSettingsTab('general')}
-          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
-          aria-label="Open settings"
-        >
-          <Settings2 className="h-4 w-4 text-muted-foreground" />
-        </button>
       </div>
     </div>
   );
