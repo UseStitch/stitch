@@ -1,4 +1,4 @@
-import { CheckCircleIcon, DownloadIcon, LoaderIcon, UserIcon } from 'lucide-react';
+import { CheckCircleIcon, DownloadIcon, FolderIcon, LoaderIcon, UserIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -12,9 +12,32 @@ import {
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
+function formatImportedLabel(raw: string): string {
+  const separator = ' — ';
+  const idx = raw.lastIndexOf(separator);
+  if (idx === -1) return raw;
+
+  const label = raw.slice(0, idx);
+  const iso = raw.slice(idx + separator.length);
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return raw;
+
+  const formatted = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return `${label} — ${formatted}`;
+}
+
 function ProfileStatus() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const imported = settings['browser.profileImported'];
+  const activeProfile = settings['browser.activeProfile'];
 
   if (!imported || imported === 'skipped') {
     return (
@@ -25,9 +48,19 @@ function ProfileStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <CheckCircleIcon className="size-4 text-success" />
-      <span className="text-foreground">Imported: {imported}</span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm">
+        <CheckCircleIcon className="size-4 text-success" />
+        <span className="text-foreground">Imported: {formatImportedLabel(imported)}</span>
+      </div>
+      {activeProfile ? (
+        <div className="flex items-center gap-2 text-sm">
+          <FolderIcon className="size-4 text-muted-foreground" />
+          <span className="font-mono text-xs text-muted-foreground">
+            {activeProfile}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
