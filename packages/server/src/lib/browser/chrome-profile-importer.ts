@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import * as Log from '@/lib/log.js';
-import { PATHS } from '@/lib/paths.js';
+import { getBrowserProfilePath } from '@/lib/paths.js';
 
 const execAsync = promisify(exec);
 const log = Log.create({ service: 'browser.profile-importer' });
@@ -98,39 +98,59 @@ async function disableSessionRestore(prefsPath: string): Promise<void> {
   }
 }
 
-async function copyProfile(sourceDir: string, targetDir: string): Promise<void> {
-  if (process.platform === 'win32') {
-    await execAsync(
-      `robocopy "${sourceDir}" "${targetDir}" /E /XD "Cache" "Code Cache" "GPUCache" "Service Worker" "ShaderCache" "GrShaderCache" "component_crx_cache" "extensions_crx_cache" /XF "*.tmp" /NFL /NDL /NJH /NJS /NC /NS /NP`,
-      { timeout: 120_000 },
-    ).catch(() => {
-      // robocopy returns non-zero exit codes for success
-    });
-    return;
-  }
+const EXCLUDED_DIRS = [
+  'Cache',
+  'Code Cache',
+  'GPUCache',
+  'Service Worker',
+  'ShaderCache',
+  'GrShaderCache',
+  'GraphiteDawnCache',
+  'component_crx_cache',
+  'extensions_crx_cache',
+  'Crashpad',
+];
+
+const EXCLUDED_FILE_PATTERNS = ['*.tmp', 'BrowserMetrics*'];
+
+async function copyProfileWindows(sourceDir: string, targetDir: string): Promise<void> {
+  const xd = EXCLUDED_DIRS.map((d) => `"${d}"`).join(' ');
+  const xf = EXCLUDED_FILE_PATTERNS.map((f) => `"${f}"`).join(' ');
+  const { stderr } = await execAsync(
+    `robocopy "${sourceDir}" "${targetDir}" /E /XD ${xd} /XF ${xf} /NFL /NDL /NJH /NJS /NC /NS /NP`,
+    { timeout: 120_000 },
+  ).catch((error: { code?: number; stderr?: string }) => {
+    // robocopy exit codes 0-7 indicate success (bitmask of what was copied)
+    // Exit codes >= 8 indicate actual failures
+    if (typeof error.code === 'number' && error.code < 8) {
+      return { stderr: '' };
+    }
+    throw new Error(`robocopy failed (exit ${error.code}): ${error.stderr ?? 'unknown error'}`);
+  });
+  if (stderr) log.warn({ stderr }, 'robocopy warnings');
+}
+
+async function copyProfileUnix(sourceDir: string, targetDir: string): Promise<void> {
+  const excludes = [
+    ...EXCLUDED_DIRS.map((d) => `--exclude='${d}'`),
+    ...EXCLUDED_FILE_PATTERNS.map((f) => `--exclude='${f}'`),
+  ].join(' ');
 
   try {
-    await execAsync(
-      `rsync -a \
-        --exclude='Cache' \
-        --exclude='Code Cache' \
-        --exclude='GPUCache' \
-        --exclude='Service Worker' \
-        --exclude='ShaderCache' \
-        --exclude='GrShaderCache' \
-        --exclude='GraphiteDawnCache' \
-        --exclude='component_crx_cache' \
-        --exclude='extensions_crx_cache' \
-        --exclude='BrowserMetrics*' \
-        --exclude='Crashpad' \
-        --exclude='*.tmp' \
-        "${sourceDir}/" "${targetDir}/"`,
-      { timeout: 120_000 },
-    );
+    await execAsync(`rsync -a ${excludes} "${sourceDir}/" "${targetDir}/"`, {
+      timeout: 120_000,
+    });
   } catch {
     log.info('rsync not available, falling back to cp');
     await execAsync(`cp -R "${sourceDir}/." "${targetDir}/"`, { timeout: 120_000 });
   }
+}
+
+async function copyProfile(sourceDir: string, targetDir: string): Promise<void> {
+  if (process.platform === 'win32') {
+    return copyProfileWindows(sourceDir, targetDir);
+  }
+  return copyProfileUnix(sourceDir, targetDir);
 }
 
 export async function importChromeProfile(profileId: string): Promise<void> {
@@ -154,9 +174,9 @@ export async function importChromeProfile(profileId: string): Promise<void> {
   const browser = getBrowserManager();
   await browser.close();
 
-  const targetDir = PATHS.dirPaths.browserProfile;
+  const targetDir = getBrowserProfilePath('chrome', profileId);
 
-  // Wipe existing Stitch browser profile
+  // Wipe existing Stitch browser profile for this browser/profile combo
   await fs.rm(targetDir, { recursive: true, force: true });
   await fs.mkdir(targetDir, { recursive: true });
 
