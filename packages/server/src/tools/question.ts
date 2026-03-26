@@ -87,6 +87,8 @@ function getSuggestion() {
 
 const shouldTruncate = false;
 
+export const DISPLAY_NAME = 'Question';
+
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createTool(context);
   const gatedTool = withPermissionGate(

@@ -14,7 +14,7 @@ import { agentTools } from '@/db/schema.js';
  */
 export async function getAgentToolConfig(
   agentId: PrefixedString<'agt'>,
-  knownTools: { toolType: AgentToolType; toolName: string }[],
+  knownTools: { toolType: AgentToolType; toolName: string; displayName: string }[],
 ): Promise<AgentToolEntry[]> {
   const db = getDb();
   const rows = await db.select().from(agentTools).where(eq(agentTools.agentId, agentId));
@@ -26,6 +26,7 @@ export async function getAgentToolConfig(
   return knownTools.map((t) => ({
     toolType: t.toolType,
     toolName: t.toolName,
+    displayName: t.displayName,
     enabled: !disabledSet.has(`${t.toolType}:${t.toolName}`),
   }));
 }

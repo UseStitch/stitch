@@ -255,6 +255,8 @@ function getSuggestion(input: unknown) {
 
 const shouldTruncate = true;
 
+export const DISPLAY_NAME = 'Web Fetch';
+
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createTool();
   const gatedTool = withPermissionGate(

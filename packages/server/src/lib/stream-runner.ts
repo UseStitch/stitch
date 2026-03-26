@@ -25,6 +25,7 @@ import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
 import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
+import { createAgentSpecificTools } from '@/tools/agent-tool-providers.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
 import { createSubAgentTools } from '@/tools/sub-agent-tool.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -324,7 +325,7 @@ class StreamRunner {
       const isLastStep = step === MAX_STEPS - 1;
       if (isLastStep) {
         this.state.conversation.push({
-          role: 'system',
+          role: 'user',
           content: MAX_STEPS_WARNING(MAX_STEPS),
         });
       }
@@ -1033,7 +1034,16 @@ export async function runStream(opts: {
     parentAbortSignal: opts.abortSignal,
   });
 
-  const allTools = { ...allStitchTools, ...mcpTools, ...subAgentTools };
+  const toolContext = {
+    sessionId: opts.sessionId,
+    messageId: opts.assistantMessageId,
+    agentId: opts.agentId,
+    streamRunId,
+    subAgentId: opts.subAgentId,
+  };
+  const agentSpecificTools = await createAgentSpecificTools(opts.agentId, toolContext);
+
+  const allTools = { ...allStitchTools, ...mcpTools, ...subAgentTools, ...agentSpecificTools };
 
   const disabledNames = await getDisabledToolNames(opts.agentId);
   const tools = Object.fromEntries(

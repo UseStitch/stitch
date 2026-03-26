@@ -49,6 +49,7 @@ export function useActions(): Action[] {
       label: 'Open settings',
       run: () => setSettingsTab(settingsTab ? undefined : 'general'),
     },
+    { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
     {
       id: 'switch-primary-agent',
@@ -59,6 +60,11 @@ export function useActions(): Action[] {
       id: 'rename-session',
       label: 'Rename session',
       run: () => setRenameSessionOpen(!renameSessionOpen),
+    },
+    {
+      id: 'open-recordings',
+      label: 'Recordings',
+      run: () => void navigate({ to: '/recordings' }),
     },
   ];
 

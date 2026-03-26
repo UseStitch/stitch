@@ -1,6 +1,7 @@
 import { initDb } from '@/db/client.js';
 import * as Log from '@/lib/log.js';
 import * as Scheduler from '@/lib/scheduler.js';
+import { initMeetingService } from '@/meeting/service.js';
 import * as ModelsDev from '@/provider/models.js';
 import * as ToolTruncation from '@/tools/truncation.js';
 
@@ -16,6 +17,8 @@ export async function init() {
   await Log.init({ print: false });
 
   await initDb();
+
+  await initMeetingService();
 
   Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () => Log.cleanup());
 
