@@ -14,6 +14,7 @@ export const SETTINGS_KEYS = [
   'onboarding.status',
   'notifications.sound.enabled',
   'browser.profileImported',
+  'browser.activeProfile',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -93,5 +94,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
+  },
+  {
+    key: 'browser.activeProfile',
+    value: '',
+    description:
+      'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
   },
 ];

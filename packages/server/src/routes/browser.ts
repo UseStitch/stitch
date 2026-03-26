@@ -29,6 +29,7 @@ browserRouter.post('/import-profile', zValidator('json', importSchema), async (c
 
     const timestamp = new Date().toISOString();
     await saveSetting('browser.profileImported', `${profileLabel} — ${timestamp}`);
+    await saveSetting('browser.activeProfile', `chrome/${profileId}`);
 
     return c.json({ success: true, profile: profileLabel });
   } catch (error) {

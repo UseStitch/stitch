@@ -412,6 +412,7 @@ async function maybePromptProfileImport(context: ToolContext, toolCallId: string
   await importChromeProfile(profileId);
   const timestamp = new Date().toISOString();
   await saveSetting('browser.profileImported', `${profileLabel} — ${timestamp}`);
+  await saveSetting('browser.activeProfile', `chrome/${profileId}`);
 }
 
 function createBrowserTool() {
