@@ -99,6 +99,10 @@ function sortModels(models: Record<string, RawModel>): Record<string, RawModel> 
   );
 }
 
+function isAudioCapableModel(model: RawModel): boolean {
+  return model.modalities?.input?.includes('audio') ?? false;
+}
+
 function filterProviders(raw: Record<string, RawProvider>): Record<string, RawProvider> {
   return Object.fromEntries(
     Object.entries(raw)
@@ -123,6 +127,28 @@ export async function get(): Promise<Record<string, RawProvider>> {
   data = filterProviders(JSON.parse(json) as Record<string, RawProvider>);
 
   return data;
+}
+
+export async function getAudioModels(): Promise<Record<string, RawProvider>> {
+  const providers = await get();
+  const audioProviders: Record<string, RawProvider> = {};
+
+  for (const [providerId, provider] of Object.entries(providers)) {
+    const audioModels = Object.fromEntries(
+      Object.entries(provider.models).filter(([, model]) => isAudioCapableModel(model)),
+    );
+
+    if (Object.keys(audioModels).length === 0) {
+      continue;
+    }
+
+    audioProviders[providerId] = {
+      ...provider,
+      models: audioModels,
+    };
+  }
+
+  return audioProviders;
 }
 
 export async function refresh() {

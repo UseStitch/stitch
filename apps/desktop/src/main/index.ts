@@ -4,10 +4,14 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { initNotifications } from './notifications';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
+import { SseClient } from './sse-client';
+import { destroyTray, initTray } from './tray';
 
 const WEB_DEV_URL = 'http://localhost:5173';
 const WEB_DIST = join(__dirname, '../../web/dist/index.html');
+const WINDOW_ICON_NAME = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 
@@ -18,8 +22,14 @@ if (!gotTheLock) {
   app.exit(0);
 }
 
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.stitch.desktop');
+}
+
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
+let sseClient: SseClient | null = null;
+let isQuitting = false;
 
 async function waitForDevServer(url: string): Promise<void> {
   const deadline = Date.now() + DEV_SERVER_TIMEOUT_MS;
@@ -43,7 +53,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: join(__dirname, '../../resources/icon.png'),
+    icon: join(__dirname, `../../resources/${WINDOW_ICON_NAME}`),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
@@ -58,6 +68,14 @@ async function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  // Hide to tray on close instead of quitting, unless the app is actually quitting.
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
   });
 
   mainWindow.webContents.on('context-menu', (_e, params) => {
@@ -100,7 +118,8 @@ ipcMain.handle('window:maximize', () => {
 });
 
 ipcMain.handle('window:close', () => {
-  mainWindow?.close();
+  // Hide to tray instead of closing so notifications and tray keep working
+  mainWindow?.hide();
 });
 
 ipcMain.handle('window:isMaximized', () => {
@@ -165,20 +184,33 @@ void app.whenReady().then(async () => {
 
   await createWindow();
 
+  // Initialize SSE client, notifications, and system tray
+  const getWindow = () => mainWindow;
+  sseClient = new SseClient(serverUrl);
+  initNotifications(sseClient, serverUrl, getWindow);
+  initTray(sseClient, serverUrl, getWindow);
+  sseClient.start();
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
       void createWindow();
     }
   });
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
+  sseClient?.stop();
+  destroyTray();
   killServer();
 });
 
+// The tray keeps the app alive even when the window is hidden.
+// Actual quit is handled via tray "Quit" or app.quit().
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    killServer();
-    app.quit();
-  }
+  // No-op: prevent default quit behavior on all platforms.
 });
+

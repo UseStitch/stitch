@@ -34,7 +34,7 @@ export function ServerStatus() {
       >
         <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
         <div
-          className={`absolute top-1 right-1 h-2 w-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-green-500' : 'bg-red-500'}`}
+          className={`absolute top-1 right-1 h-2 w-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-success' : 'bg-destructive'}`}
         />
       </PopoverTrigger>
       <PopoverContent
@@ -89,7 +89,7 @@ function StatusItem({ active, label, subtitle }: StatusItemProps) {
     <div className="flex cursor-default items-center justify-between">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-success shadow-success-glow' : 'bg-destructive shadow-destructive-glow'}`}
         />
         <div className="flex flex-col gap-0.5">
           <span

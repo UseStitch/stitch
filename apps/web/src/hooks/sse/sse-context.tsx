@@ -1,10 +1,11 @@
 import * as React from 'react';
 
-import type {
-  SseEventName,
-  SseEventPayloadMap,
-  SseHandlers,
-  UseSseResult,
+import {
+  SSE_EVENT_NAMES,
+  type SseEventName,
+  type SseEventPayloadMap,
+  type SseHandlers,
+  type UseSseResult,
 } from '@stitch/shared/chat/realtime';
 
 type SseContextValue = {
@@ -25,6 +26,12 @@ function parseJson(raw: string): unknown {
 
 function parseEventData<K extends SseEventName>(eventName: K, raw: string): SseEventPayloadMap[K] {
   if (eventName === 'heartbeat') {
+    const parsed = parseJson(raw);
+
+    if (typeof parsed === 'object' && parsed && 'ts' in parsed && typeof parsed.ts === 'number') {
+      return { ts: parsed.ts } as SseEventPayloadMap[K];
+    }
+
     return { ts: Date.now() } as SseEventPayloadMap[K];
   }
 
@@ -55,35 +62,15 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
       eventSource.onopen = () => setIsConnected(true);
       eventSource.onerror = () => setIsConnected(false);
 
-      eventSource.addEventListener('heartbeat', () => {
-        setLastHeartbeat(new Date());
-        handlersRef.current.get('heartbeat')?.forEach((h) => h({ ts: Date.now() }));
-      });
-
-      const eventNames: SseEventName[] = [
-        'connected',
-        'data-change',
-        'session-title-update',
-        'stream-start',
-        'stream-part-update',
-        'stream-part-delta',
-        'stream-finish',
-        'stream-error',
-        'stream-retry',
-        'stream-tool-state',
-        'stream-tool-input-delta',
-        'doom-loop-detected',
-        'compaction-start',
-        'compaction-complete',
-        'question-asked',
-        'question-replied',
-        'question-rejected',
-        'permission-response-requested',
-        'permission-response-resolved',
-      ];
-
-      eventNames.forEach((eventName) => {
+      SSE_EVENT_NAMES.forEach((eventName) => {
         eventSource!.addEventListener(eventName, (e) => {
+          if (eventName === 'heartbeat') {
+            const payload = parseEventData('heartbeat', e.data);
+            setLastHeartbeat(new Date(payload.ts));
+            handlersRef.current.get('heartbeat')?.forEach((h) => h(payload));
+            return;
+          }
+
           const payload = parseEventData(eventName, e.data);
           handlersRef.current.get(eventName)?.forEach((h) => h(payload as never));
         });

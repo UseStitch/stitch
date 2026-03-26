@@ -1,5 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ShortcutCategory } from '@stitch/shared/shortcuts/types';
+
 import { serverFetch } from '@/lib/api';
 
 export interface ShortcutEntry {
@@ -7,7 +9,7 @@ export interface ShortcutEntry {
   hotkey: string | null;
   isSequence: boolean;
   label: string;
-  category: string;
+  category: ShortcutCategory;
 }
 
 const shortcutKeys = {
