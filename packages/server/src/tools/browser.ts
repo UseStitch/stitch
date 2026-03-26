@@ -14,6 +14,8 @@ import { listSettings, saveSetting } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withTruncation } from '@/tools/wrappers.js';
 
+const DISPLAY_NAME = 'Browser';
+
 const browserInputSchema = z.object({
   action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),
   url: z.string().optional().describe('URL for navigate or tab_new actions.'),
@@ -100,47 +102,25 @@ const browserInputSchema = z.object({
 
 type BrowserInput = z.infer<typeof browserInputSchema>;
 
-const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. The browser launches automatically on first use with a dedicated persistent profile — any logins, cookies, or settings you configure will be remembered across sessions.
-
-## Core workflow
-1. Use **snapshot** to get a YAML accessibility tree with element refs (e.g. [ref=e1])
-2. Use refs to interact: click ref=e3, type into ref=e5, hover ref=e7
-3. After actions that change the page, take a new **snapshot** to get updated refs
-
-## Action hierarchy (prefer actions higher in the list)
-1. **snapshot** + ref-based actions (click, type, hover, select) — primary workflow
-2. **search_page** / **find_elements** — lightweight, zero-cost lookups (no full snapshot needed)
-3. **evaluate** — last resort for complex DOM manipulation only
+const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. The browser launches automatically on first use with a persistent profile.
 
 ## Actions
-- **snapshot**: Get accessibility tree with element refs. Always do this first.
+- **snapshot**: Get accessibility tree with element refs (e.g. [ref=e1]). Always do this first.
 - **navigate**: Go to a URL (set \`url\`)
-- **click**: Click an element (set \`ref\`, optionally \`doubleClick\`, \`button\`, \`modifiers\`)
-- **type**: Type text into a focused element (set \`ref\` and \`text\`, optionally \`submit\`, \`slowly\`)
-- **press**: Press a key (set \`key\`, e.g. "Enter", "Tab", "Escape", "ArrowDown")
+- **click**: Click an element (set \`ref\`)
+- **type**: Type text (set \`ref\` and \`text\`, optionally \`submit\`)
+- **press**: Press a key (set \`key\`)
 - **hover**: Hover over an element (set \`ref\`)
 - **select**: Select option(s) in a <select> (set \`ref\` and \`values\`)
-- **scroll**: Scroll the page or an element (set \`direction\`, optionally \`ref\`)
-- **screenshot**: Take a screenshot (returned as base64 PNG)
+- **scroll**: Scroll the page or element (set \`direction\`, optionally \`ref\`)
+- **screenshot**: Take a screenshot (base64 PNG)
 - **go_back** / **go_forward**: Navigate history
-- **tab_new**: Open a new tab (optionally set \`url\`)
-- **tab_list**: List all open tabs
-- **tab_focus**: Focus a tab (set \`tabId\`)
-- **tab_close**: Close a tab (set \`tabId\`, defaults to active)
-- **search_page**: Search visible page text for a pattern (set \`pattern\`, optionally \`regex\`, \`caseSensitive\`, \`contextChars\`, \`cssScope\`, \`maxResults\`). Fast, zero LLM cost. Use to find text, verify content exists, or locate data without a full snapshot.
-- **find_elements**: Query DOM elements by CSS selector (set \`selector\`, optionally \`attributes\`, \`maxResults\`, \`includeText\`). Fast, zero LLM cost. Use to explore page structure, count items, or extract attributes like href/src.
-- **evaluate**: Run JavaScript in the page (set \`fn\`). Use only when ref-based actions and search/find tools are insufficient.
-- **wait**: Wait for time or selector (set \`timeMs\` and/or \`selector\`)
-- **resize**: Resize viewport (set \`width\` and \`height\`)
-
-## Failure recovery
-- If a ref is not found, the page has likely changed — take a fresh **snapshot** first.
-- If the same action fails twice, change strategy: try a different selector, scroll to reveal the element, or use **search_page** to verify the content exists.
-- If blocked by a modal, cookie banner, or dialog, dismiss the blocker first before continuing.
-
-## Tab discipline
-- Open research/reference pages in a **new tab** to keep the main task tab clean.
-- Close tabs you no longer need with **tab_close**.`;
+- **tab_new** / **tab_list** / **tab_focus** / **tab_close**: Tab management
+- **search_page**: Search visible text for a pattern (set \`pattern\`). Zero cost.
+- **find_elements**: Query DOM by CSS selector (set \`selector\`). Zero cost.
+- **evaluate**: Run JavaScript in the page (set \`fn\`). Last resort.
+- **wait**: Wait for time or selector
+- **resize**: Resize viewport`;
 
 
 async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
