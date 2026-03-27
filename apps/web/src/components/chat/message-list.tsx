@@ -105,7 +105,14 @@ function buildRows(
   const hasStreamContent =
     streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
 
-  if (hasStreamContent) {
+  // Suppress the streaming row once the persisted message has landed in the
+  // query cache — avoids a flicker where both the streaming bubble and the
+  // final persisted bubble are briefly visible at the same time.
+  const persistedMessageLanded =
+    streamState.activeMessageId !== null &&
+    messages.some((m) => m.id === streamState.activeMessageId);
+
+  if (hasStreamContent && !persistedMessageLanded) {
     if (streamState.error) {
       const userFacing = toUserFacingStreamError({
         error: streamState.error.message,

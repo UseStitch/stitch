@@ -112,6 +112,11 @@ type StreamStoreActions = {
   applyStreamStart: (sessionId: string, messageId: string) => void;
   applyPartUpdate: (sessionId: string, messageId: string, partId: string, part: PartUpdate) => void;
   applyPartDelta: (sessionId: string, messageId: string, partId: string, delta: PartDelta) => void;
+  applyPartDeltas: (
+    sessionId: string,
+    messageId: string,
+    deltas: { partId: string; delta: PartDelta }[],
+  ) => void;
   applyToolState: (
     sessionId: string,
     messageId: string,
@@ -348,6 +353,22 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
         sessions: {
           ...state.sessions,
           [sessionId]: applyPartDeltaToSession(session!, partId, delta),
+        },
+      };
+    }),
+
+  applyPartDeltas: (sessionId, messageId, deltas) =>
+    set((state) => {
+      const session = getSession(state.sessions, sessionId);
+      if (!guardMessage(session, messageId)) return state;
+      let current = session!;
+      for (const { partId, delta } of deltas) {
+        current = applyPartDeltaToSession(current, partId, delta);
+      }
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: current,
         },
       };
     }),
