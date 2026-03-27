@@ -1,4 +1,4 @@
-import type { ModelSpec } from '@/components/chat/chat-input';
+import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 type SessionMessagePart = {

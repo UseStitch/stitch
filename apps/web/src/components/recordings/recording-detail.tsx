@@ -35,9 +35,6 @@ import { transcriptionQueryOptions, useTranscribeMeeting } from '@/lib/queries/m
 import { enabledAudioProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
-export { formatAppName, formatDuration } from '@/components/recordings/recording-detail/formatting';
-export { StatusBadge } from '@/components/recordings/recording-detail/status-badge';
-
 export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDelete: () => void }) {
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
   const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));

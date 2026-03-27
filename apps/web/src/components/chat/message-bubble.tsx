@@ -3,11 +3,7 @@ import * as React from 'react';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { AssistantMessageBubble } from '@/components/chat/message-bubble/assistant-message-bubble';
-import { StreamingMessageBubble } from '@/components/chat/message-bubble/streaming-message-bubble';
 import { UserMessageBubble } from '@/components/chat/message-bubble/user-message-bubble';
-
-export { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider.js';
-export { StreamingMessageBubble } from '@/components/chat/message-bubble/streaming-message-bubble';
 
 type MessageBubbleProps = {
   role: 'user' | 'assistant';

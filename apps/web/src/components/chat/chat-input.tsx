@@ -7,8 +7,6 @@ import { cn } from '@/lib/utils';
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 
-export type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
-
 type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;

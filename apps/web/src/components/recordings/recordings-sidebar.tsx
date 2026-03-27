@@ -6,7 +6,8 @@ import { Link, useParams } from '@tanstack/react-router';
 
 import type { Meeting } from '@stitch/shared/meetings/types';
 
-import { formatAppName, formatDuration, StatusBadge } from '@/components/recordings/recording-detail';
+import { formatAppName, formatDuration } from '@/components/recordings/recording-detail/formatting';
+import { StatusBadge } from '@/components/recordings/recording-detail/status-badge';
 import { Button } from '@/components/ui/button';
 import {
   SidebarContent,

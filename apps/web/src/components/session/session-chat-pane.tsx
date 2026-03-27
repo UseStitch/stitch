@@ -6,7 +6,8 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
-import { ChatInput, type Attachment, type ModelSpec } from '@/components/chat/chat-input';
+import { ChatInput } from '@/components/chat/chat-input';
+import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';

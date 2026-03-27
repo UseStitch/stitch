@@ -7,7 +7,8 @@ import { useNavigate } from '@tanstack/react-router';
 import type { MessagesPage, Session } from '@stitch/shared/chat/messages';
 import { createMessageId } from '@stitch/shared/id';
 
-import { ChatInput, type Attachment } from '@/components/chat/chat-input';
+import { ChatInput } from '@/components/chat/chat-input';
+import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';

@@ -1,11 +1,9 @@
 import * as React from 'react';
 
 import { ErrorPanel } from '@/components/chat/error-panel';
-import {
-  CompactionDivider,
-  MessageBubble,
-  StreamingMessageBubble,
-} from '@/components/chat/message-bubble';
+import { MessageBubble } from '@/components/chat/message-bubble';
+import { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider';
+import { StreamingMessageBubble } from '@/components/chat/message-bubble/streaming-message-bubble';
 import { LoadMoreRow } from '@/components/chat/message-list/load-more-row';
 import type { SessionStreamState } from '@/stores/stream-store';
 

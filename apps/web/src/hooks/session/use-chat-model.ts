@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { ModelSpec } from '@/components/chat/chat-input';
+import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type UseChatModelResult = {

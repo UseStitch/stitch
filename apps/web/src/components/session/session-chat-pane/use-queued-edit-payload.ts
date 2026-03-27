@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { Attachment } from '@/components/chat/chat-input';
+import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import type { EditQueuedMessagePayload } from '@/components/session/session-page-types';
 
 type UseQueuedEditPayloadOptions = {

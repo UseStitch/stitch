@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { StoredPart } from '@stitch/shared/chat/messages';

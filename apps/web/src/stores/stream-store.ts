@@ -8,7 +8,7 @@ import { serverFetch } from '@/lib/api';
 
 // ─── Streaming part types (FE in-flight state) ────────────────────────────────
 
-export type StreamingTextPart = {
+type StreamingTextPart = {
   type: 'text';
   id: string;
   text: string;
@@ -18,7 +18,7 @@ export type StreamingTextPart = {
   endedAt: number | null;
 };
 
-export type StreamingReasoningPart = {
+type StreamingReasoningPart = {
   type: 'reasoning';
   id: string;
   text: string;
@@ -28,7 +28,7 @@ export type StreamingReasoningPart = {
   endedAt: number | null;
 };
 
-export type StreamingToolCallPart = {
+type StreamingToolCallPart = {
   type: 'tool-call';
   toolCallId: string;
   toolName: string;
@@ -40,14 +40,14 @@ export type StreamingToolCallPart = {
   endedAt: number | null;
 };
 
-export type StreamingSourcePart = {
+type StreamingSourcePart = {
   type: 'source';
   source: LanguageModelV3Source;
   startedAt: number;
   endedAt: number;
 };
 
-export type StreamingFilePart = {
+type StreamingFilePart = {
   type: 'file';
   data: string;
   mediaType: string;
