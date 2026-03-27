@@ -2,10 +2,9 @@ import * as React from 'react';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { cn } from '@/lib/utils';
-
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
+import { cn } from '@/lib/utils';
 
 type ChatInputProps = {
   value: string;

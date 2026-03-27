@@ -2,16 +2,14 @@ import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import { CheckIcon, ChevronDownIcon, CpuIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { ProviderModels } from '@/lib/queries/providers';
-import { cn } from '@/lib/utils';
-
+import type { ModelSpec } from './types';
 import {
   buildProviderModelOptions,
   filterProviderModels,
   findProviderModelOption,
 } from '@/components/model-selectors/provider-model-utils';
-
-import type { ModelSpec } from './types';
+import type { ProviderModels } from '@/lib/queries/providers';
+import { cn } from '@/lib/utils';
 
 type ModelSelectorPopoverProps = {
   selectedValue: ModelSpec | null;
@@ -26,7 +24,10 @@ export function ModelSelectorPopover({
 }: ModelSelectorPopoverProps) {
   const [search, setSearch] = React.useState('');
 
-  const allOptions = React.useMemo(() => buildProviderModelOptions(providerModels), [providerModels]);
+  const allOptions = React.useMemo(
+    () => buildProviderModelOptions(providerModels),
+    [providerModels],
+  );
   const filtered = React.useMemo(
     () => filterProviderModels(providerModels, search),
     [providerModels, search],
@@ -51,7 +52,12 @@ export function ModelSelectorPopover({
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Positioner side="top" sideOffset={6} align="start" className="isolate z-50">
+        <PopoverPrimitive.Positioner
+          side="top"
+          sideOffset={6}
+          align="start"
+          className="isolate z-50"
+        >
           <PopoverPrimitive.Popup
             className={cn(
               'bg-popover text-popover-foreground rounded-lg shadow-lg ring-1 ring-foreground/10',
@@ -91,7 +97,9 @@ export function ModelSelectorPopover({
                       return (
                         <PopoverPrimitive.Close
                           key={model.id}
-                          onClick={() => onSelect({ providerId: provider.providerId, modelId: model.id })}
+                          onClick={() =>
+                            onSelect({ providerId: provider.providerId, modelId: model.id })
+                          }
                           className={cn(
                             'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
                             'transition-colors hover:bg-accent hover:text-accent-foreground',

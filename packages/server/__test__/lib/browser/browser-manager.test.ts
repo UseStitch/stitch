@@ -30,10 +30,14 @@ class TestableBrowserManager {
         return;
       }
       const id = setTimeout(resolve, ms);
-      signal.addEventListener('abort', () => {
-        clearTimeout(id);
-        reject(new DOMException('Browser action aborted', 'AbortError'));
-      }, { once: true });
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(id);
+          reject(new DOMException('Browser action aborted', 'AbortError'));
+        },
+        { once: true },
+      );
     });
   }
 }

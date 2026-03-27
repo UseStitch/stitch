@@ -5,10 +5,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  chromeProfilesQueryOptions,
-  importProfileMutationOptions,
-} from '@/lib/queries/browser';
+import { chromeProfilesQueryOptions, importProfileMutationOptions } from '@/lib/queries/browser';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
@@ -56,9 +53,7 @@ function ProfileStatus() {
       {activeProfile ? (
         <div className="flex items-center gap-2 text-sm">
           <FolderIcon className="size-4 text-muted-foreground" />
-          <span className="font-mono text-xs text-muted-foreground">
-            {activeProfile}
-          </span>
+          <span className="font-mono text-xs text-muted-foreground">{activeProfile}</span>
         </div>
       ) : null}
     </div>

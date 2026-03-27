@@ -25,7 +25,10 @@ export function buildProviderModelOptions(providerModels: ProviderModels[]): Pro
   );
 }
 
-export function filterProviderModels(providerModels: ProviderModels[], query: string): ProviderModels[] {
+export function filterProviderModels(
+  providerModels: ProviderModels[],
+  query: string,
+): ProviderModels[] {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return providerModels;
   const lowered = trimmedQuery.toLowerCase();
@@ -50,8 +53,7 @@ export function findProviderModelOption(
 
   return (
     options.find(
-      (option) =>
-        option.providerId === selected.providerId && option.modelId === selected.modelId,
+      (option) => option.providerId === selected.providerId && option.modelId === selected.modelId,
     ) ?? null
   );
 }

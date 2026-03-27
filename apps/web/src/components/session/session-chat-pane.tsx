@@ -10,6 +10,17 @@ import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
+import {
+  findLastUsedAgentId,
+  findLastUsedModel,
+} from '@/components/session/session-chat-pane/session-message-context';
+import { useQueuedEditPayload } from '@/components/session/session-chat-pane/use-queued-edit-payload';
+import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
+import { useSendQueuedRef } from '@/components/session/session-chat-pane/use-send-queued-ref';
+import type {
+  EditQueuedMessagePayload,
+  SendQueuedMessageFn,
+} from '@/components/session/session-page-types';
 import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
@@ -29,17 +40,6 @@ import {
 } from '@/lib/queries/chat';
 import { useAddToQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
-import type {
-  EditQueuedMessagePayload,
-  SendQueuedMessageFn,
-} from '@/components/session/session-page-types';
-import {
-  findLastUsedAgentId,
-  findLastUsedModel,
-} from '@/components/session/session-chat-pane/session-message-context';
-import { useQueuedEditPayload } from '@/components/session/session-chat-pane/use-queued-edit-payload';
-import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
-import { useSendQueuedRef } from '@/components/session/session-chat-pane/use-send-queued-ref';
 import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = {
@@ -62,7 +62,10 @@ export function SessionChatPane({
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
-  const lastUsedModel = React.useMemo((): ModelSpec | null => findLastUsedModel(messages), [messages]);
+  const lastUsedModel = React.useMemo(
+    (): ModelSpec | null => findLastUsedModel(messages),
+    [messages],
+  );
   const lastUsedAgentId = React.useMemo(() => findLastUsedAgentId(messages), [messages]);
 
   const { value, setValue } = useSeededInput();

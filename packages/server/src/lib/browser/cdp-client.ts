@@ -68,7 +68,11 @@ export class CDPClient {
     });
   }
 
-  async send(method: string, params?: Record<string, unknown>, signal?: AbortSignal): Promise<Record<string, unknown>> {
+  async send(
+    method: string,
+    params?: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<Record<string, unknown>> {
     if (signal?.aborted) {
       throw new DOMException('CDP request aborted', 'AbortError');
     }

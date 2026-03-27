@@ -7,9 +7,7 @@ import { describe, expect, test } from 'vitest';
 // We test this by calling the inner logic directly rather than using
 // module mocking, which avoids ESM cache invalidation issues in tests.
 
-async function executeWithAbort(
-  action: () => Promise<unknown>,
-): Promise<unknown> {
+async function executeWithAbort(action: () => Promise<unknown>): Promise<unknown> {
   try {
     return await action();
   } catch (error) {
@@ -22,17 +20,13 @@ async function executeWithAbort(
 describe('browser tool abort contract', () => {
   test('rethrows DOMException AbortError', async () => {
     const abortError = new DOMException('Browser action aborted', 'AbortError');
-    await expect(
-      executeWithAbort(() => Promise.reject(abortError)),
-    ).rejects.toSatisfy(
+    await expect(executeWithAbort(() => Promise.reject(abortError))).rejects.toSatisfy(
       (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
     );
   });
 
   test('converts non-abort errors to { error } objects', async () => {
-    const result = await executeWithAbort(() =>
-      Promise.reject(new Error('CDP connection failed')),
-    );
+    const result = await executeWithAbort(() => Promise.reject(new Error('CDP connection failed')));
     expect(result).toMatchObject({ error: 'CDP connection failed' });
   });
 

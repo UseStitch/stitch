@@ -3,9 +3,8 @@ import fs from 'node:fs/promises';
 import net from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import type { BrowserVersionInfo } from '@/lib/browser/types.js';
-
 import { findChrome } from '@/lib/browser/chrome-finder.js';
+import type { BrowserVersionInfo } from '@/lib/browser/types.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'browser.launcher' });
@@ -138,10 +137,7 @@ export async function launchChrome(options: {
     });
   });
 
-  const wsEndpoint = await Promise.race([
-    pollForDevToolsEndpoint(port),
-    earlyExitPromise,
-  ]);
+  const wsEndpoint = await Promise.race([pollForDevToolsEndpoint(port), earlyExitPromise]);
 
   // Remove the early-exit listener once launch succeeds so it doesn't
   // cause unhandled rejections if Chrome exits later during normal use.

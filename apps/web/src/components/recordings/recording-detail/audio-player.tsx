@@ -1,10 +1,9 @@
 import { PauseIcon, PlayIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { formatDuration } from '@/components/recordings/recording-detail/formatting';
 import { Button } from '@/components/ui/button';
 import { getAudioUrl } from '@/lib/queries/meetings';
-
-import { formatDuration } from '@/components/recordings/recording-detail/formatting';
 
 export function AudioPlayer({ meetingId }: { meetingId: string }) {
   const audioRef = React.useRef<HTMLAudioElement>(null);

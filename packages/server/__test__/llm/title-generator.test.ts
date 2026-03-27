@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { APICallError } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { generateTitle } from '@/llm/title-generator.js';
 

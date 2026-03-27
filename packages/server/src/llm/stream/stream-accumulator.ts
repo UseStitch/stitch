@@ -2,16 +2,16 @@ import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
 
-import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
+import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
+import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   PermissionRejectedError,
   StreamAbortedError,
   StreamPartError,
   isPermissionRejectedError,
 } from '@/llm/stream/errors.js';
-import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import { stableStringify } from '@/utils/stable-stringify.js';
 
 const log = Log.create({ service: 'stream-accumulator' });

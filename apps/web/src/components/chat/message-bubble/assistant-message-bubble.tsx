@@ -2,14 +2,14 @@ import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
+import { buildDisplaySegments, collectToolResults } from './segment-utils';
+import { AssistantBubbleWrapper, FileBlock, InterruptedLabel } from './shared-components';
+
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
-
-import { buildDisplaySegments, collectToolResults } from './segment-utils';
-import { AssistantBubbleWrapper, FileBlock, InterruptedLabel } from './shared-components';
 
 type AssistantMessageBubbleProps = {
   parts: StoredPart[];
@@ -17,7 +17,11 @@ type AssistantMessageBubbleProps = {
   onAbortTool?: () => void;
 };
 
-export function AssistantMessageBubble({ parts, finishReason, onAbortTool }: AssistantMessageBubbleProps) {
+export function AssistantMessageBubble({
+  parts,
+  finishReason,
+  onAbortTool,
+}: AssistantMessageBubbleProps) {
   const segments = buildDisplaySegments(parts);
   const resultsByCallId = collectToolResults(parts);
   const wasAborted = finishReason === 'aborted';

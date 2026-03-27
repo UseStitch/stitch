@@ -3,14 +3,14 @@ import { z } from 'zod';
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 
+import { TitleBar } from '@/components/layout/title-bar';
 import { ActivityBar } from '@/components/navigation/activity-bar';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { CommandPalette } from '@/components/navigation/command-palette';
-import { TitleBar } from '@/components/layout/title-bar';
+import { RightClickMenu } from '@/components/navigation/right-click-menu';
 import { OnboardingDialog } from '@/components/onboarding/onboarding-dialog';
 import { RecordingBanner } from '@/components/recording-banner/recording-banner';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
-import { RightClickMenu } from '@/components/navigation/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';

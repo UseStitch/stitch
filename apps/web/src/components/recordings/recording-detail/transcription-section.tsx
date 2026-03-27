@@ -4,12 +4,11 @@ import ReactMarkdown from 'react-markdown';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { formatCost } from '@/components/recordings/recording-detail/formatting';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSSE } from '@/hooks/sse/sse-context';
 import { meetingKeys, transcriptionQueryOptions } from '@/lib/queries/meetings';
-
-import { formatCost } from '@/components/recordings/recording-detail/formatting';
 
 export function TranscriptionSection({ meetingId }: { meetingId: string }) {
   const queryClient = useQueryClient();
@@ -78,11 +77,13 @@ export function TranscriptionSection({ meetingId }: { meetingId: string }) {
                 Transcription failed: {transcription.errorMessage ?? 'Unknown error'}
               </div>
             )}
-            {(!transcription || transcription.status === 'failed') && !isLoading && !isTranscribing && (
-              <div className="py-2 text-sm text-muted-foreground">
-                Click transcribe in the header to generate a transcription.
-              </div>
-            )}
+            {(!transcription || transcription.status === 'failed') &&
+              !isLoading &&
+              !isTranscribing && (
+                <div className="py-2 text-sm text-muted-foreground">
+                  Click transcribe in the header to generate a transcription.
+                </div>
+              )}
           </div>
         </div>
         <div className="flex min-h-100 w-full min-w-0 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-8 lg:col-span-1">

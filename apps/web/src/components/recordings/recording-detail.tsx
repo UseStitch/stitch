@@ -1,10 +1,4 @@
-import {
-  EllipsisIcon,
-  Loader2Icon,
-  MicIcon,
-  SparklesIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { EllipsisIcon, Loader2Icon, MicIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';

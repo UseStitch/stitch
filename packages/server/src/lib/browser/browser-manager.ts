@@ -1,5 +1,3 @@
-import type { ChildProcess } from 'node:child_process';
-
 import { CDPClient } from '@/lib/browser/cdp-client.js';
 import { killChrome, launchChrome } from '@/lib/browser/chrome-launcher.js';
 import type {
@@ -18,6 +16,7 @@ import { StorageStateManager } from '@/lib/browser/watchdogs/storage-state-manag
 import * as Log from '@/lib/log.js';
 import { getBrowserProfilePath } from '@/lib/paths.js';
 import { listSettings } from '@/settings/service.js';
+import type { ChildProcess } from 'node:child_process';
 
 const log = Log.create({ service: 'browser.manager' });
 
@@ -319,10 +318,14 @@ class BrowserManager {
         return;
       }
       const id = setTimeout(resolve, ms);
-      signal.addEventListener('abort', () => {
-        clearTimeout(id);
-        reject(new DOMException('Browser action aborted', 'AbortError'));
-      }, { once: true });
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(id);
+          reject(new DOMException('Browser action aborted', 'AbortError'));
+        },
+        { once: true },
+      );
     });
   }
 
@@ -447,9 +450,13 @@ class BrowserManager {
   async newTab(url?: string, signal?: AbortSignal): Promise<BrowserTab> {
     this.throwIfAborted(signal);
     this.ensureConnected();
-    const result = await this.client!.send('Target.createTarget', {
-      url: url ?? 'about:blank',
-    }, signal);
+    const result = await this.client!.send(
+      'Target.createTarget',
+      {
+        url: url ?? 'about:blank',
+      },
+      signal,
+    );
     const targetId = result.targetId as string;
     this.activeTargetId = targetId;
     this.refMap.clear();
@@ -541,7 +548,12 @@ class BrowserManager {
 
   async click(
     ref: string,
-    options?: { doubleClick?: boolean; button?: string; modifiers?: string[]; signal?: AbortSignal },
+    options?: {
+      doubleClick?: boolean;
+      button?: string;
+      modifiers?: string[];
+      signal?: AbortSignal;
+    },
   ): Promise<string> {
     const signal = options?.signal;
     this.throwIfAborted(signal);
@@ -560,22 +572,30 @@ class BrowserManager {
     };
     session.on('Page.frameNavigated', navHandler);
 
-    await session.send('Input.dispatchMouseEvent', {
-      type: 'mousePressed',
-      x: resolved.x,
-      y: resolved.y,
-      button,
-      clickCount,
-      modifiers,
-    }, signal);
-    await session.send('Input.dispatchMouseEvent', {
-      type: 'mouseReleased',
-      x: resolved.x,
-      y: resolved.y,
-      button,
-      clickCount,
-      modifiers,
-    }, signal);
+    await session.send(
+      'Input.dispatchMouseEvent',
+      {
+        type: 'mousePressed',
+        x: resolved.x,
+        y: resolved.y,
+        button,
+        clickCount,
+        modifiers,
+      },
+      signal,
+    );
+    await session.send(
+      'Input.dispatchMouseEvent',
+      {
+        type: 'mouseReleased',
+        x: resolved.x,
+        y: resolved.y,
+        button,
+        clickCount,
+        modifiers,
+      },
+      signal,
+    );
 
     await this.settle(undefined, signal);
 
@@ -595,16 +615,24 @@ class BrowserManager {
     const resolved = await this.resolveRef(session, ref);
     if (!resolved) throw new Error(`Ref "${ref}" not found. Take a new snapshot first.`);
 
-    await session.send('Input.dispatchMouseEvent', {
-      type: 'mouseMoved',
-      x: resolved.x,
-      y: resolved.y,
-    }, signal);
+    await session.send(
+      'Input.dispatchMouseEvent',
+      {
+        type: 'mouseMoved',
+        x: resolved.x,
+        y: resolved.y,
+      },
+      signal,
+    );
 
     return `Hovered over ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
-  async type(ref: string, text: string, options?: { slowly?: boolean; submit?: boolean; signal?: AbortSignal }): Promise<string> {
+  async type(
+    ref: string,
+    text: string,
+    options?: { slowly?: boolean; submit?: boolean; signal?: AbortSignal },
+  ): Promise<string> {
     const signal = options?.signal;
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
@@ -692,13 +720,17 @@ class BrowserManager {
     const deltaX = direction === 'left' ? -300 : direction === 'right' ? 300 : 0;
     const deltaY = direction === 'up' ? -300 : direction === 'down' ? 300 : 0;
 
-    await session.send('Input.dispatchMouseEvent', {
-      type: 'mouseWheel',
-      x,
-      y,
-      deltaX,
-      deltaY,
-    }, signal);
+    await session.send(
+      'Input.dispatchMouseEvent',
+      {
+        type: 'mouseWheel',
+        x,
+        y,
+        deltaX,
+        deltaY,
+      },
+      signal,
+    );
 
     const target = ref ? `at ${ref}` : 'page';
     return `Scrolled ${direction} on ${target}`;
@@ -729,10 +761,7 @@ class BrowserManager {
       }
     }
 
-    const [title, url] = await Promise.all([
-      this.getPageTitle(session),
-      this.getPageUrl(session),
-    ]);
+    const [title, url] = await Promise.all([this.getPageTitle(session), this.getPageUrl(session)]);
 
     const header = `### Page\n- URL: ${url}\n- Title: ${title}\n`;
     const snapshot = data.snapshot || '[empty page]';
@@ -745,10 +774,14 @@ class BrowserManager {
   async screenshot(signal?: AbortSignal): Promise<ScreenshotResult> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
-    const result = await session.send('Page.captureScreenshot', {
-      format: 'png',
-      quality: 80,
-    }, signal);
+    const result = await session.send(
+      'Page.captureScreenshot',
+      {
+        format: 'png',
+        quality: 80,
+      },
+      signal,
+    );
 
     return { data: result.data as string, format: 'png' };
   }
@@ -756,11 +789,15 @@ class BrowserManager {
   async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
-    const result = await session.send('Runtime.evaluate', {
-      expression,
-      returnByValue: true,
-      awaitPromise: true,
-    }, signal);
+    const result = await session.send(
+      'Runtime.evaluate',
+      {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+      },
+      signal,
+    );
 
     const exceptionDetails = result.exceptionDetails as Record<string, unknown> | undefined;
     if (exceptionDetails) {
@@ -773,14 +810,17 @@ class BrowserManager {
 
   // ── Lightweight page search tools ──────────────────────────
 
-  async searchPage(options: {
-    pattern: string;
-    regex?: boolean;
-    caseSensitive?: boolean;
-    contextChars?: number;
-    cssScope?: string;
-    maxResults?: number;
-  }, signal?: AbortSignal): Promise<SearchPageResult> {
+  async searchPage(
+    options: {
+      pattern: string;
+      regex?: boolean;
+      caseSensitive?: boolean;
+      contextChars?: number;
+      cssScope?: string;
+      maxResults?: number;
+    },
+    signal?: AbortSignal,
+  ): Promise<SearchPageResult> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const js = buildSearchPageScript(options);
@@ -795,12 +835,15 @@ class BrowserManager {
     return { matches: data.matches ?? [], total: data.total ?? 0 };
   }
 
-  async findElements(options: {
-    selector: string;
-    attributes?: string[];
-    maxResults?: number;
-    includeText?: boolean;
-  }, signal?: AbortSignal): Promise<FindElementsResult> {
+  async findElements(
+    options: {
+      selector: string;
+      attributes?: string[];
+      maxResults?: number;
+      includeText?: boolean;
+    },
+    signal?: AbortSignal,
+  ): Promise<FindElementsResult> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const js = buildFindElementsScript(options);
@@ -818,12 +861,16 @@ class BrowserManager {
   async resize(width: number, height: number, signal?: AbortSignal): Promise<string> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
-    await session.send('Emulation.setDeviceMetricsOverride', {
-      width,
-      height,
-      deviceScaleFactor: 1,
-      mobile: false,
-    }, signal);
+    await session.send(
+      'Emulation.setDeviceMetricsOverride',
+      {
+        width,
+        height,
+        deviceScaleFactor: 1,
+        mobile: false,
+      },
+      signal,
+    );
     return `Resized viewport to ${width}x${height}`;
   }
 

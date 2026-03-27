@@ -6,6 +6,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Agent } from '@stitch/shared/agents/types';
 
+import { buildModelLabel, decodeModelValue, encodeModelValue } from './model-utils';
+
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -23,8 +25,6 @@ import {
   useUpdateSubAgentConfig,
 } from '@/lib/queries/agents';
 import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
-
-import { buildModelLabel, decodeModelValue, encodeModelValue } from './model-utils';
 
 type SubAgentModelSelectProps = {
   agentId: string;

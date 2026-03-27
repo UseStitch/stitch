@@ -2,9 +2,13 @@ import { ArrowLeftIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import type { AgentPermission, AgentPermissionValue } from '@stitch/shared/permissions/types';
 import type { BashPreset } from '@stitch/shared/tools/bash-presets';
 import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
+
+import { PermissionSelect } from './permission-select';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +17,6 @@ import {
   useDeleteAgentPermission,
   useUpsertAgentPermission,
 } from '@/lib/queries/agents';
-import { useSuspenseQuery } from '@tanstack/react-query';
-
-import { PermissionSelect } from './permission-select';
 
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 const COMMAND_PATTERN_TOOLS = new Set(['bash']);
@@ -57,7 +58,10 @@ export function PermissionPolicyEditor({
       });
   };
 
-  const handlePatternPermissionChange = (rule: AgentPermission, permission: AgentPermissionValue) => {
+  const handlePatternPermissionChange = (
+    rule: AgentPermission,
+    permission: AgentPermissionValue,
+  ) => {
     void upsertPermission
       .mutateAsync({ agentId, toolName, pattern: rule.pattern, permission })
       .catch((error: unknown) => {
@@ -66,9 +70,11 @@ export function PermissionPolicyEditor({
   };
 
   const handleDeleteRule = (rule: AgentPermission) => {
-    void deletePermission.mutateAsync({ agentId, permissionId: rule.id }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete rule');
-    });
+    void deletePermission
+      .mutateAsync({ agentId, permissionId: rule.id })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to delete rule');
+      });
   };
 
   const handleAddRule = () => {
@@ -105,7 +111,9 @@ export function PermissionPolicyEditor({
         </Button>
         <div>
           <p className="text-sm font-semibold">{displayName} permissions</p>
-          <p className="text-xs text-muted-foreground">Configure when this tool requires approval</p>
+          <p className="text-xs text-muted-foreground">
+            Configure when this tool requires approval
+          </p>
         </div>
       </div>
 
@@ -116,7 +124,12 @@ export function PermissionPolicyEditor({
             <p className="text-sm">All uses</p>
             <p className="text-xs text-muted-foreground">Applied when no specific rule matches</p>
           </div>
-          <PermissionSelect value={globalPermission} onChange={handleGlobalChange} includeDeny disabled={isMutating} />
+          <PermissionSelect
+            value={globalPermission}
+            onChange={handleGlobalChange}
+            includeDeny
+            disabled={isMutating}
+          />
         </div>
       </div>
 
@@ -129,7 +142,9 @@ export function PermissionPolicyEditor({
                 key={rule.id}
                 className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
               >
-                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                  {rule.pattern}
+                </p>
                 <PermissionSelect
                   value={rule.permission}
                   onChange={(value) => handlePatternPermissionChange(rule, value)}
@@ -175,7 +190,9 @@ export function PermissionPolicyEditor({
                           permission: 'allow',
                         })
                         .catch((error: unknown) => {
-                          toast.error(error instanceof Error ? error.message : 'Failed to add rule');
+                          toast.error(
+                            error instanceof Error ? error.message : 'Failed to add rule',
+                          );
                         });
                     }
                   }}

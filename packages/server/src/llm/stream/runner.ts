@@ -8,9 +8,12 @@ import { getDisabledToolNames } from '@/agents/config/tool-config.js';
 import { markSessionUnread } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
-import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
+import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
+import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
+import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
+import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   getErrorCode,
   getErrorMessage,
@@ -18,9 +21,6 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
-import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
-import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { createProvider } from '@/provider/provider.js';

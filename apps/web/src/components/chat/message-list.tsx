@@ -23,7 +23,6 @@ type MessageListProps = {
   onSplit?: (msgId: string) => void;
 };
 
-
 export function MessageList({
   messages,
   streamState,

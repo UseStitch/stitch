@@ -11,8 +11,12 @@ type UserMessageBubbleProps = {
 
 export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
   const text = extractTextFromParts(parts);
-  const imageParts = parts.filter((part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image');
-  const fileParts = parts.filter((part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file');
+  const imageParts = parts.filter(
+    (part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image',
+  );
+  const fileParts = parts.filter(
+    (part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file',
+  );
   const textFileParts = parts.filter(
     (part): part is StoredPart & { type: 'user-text-file' } => part.type === 'user-text-file',
   );

@@ -17,7 +17,13 @@ type WebfetchToolBlockProps = {
   onAbort?: () => void;
 };
 
-export function WebfetchToolBlock({ toolName, status, args, error, onAbort }: WebfetchToolBlockProps) {
+export function WebfetchToolBlock({
+  toolName,
+  status,
+  args,
+  error,
+  onAbort,
+}: WebfetchToolBlockProps) {
   const { isActive } = getToolCardState(status);
   const label = getToolLabel(status, error);
   const url = getWebfetchUrl(args);

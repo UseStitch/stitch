@@ -1,13 +1,12 @@
 import * as React from 'react';
 
+import type { RowData } from './rows';
 import { ErrorPanel } from '@/components/chat/error-panel';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider';
 import { StreamingMessageBubble } from '@/components/chat/message-bubble/streaming-message-bubble';
 import { LoadMoreRow } from '@/components/chat/message-list/load-more-row';
 import type { SessionStreamState } from '@/stores/stream-store';
-
-import type { RowData } from './rows';
 
 type RowContentProps = {
   row: RowData;
@@ -31,7 +30,11 @@ export function RowContent({
   switch (row.kind) {
     case 'load-more':
       return (
-        <LoadMoreRow isFetchingMore={isFetchingMore} onLoadMore={onLoadMore} sentinelRef={sentinelRef} />
+        <LoadMoreRow
+          isFetchingMore={isFetchingMore}
+          onLoadMore={onLoadMore}
+          sentinelRef={sentinelRef}
+        />
       );
 
     case 'compaction':
@@ -45,7 +48,9 @@ export function RowContent({
           finishReason={row.finishReason}
           onAbortTool={onAbortTool}
           onSplit={
-            row.role === 'user' && !row.isFirstUserMessage && onSplit ? () => onSplit(row.id) : undefined
+            row.role === 'user' && !row.isFirstUserMessage && onSplit
+              ? () => onSplit(row.id)
+              : undefined
           }
         />
       );

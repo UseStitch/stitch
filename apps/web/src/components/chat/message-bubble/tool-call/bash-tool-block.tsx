@@ -3,10 +3,10 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
+import { ToolCard, getToolCardState, truncateText } from './card-primitives';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-import { ToolCard, getToolCardState, truncateText } from './card-primitives';
 
 function getBashArgs(args: unknown): {
   action: string | null;

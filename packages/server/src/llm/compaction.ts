@@ -8,12 +8,12 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { agents, messages, sessions, userSettings } from '@/db/schema.js';
-import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Models from '@/provider/models.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';

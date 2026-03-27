@@ -4,9 +4,9 @@ import { useNavigate } from '@tanstack/react-router';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { Button } from '@/components/ui/button';
-
 import { ToolCard, getToolCardState, getToolLabel, truncateText } from './card-primitives';
+
+import { Button } from '@/components/ui/button';
 
 function getSubAgentTask(args: unknown): string | null {
   const value = (args as { task?: unknown })?.task;
@@ -35,7 +35,13 @@ type SubAgentToolBlockProps = {
   error?: string;
 };
 
-export function SubAgentToolBlock({ toolName, status, args, result, error }: SubAgentToolBlockProps) {
+export function SubAgentToolBlock({
+  toolName,
+  status,
+  args,
+  result,
+  error,
+}: SubAgentToolBlockProps) {
   const navigate = useNavigate();
   const { isActive } = getToolCardState(status);
   const task = getSubAgentTask(args);

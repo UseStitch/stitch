@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { simulateReadableStream, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -51,10 +51,7 @@ function makeStreamResult(chunks: any[]) {
   };
 }
 
-function getDefaultOpts(
-  model: MockLanguageModelV3,
-  overrides?: Partial<StepOptions>,
-): StepOptions {
+function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOptions>): StepOptions {
   return {
     sessionId: 'ses_1' as StepOptions['sessionId'],
     messageId: 'msg_1' as StepOptions['messageId'],
@@ -209,9 +206,7 @@ describe('executeStepWithRetry', () => {
 
     expect(result.finishReason).toBe('tool-calls');
     expect(result.toolCalls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ toolName: 'read' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ toolName: 'read' })]),
     );
 
     const toolCallPart = accumulatedParts.find((p) => p.type === 'tool-call');
@@ -289,9 +284,7 @@ describe('executeStepWithRetry', () => {
     expect(callCount).toBe(1);
     expect(result.finishReason).toBe('tool-calls');
     expect(result.toolCalls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ toolName: 'bash' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ toolName: 'bash' })]),
     );
   });
 
@@ -308,9 +301,7 @@ describe('executeStepWithRetry', () => {
     const opts = getDefaultOpts(model);
     await executeStepWithRetry(opts);
 
-    const eventTypes = mocks.broadcastMock.mock.calls.map(
-      (call: unknown[]) => String(call[0]),
-    );
+    const eventTypes = mocks.broadcastMock.mock.calls.map((call: unknown[]) => String(call[0]));
     expect(eventTypes).toContain('stream-part-update');
     expect(eventTypes).toContain('stream-part-delta');
   });

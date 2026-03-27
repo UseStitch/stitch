@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const CHROME_NAMES_POSIX = ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium'];
+const CHROME_NAMES_POSIX = [
+  'google-chrome-stable',
+  'google-chrome',
+  'chromium-browser',
+  'chromium',
+];
 
 function darwinCandidates(): string[] {
   return [

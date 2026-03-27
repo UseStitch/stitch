@@ -3,9 +3,9 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { cn } from '@/lib/utils';
-
 import { ToolCard } from './card-primitives';
+
+import { cn } from '@/lib/utils';
 
 function QuestionAnswers({ args, result }: { args: unknown; result?: unknown }) {
   const questions = (args as { questions?: { question: string; header: string }[] })?.questions;

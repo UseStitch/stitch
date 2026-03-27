@@ -2,10 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import {
-  importChromeProfile,
-  listChromeProfiles,
-} from '@/lib/browser/chrome-profile-importer.js';
+import { importChromeProfile, listChromeProfiles } from '@/lib/browser/chrome-profile-importer.js';
 import { saveSetting } from '@/settings/service.js';
 
 const importSchema = z.object({ profileId: z.string() });
@@ -27,7 +24,9 @@ browserRouter.post('/import-profile', zValidator('json', importSchema), async (c
   try {
     const profiles = await listChromeProfiles();
     const profile = profiles.find((p) => p.id === profileId);
-    const profileLabel = profile ? `${profile.name}${profile.email ? ` (${profile.email})` : ''}` : profileId;
+    const profileLabel = profile
+      ? `${profile.name}${profile.email ? ` (${profile.email})` : ''}`
+      : profileId;
 
     await importChromeProfile(profileId);
 

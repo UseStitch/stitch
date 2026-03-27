@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
+import type { PartDelta } from '@stitch/shared/chat/realtime';
+
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';
-import type { PartDelta } from '@stitch/shared/chat/realtime';
 
 type PendingDelta = { sessionId: string; messageId: string; partId: string; delta: PartDelta };
 
@@ -56,7 +57,10 @@ function useStreamSync(): void {
           pendingDeltasRef.current = [];
 
           // Group by session+message to minimise store set() calls
-          const groups = new Map<string, { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }>();
+          const groups = new Map<
+            string,
+            { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }
+          >();
           for (const item of batch) {
             const key = `${item.sessionId}:${item.messageId}`;
             let group = groups.get(key);
@@ -73,7 +77,16 @@ function useStreamSync(): void {
         });
       }
     },
-    'stream-tool-state': ({ sessionId, messageId, toolCallId, toolName, status, input, output, error }) => {
+    'stream-tool-state': ({
+      sessionId,
+      messageId,
+      toolCallId,
+      toolName,
+      status,
+      input,
+      output,
+      error,
+    }) => {
       applyToolState(sessionId, messageId, toolCallId, toolName, status, input, output, error);
     },
     'stream-finish': ({ sessionId, messageId, finishReason, usage }) => {
@@ -83,7 +96,10 @@ function useStreamSync(): void {
         rafIdRef.current = null;
         const batch = pendingDeltasRef.current;
         pendingDeltasRef.current = [];
-        const groups = new Map<string, { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }>();
+        const groups = new Map<
+          string,
+          { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }
+        >();
         for (const item of batch) {
           const key = `${item.sessionId}:${item.messageId}`;
           let group = groups.get(key);

@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 
-import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import { createProvider } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
 

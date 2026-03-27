@@ -130,9 +130,7 @@ export class StorageStateManager {
     }
   }
 
-  private async getLocalStorageOrigins(
-    session: CDPClient,
-  ): Promise<StorageState['origins']> {
+  private async getLocalStorageOrigins(session: CDPClient): Promise<StorageState['origins']> {
     try {
       const result = await session.send('Runtime.evaluate', {
         expression: `

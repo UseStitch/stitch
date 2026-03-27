@@ -10,6 +10,7 @@ import type { ToolCallRecord } from './doom-loop.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import * as Sse from '@/lib/sse.js';
+import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import {
   ContextOverflowError,
   getErrorCode,
@@ -17,7 +18,6 @@ import {
   isStreamAbortedError,
   StreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { createProvider } from '@/provider/provider.js';
 import type { createTools } from '@/tools/runtime/registry.js';
 import * as Usage from '@/utils/usage.js';

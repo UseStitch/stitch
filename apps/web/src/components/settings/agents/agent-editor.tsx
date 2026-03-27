@@ -2,6 +2,12 @@ import { ArrowLeftIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
+import { AgentMcpServers } from './agent-mcp-servers';
+import { AgentSubAgentsConfig } from './agent-sub-agents-config';
+import { AgentToolConfig } from './agent-tool-config';
+import { toFormState } from './types';
+
+import type { AgentEditorMode, AgentFormState } from './types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +15,6 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateAgent, useUpdateAgent } from '@/lib/queries/agents';
-
-import { AgentMcpServers } from './agent-mcp-servers';
-import { AgentSubAgentsConfig } from './agent-sub-agents-config';
-import { AgentToolConfig } from './agent-tool-config';
-import type { AgentEditorMode, AgentFormState } from './types';
-import { toFormState } from './types';
 
 type AgentEditorProps = {
   mode: AgentEditorMode;
@@ -115,7 +115,9 @@ export function AgentEditor({ mode, onBack }: AgentEditorProps) {
               <p className="text-xs font-medium text-muted-foreground">Name</p>
               <Input
                 value={form.name}
-                onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, name: event.target.value }))
+                }
                 placeholder="Agent name"
               />
             </div>
@@ -123,11 +125,15 @@ export function AgentEditor({ mode, onBack }: AgentEditorProps) {
             <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Use base prompt</p>
-                <p className="text-xs text-muted-foreground">Use the default system prompt for this agent</p>
+                <p className="text-xs text-muted-foreground">
+                  Use the default system prompt for this agent
+                </p>
               </div>
               <Switch
                 checked={form.useBasePrompt}
-                onCheckedChange={(checked) => setForm((previous) => ({ ...previous, useBasePrompt: checked }))}
+                onCheckedChange={(checked) =>
+                  setForm((previous) => ({ ...previous, useBasePrompt: checked }))
+                }
               />
             </div>
 
@@ -159,7 +165,9 @@ export function AgentEditor({ mode, onBack }: AgentEditorProps) {
 
         {mode.type === 'edit' && (
           <TabsContent value="tools">
-            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}>
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading tools...</div>}
+            >
               <AgentToolConfig agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>
@@ -167,7 +175,9 @@ export function AgentEditor({ mode, onBack }: AgentEditorProps) {
 
         {mode.type === 'edit' && (
           <TabsContent value="mcp">
-            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading...</div>}
+            >
               <AgentMcpServers agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>
@@ -175,7 +185,9 @@ export function AgentEditor({ mode, onBack }: AgentEditorProps) {
 
         {mode.type === 'edit' && agentType === 'primary' && (
           <TabsContent value="sub-agents">
-            <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+            <React.Suspense
+              fallback={<div className="text-xs text-muted-foreground">Loading...</div>}
+            >
               <AgentSubAgentsConfig agentId={mode.agent.id} />
             </React.Suspense>
           </TabsContent>

@@ -3,9 +3,9 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { cn } from '@/lib/utils';
-
 import { ToolCard, truncateText } from './card-primitives';
+
+import { cn } from '@/lib/utils';
 
 function getBrowserArgs(args: unknown): {
   action: string | null;
@@ -18,7 +18,15 @@ function getBrowserArgs(args: unknown): {
 } {
   const value = args as Record<string, unknown> | null | undefined;
   if (!value) {
-    return { action: null, url: null, ref: null, text: null, key: null, tabId: null, profile: null };
+    return {
+      action: null,
+      url: null,
+      ref: null,
+      text: null,
+      key: null,
+      tabId: null,
+      profile: null,
+    };
   }
 
   return {
@@ -147,7 +155,9 @@ export function BrowserToolBlock({ toolName, status, args, result, error }: Brow
             <>
               <div className="font-medium text-foreground">Output</div>
               <div className="max-h-64 overflow-auto font-mono text-xs break-all whitespace-pre-wrap text-muted-foreground">
-                {resultOutput.length > 2000 ? `${resultOutput.slice(0, 2000)}\n\n[...truncated]` : resultOutput}
+                {resultOutput.length > 2000
+                  ? `${resultOutput.slice(0, 2000)}\n\n[...truncated]`
+                  : resultOutput}
               </div>
             </>
           ) : null}

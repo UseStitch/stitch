@@ -8,11 +8,7 @@ import type { AgentType } from '@stitch/shared/agents/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  agentsQueryOptions,
-  useDeleteAgent,
-  useSetDefaultAgent,
-} from '@/lib/queries/agents';
+import { agentsQueryOptions, useDeleteAgent, useSetDefaultAgent } from '@/lib/queries/agents';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type AgentsListProps = {

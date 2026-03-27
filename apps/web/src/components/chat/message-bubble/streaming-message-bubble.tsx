@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useDeferredValue } from 'react';
 
+import { AssistantBubbleWrapper, FileBlock } from './shared-components';
+
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
 import type { StreamingPart } from '@/stores/stream-store';
-
-import { AssistantBubbleWrapper, FileBlock } from './shared-components';
 
 function StreamingTextPart({ text }: { text: string }) {
   const deferredText = useDeferredValue(text);
@@ -54,7 +54,13 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
               </div>
             );
           case 'reasoning':
-            return <ReasoningBlock key={partId} text={part.text} isStreaming={part.status === 'streaming'} />;
+            return (
+              <ReasoningBlock
+                key={partId}
+                text={part.text}
+                isStreaming={part.status === 'streaming'}
+              />
+            );
           case 'tool-call':
             return (
               <ToolCallBlock

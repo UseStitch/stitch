@@ -2,10 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { SessionPage } from '@/components/session/session-page';
 import { agentsQueryOptions } from '@/lib/queries/agents';
-import {
-  sessionQueryOptions,
-  sessionMessagesInfiniteQueryOptions,
-} from '@/lib/queries/chat';
+import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
 import {
   enabledProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,

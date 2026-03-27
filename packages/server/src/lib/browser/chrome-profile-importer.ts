@@ -37,7 +37,9 @@ export async function listChromeProfiles(): Promise<ChromeProfile[]> {
     const raw = await fs.readFile(localStatePath, 'utf-8');
     const data = JSON.parse(raw) as Record<string, unknown>;
     const profileSection = data['profile'] as Record<string, unknown> | undefined;
-    const infoCache = profileSection?.['info_cache'] as Record<string, Record<string, unknown>> | undefined;
+    const infoCache = profileSection?.['info_cache'] as
+      | Record<string, Record<string, unknown>>
+      | undefined;
 
     if (!infoCache) return [];
 
@@ -74,7 +76,9 @@ async function removeSessionRestoreFiles(profileDir: string): Promise<void> {
     ...dirsToRemove.map((dir) =>
       fs.rm(path.join(profileDir, dir), { recursive: true, force: true }).catch(() => {}),
     ),
-    ...filesToRemove.map((file) => fs.rm(path.join(profileDir, file), { force: true }).catch(() => {})),
+    ...filesToRemove.map((file) =>
+      fs.rm(path.join(profileDir, file), { force: true }).catch(() => {}),
+    ),
   ]);
 }
 
@@ -142,9 +146,7 @@ export async function importChromeProfile(profileId: string): Promise<void> {
   try {
     await fs.access(profileDir);
   } catch {
-    throw new Error(
-      `Chrome profile "${profileId}" not found at ${profileDir}.`,
-    );
+    throw new Error(`Chrome profile "${profileId}" not found at ${profileDir}.`);
   }
 
   log.info({ profileId, source: chromeDir }, 'Starting Chrome profile import');

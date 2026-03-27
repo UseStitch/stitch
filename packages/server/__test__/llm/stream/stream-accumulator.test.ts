@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   PermissionRejectedError,
   StreamAbortedError,
   StreamPartError,
 } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
-import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 
 const mocks = vi.hoisted(() => ({
   broadcastMock: vi.fn(async () => {}),
@@ -156,9 +156,7 @@ describe('StreamAccumulator', () => {
         input: { command: 'pwd' },
       });
 
-      expect(toolCalls).toEqual([
-        expect.objectContaining({ toolName: 'bash' }),
-      ]);
+      expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
         type: 'tool-call',
@@ -349,9 +347,7 @@ describe('StreamAccumulator', () => {
     test('throws StreamAbortedError on abort part', async () => {
       const acc = createAccumulator();
 
-      await expect(
-        acc.handlePart({ type: 'abort' }),
-      ).rejects.toBeInstanceOf(StreamAbortedError);
+      await expect(acc.handlePart({ type: 'abort' })).rejects.toBeInstanceOf(StreamAbortedError);
     });
   });
 

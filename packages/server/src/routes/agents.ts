@@ -11,7 +11,6 @@ import {
   getAgentMcpServers,
   removeMcpServerFromAgent,
 } from '@/agents/config/mcp-config.js';
-import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
 import {
   addSubAgentToAgent,
   getAgentSubAgents,
@@ -19,6 +18,7 @@ import {
   updateSubAgentConfig,
 } from '@/agents/config/sub-agent-config.js';
 import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/config/tool-config.js';
+import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import {

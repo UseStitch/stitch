@@ -12,7 +12,11 @@ type AgentSelectorPopoverProps = {
   agents: Agent[];
 };
 
-export function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentSelectorPopoverProps) {
+export function AgentSelectorPopover({
+  selectedValue,
+  onSelect,
+  agents,
+}: AgentSelectorPopoverProps) {
   const selectedOption = selectedValue ? agents.find((agent) => agent.id === selectedValue) : null;
 
   return (
@@ -30,7 +34,12 @@ export function AgentSelectorPopover({ selectedValue, onSelect, agents }: AgentS
       </PopoverPrimitive.Trigger>
 
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Positioner side="top" sideOffset={6} align="start" className="isolate z-50">
+        <PopoverPrimitive.Positioner
+          side="top"
+          sideOffset={6}
+          align="start"
+          className="isolate z-50"
+        >
           <PopoverPrimitive.Popup
             className={cn(
               'bg-popover text-popover-foreground rounded-lg shadow-lg ring-1 ring-foreground/10',

@@ -2,10 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
-import {
-  importChromeProfile,
-  listChromeProfiles,
-} from '@/lib/browser/chrome-profile-importer.js';
+import { importChromeProfile, listChromeProfiles } from '@/lib/browser/chrome-profile-importer.js';
 import { BROWSER_ACTIONS } from '@/lib/browser/types.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
 import * as Log from '@/lib/log.js';
@@ -23,7 +20,10 @@ const browserInputSchema = z.object({
     .describe(
       'Element ref from a snapshot (e.g. "e1", "e2"). Used by click, type, hover, select, scroll.',
     ),
-  text: z.string().optional().describe('Text to type (type action) or text to wait for (wait action).'),
+  text: z
+    .string()
+    .optional()
+    .describe('Text to type (type action) or text to wait for (wait action).'),
   key: z
     .string()
     .optional()
@@ -62,18 +62,9 @@ const browserInputSchema = z.object({
     .string()
     .optional()
     .describe('CSS selector. For wait action or find_elements action.'),
-  pattern: z
-    .string()
-    .optional()
-    .describe('Text pattern to search for. For search_page action.'),
-  regex: z
-    .boolean()
-    .optional()
-    .describe('Treat pattern as regex. For search_page action.'),
-  caseSensitive: z
-    .boolean()
-    .optional()
-    .describe('Case-sensitive search. For search_page action.'),
+  pattern: z.string().optional().describe('Text pattern to search for. For search_page action.'),
+  regex: z.boolean().optional().describe('Treat pattern as regex. For search_page action.'),
+  caseSensitive: z.boolean().optional().describe('Case-sensitive search. For search_page action.'),
   contextChars: z
     .number()
     .optional()
@@ -89,9 +80,7 @@ const browserInputSchema = z.object({
   attributes: z
     .array(z.string())
     .optional()
-    .describe(
-      'Specific attributes to extract (e.g. ["href", "src"]). For find_elements action.',
-    ),
+    .describe('Specific attributes to extract (e.g. ["href", "src"]). For find_elements action.'),
   includeText: z
     .boolean()
     .optional()
@@ -119,7 +108,6 @@ const TOOL_DESCRIPTION = `Control a Chrome browser to interact with web pages. T
 - **evaluate**: Run JavaScript in the page (set \`fn\`). Last resort.
 - **wait**: Wait for time or selector
 - **resize**: Resize viewport`;
-
 
 async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
@@ -254,14 +242,17 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
 
     case 'search_page': {
       if (!input.pattern) throw new Error('Missing required field: pattern');
-      const result = await browser.searchPage({
-        pattern: input.pattern,
-        regex: input.regex,
-        caseSensitive: input.caseSensitive,
-        contextChars: input.contextChars,
-        cssScope: input.cssScope,
-        maxResults: input.maxResults,
-      }, signal);
+      const result = await browser.searchPage(
+        {
+          pattern: input.pattern,
+          regex: input.regex,
+          caseSensitive: input.caseSensitive,
+          contextChars: input.contextChars,
+          cssScope: input.cssScope,
+          maxResults: input.maxResults,
+        },
+        signal,
+      );
       const matchLines = result.matches.map(
         (m, i) => `  ${i + 1}. "${m.match}" — ...${m.context}...`,
       );
@@ -276,12 +267,15 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
 
     case 'find_elements': {
       if (!input.selector) throw new Error('Missing required field: selector');
-      const result = await browser.findElements({
-        selector: input.selector,
-        attributes: input.attributes,
-        maxResults: input.maxResults,
-        includeText: input.includeText,
-      }, signal);
+      const result = await browser.findElements(
+        {
+          selector: input.selector,
+          attributes: input.attributes,
+          maxResults: input.maxResults,
+          includeText: input.includeText,
+        },
+        signal,
+      );
       const elemLines = result.elements.map((el, i) => {
         let line = `  ${i + 1}. <${el.tag}>`;
         if (el.text) line += ` "${el.text}"`;
@@ -308,7 +302,11 @@ const log = Log.create({ service: 'tools.browser' });
 
 let hasPromptedImport = false;
 
-async function maybePromptProfileImport(context: ToolContext, toolCallId: string, abortSignal?: AbortSignal): Promise<void> {
+async function maybePromptProfileImport(
+  context: ToolContext,
+  toolCallId: string,
+  abortSignal?: AbortSignal,
+): Promise<void> {
   if (hasPromptedImport) return;
 
   const settings = await listSettings();
@@ -339,7 +337,10 @@ async function maybePromptProfileImport(context: ToolContext, toolCallId: string
           'Would you like to import your Chrome profile? This lets the browser use your existing logins, cookies, and sessions.',
         header: 'Chrome Profile',
         options: [
-          { label: 'Import Chrome profile', description: 'Copy your Chrome logins and cookies into the Stitch browser' },
+          {
+            label: 'Import Chrome profile',
+            description: 'Copy your Chrome logins and cookies into the Stitch browser',
+          },
           { label: 'Skip', description: 'Use a clean browser without existing logins' },
         ],
       },
@@ -418,7 +419,10 @@ export function createRegisteredTool(context: ToolContext) {
       await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
     } catch (error) {
       // If the prompt was aborted or rejected, log and continue with a clean browser
-      log.info({ error: error instanceof Error ? error.message : String(error) }, 'Profile import prompt skipped');
+      log.info(
+        { error: error instanceof Error ? error.message : String(error) },
+        'Profile import prompt skipped',
+      );
     }
     return originalExecute(input, execContext);
   };

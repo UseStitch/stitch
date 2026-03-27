@@ -87,13 +87,25 @@ function ToolCardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex w-full items-start gap-2.5 px-3 py-2.5', tone === 'accent' && 'bg-primary/5', className)}>
+    <div
+      className={cn(
+        'flex w-full items-start gap-2.5 px-3 py-2.5',
+        tone === 'accent' && 'bg-primary/5',
+        className,
+      )}
+    >
       {children}
     </div>
   );
 }
 
-function ToolCardStatusIndicator({ status, className }: { status: ToolCallStatus; className?: string }) {
+function ToolCardStatusIndicator({
+  status,
+  className,
+}: {
+  status: ToolCallStatus;
+  className?: string;
+}) {
   return (
     <span className={className}>
       <StatusIcon status={status} />
@@ -102,7 +114,11 @@ function ToolCardStatusIndicator({ status, className }: { status: ToolCallStatus
 }
 
 function ToolCardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('text-sm leading-tight font-medium capitalize', className)}>{children}</span>;
+  return (
+    <span className={cn('text-sm leading-tight font-medium capitalize', className)}>
+      {children}
+    </span>
+  );
 }
 
 function ToolCardTitleContent({
@@ -130,7 +146,13 @@ function ToolCardTitleContent({
   );
 }
 
-function ToolCardActions({ children, className }: { children: React.ReactNode; className?: string }) {
+function ToolCardActions({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <span className={cn('inline-flex items-center gap-1.5', className)}>{children}</span>;
 }
 
@@ -209,7 +231,9 @@ function ToolCardContent({
   className?: string;
 }) {
   if (open === false) return null;
-  return <div className={cn('border-t border-border/40 px-3 py-2 text-xs', className)}>{children}</div>;
+  return (
+    <div className={cn('border-t border-border/40 px-3 py-2 text-xs', className)}>{children}</div>
+  );
 }
 
 export const ToolCard = {

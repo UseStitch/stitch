@@ -52,7 +52,10 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           onDeleteSession={() => setDeleteDialogOpen(true)}
         />
 
-        <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
+        >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
             <SessionChatPane
               onOpenQueue={openQueue}

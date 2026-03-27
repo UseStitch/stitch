@@ -5,19 +5,21 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { AgentSelectorPopover } from './agent-selector-popover';
+import { AttachmentPreview } from './attachment-preview';
+import { ModelSelectorPopover } from './model-selector-popover';
+import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
+
+import type { Attachment, ModelSpec } from './types';
+import {
+  buildProviderModelOptions,
+  findProviderModelOption,
+} from '@/components/model-selectors/provider-model-utils';
 import { Button } from '@/components/ui/button';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { agentsQueryOptions } from '@/lib/queries/agents';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
-
-import { buildProviderModelOptions, findProviderModelOption } from '@/components/model-selectors/provider-model-utils';
-
-import { AgentSelectorPopover } from './agent-selector-popover';
-import { AttachmentPreview } from './attachment-preview';
-import { ModelSelectorPopover } from './model-selector-popover';
-import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
-import type { Attachment, ModelSpec } from './types';
 
 type ChatInputInnerProps = {
   value: string;
@@ -76,7 +78,10 @@ export function ChatInputInner({
     onPendingAttachmentsConsumed,
   });
 
-  const allOptions = React.useMemo(() => buildProviderModelOptions(providerModels), [providerModels]);
+  const allOptions = React.useMemo(
+    () => buildProviderModelOptions(providerModels),
+    [providerModels],
+  );
   const selectedModelOption = React.useMemo(
     () => findProviderModelOption(allOptions, selectedModel),
     [allOptions, selectedModel],
@@ -132,7 +137,11 @@ export function ChatInputInner({
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 pt-3">
           {attachments.map((attachment) => (
-            <AttachmentPreview key={attachment.id} attachment={attachment} onRemove={removeAttachment} />
+            <AttachmentPreview
+              key={attachment.id}
+              attachment={attachment}
+              onRemove={removeAttachment}
+            />
           ))}
         </div>
       )}
@@ -241,5 +250,3 @@ export function ChatInputInner({
     </div>
   );
 }
-
-;

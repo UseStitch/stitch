@@ -13,9 +13,7 @@ describe('CDPClient.send abort', () => {
     // a pre-aborted signal should reject with AbortError before WS send.
     // We create a minimal stub by connecting to nothing but skip the check by
     // testing only the abort path via an already-aborted signal before connect.
-    await expect(
-      client.send('Page.enable', {}, controller.signal),
-    ).rejects.toSatisfy(
+    await expect(client.send('Page.enable', {}, controller.signal)).rejects.toSatisfy(
       (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
     );
   });

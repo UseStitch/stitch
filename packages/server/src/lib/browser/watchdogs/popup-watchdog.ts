@@ -47,11 +47,9 @@ export class PopupWatchdog {
     // The event doesn't carry a session reference, so we broadcast to all.
     for (const session of this.sessions) {
       if (!session.isConnected) continue;
-      session
-        .send('Page.handleJavaScriptDialog', { accept })
-        .catch(() => {
-          // Swallow — dialog may already have been handled or session closed
-        });
+      session.send('Page.handleJavaScriptDialog', { accept }).catch(() => {
+        // Swallow — dialog may already have been handled or session closed
+      });
     }
   };
 }

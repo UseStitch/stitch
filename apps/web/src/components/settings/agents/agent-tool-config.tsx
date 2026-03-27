@@ -7,6 +7,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { AgentPermissionValue } from '@stitch/shared/permissions/types';
 
+import { PermissionPolicyEditor, PATTERN_POLICY_TOOLS } from './permission-policy-editor';
+import { PermissionSelect } from './permission-select';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,9 +20,6 @@ import {
   useSetAgentToolEnabled,
   useUpsertAgentPermission,
 } from '@/lib/queries/agents';
-
-import { PermissionPolicyEditor, PATTERN_POLICY_TOOLS } from './permission-policy-editor';
-import { PermissionSelect } from './permission-select';
 
 type AgentToolConfigProps = {
   agentId: string;
@@ -38,14 +38,18 @@ export function AgentToolConfig({ agentId }: AgentToolConfigProps) {
   const serverNameMap = new Map(linkedServers.map((server) => [server.id as string, server.name]));
 
   const getGlobalPermission = (toolName: string): AgentPermissionValue => {
-    const rule = permissions.find((permission) => permission.toolName === toolName && permission.pattern === null);
+    const rule = permissions.find(
+      (permission) => permission.toolName === toolName && permission.pattern === null,
+    );
     return rule?.permission ?? 'ask';
   };
 
   const handleToggle = (toolType: 'stitch' | 'mcp', toolName: string, enabled: boolean) => {
-    void setToolEnabled.mutateAsync({ agentId, toolType, toolName, enabled }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update tool');
-    });
+    void setToolEnabled
+      .mutateAsync({ agentId, toolType, toolName, enabled })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update tool');
+      });
   };
 
   const handlePermissionChange = (toolName: string, permission: AgentPermissionValue) => {
@@ -62,7 +66,9 @@ export function AgentToolConfig({ agentId }: AgentToolConfigProps) {
         <PermissionPolicyEditor
           agentId={agentId}
           toolName={editingTool}
-          displayName={toolConfig.find((tool) => tool.toolName === editingTool)?.displayName ?? editingTool}
+          displayName={
+            toolConfig.find((tool) => tool.toolName === editingTool)?.displayName ?? editingTool
+          }
           onBack={() => setEditingTool(null)}
         />
       </React.Suspense>
@@ -71,7 +77,9 @@ export function AgentToolConfig({ agentId }: AgentToolConfigProps) {
 
   const query = search.trim().toLowerCase();
   const stitchTools = toolConfig.filter(
-    (tool) => tool.toolType === 'stitch' && (query === '' || tool.displayName.toLowerCase().includes(query)),
+    (tool) =>
+      tool.toolType === 'stitch' &&
+      (query === '' || tool.displayName.toLowerCase().includes(query)),
   );
 
   const mcpGroups = new Map<string, { toolName: string; enabled: boolean }[]>();
@@ -152,7 +160,9 @@ export function AgentToolConfig({ agentId }: AgentToolConfigProps) {
 
       {Array.from(mcpGroups.entries()).map(([serverId, tools]) => (
         <div key={serverId} className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">{serverNameMap.get(serverId) ?? serverId}</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {serverNameMap.get(serverId) ?? serverId}
+          </p>
           <div className="overflow-hidden rounded-md border border-border/50">
             {tools.map((tool) => {
               const parsed = parseMcpToolName(tool.toolName);

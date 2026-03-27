@@ -1,5 +1,6 @@
 import type { FieldDef } from '@stitch/shared/providers/types';
 
+import type { FieldValues } from './utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -9,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-import type { FieldValues } from './utils';
 
 const AWS_BEDROCK_REGIONS = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },

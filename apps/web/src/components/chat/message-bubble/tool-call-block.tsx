@@ -1,5 +1,5 @@
-import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import { BashToolBlock } from '@/components/chat/message-bubble/tool-call/bash-tool-block';
 import { BrowserToolBlock } from '@/components/chat/message-bubble/tool-call/browser-tool-block';
@@ -19,13 +19,28 @@ type ToolCallBlockProps = {
   onAbort?: () => void;
 };
 
-export function ToolCallBlock({ toolName, status, args, result, error, onAbort }: ToolCallBlockProps) {
+export function ToolCallBlock({
+  toolName,
+  status,
+  args,
+  result,
+  error,
+  onAbort,
+}: ToolCallBlockProps) {
   const hasArgs = args !== undefined && args !== null;
   const isMcp = parseMcpToolName(toolName) !== null;
   const isSubAgent = toolName.startsWith('subagent_');
 
   if (isSubAgent) {
-    return <SubAgentToolBlock toolName={toolName} status={status} args={args} result={result} error={error} />;
+    return (
+      <SubAgentToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        error={error}
+      />
+    );
   }
 
   if (isMcp) {
@@ -37,7 +52,15 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
   }
 
   if (toolName === 'webfetch' && hasArgs) {
-    return <WebfetchToolBlock toolName={toolName} status={status} args={args} error={error} onAbort={onAbort} />;
+    return (
+      <WebfetchToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        error={error}
+        onAbort={onAbort}
+      />
+    );
   }
 
   if (toolName === 'bash' && hasArgs) {
@@ -49,7 +72,15 @@ export function ToolCallBlock({ toolName, status, args, result, error, onAbort }
   }
 
   if (toolName === 'browser' && hasArgs) {
-    return <BrowserToolBlock toolName={toolName} status={status} args={args} result={result} error={error} />;
+    return (
+      <BrowserToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        error={error}
+      />
+    );
   }
 
   return <GenericToolBlock toolName={toolName} status={status} error={error} />;
