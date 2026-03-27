@@ -21,7 +21,8 @@
     "./settings/types": "./src/settings/types.ts",
     "./shortcuts/types": "./src/shortcuts/types.ts",
     "./tools/bash-families": "./src/tools/bash-families.ts",
-    "./tools/bash-presets": "./src/tools/bash-presets.ts"
+    "./tools/bash-presets": "./src/tools/bash-presets.ts",
+    "./usage/types": "./src/usage/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

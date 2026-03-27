@@ -1,4 +1,4 @@
-import { MessageSquareIcon, MicIcon, SettingsIcon } from 'lucide-react';
+import { BarChart3Icon, MessageSquareIcon, MicIcon, SettingsIcon } from 'lucide-react';
 
 import { Link, useRouterState } from '@tanstack/react-router';
 
@@ -7,6 +7,14 @@ import { useDialogContext } from '@/context/dialog-context';
 import { cn } from '@/lib/utils';
 
 type ActivityItem = {
+  id: string;
+  icon: React.ReactNode;
+  label: string;
+  to: string;
+  matchPrefix: string;
+};
+
+type BottomActivityItem = {
   id: string;
   icon: React.ReactNode;
   label: string;
@@ -28,6 +36,16 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Recordings',
     to: '/recordings',
     matchPrefix: '/recordings',
+  },
+];
+
+const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
+  {
+    id: 'usage',
+    icon: <BarChart3Icon className="size-5" />,
+    label: 'Usage',
+    to: '/usage',
+    matchPrefix: '/usage',
   },
 ];
 
@@ -71,21 +89,47 @@ export function ActivityBar() {
         })}
       </div>
 
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <button
-              type="button"
-              onClick={() => setSettingsTab('general')}
-              className="mt-auto flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-              aria-label="Open settings"
-            />
-          }
-        >
-          <SettingsIcon className="size-5" />
-        </TooltipTrigger>
-        <TooltipContent side="right">Settings</TooltipContent>
-      </Tooltip>
+      <div className="mt-auto flex w-full flex-col items-center gap-2">
+        {BOTTOM_ACTIVITY_ITEMS.map((item) => {
+          const active = isActive(item.matchPrefix, currentPath);
+          return (
+            <Tooltip key={item.id}>
+              <TooltipTrigger
+                render={
+                  <Link
+                    to={item.to}
+                    className={cn(
+                      'flex size-10 items-center justify-center rounded-lg transition-colors',
+                      active
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                    )}
+                  />
+                }
+              >
+                {item.icon}
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                onClick={() => setSettingsTab('general')}
+                className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                aria-label="Open settings"
+              />
+            }
+          >
+            <SettingsIcon className="size-5" />
+          </TooltipTrigger>
+          <TooltipContent side="right">Settings</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }
