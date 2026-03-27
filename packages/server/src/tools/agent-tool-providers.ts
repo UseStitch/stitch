@@ -6,6 +6,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { agents } from '@/db/schema.js';
 import type { AgentInfo, AgentToolProvider } from '@/tools/agent-tool-provider-types.js';
+import { browserToolProvider } from '@/tools/browser-tool-provider.js';
 import { meetingsToolProvider } from '@/tools/meetings-tool.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import type { Tool } from 'ai';
@@ -14,7 +15,7 @@ import type { Tool } from 'ai';
  * All registered agent tool providers.
  * Add new providers here when creating new agent-specific tools.
  */
-const providers: AgentToolProvider[] = [meetingsToolProvider];
+const providers: AgentToolProvider[] = [meetingsToolProvider, browserToolProvider];
 
 async function resolveAgent(agentId: PrefixedString<'agt'>): Promise<AgentInfo | null> {
   try {

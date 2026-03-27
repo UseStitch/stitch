@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { seedBrowserAgent } from '@/agents/browser-agent.js';
 import { seedMeetingsAgent } from '@/agents/meetings-agent.js';
 import { seedPrimaryAgent } from '@/agents/primary-agent.js';
 import * as schema from '@/db/schema.js';
@@ -81,6 +82,7 @@ export async function initDb(): Promise<void> {
   seedShortcuts(_db);
   seedSettings(_db);
   seedMeetingsAgent(_db);
+  seedBrowserAgent(_db);
 
   log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
 }
