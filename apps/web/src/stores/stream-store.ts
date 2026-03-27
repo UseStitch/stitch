@@ -322,11 +322,19 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
   applyStreamStart: (sessionId, messageId) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
-      if (!guardMessage(session, messageId)) return state;
+      // Apply only if message ID matches, or bootstrap a new session if needed
+      if (session !== null && !guardMessage(session, messageId)) return state;
+      const base = session ?? INITIAL_SESSION_STATE;
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: { ...session!, isStreaming: true, retry: null, doomLoop: null },
+          [sessionId]: {
+            ...base,
+            activeMessageId: messageId,
+            isStreaming: true,
+            retry: null,
+            doomLoop: null,
+          },
         },
       };
     }),

@@ -656,7 +656,7 @@ function SubAgentToolBlock({
               className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
               <ExternalLinkIcon className="size-3" />
-              View session
+              {isActive ? 'View live' : 'View session'}
             </Button>
           </ToolCard.Actions>
         ) : null}
