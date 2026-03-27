@@ -8,10 +8,13 @@ import type { QueuedMessage } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
+import type {
+  EditQueuedMessagePayload,
+  SendQueuedMessageFn,
+} from '@/components/session/session-page-types';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { queuedMessagesQueryOptions, useRemoveFromQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
-import type { EditQueuedMessagePayload, SendQueuedMessageFn } from '@/routes/session.$id';
 
 type MessageQueuePanelProps = {
   className?: string;

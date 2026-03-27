@@ -4,13 +4,18 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type FieldDef, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
+import { FieldGroup, NoFieldsNote } from '@/components/provider-config/field-group';
+import {
+  buildProviderConfigBody,
+  hydrateProviderConfigState,
+  resolveDefaultAuthMethod,
+  type FieldValues,
+} from '@/components/provider-config/utils';
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import {
@@ -21,64 +26,8 @@ import {
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
 type OnboardingStep = 'welcome' | 'provider' | 'success';
-type FieldValues = Record<string, string>;
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
-
-function FieldGroup({
-  fields,
-  providerId,
-  values,
-  onChange,
-}: {
-  fields: FieldDef[];
-  providerId: string;
-  values: FieldValues;
-  onChange: (key: string, value: string) => void;
-}) {
-  if (fields.length === 0) return null;
-  return (
-    <div className="flex flex-col gap-3">
-      {fields.map((field) => (
-        <div key={field.key} className="flex flex-col gap-1.5">
-          <Label htmlFor={`${providerId}-${field.key}`}>
-            {field.label}
-            {!field.required && (
-              <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
-            )}
-          </Label>
-          <Input
-            id={`${providerId}-${field.key}`}
-            type={field.secret ? 'password' : 'text'}
-            placeholder={field.placeholder}
-            value={values[field.key] ?? ''}
-            onChange={(e) => onChange(field.key, e.target.value)}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function NoFieldsNote({ method }: { method: string }) {
-  if (method === 'adc') {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Uses Application Default Credentials from your environment. No additional configuration
-        needed.
-      </p>
-    );
-  }
-  if (method === 'credential-provider') {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Uses the AWS credential provider chain (environment variables, shared credentials file, IAM
-        role, etc.). No additional configuration needed.
-      </p>
-    );
-  }
-  return null;
-}
 
 function OnboardingProviderConfig({
   provider,
@@ -103,12 +52,7 @@ function OnboardingProviderConfig({
   });
 
   const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
-  const defaultMethod =
-    (existingMethod && enabledAuthMethods.some((method) => method.method === existingMethod)
-      ? existingMethod
-      : undefined) ??
-    enabledAuthMethods[0]?.method ??
-    '';
+  const defaultMethod = resolveDefaultAuthMethod(existingMethod, enabledAuthMethods);
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
@@ -116,30 +60,18 @@ function OnboardingProviderConfig({
 
   React.useEffect(() => {
     if (!existingConfig || !meta) return;
-
-    const method = (existingConfig.auth as { method?: string } | undefined)?.method;
-    if (method && enabledAuthMethods.some((authMethod) => authMethod.method === method)) {
-      setActiveTab(method);
+    const hydrated = hydrateProviderConfigState(
+      existingConfig as Record<string, unknown>,
+      enabledAuthMethods,
+    );
+    const activeMethod = hydrated.activeMethod;
+    if (activeMethod) {
+      setActiveTab(activeMethod);
+      setFieldsByMethod((prev) => ({ ...prev, [activeMethod]: hydrated.authFields }));
     } else if (enabledAuthMethods[0]?.method) {
       setActiveTab(enabledAuthMethods[0].method);
     }
-
-    const authFields: FieldValues = {};
-    const auth = existingConfig.auth as Record<string, unknown> | undefined;
-    if (auth) {
-      for (const [k, v] of Object.entries(auth)) {
-        if (k !== 'method' && typeof v === 'string') authFields[k] = v;
-      }
-    }
-    if (method && enabledAuthMethods.some((authMethod) => authMethod.method === method)) {
-      setFieldsByMethod((prev) => ({ ...prev, [method]: authFields }));
-    }
-
-    const extra: FieldValues = {};
-    for (const [k, v] of Object.entries(existingConfig)) {
-      if (k !== 'auth' && k !== 'providerId' && typeof v === 'string') extra[k] = v;
-    }
-    setExtraFields(extra);
+    setExtraFields(hydrated.extraFields);
   }, [enabledAuthMethods, existingConfig, meta]);
 
   const saveMutation = useSaveProviderConfigMutation({
@@ -175,22 +107,13 @@ function OnboardingProviderConfig({
 
   function handleSave() {
     if (!meta) return;
-
-    const auth: Record<string, unknown> = { method: activeTab };
-    const methodDef = enabledAuthMethods.find((m) => m.method === activeTab);
-    if (methodDef) {
-      for (const field of methodDef.fields) {
-        const val = currentMethodFields[field.key];
-        if (val) auth[field.key] = val;
-      }
-    }
-
-    const body: Record<string, unknown> = { auth };
-    for (const field of meta.extraFields) {
-      const val = extraFields[field.key];
-      if (val) body[field.key] = val;
-    }
-
+    const body = buildProviderConfigBody({
+      activeTab,
+      enabledAuthMethods,
+      currentMethodFields,
+      extraFields,
+      extraFieldDefs: meta.extraFields,
+    });
     saveMutation.mutate(body);
   }
 

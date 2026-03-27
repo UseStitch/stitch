@@ -18,11 +18,7 @@ import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-s
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
-import {
-  consumeNextSessionInputSeed,
-  getTransitionSeedClearDelayMs,
-  setNextSessionInputSeed,
-} from '@/lib/chat-input-transition-seed';
+import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import {
   flattenMessages,
   sessionMessagesInfiniteQueryOptions,
@@ -32,7 +28,17 @@ import {
 } from '@/lib/queries/chat';
 import { useAddToQueue } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
-import type { EditQueuedMessagePayload, SendQueuedMessageFn } from '@/routes/session.$id';
+import type {
+  EditQueuedMessagePayload,
+  SendQueuedMessageFn,
+} from '@/components/session/session-page-types';
+import {
+  findLastUsedAgentId,
+  findLastUsedModel,
+} from '@/components/session/session-chat-pane/session-message-context';
+import { useQueuedEditPayload } from '@/components/session/session-chat-pane/use-queued-edit-payload';
+import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
+import { useSendQueuedRef } from '@/components/session/session-chat-pane/use-send-queued-ref';
 import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = {
@@ -55,34 +61,10 @@ export function SessionChatPane({
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
-  const lastUsedModel = React.useMemo((): ModelSpec | null => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      if (!message) continue;
-      if (message.parts.some((part) => part.type === 'session-title')) continue;
-      if (message.isSummary) continue;
-      if (message.parts.some((part) => part.type === 'compaction')) continue;
-      return { providerId: message.providerId, modelId: message.modelId };
-    }
+  const lastUsedModel = React.useMemo((): ModelSpec | null => findLastUsedModel(messages), [messages]);
+  const lastUsedAgentId = React.useMemo(() => findLastUsedAgentId(messages), [messages]);
 
-    return null;
-  }, [messages]);
-
-  const lastUsedAgentId = React.useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const message = messages[i];
-      if (!message) continue;
-      if (message.parts.some((part) => part.type === 'session-title')) continue;
-      if (message.isSummary) continue;
-      if (message.parts.some((part) => part.type === 'compaction')) continue;
-      return message.agentId;
-    }
-
-    return null;
-  }, [messages]);
-
-  const seedTextRef = React.useRef(consumeNextSessionInputSeed());
-  const [value, setValue] = React.useState(seedTextRef.current);
+  const { value, setValue } = useSeededInput();
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
   const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
   const sendMessage = useSendMessage();
@@ -93,50 +75,15 @@ export function SessionChatPane({
   const abortStream = useStreamStore((state) => state.abortStream);
   const { isCompacting } = useCompactionUpdates(id);
   const pendingItems = useSessionPendingItems(id);
-  const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[] | undefined>(
-    undefined,
-  );
+  const { pendingAttachments, handlePendingAttachmentsConsumed } = useQueuedEditPayload({
+    editPayload,
+    onConsumeEditPayload,
+    setValue,
+  });
 
   useQuestionSync(id);
   usePermissionResponseSync(id);
   useSessionStream({ sessionId: id });
-
-  React.useEffect(() => {
-    const seedText = seedTextRef.current;
-    if (!seedText) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setValue((current) => (current === seedText ? '' : current));
-    }, getTransitionSeedClearDelayMs());
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
-
-  // Handle edit payload from the queue panel
-  React.useEffect(() => {
-    if (!editPayload) return;
-
-    setValue(editPayload.content);
-
-    if (editPayload.attachments.length > 0) {
-      const converted: Attachment[] = editPayload.attachments.map((a, i) => ({
-        id: `edit_${Date.now()}_${String(i)}`,
-        path: a.path,
-        previewUrl: null,
-        mime: a.mime,
-        filename: a.filename,
-      }));
-      setPendingAttachments(converted);
-    }
-
-    onConsumeEditPayload();
-  }, [editPayload, onConsumeEditPayload]);
-
-  const handlePendingAttachmentsConsumed = React.useCallback(() => {
-    setPendingAttachments(undefined);
-  }, []);
 
   const docks = useSessionDocks({
     sessionId: id,
@@ -153,6 +100,45 @@ export function SessionChatPane({
 
   const isStreaming = streamState.isStreaming;
   const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
+
+  const canSendQueuedMessage = React.useCallback(
+    () => canSend && selectedModel !== null && selectedAgent !== null,
+    [canSend, selectedModel, selectedAgent],
+  );
+
+  const sendQueuedMessage: SendQueuedMessageFn = React.useCallback(
+    (content, queueAttachments) => {
+      if (!selectedModel || !selectedAgent) return;
+
+      const assistantMessageId = createMessageId();
+      startStream(id, assistantMessageId);
+
+      void sendMessage.mutateAsync({
+        sessionId: id as PrefixedString<'ses'>,
+        content,
+        attachments:
+          queueAttachments.length > 0
+            ? queueAttachments.map((attachment) => ({
+                path: attachment.path,
+                previewUrl: null,
+                mime: attachment.mime,
+                filename: attachment.filename,
+              }))
+            : undefined,
+        providerId: selectedModel.providerId,
+        modelId: selectedModel.modelId,
+        agentId: selectedAgent,
+        assistantMessageId,
+      });
+    },
+    [id, selectedModel, selectedAgent, sendMessage, startStream],
+  );
+
+  useSendQueuedRef({
+    sendQueuedRef,
+    canSendQueuedMessage,
+    onSendQueuedMessage: sendQueuedMessage,
+  });
 
   async function handleSubmit(text: string, attachments: Attachment[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
@@ -208,38 +194,6 @@ export function SessionChatPane({
     setNextSessionInputSeed(result.prefillText);
     void navigate({ to: '/session/$id', params: { id: result.session.id }, viewTransition: true });
   }
-
-  // Expose a function for the queue panel to send queued messages
-  React.useEffect(() => {
-    sendQueuedRef.current = (content, queueAttachments) => {
-      if (!canSend || !selectedModel || !selectedAgent) return;
-
-      const assistantMessageId = createMessageId();
-      startStream(id, assistantMessageId);
-
-      void sendMessage.mutateAsync({
-        sessionId: id as PrefixedString<'ses'>,
-        content,
-        attachments:
-          queueAttachments.length > 0
-            ? queueAttachments.map((a) => ({
-                path: a.path,
-                previewUrl: null,
-                mime: a.mime,
-                filename: a.filename,
-              }))
-            : undefined,
-        providerId: selectedModel.providerId,
-        modelId: selectedModel.modelId,
-        agentId: selectedAgent,
-        assistantMessageId,
-      });
-    };
-
-    return () => {
-      sendQueuedRef.current = null;
-    };
-  }, [canSend, selectedModel, selectedAgent, id, sendQueuedRef, startStream, sendMessage]);
 
   const inputMode = canSend ? 'send' : 'queue';
 

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
-import { RecordingsSidebarContent } from '@/components/recordings-sidebar';
+import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
   Sidebar,
   SidebarContent,

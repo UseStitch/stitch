@@ -22,7 +22,7 @@ import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
 import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
-import type { RightPanel } from '@/routes/session.$id';
+import type { RightPanel } from '@/components/session/session-page-types';
 
 type SessionPageHeaderProps = {
   rightPanel: RightPanel;

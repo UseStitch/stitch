@@ -3,8 +3,8 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { RecordingDeleteDialog } from '@/components/recording-delete-dialog';
-import { RecordingDetail } from '@/components/recording-detail';
+import { RecordingDeleteDialog } from '@/components/recordings/recording-delete-dialog';
+import { RecordingDetail } from '@/components/recordings/recording-detail';
 import { recordingsQueryOptions } from '@/lib/queries/meetings';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 
