@@ -53,18 +53,6 @@ export type ToolInputEndPart = Extract<FullStreamPart, { type: 'tool-input-end' 
 export type ToolErrorPart = Extract<FullStreamPart, { type: 'tool-error' }>;
 export type FinishStreamPart = Extract<FullStreamPart, { type: 'finish' }>;
 
-export type StepStartPart = {
-  type: 'step-start';
-  step: number;
-};
-
-export type StepFinishPart = {
-  type: 'step-finish';
-  step: number;
-  finishReason: string;
-  usage: LanguageModelUsage;
-};
-
 export type CompactionPart = {
   type: 'compaction';
   auto: boolean;
@@ -93,8 +81,6 @@ export type AllPart =
   | FileStreamPart
   | ToolCallStreamPart
   | ToolResultStreamPart
-  | StepStartPart
-  | StepFinishPart
   | CompactionPart
   | SessionTitlePart
   | StreamErrorPart

@@ -29,14 +29,6 @@ export type StreamToolStatePayload = {
   error?: string;
 };
 
-export type StreamToolInputDeltaPayload = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  toolCallId: string;
-  toolName: string;
-  inputTextDelta: string;
-};
-
 export type DataChangePayload = {
   queryKey: readonly unknown[];
 };
@@ -105,20 +97,6 @@ export type DoomLoopDetectedPayload = {
   messageId: PrefixedString<'msg'>;
   toolName: string;
   consecutiveCount: number;
-};
-
-export type StepStartPayload = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  step: number;
-};
-
-export type StepFinishPayload = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  step: number;
-  finishReason: string;
-  usage: LanguageModelUsage;
 };
 
 export type CompactionStartPayload = {
@@ -205,9 +183,6 @@ export const SSE_EVENT_NAMES = [
   'stream-error',
   'stream-retry',
   'stream-tool-state',
-  'stream-tool-input-delta',
-  'step-start',
-  'step-finish',
   'doom-loop-detected',
   'compaction-start',
   'compaction-complete',
@@ -229,7 +204,7 @@ export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
 
 export type SseEventPayloadMap = {
   heartbeat: { ts: number };
-  connected: Record<string, never>;
+  connected: { ts: number };
   'data-change': DataChangePayload;
   'session-title-update': SessionTitleUpdatePayload;
   'stream-start': StreamStartPayload;
@@ -239,9 +214,6 @@ export type SseEventPayloadMap = {
   'stream-error': StreamErrorPayload;
   'stream-retry': StreamRetryPayload;
   'stream-tool-state': StreamToolStatePayload;
-  'stream-tool-input-delta': StreamToolInputDeltaPayload;
-  'step-start': StepStartPayload;
-  'step-finish': StepFinishPayload;
   'doom-loop-detected': DoomLoopDetectedPayload;
   'compaction-start': CompactionStartPayload;
   'compaction-complete': CompactionCompletePayload;

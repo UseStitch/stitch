@@ -33,7 +33,6 @@ export type StreamingToolCallPart = {
   toolCallId: string;
   toolName: string;
   input: unknown;
-  partialInput: string;
   status: ToolCallStatus;
   output: unknown;
   error: string | null;
@@ -123,13 +122,6 @@ type StreamStoreActions = {
     output?: unknown,
     error?: string,
   ) => void;
-  applyToolInputDelta: (
-    sessionId: string,
-    messageId: string,
-    toolCallId: string,
-    toolName: string,
-    inputTextDelta: string,
-  ) => void;
   finishStream: (
     sessionId: string,
     messageId: string,
@@ -189,6 +181,21 @@ function updatePart(
   return { ...session, parts: { ...session.parts, [partId]: part } };
 }
 
+function makeStreamingTextualPart(
+  type: 'text' | 'reasoning',
+  partId: string,
+): StreamingTextPart | StreamingReasoningPart {
+  return {
+    type,
+    id: partId,
+    text: '',
+    hasContent: false,
+    status: 'streaming',
+    startedAt: Date.now(),
+    endedAt: null,
+  };
+}
+
 function applyPartUpdateToSession(
   session: SessionStreamState,
   partId: string,
@@ -196,15 +203,7 @@ function applyPartUpdateToSession(
 ): SessionStreamState {
   switch (part.type) {
     case 'text-start':
-      return addPart(session, partId, {
-        type: 'text',
-        id: partId,
-        text: '',
-        hasContent: false,
-        status: 'streaming',
-        startedAt: Date.now(),
-        endedAt: null,
-      });
+      return addPart(session, partId, makeStreamingTextualPart('text', partId));
 
     case 'text-end': {
       const existing = session.parts[partId];
@@ -213,15 +212,7 @@ function applyPartUpdateToSession(
     }
 
     case 'reasoning-start':
-      return addPart(session, partId, {
-        type: 'reasoning',
-        id: partId,
-        text: '',
-        hasContent: false,
-        status: 'streaming',
-        startedAt: Date.now(),
-        endedAt: null,
-      });
+      return addPart(session, partId, makeStreamingTextualPart('reasoning', partId));
 
     case 'reasoning-end': {
       const existing = session.parts[partId];
@@ -239,7 +230,6 @@ function applyPartUpdateToSession(
         toolCallId: part.toolCallId,
         toolName: part.toolName,
         input: part.input,
-        partialInput: '',
         status: 'pending',
         output: null,
         error: null,
@@ -322,7 +312,6 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
   applyStreamStart: (sessionId, messageId) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
-      // Apply only if message ID matches, or bootstrap a new session if needed
       if (session !== null && !guardMessage(session, messageId)) return state;
       const base = session ?? INITIAL_SESSION_STATE;
       return {
@@ -394,50 +383,11 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
             toolCallId,
             toolName,
             input: input ?? null,
-            partialInput: '',
             status,
             output: output ?? null,
             error: error ?? null,
             startedAt: Date.now(),
             endedAt: status === 'completed' || status === 'error' ? Date.now() : null,
-          }),
-        },
-      };
-    }),
-
-  applyToolInputDelta: (sessionId, messageId, toolCallId, toolName, inputTextDelta) =>
-    set((state) => {
-      const session = getSession(state.sessions, sessionId);
-      if (!guardMessage(session, messageId)) return state;
-
-      const existing = session!.parts[toolCallId];
-
-      if (existing && existing.type === 'tool-call') {
-        return {
-          sessions: {
-            ...state.sessions,
-            [sessionId]: updatePart(session!, toolCallId, {
-              ...existing,
-              partialInput: existing.partialInput + inputTextDelta,
-            }),
-          },
-        };
-      }
-
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: addPart(session!, toolCallId, {
-            type: 'tool-call',
-            toolCallId,
-            toolName,
-            input: null,
-            partialInput: inputTextDelta,
-            status: 'pending',
-            output: null,
-            error: null,
-            startedAt: Date.now(),
-            endedAt: null,
           }),
         },
       };
@@ -514,7 +464,6 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     }),
 
   abortStream: async (sessionId) => {
-    // Optimistically mark as no longer streaming
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!session) return state;
