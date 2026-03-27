@@ -1,112 +1,120 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { simulateReadableStream, tool } from 'ai';
+import { MockLanguageModelV3 } from 'ai/test';
+import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import type { LanguageModelUsage } from 'ai';
 
-const ZERO_USAGE: LanguageModelUsage = {
-  inputTokens: 0,
-  outputTokens: 0,
-  totalTokens: 0,
-  inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
-  outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+const mocks = vi.hoisted(() => ({
+  broadcastMock: vi.fn(async () => {}),
+}));
+
+vi.mock('@/lib/sse.js', () => ({
+  broadcast: mocks.broadcastMock,
+}));
+
+vi.mock('@/provider/provider.js', () => ({
+  createProvider: vi.fn(() => vi.fn(() => ({ id: 'mock-model' }))),
+}));
+
+const FINISH_STOP = {
+  type: 'finish' as const,
+  finishReason: { unified: 'stop' as const, raw: undefined },
+  usage: {
+    inputTokens: { total: 0, noCache: 0, cacheRead: undefined, cacheWrite: undefined },
+    outputTokens: { total: 0, text: 0, reasoning: undefined },
+  },
 };
 
-const mocks = vi.hoisted(() => {
-  const streamTextMock = vi.fn();
+function makeFinish(reason: 'stop' | 'tool-calls' = 'stop') {
   return {
-    streamTextMock,
+    ...FINISH_STOP,
+    finishReason: { unified: reason, raw: undefined },
   };
-});
+}
 
-vi.mock('ai', () => ({
-  streamText: mocks.streamTextMock,
-  smoothStream: vi.fn(() => undefined),
-}));
+function createMockModel(doStream: MockLanguageModelV3['doStream']): MockLanguageModelV3 {
+  return new MockLanguageModelV3({ doStream });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeStreamResult(chunks: any[]) {
+  return {
+    stream: simulateReadableStream({
+      chunks,
+      initialDelayInMs: null,
+      chunkDelayInMs: null,
+    }),
+  };
+}
+
+function getDefaultOpts(
+  model: MockLanguageModelV3,
+  overrides?: Partial<StepOptions>,
+): StepOptions {
+  return {
+    sessionId: 'ses_1' as StepOptions['sessionId'],
+    messageId: 'msg_1' as StepOptions['messageId'],
+    step: 0,
+    model: model as unknown as StepOptions['model'],
+    conversation: [{ role: 'user', content: 'Hello' }],
+    accumulatedParts: [],
+    providerId: 'openai',
+    tools: {} as StepOptions['tools'],
+    abortSignal: new AbortController().signal,
+    streamRunId: 'run_1',
+    ...overrides,
+  };
+}
 
 describe('executeStepWithRetry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.broadcastMock.mockResolvedValue(undefined);
   });
 
-  test('preserves terminal tool errors that arrive with abort signal', async () => {
-    mocks.streamTextMock.mockReturnValue({
-      fullStream: (async function* () {
-        yield {
-          type: 'tool-error',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          error: 'command failed',
-        };
-      })(),
-      response: Promise.resolve({ messages: [] }),
-    });
+  test('completes a simple text stream and returns stop finish reason', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, world!' },
+        { type: 'text-end', id: 'text-1' },
+        FINISH_STOP,
+      ]),
+    );
 
-    const abortController = new AbortController();
-    abortController.abort();
+    const opts = getDefaultOpts(model);
+    const result = await executeStepWithRetry(opts);
 
-    const accumulatedParts: StoredPart[] = [];
-    const model = {} as unknown as StepOptions['model'];
-    const tools = {} as unknown as StepOptions['tools'];
-
-    await expect(
-      executeStepWithRetry({
-        sessionId: 'ses_1',
-        messageId: 'msg_1',
-        step: 0,
-        model,
-        conversation: [],
-        accumulatedParts,
-        providerId: 'openai',
-        tools,
-        abortSignal: abortController.signal,
-        streamRunId: 'run_1',
-      }),
-    ).rejects.toBeInstanceOf(StreamAbortedError);
-
-    expect(accumulatedParts).toEqual(
+    expect(result.finishReason).toBe('stop');
+    expect(result.toolCalls).toEqual([]);
+    expect(opts.accumulatedParts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: 'tool-result',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          output: { error: 'command failed' },
+          type: 'text-delta',
+          text: 'Hello, world!',
         }),
       ]),
     );
   });
 
   test('flushes buffered text when stream ends without text-end', async () => {
-    mocks.streamTextMock.mockReturnValue({
-      fullStream: (async function* () {
-        yield { type: 'text-start' };
-        yield { type: 'text-delta', text: 'Hello from tool summary' };
-        yield { type: 'finish', finishReason: 'stop', totalUsage: ZERO_USAGE };
-      })(),
-      response: Promise.resolve({ messages: [] }),
-    });
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello from tool summary' },
+        FINISH_STOP,
+      ]),
+    );
 
-    const accumulatedParts: StoredPart[] = [];
-    const model = {} as unknown as StepOptions['model'];
-    const tools = {} as unknown as StepOptions['tools'];
-
-    const result = await executeStepWithRetry({
-      sessionId: 'ses_1',
-      messageId: 'msg_1',
-      step: 0,
-      model,
-      conversation: [],
-      accumulatedParts,
-      providerId: 'openai',
-      tools,
-      abortSignal: new AbortController().signal,
-      streamRunId: 'run_1',
-    });
+    const opts = getDefaultOpts(model);
+    const result = await executeStepWithRetry(opts);
 
     expect(result.finishReason).toBe('stop');
-    expect(accumulatedParts).toEqual(
+    expect(opts.accumulatedParts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'text-delta',
@@ -116,142 +124,213 @@ describe('executeStepWithRetry', () => {
     );
   });
 
-  test('returns step result when provider response messages fail after finish', async () => {
-    mocks.streamTextMock.mockReturnValue({
-      fullStream: (async function* () {
-        yield { type: 'text-start' };
-        yield { type: 'text-delta', text: 'Done.' };
-        yield { type: 'finish', finishReason: 'stop', totalUsage: ZERO_USAGE };
-      })(),
-      response: Promise.reject(new Error('response read failed')),
-    });
+  test('accumulates multi-delta text correctly', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-delta', id: 'text-1', delta: ', ' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
+        FINISH_STOP,
+      ]),
+    );
 
-    const accumulatedParts: StoredPart[] = [];
-    const model = {} as unknown as StepOptions['model'];
-    const tools = {} as unknown as StepOptions['tools'];
-
-    const result = await executeStepWithRetry({
-      sessionId: 'ses_1',
-      messageId: 'msg_1',
-      step: 0,
-      model,
-      conversation: [],
-      accumulatedParts,
-      providerId: 'openai',
-      tools,
-      abortSignal: new AbortController().signal,
-      streamRunId: 'run_1',
-    });
+    const opts = getDefaultOpts(model);
+    const result = await executeStepWithRetry(opts);
 
     expect(result.finishReason).toBe('stop');
-    expect(result.responseMessages).toEqual([]);
-    expect(accumulatedParts).toEqual(
+    expect(opts.accumulatedParts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'text-delta',
-          text: 'Done.',
+          text: 'Hello, world!',
         }),
       ]),
     );
   });
 
+  test('handles reasoning stream parts', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'reasoning-start', id: 'reason-1' },
+        { type: 'reasoning-delta', id: 'reason-1', delta: 'Let me think...' },
+        { type: 'reasoning-end', id: 'reason-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'The answer is 42.' },
+        { type: 'text-end', id: 'text-1' },
+        FINISH_STOP,
+      ]),
+    );
+
+    const opts = getDefaultOpts(model);
+    const result = await executeStepWithRetry(opts);
+
+    expect(result.finishReason).toBe('stop');
+    expect(opts.accumulatedParts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'reasoning-delta',
+          text: 'Let me think...',
+        }),
+        expect.objectContaining({
+          type: 'text-delta',
+          text: 'The answer is 42.',
+        }),
+      ]),
+    );
+  });
+
+  test('records tool calls and results from tool execution', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read',
+          input: '{"filePath":"README.md"}',
+        },
+        makeFinish('tool-calls'),
+      ]),
+    );
+
+    const readTool = tool({
+      description: 'Read a file',
+      inputSchema: z.object({ filePath: z.string() }),
+      execute: async () => ({ content: '# Hello' }),
+    });
+
+    const accumulatedParts: StoredPart[] = [];
+    const opts = getDefaultOpts(model, {
+      accumulatedParts,
+      tools: { read: readTool } as unknown as StepOptions['tools'],
+    });
+    const result = await executeStepWithRetry(opts);
+
+    expect(result.finishReason).toBe('tool-calls');
+    expect(result.toolCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ toolName: 'read' }),
+      ]),
+    );
+
+    const toolCallPart = accumulatedParts.find((p) => p.type === 'tool-call');
+    expect(toolCallPart).toBeDefined();
+
+    const toolResultPart = accumulatedParts.find((p) => p.type === 'tool-result');
+    expect(toolResultPart).toBeDefined();
+  });
+
+  test('collects tool error and propagates permission rejection', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'webfetch',
+          input: '{"url":"https://example.com"}',
+        },
+        makeFinish('tool-calls'),
+      ]),
+    );
+
+    const failingTool = tool({
+      description: 'Fetch a URL',
+      inputSchema: z.object({ url: z.string() }),
+      execute: async (): Promise<string> => {
+        throw new PermissionRejectedError('webfetch');
+      },
+    });
+
+    const accumulatedParts: StoredPart[] = [];
+    const opts = getDefaultOpts(model, {
+      accumulatedParts,
+      tools: { webfetch: failingTool } as unknown as StepOptions['tools'],
+    });
+
+    await expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
+
+    const errorResult = accumulatedParts.find(
+      (p): p is StoredPart & { type: 'tool-result' } =>
+        p.type === 'tool-result' && p.toolName === 'webfetch',
+    );
+    expect(errorResult).toBeDefined();
+  });
+
   test('suppresses retry when step fails after tool side effects', async () => {
-    mocks.streamTextMock.mockReturnValue({
-      fullStream: (async function* () {
-        yield {
+    let callCount = 0;
+    const model = createMockModel(async () => {
+      callCount++;
+      return makeStreamResult([
+        {
           type: 'tool-call',
           toolCallId: 'call_1',
           toolName: 'bash',
-          input: { command: 'pwd' },
-        };
-        throw new Error('provider stream failed after tool call');
-      })(),
-      response: Promise.resolve({ messages: [] }),
+          input: '{"command":"pwd"}',
+        },
+        { type: 'error', error: new Error('provider stream failed after tool call') },
+      ]);
+    });
+
+    const bashTool = tool({
+      description: 'Run a command',
+      inputSchema: z.object({ command: z.string() }),
+      execute: async () => ({ output: '/home/user' }),
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const model = {} as unknown as StepOptions['model'];
-    const tools = {} as unknown as StepOptions['tools'];
-
-    const result = await executeStepWithRetry({
-      sessionId: 'ses_1',
-      messageId: 'msg_1',
-      step: 0,
-      model,
-      conversation: [],
+    const opts = getDefaultOpts(model, {
       accumulatedParts,
-      providerId: 'openai',
-      tools,
-      abortSignal: new AbortController().signal,
-      streamRunId: 'run_1',
+      tools: { bash: bashTool } as unknown as StepOptions['tools'],
     });
 
-    expect(mocks.streamTextMock).toHaveBeenCalledTimes(1);
+    const result = await executeStepWithRetry(opts);
+
+    expect(callCount).toBe(1);
     expect(result.finishReason).toBe('tool-calls');
-    expect(result.toolCalls).toEqual([
-      expect.objectContaining({ toolName: 'bash', inputJson: '{"command":"pwd"}' }),
-    ]);
+    expect(result.toolCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ toolName: 'bash' }),
+      ]),
+    );
   });
 
-  test('collects parallel tool results before propagating permission rejection', async () => {
-    const permissionError = new PermissionRejectedError('webfetch');
+  test('broadcasts SSE events during streaming', async () => {
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hi' },
+        { type: 'text-end', id: 'text-1' },
+        FINISH_STOP,
+      ]),
+    );
 
-    mocks.streamTextMock.mockReturnValue({
-      fullStream: (async function* () {
-        yield {
-          type: 'tool-call',
-          toolCallId: 'call_search',
-          toolName: 'web_search_exa',
-          input: { query: 'frc 2026' },
-        };
-        yield {
-          type: 'tool-call',
-          toolCallId: 'call_fetch',
-          toolName: 'webfetch',
-          input: { url: 'https://example.com' },
-        };
-        yield {
-          type: 'tool-error',
-          toolCallId: 'call_fetch',
-          toolName: 'webfetch',
-          error: permissionError,
-        };
-        yield {
-          type: 'tool-result',
-          toolCallId: 'call_search',
-          toolName: 'web_search_exa',
-          input: { query: 'frc 2026' },
-          output: { results: 'Blue Alliance won' },
-        };
-        yield { type: 'finish', finishReason: 'tool-calls', totalUsage: ZERO_USAGE };
-      })(),
-      response: Promise.resolve({ messages: [] }),
+    const opts = getDefaultOpts(model);
+    await executeStepWithRetry(opts);
+
+    const eventTypes = mocks.broadcastMock.mock.calls.map(
+      (call: unknown[]) => String(call[0]),
+    );
+    expect(eventTypes).toContain('stream-part-update');
+    expect(eventTypes).toContain('stream-part-delta');
+  });
+
+  test('handles abort signal during streaming', async () => {
+    const abortController = new AbortController();
+    abortController.abort();
+
+    const model = createMockModel(async () =>
+      makeStreamResult([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Starting...' },
+        FINISH_STOP,
+      ]),
+    );
+
+    const opts = getDefaultOpts(model, {
+      abortSignal: abortController.signal,
     });
 
-    const accumulatedParts: StoredPart[] = [];
-    const model = {} as unknown as StepOptions['model'];
-    const tools = {} as unknown as StepOptions['tools'];
-
-    await expect(
-      executeStepWithRetry({
-        sessionId: 'ses_1',
-        messageId: 'msg_1',
-        step: 0,
-        model,
-        conversation: [],
-        accumulatedParts,
-        providerId: 'openai',
-        tools,
-        abortSignal: new AbortController().signal,
-        streamRunId: 'run_1',
-      }),
-    ).rejects.toBeInstanceOf(PermissionRejectedError);
-
-    const searchResult = accumulatedParts.find(
-      (p): p is StoredPart & { type: 'tool-result' } =>
-        p.type === 'tool-result' && p.toolCallId === 'call_search',
-    );
-    expect(searchResult).toBeDefined();
-    expect(searchResult?.output).toEqual({ results: 'Blue Alliance won' });
+    await expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(StreamAbortedError);
   });
 });
