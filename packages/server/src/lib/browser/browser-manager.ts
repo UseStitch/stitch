@@ -32,6 +32,9 @@ const SNAPSHOT_MAX_DEPTH = 30;
 const DEFAULT_BROWSER_PROFILE_DIR = getBrowserProfilePath('chrome', 'Default');
 
 async function resolveActiveProfileDir(): Promise<string> {
+  // Profile importing is not supported on Windows; always use the default clean profile.
+  if (process.platform === 'win32') return DEFAULT_BROWSER_PROFILE_DIR;
+
   const settings = await listSettings();
   const activeProfile = settings['browser.activeProfile'];
   if (!activeProfile) return DEFAULT_BROWSER_PROFILE_DIR;

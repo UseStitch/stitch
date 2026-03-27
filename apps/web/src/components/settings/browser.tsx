@@ -132,6 +132,8 @@ function ProfileList() {
 }
 
 export function BrowserSettings() {
+  const isMac = window.electron?.platform === 'darwin';
+
   return (
     <div className="flex h-full flex-col">
       <div className="mb-6">
@@ -141,27 +143,40 @@ export function BrowserSettings() {
         </p>
       </div>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Chrome Profile</h3>
-        <p className="text-xs text-muted-foreground">
-          Import your Chrome profile to use your existing logins, cookies, and sessions. This copies
-          your profile data into the Stitch browser and fully replaces any previous import.
-        </p>
-        <React.Suspense
-          fallback={<div className="text-sm text-muted-foreground">Loading...</div>}
-        >
-          <ProfileStatus />
-        </React.Suspense>
-      </section>
+      {isMac ? (
+        <>
+          <section className="space-y-3">
+            <h3 className="text-sm font-medium">Chrome Profile</h3>
+            <p className="text-xs text-muted-foreground">
+              Import your Chrome profile to use your existing logins, cookies, and sessions. This
+              copies your profile data into the Stitch browser and fully replaces any previous
+              import.
+            </p>
+            <React.Suspense
+              fallback={<div className="text-sm text-muted-foreground">Loading...</div>}
+            >
+              <ProfileStatus />
+            </React.Suspense>
+          </section>
 
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Available Profiles</h3>
-        <React.Suspense
-          fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
-        >
-          <ProfileList />
-        </React.Suspense>
-      </section>
+          <section className="mt-8 space-y-3">
+            <h3 className="text-sm font-medium">Available Profiles</h3>
+            <React.Suspense
+              fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
+            >
+              <ProfileList />
+            </React.Suspense>
+          </section>
+        </>
+      ) : (
+        <section className="space-y-3">
+          <h3 className="text-sm font-medium">Chrome Profile</h3>
+          <p className="text-xs text-muted-foreground">
+            The browser uses a default Chrome profile on Windows. Profile importing is only
+            available on macOS.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

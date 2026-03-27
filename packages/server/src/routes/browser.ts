@@ -18,6 +18,10 @@ browserRouter.get('/profiles', async (c) => {
 });
 
 browserRouter.post('/import-profile', zValidator('json', importSchema), async (c) => {
+  if (process.platform === 'win32') {
+    return c.json({ error: 'Profile importing is not supported on Windows' }, 400);
+  }
+
   const { profileId } = c.req.valid('json');
 
   try {
