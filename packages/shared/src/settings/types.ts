@@ -16,6 +16,8 @@ export const SETTINGS_KEYS = [
   'appearance.theme',
   'onboarding.status',
   'notifications.sound.enabled',
+  'browser.profileImported',
+  'browser.activeProfile',
   'shortcuts.leaderKey',
 ] as const;
 
@@ -111,6 +113,18 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'notifications.sound.enabled',
     value: 'true',
     description: 'Play an attention sound when the AI needs your input (question or permission).',
+  },
+  {
+    key: 'browser.profileImported',
+    value: '',
+    description:
+      'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
+  },
+  {
+    key: 'browser.activeProfile',
+    value: '',
+    description:
+      'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
   },
   {
     key: 'shortcuts.leaderKey',

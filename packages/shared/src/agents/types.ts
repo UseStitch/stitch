@@ -4,7 +4,7 @@ export const AGENT_TYPES = ['primary', 'sub'] as const;
 
 export type AgentType = (typeof AGENT_TYPES)[number];
 
-export const AGENT_KINDS = ['primary', 'meetings'] as const;
+export const AGENT_KINDS = ['primary', 'meetings', 'browser'] as const;
 
 export type AgentKind = (typeof AGENT_KINDS)[number];
 
