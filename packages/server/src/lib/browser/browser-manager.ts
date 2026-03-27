@@ -16,7 +16,8 @@ import { PopupWatchdog } from '@/lib/browser/watchdogs/popup-watchdog.js';
 import { SessionHealthWatchdog } from '@/lib/browser/watchdogs/session-health-watchdog.js';
 import { StorageStateManager } from '@/lib/browser/watchdogs/storage-state-manager.js';
 import * as Log from '@/lib/log.js';
-import { PATHS } from '@/lib/paths.js';
+import { getBrowserProfilePath } from '@/lib/paths.js';
+import { listSettings } from '@/settings/service.js';
 
 const log = Log.create({ service: 'browser.manager' });
 
@@ -27,6 +28,19 @@ const LOAD_TIMEOUT_MS = 10_000;
 const SNAPSHOT_MAX_NODES = 5000;
 const SNAPSHOT_MAX_CHARS = 50_000;
 const SNAPSHOT_MAX_DEPTH = 30;
+
+const DEFAULT_BROWSER_PROFILE_DIR = getBrowserProfilePath('chrome', 'Default');
+
+async function resolveActiveProfileDir(): Promise<string> {
+  const settings = await listSettings();
+  const activeProfile = settings['browser.activeProfile'];
+  if (!activeProfile) return DEFAULT_BROWSER_PROFILE_DIR;
+
+  const parts = activeProfile.split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return DEFAULT_BROWSER_PROFILE_DIR;
+
+  return getBrowserProfilePath(parts[0], parts[1]);
+}
 
 type NavigationEntry = {
   id: number;
@@ -315,8 +329,9 @@ class BrowserManager {
       return;
     }
 
+    const userDataDir = await resolveActiveProfileDir();
     const instance = await launchChrome({
-      userDataDir: PATHS.dirPaths.browserProfile,
+      userDataDir,
       headless: options.headless,
       port: options.port,
       width: options.width ?? DEFAULT_WIDTH,

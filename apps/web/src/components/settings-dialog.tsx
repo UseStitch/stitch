@@ -1,5 +1,6 @@
 import {
   BotIcon,
+  GlobeIcon,
   KeyboardIcon,
   NetworkIcon,
   ServerIcon,
@@ -12,6 +13,7 @@ import * as React from 'react';
 
 import { AgentsSettings } from '@/components/settings/agents';
 import { AppearanceSettings } from '@/components/settings/appearance';
+import { BrowserSettings } from '@/components/settings/browser';
 import { GeneralSettings } from '@/components/settings/general';
 import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
@@ -41,6 +43,7 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
+      { id: 'browser', label: 'Browser', icon: <GlobeIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
     ],
   },
@@ -118,6 +121,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <GeneralSettings />;
     case 'appearance':
       return <AppearanceSettings />;
+    case 'browser':
+      return <BrowserSettings />;
     case 'shortcuts':
       return <ShortcutsSettings />;
     case 'key-locations':

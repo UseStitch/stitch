@@ -88,7 +88,11 @@ export const PATHS = {
   dirPaths: {
     toolOutput: path.join(paths.data, 'tool-output'),
     providerLogos: path.join(paths.cache, 'provider-logos'),
-    browserProfile: path.join(paths.data, 'browser-profile'),
+    browsers: path.join(paths.data, 'browsers'),
     recordings: path.join(paths.data, 'recordings'),
   },
 } as const;
+
+export function getBrowserProfilePath(browser: string, profileId: string): string {
+  return path.join(PATHS.dirPaths.browsers, browser, profileId);
+}
