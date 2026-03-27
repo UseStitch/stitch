@@ -4,8 +4,8 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isAllowedProvider } from '@/provider/models.js';
 import * as ProviderLogos from '@/provider/logos.js';
+import { isAllowedProvider } from '@/provider/models.js';
 import * as Models from '@/provider/models.js';
 import { ProviderCredentialsSchema } from '@/provider/provider.js';
 

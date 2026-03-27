@@ -102,7 +102,7 @@ function RecordingBannerContent() {
       <span className="min-w-0 flex-1 truncate text-sm text-foreground">
         Recording <span className="font-medium">{appName}</span>
       </span>
-      <span className="font-mono text-xs tabular-nums text-muted-foreground">
+      <span className="font-mono text-xs text-muted-foreground tabular-nums">
         {formatElapsed(elapsedSecs)}
       </span>
       <Button

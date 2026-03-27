@@ -1,11 +1,12 @@
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { RecordingWriter } from "../src/recording-writer.js";
-import type { RecordingHandle } from "../src/recording-writer.js";
+import { RecordingWriter } from '../src/recording-writer.js';
+
+import type { RecordingHandle } from '../src/recording-writer.js';
 
 // ---------------------------------------------------------------------------
 // Mock native-audio-node
@@ -29,8 +30,8 @@ interface MockRecorderInstance {
   emit(event: string, ...args: unknown[]): boolean;
 }
 
-vi.mock("native-audio-node", () => {
-  const { EventEmitter } = require("node:events");
+vi.mock('native-audio-node', () => {
+  const { EventEmitter } = require('node:events');
 
   class MockRecorder extends EventEmitter {
     started = false;
@@ -49,7 +50,7 @@ vi.mock("native-audio-node", () => {
       for (let i = 0; i < samples.length; i++) {
         buf.writeFloatLE(samples[i], i * 4);
       }
-      this.emit("data", { data: buf });
+      this.emit('data', { data: buf });
     }
 
     emitSilence(sampleCount: number): void {
@@ -57,7 +58,7 @@ vi.mock("native-audio-node", () => {
     }
 
     emitError(msg: string): void {
-      this.emit("error", new Error(msg));
+      this.emit('error', new Error(msg));
     }
   }
 
@@ -84,7 +85,7 @@ vi.mock("native-audio-node", () => {
 let tempDir: string;
 
 function createTempDir(): string {
-  return mkdtempSync(join(tmpdir(), "recording-writer-test-"));
+  return mkdtempSync(join(tmpdir(), 'recording-writer-test-'));
 }
 
 beforeEach(() => {
@@ -101,20 +102,20 @@ afterEach(async () => {
 // Constructor
 // ---------------------------------------------------------------------------
 
-describe("RecordingWriter constructor", () => {
-  test("throws when baseDir does not exist", () => {
-    expect(() => new RecordingWriter(join(tempDir, "nonexistent"))).toThrow(
-      "directory does not exist",
+describe('RecordingWriter constructor', () => {
+  test('throws when baseDir does not exist', () => {
+    expect(() => new RecordingWriter(join(tempDir, 'nonexistent'))).toThrow(
+      'directory does not exist',
     );
   });
 
-  test("throws when baseDir is a file, not a directory", () => {
-    const filePath = join(tempDir, "afile.txt");
-    writeFileSync(filePath, "hello");
-    expect(() => new RecordingWriter(filePath)).toThrow("path is not a directory");
+  test('throws when baseDir is a file, not a directory', () => {
+    const filePath = join(tempDir, 'afile.txt');
+    writeFileSync(filePath, 'hello');
+    expect(() => new RecordingWriter(filePath)).toThrow('path is not a directory');
   });
 
-  test("accepts a valid directory without throwing", () => {
+  test('accepts a valid directory without throwing', () => {
     expect(() => new RecordingWriter(tempDir)).not.toThrow();
   });
 });
@@ -123,60 +124,60 @@ describe("RecordingWriter constructor", () => {
 // start()
 // ---------------------------------------------------------------------------
 
-describe("start()", () => {
-  test("returns a handle with correct id, dir, and startedAt", async () => {
-    const now = new Date("2026-01-15T10:00:00.000Z");
+describe('start()', () => {
+  test('returns a handle with correct id, dir, and startedAt', async () => {
+    const now = new Date('2026-01-15T10:00:00.000Z');
     vi.setSystemTime(now);
 
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-1");
+    const handle = await writer.start('rec-1');
 
-    expect(handle.id).toBe("rec-1");
-    expect(handle.dir).toBe(join(tempDir, "rec-1"));
+    expect(handle.id).toBe('rec-1');
+    expect(handle.dir).toBe(join(tempDir, 'rec-1'));
     expect(handle.startedAt).toEqual(now);
   });
 
-  test("creates a subdirectory named after the recordingId", async () => {
+  test('creates a subdirectory named after the recordingId', async () => {
     const writer = new RecordingWriter(tempDir);
-    await writer.start("my-recording");
-    expect(existsSync(join(tempDir, "my-recording"))).toBe(true);
+    await writer.start('my-recording');
+    expect(existsSync(join(tempDir, 'my-recording'))).toBe(true);
   });
 
-  test("starts both mic and system audio recorders", async () => {
+  test('starts both mic and system audio recorders', async () => {
     const writer = new RecordingWriter(tempDir);
-    await writer.start("rec-start");
+    await writer.start('rec-start');
     expect(recorderRefs.mic!.started).toBe(true);
     expect(recorderRefs.sys!.started).toBe(true);
   });
 
-  test("calls onError when mic recorder emits an error", async () => {
+  test('calls onError when mic recorder emits an error', async () => {
     const writer = new RecordingWriter(tempDir);
     const onError = vi.fn();
-    await writer.start("rec-err-mic", onError);
+    await writer.start('rec-err-mic', onError);
 
-    recorderRefs.mic!.emitError("mic died");
+    recorderRefs.mic!.emitError('mic died');
 
     expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0][0]!.message).toContain("Microphone recorder error");
-    expect(onError.mock.calls[0][0]!.message).toContain("mic died");
+    expect(onError.mock.calls[0][0]!.message).toContain('Microphone recorder error');
+    expect(onError.mock.calls[0][0]!.message).toContain('mic died');
   });
 
-  test("calls onError when system audio recorder emits an error", async () => {
+  test('calls onError when system audio recorder emits an error', async () => {
     const writer = new RecordingWriter(tempDir);
     const onError = vi.fn();
-    await writer.start("rec-err-sys", onError);
+    await writer.start('rec-err-sys', onError);
 
-    recorderRefs.sys!.emitError("speaker died");
+    recorderRefs.sys!.emitError('speaker died');
 
     expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0][0]!.message).toContain("System audio recorder error");
-    expect(onError.mock.calls[0][0]!.message).toContain("speaker died");
+    expect(onError.mock.calls[0][0]!.message).toContain('System audio recorder error');
+    expect(onError.mock.calls[0][0]!.message).toContain('speaker died');
   });
 
-  test("calls onError when mic device is stale (no data for 5s)", async () => {
+  test('calls onError when mic device is stale (no data for 5s)', async () => {
     const writer = new RecordingWriter(tempDir);
     const onError = vi.fn();
-    await writer.start("rec-stale-mic", onError);
+    await writer.start('rec-stale-mic', onError);
 
     // Keep sys alive but let mic go stale
     recorderRefs.sys!.emitSilence(1);
@@ -185,16 +186,16 @@ describe("start()", () => {
     vi.advanceTimersByTime(6_000);
 
     expect(onError).toHaveBeenCalled();
-    const micError = onError.mock.calls.find(
-      (c) => (c[0] as Error).message.includes("No microphone data"),
+    const micError = onError.mock.calls.find((c) =>
+      (c[0] as Error).message.includes('No microphone data'),
     );
     expect(micError).toBeDefined();
   });
 
-  test("calls onError when system audio device is stale (no data for 5s)", async () => {
+  test('calls onError when system audio device is stale (no data for 5s)', async () => {
     const writer = new RecordingWriter(tempDir);
     const onError = vi.fn();
-    await writer.start("rec-stale-sys", onError);
+    await writer.start('rec-stale-sys', onError);
 
     // Keep mic alive but let sys go stale
     recorderRefs.mic!.emitSilence(1);
@@ -202,16 +203,16 @@ describe("start()", () => {
     vi.advanceTimersByTime(6_000);
 
     expect(onError).toHaveBeenCalled();
-    const sysError = onError.mock.calls.find(
-      (c) => (c[0] as Error).message.includes("No system audio data"),
+    const sysError = onError.mock.calls.find((c) =>
+      (c[0] as Error).message.includes('No system audio data'),
     );
     expect(sysError).toBeDefined();
   });
 
-  test("calls onError when max duration is reached", async () => {
+  test('calls onError when max duration is reached', async () => {
     const writer = new RecordingWriter(tempDir, { maxDurationSecs: 2 });
     const onError = vi.fn();
-    await writer.start("rec-max-dur", onError);
+    await writer.start('rec-max-dur', onError);
 
     // Keep both devices alive to avoid stale warnings
     recorderRefs.mic!.emitSilence(1);
@@ -220,16 +221,16 @@ describe("start()", () => {
     vi.advanceTimersByTime(2_000);
 
     expect(onError).toHaveBeenCalled();
-    const durError = onError.mock.calls.find(
-      (c) => (c[0] as Error).message.includes("max duration"),
+    const durError = onError.mock.calls.find((c) =>
+      (c[0] as Error).message.includes('max duration'),
     );
     expect(durError).toBeDefined();
   });
 
-  test("does not fire stale warning if data keeps arriving", async () => {
+  test('does not fire stale warning if data keeps arriving', async () => {
     const writer = new RecordingWriter(tempDir);
     const onError = vi.fn();
-    await writer.start("rec-healthy", onError);
+    await writer.start('rec-healthy', onError);
 
     // Simulate data arriving every 1s for 10s
     for (let i = 0; i < 10; i++) {
@@ -240,8 +241,8 @@ describe("start()", () => {
 
     const staleErrors = onError.mock.calls.filter(
       (c) =>
-        (c[0] as Error).message.includes("No microphone data") ||
-        (c[0] as Error).message.includes("No system audio data"),
+        (c[0] as Error).message.includes('No microphone data') ||
+        (c[0] as Error).message.includes('No system audio data'),
     );
     expect(staleErrors).toHaveLength(0);
   });
@@ -251,34 +252,34 @@ describe("start()", () => {
 // stop()
 // ---------------------------------------------------------------------------
 
-describe("stop()", () => {
-  test("throws if recording id is not found", async () => {
+describe('stop()', () => {
+  test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
-      id: "nonexistent",
-      dir: join(tempDir, "nonexistent"),
+      id: 'nonexistent',
+      dir: join(tempDir, 'nonexistent'),
       startedAt: new Date(),
     };
-    await expect(writer.stop(fakeHandle)).rejects.toThrow("No active recording");
+    await expect(writer.stop(fakeHandle)).rejects.toThrow('No active recording');
   });
 
-  test("throws if recording was already stopped", async () => {
+  test('throws if recording was already stopped', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-double-stop");
+    const handle = await writer.start('rec-double-stop');
 
     // Emit some audio so interleave has data to work with
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
 
     await writer.stop(handle);
-    await expect(writer.stop(handle)).rejects.toThrow("No active recording");
+    await expect(writer.stop(handle)).rejects.toThrow('No active recording');
   });
 
-  test("stops both native recorders", async () => {
+  test('stops both native recorders', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-stop-recorders");
+    const handle = await writer.start('rec-stop-recorders');
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
@@ -292,11 +293,11 @@ describe("stop()", () => {
     expect(sys.stopped).toBe(true);
   });
 
-  test("clears health check and max duration timers", async () => {
+  test('clears health check and max duration timers', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir, { maxDurationSecs: 10 });
     const onError = vi.fn();
-    const handle = await writer.start("rec-clear-timers", onError);
+    const handle = await writer.start('rec-clear-timers', onError);
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
@@ -309,10 +310,10 @@ describe("stop()", () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  test("produces a valid stereo WAV file", async () => {
+  test('produces a valid stereo WAV file', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-wav");
+    const handle = await writer.start('rec-wav');
 
     // Emit some audio data
     recorderRefs.mic!.emitSilence(1600);
@@ -320,15 +321,15 @@ describe("stop()", () => {
 
     const result = await writer.stop(handle);
 
-    expect(result.file.name).toBe("recording.wav");
-    expect(result.file.path).toBe(join(tempDir, "rec-wav", "recording.wav"));
+    expect(result.file.name).toBe('recording.wav');
+    expect(result.file.path).toBe(join(tempDir, 'rec-wav', 'recording.wav'));
     expect(existsSync(result.file.path)).toBe(true);
 
     // Verify WAV header
     const wav = readFileSync(result.file.path);
-    expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
-    expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
-    expect(wav.toString("ascii", 12, 16)).toBe("fmt ");
+    expect(wav.toString('ascii', 0, 4)).toBe('RIFF');
+    expect(wav.toString('ascii', 8, 12)).toBe('WAVE');
+    expect(wav.toString('ascii', 12, 16)).toBe('fmt ');
     // PCM format = 1
     expect(wav.readUInt16LE(20)).toBe(1);
     // 2 channels (stereo)
@@ -337,44 +338,44 @@ describe("stop()", () => {
     expect(wav.readUInt32LE(24)).toBe(16000);
     // Bits per sample = 16
     expect(wav.readUInt16LE(34)).toBe(16);
-    expect(wav.toString("ascii", 36, 40)).toBe("data");
+    expect(wav.toString('ascii', 36, 40)).toBe('data');
   });
 
-  test("cleans up temp raw files (mic.raw, speaker.raw)", async () => {
+  test('cleans up temp raw files (mic.raw, speaker.raw)', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-cleanup");
+    const handle = await writer.start('rec-cleanup');
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
 
     await writer.stop(handle);
 
-    expect(existsSync(join(tempDir, "rec-cleanup", "mic.raw"))).toBe(false);
-    expect(existsSync(join(tempDir, "rec-cleanup", "speaker.raw"))).toBe(false);
+    expect(existsSync(join(tempDir, 'rec-cleanup', 'mic.raw'))).toBe(false);
+    expect(existsSync(join(tempDir, 'rec-cleanup', 'speaker.raw'))).toBe(false);
   });
 
-  test("returns correct RecordingResult shape", async () => {
+  test('returns correct RecordingResult shape', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-result");
+    const handle = await writer.start('rec-result');
 
     recorderRefs.mic!.emitSilence(16000); // 1 second of audio at 16kHz
     recorderRefs.sys!.emitSilence(16000);
 
     const result = await writer.stop(handle);
 
-    expect(result.id).toBe("rec-result");
-    expect(result.dir).toBe(join(tempDir, "rec-result"));
-    expect(result.file.name).toBe("recording.wav");
-    expect(result.file.path).toBe(join(tempDir, "rec-result", "recording.wav"));
+    expect(result.id).toBe('rec-result');
+    expect(result.dir).toBe(join(tempDir, 'rec-result'));
+    expect(result.file.name).toBe('recording.wav');
+    expect(result.file.path).toBe(join(tempDir, 'rec-result', 'recording.wav'));
     expect(result.file.durationSecs).toBe(1);
   });
 
-  test("duration calculation is correct based on samples written", async () => {
+  test('duration calculation is correct based on samples written', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-duration");
+    const handle = await writer.start('rec-duration');
 
     // Emit 2.5 seconds of audio (40000 samples at 16kHz)
     recorderRefs.mic!.emitSilence(40000);
@@ -384,10 +385,10 @@ describe("stop()", () => {
     expect(result.file.durationSecs).toBe(2.5);
   });
 
-  test("second stop after first throws (recording removed from active map)", async () => {
+  test('second stop after first throws (recording removed from active map)', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-removed");
+    const handle = await writer.start('rec-removed');
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
@@ -395,7 +396,7 @@ describe("stop()", () => {
     await writer.stop(handle);
 
     // The handle is now removed, so a second stop should fail
-    await expect(writer.stop(handle)).rejects.toThrow("No active recording");
+    await expect(writer.stop(handle)).rejects.toThrow('No active recording');
   });
 });
 
@@ -403,21 +404,21 @@ describe("stop()", () => {
 // discard()
 // ---------------------------------------------------------------------------
 
-describe("discard()", () => {
-  test("throws if recording id is not found", async () => {
+describe('discard()', () => {
+  test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
-      id: "nonexistent",
-      dir: join(tempDir, "nonexistent"),
+      id: 'nonexistent',
+      dir: join(tempDir, 'nonexistent'),
       startedAt: new Date(),
     };
-    await expect(writer.discard(fakeHandle)).rejects.toThrow("No active recording");
+    await expect(writer.discard(fakeHandle)).rejects.toThrow('No active recording');
   });
 
-  test("is a no-op if recording was already stopped via stop()", async () => {
+  test('is a no-op if recording was already stopped via stop()', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-already-stopped");
+    const handle = await writer.start('rec-already-stopped');
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
@@ -425,13 +426,13 @@ describe("discard()", () => {
     await writer.stop(handle);
 
     // discard after stop should throw (no longer in map)
-    await expect(writer.discard(handle)).rejects.toThrow("No active recording");
+    await expect(writer.discard(handle)).rejects.toThrow('No active recording');
   });
 
-  test("stops both native recorders", async () => {
+  test('stops both native recorders', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-discard-recorders");
+    const handle = await writer.start('rec-discard-recorders');
 
     const mic = recorderRefs.mic!;
     const sys = recorderRefs.sys!;
@@ -442,15 +443,15 @@ describe("discard()", () => {
     expect(sys.stopped).toBe(true);
   });
 
-  test("removes the entire recording directory", async () => {
+  test('removes the entire recording directory', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-discard-dir");
+    const handle = await writer.start('rec-discard-dir');
 
     recorderRefs.mic!.emitSilence(160);
     recorderRefs.sys!.emitSilence(160);
 
-    const recordingDir = join(tempDir, "rec-discard-dir");
+    const recordingDir = join(tempDir, 'rec-discard-dir');
     expect(existsSync(recordingDir)).toBe(true);
 
     await writer.discard(handle);
@@ -458,11 +459,11 @@ describe("discard()", () => {
     expect(existsSync(recordingDir)).toBe(false);
   });
 
-  test("clears timers on discard", async () => {
+  test('clears timers on discard', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir, { maxDurationSecs: 10 });
     const onError = vi.fn();
-    const handle = await writer.start("rec-discard-timers", onError);
+    const handle = await writer.start('rec-discard-timers', onError);
 
     await writer.discard(handle);
 
@@ -471,15 +472,15 @@ describe("discard()", () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  test("removes the recording from activeRecordings", async () => {
+  test('removes the recording from activeRecordings', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-discard-map");
+    const handle = await writer.start('rec-discard-map');
 
     await writer.discard(handle);
 
     // Second discard should throw because it was removed from the map
-    await expect(writer.discard(handle)).rejects.toThrow("No active recording");
+    await expect(writer.discard(handle)).rejects.toThrow('No active recording');
   });
 });
 
@@ -487,11 +488,11 @@ describe("discard()", () => {
 // WAV interleaving (tested indirectly via stop())
 // ---------------------------------------------------------------------------
 
-describe("interleaveToWav (via stop)", () => {
-  test("zero-pads the shorter channel when files differ in length", async () => {
+describe('interleaveToWav (via stop)', () => {
+  test('zero-pads the shorter channel when files differ in length', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-unequal");
+    const handle = await writer.start('rec-unequal');
 
     // Mic has 16000 samples (1s), speaker has 32000 samples (2s)
     recorderRefs.mic!.emitSilence(16000);
@@ -508,10 +509,10 @@ describe("interleaveToWav (via stop)", () => {
     expect(dataSize).toBe(32000 * 4);
   });
 
-  test("clamps float samples to [-1, 1] range before converting to int16", async () => {
+  test('clamps float samples to [-1, 1] range before converting to int16', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-clamp");
+    const handle = await writer.start('rec-clamp');
 
     // Emit out-of-range values
     recorderRefs.mic!.emitData([2.0, -2.0, 0.5]);
@@ -536,10 +537,10 @@ describe("interleaveToWav (via stop)", () => {
     expect(wav.readInt16LE(dataOffset + 10)).toBe(Math.round(-0.5 * 32767));
   });
 
-  test("correctly interleaves mic (left) and speaker (right) channels", async () => {
+  test('correctly interleaves mic (left) and speaker (right) channels', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-interleave");
+    const handle = await writer.start('rec-interleave');
 
     // Emit known patterns: mic=0.25 for all, speaker=0.75 for all
     recorderRefs.mic!.emitData([0.25, 0.25]);
@@ -560,10 +561,10 @@ describe("interleaveToWav (via stop)", () => {
     expect(wav.readInt16LE(dataOffset + 6)).toBe(expectedSys);
   });
 
-  test("WAV header data size field matches actual audio data written", async () => {
+  test('WAV header data size field matches actual audio data written', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-header-size");
+    const handle = await writer.start('rec-header-size');
 
     const sampleCount = 8000; // 0.5 seconds
     recorderRefs.mic!.emitSilence(sampleCount);
@@ -580,10 +581,10 @@ describe("interleaveToWav (via stop)", () => {
     expect(wav.length).toBe(44 + dataSize);
   });
 
-  test("handles empty files (both zero-length)", async () => {
+  test('handles empty files (both zero-length)', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
-    const handle = await writer.start("rec-empty");
+    const handle = await writer.start('rec-empty');
 
     // Don't emit any audio data at all
 

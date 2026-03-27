@@ -180,7 +180,8 @@ async function executeSubAgent(opts: {
   abortSignal: AbortSignal;
   onChildSessionCreated: (childSessionId: PrefixedString<'ses'>) => Promise<void>;
 }): Promise<{ text: string; childSessionId: PrefixedString<'ses'> }> {
-  const { subAgent, task, additionalContext, parentContext, abortSignal, onChildSessionCreated } = opts;
+  const { subAgent, task, additionalContext, parentContext, abortSignal, onChildSessionCreated } =
+    opts;
   const db = getDb();
 
   // 0. Resolve provider/model (override or parent fallback)

@@ -1,11 +1,9 @@
-import { createWriteStream, existsSync, mkdirSync, statSync } from "node:fs";
-import { open, rm, stat } from "node:fs/promises";
-import { join } from "node:path";
-import type { WriteStream } from "node:fs";
-import {
-  MicrophoneRecorder,
-  SystemAudioRecorder,
-} from "native-audio-node";
+import { MicrophoneRecorder, SystemAudioRecorder } from 'native-audio-node';
+import { createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
+import { open, rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import type { WriteStream } from 'node:fs';
 
 const SAMPLE_RATE = 16000;
 const CHUNK_DURATION_MS = 100;
@@ -132,10 +130,10 @@ function buildWavHeader(dataSize: number, sampleRate: number): Buffer {
   const fileSize = 36 + dataSize;
 
   const header = Buffer.alloc(44);
-  header.write("RIFF", 0);
+  header.write('RIFF', 0);
   header.writeUInt32LE(fileSize, 4);
-  header.write("WAVE", 8);
-  header.write("fmt ", 12);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(channels, 22);
@@ -143,7 +141,7 @@ function buildWavHeader(dataSize: number, sampleRate: number): Buffer {
   header.writeUInt32LE(byteRate, 28);
   header.writeUInt16LE(blockAlign, 32);
   header.writeUInt16LE(bitsPerSample, 34);
-  header.write("data", 36);
+  header.write('data', 36);
   header.writeUInt32LE(dataSize, 40);
 
   return header;
@@ -171,7 +169,7 @@ async function interleaveToWav(
   // stereo int16: 2 channels * 2 bytes = 4 bytes per sample pair
   const dataSize = totalSamples * 4;
 
-  const [micFh, sysFh] = await Promise.all([open(micPath, "r"), open(sysPath, "r")]);
+  const [micFh, sysFh] = await Promise.all([open(micPath, 'r'), open(sysPath, 'r')]);
 
   try {
     const wavHeader = buildWavHeader(dataSize, sampleRate);
@@ -205,12 +203,14 @@ async function interleaveToWav(
       // Interleave this chunk to stereo int16
       const int16Chunk = Buffer.alloc(samplesToRead * 4);
       for (let i = 0; i < samplesToRead; i++) {
-        const micSample = i < micRead.bytesRead / BYTES_PER_FLOAT32_SAMPLE
-          ? Math.max(-1, Math.min(1, micBuf.readFloatLE(i * BYTES_PER_FLOAT32_SAMPLE)))
-          : 0;
-        const sysSample = i < sysRead.bytesRead / BYTES_PER_FLOAT32_SAMPLE
-          ? Math.max(-1, Math.min(1, sysBuf.readFloatLE(i * BYTES_PER_FLOAT32_SAMPLE)))
-          : 0;
+        const micSample =
+          i < micRead.bytesRead / BYTES_PER_FLOAT32_SAMPLE
+            ? Math.max(-1, Math.min(1, micBuf.readFloatLE(i * BYTES_PER_FLOAT32_SAMPLE)))
+            : 0;
+        const sysSample =
+          i < sysRead.bytesRead / BYTES_PER_FLOAT32_SAMPLE
+            ? Math.max(-1, Math.min(1, sysBuf.readFloatLE(i * BYTES_PER_FLOAT32_SAMPLE)))
+            : 0;
 
         int16Chunk.writeInt16LE(Math.round(micSample * 32767), i * 4);
         int16Chunk.writeInt16LE(Math.round(sysSample * 32767), i * 4 + 2);
@@ -219,7 +219,7 @@ async function interleaveToWav(
       // Write with backpressure
       const canContinue = outStream.write(int16Chunk);
       if (!canContinue) {
-        await new Promise<void>((resolve) => outStream.once("drain", resolve));
+        await new Promise<void>((resolve) => outStream.once('drain', resolve));
       }
 
       samplesProcessed += samplesToRead;
@@ -259,8 +259,8 @@ export class RecordingWriter {
     const dir = join(this.baseDir, recordingId);
     mkdirSync(dir, { recursive: true });
 
-    const micRawPath = join(dir, "mic.raw");
-    const sysRawPath = join(dir, "speaker.raw");
+    const micRawPath = join(dir, 'mic.raw');
+    const sysRawPath = join(dir, 'speaker.raw');
 
     const micStream = createWriteStream(micRawPath);
     const sysStream = createWriteStream(sysRawPath);
@@ -292,24 +292,24 @@ export class RecordingWriter {
     }
 
     // Stream audio chunks to disk
-    micRecorder.on("data", (chunk) => {
+    micRecorder.on('data', (chunk) => {
       recording.lastMicChunkAt = Date.now();
       recording.micBytesWritten += chunk.data.length;
       recording.micStream.write(chunk.data);
     });
 
-    sysRecorder.on("data", (chunk) => {
+    sysRecorder.on('data', (chunk) => {
       recording.lastSysChunkAt = Date.now();
       recording.sysBytesWritten += chunk.data.length;
       recording.sysStream.write(chunk.data);
     });
 
     // Handle native recorder errors
-    micRecorder.on("error", (err: Error) => {
+    micRecorder.on('error', (err: Error) => {
       recording.onError?.(new Error(`Microphone recorder error: ${err.message}`));
     });
 
-    sysRecorder.on("error", (err: Error) => {
+    sysRecorder.on('error', (err: Error) => {
       recording.onError?.(new Error(`System audio recorder error: ${err.message}`));
     });
 
@@ -317,16 +317,22 @@ export class RecordingWriter {
     recording.healthCheckTimer = setInterval(() => {
       const now = Date.now();
       if (now - recording.lastMicChunkAt > STALE_DEVICE_THRESHOLD_MS) {
-        recording.onError?.(new Error("No microphone data received for 5s — device may be disconnected"));
+        recording.onError?.(
+          new Error('No microphone data received for 5s — device may be disconnected'),
+        );
       }
       if (now - recording.lastSysChunkAt > STALE_DEVICE_THRESHOLD_MS) {
-        recording.onError?.(new Error("No system audio data received for 5s — device may be disconnected"));
+        recording.onError?.(
+          new Error('No system audio data received for 5s — device may be disconnected'),
+        );
       }
     }, HEALTH_CHECK_INTERVAL_MS);
 
     // Max duration safety
     recording.maxDurationTimer = setTimeout(async () => {
-      recording.onError?.(new Error(`Recording reached max duration of ${this.maxDurationSecs}s — auto-stopping`));
+      recording.onError?.(
+        new Error(`Recording reached max duration of ${this.maxDurationSecs}s — auto-stopping`),
+      );
       // The consumer is responsible for calling stop() in response to this error.
       // We just notify — forcibly stopping here could race with the consumer.
     }, this.maxDurationSecs * 1000);
@@ -352,10 +358,7 @@ export class RecordingWriter {
     this.activeRecordings.delete(handle.id);
 
     // Stop native recorders
-    await Promise.all([
-      recording.micRecorder.stop(),
-      recording.sysRecorder.stop(),
-    ]);
+    await Promise.all([recording.micRecorder.stop(), recording.sysRecorder.stop()]);
 
     // Close write streams so all data is flushed to disk
     await Promise.all([
@@ -364,7 +367,7 @@ export class RecordingWriter {
     ]);
 
     // Interleave raw files into stereo WAV (streaming, not in-memory)
-    const wavPath = join(recording.dir, "recording.wav");
+    const wavPath = join(recording.dir, 'recording.wav');
     const durationSecs = await interleaveToWav(
       recording.micRawPath,
       recording.sysRawPath,
@@ -381,7 +384,7 @@ export class RecordingWriter {
     return {
       id: recording.id,
       dir: recording.dir,
-      file: { name: "recording.wav", path: wavPath, durationSecs },
+      file: { name: 'recording.wav', path: wavPath, durationSecs },
     };
   }
 
@@ -396,10 +399,7 @@ export class RecordingWriter {
     recording.clearTimers();
     this.activeRecordings.delete(handle.id);
 
-    await Promise.all([
-      recording.micRecorder.stop(),
-      recording.sysRecorder.stop(),
-    ]);
+    await Promise.all([recording.micRecorder.stop(), recording.sysRecorder.stop()]);
 
     await Promise.all([
       closeWriteStream(recording.micStream),

@@ -89,7 +89,7 @@ function StatusItem({ active, label, subtitle }: StatusItemProps) {
     <div className="flex cursor-default items-center justify-between">
       <div className="flex items-center gap-3">
         <div
-          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-success shadow-success-glow' : 'bg-destructive shadow-destructive-glow'}`}
+          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'shadow-success-glow bg-success' : 'shadow-destructive-glow bg-destructive'}`}
         />
         <div className="flex flex-col gap-0.5">
           <span

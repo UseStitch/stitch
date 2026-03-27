@@ -115,6 +115,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'shortcuts.leaderKey',
     value: 'Mod+X',
-    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
+    description:
+      'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
   },
 ];

@@ -62,12 +62,22 @@ export function useChatAgent(input?: UseChatAgentInput): UseChatAgentResult {
 
   const cycleAgent = React.useCallback(() => {
     if (primaryAgents.length < 2) return;
-    const currentId = selectedOverrideAgentId ?? lastUsedPrimaryAgentId ?? savedPrimaryAgentId ?? firstPrimaryAgentId;
+    const currentId =
+      selectedOverrideAgentId ??
+      lastUsedPrimaryAgentId ??
+      savedPrimaryAgentId ??
+      firstPrimaryAgentId;
     const currentIndex = primaryAgents.findIndex((agent) => agent.id === currentId);
     const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % primaryAgents.length;
     const nextAgent = primaryAgents[nextIndex];
     if (nextAgent) setAgentOverride(nextAgent.id);
-  }, [primaryAgents, selectedOverrideAgentId, lastUsedPrimaryAgentId, savedPrimaryAgentId, firstPrimaryAgentId]);
+  }, [
+    primaryAgents,
+    selectedOverrideAgentId,
+    lastUsedPrimaryAgentId,
+    savedPrimaryAgentId,
+    firstPrimaryAgentId,
+  ]);
 
   const setCycleAgent = useAgentStore((s) => s.setCycleAgent);
 

@@ -9,10 +9,10 @@ import {
   type UsageSource,
   type UsageTokenMetrics,
 } from '@stitch/shared/usage/types';
-import type { LanguageModelUsage } from 'ai';
 
 import { getDb } from '@/db/client.js';
 import { messages, recordingTranscriptions } from '@/db/schema.js';
+import type { LanguageModelUsage } from 'ai';
 
 type GetUsageDashboardInput = {
   providerId?: string;
@@ -48,7 +48,10 @@ function cloneEmptyTokenMetrics(): UsageTokenMetrics {
   return { ...EMPTY_TOKEN_METRICS };
 }
 
-function addTokenMetrics(target: UsageTokenMetrics, usage: LanguageModelUsage | null | undefined): void {
+function addTokenMetrics(
+  target: UsageTokenMetrics,
+  usage: LanguageModelUsage | null | undefined,
+): void {
   if (!usage) return;
 
   const inputTokens = usage.inputTokens ?? 0;
@@ -317,7 +320,10 @@ export async function getUsageDashboard(
     return totalsBySource[source];
   };
 
-  const messageConditions = [gte(messages.createdAt, window.from), lt(messages.createdAt, window.to)];
+  const messageConditions = [
+    gte(messages.createdAt, window.from),
+    lt(messages.createdAt, window.to),
+  ];
   if (input.providerId) {
     messageConditions.push(eq(messages.providerId, input.providerId));
   }
@@ -475,8 +481,7 @@ export async function getUsageDashboard(
         };
       })
       .sort(
-        (a, b) =>
-          a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
+        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
       ),
     sources,
     totals: {

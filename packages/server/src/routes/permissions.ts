@@ -7,13 +7,13 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema.js';
+import { isServiceError } from '@/lib/service-result.js';
 import {
   allowPermissionResponse,
   alternativePermissionResponse,
   getPendingPermissionResponses,
   rejectPermissionResponse,
 } from '@/permission/service.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const setPermissionRuleSchema = z.object({
   permission: z.enum(['allow', 'deny', 'ask']),

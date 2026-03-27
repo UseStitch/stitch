@@ -146,7 +146,7 @@ function KeyLocationsContent() {
     <div className="flex w-full min-w-0 flex-col gap-6">
       {pathGroups.map((group) => (
         <div key={group.title} className="flex flex-col gap-3">
-          <h3 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h3 className="px-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             {group.title}
           </h3>
           <div className="overflow-hidden rounded-xl border border-border/50 bg-card/50 shadow-sm">

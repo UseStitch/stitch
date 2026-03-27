@@ -1,9 +1,8 @@
 import { app, Menu, nativeImage, Tray } from 'electron';
 import { join } from 'node:path';
 
-import type { BrowserWindow } from 'electron';
-
 import type { SseClient } from './sse-client';
+import type { BrowserWindow } from 'electron';
 
 type TrayState = 'idle' | 'detected' | 'recording';
 
@@ -105,10 +104,7 @@ function focusWindow(getWindow: () => BrowserWindow | null): void {
   win.focus();
 }
 
-function buildContextMenu(
-  getWindow: () => BrowserWindow | null,
-  serverUrl: string,
-): Electron.Menu {
+function buildContextMenu(getWindow: () => BrowserWindow | null, serverUrl: string): Electron.Menu {
   const items: Electron.MenuItemConstructorOptions[] = [];
 
   if (currentState === 'detected' && detectedMeetingId) {
@@ -117,25 +113,29 @@ function buildContextMenu(
       {
         label: 'Record Meeting',
         click: () => {
-          void fetch(`${serverUrl}/meetings/${meetingId}/accept`, { method: 'POST' }).then((res) => {
-            if (res.ok) {
-              currentState = 'recording';
-              detectedMeetingId = null;
-              updateTray(getWindow, serverUrl);
-            }
-          });
+          void fetch(`${serverUrl}/meetings/${meetingId}/accept`, { method: 'POST' }).then(
+            (res) => {
+              if (res.ok) {
+                currentState = 'recording';
+                detectedMeetingId = null;
+                updateTray(getWindow, serverUrl);
+              }
+            },
+          );
         },
       },
       {
         label: 'Dismiss',
         click: () => {
-          void fetch(`${serverUrl}/meetings/${meetingId}/dismiss`, { method: 'POST' }).then((res) => {
-            if (res.ok) {
-              currentState = 'idle';
-              detectedMeetingId = null;
-              updateTray(getWindow, serverUrl);
-            }
-          });
+          void fetch(`${serverUrl}/meetings/${meetingId}/dismiss`, { method: 'POST' }).then(
+            (res) => {
+              if (res.ok) {
+                currentState = 'idle';
+                detectedMeetingId = null;
+                updateTray(getWindow, serverUrl);
+              }
+            },
+          );
         },
       },
       { type: 'separator' },
@@ -167,10 +167,7 @@ function buildContextMenu(
   return Menu.buildFromTemplate(items);
 }
 
-function updateTray(
-  getWindow: () => BrowserWindow | null,
-  serverUrl: string,
-): void {
+function updateTray(getWindow: () => BrowserWindow | null, serverUrl: string): void {
   if (!tray) return;
 
   if (currentState === 'recording') {

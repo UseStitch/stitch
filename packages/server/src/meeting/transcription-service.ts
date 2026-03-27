@@ -1,8 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { generateText, Output } from 'ai';
 import { desc, eq } from 'drizzle-orm';
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 
 import { createTranscriptionId } from '@stitch/shared/id';
@@ -50,9 +49,7 @@ const topicSchema = z.object({
 });
 
 const analysisSchema = z.object({
-  topics: z
-    .array(topicSchema)
-    .describe('Identified topics with their transcript turn ranges'),
+  topics: z.array(topicSchema).describe('Identified topics with their transcript turn ranges'),
   summary: z
     .string()
     .describe('Structured markdown meeting summary using only h1 headings and bullet points'),
@@ -91,12 +88,8 @@ function formatTranscriptForFile(entries: { speaker: string; content: string }[]
   return entries.map((entry) => `${entry.speaker}: ${entry.content}`).join('\n\n');
 }
 
-function formatTranscriptForAnalysis(
-  entries: { speaker: string; content: string }[],
-): string {
-  return entries
-    .map((entry, i) => `[${i}] ${entry.speaker}: ${entry.content}`)
-    .join('\n');
+function formatTranscriptForAnalysis(entries: { speaker: string; content: string }[]): string {
+  return entries.map((entry, i) => `[${i}] ${entry.speaker}: ${entry.content}`).join('\n');
 }
 
 function parseTranscript(transcript: string): { speaker: string; content: string }[] {
@@ -157,10 +150,7 @@ async function runTranscription(
       transcriptionId,
     });
 
-    const [meeting] = await db
-      .select()
-      .from(meetings)
-      .where(eq(meetings.id, input.meetingId));
+    const [meeting] = await db.select().from(meetings).where(eq(meetings.id, input.meetingId));
 
     if (!meeting?.recordingFilePath) {
       throw new Error('No recording file found for meeting');

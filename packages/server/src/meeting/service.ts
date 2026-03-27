@@ -1,13 +1,12 @@
+import { desc, eq, inArray } from 'drizzle-orm';
 import { existsSync, mkdirSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { desc, eq, inArray } from 'drizzle-orm';
-
-import { createRecordingId } from '@stitch/shared/id';
-import type { PrefixedString } from '@stitch/shared/id';
 import type { MeetingInfo, MeetingService, RecordingResult } from '@stitch/recordings';
 import { createMeetingService, RecordingWriter } from '@stitch/recordings';
+import { createRecordingId } from '@stitch/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { meetings, providerConfig, userSettings } from '@/db/schema.js';
@@ -245,7 +244,10 @@ export async function startMeetingRecordingOnDemand(): Promise<{
   }
 
   const db = getDb();
-  const [activeRecording] = await db.select({ id: meetings.id }).from(meetings).where(eq(meetings.status, 'recording'));
+  const [activeRecording] = await db
+    .select({ id: meetings.id })
+    .from(meetings)
+    .where(eq(meetings.status, 'recording'));
   if (activeRecording) {
     throw new Error(`A recording is already in progress: ${activeRecording.id}`);
   }
@@ -314,12 +316,8 @@ export async function getActiveMeetings(): Promise<(typeof meetings.$inferSelect
   return db
     .select()
     .from(meetings)
-    .where(
-      eq(meetings.status, 'detected'),
-    )
-    .union(
-      db.select().from(meetings).where(eq(meetings.status, 'recording')),
-    );
+    .where(eq(meetings.status, 'detected'))
+    .union(db.select().from(meetings).where(eq(meetings.status, 'recording')));
 }
 
 export async function getAllMeetings(): Promise<(typeof meetings.$inferSelect)[]> {

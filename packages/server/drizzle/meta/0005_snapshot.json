@@ -46,10 +46,7 @@
       "indexes": {
         "agent_mcp_servers_agent_server_idx": {
           "name": "agent_mcp_servers_agent_server_idx",
-          "columns": [
-            "agent_id",
-            "mcp_server_id"
-          ],
+          "columns": ["agent_id", "mcp_server_id"],
           "isUnique": true
         }
       },
@@ -58,12 +55,8 @@
           "name": "agent_mcp_servers_agent_id_agents_id_fk",
           "tableFrom": "agent_mcp_servers",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -71,12 +64,8 @@
           "name": "agent_mcp_servers_mcp_server_id_mcp_servers_id_fk",
           "tableFrom": "agent_mcp_servers",
           "tableTo": "mcp_servers",
-          "columnsFrom": [
-            "mcp_server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mcp_server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -141,11 +130,7 @@
       "indexes": {
         "agent_permissions_agent_tool_pattern_idx": {
           "name": "agent_permissions_agent_tool_pattern_idx",
-          "columns": [
-            "agent_id",
-            "tool_name",
-            "pattern"
-          ],
+          "columns": ["agent_id", "tool_name", "pattern"],
           "isUnique": true
         }
       },
@@ -154,12 +139,8 @@
           "name": "agent_permissions_agent_id_agents_id_fk",
           "tableFrom": "agent_permissions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -224,10 +205,7 @@
       "indexes": {
         "agent_sub_agents_agent_sub_idx": {
           "name": "agent_sub_agents_agent_sub_idx",
-          "columns": [
-            "agent_id",
-            "sub_agent_id"
-          ],
+          "columns": ["agent_id", "sub_agent_id"],
           "isUnique": true
         }
       },
@@ -236,12 +214,8 @@
           "name": "agent_sub_agents_agent_id_agents_id_fk",
           "tableFrom": "agent_sub_agents",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -249,12 +223,8 @@
           "name": "agent_sub_agents_sub_agent_id_agents_id_fk",
           "tableFrom": "agent_sub_agents",
           "tableTo": "agents",
-          "columnsFrom": [
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sub_agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -320,11 +290,7 @@
       "indexes": {
         "agent_tools_agent_type_name_idx": {
           "name": "agent_tools_agent_type_name_idx",
-          "columns": [
-            "agent_id",
-            "tool_type",
-            "tool_name"
-          ],
+          "columns": ["agent_id", "tool_type", "tool_name"],
           "isUnique": true
         }
       },
@@ -333,12 +299,8 @@
           "name": "agent_tools_agent_id_agents_id_fk",
           "tableFrom": "agent_tools",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -758,12 +720,8 @@
           "name": "messages_session_id_sessions_id_fk",
           "tableFrom": "messages",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -771,12 +729,8 @@
           "name": "messages_agent_id_agents_id_fk",
           "tableFrom": "messages",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -820,10 +774,7 @@
       "indexes": {
         "model_visibility_provider_model_idx": {
           "name": "model_visibility_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": true
         }
       },
@@ -941,12 +892,8 @@
           "name": "permission_responses_session_id_sessions_id_fk",
           "tableFrom": "permission_responses",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -954,12 +901,8 @@
           "name": "permission_responses_agent_id_agents_id_fk",
           "tableFrom": "permission_responses",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -967,12 +910,8 @@
           "name": "permission_responses_sub_agent_id_agents_id_fk",
           "tableFrom": "permission_responses",
           "tableTo": "agents",
-          "columnsFrom": [
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sub_agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1100,12 +1039,8 @@
           "name": "questions_session_id_sessions_id_fk",
           "tableFrom": "questions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1113,12 +1048,8 @@
           "name": "questions_sub_agent_id_agents_id_fk",
           "tableFrom": "questions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "sub_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sub_agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1187,12 +1118,8 @@
           "name": "queued_messages_session_id_sessions_id_fk",
           "tableFrom": "queued_messages",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1322,12 +1249,8 @@
           "name": "recording_transcriptions_meeting_id_meetings_id_fk",
           "tableFrom": "recording_transcriptions",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1394,12 +1317,8 @@
           "name": "sessions_parent_session_id_sessions_id_fk",
           "tableFrom": "sessions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "parent_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

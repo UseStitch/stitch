@@ -6,6 +6,8 @@ import { Link, useParams } from '@tanstack/react-router';
 
 import type { Meeting } from '@stitch/shared/meetings/types';
 
+import { formatAppName, formatDuration, StatusBadge } from '@/components/recording-detail';
+import { Button } from '@/components/ui/button';
 import {
   SidebarContent,
   SidebarGroup,
@@ -16,12 +18,6 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import {
-  formatAppName,
-  formatDuration,
-  StatusBadge,
-} from '@/components/recording-detail';
 import {
   recordingsQueryOptions,
   transcriptionQueryOptions,
@@ -114,7 +110,8 @@ export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
   const currentId = params.id;
   const hasActiveRecording =
-    meetingStatus === 'recording' || recordings?.some((recording) => recording.status === 'recording');
+    meetingStatus === 'recording' ||
+    recordings?.some((recording) => recording.status === 'recording');
   const [nowMs, setNowMs] = React.useState(() => Date.now());
 
   React.useEffect(() => {

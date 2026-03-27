@@ -1,9 +1,6 @@
 import { Hono } from 'hono';
 
-import {
-  USAGE_DATE_RANGES,
-  type UsageDateRange,
-} from '@stitch/shared/usage/types';
+import { USAGE_DATE_RANGES, type UsageDateRange } from '@stitch/shared/usage/types';
 
 import { getUsageDashboard } from '@/usage/service.js';
 

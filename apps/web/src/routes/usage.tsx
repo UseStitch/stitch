@@ -1,7 +1,3 @@
-import * as React from 'react';
-
-import { keepPreviousData, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
 import {
   BarElement,
   CategoryScale,
@@ -12,7 +8,13 @@ import {
   type TooltipItem,
 } from 'chart.js';
 import { BarChart3Icon } from 'lucide-react';
+import * as React from 'react';
 import { Bar } from 'react-chartjs-2';
+
+import { keepPreviousData, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+
+import { USAGE_DATE_RANGES, USAGE_SOURCES, type UsageDateRange } from '@stitch/shared/usage/types';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -25,8 +27,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { usageDashboardQueryOptions } from '@/lib/queries/usage';
-
-import { USAGE_DATE_RANGES, USAGE_SOURCES, type UsageDateRange } from '@stitch/shared/usage/types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -194,7 +194,10 @@ function UsageDashboardPage() {
     const used = new Set(usageRangeData?.usedProviders ?? []);
     return providerModels
       .filter((provider) => used.has(provider.providerId))
-      .map((provider) => ({ providerId: provider.providerId, providerName: provider.providerName }));
+      .map((provider) => ({
+        providerId: provider.providerId,
+        providerName: provider.providerName,
+      }));
   }, [providerModels, usageRangeData?.usedProviders]);
 
   const availableModels = React.useMemo(() => {
@@ -300,8 +303,7 @@ function UsageDashboardPage() {
       sources.map((source) => {
         const datasets = TOKEN_TYPE_KEYS.map((key) => ({
           label: TOKEN_TYPE_LABELS[key],
-          data:
-            usageData?.buckets.map((b) => b.tokenMetricsBySource[source]?.[key] ?? 0) ?? [],
+          data: usageData?.buckets.map((b) => b.tokenMetricsBySource[source]?.[key] ?? 0) ?? [],
           backgroundColor: tokenTypeColors[key],
           borderRadius: 5,
           borderSkipped: false,
@@ -453,10 +455,7 @@ function UsageDashboardPage() {
           </Select>
 
           <div className="flex items-center gap-2">
-            <Select
-              value={rangeFilter}
-              onValueChange={(value) => setRangeFilter((value ?? '30d'))}
-            >
+            <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value ?? '30d')}>
               <SelectTrigger className="w-full bg-background">
                 <SelectValue placeholder="Select date range">{selectedRangeLabel}</SelectValue>
               </SelectTrigger>
@@ -536,7 +535,10 @@ function UsageDashboardPage() {
               {/* Token type legend */}
               <div className="flex flex-wrap items-center gap-4">
                 {TOKEN_TYPE_KEYS.map((key) => (
-                  <span key={key} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                  >
                     <span
                       className="inline-block size-2.5 rounded-sm"
                       style={{ backgroundColor: tokenTypeColors[key] }}

@@ -9,8 +9,7 @@ import { useMeetingStore } from '@/stores/meeting-store';
 const meetingKeys = {
   all: ['meetings'] as const,
   list: () => [...meetingKeys.all, 'list'] as const,
-  transcription: (meetingId: string) =>
-    [...meetingKeys.all, 'transcription', meetingId] as const,
+  transcription: (meetingId: string) => [...meetingKeys.all, 'transcription', meetingId] as const,
 };
 
 export const recordingsQueryOptions = queryOptions({
