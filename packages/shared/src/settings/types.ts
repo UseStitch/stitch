@@ -5,6 +5,9 @@ export const SETTINGS_KEYS = [
   'model.compaction.modelId',
   'model.title.providerId',
   'model.title.modelId',
+  'recordings.default.providerId',
+  'recordings.default.modelId',
+  'recordings.autoTranscribe',
   'compaction.auto',
   'compaction.prune',
   'compaction.reserved',
@@ -15,6 +18,7 @@ export const SETTINGS_KEYS = [
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
+  'shortcuts.leaderKey',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -24,6 +28,12 @@ export type SettingDefault = {
   value: string;
   description: string;
 };
+
+const LEADER_KEY_HOTKEY_PATTERN = /^Mod\+[A-Za-z0-9]$/;
+
+export function isValidLeaderKeyHotkey(value: string): boolean {
+  return LEADER_KEY_HOTKEY_PATTERN.test(value);
+}
 
 export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
@@ -55,6 +65,21 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'model.title.modelId',
     value: '',
     description: 'Model ID for the preferred model for generating session titles.',
+  },
+  {
+    key: 'recordings.default.providerId',
+    value: '',
+    description: 'Provider ID for the default model used for recording transcriptions.',
+  },
+  {
+    key: 'recordings.default.modelId',
+    value: '',
+    description: 'Model ID for the default model used for recording transcriptions.',
+  },
+  {
+    key: 'recordings.autoTranscribe',
+    value: 'false',
+    description: 'Automatically start transcription when a recording finishes.',
   },
   {
     key: 'compaction.auto',
@@ -100,5 +125,10 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
+  },
+  {
+    key: 'shortcuts.leaderKey',
+    value: 'Mod+X',
+    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
   },
 ];

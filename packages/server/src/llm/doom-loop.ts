@@ -141,7 +141,7 @@ export async function checkAndHandleDoomLoop(opts: {
     log.info({ sessionId }, 'user stopped doom loop');
 
     conversation.push({
-      role: 'system',
+      role: 'user',
       content: DOOM_LOOP_MESSAGE,
     });
 

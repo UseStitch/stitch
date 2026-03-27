@@ -2,9 +2,10 @@ import { PlusIcon, MessageSquareIcon, MessageCircleIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
+import { RecordingsSidebarContent } from '@/components/recordings-sidebar';
 import {
   Sidebar,
   SidebarContent,
@@ -47,7 +48,7 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
   return <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />;
 });
 
-export function AppSidebar() {
+function ChatSidebarContent() {
   const { data: sessions } = useQuery(sessionsQueryOptions);
   useSessionTitleUpdates();
   const streamingIds = useStreamingSessionIds();
@@ -57,7 +58,7 @@ export function AppSidebar() {
   const currentId = params.id;
 
   return (
-    <Sidebar collapsible="offcanvas" className="border-r-0!">
+    <>
       <SidebarHeader className="pb-0">
         <SidebarMenuButton
           render={<Link to="/" className="flex items-center justify-center gap-2 font-medium" />}
@@ -114,6 +115,23 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarContent>
+    </>
+  );
+}
+
+function useActiveContext(): 'chat' | 'recordings' {
+  const routerState = useRouterState();
+  const path = routerState.location.pathname;
+  if (path.startsWith('/recordings')) return 'recordings';
+  return 'chat';
+}
+
+export function AppSidebar() {
+  const context = useActiveContext();
+
+  return (
+    <Sidebar collapsible="offcanvas" className="border-r-0!">
+      {context === 'recordings' ? <RecordingsSidebarContent /> : <ChatSidebarContent />}
     </Sidebar>
   );
 }

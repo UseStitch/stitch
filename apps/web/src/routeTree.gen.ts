@@ -9,54 +9,106 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RecordingsRouteImport } from './routes/recordings'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RecordingsIndexRouteImport } from './routes/recordings.index'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
+import { Route as RecordingsIdRouteImport } from './routes/recordings.$id'
 
+const RecordingsRoute = RecordingsRouteImport.update({
+  id: '/recordings',
+  path: '/recordings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RecordingsIndexRoute = RecordingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RecordingsRoute,
 } as any)
 const SessionIdRoute = SessionIdRouteImport.update({
   id: '/session/$id',
   path: '/session/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecordingsIdRoute = RecordingsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => RecordingsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/recordings': typeof RecordingsRouteWithChildren
+  '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/recordings/': typeof RecordingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/recordings': typeof RecordingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/recordings': typeof RecordingsRouteWithChildren
+  '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/recordings/': typeof RecordingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/session/$id'
+  fullPaths:
+    | '/'
+    | '/recordings'
+    | '/recordings/$id'
+    | '/session/$id'
+    | '/recordings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/session/$id'
-  id: '__root__' | '/' | '/session/$id'
+  to: '/' | '/recordings/$id' | '/session/$id' | '/recordings'
+  id:
+    | '__root__'
+    | '/'
+    | '/recordings'
+    | '/recordings/$id'
+    | '/session/$id'
+    | '/recordings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RecordingsRoute: typeof RecordingsRouteWithChildren
   SessionIdRoute: typeof SessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/recordings': {
+      id: '/recordings'
+      path: '/recordings'
+      fullPath: '/recordings'
+      preLoaderRoute: typeof RecordingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/recordings/': {
+      id: '/recordings/'
+      path: '/'
+      fullPath: '/recordings/'
+      preLoaderRoute: typeof RecordingsIndexRouteImport
+      parentRoute: typeof RecordingsRoute
     }
     '/session/$id': {
       id: '/session/$id'
@@ -65,11 +117,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recordings/$id': {
+      id: '/recordings/$id'
+      path: '/$id'
+      fullPath: '/recordings/$id'
+      preLoaderRoute: typeof RecordingsIdRouteImport
+      parentRoute: typeof RecordingsRoute
+    }
   }
 }
 
+interface RecordingsRouteChildren {
+  RecordingsIdRoute: typeof RecordingsIdRoute
+  RecordingsIndexRoute: typeof RecordingsIndexRoute
+}
+
+const RecordingsRouteChildren: RecordingsRouteChildren = {
+  RecordingsIdRoute: RecordingsIdRoute,
+  RecordingsIndexRoute: RecordingsIndexRoute,
+}
+
+const RecordingsRouteWithChildren = RecordingsRoute._addFileChildren(
+  RecordingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RecordingsRoute: RecordingsRouteWithChildren,
   SessionIdRoute: SessionIdRoute,
 }
 export const routeTree = rootRouteImport

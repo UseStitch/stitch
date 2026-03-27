@@ -42,6 +42,7 @@ export const providerKeys = {
   list: () => [...providerKeys.all, 'list'] as const,
   config: (providerId: string) => [...providerKeys.all, 'config', providerId] as const,
   enabledModels: () => [...providerKeys.all, 'enabled-models'] as const,
+  enabledAudioModels: () => [...providerKeys.all, 'enabled-audio-models'] as const,
   visibleModels: () => [...providerKeys.all, 'visible-models'] as const,
 };
 
@@ -75,6 +76,16 @@ export const enabledProviderModelsQueryOptions = queryOptions({
       }),
     );
     return results.filter((r) => r.models.length > 0);
+  },
+});
+
+export const enabledAudioProviderModelsQueryOptions = queryOptions({
+  queryKey: providerKeys.enabledAudioModels(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<ProviderModels[]> => {
+    const res = await serverFetch('/provider/audio-models');
+    if (!res.ok) throw new Error('Failed to fetch audio models');
+    return res.json() as Promise<ProviderModels[]>;
   },
 });
 

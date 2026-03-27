@@ -3,16 +3,19 @@ import { z } from 'zod';
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 
+import { ActivityBar } from '@/components/activity-bar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { CommandPalette } from '@/components/command-palette';
 import { TitleBar } from '@/components/layout/title-bar';
 import { OnboardingDialog } from '@/components/onboarding-dialog';
+import { RecordingBanner } from '@/components/recording-banner/recording-banner';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { RightClickMenu } from '@/components/right-click-menu';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
+import { MeetingSync } from '@/hooks/sse/use-meeting-sync';
 import { NotificationSound } from '@/hooks/sse/use-notification-sound';
 import { StreamSync } from '@/hooks/sse/use-stream-sync';
 import { UnreadSync } from '@/hooks/sse/use-unread-sync';
@@ -63,18 +66,28 @@ function RootLayout() {
 
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
-      <TitleBar />
-      <RightClickMenu>
-        <div className="relative flex flex-1 overflow-hidden bg-sidebar">
-          <AppSidebar />
-          <SidebarInset className="overflow-hidden border-l border-border/50 bg-muted shadow-sm peer-data-[state=expanded]:rounded-tl-2xl">
-            <StreamSync />
-            <NotificationSound />
-            <UnreadSync />
-            <Outlet />
-          </SidebarInset>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Activity bar: full height, merges with title bar background */}
+        <ActivityBar />
+
+        {/* Right side: title bar on top, sidebar + content below */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TitleBar />
+          <RightClickMenu>
+            <div className="relative flex flex-1 overflow-hidden bg-sidebar">
+              <AppSidebar />
+              <SidebarInset className="overflow-hidden border-l border-border/50 bg-muted shadow-sm peer-data-[state=expanded]:rounded-tl-2xl">
+                <StreamSync />
+                <NotificationSound />
+                <UnreadSync />
+                <MeetingSync />
+                <RecordingBanner />
+                <Outlet />
+              </SidebarInset>
+            </div>
+          </RightClickMenu>
         </div>
-      </RightClickMenu>
+      </div>
       <CommandPalette />
       <SettingsDialog />
       <OnboardingDialog />

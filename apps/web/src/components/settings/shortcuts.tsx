@@ -3,8 +3,9 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { Button } from '@/components/ui/button';
@@ -16,9 +17,11 @@ import {
   useResetAllShortcuts,
   type ShortcutEntry,
 } from '@/lib/queries/shortcuts';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M'];
+const LEADER_KEY_RECORDING_ID = '__leader-key__';
 
 const defaultsByActionId = new Map<string, (typeof SHORTCUT_DEFAULTS)[number]>(
   SHORTCUT_DEFAULTS.map((d) => [d.actionId, d]),
@@ -39,9 +42,38 @@ function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]>
   return groups;
 }
 
-function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
+const KBD_CLASS =
+  'inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground';
+
+const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
+
+function HotkeyBadge({
+  hotkey,
+  isSequence,
+}: {
+  hotkey: string | null;
+  isSequence: boolean;
+}) {
   if (!hotkey) {
     return <span className="text-sm text-muted-foreground">Unassigned</span>;
+  }
+
+  // Handle LEADER+ prefixed hotkeys: show resolved leader key, then arrow, then suffix
+  if (hotkey.startsWith('LEADER+')) {
+    const suffix = hotkey.slice('LEADER+'.length);
+    const suffixDisplayKeys = formatForDisplay(suffix).split('+');
+
+    return (
+      <span className="inline-flex items-center gap-1">
+        <kbd className={KBD_CLASS}>Leader</kbd>
+        <span className="text-xs text-muted-foreground">then</span>
+        {suffixDisplayKeys.map((key, i) => (
+          <kbd key={`suffix-${i}`} className={KBD_CLASS}>
+            {key}
+          </kbd>
+        ))}
+      </span>
+    );
   }
 
   const displayKeys = formatForDisplay(hotkey).split('+');
@@ -50,18 +82,12 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex gap-1">
         {displayKeys.map((key, i) => (
-          <kbd
-            key={`first-${i}`}
-            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-          >
+          <kbd key={`first-${i}`} className={KBD_CLASS}>
             {key}
           </kbd>
         ))}
         {displayKeys.map((key, i) => (
-          <kbd
-            key={`second-${i}`}
-            className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-          >
+          <kbd key={`second-${i}`} className={KBD_CLASS}>
             {key}
           </kbd>
         ))}
@@ -72,10 +98,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
   return (
     <span className="inline-flex gap-1">
       {displayKeys.map((key, i) => (
-        <kbd
-          key={i}
-          className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground"
-        >
+        <kbd key={i} className={KBD_CLASS}>
           {key}
         </kbd>
       ))}
@@ -97,6 +120,7 @@ function ShortcutRow({
   onStartRecording: (id: string) => void;
 }) {
   const isRecording = recordingId === entry.actionId;
+  const isLeaderShortcut = entry.hotkey?.startsWith('LEADER+');
 
   return (
     <div className="flex items-center justify-between border-b border-border/50 py-3 last:border-0">
@@ -109,18 +133,20 @@ function ShortcutRow({
         )}
       </div>
       <button
-        onClick={() => onStartRecording(entry.actionId)}
+        onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
           'text-sm rounded px-2 py-1 transition-colors min-w-30 text-right',
-          isRecording
-            ? 'text-foreground bg-accent ring-1 ring-ring'
-            : conflict
-              ? 'text-destructive'
-              : 'hover:bg-accent/50 cursor-pointer',
+          isLeaderShortcut
+            ? 'cursor-default'
+            : isRecording
+              ? 'text-foreground bg-accent ring-1 ring-ring'
+              : conflict
+                ? 'text-destructive'
+                : 'hover:bg-accent/50 cursor-pointer',
         )}
       >
         {isRecording ? (
-          <span className="text-muted-foreground italic">Press keys…</span>
+          <span className="text-muted-foreground italic">Press keys...</span>
         ) : conflict ? (
           <span className="text-xs text-destructive">Conflicts with {conflict}</span>
         ) : (
@@ -132,10 +158,17 @@ function ShortcutRow({
 }
 
 function ShortcutsContent() {
+  const queryClient = useQueryClient();
   const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const saveShortcut = useSaveShortcut();
   const deleteShortcut = useDeleteShortcut();
   const resetAll = useResetAllShortcuts();
+  const saveLeaderKey = useMutation(
+    saveSettingMutationOptions('shortcuts.leaderKey', queryClient, { silent: true }),
+  );
+
+  const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
 
   const [search, setSearch] = React.useState('');
   const [recordingId, setRecordingId] = React.useState<string | null>(null);
@@ -146,6 +179,28 @@ function ShortcutsContent() {
 
       if (BLOCKED_HOTKEYS.includes(hotkey)) {
         toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`);
+        setRecordingId(null);
+        return;
+      }
+
+      if (recordingId === LEADER_KEY_RECORDING_ID) {
+        if (!isValidLeaderKeyHotkey(hotkey)) {
+          toast.error('Leader key must be in the format Mod+<single letter or digit>');
+          setRecordingId(null);
+          return;
+        }
+
+        const conflictEntry = shortcuts.find((entry) => !entry.isSequence && entry.hotkey === hotkey);
+
+        if (conflictEntry) {
+          toast.error(
+            `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Choose a different leader key.`,
+          );
+          setRecordingId(null);
+          return;
+        }
+
+        saveLeaderKey.mutate(hotkey);
         setRecordingId(null);
         return;
       }
@@ -172,6 +227,12 @@ function ShortcutsContent() {
     },
     onCancel: () => setRecordingId(null),
     onClear: () => {
+      if (recordingId === LEADER_KEY_RECORDING_ID) {
+        toast.error('Leader key cannot be unassigned');
+        setRecordingId(null);
+        return;
+      }
+
       if (recordingId) {
         deleteShortcut.mutate(recordingId);
         setRecordingId(null);
@@ -181,6 +242,11 @@ function ShortcutsContent() {
 
   function handleStartRecording(id: string) {
     setRecordingId(id);
+    recorder.startRecording();
+  }
+
+  function handleStartLeaderKeyRecording() {
+    setRecordingId(LEADER_KEY_RECORDING_ID);
     recorder.startRecording();
   }
 
@@ -231,6 +297,26 @@ function ShortcutsContent() {
         </Button>
       </div>
 
+      <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="text-sm">Leader key</p>
+          <p className="text-xs text-muted-foreground">Used as the prefix for LEADER+ shortcuts</p>
+        </div>
+        <button
+          onClick={handleStartLeaderKeyRecording}
+          className={cn(
+            'text-sm rounded px-2 py-1 transition-colors min-w-30 text-right hover:bg-accent/50 cursor-pointer',
+            recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent ring-1 ring-ring',
+          )}
+        >
+          {recordingId === LEADER_KEY_RECORDING_ID ? (
+            <span className="text-muted-foreground italic">Press keys...</span>
+          ) : (
+            <HotkeyBadge hotkey={leaderKey} isSequence={false} />
+          )}
+        </button>
+      </div>
+
       {groups.size === 0 && (
         <p className="py-4 text-center text-sm text-muted-foreground">No shortcuts found</p>
       )}
@@ -257,7 +343,9 @@ function ShortcutsContent() {
 
       {recordingId && (
         <p className="text-center text-xs text-muted-foreground">
-          Press Escape to cancel · Backspace to unassign
+          {recordingId === LEADER_KEY_RECORDING_ID
+            ? 'Press Escape to cancel'
+            : 'Press Escape to cancel · Backspace to unassign'}
         </p>
       )}
     </div>

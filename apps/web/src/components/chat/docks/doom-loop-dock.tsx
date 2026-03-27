@@ -23,7 +23,7 @@ export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
 
   return (
     <div className="flex items-center gap-4">
-      <RefreshCwIcon className="size-4 shrink-0 text-amber-500" />
+      <RefreshCwIcon className="size-4 shrink-0 text-warning" />
       <div className="min-w-0 flex-1">
         <div className="text-sm text-foreground">
           Repeating <code className="rounded bg-muted px-1 py-0.5 text-xs">{toolName}</code> with

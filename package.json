@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=@stitch/web --filter=@stitch/desktop",
     "format": "oxfmt write .",
     "format:check": "oxfmt check .",
     "typecheck": "turbo typecheck",

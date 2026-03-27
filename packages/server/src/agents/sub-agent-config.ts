@@ -23,6 +23,7 @@ export async function getAgentSubAgents(
       id: agents.id,
       name: agents.name,
       type: agents.type,
+      kind: agents.kind,
       isDeletable: agents.isDeletable,
       systemPrompt: agents.systemPrompt,
       useBasePrompt: agents.useBasePrompt,

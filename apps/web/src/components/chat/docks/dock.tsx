@@ -27,8 +27,8 @@ const variantStyles = {
     icon: 'text-primary',
   },
   warning: {
-    header: 'bg-amber-500/5 text-amber-600 dark:text-amber-500 hover:bg-amber-500/10',
-    icon: 'text-amber-500',
+    header: 'bg-warning/10 text-warning hover:bg-warning/20',
+    icon: 'text-warning',
   },
   destructive: {
     header: 'bg-destructive/5 text-destructive hover:bg-destructive/10',

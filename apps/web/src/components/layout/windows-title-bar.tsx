@@ -1,14 +1,12 @@
-import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen, Settings2 } from 'lucide-react';
+import { Minus, Square, X, Copy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { ServerStatus } from '@/components/layout/server-status';
 import { useSidebar } from '@/components/ui/sidebar';
-import { useDialogContext } from '@/context/dialog-context';
 
 export function WindowsTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const { open, toggleSidebar } = useSidebar();
-  const { setSettingsTab } = useDialogContext();
 
   useEffect(() => {
     const checkMaximized = async () => {
@@ -59,13 +57,6 @@ export function WindowsTitleBar() {
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <ServerStatus />
-        <button
-          onClick={() => setSettingsTab('general')}
-          className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
-          aria-label="Open settings"
-        >
-          <Settings2 className="h-4 w-4 text-muted-foreground" />
-        </button>
         <button
           onClick={handleMinimize}
           className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted"

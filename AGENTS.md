@@ -79,6 +79,13 @@ Naming Conventions
 - Never comment self-describing code
 - Only comment behavior that is non-obvious or out of the norm
 
+### Styling
+
+- Avoid inline styles (e.g., `style={{ background: '...' }}`) - use Tailwind classes instead
+- Use semantic theme tokens from `apps/web/src/styles/` (e.g., `bg-primary`, `bg-success`, `text-warning`)
+- Don't use hardcoded colors like `bg-red-500` or `bg-emerald-500` - use semantic tokens (`bg-destructive`, `bg-success`)
+- For new styles that need to be reused, add them to `apps/web/src/styles/global.css` as utility classes
+
 ### Error Handling
 
 - Avoid defensive try/catch blocks that don't add value

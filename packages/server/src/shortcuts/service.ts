@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
-import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
+import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
 import { keyboardShortcuts } from '@/db/schema.js';
@@ -13,7 +13,7 @@ interface ShortcutRow {
   hotkey: string | null;
   isSequence: boolean;
   label: string;
-  category: string;
+  category: ShortcutCategory;
 }
 
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import { isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SETTINGS_KEYS } from '@stitch/shared/settings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
@@ -34,7 +35,9 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     return err('Invalid onboarding status', 400);
   }
   if (
-    (key === 'compaction.auto' || key === 'compaction.prune') &&
+    (key === 'compaction.auto' ||
+      key === 'compaction.prune' ||
+      key === 'recordings.autoTranscribe') &&
     !BOOLEAN_SETTING_VALUES.has(value)
   ) {
     return err('Invalid boolean setting value', 400);
@@ -44,6 +47,9 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     if (!Number.isFinite(parsed) || parsed < 0) {
       return err('Invalid compaction reserved value', 400);
     }
+  }
+  if (key === 'shortcuts.leaderKey' && !isValidLeaderKeyHotkey(value)) {
+    return err('Invalid leader key. Use Mod+<single letter or digit>.', 400);
   }
 
   const db = getDb();
