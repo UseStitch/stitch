@@ -14,8 +14,6 @@ import { listSettings, saveSetting } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/wrappers.js';
 import { withTruncation } from '@/tools/wrappers.js';
 
-const DISPLAY_NAME = 'Browser';
-
 const browserInputSchema = z.object({
   action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),
   url: z.string().optional().describe('URL for navigate or tab_new actions.'),
