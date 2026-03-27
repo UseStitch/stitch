@@ -23,8 +23,8 @@ function getChromeUserDataDir(): string | null {
     return path.join(os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome');
   }
   if (platform === 'win32') {
-    const localAppData = process.env['LOCALAPPDATA'];
-    return localAppData ? path.join(localAppData, 'Google', 'Chrome', 'User Data') : null;
+    const localAppData = process.env['LOCALAPPDATA'] ?? path.join(os.homedir(), 'AppData', 'Local');
+    return path.join(localAppData, 'Google', 'Chrome', 'User Data');
   }
   return path.join(os.homedir(), '.config', 'google-chrome');
 }
