@@ -32,6 +32,7 @@ import type { Components } from 'react-markdown';
 interface ChatMarkdownProps {
   text: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
 interface CodeBlockErrorBoundaryProps {
@@ -123,13 +124,13 @@ function SuspenseShikiCodeBlock({
 }: SuspenseShikiCodeBlockProps) {
   const language = extractFenceLanguage(className);
   const cacheKey = createHighlightCacheKey(code, language, theme);
-  const cachedHighlightedHtml = !isStreaming ? highlightedCodeCache.get(cacheKey) : null;
+  const cachedHighlightedHtml = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
 
   if (cachedHighlightedHtml !== null) {
     return (
       <div
         className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm"
-        dangerouslySetInnerHTML={{ __html: cachedHighlightedHtml as string }}
+        dangerouslySetInnerHTML={{ __html: cachedHighlightedHtml }}
       />
     );
   }
@@ -254,7 +255,7 @@ function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   return <img {...props} onError={() => setBroken(true)} />;
 }
 
-function ChatMarkdown({ text, className }: ChatMarkdownProps) {
+function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
   const { mode } = useTheme();
 
   const effectiveTheme = mode === 'dark' ? 'dark' : 'light';
@@ -267,6 +268,15 @@ function ChatMarkdown({ text, className }: ChatMarkdownProps) {
         const codeBlock = extractCodeBlock(children);
         if (!codeBlock) {
           return <pre {...props}>{children}</pre>;
+        }
+
+        // During streaming: skip Shiki (expensive async highlighting) — plain pre
+        if (isStreaming) {
+          return (
+            <MarkdownCodeBlock code={codeBlock.code}>
+              <pre {...props}>{children}</pre>
+            </MarkdownCodeBlock>
+          );
         }
 
         return (
@@ -285,7 +295,14 @@ function ChatMarkdown({ text, className }: ChatMarkdownProps) {
         );
       },
     };
-  }, [effectiveTheme]);
+  }, [effectiveTheme, isStreaming]);
+
+  // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
+  const remarkPlugins = useMemo(
+    () => (isStreaming ? [remarkGfm] : [remarkGfm, remarkMath]),
+    [isStreaming],
+  );
+  const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
   return (
     <div
@@ -295,8 +312,8 @@ function ChatMarkdown({ text, className }: ChatMarkdownProps) {
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
         components={markdownComponents}
       >
         {text}

@@ -10,6 +10,7 @@ import type { SubAgentWithConfig } from '@/agents/sub-agent-config.js';
 import { getDb } from '@/db/client.js';
 import { agents, messages, providerConfig, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import * as Sse from '@/lib/sse.js';
 import { runStream } from '@/lib/stream-runner.js';
 import { buildCompactedHistory } from '@/llm/compaction';
 import type { ProviderCredentials } from '@/provider/provider.js';
@@ -30,6 +31,7 @@ function sanitizeToolName(name: string): string {
 
 type SubAgentToolContext = {
   sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
   credentials: ProviderCredentials;
   modelId: string;
   parentAbortSignal: AbortSignal;
@@ -110,6 +112,16 @@ function createSubAgentTool(
           additionalContext: input.additionalContext,
           parentContext,
           abortSignal: effectiveAbortSignal,
+          onChildSessionCreated: async (childSessionId) => {
+            await Sse.broadcast('stream-tool-state', {
+              sessionId: parentContext.sessionId,
+              messageId: parentContext.messageId,
+              toolCallId,
+              toolName: `subagent_${sanitizeToolName(subAgent.name)}`,
+              status: 'in-progress',
+              output: { childSessionId, subAgentName: subAgent.name },
+            });
+          },
         });
 
         log.info(
@@ -166,8 +178,10 @@ async function executeSubAgent(opts: {
   additionalContext?: string;
   parentContext: SubAgentToolContext;
   abortSignal: AbortSignal;
+  onChildSessionCreated: (childSessionId: PrefixedString<'ses'>) => Promise<void>;
 }): Promise<{ text: string; childSessionId: PrefixedString<'ses'> }> {
-  const { subAgent, task, additionalContext, parentContext, abortSignal } = opts;
+  const { subAgent, task, additionalContext, parentContext, abortSignal, onChildSessionCreated } =
+    opts;
   const db = getDb();
 
   // 0. Resolve provider/model (override or parent fallback)
@@ -184,6 +198,9 @@ async function executeSubAgent(opts: {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Notify the parent stream that the child session is live so the UI can navigate to it
+  await onChildSessionCreated(childSessionId);
 
   // 2. Build the sub-agent's system prompt
   let systemPrompt = subAgent.systemPrompt ?? '';

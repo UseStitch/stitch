@@ -22,10 +22,7 @@ function RecordingDetailComponent() {
   const { data: recordings } = useSuspenseQuery(recordingsQueryOptions);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  const meeting = React.useMemo(
-    () => recordings.find((r) => r.id === id),
-    [recordings, id],
-  );
+  const meeting = React.useMemo(() => recordings.find((r) => r.id === id), [recordings, id]);
 
   if (!meeting) {
     return (

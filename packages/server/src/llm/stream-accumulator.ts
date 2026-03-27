@@ -16,9 +16,11 @@ import { stableStringify } from '@/utils/stable-stringify.js';
 
 const log = Log.create({ service: 'stream-accumulator' });
 
+type BufferedTextPart = { id: PartId; text: string; startedAt: number };
+
 export class StreamAccumulator {
-  private currentTextPart: { id: PartId; text: string; startedAt: number } | null = null;
-  private currentReasoningPart: { id: PartId; text: string; startedAt: number } | null = null;
+  private currentTextPart: BufferedTextPart | null = null;
+  private currentReasoningPart: BufferedTextPart | null = null;
   private protocolViolationCount = 0;
   private permissionRejected: PermissionRejectedError | null = null;
 
@@ -39,6 +41,82 @@ export class StreamAccumulator {
     return this.permissionRejected;
   }
 
+  // ─── Shared helpers ───────────────────────────────────────────────────────
+
+  private broadcastPartUpdate(partId: PartId, part: unknown): Promise<void> {
+    return Sse.broadcast('stream-part-update', {
+      sessionId: this.sessionId,
+      messageId: this.messageId,
+      partId,
+      part: part as Parameters<typeof Sse.broadcast<'stream-part-update'>>[1]['part'],
+    });
+  }
+
+  private broadcastPartDelta(partId: PartId, delta: unknown): Promise<void> {
+    return Sse.broadcast('stream-part-delta', {
+      sessionId: this.sessionId,
+      messageId: this.messageId,
+      partId,
+      delta: delta as Parameters<typeof Sse.broadcast<'stream-part-delta'>>[1]['delta'],
+    });
+  }
+
+  private async handleTextualStart(
+    field: 'currentTextPart' | 'currentReasoningPart',
+    part: unknown,
+  ): Promise<void> {
+    const partId = createPartId();
+    this[field] = { id: partId, text: '', startedAt: Date.now() };
+    await this.broadcastPartUpdate(partId, part);
+  }
+
+  private async handleTextualDelta(
+    field: 'currentTextPart' | 'currentReasoningPart',
+    violationName: string,
+    part: { text: string },
+  ): Promise<void> {
+    const current = this[field];
+    if (current) {
+      current.text += part.text;
+      await this.broadcastPartDelta(current.id, part);
+    } else {
+      this.protocolViolationCount++;
+      log.warn(
+        {
+          event: 'stream.part.protocol_violation',
+          streamRunId: this.streamRunId,
+          sessionId: this.sessionId,
+          messageId: this.messageId,
+          step: this.step,
+          violation: violationName,
+        },
+        'stream.part.protocol_violation',
+      );
+    }
+  }
+
+  private async handleTextualEnd(
+    field: 'currentTextPart' | 'currentReasoningPart',
+    storedType: 'text-delta' | 'reasoning-delta',
+    part: unknown,
+  ): Promise<void> {
+    const current = this[field];
+    if (current) {
+      const now = Date.now();
+      this.accumulatedParts.push({
+        type: storedType,
+        text: current.text,
+        id: current.id,
+        startedAt: current.startedAt,
+        endedAt: now,
+      } as StoredPart);
+      await this.broadcastPartUpdate(current.id, part);
+      this[field] = null;
+    }
+  }
+
+  // ─── Main dispatcher ──────────────────────────────────────────────────────
+
   async handlePart(part: any): Promise<void> {
     log.debug(
       {
@@ -53,134 +131,39 @@ export class StreamAccumulator {
     );
 
     switch (part.type) {
-      case 'text-start': {
-        const partId = createPartId();
-        this.currentTextPart = { id: partId, text: '', startedAt: Date.now() };
-        await Sse.broadcast('stream-part-update', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          partId,
+      case 'text-start':
+        await this.handleTextualStart('currentTextPart', part);
+        break;
+
+      case 'text-delta':
+        await this.handleTextualDelta('currentTextPart', 'text_delta_without_text_start', part);
+        break;
+
+      case 'text-end':
+        await this.handleTextualEnd('currentTextPart', 'text-delta', part);
+        break;
+
+      case 'reasoning-start':
+        await this.handleTextualStart('currentReasoningPart', part);
+        break;
+
+      case 'reasoning-delta':
+        await this.handleTextualDelta(
+          'currentReasoningPart',
+          'reasoning_delta_without_reasoning_start',
           part,
-        });
+        );
         break;
-      }
 
-      case 'text-delta': {
-        if (this.currentTextPart) {
-          this.currentTextPart.text += part.text;
-          await Sse.broadcast('stream-part-delta', {
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            partId: this.currentTextPart.id,
-            delta: part,
-          });
-        } else {
-          this.protocolViolationCount++;
-          log.warn(
-            {
-              event: 'stream.part.protocol_violation',
-              streamRunId: this.streamRunId,
-              sessionId: this.sessionId,
-              messageId: this.messageId,
-              step: this.step,
-              violation: 'text_delta_without_text_start',
-            },
-            'stream.part.protocol_violation',
-          );
-        }
+      case 'reasoning-end':
+        await this.handleTextualEnd('currentReasoningPart', 'reasoning-delta', part);
         break;
-      }
-
-      case 'text-end': {
-        if (this.currentTextPart) {
-          const now = Date.now();
-          this.accumulatedParts.push({
-            type: 'text-delta' as const,
-            text: this.currentTextPart.text,
-            id: this.currentTextPart.id,
-            startedAt: this.currentTextPart.startedAt,
-            endedAt: now,
-          });
-          await Sse.broadcast('stream-part-update', {
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            partId: this.currentTextPart.id,
-            part,
-          });
-          this.currentTextPart = null;
-        }
-        break;
-      }
-
-      case 'reasoning-start': {
-        const partId = createPartId();
-        this.currentReasoningPart = { id: partId, text: '', startedAt: Date.now() };
-        await Sse.broadcast('stream-part-update', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          partId,
-          part,
-        });
-        break;
-      }
-
-      case 'reasoning-delta': {
-        if (this.currentReasoningPart) {
-          this.currentReasoningPart.text += part.text;
-          await Sse.broadcast('stream-part-delta', {
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            partId: this.currentReasoningPart.id,
-            delta: part,
-          });
-        } else {
-          this.protocolViolationCount++;
-          log.warn(
-            {
-              event: 'stream.part.protocol_violation',
-              streamRunId: this.streamRunId,
-              sessionId: this.sessionId,
-              messageId: this.messageId,
-              step: this.step,
-              violation: 'reasoning_delta_without_reasoning_start',
-            },
-            'stream.part.protocol_violation',
-          );
-        }
-        break;
-      }
-
-      case 'reasoning-end': {
-        if (this.currentReasoningPart) {
-          const now = Date.now();
-          this.accumulatedParts.push({
-            type: 'reasoning-delta' as const,
-            text: this.currentReasoningPart.text,
-            id: this.currentReasoningPart.id,
-            startedAt: this.currentReasoningPart.startedAt,
-            endedAt: now,
-          });
-          await Sse.broadcast('stream-part-update', {
-            sessionId: this.sessionId,
-            messageId: this.messageId,
-            partId: this.currentReasoningPart.id,
-            part,
-          });
-          this.currentReasoningPart = null;
-        }
-        break;
-      }
 
       case 'source': {
         const now = Date.now();
         const partId = createPartId();
         this.accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await Sse.broadcast('stream-part-update', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          partId,
-          part,
-        });
+        await this.broadcastPartUpdate(partId, part);
         break;
       }
 
@@ -188,16 +171,11 @@ export class StreamAccumulator {
         const partId = createPartId();
         const now = Date.now();
         this.accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await Sse.broadcast('stream-part-update', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          partId,
-          part,
-        });
+        await this.broadcastPartUpdate(partId, part);
         break;
       }
 
-      case 'tool-input-start': {
+      case 'tool-input-start':
         await Sse.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
@@ -206,27 +184,16 @@ export class StreamAccumulator {
           status: 'pending',
         });
         break;
-      }
 
-      case 'tool-input-delta': {
-        await Sse.broadcast('stream-tool-input-delta', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          toolCallId: part.id,
-          toolName: '',
-          inputTextDelta: part.delta,
-        });
-        break;
-      }
-
+      case 'tool-input-delta':
       case 'tool-input-end':
+        // Not broadcast — input accumulation happens server-side only
         break;
 
       case 'tool-call': {
         const now = Date.now();
         const partId = createPartId();
 
-        // Record for doom loop detection
         this.toolCalls.push({
           toolName: part.toolName,
           inputJson: stableStringify(part.input),
@@ -283,6 +250,7 @@ export class StreamAccumulator {
         const now = Date.now();
         const partId = createPartId();
         const errorText = String(part.error);
+
         await Sse.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
@@ -357,45 +325,10 @@ export class StreamAccumulator {
         throw new StreamPartError(errorText);
       }
 
-      case 'start-step': {
-        const stepStartNow = Date.now();
-        const partId = createPartId();
-        this.accumulatedParts.push({
-          type: 'step-start' as const,
-          id: partId,
-          step: this.step,
-          startedAt: stepStartNow,
-          endedAt: stepStartNow,
-        });
-        await Sse.broadcast('step-start', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          step: this.step,
-        });
+      case 'start-step':
+      case 'finish-step':
+        // Step lifecycle events are not broadcast or persisted — they add noise without UI value
         break;
-      }
-
-      case 'finish-step': {
-        const stepFinishNow = Date.now();
-        const partId = createPartId();
-        this.accumulatedParts.push({
-          type: 'step-finish' as const,
-          id: partId,
-          step: this.step,
-          finishReason: part.finishReason,
-          usage: part.usage,
-          startedAt: stepFinishNow,
-          endedAt: stepFinishNow,
-        });
-        await Sse.broadcast('step-finish', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          step: this.step,
-          finishReason: part.finishReason,
-          usage: part.usage,
-        });
-        break;
-      }
 
       case 'start':
       case 'raw':

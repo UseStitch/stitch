@@ -122,10 +122,7 @@ export class SseClient extends EventEmitter<MeetingEventMap> {
   private scheduleReconnect(): void {
     if (this.stopped) return;
 
-    const delay = Math.min(
-      RECONNECT_BASE_MS * 2 ** this.reconnectAttempt,
-      RECONNECT_MAX_MS,
-    );
+    const delay = Math.min(RECONNECT_BASE_MS * 2 ** this.reconnectAttempt, RECONNECT_MAX_MS);
     this.reconnectAttempt++;
 
     this.reconnectTimer = setTimeout(() => {

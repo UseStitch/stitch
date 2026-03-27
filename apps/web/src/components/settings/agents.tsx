@@ -441,9 +441,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
   const query = search.trim().toLowerCase();
 
   const stitchTools = toolConfig.filter(
-    (t) =>
-      t.toolType === 'stitch' &&
-      (query === '' || t.displayName.toLowerCase().includes(query)),
+    (t) => t.toolType === 'stitch' && (query === '' || t.displayName.toLowerCase().includes(query)),
   );
 
   // Group MCP tools by server ID
@@ -485,9 +483,7 @@ function AgentToolConfig({ agentId }: { agentId: string }) {
                   key={tool.toolName}
                   className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
                 >
-                  <p className="flex-1 text-sm">
-                    {tool.displayName}
-                  </p>
+                  <p className="flex-1 text-sm">{tool.displayName}</p>
                   {tool.enabled ? (
                     <>
                       <PermissionSelect

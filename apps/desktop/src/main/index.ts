@@ -213,4 +213,3 @@ app.on('before-quit', () => {
 app.on('window-all-closed', () => {
   // No-op: prevent default quit behavior on all platforms.
 });
-

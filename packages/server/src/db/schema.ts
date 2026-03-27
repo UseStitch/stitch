@@ -349,10 +349,7 @@ export const meetings = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [
-    check(
-      'meetings_status_check',
-      sql`${table.status} in ('detected', 'recording', 'completed')`,
-    ),
+    check('meetings_status_check', sql`${table.status} in ('detected', 'recording', 'completed')`),
   ],
 );
 

@@ -15,7 +15,6 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 import * as React from 'react';
-
 import ReactMarkdown from 'react-markdown';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -154,9 +153,9 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
   if (!audioSrc) return null;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 min-w-0 w-full sm:w-auto sm:min-w-48">
+    <div className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 sm:w-auto sm:min-w-48">
       <audio ref={audioRef} src={audioSrc} preload="metadata" />
-      <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="shrink-0 size-7">
+      <Button variant="ghost" size="icon-sm" onClick={togglePlay} className="size-7 shrink-0">
         {playing ? <PauseIcon className="size-3.5" /> : <PlayIcon className="size-3.5" />}
       </Button>
       <div
@@ -174,7 +173,7 @@ function AudioPlayer({ meetingId }: { meetingId: string }) {
         />
       </div>
       {duration > 0 && (
-        <span className="min-w-10 text-right font-mono text-[11px] tabular-nums text-muted-foreground pr-2">
+        <span className="min-w-10 pr-2 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
           {formatDuration(duration)}
         </span>
       )}
@@ -328,11 +327,7 @@ function TranscriptionModelSelector({
   );
 }
 
-function TranscriptionSection({
-  meetingId,
-}: {
-  meetingId: string;
-}) {
+function TranscriptionSection({ meetingId }: { meetingId: string }) {
   const queryClient = useQueryClient();
   const { data: transcription, isLoading } = useQuery(transcriptionQueryOptions(meetingId));
   const [copiedSummary, setCopiedSummary] = React.useState(false);
@@ -379,9 +374,9 @@ function TranscriptionSection({
 
   if (isLoading || isTranscribing || !transcription || transcription.status !== 'completed') {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 items-start gap-6 h-full">
-        <div className="w-full lg:col-span-3 space-y-5 lg:sticky lg:top-0">
-          <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-4">
+      <div className="grid h-full grid-cols-1 items-start gap-6 lg:grid-cols-4">
+        <div className="w-full space-y-5 lg:sticky lg:top-0 lg:col-span-3">
+          <div className="space-y-4 rounded-lg border border-border/50 bg-muted/30 p-4">
             {isLoading && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2Icon className="size-3 animate-spin" />
@@ -399,14 +394,16 @@ function TranscriptionSection({
                 Transcription failed: {transcription.errorMessage ?? 'Unknown error'}
               </div>
             )}
-            {(!transcription || transcription.status === 'failed') && !isLoading && !isTranscribing && (
-              <div className="text-sm text-muted-foreground py-2">
-                Click transcribe in the header to generate a transcription.
-              </div>
-            )}
+            {(!transcription || transcription.status === 'failed') &&
+              !isLoading &&
+              !isTranscribing && (
+                <div className="py-2 text-sm text-muted-foreground">
+                  Click transcribe in the header to generate a transcription.
+                </div>
+              )}
           </div>
         </div>
-        <div className="w-full lg:col-span-1 min-w-0 rounded-lg border border-border/50 bg-muted/10 p-8 flex items-center justify-center min-h-100">
+        <div className="flex min-h-100 w-full min-w-0 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-8 lg:col-span-1">
           <p className="text-sm text-muted-foreground">
             {isTranscribing ? 'Transcription in progress...' : 'Transcript will appear here'}
           </p>
@@ -416,11 +413,11 @@ function TranscriptionSection({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 items-start gap-6 h-full">
+    <div className="grid h-full grid-cols-1 items-start gap-6 lg:grid-cols-4">
       {/* Left Column */}
-      <div className="w-full lg:col-span-3 space-y-5 lg:sticky lg:top-0">
-        <div className="w-full rounded-lg border border-border/50 bg-muted/30 shadow-sm overflow-hidden flex flex-col max-h-[60vh] lg:max-h-none lg:h-[calc(100vh-200px)]">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/20 shrink-0">
+      <div className="w-full space-y-5 lg:sticky lg:top-0 lg:col-span-3">
+        <div className="flex max-h-[60vh] w-full flex-col overflow-hidden rounded-lg border border-border/50 bg-muted/30 shadow-sm lg:h-[calc(100vh-200px)] lg:max-h-none">
+          <div className="flex shrink-0 items-center gap-2 border-b border-border/50 bg-muted/20 px-4 py-3">
             <SparklesIcon className="size-4 shrink-0 text-primary" />
             <span className="text-sm font-medium">Summary</span>
             <Button
@@ -449,7 +446,7 @@ function TranscriptionSection({
               )}
             </Button>
             {transcription.costUsd > 0 && (
-              <span className="text-[10px] tabular-nums text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground tabular-nums">
                 {formatCost(transcription.costUsd)}
               </span>
             )}
@@ -458,7 +455,7 @@ function TranscriptionSection({
           <ScrollArea className="min-h-0 flex-1">
             <div className="p-4 sm:p-6">
               {transcription.summary && (
-                <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+                <div className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert">
                   <ReactMarkdown>{transcription.summary}</ReactMarkdown>
                 </div>
               )}
@@ -468,8 +465,8 @@ function TranscriptionSection({
       </div>
 
       {/* Right Column */}
-      <div className="w-full lg:col-span-1 min-w-0 rounded-lg border border-border/50 bg-background shadow-sm overflow-hidden flex flex-col max-h-[60vh] lg:max-h-none lg:h-[calc(100vh-200px)] lg:sticky lg:top-0">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-muted/20 shrink-0">
+      <div className="flex max-h-[60vh] w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border/50 bg-background shadow-sm lg:sticky lg:top-0 lg:col-span-1 lg:h-[calc(100vh-200px)] lg:max-h-none">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border/50 bg-muted/20 px-4 py-3">
           <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="text-sm font-medium">Transcript</span>
           <Button
@@ -506,16 +503,14 @@ function TranscriptionSection({
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1">
-          <div className="p-4 sm:p-6 space-y-6">
+          <div className="space-y-6 p-4 sm:p-6">
             {transcription.transcript.length > 0 ? (
               transcription.transcript.map((entry, index) => (
                 <div key={`${entry.speaker}-${index}`} className="flex flex-col gap-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                  <span className="text-[11px] font-bold tracking-widest text-muted-foreground/80 uppercase">
                     {entry.speaker}
                   </span>
-                  <p className="text-[14px] leading-relaxed text-foreground/90">
-                    {entry.content}
-                  </p>
+                  <p className="text-[14px] leading-relaxed text-foreground/90">{entry.content}</p>
                 </div>
               ))
             ) : (
@@ -530,13 +525,7 @@ function TranscriptionSection({
   );
 }
 
-export function RecordingDetail({
-  meeting,
-  onDelete,
-}: {
-  meeting: Meeting;
-  onDelete: () => void;
-}) {
+export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDelete: () => void }) {
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
   const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
   const { data: settings } = useQuery(settingsQueryOptions);
@@ -590,7 +579,7 @@ export function RecordingDetail({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-border/50 px-6 py-4 shrink-0">
+      <div className="shrink-0 border-b border-border/50 px-6 py-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           {/* Title + meta — takes available space, shrinks with truncation */}
           <div className="min-w-0 flex-1">
@@ -611,7 +600,7 @@ export function RecordingDetail({
           </div>
 
           {/* Actions — stay on same row when wide, wrap below when narrow */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             {hasAudio && (
               <>
                 <div className="flex items-center gap-2">
@@ -631,7 +620,11 @@ export function RecordingDetail({
                     ) : (
                       <SparklesIcon className="size-3" />
                     )}
-                    {(!transcription || transcription.status === 'failed') ? (transcription?.status === 'failed' ? 'Retry' : 'Transcribe') : 'Re-transcribe'}
+                    {!transcription || transcription.status === 'failed'
+                      ? transcription?.status === 'failed'
+                        ? 'Retry'
+                        : 'Transcribe'
+                      : 'Re-transcribe'}
                   </Button>
                 </div>
                 <div className="h-5 w-px bg-border/50" />
@@ -658,13 +651,9 @@ export function RecordingDetail({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 relative isolate">
+      <div className="relative isolate flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mx-auto w-full max-w-350">
-          {hasAudio && (
-            <TranscriptionSection
-              meetingId={meeting.id}
-            />
-          )}
+          {hasAudio && <TranscriptionSection meetingId={meeting.id} />}
           {!hasAudio && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MicIcon className="mb-3 size-8 text-muted-foreground/50" />

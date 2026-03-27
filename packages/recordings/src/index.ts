@@ -1,7 +1,8 @@
-import type { MeetingService } from './meeting-service.js';
-import type { RecordingWriter } from './recording-writer.js';
 import { MacMeetingService } from './mac-meeting.js';
 import { WindowsMeetingService } from './windows-meeting.js';
+
+import type { MeetingService } from './meeting-service.js';
+import type { RecordingWriter } from './recording-writer.js';
 
 export type {
   MeetingInfo,

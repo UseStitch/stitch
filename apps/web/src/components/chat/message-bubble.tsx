@@ -1,5 +1,6 @@
 import { FileIcon, FileTextIcon, GitForkIcon } from 'lucide-react';
 import * as React from 'react';
+import { useDeferredValue } from 'react';
 
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
@@ -285,6 +286,13 @@ export const MessageBubble = React.memo(function MessageBubble({
   );
 });
 
+// ─── Streaming part with deferred markdown ────────────────────────────────────
+
+function StreamingTextPart({ text }: { text: string }) {
+  const deferredText = useDeferredValue(text);
+  return <ChatMarkdown text={deferredText} isStreaming />;
+}
+
 // ─── Streaming message bubble ─────────────────────────────────────────────────
 
 type StreamingMessageBubbleProps = {
@@ -323,7 +331,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
           case 'text':
             return (
               <div key={partId}>
-                <ChatMarkdown text={part.text} />
+                <StreamingTextPart text={part.text} />
               </div>
             );
           case 'reasoning':

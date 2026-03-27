@@ -1,8 +1,7 @@
 import { Notification } from 'electron';
 
-import type { BrowserWindow } from 'electron';
-
 import type { SseClient } from './sse-client';
+import type { BrowserWindow } from 'electron';
 
 type PendingMeeting = {
   meetingId: string;

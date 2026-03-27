@@ -55,20 +55,11 @@ export function CommandPalette() {
                     {hotkey && (
                       <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
                         {isLeaderShortcut
-                          ? ['Leader', ...formatForDisplay(leaderSuffix ?? '').split('+').filter(Boolean)].map(
-                              (key, i) => (
-                              <kbd
-                                key={i}
-                                className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
-                              >
-                                {key}
-                              </kbd>
-                              ),
-                            )
-                          : info?.isSequence
                           ? [
-                              ...formatForDisplay(hotkey).split('+'),
-                              ...formatForDisplay(hotkey).split('+'),
+                              'Leader',
+                              ...formatForDisplay(leaderSuffix ?? '')
+                                .split('+')
+                                .filter(Boolean),
                             ].map((key, i) => (
                               <kbd
                                 key={i}
@@ -77,16 +68,28 @@ export function CommandPalette() {
                                 {key}
                               </kbd>
                             ))
-                          : formatForDisplay(hotkey)
-                              .split('+')
-                              .map((key, i) => (
+                          : info?.isSequence
+                            ? [
+                                ...formatForDisplay(hotkey).split('+'),
+                                ...formatForDisplay(hotkey).split('+'),
+                              ].map((key, i) => (
                                 <kbd
                                   key={i}
                                   className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
                                 >
                                   {key}
                                 </kbd>
-                              ))}
+                              ))
+                            : formatForDisplay(hotkey)
+                                .split('+')
+                                .map((key, i) => (
+                                  <kbd
+                                    key={i}
+                                    className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
+                                  >
+                                    {key}
+                                  </kbd>
+                                ))}
                       </span>
                     )}
                   </CommandItem>

@@ -33,7 +33,6 @@ export type StreamingToolCallPart = {
   toolCallId: string;
   toolName: string;
   input: unknown;
-  partialInput: string;
   status: ToolCallStatus;
   output: unknown;
   error: string | null;
@@ -113,6 +112,11 @@ type StreamStoreActions = {
   applyStreamStart: (sessionId: string, messageId: string) => void;
   applyPartUpdate: (sessionId: string, messageId: string, partId: string, part: PartUpdate) => void;
   applyPartDelta: (sessionId: string, messageId: string, partId: string, delta: PartDelta) => void;
+  applyPartDeltas: (
+    sessionId: string,
+    messageId: string,
+    deltas: { partId: string; delta: PartDelta }[],
+  ) => void;
   applyToolState: (
     sessionId: string,
     messageId: string,
@@ -122,13 +126,6 @@ type StreamStoreActions = {
     input?: unknown,
     output?: unknown,
     error?: string,
-  ) => void;
-  applyToolInputDelta: (
-    sessionId: string,
-    messageId: string,
-    toolCallId: string,
-    toolName: string,
-    inputTextDelta: string,
   ) => void;
   finishStream: (
     sessionId: string,
@@ -189,6 +186,21 @@ function updatePart(
   return { ...session, parts: { ...session.parts, [partId]: part } };
 }
 
+function makeStreamingTextualPart(
+  type: 'text' | 'reasoning',
+  partId: string,
+): StreamingTextPart | StreamingReasoningPart {
+  return {
+    type,
+    id: partId,
+    text: '',
+    hasContent: false,
+    status: 'streaming',
+    startedAt: Date.now(),
+    endedAt: null,
+  };
+}
+
 function applyPartUpdateToSession(
   session: SessionStreamState,
   partId: string,
@@ -196,15 +208,7 @@ function applyPartUpdateToSession(
 ): SessionStreamState {
   switch (part.type) {
     case 'text-start':
-      return addPart(session, partId, {
-        type: 'text',
-        id: partId,
-        text: '',
-        hasContent: false,
-        status: 'streaming',
-        startedAt: Date.now(),
-        endedAt: null,
-      });
+      return addPart(session, partId, makeStreamingTextualPart('text', partId));
 
     case 'text-end': {
       const existing = session.parts[partId];
@@ -213,15 +217,7 @@ function applyPartUpdateToSession(
     }
 
     case 'reasoning-start':
-      return addPart(session, partId, {
-        type: 'reasoning',
-        id: partId,
-        text: '',
-        hasContent: false,
-        status: 'streaming',
-        startedAt: Date.now(),
-        endedAt: null,
-      });
+      return addPart(session, partId, makeStreamingTextualPart('reasoning', partId));
 
     case 'reasoning-end': {
       const existing = session.parts[partId];
@@ -239,7 +235,6 @@ function applyPartUpdateToSession(
         toolCallId: part.toolCallId,
         toolName: part.toolName,
         input: part.input,
-        partialInput: '',
         status: 'pending',
         output: null,
         error: null,
@@ -322,11 +317,18 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
   applyStreamStart: (sessionId, messageId) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
-      if (!guardMessage(session, messageId)) return state;
+      if (session !== null && !guardMessage(session, messageId)) return state;
+      const base = session ?? INITIAL_SESSION_STATE;
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: { ...session!, isStreaming: true, retry: null, doomLoop: null },
+          [sessionId]: {
+            ...base,
+            activeMessageId: messageId,
+            isStreaming: true,
+            retry: null,
+            doomLoop: null,
+          },
         },
       };
     }),
@@ -351,6 +353,22 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
         sessions: {
           ...state.sessions,
           [sessionId]: applyPartDeltaToSession(session!, partId, delta),
+        },
+      };
+    }),
+
+  applyPartDeltas: (sessionId, messageId, deltas) =>
+    set((state) => {
+      const session = getSession(state.sessions, sessionId);
+      if (!guardMessage(session, messageId)) return state;
+      let current = session!;
+      for (const { partId, delta } of deltas) {
+        current = applyPartDeltaToSession(current, partId, delta);
+      }
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: current,
         },
       };
     }),
@@ -386,50 +404,11 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
             toolCallId,
             toolName,
             input: input ?? null,
-            partialInput: '',
             status,
             output: output ?? null,
             error: error ?? null,
             startedAt: Date.now(),
             endedAt: status === 'completed' || status === 'error' ? Date.now() : null,
-          }),
-        },
-      };
-    }),
-
-  applyToolInputDelta: (sessionId, messageId, toolCallId, toolName, inputTextDelta) =>
-    set((state) => {
-      const session = getSession(state.sessions, sessionId);
-      if (!guardMessage(session, messageId)) return state;
-
-      const existing = session!.parts[toolCallId];
-
-      if (existing && existing.type === 'tool-call') {
-        return {
-          sessions: {
-            ...state.sessions,
-            [sessionId]: updatePart(session!, toolCallId, {
-              ...existing,
-              partialInput: existing.partialInput + inputTextDelta,
-            }),
-          },
-        };
-      }
-
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: addPart(session!, toolCallId, {
-            type: 'tool-call',
-            toolCallId,
-            toolName,
-            input: null,
-            partialInput: inputTextDelta,
-            status: 'pending',
-            output: null,
-            error: null,
-            startedAt: Date.now(),
-            endedAt: null,
           }),
         },
       };
@@ -506,7 +485,6 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     }),
 
   abortStream: async (sessionId) => {
-    // Optimistically mark as no longer streaming
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!session) return state;

@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { MEETINGS_AGENT_KIND } from '@/agents/meetings-agent.js';
 import { getDb } from '@/db/client.js';
 import { meetings, recordingTranscriptions } from '@/db/schema.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 import type { AgentToolProvider } from '@/tools/agent-tool-provider-types.js';
+import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
 
 const MEETINGS_LIST_DESCRIPTION = `Query meeting metadata from the database.
 
@@ -16,10 +16,7 @@ Usage:
 - Returns structured JSON with meeting metadata: id, app, status, duration, timestamps, and recording file path.`;
 
 const meetingsListInputSchema = z.object({
-  meetingId: z
-    .string()
-    .optional()
-    .describe('If provided, return only this specific meeting by ID'),
+  meetingId: z.string().optional().describe('If provided, return only this specific meeting by ID'),
   status: z
     .enum(['detected', 'recording', 'completed'])
     .optional()
@@ -143,7 +140,11 @@ export const meetingsToolProvider: AgentToolProvider = {
   appliesTo: (agent) => agent.kind === MEETINGS_AGENT_KIND,
   knownTools: () => [
     { toolType: 'stitch', toolName: 'meetings_list', displayName: 'Meetings List' },
-    { toolType: 'stitch', toolName: 'meetings_transcriptions', displayName: 'Meetings Transcriptions' },
+    {
+      toolType: 'stitch',
+      toolName: 'meetings_transcriptions',
+      displayName: 'Meetings Transcriptions',
+    },
   ],
   createTools: (context) => ({
     meetings_list: withTruncation(

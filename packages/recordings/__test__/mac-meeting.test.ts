@@ -1,13 +1,13 @@
 import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { platform, tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const IS_MACOS = platform() === 'darwin';
 
-import type { RecordingHandle, RecordingResult } from '../src/recording-writer.js';
 import type { MeetingInfo } from '../src/meeting-service.js';
+import type { RecordingHandle, RecordingResult } from '../src/recording-writer.js';
 
 // ---------------------------------------------------------------------------
 // Shared refs so tests can access mock instances (assigned inside vi.mock)
@@ -337,18 +337,14 @@ describe.skipIf(!IS_MACOS)('Chrome helper PID-based tracking', () => {
     processRef.current = [];
     await service.start();
 
-    monitorRef.current!.simulateChange([
-      { pid: 3001, name: 'MyApp', bundleId: 'unknown' },
-    ]);
+    monitorRef.current!.simulateChange([{ pid: 3001, name: 'MyApp', bundleId: 'unknown' }]);
     await flush();
     expect(events.starts).toHaveLength(1);
 
     await service.startRecording(events.starts[0].id);
 
     // Same app appears with different PID but still unknown bundle
-    monitorRef.current!.simulateChange([
-      { pid: 3002, name: 'MyApp', bundleId: 'unknown' },
-    ]);
+    monitorRef.current!.simulateChange([{ pid: 3002, name: 'MyApp', bundleId: 'unknown' }]);
     await flush();
 
     // Old recording should stop (PID 3001 is gone)
@@ -437,9 +433,7 @@ describe.skipIf(!IS_MACOS)('meeting lifecycle', () => {
     processRef.current = [];
     await service.start();
 
-    monitorRef.current!.simulateChange([
-      { pid: 7001, name: 'Zoom', bundleId: 'us.zoom.xos' },
-    ]);
+    monitorRef.current!.simulateChange([{ pid: 7001, name: 'Zoom', bundleId: 'us.zoom.xos' }]);
     await flush();
     expect(events.starts).toHaveLength(1);
 

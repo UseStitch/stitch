@@ -105,7 +105,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     },
     abortSignal,
     experimental_transform: smoothStream({
-      delayInMs: 100,
+      delayInMs: 30,
     }),
     onError: ({ error }) => {
       log.error(

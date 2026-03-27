@@ -2,13 +2,14 @@ import { MicrophoneActivityMonitor } from 'native-audio-node';
 
 import { createRecordingId } from '@stitch/shared/id';
 
+import { MeetingEventEmitter } from './meeting-service.js';
+
 import type {
   MeetingInfo,
   MeetingService,
   MeetingServiceLogger,
   StartRecordingOnDemandOptions,
 } from './meeting-service.js';
-import { MeetingEventEmitter } from './meeting-service.js';
 import type { RecordingHandle, RecordingResult } from './recording-writer.js';
 import type { RecordingWriter } from './recording-writer.js';
 
@@ -99,11 +100,15 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
     this.monitor.on('error', this.onMonitorError);
     this.monitor.start();
 
-    const initial =  this.queryActiveMicApps();
+    const initial = this.queryActiveMicApps();
     this.baseline = new Set(initial.map((e) => buildProcessKey(e)));
 
     this.log.info(
-      { baselineCount: initial.length, baselineApps: initial.map((e) => e.name), keywords: this.apps },
+      {
+        baselineCount: initial.length,
+        baselineApps: initial.map((e) => e.name),
+        keywords: this.apps,
+      },
       'meeting detection started',
     );
   }
@@ -245,7 +250,7 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
     this.polling = true;
 
     try {
-      const entries =  this.queryActiveMicApps();
+      const entries = this.queryActiveMicApps();
       this.log.debug({ entryCount: entries.length }, 'reconcile tick');
       const currentKeys = new Set(entries.map((e) => buildProcessKey(e)));
 
@@ -286,7 +291,10 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
           startedAt: now,
         };
 
-        this.log.info({ meetingId: id, app: entry.name, bundleId: entry.bundleId, pid: entry.pid }, 'new meeting detected');
+        this.log.info(
+          { meetingId: id, app: entry.name, bundleId: entry.bundleId, pid: entry.pid },
+          'new meeting detected',
+        );
         this.detected.set(key, { meeting, processKey: key, pid: entry.pid });
         this.meetingIdToKey.set(id, key);
         this.emit('meeting:start', meeting);
@@ -315,7 +323,10 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 
       // Process ended detected meetings
       for (const [key, detected] of endedDetected) {
-        this.log.info({ meetingId: detected.meeting.id, app: detected.meeting.app }, 'meeting ended (detected)');
+        this.log.info(
+          { meetingId: detected.meeting.id, app: detected.meeting.app },
+          'meeting ended (detected)',
+        );
         this.detected.delete(key);
         this.meetingIdToKey.delete(detected.meeting.id);
         this.emit('meeting:stop', detected.meeting);
@@ -323,7 +334,10 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 
       // Process ended recording sessions
       for (const [key, session] of endedRecordings) {
-        this.log.info({ meetingId: session.meeting.id, app: session.meeting.app }, 'meeting ended (recording)');
+        this.log.info(
+          { meetingId: session.meeting.id, app: session.meeting.app },
+          'meeting ended (recording)',
+        );
         this.recordings.delete(key);
         this.meetingIdToKey.delete(session.meeting.id);
         this.emit('meeting:stop', session.meeting);

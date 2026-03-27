@@ -56,7 +56,7 @@ export function SessionPageHeader({
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <ArrowLeftIcon className="size-4" />
-              <span className="hidden sm:inline">Back</span>
+              <span className="hidden sm:inline">Back to parent</span>
             </Link>
           ) : null}
           <h1 className="flex min-w-0 items-center gap-2 truncate text-base font-medium">

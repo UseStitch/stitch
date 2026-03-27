@@ -1,6 +1,5 @@
-import type { LanguageModelUsage } from 'ai';
-
 import type { PrefixedString } from '../id/index.js';
+import type { LanguageModelUsage } from 'ai';
 
 export type MeetingStatus = 'detected' | 'recording' | 'completed';
 

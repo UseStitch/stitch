@@ -2,13 +2,14 @@ import { execFile } from 'node:child_process';
 
 import { createRecordingId } from '@stitch/shared/id';
 
+import { MeetingEventEmitter } from './meeting-service.js';
+
 import type {
   MeetingInfo,
   MeetingService,
   MeetingServiceLogger,
   StartRecordingOnDemandOptions,
 } from './meeting-service.js';
-import { MeetingEventEmitter } from './meeting-service.js';
 import type { RecordingHandle, RecordingResult } from './recording-writer.js';
 import type { RecordingWriter } from './recording-writer.js';
 
@@ -94,7 +95,11 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
     this.baseline = new Set(initial.map((e) => e.key));
 
     this.log.info(
-      { baselineCount: initial.length, baselineApps: initial.map((e) => e.app), keywords: this.apps },
+      {
+        baselineCount: initial.length,
+        baselineApps: initial.map((e) => e.app),
+        keywords: this.apps,
+      },
       'meeting detection started',
     );
 
@@ -297,7 +302,10 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
 
       // Process ended detected meetings
       for (const [key, detected] of endedDetected) {
-        this.log.info({ meetingId: detected.meeting.id, app: detected.meeting.app }, 'meeting ended (detected)');
+        this.log.info(
+          { meetingId: detected.meeting.id, app: detected.meeting.app },
+          'meeting ended (detected)',
+        );
         this.detected.delete(key);
         this.meetingIdToKey.delete(detected.meeting.id);
         this.emit('meeting:stop', detected.meeting);
@@ -305,7 +313,10 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
 
       // Process ended recording sessions
       for (const [key, session] of endedRecordings) {
-        this.log.info({ meetingId: session.meeting.id, app: session.meeting.app }, 'meeting ended (recording)');
+        this.log.info(
+          { meetingId: session.meeting.id, app: session.meeting.app },
+          'meeting ended (recording)',
+        );
         this.recordings.delete(key);
         this.meetingIdToKey.delete(session.meeting.id);
         this.emit('meeting:stop', session.meeting);
@@ -339,18 +350,14 @@ export class WindowsMeetingService extends MeetingEventEmitter implements Meetin
 
   private queryActiveMicApps(): Promise<MicRegistryEntry[]> {
     return new Promise((resolve) => {
-      execFile(
-        'reg',
-        ['query', REG_BASE, '/s', '/v', 'LastUsedTimeStop'],
-        (err, stdout) => {
-          if (err) {
-            this.log.warn({ err: err.message }, 'registry query failed');
-            resolve([]);
-            return;
-          }
-          resolve(this.parseRegistryOutput(stdout));
-        },
-      );
+      execFile('reg', ['query', REG_BASE, '/s', '/v', 'LastUsedTimeStop'], (err, stdout) => {
+        if (err) {
+          this.log.warn({ err: err.message }, 'registry query failed');
+          resolve([]);
+          return;
+        }
+        resolve(this.parseRegistryOutput(stdout));
+      });
     });
   }
 

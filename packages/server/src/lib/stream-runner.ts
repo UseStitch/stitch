@@ -1029,6 +1029,7 @@ export async function runStream(opts: {
 
   const subAgentTools = await createSubAgentTools(opts.agentId, {
     sessionId: opts.sessionId,
+    messageId: opts.assistantMessageId,
     credentials: opts.credentials,
     modelId: opts.modelId,
     parentAbortSignal: opts.abortSignal,

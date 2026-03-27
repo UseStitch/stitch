@@ -1,8 +1,7 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
-import { Readable } from 'node:stream';
-
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { createReadStream, existsSync, statSync } from 'node:fs';
+import { Readable } from 'node:stream';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -123,7 +122,7 @@ meetingsRouter.delete('/:meetingId', async (c) => {
 
 meetingsRouter.post('/:meetingId/transcribe', async (c) => {
   const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
-  const body = (await c.req.json());
+  const body = await c.req.json();
 
   if (!body.providerId || !body.modelId) {
     return c.json({ error: 'providerId and modelId are required' }, 400);

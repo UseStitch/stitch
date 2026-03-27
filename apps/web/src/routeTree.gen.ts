@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsageRouteImport } from './routes/usage'
 import { Route as RecordingsRouteImport } from './routes/recordings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings.index'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
 import { Route as RecordingsIdRouteImport } from './routes/recordings.$id'
 
+const UsageRoute = UsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecordingsRoute = RecordingsRouteImport.update({
   id: '/recordings',
   path: '/recordings',
@@ -44,12 +50,14 @@ const RecordingsIdRoute = RecordingsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/recordings': typeof RecordingsRouteWithChildren
+  '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/recordings/': typeof RecordingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/recordings': typeof RecordingsIndexRoute
@@ -58,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/recordings': typeof RecordingsRouteWithChildren
+  '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/recordings/': typeof RecordingsIndexRoute
@@ -67,15 +76,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/recordings'
+    | '/usage'
     | '/recordings/$id'
     | '/session/$id'
     | '/recordings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/recordings/$id' | '/session/$id' | '/recordings'
+  to: '/' | '/usage' | '/recordings/$id' | '/session/$id' | '/recordings'
   id:
     | '__root__'
     | '/'
     | '/recordings'
+    | '/usage'
     | '/recordings/$id'
     | '/session/$id'
     | '/recordings/'
@@ -84,11 +95,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RecordingsRoute: typeof RecordingsRouteWithChildren
+  UsageRoute: typeof UsageRoute
   SessionIdRoute: typeof SessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usage': {
+      id: '/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recordings': {
       id: '/recordings'
       path: '/recordings'
@@ -144,6 +163,7 @@ const RecordingsRouteWithChildren = RecordingsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RecordingsRoute: RecordingsRouteWithChildren,
+  UsageRoute: UsageRoute,
   SessionIdRoute: SessionIdRoute,
 }
 export const routeTree = rootRouteImport

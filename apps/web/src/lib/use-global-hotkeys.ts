@@ -97,9 +97,7 @@ export function useGlobalHotkeys(actions: Action[]) {
   );
 
   useHotkeySequence(
-    recordingsResolved
-      ? [recordingsResolved.leader, recordingsResolved.suffix]
-      : ['Mod+X', 'R'],
+    recordingsResolved ? [recordingsResolved.leader, recordingsResolved.suffix] : ['Mod+X', 'R'],
     () => actionMap.get('open-recordings')?.run(),
     { enabled: !!recordingsResolved, timeout: 1000 },
   );

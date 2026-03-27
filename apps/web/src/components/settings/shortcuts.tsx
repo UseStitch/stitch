@@ -10,6 +10,7 @@ import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
   shortcutsQueryOptions,
   useSaveShortcut,
@@ -17,7 +18,6 @@ import {
   useResetAllShortcuts,
   type ShortcutEntry,
 } from '@/lib/queries/shortcuts';
-import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M'];
@@ -47,13 +47,7 @@ const KBD_CLASS =
 
 const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
 
-function HotkeyBadge({
-  hotkey,
-  isSequence,
-}: {
-  hotkey: string | null;
-  isSequence: boolean;
-}) {
+function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
     return <span className="text-sm text-muted-foreground">Unassigned</span>;
   }
@@ -190,7 +184,9 @@ function ShortcutsContent() {
           return;
         }
 
-        const conflictEntry = shortcuts.find((entry) => !entry.isSequence && entry.hotkey === hotkey);
+        const conflictEntry = shortcuts.find(
+          (entry) => !entry.isSequence && entry.hotkey === hotkey,
+        );
 
         if (conflictEntry) {
           toast.error(

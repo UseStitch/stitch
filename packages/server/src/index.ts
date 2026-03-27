@@ -18,6 +18,7 @@ import { questionsRouter } from '@/routes/questions.js';
 import { queueRouter } from '@/routes/queue.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
+import { usageRouter } from '@/routes/usage.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {
@@ -58,6 +59,7 @@ app.route('/models', modelsRouter);
 app.route('/provider', providerRouter);
 app.route('/settings', settingsRouter);
 app.route('/shortcuts', shortcutsRouter);
+app.route('/usage', usageRouter);
 
 registerShutdownHandlers();
 await init();

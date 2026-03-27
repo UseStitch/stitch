@@ -1,5 +1,10 @@
+import { useEffect, useRef } from 'react';
+
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';
+import type { PartDelta } from '@stitch/shared/chat/realtime';
+
+type PendingDelta = { sessionId: string; messageId: string; partId: string; delta: PartDelta };
 
 /**
  * Global SSE-to-Zustand bridge.
@@ -7,51 +12,97 @@ import { useStreamStore } from '@/stores/stream-store';
  * Mount once at the root layout. Routes every incoming stream event
  * into the per-session Zustand store so all sessions accumulate
  * state concurrently, regardless of which session is currently viewed.
+ *
+ * stream-part-delta events are batched per animation frame to reduce
+ * React re-render frequency while streaming at high token rates.
  */
 function useStreamSync(): void {
   const {
     applyStreamStart,
     applyPartUpdate,
-    applyPartDelta,
+    applyPartDeltas,
     applyToolState,
-    applyToolInputDelta,
     finishStream,
     errorStream,
     retryStream,
     doomLoopDetected,
   } = useStreamStore.getState();
 
+  const pendingDeltasRef = useRef<PendingDelta[]>([]);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
   useSSE({
-    'stream-start': (data) => {
-      const { sessionId, messageId } = data;
+    'stream-start': ({ sessionId, messageId }) => {
       applyStreamStart(sessionId, messageId);
     },
-    'stream-part-update': (data) => {
-      const { sessionId, messageId, partId, part } = data;
+    'stream-part-update': ({ sessionId, messageId, partId, part }) => {
       applyPartUpdate(sessionId, messageId, partId, part);
     },
-    'stream-part-delta': (data) => {
-      const { sessionId, messageId, partId, delta } = data;
-      applyPartDelta(sessionId, messageId, partId, delta);
+    'stream-part-delta': ({ sessionId, messageId, partId, delta }) => {
+      pendingDeltasRef.current.push({ sessionId, messageId, partId, delta });
+
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          const batch = pendingDeltasRef.current;
+          pendingDeltasRef.current = [];
+
+          // Group by session+message to minimise store set() calls
+          const groups = new Map<string, { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }>();
+          for (const item of batch) {
+            const key = `${item.sessionId}:${item.messageId}`;
+            let group = groups.get(key);
+            if (!group) {
+              group = { sessionId: item.sessionId, messageId: item.messageId, deltas: [] };
+              groups.set(key, group);
+            }
+            group.deltas.push({ partId: item.partId, delta: item.delta });
+          }
+
+          for (const group of groups.values()) {
+            applyPartDeltas(group.sessionId, group.messageId, group.deltas);
+          }
+        });
+      }
     },
-    'stream-tool-input-delta': (data) => {
-      const { sessionId, messageId, toolCallId, toolName, inputTextDelta } = data;
-      applyToolInputDelta(sessionId, messageId, toolCallId, toolName, inputTextDelta);
-    },
-    'stream-tool-state': (data) => {
-      const { sessionId, messageId, toolCallId, toolName, status, input, output, error } = data;
+    'stream-tool-state': ({ sessionId, messageId, toolCallId, toolName, status, input, output, error }) => {
       applyToolState(sessionId, messageId, toolCallId, toolName, status, input, output, error);
     },
-    'stream-finish': (data) => {
-      const { sessionId, messageId, finishReason, usage } = data;
+    'stream-finish': ({ sessionId, messageId, finishReason, usage }) => {
+      // Flush any pending deltas immediately before finishing
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+        const batch = pendingDeltasRef.current;
+        pendingDeltasRef.current = [];
+        const groups = new Map<string, { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }>();
+        for (const item of batch) {
+          const key = `${item.sessionId}:${item.messageId}`;
+          let group = groups.get(key);
+          if (!group) {
+            group = { sessionId: item.sessionId, messageId: item.messageId, deltas: [] };
+            groups.set(key, group);
+          }
+          group.deltas.push({ partId: item.partId, delta: item.delta });
+        }
+        for (const group of groups.values()) {
+          applyPartDeltas(group.sessionId, group.messageId, group.deltas);
+        }
+      }
       finishStream(sessionId, messageId, finishReason, usage);
     },
-    'stream-error': (data) => {
-      const { sessionId, messageId, error, details } = data;
+    'stream-error': ({ sessionId, messageId, error, details }) => {
       errorStream(sessionId, messageId, error, details);
     },
-    'stream-retry': (data) => {
-      const { sessionId, messageId, attempt, maxRetries, delayMs, message } = data;
+    'stream-retry': ({ sessionId, messageId, attempt, maxRetries, delayMs, message }) => {
       retryStream(sessionId, messageId, {
         attempt,
         maxRetries,
@@ -60,8 +111,7 @@ function useStreamSync(): void {
         nextRetryAt: Date.now() + delayMs,
       });
     },
-    'doom-loop-detected': (data) => {
-      const { sessionId, messageId, toolName, consecutiveCount } = data;
+    'doom-loop-detected': ({ sessionId, messageId, toolName, consecutiveCount }) => {
       doomLoopDetected(sessionId, messageId, toolName, consecutiveCount);
     },
   });
