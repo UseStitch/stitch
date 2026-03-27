@@ -2,7 +2,7 @@ import { APICallError } from 'ai';
 
 import type { StreamErrorCategory, StreamErrorDetails } from '@stitch/shared/chat/errors';
 
-import { StreamPartError } from '@/lib/stream-errors.js';
+import { StreamPartError } from '@/llm/stream/errors.js';
 
 const OVERFLOW_PATTERNS = [
   /prompt is too long/i,

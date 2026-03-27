@@ -16,10 +16,10 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
   StreamAbortedError,
-} from '@/lib/stream-errors.js';
+} from '@/llm/stream/errors.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { createProvider } from '@/provider/provider.js';
-import type { createTools } from '@/tools/index.js';
+import type { createTools } from '@/tools/runtime/registry.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 

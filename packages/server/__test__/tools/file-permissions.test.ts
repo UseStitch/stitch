@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
-} from '@/tools/file-permissions.js';
+} from '@/tools/runtime/file-permissions.js';
 
 describe('file permission helpers', () => {
   test('derives pattern targets from absolute filePath', () => {

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { editFileContent, MULTIPLE_MATCHES_ERROR } from '@/tools/edit.js';
+import { editFileContent, MULTIPLE_MATCHES_ERROR } from '@/tools/core/edit.js';
 
 const tempDirs: string[] = [];
 

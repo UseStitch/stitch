@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
-import { PermissionRejectedError, StreamAbortedError } from '@/lib/stream-errors.js';
-import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
+import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
+import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import type { LanguageModelUsage } from 'ai';
 
 const ZERO_USAGE: LanguageModelUsage = {

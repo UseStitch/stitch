@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { readPathContent } from '@/tools/read.js';
+import { readPathContent } from '@/tools/core/read.js';
 
 const tempDirs: string[] = [];
 

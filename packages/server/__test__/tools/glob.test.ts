@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { globPaths } from '@/tools/glob.js';
+import { globPaths } from '@/tools/core/glob.js';
 
 const tempDirs: string[] = [];
 

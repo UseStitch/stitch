@@ -4,8 +4,8 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { askQuestion } from '@/question/service.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const questionOptionSchema = z
   .object({

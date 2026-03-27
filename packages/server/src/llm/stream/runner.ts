@@ -4,11 +4,11 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getDisabledToolNames } from '@/agents/tool-config.js';
+import { getDisabledToolNames } from '@/agents/config/tool-config.js';
 import { markSessionUnread } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
-import { mapAIError, toStreamErrorDetails } from '@/lib/ai-error-mapper.js';
+import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import {
@@ -17,17 +17,17 @@ import {
   isContextOverflowError,
   isPermissionRejectedError,
   isStreamAbortedError,
-} from '@/lib/stream-errors.js';
+} from '@/llm/stream/errors.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
-import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/doom-loop.js';
-import { executeStepWithRetry, type StepOptions } from '@/llm/step-executor.js';
+import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
+import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
-import { createAgentSpecificTools } from '@/tools/agent-tool-providers.js';
-import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/index.js';
-import { createSubAgentTools } from '@/tools/sub-agent-tool.js';
+import { createSubAgentTools } from '@/tools/delegation/sub-agent.js';
+import { createAgentSpecificTools } from '@/tools/providers/index.js';
+import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';

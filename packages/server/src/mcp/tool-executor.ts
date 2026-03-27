@@ -7,8 +7,8 @@ import * as Log from '@/lib/log.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate } from '@/tools/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate } from '@/tools/runtime/wrappers.js';
 import type { MCPClient } from '@ai-sdk/mcp';
 import type { Tool } from 'ai';
 

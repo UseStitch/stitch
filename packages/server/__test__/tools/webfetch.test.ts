@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { extractDomainForPermission } from '@/tools/webfetch.js';
+import { extractDomainForPermission } from '@/tools/core/webfetch.js';
 
 describe('webfetch permission domain extraction', () => {
   test('extracts root domain from common hosts', () => {

@@ -8,7 +8,7 @@ import { getDb } from '@/db/client.js';
 import { questions, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
-import { QuestionAbortedError } from '@/lib/stream-errors.js';
+import { QuestionAbortedError } from '@/llm/stream/errors.js';
 
 const log = Log.create({ service: 'question-service' });
 

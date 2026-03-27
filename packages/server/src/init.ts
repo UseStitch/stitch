@@ -3,7 +3,7 @@ import * as Log from '@/lib/log.js';
 import * as Scheduler from '@/lib/scheduler.js';
 import { initMeetingService } from '@/meeting/service.js';
 import * as ModelsDev from '@/provider/models.js';
-import * as ToolTruncation from '@/tools/truncation.js';
+import * as ToolTruncation from '@/tools/runtime/truncation.js';
 
 const log = Log.create({ service: 'init' });
 

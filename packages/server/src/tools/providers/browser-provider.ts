@@ -1,6 +1,6 @@
-import { BROWSER_AGENT_KIND } from '@/agents/browser-agent.js';
-import { createRegisteredTool } from '@/tools/browser.js';
-import type { AgentToolProvider } from '@/tools/agent-tool-provider-types.js';
+import { BROWSER_AGENT_KIND } from '@/agents/builtins/browser.js';
+import { createRegisteredTool } from '@/tools/core/browser.js';
+import type { AgentToolProvider } from '@/tools/providers/types.js';
 
 export const browserToolProvider: AgentToolProvider = {
   name: 'browser',

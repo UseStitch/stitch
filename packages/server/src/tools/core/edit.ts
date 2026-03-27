@@ -5,10 +5,10 @@ import { z } from 'zod';
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
-} from '@/tools/file-permissions.js';
-import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/shared.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+} from '@/tools/runtime/file-permissions.js';
+import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const MULTIPLE_MATCHES_ERROR =
   'Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match.';

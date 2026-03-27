@@ -5,14 +5,14 @@ import { z } from 'zod';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getAgentSubAgents } from '@/agents/sub-agent-config.js';
-import type { SubAgentWithConfig } from '@/agents/sub-agent-config.js';
+import { getAgentSubAgents } from '@/agents/config/sub-agent-config.js';
+import type { SubAgentWithConfig } from '@/agents/config/sub-agent-config.js';
 import { getDb } from '@/db/client.js';
 import { agents, messages, providerConfig, sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
-import { runStream } from '@/lib/stream-runner.js';
-import { buildCompactedHistory } from '@/llm/compaction';
+import { buildCompactedHistory } from '@/llm/compaction.js';
+import { runStream } from '@/llm/stream/runner.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { Tool } from 'ai';
 

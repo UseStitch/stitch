@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { grepContent } from '@/tools/grep.js';
+import { grepContent } from '@/tools/core/grep.js';
 
 const tempDirs: string[] = [];
 

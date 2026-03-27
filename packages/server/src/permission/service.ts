@@ -17,7 +17,7 @@ import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { broadcast } from '@/lib/sse.js';
-import { PermissionResponseAbortedError } from '@/lib/stream-errors.js';
+import { PermissionResponseAbortedError } from '@/llm/stream/errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
 
 const log = Log.create({ service: 'permission-service' });

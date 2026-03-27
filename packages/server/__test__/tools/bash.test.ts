@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
-import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/bash-families.js';
+import {
+  deriveCommandFamilies,
+  getCommandFamilySuggestion,
+} from '@/tools/runtime/bash-families.js';
 
 describe('bash command families', () => {
   test('derives non-technical file listing family', () => {

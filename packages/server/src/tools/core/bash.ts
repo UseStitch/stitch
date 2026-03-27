@@ -6,10 +6,13 @@ import { z } from 'zod';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
-import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/bash-families.js';
-import { validateExistingDirectoryPath } from '@/tools/shared.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+import {
+  deriveCommandFamilies,
+  getCommandFamilySuggestion,
+} from '@/tools/runtime/bash-families.js';
+import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
 const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;

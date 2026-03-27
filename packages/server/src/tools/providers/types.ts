@@ -1,7 +1,7 @@
 import type { AgentKind, AgentToolType } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import type { ToolContext } from '@/tools/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Tool } from 'ai';
 
 export type AgentInfo = {

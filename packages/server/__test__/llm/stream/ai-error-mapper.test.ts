@@ -1,8 +1,8 @@
 import { APICallError } from 'ai';
 import { describe, expect, test } from 'vitest';
 
-import { mapAIError } from '@/lib/ai-error-mapper.js';
-import { StreamPartError } from '@/lib/stream-errors.js';
+import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
+import { StreamPartError } from '@/llm/stream/errors.js';
 
 describe('mapAIError', () => {
   test('maps APICallError 429 to rate_limited and retryable', () => {

@@ -2,9 +2,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import * as Log from '@/lib/log.js';
-import { PermissionRejectedError, StreamProtocolViolationError } from '@/lib/stream-errors.js';
+import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
 import { getAgentPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
-import { truncateOutput } from '@/tools/truncation.js';
+import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'tools' });

@@ -18,7 +18,7 @@ import {
   splitSession,
 } from '@/chat/service.js';
 import { isServiceError } from '@/lib/service-result.js';
-import type { DoomLoopResponse } from '@/llm/doom-loop.js';
+import type { DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 
 export const chatRouter = new Hono();
 

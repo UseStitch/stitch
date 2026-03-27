@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
-import { seedBrowserAgent } from '@/agents/browser-agent.js';
-import { seedMeetingsAgent } from '@/agents/meetings-agent.js';
-import { seedPrimaryAgent } from '@/agents/primary-agent.js';
+import { seedBrowserAgent } from '@/agents/builtins/browser.js';
+import { seedMeetingsAgent } from '@/agents/builtins/meetings.js';
+import { seedPrimaryAgent } from '@/agents/builtins/primary.js';
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';

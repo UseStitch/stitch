@@ -10,15 +10,15 @@ import {
   addMcpServerToAgent,
   getAgentMcpServers,
   removeMcpServerFromAgent,
-} from '@/agents/mcp-config.js';
+} from '@/agents/config/mcp-config.js';
 import { createAgent, deleteAgent, listAgents, updateAgent } from '@/agents/service.js';
 import {
   addSubAgentToAgent,
   getAgentSubAgents,
   removeSubAgentFromAgent,
   updateSubAgentConfig,
-} from '@/agents/sub-agent-config.js';
-import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/tool-config.js';
+} from '@/agents/config/sub-agent-config.js';
+import { getAgentToolConfig, setAgentToolEnabled } from '@/agents/config/tool-config.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpServersWithCachedToolsForAgent } from '@/mcp/service.js';
 import {
@@ -26,8 +26,8 @@ import {
   listAgentPermissions,
   upsertAgentPermission,
 } from '@/permission/service.js';
-import { getAgentSpecificKnownTools } from '@/tools/agent-tool-providers.js';
-import { STITCH_KNOWN_TOOLS } from '@/tools/index.js';
+import { getAgentSpecificKnownTools } from '@/tools/providers/index.js';
+import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
 
 export const agentsRouter = new Hono();
 

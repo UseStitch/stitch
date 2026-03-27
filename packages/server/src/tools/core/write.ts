@@ -5,10 +5,10 @@ import { z } from 'zod';
 import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
-} from '@/tools/file-permissions.js';
-import { validateAbsoluteFilePath } from '@/tools/shared.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+} from '@/tools/runtime/file-permissions.js';
+import { validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const writeInputSchema = z.object({
   content: z.string().describe('The content to write to the file'),

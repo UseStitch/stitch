@@ -5,10 +5,10 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agents } from '@/db/schema.js';
-import type { AgentInfo, AgentToolProvider } from '@/tools/agent-tool-provider-types.js';
-import { browserToolProvider } from '@/tools/browser-tool-provider.js';
-import { meetingsToolProvider } from '@/tools/meetings-tool.js';
-import type { ToolContext } from '@/tools/wrappers.js';
+import { browserToolProvider } from '@/tools/providers/browser-provider.js';
+import { meetingsToolProvider } from '@/tools/providers/meetings-provider.js';
+import type { AgentInfo, AgentToolProvider } from '@/tools/providers/types.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Tool } from 'ai';
 
 /**

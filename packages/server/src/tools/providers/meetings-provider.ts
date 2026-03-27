@@ -2,11 +2,11 @@ import { tool } from 'ai';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { MEETINGS_AGENT_KIND } from '@/agents/meetings-agent.js';
+import { MEETINGS_AGENT_KIND } from '@/agents/builtins/meetings.js';
 import { getDb } from '@/db/client.js';
 import { meetings, recordingTranscriptions } from '@/db/schema.js';
-import type { AgentToolProvider } from '@/tools/agent-tool-provider-types.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+import type { AgentToolProvider } from '@/tools/providers/types.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const MEETINGS_LIST_DESCRIPTION = `Query meeting metadata from the database.
 

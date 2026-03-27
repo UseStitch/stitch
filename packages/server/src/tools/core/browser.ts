@@ -11,8 +11,8 @@ import type { ScrollDirection } from '@/lib/browser/types.js';
 import * as Log from '@/lib/log.js';
 import { askQuestion } from '@/question/service.js';
 import { listSettings, saveSetting } from '@/settings/service.js';
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withTruncation } from '@/tools/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withTruncation } from '@/tools/runtime/wrappers.js';
 
 const browserInputSchema = z.object({
   action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),

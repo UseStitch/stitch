@@ -7,8 +7,8 @@ import {
   ContextOverflowError,
   PermissionRejectedError,
   StreamAbortedError,
-} from '@/lib/stream-errors.js';
-import { runStream } from '@/lib/stream-runner.js';
+} from '@/llm/stream/errors.js';
+import { runStream } from '@/llm/stream/runner.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
 
@@ -45,11 +45,11 @@ vi.mock('@/lib/sse.js', () => ({
   broadcast: mocks.broadcastMock,
 }));
 
-vi.mock('@/llm/step-executor.js', () => ({
+vi.mock('@/llm/stream/step-executor.js', () => ({
   executeStepWithRetry: mocks.executeStepWithRetryMock,
 }));
 
-vi.mock('@/llm/doom-loop.js', () => ({
+vi.mock('@/llm/stream/doom-loop.js', () => ({
   checkAndHandleDoomLoop: mocks.checkAndHandleDoomLoopMock,
 }));
 
@@ -60,13 +60,13 @@ vi.mock('@/llm/compaction.js', () => ({
   isOverflow: mocks.isOverflowMock,
 }));
 
-vi.mock('@/tools/index.js', () => ({
+vi.mock('@/tools/runtime/registry.js', () => ({
   createTools: mocks.createToolsMock,
   MAX_STEPS: 3,
   MAX_STEPS_WARNING: vi.fn((maxSteps: number) => `warning-${maxSteps}`),
 }));
 
-vi.mock('@/agents/tool-config.js', () => ({
+vi.mock('@/agents/config/tool-config.js', () => ({
   getDisabledToolNames: mocks.getDisabledToolNamesMock,
 }));
 

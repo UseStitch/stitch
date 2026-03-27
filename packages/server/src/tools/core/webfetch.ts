@@ -2,8 +2,8 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
-import type { ToolContext } from '@/tools/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;

@@ -1,14 +1,14 @@
 import type { AgentToolType } from '@stitch/shared/agents/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import * as BashTool from '@/tools/bash.js';
-import * as EditTool from '@/tools/edit.js';
-import * as GlobTool from '@/tools/glob.js';
-import * as GrepTool from '@/tools/grep.js';
-import * as QuestionTool from '@/tools/question.js';
-import * as ReadTool from '@/tools/read.js';
-import * as WebfetchTool from '@/tools/webfetch.js';
-import * as WriteTool from '@/tools/write.js';
+import * as BashTool from '@/tools/core/bash.js';
+import * as EditTool from '@/tools/core/edit.js';
+import * as GlobTool from '@/tools/core/glob.js';
+import * as GrepTool from '@/tools/core/grep.js';
+import * as QuestionTool from '@/tools/core/question.js';
+import * as ReadTool from '@/tools/core/read.js';
+import * as WebfetchTool from '@/tools/core/webfetch.js';
+import * as WriteTool from '@/tools/core/write.js';
 
 export const MAX_STEPS = 25;
 

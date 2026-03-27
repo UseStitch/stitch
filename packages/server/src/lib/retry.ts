@@ -1,4 +1,4 @@
-import { mapAIError, OVERLOADED_PATTERN } from '@/lib/ai-error-mapper.js';
+import { mapAIError, OVERLOADED_PATTERN } from '@/llm/stream/ai-error-mapper.js';
 
 const RETRY_INITIAL_DELAY = 2000;
 const RETRY_BACKOFF_FACTOR = 2;
