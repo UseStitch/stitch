@@ -4,11 +4,14 @@ import type {
   BrowserTab,
   FindElementsResult,
   LaunchOptions,
+  PageStats,
   RefEntry,
   ScreenshotResult,
   ScrollDirection,
+  ScrollInfo,
   SearchPageResult,
 } from '@/lib/browser/types.js';
+import { needsIIFEWrap } from '@/lib/browser/utils.js';
 import { DownloadWatchdog } from '@/lib/browser/watchdogs/download-watchdog.js';
 import { PopupWatchdog } from '@/lib/browser/watchdogs/popup-watchdog.js';
 import { SessionHealthWatchdog } from '@/lib/browser/watchdogs/session-health-watchdog.js';
@@ -50,21 +53,35 @@ type NavigationEntry = {
   title: string;
 };
 
+
+
 // ── Injected snapshot script ────────────────────────────────
 // Runs inside the browser to build a YAML-like accessibility tree with refs.
 // Assigns "eN" refs to interactable/visible elements and stores backendNodeId
 // so we can resolve refs later via CDP DOM commands.
+// Includes viewport filtering, scroll position, page stats, select compression,
+// and new-element markers.
 
 const SNAPSHOT_SCRIPT = `
 (() => {
+  const prevRefs = window.__stitch_prev_refs || new Set();
   let refCounter = window.__stitch_ref_counter || 0;
   const refMap = {};
+  const newRefs = new Set();
   let nodeCount = 0;
   let charCount = 0;
   const MAX_NODES = ${SNAPSHOT_MAX_NODES};
   const MAX_CHARS = ${SNAPSHOT_MAX_CHARS};
   const MAX_DEPTH = ${SNAPSHOT_MAX_DEPTH};
   let truncated = false;
+
+  // Page stats
+  let statLinks = 0, statInteractive = 0, statIframes = 0, statImages = 0, statTotal = 0;
+
+  // Viewport bounds for filtering (elements far off-screen are skipped)
+  const vpH = window.innerHeight || document.documentElement.clientHeight;
+  const vpW = window.innerWidth || document.documentElement.clientWidth;
+  const VIEWPORT_MARGIN = vpH * 1.5; // Include elements within 1.5 viewports
 
   function getRole(el) {
     const explicit = el.getAttribute('role');
@@ -112,7 +129,10 @@ const SNAPSHOT_SCRIPT = `
       return el.getAttribute('placeholder') || el.getAttribute('title') || '';
     }
     if (el.tagName === 'IMG') return el.getAttribute('alt') || '';
-    if (el.tagName === 'A') return el.textContent?.trim() || '';
+    if (el.tagName === 'A') {
+      const text = el.textContent?.trim() || '';
+      return text.length > 80 ? text.slice(0, 80) + '...' : text;
+    }
     return '';
   }
 
@@ -123,6 +143,15 @@ const SNAPSHOT_SCRIPT = `
     }
     const rect = el.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0;
+  }
+
+  function isNearViewport(el) {
+    const rect = el.getBoundingClientRect();
+    // Include fixed/sticky elements regardless of position
+    const style = getComputedStyle(el);
+    if (style.position === 'fixed' || style.position === 'sticky') return true;
+    // Filter elements far off-screen
+    return rect.bottom > -VIEWPORT_MARGIN && rect.top < vpH + VIEWPORT_MARGIN;
   }
 
   function isInteractable(el) {
@@ -138,7 +167,10 @@ const SNAPSHOT_SCRIPT = `
   }
 
   function getValue(el) {
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return el.value || '';
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      if (el.getAttribute('type') === 'password') return '••••••';
+      return el.value || '';
+    }
     if (el.tagName === 'SELECT') {
       const selected = Array.from(el.selectedOptions).map(o => o.textContent?.trim()).filter(Boolean);
       return selected.join(', ');
@@ -152,6 +184,7 @@ const SNAPSHOT_SCRIPT = `
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') attrs.push('disabled');
     if (el.getAttribute('aria-expanded') === 'true') attrs.push('expanded');
     if (el.getAttribute('aria-selected') === 'true' || el.selected) attrs.push('selected');
+    if (el.required) attrs.push('required');
     if (role === 'heading') {
       const tag = el.tagName.toLowerCase();
       const level = tag.match(/^h(\\d)$/);
@@ -162,14 +195,38 @@ const SNAPSHOT_SCRIPT = `
     return attrs;
   }
 
+  // Compress <select> elements: show selected value + option count instead of full tree
+  function compressSelect(el, depth, ref) {
+    const indent = '  '.repeat(depth);
+    const options = Array.from(el.options);
+    const selected = Array.from(el.selectedOptions).map(o => o.textContent?.trim()).filter(Boolean);
+    const selectedText = selected.length > 0 ? selected.join(', ') : '(none)';
+    let line = indent + '- combobox';
+    const name = getName(el);
+    if (name) line += ' ' + JSON.stringify(name);
+    if (ref) line += ' [ref=' + ref + ']';
+    line += ': ' + selectedText + ' (' + options.length + ' options)';
+    charCount += line.length;
+    return [line];
+  }
+
   function walk(el, depth) {
     if (!el || el.nodeType !== 1) return [];
     if (truncated) return [];
     if (depth > MAX_DEPTH) return [];
     if (el.getAttribute('aria-hidden') === 'true') return [];
     const tag = el.tagName.toLowerCase();
-    if (['script', 'style', 'noscript', 'template', 'meta', 'link', 'head'].includes(tag)) return [];
+    if (['script', 'style', 'noscript', 'template', 'meta', 'link', 'head', 'svg'].includes(tag)) return [];
     if (!isVisible(el)) return [];
+
+    // Count stats before any filtering
+    statTotal++;
+    if (tag === 'a') statLinks++;
+    if (tag === 'iframe' || tag === 'frame') statIframes++;
+    if (tag === 'img') statImages++;
+
+    // Viewport filtering for non-structural elements
+    if (depth > 2 && !isNearViewport(el)) return [];
 
     if (nodeCount >= MAX_NODES || charCount >= MAX_CHARS) {
       truncated = true;
@@ -183,7 +240,8 @@ const SNAPSHOT_SCRIPT = `
     const lines = [];
 
     const shouldShow = role !== 'generic' || name;
-    const assignRef = shouldShow && isInteractable(el);
+    const interact = isInteractable(el);
+    const assignRef = shouldShow && interact;
 
     let ref = null;
     if (assignRef) {
@@ -191,6 +249,13 @@ const SNAPSHOT_SCRIPT = `
       ref = 'e' + refCounter;
       refMap[ref] = { backendNodeId: null, role, name };
       el.setAttribute('data-stitch-ref', ref);
+      newRefs.add(ref);
+      statInteractive++;
+    }
+
+    // Compressed <select> rendering
+    if (tag === 'select' && ref) {
+      return compressSelect(el, depth, ref);
     }
 
     if (shouldShow) {
@@ -199,7 +264,12 @@ const SNAPSHOT_SCRIPT = `
       let line = indent + '- ' + role;
       if (name) line += ' ' + JSON.stringify(name);
       for (const attr of attrs) line += ' [' + attr + ']';
-      if (ref) line += ' [ref=' + ref + ']';
+      // Mark new elements with * prefix
+      if (ref && !prevRefs.has(ref)) {
+        line += ' *[ref=' + ref + ']';
+      } else if (ref) {
+        line += ' [ref=' + ref + ']';
+      }
       if (value) line += ': ' + value;
       charCount += line.length;
       lines.push(line);
@@ -226,9 +296,25 @@ const SNAPSHOT_SCRIPT = `
   }
 
   const lines = walk(document.body, 0);
+
+  // Save refs for next snapshot comparison
   window.__stitch_ref_counter = refCounter;
   window.__stitch_ref_map = refMap;
-  const meta = {nodes: nodeCount, chars: charCount, truncated};
+  window.__stitch_prev_refs = newRefs;
+
+  // Scroll info
+  const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+  const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+  const pagesAbove = vpH > 0 ? Math.round((scrollTop / vpH) * 10) / 10 : 0;
+  const pagesBelow = vpH > 0 ? Math.round(((scrollHeight - scrollTop - vpH) / vpH) * 10) / 10 : 0;
+
+  const meta = {
+    nodes: nodeCount,
+    chars: charCount,
+    truncated,
+    scroll: { scrollTop, scrollHeight, viewportHeight: vpH, pagesAbove, pagesBelow },
+    stats: { links: statLinks, interactive: statInteractive, iframes: statIframes, images: statImages, totalElements: statTotal },
+  };
   return { snapshot: lines.join('\\n'), refMap, meta };
 })()
 `;
@@ -628,11 +714,7 @@ class BrowserManager {
     return `Hovered over ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
-  async type(
-    ref: string,
-    text: string,
-    options?: { slowly?: boolean; submit?: boolean; signal?: AbortSignal },
-  ): Promise<string> {
+  async type(ref: string, text: string, options?: { slowly?: boolean; submit?: boolean; clear?: boolean; signal?: AbortSignal }): Promise<string> {
     const signal = options?.signal;
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
@@ -640,6 +722,22 @@ class BrowserManager {
     // Focus the element first
     const focusResult = await this.evalInPage(session, buildRefFocusScript(ref));
     if (!focusResult) throw new Error(`Ref "${ref}" not found. Take a new snapshot first.`);
+
+    // Clear field before typing if requested
+    if (options?.clear) {
+      await this.evalInPage(session, `
+        (() => {
+          const el = document.querySelector('[data-stitch-ref="${ref}"]');
+          if (!el) return;
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.value = '';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          } else if (el.isContentEditable) {
+            el.textContent = '';
+          }
+        })()
+      `);
+    }
 
     if (options?.slowly) {
       for (const char of text) {
@@ -656,7 +754,7 @@ class BrowserManager {
       await this.press('Enter', signal);
     }
 
-    return `Typed "${text}" into ${ref}${options?.submit ? ' and submitted' : ''}`;
+    return `Typed "${text}" into ${ref}${options?.clear ? ' (cleared first)' : ''}${options?.submit ? ' and submitted' : ''}`;
   }
 
   async press(key: string, signal?: AbortSignal): Promise<string> {
@@ -750,7 +848,13 @@ class BrowserManager {
     const data = result as {
       snapshot: string;
       refMap: Record<string, RefEntry>;
-      meta: { nodes: number; chars: number; truncated: boolean };
+      meta: {
+        nodes: number;
+        chars: number;
+        truncated: boolean;
+        scroll: ScrollInfo;
+        stats: PageStats;
+      };
     };
 
     // Update our server-side ref map
@@ -763,12 +867,63 @@ class BrowserManager {
 
     const [title, url] = await Promise.all([this.getPageTitle(session), this.getPageUrl(session)]);
 
-    const header = `### Page\n- URL: ${url}\n- Title: ${title}\n`;
+    // Build enriched header
+    const lines: string[] = [];
+    lines.push(`### Page`);
+    lines.push(`- URL: ${url}`);
+    lines.push(`- Title: ${title}`);
+
+    // Tabs
+    try {
+      const tabs = await this.listTabs(signal);
+      const pageTabs = tabs.filter((t) => t.type === 'page');
+      if (pageTabs.length > 1) {
+        lines.push(`- Tabs (${pageTabs.length}):`);
+        for (const t of pageTabs) {
+          const marker = t.id === this.activeTargetId ? ' (active)' : '';
+          const tabTitle = t.title ? t.title.slice(0, 40) : '(untitled)';
+          lines.push(`    ${t.id}: ${tabTitle} — ${t.url}${marker}`);
+        }
+      }
+    } catch {
+      // tabs listing is best-effort
+    }
+
+    // Scroll position
+    if (data.meta?.scroll) {
+      const s = data.meta.scroll;
+      const scrollParts: string[] = [];
+      if (s.pagesAbove > 0) scrollParts.push(`${s.pagesAbove} pages above`);
+      if (s.pagesBelow > 0) scrollParts.push(`${s.pagesBelow} pages below`);
+      if (scrollParts.length > 0) {
+        lines.push(`- Scroll: ${scrollParts.join(', ')}${s.pagesBelow > 0.2 ? ' — scroll down to reveal more content' : ''}`);
+      }
+    }
+
+    // Page stats
+    if (data.meta?.stats) {
+      const st = data.meta.stats;
+      lines.push(`- Stats: ${st.links} links, ${st.interactive} interactive, ${st.iframes} iframes, ${st.images} images, ${st.totalElements} total elements`);
+    }
+
+    lines.push('');
+
+    // Snapshot body with start/end markers
     const snapshot = data.snapshot || '[empty page]';
+    const scroll = data.meta?.scroll;
+    const atTop = !scroll || scroll.pagesAbove === 0;
+    const atBottom = !scroll || scroll.pagesBelow === 0;
+
+    if (atTop) lines.push('[Start of page]');
+    lines.push('### Accessibility Tree');
+    lines.push(snapshot);
+    if (atBottom) lines.push('[End of page]');
+
     const truncNote = data.meta?.truncated
       ? `\n\n[Snapshot truncated: ${data.meta.nodes} nodes, ${data.meta.chars} chars. Use search_page or find_elements for more detail.]`
       : '';
-    return `${header}\n### Snapshot\n${snapshot}${truncNote}`;
+
+    return lines.join('\n') + truncNote;
   }
 
   async screenshot(signal?: AbortSignal): Promise<ScreenshotResult> {
@@ -789,20 +944,27 @@ class BrowserManager {
   async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
-    const result = await session.send(
-      'Runtime.evaluate',
-      {
-        expression,
-        returnByValue: true,
-        awaitPromise: true,
-      },
-      signal,
-    );
+
+    // Auto-wrap expressions containing top-level `return` in an IIFE
+    const wrapped = needsIIFEWrap(expression) ? `(()=>{${expression}})()` : expression;
+
+    const result = await session.send('Runtime.evaluate', {
+      expression: wrapped,
+      returnByValue: true,
+      awaitPromise: true,
+    }, signal);
 
     const exceptionDetails = result.exceptionDetails as Record<string, unknown> | undefined;
     if (exceptionDetails) {
+      const exObj = exceptionDetails.exception as Record<string, unknown> | undefined;
+      const description = exObj?.description as string | undefined;
       const text = (exceptionDetails.text as string) ?? 'Script evaluation failed';
-      throw new Error(text);
+      const lineNumber = exceptionDetails.lineNumber as number | undefined;
+      const columnNumber = exceptionDetails.columnNumber as number | undefined;
+
+      const parts = [description ?? text];
+      if (lineNumber !== undefined) parts.push(`at line ${lineNumber + 1}${columnNumber !== undefined ? `:${columnNumber + 1}` : ''}`);
+      throw new Error(parts.join(' '));
     }
 
     return (result.result as Record<string, unknown>)?.value;
@@ -894,6 +1056,86 @@ class BrowserManager {
 
     await this.abortableSleep(timeMs ?? 1000, signal);
     return `Waited ${timeMs ?? 1000}ms`;
+  }
+
+  // ── Web search ──────────────────────────────────────────────
+
+  async search(query: string, engine: string = 'google', signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
+    const encodedQuery = encodeURIComponent(query);
+    const searchUrls: Record<string, string> = {
+      google: `https://www.google.com/search?q=${encodedQuery}&udm=14`,
+      duckduckgo: `https://duckduckgo.com/?q=${encodedQuery}`,
+      bing: `https://www.bing.com/search?q=${encodedQuery}`,
+    };
+    const url = searchUrls[engine.toLowerCase()];
+    if (!url) throw new Error(`Unsupported search engine: ${engine}. Use: google, duckduckgo, bing`);
+
+    return this.navigate(url, signal);
+  }
+
+  // ── Page content extraction (for extract tool) ─────────────
+
+  async extractPageContent(signal?: AbortSignal, selector?: string): Promise<string> {
+    this.throwIfAborted(signal);
+    const session = await this.getPageSession();
+
+    const selectorJs = selector ? JSON.stringify(selector) : 'null';
+
+    // Extract clean text content from the page, converting to a readable format
+    const result = await this.evalInPage(session, `
+      (() => {
+        const sel = ${selectorJs};
+        const root = sel ? document.querySelector(sel) : document.body;
+        if (!root) return '[No element matching selector: ' + sel + ']';
+
+        function walk(el) {
+          if (!el) return '';
+          if (el.nodeType === 3) return el.textContent || '';
+          if (el.nodeType !== 1) return '';
+          const tag = el.tagName.toLowerCase();
+          if (['script', 'style', 'noscript', 'template', 'meta', 'link', 'head', 'svg'].includes(tag)) return '';
+          if (el.getAttribute('aria-hidden') === 'true') return '';
+          const style = getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden') return '';
+
+          let text = '';
+          for (const child of el.childNodes) {
+            text += walk(child);
+          }
+
+          // Add structural formatting
+          if (['h1','h2','h3','h4','h5','h6'].includes(tag)) {
+            const level = tag[1];
+            text = '\\n' + '#'.repeat(Number(level)) + ' ' + text.trim() + '\\n';
+          } else if (tag === 'p' || tag === 'div' || tag === 'section' || tag === 'article') {
+            text = '\\n' + text;
+          } else if (tag === 'li') {
+            text = '\\n- ' + text.trim();
+          } else if (tag === 'br') {
+            text = '\\n';
+          } else if (tag === 'a' && el.href) {
+            text = text.trim() + ' (' + el.href + ')';
+          } else if (tag === 'img' && el.alt) {
+            text = '[Image: ' + el.alt + ']';
+          } else if (tag === 'table') {
+            text = '\\n[Table]\\n' + text;
+          } else if (tag === 'tr') {
+            text = text.trim() + '\\n';
+          } else if (tag === 'td' || tag === 'th') {
+            text = text.trim() + ' | ';
+          }
+
+          return text;
+        }
+
+        const raw = walk(root);
+        // Clean up excessive whitespace
+        return raw.replace(/\\n{3,}/g, '\\n\\n').trim().slice(0, 100000);
+      })()
+    `);
+
+    return typeof result === 'string' ? result : '[Could not extract page content]';
   }
 
   // ── Internal helpers ────────────────────────────────────────

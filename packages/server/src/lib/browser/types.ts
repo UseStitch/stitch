@@ -80,6 +80,24 @@ export type FindElementsResult = {
   total: number;
 };
 
+/** Scroll position metadata returned by the snapshot script. */
+export type ScrollInfo = {
+  scrollTop: number;
+  scrollHeight: number;
+  viewportHeight: number;
+  pagesAbove: number;
+  pagesBelow: number;
+};
+
+/** Page statistics extracted during snapshot. */
+export type PageStats = {
+  links: number;
+  interactive: number;
+  iframes: number;
+  images: number;
+  totalElements: number;
+};
+
 export const BROWSER_ACTIONS = [
   'snapshot',
   'navigate',
@@ -101,4 +119,6 @@ export const BROWSER_ACTIONS = [
   'resize',
   'search_page',
   'find_elements',
+  'search',
+  'extract',
 ] as const;
