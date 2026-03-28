@@ -1,7 +1,7 @@
 import { MicIcon, PlayIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import type { Meeting } from '@stitch/shared/meetings/types';
@@ -9,6 +9,7 @@ import type { Meeting } from '@stitch/shared/meetings/types';
 import { formatAppName, formatDuration } from '@/components/recordings/recording-detail/formatting';
 import { StatusBadge } from '@/components/recordings/recording-detail/status-badge';
 import { Button } from '@/components/ui/button';
+import { useSSE } from '@/hooks/sse/sse-context';
 import {
   SidebarContent,
   SidebarGroup,
@@ -20,6 +21,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import {
+  meetingKeys,
   recordingsQueryOptions,
   transcriptionQueryOptions,
   useStartRecording,
@@ -105,6 +107,7 @@ function RecordingSidebarItem({
 }
 
 export function RecordingsSidebarContent() {
+  const queryClient = useQueryClient();
   const { data: recordings } = useQuery(recordingsQueryOptions);
   const startRecording = useStartRecording();
   const meetingStatus = useMeetingStore((s) => s.status);
@@ -124,6 +127,18 @@ export function RecordingsSidebarContent() {
       clearInterval(timer);
     };
   }, []);
+
+  useSSE({
+    'transcription-started': () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+    },
+    'transcription-completed': () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+    },
+    'transcription-failed': () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+    },
+  });
 
   const sortedRecordings = React.useMemo(
     () => (recordings ? [...recordings].sort((a, b) => b.startedAt - a.startedAt) : []),

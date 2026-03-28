@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import fs from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 
@@ -10,12 +11,13 @@ import type { Transcription } from '@stitch/shared/meetings/types';
 
 import { getDb } from '@/db/client.js';
 import { meetings, recordingTranscriptions } from '@/db/schema.js';
+import { iterateWavFileChunks, splitWavIntoChunks } from '@/lib/audio/wav.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
-import { addUsage } from '@/utils/usage.js';
+import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'transcription' });
 
@@ -42,14 +44,13 @@ const transcriptOnlySchema = z.object({
     .describe('Ordered speaker turns for the full transcript'),
 });
 
-const topicSchema = z.object({
-  name: z.string().describe('Descriptive topic name'),
-  startIndex: z.number().describe('First transcript turn index where this topic begins'),
-  endIndex: z.number().describe('Last transcript turn index for this topic'),
+const chunkAnalysisSchema = z.object({
+  summary: z
+    .string()
+    .describe('Markdown summary for a transcript chunk using topic headings and bullet points'),
 });
 
-const analysisSchema = z.object({
-  topics: z.array(topicSchema).describe('Identified topics with their transcript turn ranges'),
+const finalAnalysisSchema = z.object({
   summary: z
     .string()
     .describe('Structured markdown meeting summary using only h1 headings and bullet points'),
@@ -58,6 +59,13 @@ const analysisSchema = z.object({
     .max(60)
     .describe('A short descriptive title (max 60 characters) for this recording'),
 });
+
+type TranscriptEntry = z.infer<typeof transcriptEntrySchema>;
+const TRANSCRIPTION_CHUNK_MAX_SECS = 8 * 60;
+const ANALYSIS_TRANSCRIPT_TURNS_PER_CHUNK = 220;
+const STALE_TRANSCRIPTION_ERROR = 'Server restarted while transcription was running';
+
+const activeTranscriptions = new Map<PrefixedString<'transcr'>, AbortController>();
 
 type TranscriptionInput = {
   meetingId: PrefixedString<'rec'>;
@@ -110,10 +118,70 @@ function parseTranscript(transcript: string): { speaker: string; content: string
   return [{ speaker: 'Speaker 1', content: fallback }];
 }
 
+function smoothSpeakerAssignments(entries: TranscriptEntry[]): TranscriptEntry[] {
+  const normalized = entries
+    .map((entry) => ({ speaker: entry.speaker.trim(), content: entry.content.trim() }))
+    .filter((entry) => entry.speaker.length > 0 && entry.content.length > 0);
+
+  if (normalized.length < 3) {
+    return normalized;
+  }
+
+  const smoothed = normalized.map((entry) => ({ ...entry }));
+  for (let i = 1; i < smoothed.length - 1; i += 1) {
+    const previous = smoothed[i - 1];
+    const current = smoothed[i];
+    const next = smoothed[i + 1];
+    const surroundingSpeaker = previous.speaker;
+    const hasSingleTurnFlip =
+      surroundingSpeaker === next.speaker && current.speaker !== surroundingSpeaker;
+    if (!hasSingleTurnFlip) {
+      continue;
+    }
+
+    const shortTurn = current.content.split(/\s+/).length <= 6;
+    if (shortTurn) {
+      smoothed[i] = { ...current, speaker: surroundingSpeaker };
+    }
+  }
+
+  return smoothed;
+}
+
+function chunkTranscriptEntries(entries: TranscriptEntry[], chunkSize: number): TranscriptEntry[][] {
+  if (entries.length <= chunkSize) {
+    return [entries];
+  }
+
+  const chunks: TranscriptEntry[][] = [];
+  for (let i = 0; i < entries.length; i += chunkSize) {
+    chunks.push(entries.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
 export async function startTranscription(
   input: TranscriptionInput,
 ): Promise<PrefixedString<'transcr'>> {
   const db = getDb();
+
+  const [existing] = await db
+    .select({ id: recordingTranscriptions.id })
+    .from(recordingTranscriptions)
+    .where(
+      and(
+        eq(recordingTranscriptions.meetingId, input.meetingId),
+        eq(recordingTranscriptions.providerId, input.providerId),
+        eq(recordingTranscriptions.modelId, input.modelId),
+        inArray(recordingTranscriptions.status, ['pending', 'processing']),
+      ),
+    )
+    .orderBy(desc(recordingTranscriptions.createdAt));
+
+  if (existing) {
+    return existing.id;
+  }
+
   const transcriptionId = createTranscriptionId();
   const now = Date.now();
 
@@ -138,12 +206,19 @@ async function runTranscription(
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
+  const abortController = new AbortController();
+  activeTranscriptions.set(transcriptionId, abortController);
 
   try {
-    await db
+    const processingRows = await db
       .update(recordingTranscriptions)
       .set({ status: 'processing', updatedAt: Date.now() })
-      .where(eq(recordingTranscriptions.id, transcriptionId));
+      .where(eq(recordingTranscriptions.id, transcriptionId))
+      .returning({ id: recordingTranscriptions.id });
+
+    if (processingRows.length === 0 || abortController.signal.aborted) {
+      return;
+    }
 
     await broadcast('transcription-started', {
       meetingId: input.meetingId,
@@ -160,54 +235,118 @@ async function runTranscription(
       throw new Error(`Recording file not found at: ${meeting.recordingFilePath}`);
     }
 
-    const audioBuffer = fs.readFileSync(meeting.recordingFilePath);
-    const audioData = new Uint8Array(audioBuffer);
-
     const model = createProvider(input.credentials)(input.modelId);
+    const usageRecords: NonNullable<Transcription['usage']>[] = [];
+    const transcriptParts: TranscriptEntry[][] = [];
 
-    // --- Pass 1: Audio → Transcript ---
-    const pass1Result = await generateText({
-      model,
-      output: Output.object({
-        schema: transcriptOnlySchema,
-        name: 'transcription',
-        description: 'Audio transcription with speaker labels',
-      }),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: audioData,
-              mediaType: 'audio/wav',
-            },
-            {
-              type: 'text',
-              text: 'Please transcribe this audio recording.',
-            },
-          ],
-        },
-      ],
-      system: buildTranscriptionPrompt(),
-    });
+    // --- Pass 1: Audio -> Transcript (chunked for long recordings) ---
+    for await (const chunk of iterateWavFileChunks(meeting.recordingFilePath, TRANSCRIPTION_CHUNK_MAX_SECS)) {
+      if (abortController.signal.aborted) {
+        return;
+      }
 
-    const pass1Output = pass1Result.output;
-    if (!pass1Output) {
-      throw new Error('Model did not return a valid transcript');
+      const pass1Result = await generateText({
+        model,
+        output: Output.object({
+          schema: transcriptOnlySchema,
+          name: 'transcription',
+          description: 'Audio transcription with speaker labels',
+        }),
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: chunk.audioData,
+                mediaType: 'audio/wav',
+              },
+              {
+                type: 'text',
+                text:
+                  chunk.totalChunks === 1
+                    ? 'Please transcribe this audio recording.'
+                    : `Please transcribe chunk ${chunk.chunkIndex} of ${chunk.totalChunks} from this audio recording. Keep speaker labels stable.`,
+              },
+            ],
+          },
+        ],
+        system: buildTranscriptionPrompt(),
+        abortSignal: abortController.signal,
+      });
+
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      const pass1Output = pass1Result.output;
+      if (!pass1Output) {
+        throw new Error(`Model did not return a valid transcript for chunk ${chunk.chunkIndex}`);
+      }
+
+      transcriptParts.push(pass1Output.transcript);
+      usageRecords.push(pass1Result.usage);
     }
 
-    const transcript = pass1Output.transcript;
+    const transcript = smoothSpeakerAssignments(transcriptParts.flat());
 
-    // --- Pass 2: Transcript text → Analysis (summary + title + topics) ---
-    const formattedTranscript = formatTranscriptForAnalysis(transcript);
+    // --- Pass 2: Transcript -> Chunk summaries ---
+    const transcriptChunks = chunkTranscriptEntries(transcript, ANALYSIS_TRANSCRIPT_TURNS_PER_CHUNK);
+    const chunkSummaries: string[] = [];
 
-    const pass2Result = await generateText({
+    for (let i = 0; i < transcriptChunks.length; i += 1) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      const chunk = transcriptChunks[i];
+      const formattedChunkTranscript = formatTranscriptForAnalysis(chunk);
+      const analysisChunkResult = await generateText({
+        model,
+        output: Output.object({
+          schema: chunkAnalysisSchema,
+          name: 'analysis_chunk',
+          description: 'Chunk-level summary for a transcript segment',
+        }),
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Summarize transcript chunk ${i + 1} of ${transcriptChunks.length}.\n\n${formattedChunkTranscript}`,
+              },
+            ],
+          },
+        ],
+        system: buildAnalysisPrompt(),
+        abortSignal: abortController.signal,
+      });
+
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      const chunkOutput = analysisChunkResult.output;
+      if (!chunkOutput) {
+        throw new Error(`Model did not return a valid chunk summary for chunk ${i + 1}`);
+      }
+
+      chunkSummaries.push(chunkOutput.summary);
+      usageRecords.push(analysisChunkResult.usage);
+    }
+
+    // --- Pass 3: Merge chunk summaries -> final title + summary ---
+    const mergedChunkSummaries = chunkSummaries
+      .map((summary, i) => `# Chunk ${i + 1}\n${summary}`)
+      .join('\n\n');
+
+    const finalAnalysisResult = await generateText({
       model,
       output: Output.object({
-        schema: analysisSchema,
-        name: 'analysis',
-        description: 'Meeting analysis with topic segmentation, summary, and title',
+        schema: finalAnalysisSchema,
+        name: 'analysis_final',
+        description: 'Final meeting summary and title based on chunk summaries',
       }),
       messages: [
         {
@@ -215,55 +354,63 @@ async function runTranscription(
           content: [
             {
               type: 'text',
-              text: `Analyze the following meeting transcript:\n\n${formattedTranscript}`,
+              text: `Merge these chunk summaries into one final meeting summary and title:\n\n${mergedChunkSummaries}`,
             },
           ],
         },
       ],
       system: buildAnalysisPrompt(),
+      abortSignal: abortController.signal,
     });
 
-    const pass2Output = pass2Result.output;
-    if (!pass2Output) {
-      throw new Error('Model did not return a valid analysis');
+    if (abortController.signal.aborted) {
+      return;
     }
+
+    const finalAnalysisOutput = finalAnalysisResult.output;
+    if (!finalAnalysisOutput) {
+      throw new Error('Model did not return a valid final analysis');
+    }
+    usageRecords.push(finalAnalysisResult.usage);
 
     const recordingDir = path.dirname(meeting.recordingFilePath);
     const transcriptFilePath = path.join(recordingDir, `transcript-${transcriptionId}.txt`);
     fs.writeFileSync(transcriptFilePath, formatTranscriptForFile(transcript), 'utf8');
 
-    // Cumulative cost from both passes
-    const [pass1Cost, pass2Cost] = await Promise.all([
-      calculateMessageCostUsd({
-        providerId: input.providerId,
-        modelId: input.modelId,
-        usage: pass1Result.usage,
-      }),
-      calculateMessageCostUsd({
-        providerId: input.providerId,
-        modelId: input.modelId,
-        usage: pass2Result.usage,
-      }),
-    ]);
+    const costs = await Promise.all(
+      usageRecords.map((usage) =>
+        calculateMessageCostUsd({
+          providerId: input.providerId,
+          modelId: input.modelId,
+          usage,
+        }),
+      ),
+    );
 
-    const totalCostUsd = pass1Cost + pass2Cost;
-    const mergedUsage = addUsage(pass1Result.usage, pass2Result.usage);
+    const totalCostUsd = costs.reduce((sum, cost) => sum + cost, 0);
+    const mergedUsage = usageRecords.reduce((acc, usage) => addUsage(acc, usage), ZERO_USAGE);
     const durationMs = Date.now() - startedAt;
 
-    await db
+    const completedRows = await db
       .update(recordingTranscriptions)
       .set({
         status: 'completed',
         filePath: transcriptFilePath,
         transcript: stringifyTranscript(transcript),
-        summary: pass2Output.summary,
-        title: pass2Output.title,
+        summary: finalAnalysisOutput.summary,
+        title: finalAnalysisOutput.title,
         usage: mergedUsage,
         costUsd: totalCostUsd,
         durationMs,
         updatedAt: Date.now(),
       })
-      .where(eq(recordingTranscriptions.id, transcriptionId));
+      .where(eq(recordingTranscriptions.id, transcriptionId))
+      .returning({ id: recordingTranscriptions.id });
+
+    if (completedRows.length === 0 || abortController.signal.aborted) {
+      await rm(transcriptFilePath, { force: true }).catch(() => undefined);
+      return;
+    }
 
     await broadcast('transcription-completed', {
       meetingId: input.meetingId,
@@ -283,7 +430,7 @@ async function runTranscription(
       'transcription failed',
     );
 
-    await db
+    const failedRows = await db
       .update(recordingTranscriptions)
       .set({
         status: 'failed',
@@ -291,34 +438,33 @@ async function runTranscription(
         durationMs,
         updatedAt: Date.now(),
       })
-      .where(eq(recordingTranscriptions.id, transcriptionId));
+      .where(eq(recordingTranscriptions.id, transcriptionId))
+      .returning({ id: recordingTranscriptions.id });
+
+    if (failedRows.length === 0 || abortController.signal.aborted) {
+      return;
+    }
 
     await broadcast('transcription-failed', {
       meetingId: input.meetingId,
       transcriptionId,
       error: errorMessage,
     });
+  } finally {
+    activeTranscriptions.delete(transcriptionId);
   }
 }
 
-export async function getLatestTranscription(
+export async function getPreferredTranscription(
   meetingId: PrefixedString<'rec'>,
 ): Promise<Transcription | undefined> {
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(recordingTranscriptions)
-    .where(eq(recordingTranscriptions.meetingId, meetingId))
-    .orderBy(desc(recordingTranscriptions.createdAt))
-    .limit(1);
-  if (!row) {
+  const rows = await getTranscriptions(meetingId);
+  if (rows.length === 0) {
     return undefined;
   }
 
-  return {
-    ...row,
-    transcript: parseTranscript(row.transcript),
-  } as Transcription;
+  const latestCompleted = rows.find((row) => row.status === 'completed');
+  return latestCompleted ?? rows[0];
 }
 
 export async function getTranscriptions(
@@ -335,3 +481,65 @@ export async function getTranscriptions(
     transcript: parseTranscript(row.transcript),
   })) as Transcription[];
 }
+
+export async function deleteTranscription(
+  meetingId: PrefixedString<'rec'>,
+  transcriptionId: PrefixedString<'transcr'>,
+): Promise<void> {
+  activeTranscriptions.get(transcriptionId)?.abort();
+
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(recordingTranscriptions)
+    .where(
+      and(
+        eq(recordingTranscriptions.id, transcriptionId),
+        eq(recordingTranscriptions.meetingId, meetingId),
+      ),
+    );
+
+  if (!row) {
+    throw new Error(`Transcription not found: ${transcriptionId}`);
+  }
+
+  if (row.filePath) {
+    await rm(row.filePath, { force: true }).catch(() => undefined);
+  }
+
+  await db
+    .delete(recordingTranscriptions)
+    .where(
+      and(
+        eq(recordingTranscriptions.id, transcriptionId),
+        eq(recordingTranscriptions.meetingId, meetingId),
+      ),
+    );
+}
+
+export async function recoverStaleTranscriptions(): Promise<number> {
+  const db = getDb();
+  const now = Date.now();
+
+  const recoveredRows = await db
+    .update(recordingTranscriptions)
+    .set({
+      status: 'failed',
+      errorMessage: STALE_TRANSCRIPTION_ERROR,
+      updatedAt: now,
+    })
+    .where(inArray(recordingTranscriptions.status, ['pending', 'processing']))
+    .returning({ id: recordingTranscriptions.id });
+
+  if (recoveredRows.length > 0) {
+    log.warn({ count: recoveredRows.length }, 'recovered stale transcriptions');
+  }
+
+  return recoveredRows.length;
+}
+
+export const transcriptionInternals = {
+  splitWavIntoChunks,
+  smoothSpeakerAssignments,
+  chunkTranscriptEntries,
+};

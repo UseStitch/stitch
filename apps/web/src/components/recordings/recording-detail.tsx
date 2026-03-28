@@ -1,7 +1,14 @@
-import { EllipsisIcon, Loader2Icon, MicIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import {
+  EllipsisIcon,
+  Loader2Icon,
+  MicIcon,
+  SparklesIcon,
+  SquareIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import * as React from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Meeting } from '@stitch/shared/meetings/types';
 
@@ -25,18 +32,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { transcriptionQueryOptions, useTranscribeMeeting } from '@/lib/queries/meetings';
+import {
+  meetingKeys,
+  transcriptionVersionsQueryOptions,
+  useDeleteTranscriptionVersion,
+  useTranscribeMeeting,
+} from '@/lib/queries/meetings';
 import { enabledAudioProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDelete: () => void }) {
+  const queryClient = useQueryClient();
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
-  const { data: transcription } = useQuery(transcriptionQueryOptions(meeting.id));
+  const { data: transcriptionVersions = [] } = useQuery(transcriptionVersionsQueryOptions(meeting.id));
   const { data: settings } = useQuery(settingsQueryOptions);
   const { data: audioModels = [] } = useQuery(enabledAudioProviderModelsQueryOptions);
   const transcribeMutation = useTranscribeMeeting();
+  const deleteTranscriptionVersionMutation = useDeleteTranscriptionVersion();
+  const [isStartingTranscription, setIsStartingTranscription] = React.useState(false);
 
-  const title = transcription?.title || formatAppName(meeting.app);
+  const latestTranscription = transcriptionVersions[0] ?? null;
+  const inFlightTranscription =
+    transcriptionVersions.find(
+      (version) => version.status === 'pending' || version.status === 'processing',
+    ) ?? null;
+  const latestCompletedTranscription =
+    transcriptionVersions.find((version) => version.status === 'completed') ?? null;
+
+  const title = latestCompletedTranscription?.title || formatAppName(meeting.app);
 
   const [selectedModel, setSelectedModel] = React.useState<AudioModelSpec | null>(null);
 
@@ -72,13 +95,30 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
     }
   }, [audioModels, selectedModel, settings]);
 
-  function handleTranscribe() {
+  const isStoppingTranscription = deleteTranscriptionVersionMutation.isPending;
+
+  async function handleTranscribeOrStop() {
+    if (inFlightTranscription) {
+      await deleteTranscriptionVersionMutation.mutateAsync({
+        meetingId: meeting.id,
+        transcriptionId: inFlightTranscription.id,
+      });
+      return;
+    }
+
     if (!selectedModel) return;
-    transcribeMutation.mutate({
-      meetingId: meeting.id,
-      providerId: selectedModel.providerId,
-      modelId: selectedModel.modelId,
-    });
+
+    setIsStartingTranscription(true);
+    try {
+      await transcribeMutation.mutateAsync({
+        meetingId: meeting.id,
+        providerId: selectedModel.providerId,
+        modelId: selectedModel.modelId,
+      });
+      await queryClient.refetchQueries({ queryKey: meetingKeys.transcriptions(meeting.id) });
+    } finally {
+      setIsStartingTranscription(false);
+    }
   }
 
   return (
@@ -114,16 +154,27 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
                   <Button
                     variant="outline"
                     size="xs"
-                    onClick={handleTranscribe}
-                    disabled={!selectedModel || transcribeMutation.isPending}
+                    onClick={() => {
+                      void handleTranscribeOrStop();
+                    }}
+                    disabled={
+                      isStoppingTranscription ||
+                      transcribeMutation.isPending ||
+                      isStartingTranscription ||
+                      (!inFlightTranscription && !selectedModel)
+                    }
                   >
-                    {transcribeMutation.isPending ? (
+                    {isStoppingTranscription || transcribeMutation.isPending || isStartingTranscription ? (
                       <Loader2Icon className="size-3 animate-spin" />
+                    ) : inFlightTranscription ? (
+                      <SquareIcon className="size-3" />
                     ) : (
                       <SparklesIcon className="size-3" />
                     )}
-                    {!transcription || transcription.status === 'failed'
-                      ? transcription?.status === 'failed'
+                    {inFlightTranscription
+                      ? 'Stop'
+                      : !latestTranscription || latestTranscription.status === 'failed'
+                      ? latestTranscription?.status === 'failed'
                         ? 'Retry'
                         : 'Transcribe'
                       : 'Re-transcribe'}
@@ -155,7 +206,12 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
 
       <div className="relative isolate flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mx-auto w-full max-w-350">
-          {hasAudio && <TranscriptionSection meetingId={meeting.id} />}
+          {hasAudio && (
+            <TranscriptionSection
+              meetingId={meeting.id}
+              isStartingTranscription={isStartingTranscription || transcribeMutation.isPending}
+            />
+          )}
           {!hasAudio && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MicIcon className="mb-3 size-8 text-muted-foreground/50" />

@@ -18,7 +18,8 @@ import {
   stopMeetingRecording,
 } from '@/meeting/service.js';
 import {
-  getLatestTranscription,
+  deleteTranscription,
+  getPreferredTranscription,
   getTranscriptions,
   startTranscription,
 } from '@/meeting/transcription-service.js';
@@ -159,7 +160,7 @@ meetingsRouter.post('/:meetingId/transcribe', async (c) => {
 meetingsRouter.get('/:meetingId/transcription', async (c) => {
   const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
 
-  const transcription = await getLatestTranscription(meetingId);
+  const transcription = await getPreferredTranscription(meetingId);
   if (!transcription) {
     return c.json({ error: 'No transcription found' }, 404);
   }
@@ -171,4 +172,17 @@ meetingsRouter.get('/:meetingId/transcriptions', async (c) => {
   const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
   const transcriptions = await getTranscriptions(meetingId);
   return c.json(transcriptions);
+});
+
+meetingsRouter.delete('/:meetingId/transcriptions/:transcriptionId', async (c) => {
+  const meetingId = c.req.param('meetingId') as PrefixedString<'rec'>;
+  const transcriptionId = c.req.param('transcriptionId') as PrefixedString<'transcr'>;
+
+  try {
+    await deleteTranscription(meetingId, transcriptionId);
+    return c.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return c.json({ error: message }, 400);
+  }
 });

@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,11 @@ export function PermissionResponseDock({
 }: PermissionResponseDockProps) {
   const pending = permissionResponses[0];
   const suggestion = pending?.suggestion ?? null;
+  const displayToolName = React.useMemo(() => {
+    if (!pending) return '';
+    const parsed = parseMcpToolName(pending.toolName);
+    return parsed?.toolName ?? pending.toolName;
+  }, [pending]);
   const [entry, setEntry] = React.useState('');
 
   React.useEffect(() => {
@@ -40,7 +46,7 @@ export function PermissionResponseDock({
   return (
     <div className="flex flex-col gap-3 text-sm">
       <div className="text-foreground/90">
-        <span className="font-medium">Tool:</span> {pending.toolName}
+        <span className="font-medium">Tool:</span> {displayToolName}
       </div>
       <div className="text-xs text-muted-foreground">{pending.systemReminder}</div>
 

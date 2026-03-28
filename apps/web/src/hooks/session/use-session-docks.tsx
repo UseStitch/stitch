@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery, type UseMutationResult } from '@tanstack/react-query';
 
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 
@@ -126,7 +127,8 @@ export function useSessionDocks({
 
     if (pendingPermissionResponses.length > 0) {
       const first = pendingPermissionResponses[0];
-      const toolLabel = first?.toolName ?? 'tool';
+      const parsedTool = first ? parseMcpToolName(first.toolName) : null;
+      const toolLabel = parsedTool?.toolName ?? first?.toolName ?? 'tool';
       const permSubAgentLabel = resolveSubAgentLabel(first?.subAgentId);
       const permTitle = permSubAgentLabel
         ? `Allow ${toolLabel}? (from ${permSubAgentLabel})`
