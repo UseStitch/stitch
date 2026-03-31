@@ -3,28 +3,67 @@
  * a connector instance has access to.
  */
 
-/** Scope prefixes grouped by Google service */
+/** Canonical Google OAuth scope constants. */
+export const GOOGLE_SCOPE_OPENID = 'openid';
+export const GOOGLE_SCOPE_USERINFO_EMAIL =
+  'https://www.googleapis.com/auth/userinfo.email';
+
+export const GOOGLE_SCOPE_GMAIL_READONLY =
+  'https://www.googleapis.com/auth/gmail.readonly';
+export const GOOGLE_SCOPE_GMAIL_SEND =
+  'https://www.googleapis.com/auth/gmail.send';
+export const GOOGLE_SCOPE_GMAIL_MODIFY =
+  'https://www.googleapis.com/auth/gmail.modify';
+
+export const GOOGLE_SCOPE_DRIVE_READONLY =
+  'https://www.googleapis.com/auth/drive.readonly';
+export const GOOGLE_SCOPE_DRIVE_FILE =
+  'https://www.googleapis.com/auth/drive.file';
+export const GOOGLE_SCOPE_DRIVE =
+  'https://www.googleapis.com/auth/drive';
+
+export const GOOGLE_SCOPE_CALENDAR_READONLY =
+  'https://www.googleapis.com/auth/calendar.readonly';
+export const GOOGLE_SCOPE_CALENDAR_EVENTS =
+  'https://www.googleapis.com/auth/calendar.events';
+export const GOOGLE_SCOPE_CALENDAR =
+  'https://www.googleapis.com/auth/calendar';
+
+export const GOOGLE_SCOPE_DOCS_READONLY =
+  'https://www.googleapis.com/auth/documents.readonly';
+export const GOOGLE_SCOPE_DOCS =
+  'https://www.googleapis.com/auth/documents';
+
+/** Scope groups by Google service. */
 export const GMAIL_SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.modify',
+  GOOGLE_SCOPE_GMAIL_READONLY,
+  GOOGLE_SCOPE_GMAIL_SEND,
+  GOOGLE_SCOPE_GMAIL_MODIFY,
 ] as const;
 
 export const DRIVE_SCOPES = [
-  'https://www.googleapis.com/auth/drive.readonly',
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive',
+  GOOGLE_SCOPE_DRIVE_READONLY,
+  GOOGLE_SCOPE_DRIVE_FILE,
+  GOOGLE_SCOPE_DRIVE,
 ] as const;
 
 export const CALENDAR_SCOPES = [
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar',
+  GOOGLE_SCOPE_CALENDAR_READONLY,
+  GOOGLE_SCOPE_CALENDAR_EVENTS,
+  GOOGLE_SCOPE_CALENDAR,
 ] as const;
 
 export const DOCS_SCOPES = [
-  'https://www.googleapis.com/auth/documents.readonly',
-  'https://www.googleapis.com/auth/documents',
+  GOOGLE_SCOPE_DOCS_READONLY,
+  GOOGLE_SCOPE_DOCS,
+] as const;
+
+export const GOOGLE_DEFAULT_SCOPES = [
+  GOOGLE_SCOPE_OPENID,
+  GOOGLE_SCOPE_USERINFO_EMAIL,
+  GOOGLE_SCOPE_GMAIL_READONLY,
+  GOOGLE_SCOPE_DRIVE_READONLY,
+  GOOGLE_SCOPE_CALENDAR_READONLY,
 ] as const;
 
 export type GoogleService = 'gmail' | 'drive' | 'calendar' | 'docs';
@@ -54,26 +93,26 @@ export function hasWriteAccess(grantedScopes: string[], service: GoogleService):
   if (service === 'gmail') {
     return grantedScopes.some(
       (s) =>
-        s === 'https://www.googleapis.com/auth/gmail.send' ||
-        s === 'https://www.googleapis.com/auth/gmail.modify',
+        s === GOOGLE_SCOPE_GMAIL_SEND ||
+        s === GOOGLE_SCOPE_GMAIL_MODIFY,
     );
   }
   if (service === 'drive') {
     return grantedScopes.some(
       (s) =>
-        s === 'https://www.googleapis.com/auth/drive.file' ||
-        s === 'https://www.googleapis.com/auth/drive',
+        s === GOOGLE_SCOPE_DRIVE_FILE ||
+        s === GOOGLE_SCOPE_DRIVE,
     );
   }
   if (service === 'calendar') {
     return grantedScopes.some(
       (s) =>
-        s === 'https://www.googleapis.com/auth/calendar.events' ||
-        s === 'https://www.googleapis.com/auth/calendar',
+        s === GOOGLE_SCOPE_CALENDAR_EVENTS ||
+        s === GOOGLE_SCOPE_CALENDAR,
     );
   }
   if (service === 'docs') {
-    return grantedScopes.some((s) => s === 'https://www.googleapis.com/auth/documents');
+    return grantedScopes.some((s) => s === GOOGLE_SCOPE_DOCS);
   }
   return false;
 }

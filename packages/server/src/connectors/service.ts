@@ -16,6 +16,7 @@ import { getDb } from '@/db/client.js';
 import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
 import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -104,6 +105,7 @@ export async function createOAuthConnectorInstance(input: {
 }): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const definition = getConnectorDefinition(input.connectorId);
   if (!definition) return err('Unknown connector type', 400);
+  if (!definition.enabled) return err('Connector is currently disabled', 400);
   if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
 
   const db = getDb();
@@ -176,6 +178,7 @@ export async function createApiKeyConnectorInstance(input: {
 }): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const definition = getConnectorDefinition(input.connectorId);
   if (!definition) return err('Unknown connector type', 400);
+  if (!definition.enabled) return err('Connector is currently disabled', 400);
   if (definition.authType !== 'api_key') return err('Connector does not use API key', 400);
 
   const db = getDb();
@@ -230,20 +233,9 @@ export async function authorizeOAuthInstance(
     return err('Connector does not use OAuth2', 400);
   }
 
-  if (!instance.clientId || !instance.clientSecret) {
-    if (!instance.oauthProfileId) {
-      return err('OAuth credentials not configured', 400);
-    }
-
-    const [profile] = await db
-      .select()
-      .from(connectorOAuthProfiles)
-      .where(eq(connectorOAuthProfiles.id, instance.oauthProfileId));
-
-    if (!profile) return err('OAuth profile not found', 404);
-
-    instance.clientId = profile.clientId;
-    instance.clientSecret = profile.clientSecret;
+  const resolvedOAuthCredentials = await resolveOAuthCredentials(instance);
+  if (!resolvedOAuthCredentials) {
+    return err('OAuth credentials not configured', 400);
   }
 
   const config = definition.authConfig as OAuthConfig;
@@ -251,64 +243,77 @@ export async function authorizeOAuthInstance(
 
   const { authUrl, waitForTokens } = await startOAuthFlow(
     config,
-    instance.clientId,
-    instance.clientSecret,
+    resolvedOAuthCredentials.clientId,
+    resolvedOAuthCredentials.clientSecret,
     scopes,
   );
 
   const tokenHandler = async (): Promise<void> => {
-    const tokens = await waitForTokens();
-    const now = Date.now();
+    try {
+      const tokens = await waitForTokens();
+      const now = Date.now();
 
-    // Fetch account info for Google
-    let accountEmail: string | null = null;
-    let accountInfo: Record<string, unknown> | null = null;
+      // Fetch account info for Google
+      let accountEmail: string | null = null;
+      let accountInfo: Record<string, unknown> | null = null;
 
-    if (instance.connectorId === 'google') {
-      try {
-        const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { Authorization: `Bearer ${tokens.accessToken}` },
-        });
-        if (res.ok) {
-          const info = (await res.json()) as { email?: string; name?: string; picture?: string };
-          accountEmail = info.email ?? null;
-          accountInfo = info as Record<string, unknown>;
+      if (instance.connectorId === 'google') {
+        try {
+          const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokens.accessToken}` },
+          });
+          if (res.ok) {
+            const info = (await res.json()) as { email?: string; name?: string; picture?: string };
+            accountEmail = info.email ?? null;
+            accountInfo = info as Record<string, unknown>;
+          }
+        } catch {
+          // Non-critical, continue without account info
         }
-      } catch {
-        // Non-critical, continue without account info
       }
-    }
 
-    await db
-      .update(connectorInstances)
-      .set({
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        tokenExpiresAt: tokens.expiresIn ? now + tokens.expiresIn * 1000 : null,
-        status: 'connected' as ConnectorStatus,
-        accountEmail,
-        accountInfo,
-        appliedVersion: definition.currentVersion,
-        capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
-        updatedAt: now,
-      })
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+      await db
+        .update(connectorInstances)
+        .set({
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          tokenExpiresAt: tokens.expiresIn ? now + tokens.expiresIn * 1000 : null,
+          status: 'connected' as ConnectorStatus,
+          accountEmail,
+          accountInfo,
+          appliedVersion: definition.currentVersion,
+          capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
+          updatedAt: now,
+        })
+        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
-    log.info(
-      { event: 'connector.authorized', instanceId, accountEmail },
-      `Connector authorized: ${instance.label}`,
-    );
+      log.info(
+        { event: 'connector.authorized', instanceId, accountEmail },
+        `Connector authorized: ${instance.label}`,
+      );
 
-    if (instance.connectorId === 'google') {
-      void import('@/connectors/google-toolsets.js')
-        .then((mod) => mod.registerGoogleToolsets())
-        .catch((error) => {
-          const message = error instanceof Error ? error.message : String(error);
-          log.warn(
-            { event: 'connector.google_toolsets.refresh_failed', instanceId, error: message },
-            'failed to refresh Google toolsets after authorization',
-          );
-        });
+      if (instance.connectorId === 'google') {
+        void import('@/connectors/google-toolsets.js')
+          .then((mod) => mod.registerGoogleToolsets())
+          .catch((error) => {
+            const message = error instanceof Error ? error.message : String(error);
+            log.warn(
+              { event: 'connector.google_toolsets.refresh_failed', instanceId, error: message },
+              'failed to refresh Google toolsets after authorization',
+            );
+          });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await db
+        .update(connectorInstances)
+        .set({ status: 'error' as ConnectorStatus, updatedAt: Date.now() })
+        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+      log.warn(
+        { event: 'connector.authorize.failed', instanceId, error: message },
+        'connector authorization failed',
+      );
+      throw error;
     }
   };
 
@@ -450,7 +455,8 @@ export async function upgradeConnectorInstance(
   }
 
   const now = Date.now();
-  if (upgrade.actions.length === 0 || upgrade.actions.every((action) => action === 'none')) {
+  const actions = upgrade.actions.filter((action) => action !== 'none');
+  if (actions.length === 0) {
     await db
       .update(connectorInstances)
       .set({
@@ -462,15 +468,18 @@ export async function upgradeConnectorInstance(
     return ok({ type: 'updated' });
   }
 
-  if (upgrade.actions.includes('rotate_api_key')) {
-    if (!input.apiKey?.trim()) {
-      return err('A new API key is required to upgrade this connector', 400);
-    }
+  const requiresApiKeyRotation = actions.includes('rotate_api_key');
+  const requiresReauthorize = actions.includes('reauthorize');
 
+  if (requiresApiKeyRotation && !input.apiKey?.trim()) {
+    return err('A new API key is required to upgrade this connector', 400);
+  }
+
+  if (requiresApiKeyRotation && !requiresReauthorize) {
     await db
       .update(connectorInstances)
       .set({
-        apiKey: input.apiKey.trim(),
+        apiKey: input.apiKey?.trim() ?? null,
         appliedVersion: definition.currentVersion,
         capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
         status: 'connected' as ConnectorStatus,
@@ -481,18 +490,33 @@ export async function upgradeConnectorInstance(
     return ok({ type: 'updated' });
   }
 
-  if (upgrade.actions.includes('reauthorize')) {
+  if (requiresReauthorize) {
+    if (definition.authType !== 'oauth2') {
+      return err('Connector upgrade requires reauthorization, but connector is not OAuth2', 400);
+    }
+
     const currentScopes = (instance.scopes) ?? [];
     const scopeSet = new Set([...currentScopes, ...upgrade.missingScopes]);
     const nextScopes = [...scopeSet];
 
+    const setValues: {
+      scopes: string[];
+      status: ConnectorStatus;
+      updatedAt: number;
+      apiKey?: string | null;
+    } = {
+      scopes: nextScopes,
+      status: 'awaiting_auth' as ConnectorStatus,
+      updatedAt: now,
+    };
+
+    if (requiresApiKeyRotation) {
+      setValues.apiKey = input.apiKey?.trim() ?? null;
+    }
+
     await db
       .update(connectorInstances)
-      .set({
-        scopes: nextScopes,
-        status: 'awaiting_auth' as ConnectorStatus,
-        updatedAt: now,
-      })
+      .set(setValues)
       .where(eq(connectorInstances.id, typedInstanceId));
 
     const auth = await authorizeOAuthInstance(instanceId);
@@ -501,7 +525,13 @@ export async function upgradeConnectorInstance(
     }
 
     const { waitForTokens } = auth.data;
-    void waitForTokens();
+    void waitForTokens().catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      log.warn(
+        { event: 'connector.upgrade.reauthorize.failed', instanceId, error: message },
+        'connector upgrade reauthorization failed',
+      );
+    });
     return ok({ type: 'reauthorize', authUrl: auth.data.authUrl });
   }
 

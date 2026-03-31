@@ -8,53 +8,52 @@ import { eq } from 'drizzle-orm';
 import type { Tool } from 'ai';
 
 import { GoogleClient } from '@stitch/google/client';
+import {
+  GOOGLE_CAPABILITY_CALENDAR_READ,
+  GOOGLE_CAPABILITY_DOCS_READ,
+  GOOGLE_CAPABILITY_DRIVE_READ,
+  GOOGLE_CAPABILITY_GMAIL_READ,
+  GOOGLE_TOOLSET_IDS,
+  type GoogleToolsetDefinition,
+  buildGoogleToolsets,
+} from '@stitch/google/toolsets';
+import { hasServiceAccess } from '@stitch/google/scopes';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
-import type { PrefixedString } from '@stitch/shared/id';
-import { buildGoogleToolsets, type GoogleToolsetDefinition } from '@stitch/google/toolsets';
 
 import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
+import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 
 const log = Log.create({ service: 'google-toolsets' });
-const GOOGLE_TOOLSET_IDS = ['google-gmail', 'google-drive', 'google-calendar', 'google-docs'] as const;
 const REFRESH_BUFFER_MS = 60_000;
 
-async function resolveOAuthCredentials(instance: {
-  id: string;
-  oauthProfileId: PrefixedString<'connp'> | null;
-  clientId: string | null;
-  clientSecret: string | null;
-}): Promise<{ clientId: string; clientSecret: string } | null> {
-  if (instance.clientId && instance.clientSecret) {
-    return { clientId: instance.clientId, clientSecret: instance.clientSecret };
+function hasCapability(capabilities: string[] | null | undefined, capability: string): boolean {
+  return (capabilities ?? []).includes(capability);
+}
+
+function accountSupportsToolset(
+  toolsetId: string,
+  account: { scopes: string[] | null; capabilities: string[] | null },
+): boolean {
+  const scopes = account.scopes ?? [];
+  if (toolsetId === 'google-gmail') {
+    return hasServiceAccess(scopes, 'gmail') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_GMAIL_READ);
   }
-
-  if (!instance.oauthProfileId) {
-    return null;
+  if (toolsetId === 'google-drive') {
+    return hasServiceAccess(scopes, 'drive') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_DRIVE_READ);
   }
-
-  const db = getDb();
-  const [profile] = await db
-    .select({
-      clientId: connectorOAuthProfiles.clientId,
-      clientSecret: connectorOAuthProfiles.clientSecret,
-    })
-    .from(connectorOAuthProfiles)
-    .where(eq(connectorOAuthProfiles.id, instance.oauthProfileId));
-
-  if (!profile?.clientId || !profile.clientSecret) {
-    return null;
+  if (toolsetId === 'google-calendar') {
+    return hasServiceAccess(scopes, 'calendar') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_CALENDAR_READ);
   }
-
-  return {
-    clientId: profile.clientId,
-    clientSecret: profile.clientSecret,
-  };
+  if (toolsetId === 'google-docs') {
+    return hasServiceAccess(scopes, 'docs') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_DOCS_READ);
+  }
+  return false;
 }
 
 /** Convert a @stitch/google toolset definition into the server Toolset type. */
@@ -82,6 +81,8 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
             clientSecret: connectorInstances.clientSecret,
             connectorId: connectorInstances.connectorId,
             status: connectorInstances.status,
+            scopes: connectorInstances.scopes,
+            capabilities: connectorInstances.capabilities,
           })
           .from(connectorInstances)
           .where(eq(connectorInstances.connectorId, 'google'));
@@ -105,6 +106,12 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
         if (!chosen) {
           const available = connected.map((row) => row.accountEmail ?? row.label).join(', ');
           throw new Error(`Unknown Google account "${account}". Available accounts: ${available}`);
+        }
+
+        if (!accountSupportsToolset(def.id, chosen)) {
+          throw new Error(
+            `Google account ${chosen.accountEmail ?? chosen.label} does not have the permissions required for ${def.name}. Re-authorize this account with the required scopes.`,
+          );
         }
 
         const client = new GoogleClient({

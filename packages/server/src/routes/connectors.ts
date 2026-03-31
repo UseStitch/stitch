@@ -19,8 +19,10 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import { isServiceError } from '@/lib/service-result.js';
+import * as Log from '@/lib/log.js';
 
 export const connectorsRouter = new Hono();
+const log = Log.create({ service: 'connectors-route' });
 
 // Serve connector icon SVGs (cached from Simple Icons)
 connectorsRouter.get('/icons/:slug', async (c) => {
@@ -120,7 +122,10 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
 
   // Start the token wait in the background - it resolves when the user completes the OAuth flow
   const { waitForTokens } = result.data;
-  void waitForTokens();
+  void waitForTokens().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn({ event: 'connector.authorize.background_failed', id, error: message }, 'background connector authorization failed');
+  });
 
   return c.json({ authUrl: result.data.authUrl });
 });
