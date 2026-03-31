@@ -16,7 +16,13 @@ type CachedIconFile = {
 };
 
 const KEY_REGEX = /^[a-f0-9]{40}$/;
-const ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']);
+const ALLOWED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/svg+xml',
+  'image/webp',
+]);
 
 function buildKey(scope: string, src: string): string {
   return createHash('sha256').update(`${scope}:${src}`).digest('hex').slice(0, 40);
@@ -124,7 +130,10 @@ export async function cacheMcpIcon(input: {
 
   if (!['http:', 'https:'].includes(iconUrl.protocol)) return null;
   if (!isAllowedRemoteIcon(iconUrl, serverUrl)) {
-    log.warn({ serverUrl, iconUrl: iconUrl.toString() }, 'blocked mcp icon from non-matching origin');
+    log.warn(
+      { serverUrl, iconUrl: iconUrl.toString() },
+      'blocked mcp icon from non-matching origin',
+    );
     return null;
   }
 

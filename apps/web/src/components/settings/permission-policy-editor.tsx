@@ -8,6 +8,8 @@ import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permiss
 import type { BashPreset } from '@stitch/shared/tools/bash-presets';
 import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
 
+import { PermissionSelect } from './permission-select';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,8 +17,6 @@ import {
   useDeleteToolPermission,
   useUpsertToolPermission,
 } from '@/lib/queries/tools';
-
-import { PermissionSelect } from './permission-select';
 
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 const COMMAND_PATTERN_TOOLS = new Set(['bash']);
@@ -28,7 +28,11 @@ type PermissionPolicyEditorProps = {
   onBack: () => void;
 };
 
-export function PermissionPolicyEditor({ toolName, displayName, onBack }: PermissionPolicyEditorProps) {
+export function PermissionPolicyEditor({
+  toolName,
+  displayName,
+  onBack,
+}: PermissionPolicyEditorProps) {
   const { data: permissions } = useSuspenseQuery(toolPermissionsQueryOptions);
   const upsertPermission = useUpsertToolPermission();
   const deletePermission = useDeleteToolPermission();
@@ -52,10 +56,7 @@ export function PermissionPolicyEditor({ toolName, displayName, onBack }: Permis
       });
   };
 
-  const handlePatternPermissionChange = (
-    rule: ToolPermission,
-    permission: ToolPermissionValue,
-  ) => {
+  const handlePatternPermissionChange = (rule: ToolPermission, permission: ToolPermissionValue) => {
     void upsertPermission
       .mutateAsync({ toolName, pattern: rule.pattern, permission })
       .catch((error: unknown) => {
@@ -103,7 +104,9 @@ export function PermissionPolicyEditor({ toolName, displayName, onBack }: Permis
         </Button>
         <div>
           <p className="text-sm font-semibold">{displayName} permissions</p>
-          <p className="text-xs text-muted-foreground">Configure when this tool requires approval</p>
+          <p className="text-xs text-muted-foreground">
+            Configure when this tool requires approval
+          </p>
         </div>
       </div>
 
@@ -132,7 +135,9 @@ export function PermissionPolicyEditor({ toolName, displayName, onBack }: Permis
                 key={rule.id}
                 className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
               >
-                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                  {rule.pattern}
+                </p>
                 <PermissionSelect
                   value={rule.permission}
                   onChange={(value) => handlePatternPermissionChange(rule, value)}
@@ -177,7 +182,9 @@ export function PermissionPolicyEditor({ toolName, displayName, onBack }: Permis
                           permission: 'allow',
                         })
                         .catch((error: unknown) => {
-                          toast.error(error instanceof Error ? error.message : 'Failed to add rule');
+                          toast.error(
+                            error instanceof Error ? error.message : 'Failed to add rule',
+                          );
                         });
                     }
                   }}

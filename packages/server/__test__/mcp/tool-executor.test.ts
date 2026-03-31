@@ -16,7 +16,9 @@ vi.mock('@/mcp/service.js', () => ({
       updatedAt: Date.now(),
     },
   ]),
-  fetchMcpTools: vi.fn(async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+  fetchMcpTools: vi.fn(async () => [
+    { name: 'lookup', description: 'Lookup data', inputSchema: {} },
+  ]),
 }));
 
 vi.mock('@/mcp/client.js', () => ({
@@ -40,7 +42,10 @@ function clearToolsets(): void {
 describe('refreshMcpToolsets', () => {
   beforeEach(() => {
     clearToolsets();
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false })),
+    );
   });
 
   afterEach(() => {

@@ -7,11 +7,7 @@ import { formatMcpToolName } from '@stitch/shared/mcp/types';
 
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
-import {
-  deletePerm,
-  getPerms,
-  upsertPerm,
-} from '@/permission/service.js';
+import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
 import { getGlobalProviderKnownTools } from '@/tools/providers/index.js';
 import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
 

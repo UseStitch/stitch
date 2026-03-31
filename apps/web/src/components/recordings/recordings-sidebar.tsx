@@ -9,7 +9,6 @@ import type { Meeting } from '@stitch/shared/meetings/types';
 import { formatAppName, formatDuration } from '@/components/recordings/recording-detail/formatting';
 import { StatusBadge } from '@/components/recordings/recording-detail/status-badge';
 import { Button } from '@/components/ui/button';
-import { useSSE } from '@/hooks/sse/sse-context';
 import {
   SidebarContent,
   SidebarGroup,
@@ -20,6 +19,7 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from '@/components/ui/sidebar';
+import { useSSE } from '@/hooks/sse/sse-context';
 import {
   meetingKeys,
   recordingsQueryOptions,

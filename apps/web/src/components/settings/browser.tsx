@@ -133,9 +133,7 @@ export function BrowserSettings() {
     <div className="flex h-full flex-col">
       <div className="mb-6">
         <h2 className="text-base font-bold">Browser</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure the browser used by Stitch
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Configure the browser used by Stitch</p>
       </div>
 
       {isMac ? (

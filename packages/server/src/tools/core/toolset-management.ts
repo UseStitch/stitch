@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { getToolset } from '@/tools/toolsets/registry.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
 
 /**
  * Create the three toolset management meta-tools bound to a specific ToolsetManager instance.

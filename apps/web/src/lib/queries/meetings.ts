@@ -10,8 +10,7 @@ const meetingKeys = {
   all: ['meetings'] as const,
   list: () => [...meetingKeys.all, 'list'] as const,
   transcription: (meetingId: string) => [...meetingKeys.all, 'transcription', meetingId] as const,
-  transcriptions: (meetingId: string) =>
-    [...meetingKeys.all, 'transcriptions', meetingId] as const,
+  transcriptions: (meetingId: string) => [...meetingKeys.all, 'transcriptions', meetingId] as const,
 };
 
 export const recordingsQueryOptions = queryOptions({
@@ -156,7 +155,9 @@ export function useTranscribeMeeting() {
     onSuccess: (_, variables) => {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: meetingKeys.transcription(variables.meetingId) }),
-        queryClient.invalidateQueries({ queryKey: meetingKeys.transcriptions(variables.meetingId) }),
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.transcriptions(variables.meetingId),
+        }),
       ]);
     },
   });
@@ -182,7 +183,9 @@ export function useDeleteTranscriptionVersion() {
     onSuccess: (_, variables) => {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: meetingKeys.transcription(variables.meetingId) }),
-        queryClient.invalidateQueries({ queryKey: meetingKeys.transcriptions(variables.meetingId) }),
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.transcriptions(variables.meetingId),
+        }),
       ]);
     },
   });

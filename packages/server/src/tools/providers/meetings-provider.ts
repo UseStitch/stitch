@@ -1,14 +1,13 @@
-import { readFileSync } from 'node:fs';
-
 import { tool } from 'ai';
 import { desc, eq } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import { getDb } from '@/db/client.js';
 import { meetings, recordingTranscriptions } from '@/db/schema.js';
 import type { ToolProvider } from '@/tools/providers/types.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
 import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
+import type { Toolset } from '@/tools/toolsets/types.js';
 
 const meetingsInstructions = readFileSync(
   new URL('./instructions/meetings.md', import.meta.url),

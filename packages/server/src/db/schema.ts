@@ -210,9 +210,7 @@ export const toolPermissions = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [
-    uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern),
-  ],
+  (table) => [uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern)],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {
@@ -229,7 +227,6 @@ export const mcpServers = sqliteTable('mcp_servers', {
     .notNull()
     .$defaultFn(() => Date.now()),
 });
-
 
 export const queuedMessages = sqliteTable('queued_messages', {
   id: text('id').$type<PrefixedString<'qmsg'>>().primaryKey(),

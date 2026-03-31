@@ -38,12 +38,14 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'model.default.providerId',
     value: '',
-    description: 'Provider ID for the default model used for general conversations and assistance tasks.',
+    description:
+      'Provider ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.default.modelId',
     value: '',
-    description: 'Model ID for the default model used for general conversations and assistance tasks.',
+    description:
+      'Model ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.compaction.providerId',

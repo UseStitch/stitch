@@ -1,9 +1,10 @@
 import { createMCPClient } from '@ai-sdk/mcp';
-import type { MCPClient } from '@ai-sdk/mcp';
+
+import type { McpAuthConfig } from '@stitch/shared/mcp/types';
 
 import * as Log from '@/lib/log.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
-import type { McpAuthConfig } from '@stitch/shared/mcp/types';
+import type { MCPClient } from '@ai-sdk/mcp';
 
 const log = Log.create({ service: 'mcp-client' });
 

@@ -53,8 +53,6 @@ type NavigationEntry = {
   title: string;
 };
 
-
-
 // ── Injected snapshot script ────────────────────────────────
 // Runs inside the browser to build a YAML-like accessibility tree with refs.
 // Assigns "eN" refs to interactable/visible elements and stores backendNodeId
@@ -714,7 +712,11 @@ class BrowserManager {
     return `Hovered over ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
-  async type(ref: string, text: string, options?: { slowly?: boolean; submit?: boolean; clear?: boolean; signal?: AbortSignal }): Promise<string> {
+  async type(
+    ref: string,
+    text: string,
+    options?: { slowly?: boolean; submit?: boolean; clear?: boolean; signal?: AbortSignal },
+  ): Promise<string> {
     const signal = options?.signal;
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
@@ -725,7 +727,9 @@ class BrowserManager {
 
     // Clear field before typing if requested
     if (options?.clear) {
-      await this.evalInPage(session, `
+      await this.evalInPage(
+        session,
+        `
         (() => {
           const el = document.querySelector('[data-stitch-ref="${ref}"]');
           if (!el) return;
@@ -736,7 +740,8 @@ class BrowserManager {
             el.textContent = '';
           }
         })()
-      `);
+      `,
+      );
     }
 
     if (options?.slowly) {
@@ -896,14 +901,18 @@ class BrowserManager {
       if (s.pagesAbove > 0) scrollParts.push(`${s.pagesAbove} pages above`);
       if (s.pagesBelow > 0) scrollParts.push(`${s.pagesBelow} pages below`);
       if (scrollParts.length > 0) {
-        lines.push(`- Scroll: ${scrollParts.join(', ')}${s.pagesBelow > 0.2 ? ' — scroll down to reveal more content' : ''}`);
+        lines.push(
+          `- Scroll: ${scrollParts.join(', ')}${s.pagesBelow > 0.2 ? ' — scroll down to reveal more content' : ''}`,
+        );
       }
     }
 
     // Page stats
     if (data.meta?.stats) {
       const st = data.meta.stats;
-      lines.push(`- Stats: ${st.links} links, ${st.interactive} interactive, ${st.iframes} iframes, ${st.images} images, ${st.totalElements} total elements`);
+      lines.push(
+        `- Stats: ${st.links} links, ${st.interactive} interactive, ${st.iframes} iframes, ${st.images} images, ${st.totalElements} total elements`,
+      );
     }
 
     lines.push('');
@@ -948,11 +957,15 @@ class BrowserManager {
     // Auto-wrap expressions containing top-level `return` in an IIFE
     const wrapped = needsIIFEWrap(expression) ? `(()=>{${expression}})()` : expression;
 
-    const result = await session.send('Runtime.evaluate', {
-      expression: wrapped,
-      returnByValue: true,
-      awaitPromise: true,
-    }, signal);
+    const result = await session.send(
+      'Runtime.evaluate',
+      {
+        expression: wrapped,
+        returnByValue: true,
+        awaitPromise: true,
+      },
+      signal,
+    );
 
     const exceptionDetails = result.exceptionDetails as Record<string, unknown> | undefined;
     if (exceptionDetails) {
@@ -963,7 +976,10 @@ class BrowserManager {
       const columnNumber = exceptionDetails.columnNumber as number | undefined;
 
       const parts = [description ?? text];
-      if (lineNumber !== undefined) parts.push(`at line ${lineNumber + 1}${columnNumber !== undefined ? `:${columnNumber + 1}` : ''}`);
+      if (lineNumber !== undefined)
+        parts.push(
+          `at line ${lineNumber + 1}${columnNumber !== undefined ? `:${columnNumber + 1}` : ''}`,
+        );
       throw new Error(parts.join(' '));
     }
 
@@ -1069,7 +1085,8 @@ class BrowserManager {
       bing: `https://www.bing.com/search?q=${encodedQuery}`,
     };
     const url = searchUrls[engine.toLowerCase()];
-    if (!url) throw new Error(`Unsupported search engine: ${engine}. Use: google, duckduckgo, bing`);
+    if (!url)
+      throw new Error(`Unsupported search engine: ${engine}. Use: google, duckduckgo, bing`);
 
     return this.navigate(url, signal);
   }
@@ -1083,7 +1100,9 @@ class BrowserManager {
     const selectorJs = selector ? JSON.stringify(selector) : 'null';
 
     // Extract clean text content from the page, converting to a readable format
-    const result = await this.evalInPage(session, `
+    const result = await this.evalInPage(
+      session,
+      `
       (() => {
         const sel = ${selectorJs};
         const root = sel ? document.querySelector(sel) : document.body;
@@ -1133,7 +1152,8 @@ class BrowserManager {
         // Clean up excessive whitespace
         return raw.replace(/\\n{3,}/g, '\\n\\n').trim().slice(0, 100000);
       })()
-    `);
+    `,
+    );
 
     return typeof result === 'string' ? result : '[Could not extract page content]';
   }

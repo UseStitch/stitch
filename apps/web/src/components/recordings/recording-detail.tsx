@@ -44,7 +44,9 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDelete: () => void }) {
   const queryClient = useQueryClient();
   const hasAudio = meeting.status === 'completed' && meeting.recordingFilePath;
-  const { data: transcriptionVersions = [] } = useQuery(transcriptionVersionsQueryOptions(meeting.id));
+  const { data: transcriptionVersions = [] } = useQuery(
+    transcriptionVersionsQueryOptions(meeting.id),
+  );
   const { data: settings } = useQuery(settingsQueryOptions);
   const { data: audioModels = [] } = useQuery(enabledAudioProviderModelsQueryOptions);
   const transcribeMutation = useTranscribeMeeting();
@@ -164,7 +166,9 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
                       (!inFlightTranscription && !selectedModel)
                     }
                   >
-                    {isStoppingTranscription || transcribeMutation.isPending || isStartingTranscription ? (
+                    {isStoppingTranscription ||
+                    transcribeMutation.isPending ||
+                    isStartingTranscription ? (
                       <Loader2Icon className="size-3 animate-spin" />
                     ) : inFlightTranscription ? (
                       <SquareIcon className="size-3" />
@@ -174,10 +178,10 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
                     {inFlightTranscription
                       ? 'Stop'
                       : !latestTranscription || latestTranscription.status === 'failed'
-                      ? latestTranscription?.status === 'failed'
-                        ? 'Retry'
-                        : 'Transcribe'
-                      : 'Re-transcribe'}
+                        ? latestTranscription?.status === 'failed'
+                          ? 'Retry'
+                          : 'Transcribe'
+                        : 'Re-transcribe'}
                   </Button>
                 </div>
                 <div className="h-5 w-px bg-border/50" />

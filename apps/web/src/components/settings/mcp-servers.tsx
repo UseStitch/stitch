@@ -1,4 +1,11 @@
-import { ArrowLeftIcon, EyeIcon, PlusIcon, RefreshCwIcon, Trash2Icon, WrenchIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  EyeIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  WrenchIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 

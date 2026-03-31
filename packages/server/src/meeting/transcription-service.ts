@@ -150,7 +150,10 @@ function smoothSpeakerAssignments(entries: TranscriptEntry[]): TranscriptEntry[]
   return smoothed;
 }
 
-function chunkTranscriptEntries(entries: TranscriptEntry[], chunkSize: number): TranscriptEntry[][] {
+function chunkTranscriptEntries(
+  entries: TranscriptEntry[],
+  chunkSize: number,
+): TranscriptEntry[][] {
   if (entries.length <= chunkSize) {
     return [entries];
   }
@@ -243,7 +246,10 @@ async function runTranscription(
     const transcriptParts: TranscriptEntry[][] = [];
 
     // --- Pass 1: Audio -> Transcript (chunked for long recordings) ---
-    for await (const chunk of iterateWavFileChunks(meeting.recordingFilePath, TRANSCRIPTION_CHUNK_MAX_SECS)) {
+    for await (const chunk of iterateWavFileChunks(
+      meeting.recordingFilePath,
+      TRANSCRIPTION_CHUNK_MAX_SECS,
+    )) {
       if (abortController.signal.aborted) {
         return;
       }
@@ -318,7 +324,10 @@ async function runTranscription(
     const transcript = smoothSpeakerAssignments(transcriptParts.flat());
 
     // --- Pass 2: Transcript -> Chunk summaries ---
-    const transcriptChunks = chunkTranscriptEntries(transcript, ANALYSIS_TRANSCRIPT_TURNS_PER_CHUNK);
+    const transcriptChunks = chunkTranscriptEntries(
+      transcript,
+      ANALYSIS_TRANSCRIPT_TURNS_PER_CHUNK,
+    );
     const chunkSummaries: string[] = [];
 
     for (let i = 0; i < transcriptChunks.length; i += 1) {

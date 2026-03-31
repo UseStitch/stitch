@@ -1,6 +1,6 @@
 import * as Log from '@/lib/log.js';
-import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'toolset-manager' });

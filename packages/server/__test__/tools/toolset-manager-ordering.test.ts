@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import type { Tool } from 'ai';
 
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
+import type { Tool } from 'ai';
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {
@@ -86,9 +86,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
     await manager2.activate('ts-second');
     await manager2.activate('ts-first');
 
-    expect(Object.keys(manager1.getActiveTools())).toEqual(
-      Object.keys(manager2.getActiveTools()),
-    );
+    expect(Object.keys(manager1.getActiveTools())).toEqual(Object.keys(manager2.getActiveTools()));
     expect(Object.keys(manager1.getActiveTools())).toEqual(['a_tool', 'b_tool']);
   });
 });

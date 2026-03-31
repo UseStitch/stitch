@@ -6,6 +6,10 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
 
+import { PATTERN_POLICY_TOOLS, PermissionPolicyEditor } from './permission-policy-editor';
+import { PermissionSelect } from './permission-select';
+
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   knownMcpToolsQueryOptions,
@@ -13,10 +17,6 @@ import {
   toolPermissionsQueryOptions,
   useUpsertToolPermission,
 } from '@/lib/queries/tools';
-
-import { PATTERN_POLICY_TOOLS, PermissionPolicyEditor } from './permission-policy-editor';
-import { PermissionSelect } from './permission-select';
-import { Button } from '@/components/ui/button';
 
 function PermissionsContent() {
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
@@ -51,9 +51,11 @@ function PermissionsContent() {
   };
 
   const handlePermissionChange = (toolName: string, permission: ToolPermissionValue) => {
-    void upsertPermission.mutateAsync({ toolName, pattern: null, permission }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update permission');
-    });
+    void upsertPermission
+      .mutateAsync({ toolName, pattern: null, permission })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+      });
   };
 
   if (editingTool) {

@@ -40,8 +40,9 @@ async function getToolsForServer(
   server: McpServerWithTools,
   context: ToolContext,
 ): Promise<Record<string, Tool>> {
-  const rawTools = await withMcpClient(server, (client) =>
-    client.tools() as Promise<Record<string, Tool>>,
+  const rawTools = await withMcpClient(
+    server,
+    (client) => client.tools() as Promise<Record<string, Tool>>,
   );
 
   const prefixed: Record<string, Tool> = {};
@@ -263,7 +264,9 @@ async function refreshMcpToolsetsInternal(options?: {
     ? configuredServers.filter((server) => serverIdSet.has(server.id))
     : configuredServers;
 
-  const desiredMcpToolsetIds = new Set(configuredServers.map((server) => buildMcpToolsetId(server)));
+  const desiredMcpToolsetIds = new Set(
+    configuredServers.map((server) => buildMcpToolsetId(server)),
+  );
   const staleIds = listToolsetIds().filter(
     (id) => id.startsWith('mcp:') && !desiredMcpToolsetIds.has(id),
   );

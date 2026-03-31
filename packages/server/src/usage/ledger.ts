@@ -32,7 +32,8 @@ function extractUsageMetrics(usage: LanguageModelUsage | null | undefined): Usag
   const cacheReadTokens = safeNumber(usage?.inputTokenDetails?.cacheReadTokens);
   const cacheWriteTokens = safeNumber(usage?.inputTokenDetails?.cacheWriteTokens);
   const totalTokens =
-    safeNumber(usage?.totalTokens) || inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
+    safeNumber(usage?.totalTokens) ||
+    inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
 
   return {
     inputTokens,

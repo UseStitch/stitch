@@ -12,12 +12,7 @@ export const SHORTCUT_ACTION_IDS = [
 
 export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
 
-export const SHORTCUT_CATEGORIES = [
-  'Workspace',
-  'Chat',
-  'Sessions',
-  'Recordings',
-] as const;
+export const SHORTCUT_CATEGORIES = ['Workspace', 'Chat', 'Sessions', 'Recordings'] as const;
 
 export type ShortcutCategory = (typeof SHORTCUT_CATEGORIES)[number];
 

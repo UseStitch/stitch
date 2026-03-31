@@ -38,12 +38,7 @@ type ChildSessionToolBlockProps = {
   error?: string;
 };
 
-export function ChildSessionToolBlock({
-  status,
-  args,
-  result,
-  error,
-}: ChildSessionToolBlockProps) {
+export function ChildSessionToolBlock({ status, args, result, error }: ChildSessionToolBlockProps) {
   const navigate = useNavigate();
   const { isActive } = getToolCardState(status);
   const task = getChildSessionTask(args);
@@ -61,13 +56,13 @@ export function ChildSessionToolBlock({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
             <ToolCard.Title>{displayName}</ToolCard.Title>
-              <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                <BotIcon className="size-2.5" />
-                Child session
-              </span>
+            <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <BotIcon className="size-2.5" />
+              Child session
+            </span>
           </div>
           <ToolCard.TitleContent truncate className="block">
-            {label ?? (isActive ? taskPreview : (summary ? truncateText(summary, 200) : 'Completed'))}
+            {label ?? (isActive ? taskPreview : summary ? truncateText(summary, 200) : 'Completed')}
           </ToolCard.TitleContent>
         </div>
         {canNavigate ? (

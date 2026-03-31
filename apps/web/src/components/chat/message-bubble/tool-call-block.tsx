@@ -3,11 +3,11 @@ import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import { BashToolBlock } from '@/components/chat/message-bubble/tool-call/bash-tool-block';
 import { BrowserToolBlock } from '@/components/chat/message-bubble/tool-call/browser-tool-block';
+import { ChildSessionToolBlock } from '@/components/chat/message-bubble/tool-call/child-session-tool-block';
 import { FileToolBlock } from '@/components/chat/message-bubble/tool-call/file-tool-block';
 import { GenericToolBlock } from '@/components/chat/message-bubble/tool-call/generic-tool-block';
 import { McpToolBlock } from '@/components/chat/message-bubble/tool-call/mcp-tool-block';
 import { QuestionToolBlock } from '@/components/chat/message-bubble/tool-call/question-tool-block';
-import { ChildSessionToolBlock } from '@/components/chat/message-bubble/tool-call/child-session-tool-block';
 import { ToolsetToolBlock } from '@/components/chat/message-bubble/tool-call/toolset-tool-block';
 import { WebfetchToolBlock } from '@/components/chat/message-bubble/tool-call/webfetch-tool-block';
 
@@ -36,14 +36,7 @@ export function ToolCallBlock({
   const isToolsetTool = TOOLSET_TOOLS.has(toolName);
 
   if (isChildSession) {
-    return (
-      <ChildSessionToolBlock
-        status={status}
-        args={args}
-        result={result}
-        error={error}
-      />
-    );
+    return <ChildSessionToolBlock status={status} args={args} result={result} error={error} />;
   }
 
   if (isToolsetTool) {

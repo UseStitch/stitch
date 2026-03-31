@@ -63,7 +63,10 @@ describe('toolset management tools', () => {
     registerTestToolset();
     const manager = createManager();
     const tools = createToolsetTools(manager);
-    const result = await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
+    const result = await tools.activate_toolset.execute?.(
+      { toolsetId: 'test-toolset' },
+      {} as never,
+    );
 
     expect(result).toMatchObject({
       toolsetId: 'test-toolset',
@@ -79,10 +82,13 @@ describe('toolset management tools', () => {
     registerTestToolset();
     const manager = createManager();
     const tools = createToolsetTools(manager);
-    const result = await tools.activate_toolset.execute?.({
-      toolsetId: 'test-toolset',
-      verbose: true,
-    }, {} as never);
+    const result = await tools.activate_toolset.execute?.(
+      {
+        toolsetId: 'test-toolset',
+        verbose: true,
+      },
+      {} as never,
+    );
 
     expect(result).toMatchObject({
       toolsetId: 'test-toolset',

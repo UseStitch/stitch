@@ -1,5 +1,5 @@
-import { describe, expect, test, vi } from 'vitest';
 import { tool } from 'ai';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 
 import { withTruncation } from '@/tools/runtime/wrappers.js';

@@ -8,7 +8,12 @@ type WavChunk = {
 
 const WAV_HEADER_SIZE = 44;
 
-function buildWavHeader(dataSize: number, sampleRate: number, channels: number, bitsPerSample: number) {
+function buildWavHeader(
+  dataSize: number,
+  sampleRate: number,
+  channels: number,
+  bitsPerSample: number,
+) {
   const byteRate = sampleRate * channels * (bitsPerSample / 8);
   const blockAlign = channels * (bitsPerSample / 8);
   const fileSize = 36 + dataSize;
@@ -73,7 +78,11 @@ export function splitWavIntoChunks(audioData: Uint8Array, maxChunkSeconds: numbe
   const chunks: WavChunk[] = [];
   const totalChunks = Math.ceil(dataSize / maxChunkBytes);
 
-  for (let offset = 0, chunkIndex = 1; offset < dataSize; offset += maxChunkBytes, chunkIndex += 1) {
+  for (
+    let offset = 0, chunkIndex = 1;
+    offset < dataSize;
+    offset += maxChunkBytes, chunkIndex += 1
+  ) {
     const chunkDataSize = Math.min(maxChunkBytes, dataSize - offset);
     const chunkPayload = buffer.subarray(dataStart + offset, dataStart + offset + chunkDataSize);
     const chunkHeader = buildWavHeader(chunkDataSize, sampleRate, channels, bitsPerSample);
@@ -151,7 +160,11 @@ export async function* iterateWavFileChunks(
     const totalChunks = Math.ceil(dataSize / maxChunkBytes);
     const dataStart = WAV_HEADER_SIZE;
 
-    for (let offset = 0, chunkIndex = 1; offset < dataSize; offset += maxChunkBytes, chunkIndex += 1) {
+    for (
+      let offset = 0, chunkIndex = 1;
+      offset < dataSize;
+      offset += maxChunkBytes, chunkIndex += 1
+    ) {
       const chunkDataSize = Math.min(maxChunkBytes, dataSize - offset);
       const chunkPayload = Buffer.alloc(chunkDataSize);
 

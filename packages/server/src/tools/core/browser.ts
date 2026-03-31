@@ -13,37 +13,44 @@ import { withTruncation } from '@/tools/runtime/wrappers.js';
 
 const browserInputSchema = z.object({
   action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),
-  actions: z.array(z.object({
-    action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),
-    url: z.string().optional().describe('URL for navigate, tab_new, or search engine URL.'),
-    ref: z.string().optional().describe('Element ref from a snapshot (e.g. "e1").'),
-    text: z.string().optional().describe('Text to type or wait for.'),
-    key: z.string().optional().describe('Key to press (e.g. "Enter", "Tab").'),
-    values: z.array(z.string()).optional().describe('Option values to select.'),
-    submit: z.boolean().optional().describe('Press Enter after typing.'),
-    slowly: z.boolean().optional().describe('Type character by character.'),
-    clear: z.boolean().optional().describe('Clear the field before typing.'),
-    doubleClick: z.boolean().optional().describe('Double-click instead of single click.'),
-    button: z.string().optional().describe('Mouse button: "left", "right", or "middle".'),
-    modifiers: z.array(z.string()).optional().describe('Keyboard modifiers.'),
-    direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Scroll direction.'),
-    fn: z.string().optional().describe('JavaScript expression to evaluate.'),
-    width: z.number().optional().describe('Viewport width in pixels.'),
-    height: z.number().optional().describe('Viewport height in pixels.'),
-    tabId: z.string().optional().describe('Tab ID.'),
-    timeMs: z.number().optional().describe('Wait time in ms.'),
-    selector: z.string().optional().describe('CSS selector.'),
-    pattern: z.string().optional().describe('Text pattern to search for.'),
-    regex: z.boolean().optional().describe('Treat pattern as regex.'),
-    caseSensitive: z.boolean().optional().describe('Case-sensitive search.'),
-    contextChars: z.number().optional().describe('Context chars per match.'),
-    cssScope: z.string().optional().describe('CSS selector to scope search within.'),
-    maxResults: z.number().optional().describe('Max results to return.'),
-    attributes: z.array(z.string()).optional().describe('Attributes to extract.'),
-    includeText: z.boolean().optional().describe('Include element text content.'),
-    query: z.string().optional().describe('Search query or extraction query.'),
-    engine: z.string().optional().describe('Search engine: google, duckduckgo, bing.'),
-  })).optional().describe('Array of actions for multi-action batching. Execute sequentially; stops if a page navigation occurs.'),
+  actions: z
+    .array(
+      z.object({
+        action: z.enum(BROWSER_ACTIONS).describe('The browser action to perform.'),
+        url: z.string().optional().describe('URL for navigate, tab_new, or search engine URL.'),
+        ref: z.string().optional().describe('Element ref from a snapshot (e.g. "e1").'),
+        text: z.string().optional().describe('Text to type or wait for.'),
+        key: z.string().optional().describe('Key to press (e.g. "Enter", "Tab").'),
+        values: z.array(z.string()).optional().describe('Option values to select.'),
+        submit: z.boolean().optional().describe('Press Enter after typing.'),
+        slowly: z.boolean().optional().describe('Type character by character.'),
+        clear: z.boolean().optional().describe('Clear the field before typing.'),
+        doubleClick: z.boolean().optional().describe('Double-click instead of single click.'),
+        button: z.string().optional().describe('Mouse button: "left", "right", or "middle".'),
+        modifiers: z.array(z.string()).optional().describe('Keyboard modifiers.'),
+        direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Scroll direction.'),
+        fn: z.string().optional().describe('JavaScript expression to evaluate.'),
+        width: z.number().optional().describe('Viewport width in pixels.'),
+        height: z.number().optional().describe('Viewport height in pixels.'),
+        tabId: z.string().optional().describe('Tab ID.'),
+        timeMs: z.number().optional().describe('Wait time in ms.'),
+        selector: z.string().optional().describe('CSS selector.'),
+        pattern: z.string().optional().describe('Text pattern to search for.'),
+        regex: z.boolean().optional().describe('Treat pattern as regex.'),
+        caseSensitive: z.boolean().optional().describe('Case-sensitive search.'),
+        contextChars: z.number().optional().describe('Context chars per match.'),
+        cssScope: z.string().optional().describe('CSS selector to scope search within.'),
+        maxResults: z.number().optional().describe('Max results to return.'),
+        attributes: z.array(z.string()).optional().describe('Attributes to extract.'),
+        includeText: z.boolean().optional().describe('Include element text content.'),
+        query: z.string().optional().describe('Search query or extraction query.'),
+        engine: z.string().optional().describe('Search engine: google, duckduckgo, bing.'),
+      }),
+    )
+    .optional()
+    .describe(
+      'Array of actions for multi-action batching. Execute sequentially; stops if a page navigation occurs.',
+    ),
   url: z.string().optional().describe('URL for navigate or tab_new actions.'),
   ref: z
     .string()
@@ -65,10 +72,7 @@ const browserInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Type character by character instead of filling. For type action.'),
-  clear: z
-    .boolean()
-    .optional()
-    .describe('Clear the field before typing. For type action.'),
+  clear: z.boolean().optional().describe('Clear the field before typing. For type action.'),
   doubleClick: z
     .boolean()
     .optional()
@@ -96,19 +100,12 @@ const browserInputSchema = z.object({
   selector: z
     .string()
     .optional()
-    .describe('CSS selector. For wait, find_elements, or extract (scopes extraction to element) actions.'),
-  pattern: z
-    .string()
-    .optional()
-    .describe('Text pattern to search for. For search_page action.'),
-  regex: z
-    .boolean()
-    .optional()
-    .describe('Treat pattern as regex. For search_page action.'),
-  caseSensitive: z
-    .boolean()
-    .optional()
-    .describe('Case-sensitive search. For search_page action.'),
+    .describe(
+      'CSS selector. For wait, find_elements, or extract (scopes extraction to element) actions.',
+    ),
+  pattern: z.string().optional().describe('Text pattern to search for. For search_page action.'),
+  regex: z.boolean().optional().describe('Treat pattern as regex. For search_page action.'),
+  caseSensitive: z.boolean().optional().describe('Case-sensitive search. For search_page action.'),
   contextChars: z
     .number()
     .optional()
@@ -168,9 +165,16 @@ Note: The top-level \`action\` field is ignored when \`actions\` is provided.
 - **wait**: Wait for time or selector
 - **resize**: Resize viewport`;
 
-
 // Page-changing actions that should stop multi-action batching if they trigger navigation
-const PAGE_CHANGING_ACTIONS = new Set(['navigate', 'search', 'go_back', 'go_forward', 'tab_new', 'tab_focus', 'evaluate']);
+const PAGE_CHANGING_ACTIONS = new Set([
+  'navigate',
+  'search',
+  'go_back',
+  'go_forward',
+  'tab_new',
+  'tab_focus',
+  'evaluate',
+]);
 
 async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
@@ -393,7 +397,9 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
         if (i < input.actions.length - 1) {
           results.push({
             action: 'skipped',
-            result: { output: `Stopped: remaining ${input.actions.length - i - 1} action(s) skipped due to error.` },
+            result: {
+              output: `Stopped: remaining ${input.actions.length - i - 1} action(s) skipped due to error.`,
+            },
           });
         }
         break;
@@ -403,7 +409,9 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
       if (PAGE_CHANGING_ACTIONS.has(actionInput.action) && i < input.actions.length - 1) {
         results.push({
           action: 'skipped',
-          result: { output: `Page changed after ${actionInput.action}. Remaining ${input.actions.length - i - 1} action(s) skipped. Take a new snapshot.` },
+          result: {
+            output: `Page changed after ${actionInput.action}. Remaining ${input.actions.length - i - 1} action(s) skipped. Take a new snapshot.`,
+          },
         });
         break;
       }
@@ -413,7 +421,8 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
     const outputLines = results.map((r, i) => {
       const res = r.result as Record<string, unknown>;
       const errorStr = typeof res.error === 'string' ? res.error : JSON.stringify(res.error);
-      const outputStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output ?? '');
+      const outputStr =
+        typeof res.output === 'string' ? res.output : JSON.stringify(res.output ?? '');
       const text = res.error ? `ERROR: ${errorStr}` : outputStr;
       return `[${i + 1}/${results.length}] ${r.action}: ${text}`;
     });

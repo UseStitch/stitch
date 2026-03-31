@@ -1,5 +1,5 @@
-import { and, eq } from 'drizzle-orm';
 import { tool } from 'ai';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -14,8 +14,8 @@ import * as Log from '@/lib/log.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import { runStream } from '@/llm/stream/runner.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
-import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 
 const log = Log.create({ service: 'task-tool' });
 
@@ -49,9 +49,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       toolsets: z
         .array(z.string())
         .optional()
-        .describe(
-          'Additional toolset IDs to activate in the child session beyond inherited ones',
-        ),
+        .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
     execute: async ({ task, toolsets: additionalToolsets }) => {
       const childSession = await createSession({

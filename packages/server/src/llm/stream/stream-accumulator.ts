@@ -53,8 +53,7 @@ export class StreamAccumulator {
       return { truncated: false };
     }
 
-    const truncated =
-      (meta as { truncated?: unknown }).truncated === true;
+    const truncated = (meta as { truncated?: unknown }).truncated === true;
     const outputPathRaw = (meta as { outputPath?: unknown }).outputPath;
     const outputPath = typeof outputPathRaw === 'string' ? outputPathRaw : undefined;
     return { truncated, outputPath };

@@ -10,9 +10,7 @@ import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
-import {
-  findLastUsedModel,
-} from '@/components/session/session-chat-pane/session-message-context';
+import { findLastUsedModel } from '@/components/session/session-chat-pane/session-message-context';
 import { useQueuedEditPayload } from '@/components/session/session-chat-pane/use-queued-edit-payload';
 import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
 import { useSendQueuedRef } from '@/components/session/session-chat-pane/use-send-queued-ref';

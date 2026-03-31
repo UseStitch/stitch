@@ -54,7 +54,9 @@ export function TranscriptionSection({
   const [selectedTranscriptionId, setSelectedTranscriptionId] = React.useState<string | null>(null);
   const [copiedSummary, setCopiedSummary] = React.useState(false);
   const [copiedTranscript, setCopiedTranscript] = React.useState(false);
-  const latestStatusRef = React.useRef<{ id: string; status: Transcription['status'] } | null>(null);
+  const latestStatusRef = React.useRef<{ id: string; status: Transcription['status'] } | null>(
+    null,
+  );
 
   const latestTranscription = transcriptions[0] ?? null;
   const latestCompletedTranscription =
@@ -82,7 +84,9 @@ export function TranscriptionSection({
   const hasInFlightTranscription =
     isStartingTranscription ||
     isFetching ||
-    transcriptions.some((version) => version.status === 'pending' || version.status === 'processing');
+    transcriptions.some(
+      (version) => version.status === 'pending' || version.status === 'processing',
+    );
 
   const latestFailure = latestTranscription?.status === 'failed' ? latestTranscription : null;
 
@@ -92,7 +96,10 @@ export function TranscriptionSection({
       return;
     }
 
-    if (selectedTranscriptionId && transcriptions.some((version) => version.id === selectedTranscriptionId)) {
+    if (
+      selectedTranscriptionId &&
+      transcriptions.some((version) => version.id === selectedTranscriptionId)
+    ) {
       return;
     }
 
@@ -181,7 +188,8 @@ export function TranscriptionSection({
   }
 
   if (isError) {
-    const message = error instanceof Error ? error.message : 'Failed to load transcription versions';
+    const message =
+      error instanceof Error ? error.message : 'Failed to load transcription versions';
 
     return (
       <div className="grid h-full grid-cols-1 items-start gap-6 lg:grid-cols-4">
@@ -222,7 +230,9 @@ export function TranscriptionSection({
         </div>
         <div className="flex min-h-100 w-full min-w-0 items-center justify-center rounded-lg border border-border/50 bg-muted/10 p-8 lg:col-span-1">
           <p className="text-sm text-muted-foreground">
-            {hasInFlightTranscription ? 'Transcription in progress...' : 'Transcript will appear here'}
+            {hasInFlightTranscription
+              ? 'Transcription in progress...'
+              : 'Transcript will appear here'}
           </p>
         </div>
       </div>

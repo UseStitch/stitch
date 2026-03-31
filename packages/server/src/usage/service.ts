@@ -240,7 +240,9 @@ async function getEarliestUsageTimestamp(): Promise<number | null> {
     .orderBy(asc(llmUsageEvents.createdAt))
     .limit(1);
 
-  const timestamps = [firstEvent[0]?.createdAt].filter((value): value is number => typeof value === 'number');
+  const timestamps = [firstEvent[0]?.createdAt].filter(
+    (value): value is number => typeof value === 'number',
+  );
 
   if (timestamps.length === 0) return null;
   return Math.min(...timestamps);

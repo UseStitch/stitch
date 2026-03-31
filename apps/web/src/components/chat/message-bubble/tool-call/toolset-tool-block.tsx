@@ -32,13 +32,7 @@ type ToolsetToolBlockProps = {
   error?: string;
 };
 
-export function ToolsetToolBlock({
-  toolName,
-  status,
-  args,
-  result,
-  error,
-}: ToolsetToolBlockProps) {
+export function ToolsetToolBlock({ toolName, status, args, result, error }: ToolsetToolBlockProps) {
   const { isActive } = getToolCardState(status);
   const config = TOOLSET_TOOL_CONFIG[toolName] ?? {
     label: 'Toolset',
@@ -54,7 +48,7 @@ export function ToolsetToolBlock({
     ? toolsetId
       ? `${config.verb} "${toolsetId}"...`
       : `${config.verb}...`
-    : resultMessage ?? label ?? 'Done';
+    : (resultMessage ?? label ?? 'Done');
 
   return (
     <ToolCard.Root status={status}>

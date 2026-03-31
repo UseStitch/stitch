@@ -14,7 +14,8 @@ export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): Language
     outputTokens: safe(a.outputTokens) + safe(b.outputTokens),
     totalTokens: safe(a.totalTokens) + safe(b.totalTokens),
     inputTokenDetails: {
-      noCacheTokens: safe(a.inputTokenDetails?.noCacheTokens) + safe(b.inputTokenDetails?.noCacheTokens),
+      noCacheTokens:
+        safe(a.inputTokenDetails?.noCacheTokens) + safe(b.inputTokenDetails?.noCacheTokens),
       cacheReadTokens:
         safe(a.inputTokenDetails?.cacheReadTokens) + safe(b.inputTokenDetails?.cacheReadTokens),
       cacheWriteTokens:
