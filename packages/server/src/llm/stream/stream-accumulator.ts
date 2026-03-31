@@ -43,6 +43,33 @@ export class StreamAccumulator {
 
   // ─── Shared helpers ───────────────────────────────────────────────────────
 
+  private getToolTruncationMeta(output: unknown): { truncated: boolean; outputPath?: string } {
+    if (!output || typeof output !== 'object') {
+      return { truncated: false };
+    }
+
+    const meta = (output as { __stitchToolResultMeta?: unknown }).__stitchToolResultMeta;
+    if (!meta || typeof meta !== 'object') {
+      return { truncated: false };
+    }
+
+    const truncated =
+      (meta as { truncated?: unknown }).truncated === true;
+    const outputPathRaw = (meta as { outputPath?: unknown }).outputPath;
+    const outputPath = typeof outputPathRaw === 'string' ? outputPathRaw : undefined;
+    return { truncated, outputPath };
+  }
+
+  private stripToolTruncationMeta(output: unknown): unknown {
+    if (!output || typeof output !== 'object') {
+      return output;
+    }
+
+    const clone = { ...(output as Record<string, unknown>) };
+    delete clone.__stitchToolResultMeta;
+    return clone;
+  }
+
   private broadcastPartUpdate(partId: PartId, part: unknown): Promise<void> {
     return Sse.broadcast('stream-part-update', {
       sessionId: this.sessionId,
@@ -221,6 +248,8 @@ export class StreamAccumulator {
       case 'tool-result': {
         const now = Date.now();
         const partId = createPartId();
+        const truncationMeta = this.getToolTruncationMeta(part.output);
+        const sanitizedOutput = this.stripToolTruncationMeta(part.output);
 
         await Sse.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
@@ -229,7 +258,7 @@ export class StreamAccumulator {
           toolName: part.toolName,
           status: 'completed',
           input: part.input,
-          output: part.output,
+          output: sanitizedOutput,
         });
 
         this.accumulatedParts.push({
@@ -238,8 +267,9 @@ export class StreamAccumulator {
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input: part.input,
-          output: part.output,
-          truncated: false,
+          output: sanitizedOutput,
+          truncated: truncationMeta.truncated,
+          outputPath: truncationMeta.outputPath,
           startedAt: now,
           endedAt: now,
         } as StoredPart);

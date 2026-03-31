@@ -40,7 +40,7 @@ const settingsSearchSchema = z.object({
       'key-locations',
       'providers',
       'models',
-      'agents',
+      'permissions',
       'mcp-servers',
     ])
     .optional(),

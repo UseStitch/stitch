@@ -4,7 +4,6 @@ export const SHORTCUT_ACTION_IDS = [
   'open-chat',
   'toggle-sidebar',
   'new-session',
-  'switch-primary-agent',
   'rename-session',
   'compact-session',
   'stop-stream',
@@ -15,7 +14,7 @@ export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
 
 export const SHORTCUT_CATEGORIES = [
   'Workspace',
-  'Chat & Agents',
+  'Chat',
   'Sessions',
   'Recordings',
 ] as const;
@@ -50,7 +49,7 @@ export const SHORTCUT_DEFAULTS: ShortcutDefault[] = [
     hotkey: 'LEADER+C',
     isSequence: true,
     label: 'Chat',
-    category: 'Chat & Agents',
+    category: 'Chat',
   },
   {
     actionId: 'toggle-sidebar',
@@ -65,13 +64,6 @@ export const SHORTCUT_DEFAULTS: ShortcutDefault[] = [
     isSequence: false,
     label: 'New session',
     category: 'Sessions',
-  },
-  {
-    actionId: 'switch-primary-agent',
-    hotkey: 'Mod+T',
-    isSequence: false,
-    label: 'Switch primary agent',
-    category: 'Chat & Agents',
   },
   {
     actionId: 'rename-session',
@@ -92,7 +84,7 @@ export const SHORTCUT_DEFAULTS: ShortcutDefault[] = [
     hotkey: 'Escape',
     isSequence: true,
     label: 'Stop stream (double press)',
-    category: 'Chat & Agents',
+    category: 'Chat',
   },
   {
     actionId: 'open-recordings',

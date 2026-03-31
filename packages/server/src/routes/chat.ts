@@ -99,7 +99,6 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     content: string;
     providerId: string;
     modelId: string;
-    agentId: string;
     assistantMessageId: string;
     attachments?: Array<{
       path: string;
@@ -108,15 +107,9 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     }>;
   }>();
 
-  if (
-    !body.content ||
-    !body.providerId ||
-    !body.modelId ||
-    !body.agentId ||
-    !body.assistantMessageId
-  ) {
+  if (!body.content || !body.providerId || !body.modelId || !body.assistantMessageId) {
     return c.json(
-      { error: 'content, providerId, modelId, agentId, and assistantMessageId are required' },
+      { error: 'content, providerId, modelId, and assistantMessageId are required' },
       400,
     );
   }
@@ -127,7 +120,6 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     attachments: body.attachments,
     providerId: body.providerId,
     modelId: body.modelId,
-    agentId: body.agentId,
     assistantMessageId: body.assistantMessageId,
   });
   if (isServiceError(result)) {

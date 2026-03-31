@@ -1,12 +1,11 @@
 import { eq } from 'drizzle-orm';
 
-import type { PrefixedString } from '@stitch/shared/id';
 import { isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SETTINGS_KEYS } from '@stitch/shared/settings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
-import { agents, userSettings } from '@/db/schema.js';
+import { userSettings } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
@@ -53,16 +52,6 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
   }
 
   const db = getDb();
-  if (key === 'agent.default') {
-    const [agent] = await db
-      .select()
-      .from(agents)
-      .where(eq(agents.id, value as PrefixedString<'agt'>));
-    if (!agent || agent.type !== 'primary') {
-      return err('Invalid primary agent id', 400);
-    }
-  }
-
   await db
     .insert(userSettings)
     .values({ key: key as SettingsKey, value })

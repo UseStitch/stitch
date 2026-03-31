@@ -15,16 +15,32 @@ type McpToolBlockProps = {
   error?: string;
 };
 
+type KnownMcpTool = {
+  name: string;
+  serverName: string;
+  serverIconPath?: string;
+  toolIconPath?: string;
+};
+
 export function McpToolBlock({ toolName, status, error }: McpToolBlockProps) {
   const queryClient = useQueryClient();
   const parsed = parseMcpToolName(toolName);
   const label = getToolLabel(status, error);
 
+  const mcpTool = React.useMemo(() => {
+    const knownMcpTools = queryClient.getQueryData<KnownMcpTool[]>([
+      'tools-config',
+      'known-mcp-tools',
+    ]);
+    return knownMcpTools?.find((tool) => tool.name === toolName) ?? null;
+  }, [queryClient, toolName]);
+
   const serverName = React.useMemo(() => {
     if (!parsed) return null;
+    if (mcpTool?.serverName) return mcpTool.serverName;
     const servers = queryClient.getQueryData<McpServer[]>(['mcp', 'list']);
     return servers?.find((server) => server.id === parsed.serverId)?.name ?? null;
-  }, [parsed, queryClient]);
+  }, [mcpTool?.serverName, parsed, queryClient]);
 
   const displayName = parsed?.toolName ?? toolName;
 
@@ -36,7 +52,15 @@ export function McpToolBlock({ toolName, status, error }: McpToolBlockProps) {
           <div className="flex items-center gap-2">
             <ToolCard.Title>{displayName}</ToolCard.Title>
             <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              <WrenchIcon className="size-2.5" />
+              {mcpTool?.toolIconPath || mcpTool?.serverIconPath ? (
+                <img
+                  src={mcpTool.toolIconPath ?? mcpTool.serverIconPath}
+                  alt=""
+                  className="size-2.5 rounded-xs"
+                />
+              ) : (
+                <WrenchIcon className="size-2.5" />
+              )}
               {serverName ?? 'MCP'}
             </span>
           </div>

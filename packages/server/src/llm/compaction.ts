@@ -7,7 +7,7 @@ import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
-import { agents, messages, sessions, userSettings } from '@/db/schema.js';
+import { messages, sessions, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
@@ -17,6 +17,7 @@ import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.j
 import * as Models from '@/provider/models.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
+import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
@@ -168,7 +169,7 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
 
 const COMPACTION_PROMPT = `Provide a detailed prompt for continuing our conversation above.
 Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next.
-The summary that you construct will be used so that another agent can read it and continue the work.
+The summary that you construct will be used so a future run can continue the work.
 
 When constructing the summary, try to stick to this template:
 ---
@@ -179,11 +180,11 @@ When constructing the summary, try to stick to this template:
 ## Instructions
 
 - [What important instructions did the user give you that are relevant]
-- [If there is a plan or spec, include information about it so next agent can continue using it]
+- [If there is a plan or spec, include information about it so the next run can continue using it]
 
 ## Discoveries
 
-[What notable things were learned during this conversation that would be useful for the next agent to know when continuing the work]
+[What notable things were learned during this conversation that would be useful when continuing the work]
 
 ## Accomplished
 
@@ -192,7 +193,18 @@ When constructing the summary, try to stick to this template:
 ## Relevant files / directories
 
 [Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
----`;
+---
+
+Keep your summary under 1500 words. Prioritize actionable information over completeness.
+If the conversation is very long, focus on the most recent work and goals.`;
+
+const COMPACTION_PROMPT_OVERFLOW = `${COMPACTION_PROMPT}
+
+Be very concise. The context window is critically full.
+Only include: current goal, active files, and immediate next steps.
+Keep under 800 words.`;
+
+type CompactionSeverity = 'normal' | 'overflow';
 
 async function resolveCompactionModel(
   fallbackProviderId: string,
@@ -229,11 +241,12 @@ export async function compact(input: {
   sessionId: PrefixedString<'ses'>;
   providerId: string;
   modelId: string;
-  agentId: PrefixedString<'agt'>;
   auto: boolean;
   overflow?: boolean;
+  severity?: CompactionSeverity;
 }): Promise<'continue' | 'error'> {
   const { sessionId } = input;
+  const severity: CompactionSeverity = input.severity ?? (input.overflow ? 'overflow' : 'normal');
 
   if (activeCompactions.has(sessionId)) {
     log.warn({ sessionId }, 'compaction already in progress');
@@ -253,14 +266,6 @@ export async function compact(input: {
     const db = getDb();
     const now = Date.now();
 
-    const [agent] = await db
-      .select({
-        useBasePrompt: agents.useBasePrompt,
-        systemPrompt: agents.systemPrompt,
-      })
-      .from(agents)
-      .where(eq(agents.id, input.agentId));
-
     const compactionMarkerId = createMessageId();
     const compactionPart: StoredPart = {
       type: 'compaction',
@@ -279,7 +284,6 @@ export async function compact(input: {
         parts: [compactionPart],
         modelId: input.modelId,
         providerId: input.providerId,
-        agentId: input.agentId,
         costUsd: 0,
         createdAt: now,
         updatedAt: now,
@@ -315,13 +319,16 @@ export async function compact(input: {
     const relevantMsgs = historyMsgs.slice(startIndex);
 
     const historyMessages = buildHistoryMessages(relevantMsgs, {
-      useBasePrompt: agent?.useBasePrompt ?? true,
-      systemPrompt: agent?.systemPrompt ?? null,
+      useBasePrompt: true,
+      systemPrompt: null,
     });
 
     const llmMessages: ModelMessage[] = [
       ...historyMessages,
-      { role: 'user', content: COMPACTION_PROMPT },
+      {
+        role: 'user',
+        content: severity === 'overflow' ? COMPACTION_PROMPT_OVERFLOW : COMPACTION_PROMPT,
+      },
     ];
 
     const cachedMessages = addCacheControlToMessages(
@@ -336,7 +343,7 @@ export async function compact(input: {
       model,
       messages: cachedMessages,
       providerOptions,
-      maxOutputTokens: 4096,
+      maxOutputTokens: severity === 'overflow' ? 2000 : 3000,
     });
 
     for await (const chunk of result.textStream) {
@@ -372,7 +379,6 @@ export async function compact(input: {
         parts: [summaryPart],
         modelId: resolved.modelId,
         providerId: resolved.providerId,
-        agentId: input.agentId,
         usage,
         costUsd,
         finishReason: 'stop',
@@ -384,6 +390,26 @@ export async function compact(input: {
       });
 
       await tx.update(sessions).set({ updatedAt: summaryNow }).where(eq(sessions.id, sessionId));
+    });
+
+    await recordUsageEvent({
+      runId: summaryMessageId,
+      source: 'compaction',
+      status: 'succeeded',
+      sessionId,
+      messageId: summaryMessageId,
+      providerId: resolved.providerId,
+      modelId: resolved.modelId,
+      usage,
+      costUsd,
+      metadata: {
+        phase: 'compaction',
+        auto: input.auto,
+        overflow: input.overflow ?? false,
+      },
+      startedAt: now,
+      endedAt: summaryNow,
+      durationMs: summaryNow - now,
     });
 
     log.info(
@@ -417,6 +443,27 @@ export async function compact(input: {
       messageId: summaryMessageId,
       error: `Compaction failed: ${mappedError.message}`,
       details: toStreamErrorDetails(mappedError),
+    });
+
+    const failedAt = Date.now();
+    await recordUsageEvent({
+      runId: summaryMessageId,
+      source: 'compaction',
+      status: 'failed',
+      sessionId,
+      messageId: summaryMessageId,
+      providerId: input.providerId,
+      modelId: input.modelId,
+      costUsd: 0,
+      errorCode: mappedError.category,
+      metadata: {
+        phase: 'compaction',
+        auto: input.auto,
+        overflow: input.overflow ?? false,
+      },
+      startedAt: failedAt,
+      endedAt: failedAt,
+      durationMs: 0,
     });
 
     return 'error';

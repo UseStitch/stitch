@@ -1,309 +1,9 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d8b8fe74-34d8-41cd-ac84-37c900772526",
+  "id": "65c7cebc-f985-41d3-8cd3-d4dfbfeb07f6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "agent_mcp_servers": {
-      "name": "agent_mcp_servers",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "mcp_server_id": {
-          "name": "mcp_server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "agent_mcp_servers_agent_server_idx": {
-          "name": "agent_mcp_servers_agent_server_idx",
-          "columns": ["agent_id", "mcp_server_id"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "agent_mcp_servers_agent_id_agents_id_fk": {
-          "name": "agent_mcp_servers_agent_id_agents_id_fk",
-          "tableFrom": "agent_mcp_servers",
-          "tableTo": "agents",
-          "columnsFrom": ["agent_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_mcp_servers_mcp_server_id_mcp_servers_id_fk": {
-          "name": "agent_mcp_servers_mcp_server_id_mcp_servers_id_fk",
-          "tableFrom": "agent_mcp_servers",
-          "tableTo": "mcp_servers",
-          "columnsFrom": ["mcp_server_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agent_permissions": {
-      "name": "agent_permissions",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tool_name": {
-          "name": "tool_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "pattern": {
-          "name": "pattern",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "permission": {
-          "name": "permission",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "agent_permissions_agent_tool_pattern_idx": {
-          "name": "agent_permissions_agent_tool_pattern_idx",
-          "columns": ["agent_id", "tool_name", "pattern"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "agent_permissions_agent_id_agents_id_fk": {
-          "name": "agent_permissions_agent_id_agents_id_fk",
-          "tableFrom": "agent_permissions",
-          "tableTo": "agents",
-          "columnsFrom": ["agent_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "agent_tools": {
-      "name": "agent_tools",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tool_type": {
-          "name": "tool_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tool_name": {
-          "name": "tool_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "agent_tools_agent_type_name_idx": {
-          "name": "agent_tools_agent_type_name_idx",
-          "columns": ["agent_id", "tool_type", "tool_name"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "agent_tools_agent_id_agents_id_fk": {
-          "name": "agent_tools_agent_id_agents_id_fk",
-          "tableFrom": "agent_tools",
-          "tableTo": "agents",
-          "columnsFrom": ["agent_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {
-        "agent_tools_type_check": {
-          "name": "agent_tools_type_check",
-          "value": "\"agent_tools\".\"tool_type\" in ('stitch', 'mcp', 'plugin')"
-        }
-      }
-    },
-    "agents": {
-      "name": "agents",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'primary'"
-        },
-        "is_deletable": {
-          "name": "is_deletable",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "system_prompt": {
-          "name": "system_prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "use_base_prompt": {
-          "name": "use_base_prompt",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {
-        "agents_type_check": {
-          "name": "agents_type_check",
-          "value": "\"agents\".\"type\" in ('primary', 'sub')"
-        }
-      }
-    },
     "keyboard_shortcuts": {
       "name": "keyboard_shortcuts",
       "columns": {
@@ -343,7 +43,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "''"
+          "default": "'Workspace'"
         },
         "created_at": {
           "name": "created_at",
@@ -433,6 +133,92 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "meetings": {
+      "name": "meetings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "app": {
+          "name": "app",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "app_path": {
+          "name": "app_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'detected'"
+        },
+        "recording_file_path": {
+          "name": "recording_file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "duration_secs": {
+          "name": "duration_secs",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "meetings_status_check": {
+          "name": "meetings_status_check",
+          "value": "\"meetings\".\"status\" in ('detected', 'recording', 'completed')"
+        }
+      }
+    },
     "messages": {
       "name": "messages",
       "columns": {
@@ -473,13 +259,6 @@
         },
         "provider_id": {
           "name": "provider_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -550,18 +329,13 @@
           "name": "messages_session_id_sessions_id_fk",
           "tableFrom": "messages",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "messages_agent_id_agents_id_fk": {
-          "name": "messages_agent_id_agents_id_fk",
-          "tableFrom": "messages",
-          "tableTo": "agents",
-          "columnsFrom": ["agent_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -604,7 +378,10 @@
       "indexes": {
         "model_visibility_provider_model_idx": {
           "name": "model_visibility_provider_model_idx",
-          "columns": ["provider_id", "model_id"],
+          "columns": [
+            "provider_id",
+            "model_id"
+          ],
           "isUnique": true
         }
       },
@@ -632,13 +409,6 @@
         },
         "message_id": {
           "name": "message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "agent_id": {
-          "name": "agent_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -715,18 +485,13 @@
           "name": "permission_responses_session_id_sessions_id_fk",
           "tableFrom": "permission_responses",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "permission_responses_agent_id_agents_id_fk": {
-          "name": "permission_responses_agent_id_agents_id_fk",
-          "tableFrom": "permission_responses",
-          "tableTo": "agents",
-          "columnsFrom": ["agent_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -846,8 +611,12 @@
           "name": "questions_session_id_sessions_id_fk",
           "tableFrom": "questions",
           "tableTo": "sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -855,6 +624,220 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
+    },
+    "queued_messages": {
+      "name": "queued_messages",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attachments": {
+          "name": "attachments",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "queued_messages_session_id_sessions_id_fk": {
+          "name": "queued_messages_session_id_sessions_id_fk",
+          "tableFrom": "queued_messages",
+          "tableTo": "sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "recording_transcriptions": {
+      "name": "recording_transcriptions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "meeting_id": {
+          "name": "meeting_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "transcript": {
+          "name": "transcript",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "usage": {
+          "name": "usage",
+          "type": "blob",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cost_usd": {
+          "name": "cost_usd",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "recording_transcriptions_meeting_id_meetings_id_fk": {
+          "name": "recording_transcriptions_meeting_id_meetings_id_fk",
+          "tableFrom": "recording_transcriptions",
+          "tableTo": "meetings",
+          "columnsFrom": [
+            "meeting_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "transcription_status_check": {
+          "name": "transcription_status_check",
+          "value": "\"recording_transcriptions\".\"status\" in ('pending', 'processing', 'completed', 'failed')"
+        }
+      }
     },
     "sessions": {
       "name": "sessions",
@@ -880,6 +863,14 @@
           "notNull": false,
           "autoincrement": false
         },
+        "is_unread": {
+          "name": "is_unread",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -901,12 +892,77 @@
           "name": "sessions_parent_session_id_sessions_id_fk",
           "tableFrom": "sessions",
           "tableTo": "sessions",
-          "columnsFrom": ["parent_session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tool_permissions": {
+      "name": "tool_permissions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tool_name": {
+          "name": "tool_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pattern": {
+          "name": "pattern",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "permission": {
+          "name": "permission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tool_permissions_tool_pattern_idx": {
+          "name": "tool_permissions_tool_pattern_idx",
+          "columns": [
+            "tool_name",
+            "pattern"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

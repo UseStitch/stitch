@@ -5,15 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
-import { seedBrowserAgent } from '@/agents/builtins/browser.js';
-import { seedMeetingsAgent } from '@/agents/builtins/meetings.js';
-import { seedPrimaryAgent } from '@/agents/builtins/primary.js';
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-export type Db = BunSQLiteDatabase<typeof schema>;
+type Db = BunSQLiteDatabase<typeof schema>;
 
 const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const log = Log.create({ service: 'db' });
@@ -78,11 +75,8 @@ export async function initDb(): Promise<void> {
   _db = drizzle({ client: sqlite, schema }) as Db;
   migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
 
-  seedPrimaryAgent(_db);
   seedShortcuts(_db);
   seedSettings(_db);
-  seedMeetingsAgent(_db);
-  seedBrowserAgent(_db);
 
   log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
 }

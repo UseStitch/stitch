@@ -2,9 +2,62 @@ import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';
+import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'history-messages' });
+
+const DEFAULT_TOOL_RESULT_BUDGET_TOKENS = 1_000;
+const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
+  browser: 600,
+  webfetch: 700,
+  bash: 900,
+};
+const TOOL_RESULT_PREVIEW_CHARS = 1_600;
+
+function toPreviewText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.slice(0, TOOL_RESULT_PREVIEW_CHARS);
+  }
+
+  if (value && typeof value === 'object') {
+    const output = (value as { output?: unknown }).output;
+    if (typeof output === 'string') {
+      return output.slice(0, TOOL_RESULT_PREVIEW_CHARS);
+    }
+  }
+
+  const serialized = JSON.stringify(value);
+  return serialized.slice(0, TOOL_RESULT_PREVIEW_CHARS);
+}
+
+function compactToolResultOutput(part: StoredPart & { type: 'tool-result' }): unknown {
+  const output = part.output;
+  const isError =
+    output !== null &&
+    output !== undefined &&
+    typeof output === 'object' &&
+    'error' in (output as object);
+  if (isError) {
+    return output;
+  }
+
+  const tokenEstimate = estimate(output);
+  const tokenBudget = TOOL_RESULT_BUDGET_TOKENS[part.toolName] ?? DEFAULT_TOOL_RESULT_BUDGET_TOKENS;
+
+  if (tokenEstimate <= tokenBudget) {
+    return output;
+  }
+
+  return {
+    summary: `Tool output compacted for context replay (${tokenEstimate} estimated tokens).`,
+    toolName: part.toolName,
+    estimatedTokens: tokenEstimate,
+    truncated: part.truncated,
+    outputPath: part.outputPath ?? null,
+    preview: toPreviewText(output),
+  };
+}
 
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
@@ -162,13 +215,15 @@ export function buildHistoryMessages(
                 tr.output !== undefined &&
                 typeof tr.output === 'object' &&
                 'error' in (tr.output as object);
+              const compactedOutput = compactToolResultOutput(tr);
+
               return {
                 type: 'tool-result' as const,
                 toolCallId: tr.toolCallId,
                 toolName: tr.toolName,
                 output: isError
-                  ? { type: 'error-json' as const, value: tr.output as never }
-                  : { type: 'json' as const, value: tr.output as never },
+                  ? { type: 'error-json' as const, value: compactedOutput as never }
+                  : { type: 'json' as const, value: compactedOutput as never },
               };
             }),
         });
@@ -177,11 +232,9 @@ export function buildHistoryMessages(
   }
 
   if (llmMessages[0]?.role !== 'system') {
-    const latestModelId = msgs[msgs.length - 1].modelId;
     llmMessages.unshift({
       role: 'system',
       content: buildSystemPrompt({
-        modelId: latestModelId,
         useBasePrompt: promptConfig?.useBasePrompt ?? true,
         systemPrompt: promptConfig?.systemPrompt ?? null,
       }),

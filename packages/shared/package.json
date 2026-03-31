@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./agents/types": "./src/agents/types.ts",
     "./appearance/types": "./src/appearance/types.ts",
     "./chat/errors": "./src/chat/errors.ts",
     "./chat/messages": "./src/chat/messages.ts",
@@ -22,6 +21,7 @@
     "./shortcuts/types": "./src/shortcuts/types.ts",
     "./tools/bash-families": "./src/tools/bash-families.ts",
     "./tools/bash-presets": "./src/tools/bash-presets.ts",
+    "./tools/types": "./src/tools/types.ts",
     "./usage/types": "./src/usage/types.ts"
   },
   "scripts": {

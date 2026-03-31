@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   blob,
   check,
+  index,
   integer,
   real,
   sqliteTable,
@@ -9,14 +10,13 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-import type { AgentKind, AgentToolType, AgentType } from '@stitch/shared/agents/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
 import type {
-  AgentPermissionValue,
+  ToolPermissionValue,
   PermissionResponseStatus,
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
@@ -64,29 +64,6 @@ export const providerConfig = sqliteTable('provider_config', {
     .$defaultFn(() => Date.now()),
 });
 
-export const agents = sqliteTable(
-  'agents',
-  {
-    id: text('id').$type<PrefixedString<'agt'>>().primaryKey(),
-    name: text('name').notNull(),
-    type: text('type').$type<AgentType>().notNull().default('primary'),
-    kind: text('kind').$type<AgentKind>(),
-    isDeletable: integer('is_deletable', { mode: 'boolean' }).notNull().default(true),
-    systemPrompt: text('system_prompt'),
-    useBasePrompt: integer('use_base_prompt', { mode: 'boolean' }).notNull().default(true),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    check('agents_type_check', sql`${table.type} in ('primary', 'sub')`),
-    uniqueIndex('agents_kind_idx').on(table.kind),
-  ],
-);
-
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
@@ -112,10 +89,6 @@ export const messages = sqliteTable('messages', {
   parts: blob('parts', { mode: 'json' }).$type<StoredPart[]>().notNull(),
   modelId: text('model_id').notNull(),
   providerId: text('provider_id').notNull(),
-  agentId: text('agent_id')
-    .$type<PrefixedString<'agt'>>()
-    .notNull()
-    .references(() => agents.id),
   usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
   costUsd: real('cost_usd').notNull().default(0),
   finishReason: text('finish_reason'),
@@ -130,6 +103,47 @@ export const messages = sqliteTable('messages', {
   duration: integer('duration_ms'),
 });
 
+export const llmUsageEvents = sqliteTable(
+  'llm_usage_events',
+  {
+    id: text('id').primaryKey(),
+    runId: text('run_id').notNull(),
+    source: text('source').notNull(),
+    status: text('status').notNull().default('succeeded'),
+    isAttributable: integer('is_attributable', { mode: 'boolean' }).notNull().default(true),
+    sessionId: text('session_id').$type<PrefixedString<'ses'> | null>(),
+    messageId: text('message_id').$type<PrefixedString<'msg'> | null>(),
+    meetingId: text('meeting_id').$type<PrefixedString<'rec'> | null>(),
+    transcriptionId: text('transcription_id').$type<PrefixedString<'transcr'> | null>(),
+    stepIndex: integer('step_index'),
+    attemptIndex: integer('attempt_index'),
+    providerId: text('provider_id').notNull(),
+    modelId: text('model_id').notNull(),
+    usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
+    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    reasoningTokens: integer('reasoning_tokens').notNull().default(0),
+    cacheReadTokens: integer('cache_read_tokens').notNull().default(0),
+    cacheWriteTokens: integer('cache_write_tokens').notNull().default(0),
+    totalTokens: integer('total_tokens').notNull().default(0),
+    costUsd: real('cost_usd').notNull().default(0),
+    errorCode: text('error_code'),
+    startedAt: integer('started_at', { mode: 'number' }).notNull(),
+    endedAt: integer('ended_at', { mode: 'number' }),
+    durationMs: integer('duration_ms'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('llm_usage_events_run_id_idx').on(table.runId),
+    index('llm_usage_events_source_idx').on(table.source),
+    index('llm_usage_events_created_at_idx').on(table.createdAt),
+    index('llm_usage_events_provider_model_idx').on(table.providerId, table.modelId),
+  ],
+);
+
 export const questions = sqliteTable('questions', {
   id: text('id').$type<PrefixedString<'quest'>>().primaryKey(),
   sessionId: text('session_id')
@@ -141,9 +155,6 @@ export const questions = sqliteTable('questions', {
   status: text('status').$type<QuestionRequestStatus>().notNull().default('pending'),
   toolCallId: text('tool_call_id').notNull(),
   messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
-  subAgentId: text('sub_agent_id')
-    .$type<PrefixedString<'agt'> | null>()
-    .references(() => agents.id),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -157,10 +168,6 @@ export const permissionResponses = sqliteTable('permission_responses', {
     .notNull()
     .references(() => sessions.id, { onDelete: 'cascade' }),
   messageId: text('message_id').$type<PrefixedString<'msg'>>().notNull(),
-  agentId: text('agent_id')
-    .$type<PrefixedString<'agt'>>()
-    .notNull()
-    .references(() => agents.id),
   toolCallId: text('tool_call_id').notNull(),
   toolName: text('tool_name').notNull(),
   toolInput: blob('tool_input', { mode: 'json' }),
@@ -168,9 +175,6 @@ export const permissionResponses = sqliteTable('permission_responses', {
   suggestion: blob('suggestion', { mode: 'json' }).$type<PermissionSuggestion | null>(),
   status: text('status').$type<PermissionResponseStatus>().notNull().default('pending'),
   entry: text('entry'),
-  subAgentId: text('sub_agent_id')
-    .$type<PrefixedString<'agt'> | null>()
-    .references(() => agents.id),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -192,17 +196,13 @@ export const modelVisibility = sqliteTable(
   ],
 );
 
-export const agentPermissions = sqliteTable(
-  'agent_permissions',
+export const toolPermissions = sqliteTable(
+  'tool_permissions',
   {
     id: text('id').$type<PrefixedString<'perm'>>().primaryKey(),
-    agentId: text('agent_id')
-      .$type<PrefixedString<'agt'>>()
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
     toolName: text('tool_name').notNull(),
     pattern: text('pattern'),
-    permission: text('permission').$type<AgentPermissionValue>().notNull(),
+    permission: text('permission').$type<ToolPermissionValue>().notNull(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
       .$defaultFn(() => Date.now()),
@@ -211,39 +211,7 @@ export const agentPermissions = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [
-    uniqueIndex('agent_permissions_agent_tool_pattern_idx').on(
-      table.agentId,
-      table.toolName,
-      table.pattern,
-    ),
-  ],
-);
-
-export const agentTools = sqliteTable(
-  'agent_tools',
-  {
-    id: text('id').$type<PrefixedString<'agttool'>>().primaryKey(),
-    agentId: text('agent_id')
-      .$type<PrefixedString<'agt'>>()
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
-    toolType: text('tool_type').$type<AgentToolType>().notNull(),
-    toolName: text('tool_name').notNull(),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    uniqueIndex('agent_tools_agent_type_name_idx').on(
-      table.agentId,
-      table.toolType,
-      table.toolName,
-    ),
-    check('agent_tools_type_check', sql`${table.toolType} in ('stitch', 'mcp', 'plugin')`),
+    uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern),
   ],
 );
 
@@ -262,53 +230,6 @@ export const mcpServers = sqliteTable('mcp_servers', {
     .$defaultFn(() => Date.now()),
 });
 
-export const agentMcpServers = sqliteTable(
-  'agent_mcp_servers',
-  {
-    id: text('id').$type<PrefixedString<'agtmcp'>>().primaryKey(),
-    agentId: text('agent_id')
-      .$type<PrefixedString<'agt'>>()
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
-    mcpServerId: text('mcp_server_id')
-      .$type<PrefixedString<'mcp'>>()
-      .notNull()
-      .references(() => mcpServers.id, { onDelete: 'cascade' }),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    uniqueIndex('agent_mcp_servers_agent_server_idx').on(table.agentId, table.mcpServerId),
-  ],
-);
-
-export const agentSubAgents = sqliteTable(
-  'agent_sub_agents',
-  {
-    id: text('id').$type<PrefixedString<'agtsub'>>().primaryKey(),
-    agentId: text('agent_id')
-      .$type<PrefixedString<'agt'>>()
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
-    subAgentId: text('sub_agent_id')
-      .$type<PrefixedString<'agt'>>()
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
-    providerId: text('provider_id'),
-    modelId: text('model_id'),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [uniqueIndex('agent_sub_agents_agent_sub_idx').on(table.agentId, table.subAgentId)],
-);
 
 export const queuedMessages = sqliteTable('queued_messages', {
   id: text('id').$type<PrefixedString<'qmsg'>>().primaryKey(),

@@ -134,7 +134,7 @@ export function BrowserSettings() {
       <div className="mb-6">
         <h2 className="text-base font-bold">Browser</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure the browser used by the AI agent
+          Configure the browser used by Stitch
         </p>
       </div>
 

@@ -43,7 +43,7 @@ const MODEL_PREFERENCES = [
     providerIdKey: 'model.default.providerId',
     modelIdKey: 'model.default.modelId',
     label: 'Default Model',
-    description: 'Used for general chat and coding tasks',
+    description: 'Used for general conversations and everyday assistance tasks',
   },
   {
     providerIdKey: 'model.compaction.providerId',

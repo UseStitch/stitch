@@ -14,7 +14,7 @@ type DownloadEntry = {
 
 /**
  * Tracks browser downloads via CDP Browser.downloadWillBegin / Browser.downloadProgress.
- * Reports completed files so the agent can reference them.
+ * Reports completed files so Stitch can reference them.
  *
  * Attach to the **browser-level** CDP client (not page sessions) since
  * download events are emitted at the browser scope.

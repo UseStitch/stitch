@@ -25,7 +25,6 @@ export type QuestionRequest = {
   messageId: PrefixedString<'msg'>;
   status: QuestionRequestStatus;
   answers?: string[][];
-  subAgentId?: PrefixedString<'agt'>;
   createdAt: number;
   answeredAt?: number;
 };

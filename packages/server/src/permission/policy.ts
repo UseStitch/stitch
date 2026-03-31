@@ -1,13 +1,13 @@
-import type { AgentPermissionValue } from '@stitch/shared/permissions/types';
+import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
 
 type PermissionRule = {
   pattern: string | null;
-  permission: AgentPermissionValue;
+  permission: ToolPermissionValue;
 };
 
 type PatternRule = {
   pattern: string;
-  permission: AgentPermissionValue;
+  permission: ToolPermissionValue;
 };
 
 function wildcardToRegex(pattern: string): RegExp {
@@ -23,7 +23,7 @@ export function wildcardPatternMatches(pattern: string, targets: string[]): bool
 export function resolvePermissionFromRules(
   rules: PermissionRule[],
   patternTargets: string[] = [],
-): AgentPermissionValue {
+): ToolPermissionValue {
   const globalRule = rules.find((row) => row.pattern === null);
   if (globalRule) return globalRule.permission;
 

@@ -4,21 +4,20 @@ export const PERMISSION_DECISIONS = ['allow', 'reject', 'alternative'] as const;
 
 export type PermissionDecision = (typeof PERMISSION_DECISIONS)[number];
 
-export const AGENT_PERMISSION_VALUES = ['allow', 'deny', 'ask'] as const;
+export const TOOL_PERMISSION_VALUES = ['allow', 'deny', 'ask'] as const;
 
-export type AgentPermissionValue = (typeof AGENT_PERMISSION_VALUES)[number];
+export type ToolPermissionValue = (typeof TOOL_PERMISSION_VALUES)[number];
 
 export type PermissionSuggestion = {
   message: string;
   pattern: string;
 };
 
-export type AgentPermission = {
+export type ToolPermission = {
   id: PrefixedString<'perm'>;
-  agentId: PrefixedString<'agt'>;
   toolName: string;
   pattern: string | null;
-  permission: AgentPermissionValue;
+  permission: ToolPermissionValue;
   createdAt: number;
   updatedAt: number;
 };
@@ -36,7 +35,6 @@ export type PermissionResponse = {
   id: PrefixedString<'permres'>;
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
-  agentId: PrefixedString<'agt'>;
   toolCallId: string;
   toolName: string;
   toolInput: unknown;
@@ -44,7 +42,6 @@ export type PermissionResponse = {
   suggestion: PermissionSuggestion | null;
   status: PermissionResponseStatus;
   entry: string | null;
-  subAgentId?: PrefixedString<'agt'>;
   createdAt: number;
   resolvedAt?: number;
 };

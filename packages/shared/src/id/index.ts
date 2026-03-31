@@ -7,12 +7,8 @@ export const ID_PREFIXES = {
   toolResult: 'toolres',
   question: 'quest',
   permissionResponse: 'permres',
-  agentPermission: 'perm',
-  agent: 'agt',
-  agentTool: 'agttool',
+  permissionRule: 'perm',
   mcpServer: 'mcp',
-  agentMcpServer: 'agtmcp',
-  agentSubAgent: 'agtsub',
   queuedMessage: 'qmsg',
   recording: 'rec',
   transcription: 'transcr',
@@ -67,12 +63,8 @@ export const createPartId = createIdFactory(ID_PREFIXES.part);
 export const createToolResultId = createIdFactory(ID_PREFIXES.toolResult);
 export const createQuestionId = createIdFactory(ID_PREFIXES.question);
 export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permissionResponse);
-export const createAgentPermissionId = createIdFactory(ID_PREFIXES.agentPermission);
-export const createAgentId = createIdFactory(ID_PREFIXES.agent);
-export const createAgentToolId = createIdFactory(ID_PREFIXES.agentTool);
+export const createPermissionRuleId = createIdFactory(ID_PREFIXES.permissionRule);
 export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
-export const createAgentMcpServerId = createIdFactory(ID_PREFIXES.agentMcpServer);
-export const createAgentSubAgentId = createIdFactory(ID_PREFIXES.agentSubAgent);
 export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
 export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createTranscriptionId = createIdFactory(ID_PREFIXES.transcription);

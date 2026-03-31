@@ -1,12 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { useDialogContext } from '@/context/dialog-context';
 import { serverFetch } from '@/lib/api';
-import { agentsQueryOptions } from '@/lib/queries/agents';
-import { useAgentStore } from '@/stores/agent-store';
 import { useStreamStore } from '@/stores/stream-store';
 
 export interface Action {
@@ -19,8 +16,6 @@ export function useActions(): Action[] {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const sessionId = params.id;
-  const agentsQuery = useQuery(agentsQueryOptions);
-  const cycleAgent = useAgentStore((s) => s.cycleAgent);
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
@@ -30,13 +25,6 @@ export function useActions(): Action[] {
     setRenameSessionOpen,
   } = useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
-
-  const primaryAgents = (agentsQuery.data ?? []).filter((agent) => agent.type === 'primary');
-
-  const switchPrimaryAgent = () => {
-    if (primaryAgents.length < 2) return;
-    cycleAgent?.();
-  };
 
   const actions: Action[] = [
     {
@@ -51,11 +39,6 @@ export function useActions(): Action[] {
     },
     { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
-    {
-      id: 'switch-primary-agent',
-      label: 'Switch primary agent',
-      run: switchPrimaryAgent,
-    },
     {
       id: 'rename-session',
       label: 'Rename session',

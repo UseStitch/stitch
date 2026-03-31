@@ -63,7 +63,7 @@ export function SessionPageHeader({
             {isChildSession ? (
               <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <BotIcon className="size-2.5" />
-                Sub-agent
+                Child session
               </span>
             ) : null}
             <span className="truncate">{session.title ?? 'New conversation'}</span>

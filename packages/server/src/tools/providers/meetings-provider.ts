@@ -1,12 +1,19 @@
+import { readFileSync } from 'node:fs';
+
 import { tool } from 'ai';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { MEETINGS_AGENT_KIND } from '@/agents/builtins/meetings.js';
 import { getDb } from '@/db/client.js';
 import { meetings, recordingTranscriptions } from '@/db/schema.js';
-import type { AgentToolProvider } from '@/tools/providers/types.js';
+import type { ToolProvider } from '@/tools/providers/types.js';
+import type { Toolset } from '@/tools/toolsets/types.js';
 import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
+
+const meetingsInstructions = readFileSync(
+  new URL('./instructions/meetings.md', import.meta.url),
+  'utf8',
+).trim();
 
 const MEETINGS_LIST_DESCRIPTION = `Query meeting metadata from the database.
 
@@ -135,9 +142,8 @@ function createTranscriptionsTool() {
   });
 }
 
-export const meetingsToolProvider: AgentToolProvider = {
+export const meetingsToolProvider: ToolProvider = {
   name: 'meetings',
-  appliesTo: (agent) => agent.kind === MEETINGS_AGENT_KIND,
   knownTools: () => [
     { toolType: 'stitch', toolName: 'meetings_list', displayName: 'Meetings List' },
     {
@@ -164,4 +170,24 @@ export const meetingsToolProvider: AgentToolProvider = {
       ),
     ),
   }),
+};
+
+export const meetingsToolset: Toolset = {
+  id: 'meetings',
+  name: 'Meetings',
+  description:
+    'Access meeting recordings and transcriptions: list meetings by status, retrieve transcripts with speaker attribution.',
+  instructions: meetingsInstructions,
+  tools: () => [
+    {
+      name: 'meetings_list',
+      description: 'Query meeting metadata — list all meetings or filter by status/ID.',
+    },
+    {
+      name: 'meetings_transcriptions',
+      description:
+        'Retrieve meeting transcriptions with speaker attribution for a specific meeting.',
+    },
+  ],
+  activate: async (context) => meetingsToolProvider.createTools(context),
 };

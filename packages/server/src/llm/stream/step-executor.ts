@@ -19,9 +19,8 @@ import {
   StreamAbortedError,
 } from '@/llm/stream/errors.js';
 import { createProvider } from '@/provider/provider.js';
-import type { createTools } from '@/tools/runtime/registry.js';
 import * as Usage from '@/utils/usage.js';
-import type { ModelMessage, LanguageModelUsage } from 'ai';
+import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 
 const log = Log.create({ service: 'step-executor' });
 
@@ -31,6 +30,7 @@ type StepResult = {
   toolCalls: ToolCallRecord[];
   responseMessages: ModelMessage[];
   protocolViolationCount: number;
+  attemptCount: number;
 };
 
 export type StepOptions = {
@@ -41,9 +41,15 @@ export type StepOptions = {
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
   providerId: string;
-  tools: ReturnType<typeof createTools>;
+  tools: Record<string, Tool>;
   abortSignal: AbortSignal;
   streamRunId: string;
+  onAttemptFailure?: (input: {
+    step: number;
+    attempt: number;
+    errorCode: string | undefined;
+    isRetryable: boolean;
+  }) => void | Promise<void>;
 };
 
 async function executeStep(opts: StepOptions): Promise<StepResult> {
@@ -178,6 +184,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           toolCalls,
           responseMessages: await resolveResponseMessages('finish'),
           protocolViolationCount: accumulator.getProtocolViolationCount(),
+          attemptCount: 1,
         };
       }
 
@@ -222,6 +229,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
         toolCalls,
         responseMessages: await resolveResponseMessages('unknown'),
         protocolViolationCount: accumulator.getProtocolViolationCount(),
+        attemptCount: 1,
       };
     }
 
@@ -248,6 +256,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     toolCalls,
     responseMessages: await resolveResponseMessages('unknown'),
     protocolViolationCount: accumulator.getProtocolViolationCount(),
+    attemptCount: 1,
   };
 }
 
@@ -256,7 +265,8 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
   while (true) {
     try {
-      return await executeStep(opts);
+      const result = await executeStep(opts);
+      return { ...result, attemptCount: attempt + 1 };
     } catch (error) {
       // Don't retry on abort — re-throw immediately
       if (isStreamAbortedError(error)) throw error;
@@ -297,6 +307,19 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       }
 
       const retryMessage = isRetryable(errorInfo);
+      if (opts.onAttemptFailure) {
+        try {
+          await opts.onAttemptFailure({
+            step: opts.step,
+            attempt,
+            errorCode: getErrorCode(error),
+            isRetryable: Boolean(retryMessage && attempt < MAX_RETRIES),
+          });
+        } catch {
+          // Ignore usage logging failures during retry handling.
+        }
+      }
+
       if (!retryMessage || attempt >= MAX_RETRIES) {
         await Sse.broadcast('stream-error', {
           sessionId: opts.sessionId,

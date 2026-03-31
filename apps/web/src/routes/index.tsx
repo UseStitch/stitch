@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { NewSessionPage } from '@/components/home/new-session-page';
-import { agentsQueryOptions } from '@/lib/queries/agents';
 import {
   enabledProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -13,7 +12,6 @@ export const Route = createFileRoute('/')({
     Promise.all([
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
-      context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
     ]),
   component: NewSessionPage,

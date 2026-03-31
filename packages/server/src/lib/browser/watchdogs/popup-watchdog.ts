@@ -5,7 +5,7 @@ const log = Log.create({ service: 'browser.watchdog.popup' });
 
 /**
  * Auto-dismisses JavaScript dialogs (alert, confirm, prompt, beforeunload)
- * so the browser agent doesn't get blocked by modal popups.
+ * so Stitch doesn't get blocked by modal popups.
  *
  * Attaches to a CDP page session and listens for Page.javascriptDialogOpening.
  * Accepts confirm/beforeunload dialogs and dismisses alert/prompt.

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -8,7 +8,7 @@ import { createMessageId, createPartId, createSessionId } from '@stitch/shared/i
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { agents, messages, providerConfig, sessions } from '@/db/schema.js';
+import { messages, providerConfig, sessions } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
@@ -22,6 +22,7 @@ import { abortPermissionResponses } from '@/permission/service.js';
 import * as Models from '@/provider/models.js';
 import { listProviders } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
+import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -43,7 +44,6 @@ type SendMessageInput = {
   }>;
   providerId: string;
   modelId: string;
-  agentId: string;
   assistantMessageId: string;
 };
 
@@ -143,9 +143,9 @@ export async function markSessionRead(sessionId: PrefixedString<'ses'>) {
 async function maybeGenerateTitle(input: {
   sessionId: PrefixedString<'ses'>;
   userText: string;
+  attachmentFilenames?: string[];
   providerId: string;
   modelId: string;
-  agentId: PrefixedString<'agt'>;
 }): Promise<void> {
   const db = getDb();
 
@@ -157,7 +157,7 @@ async function maybeGenerateTitle(input: {
     return;
   }
 
-  generateTitle(input.userText, input.providerId, input.modelId)
+  generateTitle(input.userText, input.providerId, input.modelId, input.attachmentFilenames)
     .then(async (generatedTitle) => {
       if (!generatedTitle) {
         return;
@@ -188,7 +188,6 @@ async function maybeGenerateTitle(input: {
         parts: [titlePart],
         modelId: generatedTitle.modelId,
         providerId: generatedTitle.providerId,
-        agentId: input.agentId,
         usage: generatedTitle.usage ?? undefined,
         costUsd,
         finishReason: 'stop',
@@ -198,6 +197,26 @@ async function maybeGenerateTitle(input: {
         startedAt: now,
         duration: 0,
       });
+
+      if (generatedTitle.usage) {
+        await recordUsageEvent({
+          runId: titleMessageId,
+          source: 'title_generation',
+          status: 'succeeded',
+          sessionId: input.sessionId,
+          messageId: titleMessageId,
+          providerId: generatedTitle.providerId,
+          modelId: generatedTitle.modelId,
+          usage: generatedTitle.usage,
+          costUsd,
+          metadata: {
+            phase: 'title-generation',
+          },
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+        });
+      }
 
       await db
         .update(sessions)
@@ -224,17 +243,6 @@ export async function sendMessage(
     return err('Session not found', 404);
   }
 
-  const [agent] = await db
-    .select()
-    .from(agents)
-    .where(eq(agents.id, input.agentId as PrefixedString<'agt'>));
-  if (!agent) {
-    return err(`Agent "${input.agentId}" not found`, 400);
-  }
-  if (agent.type !== 'primary') {
-    return err('Sub agents cannot be used directly in chat', 400);
-  }
-
   const [config] = await db
     .select()
     .from(providerConfig)
@@ -246,9 +254,9 @@ export async function sendMessage(
   await maybeGenerateTitle({
     sessionId: input.sessionId,
     userText: input.content,
+    attachmentFilenames: input.attachments?.map((att) => att.filename),
     providerId: input.providerId,
     modelId: input.modelId,
-    agentId: agent.id,
   });
 
   const userMessageId = createMessageId();
@@ -311,7 +319,6 @@ export async function sendMessage(
     parts: [userPart, ...attachmentParts],
     modelId: input.modelId,
     providerId: input.providerId,
-    agentId: agent.id,
     costUsd: 0,
     createdAt: now,
     updatedAt: now,
@@ -321,10 +328,7 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildCompactedHistory(input.sessionId, {
-    useBasePrompt: agent.useBasePrompt,
-    systemPrompt: agent.systemPrompt,
-  });
+  const llmMessages = await buildCompactedHistory(input.sessionId);
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 
@@ -332,7 +336,6 @@ export async function sendMessage(
     sessionId: input.sessionId,
     assistantMessageId,
     modelId: input.modelId,
-    agentId: agent.id,
     llmMessages,
     credentials: config.credentials,
     abortSignal,
@@ -374,7 +377,7 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
   await abortQuestions(sessionId);
   await abortPermissionResponses(sessionId);
 
-  // Also abort child sessions (sub-agent runs)
+  // Cascade abort to any active child sessions
   const db = getDb();
   const childSessions = await db
     .select({ id: sessions.id })
@@ -382,10 +385,8 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
     .where(eq(sessions.parentSessionId, sessionId));
 
   for (const child of childSessions) {
-    log.info(
-      { event: 'stream.abort.child_session', parentSessionId: sessionId, childSessionId: child.id },
-      'aborting child session',
-    );
+    AbortRegistry.abort(child.id);
+    cancelDecision(child.id);
     await abortQuestions(child.id);
     await abortPermissionResponses(child.id);
   }
@@ -454,6 +455,8 @@ export async function splitSession(
       ...msg,
       id: newMsgId,
       sessionId: newSessionId,
+      usage: undefined,
+      costUsd: 0,
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
     });
@@ -494,7 +497,6 @@ export async function requestCompaction(
     sessionId,
     providerId: lastMessage.providerId,
     modelId: lastMessage.modelId,
-    agentId: lastMessage.agentId,
     auto: false,
   });
 
@@ -511,39 +513,46 @@ export async function getSessionStats(
     return err('Session not found', 404);
   }
 
-  // Fetch messages for this session and all child sessions in parallel
+  const sessionMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt));
+
+  const totalCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+  const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
+  const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
+
+  // Aggregate cost from child sessions (spawned by the task tool)
   const childSessions = await db
     .select({ id: sessions.id })
     .from(sessions)
     .where(eq(sessions.parentSessionId, sessionId));
-  const allSessionIds = [sessionId, ...childSessions.map((s) => s.id)];
 
-  const allMessages = await db
-    .select()
-    .from(messages)
-    .where(inArray(messages.sessionId, allSessionIds))
-    .orderBy(asc(messages.createdAt));
-
-  // Only parent session messages count for message counts / context tokens
-  const parentMessages = allMessages.filter((m) => m.sessionId === sessionId);
-
-  const totalCostUsd = allMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
-  const userMessageCount = parentMessages.filter((m) => m.role === 'user').length;
-  const assistantMessageCount = parentMessages.filter((m) => m.role === 'assistant').length;
+  let childSessionCostUsd = 0;
+  if (childSessions.length > 0) {
+    const childIds = childSessions.map((c) => c.id);
+    for (const childId of childIds) {
+      const childMsgs = await db
+        .select({ costUsd: messages.costUsd })
+        .from(messages)
+        .where(eq(messages.sessionId, childId));
+      childSessionCostUsd += childMsgs.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+    }
+  }
 
   // Find the latest assistant message with token usage (for context window stats)
-  let latestAssistantWithTokens: (typeof parentMessages)[number] | null = null;
-  for (let i = parentMessages.length - 1; i >= 0; i--) {
-    const msg = parentMessages[i];
+  let latestAssistantWithTokens: (typeof sessionMessages)[number] | null = null;
+  for (let i = sessionMessages.length - 1; i >= 0; i--) {
+    const msg = sessionMessages[i];
     if (!msg || msg.role !== 'assistant') continue;
     if (msg.parts?.some((p) => p.type === 'session-title')) continue;
     const usage = msg.usage;
     const tokenSum =
+      usage?.totalTokens ??
       (usage?.inputTokens ?? 0) +
-      (usage?.outputTokens ?? 0) +
-      (usage?.inputTokenDetails?.cacheReadTokens ?? 0) +
-      (usage?.inputTokenDetails?.cacheWriteTokens ?? 0) +
-      (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+        (usage?.outputTokens ?? 0) +
+        (usage?.outputTokenDetails?.reasoningTokens ?? 0);
     if (tokenSum > 0) {
       latestAssistantWithTokens = msg;
       break;
@@ -565,12 +574,11 @@ export async function getSessionStats(
     reasoningTokens = usage?.outputTokenDetails?.reasoningTokens ?? 0;
   }
 
-  const totalTokens =
-    inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens + reasoningTokens;
+  const totalTokens = latestAssistantWithTokens?.usage?.totalTokens ?? inputTokens + outputTokens;
 
   // Resolve provider/model labels and context limit
   const latestMessage =
-    parentMessages.length > 0 ? parentMessages[parentMessages.length - 1] : null;
+    sessionMessages.length > 0 ? sessionMessages[sessionMessages.length - 1] : null;
   const [providers, modelCatalog] = await Promise.all([listProviders(), Models.get()]);
 
   let providerLabel = '-';
@@ -602,7 +610,7 @@ export async function getSessionStats(
     providerLabel,
     modelLabel,
     contextLimit,
-    messagesCount: parentMessages.length,
+    messagesCount: sessionMessages.length,
     usagePercent,
     totalTokens,
     inputTokens,
@@ -612,7 +620,7 @@ export async function getSessionStats(
     cacheWriteTokens,
     userMessageCount,
     assistantMessageCount,
-    totalCostUsd,
+    totalCostUsd: totalCostUsd + childSessionCostUsd,
     sessionCreatedAt: session.createdAt,
     lastActivityAt: session.updatedAt,
   });

@@ -455,7 +455,6 @@ async function maybePromptProfileImport(
     messageId: context.messageId,
     streamRunId: context.streamRunId,
     toolCallId,
-    subAgentId: context.subAgentId,
     abortSignal,
     questions: [
       {
@@ -489,7 +488,6 @@ async function maybePromptProfileImport(
       messageId: context.messageId,
       streamRunId: context.streamRunId,
       toolCallId,
-      subAgentId: context.subAgentId,
       abortSignal,
       questions: [
         {
@@ -554,5 +552,8 @@ export function createRegisteredTool(context: ToolContext) {
   };
 
   const toolWithImport = { ...baseTool, execute: wrappedExecute };
-  return withTruncation(toolWithImport);
+  return withTruncation(toolWithImport, {
+    maxLines: 800,
+    maxBytes: 16 * 1024,
+  });
 }

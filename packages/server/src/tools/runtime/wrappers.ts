@@ -3,7 +3,7 @@ import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
-import { getAgentPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
+import { getPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
 import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
@@ -12,9 +12,14 @@ const log = Log.create({ service: 'tools' });
 export type ToolContext = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
-  agentId: PrefixedString<'agt'>;
   streamRunId: string;
-  subAgentId?: PrefixedString<'agt'>;
+};
+
+type TruncationMeta = {
+  __stitchToolResultMeta: {
+    truncated: true;
+    outputPath: string;
+  };
 };
 
 type ToolPermissionBehavior = {
@@ -22,15 +27,40 @@ type ToolPermissionBehavior = {
   getSuggestion: (input: unknown) => PermissionSuggestion | null;
 };
 
-export function withTruncation<T extends Tool>(t: T): T {
+export function withTruncation<T extends Tool>(
+  t: T,
+  options?: { maxLines?: number; maxBytes?: number },
+): T {
   const originalExecute = t.execute;
   if (!originalExecute) return t;
 
   const wrappedExecute = async (...args: Parameters<typeof originalExecute>) => {
     const result = await originalExecute(...args);
-    const text = typeof result === 'string' ? result : JSON.stringify(result);
-    const truncated = await truncateOutput(text);
-    if (truncated.truncated) return truncated.content;
+    const text =
+      typeof result === 'string'
+        ? result
+        : (() => {
+            try {
+              return JSON.stringify(result);
+            } catch {
+              return String(result);
+            }
+          })();
+    const truncated = await truncateOutput(text, options);
+    if (truncated.truncated) {
+      const meta: TruncationMeta = {
+        __stitchToolResultMeta: {
+          truncated: true,
+          outputPath: truncated.outputPath,
+        },
+      };
+
+      return {
+        output: truncated.content,
+        ...meta,
+      };
+    }
+
     return result;
   };
 
@@ -49,8 +79,7 @@ export function withPermissionGate<T extends Tool>(
   const wrappedExecute = async (...args: Parameters<typeof originalExecute>) => {
     const input = args[0];
     const patternTargets = behavior.getPatternTargets(input);
-    const permission = await getAgentPermissionDecision({
-      agentId: context.agentId,
+    const permission = await getPermissionDecision({
       toolName,
       patternTargets,
     });
@@ -85,13 +114,11 @@ export function withPermissionGate<T extends Tool>(
       sessionId: context.sessionId,
       messageId: context.messageId,
       streamRunId: context.streamRunId,
-      agentId: context.agentId,
       toolCallId,
       toolName,
       toolInput: input,
       systemReminder: 'Tool execution requires user approval',
       suggestion: behavior.getSuggestion(input),
-      subAgentId: context.subAgentId,
       abortSignal: meta?.abortSignal,
     });
 

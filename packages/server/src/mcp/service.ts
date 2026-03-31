@@ -5,10 +5,10 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { agentMcpServers, mcpServers } from '@/db/schema.js';
+import { mcpServers } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { buildAuthHeaders } from '@/mcp/auth.js';
+import { withMcpClient } from '@/mcp/client.js';
 
 export async function listMcpServers() {
   const db = getDb();
@@ -56,74 +56,32 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
     return err('MCP server not found', 404);
   }
 
-  const authHeaders = buildAuthHeaders(server.authConfig);
-  const baseHeaders = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json, text/event-stream',
-    'MCP-Protocol-Version': '2025-03-26',
-    ...authHeaders,
-  };
+  let rawTools: Record<string, unknown>;
+  try {
+    rawTools = await withMcpClient(server, (client) => client.tools());
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return err(`MCP server error: ${message}`, 400);
+  }
 
-  // Initialize session
-  const initRes = await fetch(server.url, {
-    method: 'POST',
-    headers: baseHeaders,
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-03-26',
-        capabilities: {},
-        clientInfo: { name: 'stitch', version: '1.0' },
-      },
-    }),
+  // Map SDK tool objects to our lightweight cached shape
+  const tools: McpTool[] = Object.entries(rawTools).map(([name, toolDef]) => {
+    const def = toolDef as {
+      title?: string;
+      description?: string;
+      inputSchema?: Record<string, unknown>;
+      annotations?: McpTool['annotations'];
+      icons?: McpTool['icons'];
+    };
+    return {
+      name,
+      title: def.title,
+      description: def.description,
+      inputSchema: def.inputSchema,
+      annotations: def.annotations,
+      icons: def.icons,
+    };
   });
-
-  if (!initRes.ok) {
-    return err(`MCP server returned ${initRes.status} during initialization`, 400);
-  }
-
-  const sessionId = initRes.headers.get('mcp-session-id');
-  const sessionHeaders: Record<string, string> = sessionId
-    ? { ...baseHeaders, 'Mcp-Session-Id': sessionId }
-    : baseHeaders;
-
-  // Fetch tools list
-  const toolsRes = await fetch(server.url, {
-    method: 'POST',
-    headers: sessionHeaders,
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 2,
-      method: 'tools/list',
-      params: {},
-    }),
-  });
-
-  if (!toolsRes.ok) {
-    return err(`MCP server returned ${toolsRes.status} fetching tools`, 400);
-  }
-
-  const contentType = toolsRes.headers.get('content-type') ?? '';
-  let body: unknown;
-
-  if (contentType.includes('text/event-stream')) {
-    const text = await toolsRes.text();
-    // Parse the first `data:` line from the SSE stream
-    const dataLine = text.split('\n').find((l) => l.startsWith('data:'));
-    if (!dataLine) return err('No data in SSE response from MCP server', 400);
-    body = JSON.parse(dataLine.slice(5).trim());
-  } else {
-    body = await toolsRes.json();
-  }
-
-  const rpc = body as { result?: { tools?: McpTool[] }; error?: { message: string } };
-  if (rpc.error) {
-    return err(rpc.error.message, 400);
-  }
-
-  const tools = rpc.result?.tools ?? [];
 
   // Persist tools to cache
   await db
@@ -142,9 +100,7 @@ export type McpServerWithTools = {
   tools: McpTool[] | null;
 };
 
-export async function getMcpServersWithCachedToolsForAgent(
-  agentId: PrefixedString<'agt'>,
-): Promise<McpServerWithTools[]> {
+export async function getMcpServersWithCachedTools(): Promise<McpServerWithTools[]> {
   const db = getDb();
   const rows = await db
     .select({
@@ -154,9 +110,8 @@ export async function getMcpServersWithCachedToolsForAgent(
       authConfig: mcpServers.authConfig,
       tools: mcpServers.tools,
     })
-    .from(agentMcpServers)
-    .innerJoin(mcpServers, eq(agentMcpServers.mcpServerId, mcpServers.id))
-    .where(eq(agentMcpServers.agentId, agentId));
+    .from(mcpServers)
+    .orderBy(asc(mcpServers.createdAt));
 
   return rows;
 }

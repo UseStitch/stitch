@@ -3,9 +3,6 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
-import { AgentSelectorPopover } from './agent-selector-popover';
 import { AttachmentPreview } from './attachment-preview';
 import { ModelSelectorPopover } from './model-selector-popover';
 import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
@@ -17,7 +14,6 @@ import {
 } from '@/components/model-selectors/provider-model-utils';
 import { Button } from '@/components/ui/button';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
-import { agentsQueryOptions } from '@/lib/queries/agents';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
@@ -29,8 +25,6 @@ type ChatInputInnerProps = {
   isStreaming?: boolean;
   selectedModel: ModelSpec | null;
   onModelChange: (value: ModelSpec) => void;
-  selectedAgent: string | null;
-  onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;
   disabled?: boolean;
   hasDockAbove?: boolean;
@@ -48,8 +42,6 @@ export function ChatInputInner({
   isStreaming,
   selectedModel,
   onModelChange,
-  selectedAgent,
-  onAgentChange,
   placeholder = 'Ask anything...',
   disabled,
   hasDockAbove,
@@ -59,7 +51,6 @@ export function ChatInputInner({
   onPendingAttachmentsConsumed,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
-  const { data: agents } = useSuspenseQuery(agentsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -109,7 +100,6 @@ export function ChatInputInner({
   }, [value]);
 
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !disabled;
-  const primaryAgents = agents.filter((agent) => agent.type === 'primary');
 
   return (
     <div
@@ -179,14 +169,6 @@ export function ChatInputInner({
 
       <div className="flex items-center justify-between px-3 pt-1 pb-3">
         <div className="flex items-center gap-1">
-          {primaryAgents.length > 1 && (
-            <AgentSelectorPopover
-              selectedValue={selectedAgent as PrefixedString<'agt'> | null}
-              onSelect={onAgentChange}
-              agents={primaryAgents}
-            />
-          )}
-
           {providerModels.length > 0 && (
             <ModelSelectorPopover
               selectedValue={selectedModel}

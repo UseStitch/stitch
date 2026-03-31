@@ -24,8 +24,24 @@ export type McpServer = {
 
 export type McpTool = {
   name: string;
+  title?: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  annotations?: {
+    title?: string;
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
+  icons?: McpIcon[];
+};
+
+export type McpIcon = {
+  src: string;
+  mimeType?: string;
+  sizes?: string[];
+  theme?: 'light' | 'dark';
 };
 
 const MCP_SERVER_ID_LENGTH = 30; // "mcp_" (4) + 26 body chars

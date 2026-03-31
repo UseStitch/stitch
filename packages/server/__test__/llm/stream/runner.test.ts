@@ -21,8 +21,6 @@ const mocks = vi.hoisted(() => {
   const compactMock = vi.fn(async () => 'continue' as const);
   const isOverflowMock = vi.fn(() => false);
   const createToolsMock = vi.fn(() => ({}));
-  const getDisabledToolNamesMock = vi.fn(async () => new Set<string>());
-  const createMcpToolsForAgentMock = vi.fn(async () => ({}));
   const insertValuesMock = vi.fn(async () => {});
   const dbInsertMock = vi.fn(() => ({ values: insertValuesMock }));
   return {
@@ -34,8 +32,6 @@ const mocks = vi.hoisted(() => {
     compactMock,
     isOverflowMock,
     createToolsMock,
-    getDisabledToolNamesMock,
-    createMcpToolsForAgentMock,
     insertValuesMock,
     dbInsertMock,
   };
@@ -66,13 +62,25 @@ vi.mock('@/tools/runtime/registry.js', () => ({
   MAX_STEPS_WARNING: vi.fn((maxSteps: number) => `warning-${maxSteps}`),
 }));
 
-vi.mock('@/agents/config/tool-config.js', () => ({
-  getDisabledToolNames: mocks.getDisabledToolNamesMock,
+vi.mock('@/tools/core/toolset-management.js', () => ({
+  createToolsetTools: vi.fn(() => ({})),
 }));
 
-vi.mock('@/mcp/tool-executor.js', () => ({
-  createMcpToolsForAgent: mocks.createMcpToolsForAgentMock,
+vi.mock('@/tools/core/task.js', () => ({
+  createTaskTool: vi.fn(() => ({})),
 }));
+
+vi.mock('@/tools/toolsets/manager.js', () => {
+  class MockToolsetManager {
+    activate = vi.fn(async () => []);
+    deactivate = vi.fn(() => true);
+    isActive = vi.fn(() => false);
+    getActiveIds = vi.fn(() => new Set());
+    getActiveTools = vi.fn(() => ({}));
+    getCatalogWithState = vi.fn(() => []);
+  }
+  return { ToolsetManager: MockToolsetManager };
+});
 
 vi.mock('@/provider/provider.js', () => ({
   createProvider: vi.fn(() => vi.fn(() => ({ id: 'mock-model' }))),
@@ -110,7 +118,6 @@ function getDefaultOpts() {
     sessionId: 'ses_1' as PrefixedString<'ses'>,
     assistantMessageId: 'msg_1' as PrefixedString<'msg'>,
     modelId: 'openai/gpt-5.3-codex',
-    agentId: 'agt_1' as PrefixedString<'agt'>,
     llmMessages: getDefaultMessages(),
     credentials,
     abortSignal: new AbortController().signal,
@@ -128,13 +135,11 @@ describe('runStream', () => {
     mocks.compactMock.mockReset();
     mocks.isOverflowMock.mockReset();
     mocks.createToolsMock.mockReset();
-    mocks.getDisabledToolNamesMock.mockReset();
     mocks.insertValuesMock.mockReset();
     mocks.dbInsertMock.mockReset();
 
     mocks.broadcastMock.mockResolvedValue(undefined);
     mocks.createToolsMock.mockReturnValue({});
-    mocks.getDisabledToolNamesMock.mockResolvedValue(new Set<string>());
     mocks.dbInsertMock.mockReturnValue({ values: mocks.insertValuesMock });
     mocks.insertValuesMock.mockResolvedValue(undefined);
 

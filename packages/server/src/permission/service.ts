@@ -1,10 +1,10 @@
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import { createAgentPermissionId, createPermissionResponseId } from '@stitch/shared/id';
+import { createPermissionResponseId, createPermissionRuleId } from '@stitch/shared/id';
 import type {
-  AgentPermission,
-  AgentPermissionValue,
+  ToolPermission,
+  ToolPermissionValue,
   PermissionDecisionResult,
   PermissionResponse,
   PermissionResponseStatus,
@@ -12,7 +12,7 @@ import type {
 } from '@stitch/shared/permissions/types';
 
 import { getDb } from '@/db/client.js';
-import { agentPermissions, permissionResponses, sessions } from '@/db/schema.js';
+import { permissionResponses, toolPermissions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -28,7 +28,6 @@ function toPermissionResponse(row: PermissionResponseRow): PermissionResponse {
   return {
     ...row,
     resolvedAt: row.resolvedAt ?? undefined,
-    subAgentId: row.subAgentId ?? undefined,
   };
 }
 
@@ -41,14 +40,13 @@ type PendingPermissionResponse = {
 const pendingPermissionResponses = new Map<PrefixedString<'permres'>, PendingPermissionResponse>();
 
 type SetPermissionRule = {
-  permission: AgentPermissionValue;
+  permission: ToolPermissionValue;
   pattern?: string | null;
 };
 
-export async function upsertAgentPermission(opts: {
-  agentId: PrefixedString<'agt'>;
+export async function upsertPerm(opts: {
   toolName: string;
-  permission: AgentPermissionValue;
+  permission: ToolPermissionValue;
   pattern: string | null;
 }): Promise<void> {
   const db = getDb();
@@ -56,37 +54,28 @@ export async function upsertAgentPermission(opts: {
 
   const where =
     opts.pattern === null
-      ? and(
-          eq(agentPermissions.agentId, opts.agentId),
-          eq(agentPermissions.toolName, opts.toolName),
-          isNull(agentPermissions.pattern),
-        )
-      : and(
-          eq(agentPermissions.agentId, opts.agentId),
-          eq(agentPermissions.toolName, opts.toolName),
-          eq(agentPermissions.pattern, opts.pattern),
-        );
+      ? and(eq(toolPermissions.toolName, opts.toolName), isNull(toolPermissions.pattern))
+      : and(eq(toolPermissions.toolName, opts.toolName), eq(toolPermissions.pattern, opts.pattern));
 
   const existing = await db
-    .select({ id: agentPermissions.id })
-    .from(agentPermissions)
+    .select({ id: toolPermissions.id })
+    .from(toolPermissions)
     .where(where)
     .then((rows) => rows[0]);
 
   if (existing) {
     await db
-      .update(agentPermissions)
+      .update(toolPermissions)
       .set({
         permission: opts.permission,
         updatedAt: now,
       })
-      .where(eq(agentPermissions.id, existing.id));
+      .where(eq(toolPermissions.id, existing.id));
     return;
   }
 
-  await db.insert(agentPermissions).values({
-    id: createAgentPermissionId(),
-    agentId: opts.agentId,
+  await db.insert(toolPermissions).values({
+    id: createPermissionRuleId(),
     toolName: opts.toolName,
     permission: opts.permission,
     pattern: opts.pattern,
@@ -95,34 +84,26 @@ export async function upsertAgentPermission(opts: {
   });
 }
 
-export async function listAgentPermissions(
-  agentId: PrefixedString<'agt'>,
-): Promise<AgentPermission[]> {
+export async function getPerms(): Promise<ToolPermission[]> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(agentPermissions)
-    .where(eq(agentPermissions.agentId, agentId));
+  const rows = await db.select().from(toolPermissions);
   return rows;
 }
 
-export async function deleteAgentPermission(permissionId: PrefixedString<'perm'>): Promise<void> {
+export async function deletePerm(permissionId: PrefixedString<'perm'>): Promise<void> {
   const db = getDb();
-  await db.delete(agentPermissions).where(eq(agentPermissions.id, permissionId));
+  await db.delete(toolPermissions).where(eq(toolPermissions.id, permissionId));
 }
 
-export async function getAgentPermissionDecision(opts: {
-  agentId: PrefixedString<'agt'>;
+export async function getPermissionDecision(opts: {
   toolName: string;
   patternTargets?: string[];
-}): Promise<AgentPermissionValue> {
+}): Promise<ToolPermissionValue> {
   const db = getDb();
   const rows = await db
     .select()
-    .from(agentPermissions)
-    .where(
-      and(eq(agentPermissions.agentId, opts.agentId), eq(agentPermissions.toolName, opts.toolName)),
-    );
+    .from(toolPermissions)
+    .where(eq(toolPermissions.toolName, opts.toolName));
 
   return resolvePermissionFromRules(rows, opts.patternTargets ?? []);
 }
@@ -131,13 +112,11 @@ export async function requestPermissionResponse(opts: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId?: string;
-  agentId: PrefixedString<'agt'>;
   toolCallId: string;
   toolName: string;
   toolInput: unknown;
   systemReminder: string;
   suggestion?: PermissionSuggestion | null;
-  subAgentId?: PrefixedString<'agt'>;
   abortSignal?: AbortSignal;
 }): Promise<PermissionDecisionResult> {
   const db = getDb();
@@ -148,13 +127,11 @@ export async function requestPermissionResponse(opts: {
     id,
     sessionId: opts.sessionId,
     messageId: opts.messageId,
-    agentId: opts.agentId,
     toolCallId: opts.toolCallId,
     toolName: opts.toolName,
     toolInput: opts.toolInput,
     systemReminder: opts.systemReminder,
     suggestion: opts.suggestion ?? null,
-    subAgentId: opts.subAgentId ?? null,
     status: 'pending',
     createdAt: now,
   });
@@ -227,8 +204,7 @@ async function resolvePermissionResponse(opts: {
   }
 
   if (opts.setPermission) {
-    await upsertAgentPermission({
-      agentId: existing.agentId,
+    await upsertPerm({
       toolName: existing.toolName,
       permission: opts.setPermission.permission,
       pattern: opts.setPermission.pattern ?? null,
@@ -314,19 +290,10 @@ export async function getPendingPermissionResponses(
   sessionId: PrefixedString<'ses'>,
 ): Promise<PermissionResponse[]> {
   const db = getDb();
-
-  // Find child session IDs for sub-agent permission requests
-  const childSessions = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.parentSessionId, sessionId));
-  const childSessionIds = childSessions.map((s) => s.id);
-
-  const allSessionIds = [sessionId, ...childSessionIds];
   const rows = await db
     .select()
     .from(permissionResponses)
-    .where(or(...allSessionIds.map((id) => eq(permissionResponses.sessionId, id))));
+    .where(eq(permissionResponses.sessionId, sessionId));
 
   return rows.filter((p) => p.status === 'pending').map(toPermissionResponse);
 }

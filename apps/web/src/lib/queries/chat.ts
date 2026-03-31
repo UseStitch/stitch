@@ -127,7 +127,6 @@ type SendMessageInput = {
   attachments?: Attachment[];
   providerId: string;
   modelId: string;
-  agentId: PrefixedString<'agt'>;
   assistantMessageId: PrefixedString<'msg'>;
 };
 
@@ -257,7 +256,6 @@ export function useSendMessage() {
           })),
           providerId: input.providerId,
           modelId: input.modelId,
-          agentId: input.agentId,
           assistantMessageId: input.assistantMessageId,
         }),
       });
@@ -322,7 +320,6 @@ export function useSendMessage() {
           parts: optimisticParts,
           modelId: input.modelId,
           providerId: input.providerId,
-          agentId: input.agentId,
           usage: EMPTY_USAGE,
           costUsd: null,
           finishReason: 'stop',

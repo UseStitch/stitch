@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, EyeIcon, PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react';
+import { ArrowLeftIcon, EyeIcon, PlusIcon, RefreshCwIcon, Trash2Icon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -23,7 +23,9 @@ import {
   mcpToolsQueryOptions,
   useAddMcpServer,
   useDeleteMcpServer,
+  useRefreshMcpServers,
 } from '@/lib/queries/mcp';
+import { knownMcpToolsQueryOptions } from '@/lib/queries/tools';
 
 const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description: string }> = {
   none: { label: 'No auth', description: 'Open server, no credentials needed' },
@@ -294,7 +296,19 @@ function McpServerList({
   onPreview: (server: McpServer) => void;
 }) {
   const { data: servers } = useSuspenseQuery(mcpServersQueryOptions);
+  const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
   const deleteServer = useDeleteMcpServer();
+  const refreshServers = useRefreshMcpServers();
+
+  const serverIconById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const tool of knownMcpTools) {
+      if (tool.serverIconPath && !map.has(tool.serverId)) {
+        map.set(tool.serverId, tool.serverIconPath);
+      }
+    }
+    return map;
+  }, [knownMcpTools]);
 
   const handleDelete = async (server: McpServer) => {
     try {
@@ -302,6 +316,15 @@ function McpServerList({
       toast.success(`${server.name} removed`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server');
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refreshServers.mutateAsync();
+      toast.success('MCP servers refreshed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers');
     }
   };
 
@@ -314,9 +337,20 @@ function McpServerList({
             Configure remote Model Context Protocol servers
           </p>
         </div>
-        <Button size="icon-sm" onClick={onAdd} aria-label="Add MCP server">
-          <PlusIcon className="size-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => void handleRefresh()}
+            aria-label="Refresh MCP servers"
+            disabled={refreshServers.isPending}
+          >
+            <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button size="icon-sm" onClick={onAdd} aria-label="Add MCP server">
+            <PlusIcon className="size-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border/60">
@@ -331,6 +365,14 @@ function McpServerList({
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex items-center gap-2">
+                {serverIconById.get(server.id) ? (
+                  <img
+                    src={serverIconById.get(server.id)}
+                    alt=""
+                    className="size-4 shrink-0 rounded-sm"
+                    loading="lazy"
+                  />
+                ) : null}
                 <p className="truncate text-sm font-medium">{server.name}</p>
                 <Badge variant="secondary" className="shrink-0 text-[11px]">
                   {AUTH_TYPE_LABELS[server.authConfig.type].label}

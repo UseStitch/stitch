@@ -238,7 +238,7 @@ describe('buildHistoryMessages', () => {
     });
   });
 
-  test('adds system prompt with environment and model id', () => {
+  test('adds system prompt with environment', () => {
     const result = buildHistoryMessages([
       {
         role: 'user',
@@ -251,7 +251,6 @@ describe('buildHistoryMessages', () => {
     expect(result[0]).toMatchObject({ role: 'system' });
     expect(typeof result[0]?.content).toBe('string');
     expect(result[0]?.content).toContain('<env>');
-    expect(result[0]?.content).toContain('Model id: openai/gpt-5.3-codex');
     expect(result[0]?.content).toContain('Preferred shell:');
     expect(result[0]?.content).toContain('You are Stitch a local machine assistant.');
   });

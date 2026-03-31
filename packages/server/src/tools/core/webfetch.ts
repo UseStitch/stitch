@@ -133,7 +133,9 @@ Usage notes:
 - HTTP URLs are automatically upgraded to HTTPS.
 - Format options: markdown (default), text, or html.
 - This tool is read-only and does not modify files.
-- Results may be summarized if content is very large.`,
+- Results may be summarized if content is very large.
+- This tool should only be used for fetching content, and not for general browsing or navigation.
+`,
     inputSchema: webfetchInputSchema,
     execute: async (input, { abortSignal }) => {
       const normalizedUrl = validateAndNormalizeUrl(input.url);
@@ -269,5 +271,10 @@ export function createRegisteredTool(context: ToolContext) {
     context,
   );
 
-  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
+  return shouldTruncate
+    ? withTruncation(gatedTool, {
+        maxLines: 1200,
+        maxBytes: 24 * 1024,
+      })
+    : gatedTool;
 }

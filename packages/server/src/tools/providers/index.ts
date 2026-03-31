@@ -1,78 +1,34 @@
-import { eq } from 'drizzle-orm';
+import type { ToolType } from '@stitch/shared/tools/types';
 
-import type { AgentToolType } from '@stitch/shared/agents/types';
-import type { PrefixedString } from '@stitch/shared/id';
+import { browserToolProvider, browserToolset } from '@/tools/providers/browser-provider.js';
+import { meetingsToolProvider, meetingsToolset } from '@/tools/providers/meetings-provider.js';
+import type { ToolProvider } from '@/tools/providers/types.js';
+import { registerToolset } from '@/tools/toolsets/registry.js';
 
-import { getDb } from '@/db/client.js';
-import { agents } from '@/db/schema.js';
-import { browserToolProvider } from '@/tools/providers/browser-provider.js';
-import { meetingsToolProvider } from '@/tools/providers/meetings-provider.js';
-import type { AgentInfo, AgentToolProvider } from '@/tools/providers/types.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import type { Tool } from 'ai';
+const providers: ToolProvider[] = [meetingsToolProvider, browserToolProvider];
 
 /**
- * All registered agent tool providers.
- * Add new providers here when creating new agent-specific tools.
+ * Return the known tool name/type/displayName triples for global provider tools.
+ * Used by routes/config.ts for tool discovery.
  */
-const providers: AgentToolProvider[] = [meetingsToolProvider, browserToolProvider];
-
-async function resolveAgent(agentId: PrefixedString<'agt'>): Promise<AgentInfo | null> {
-  try {
-    const db = getDb();
-    const [agent] = await db
-      .select({ id: agents.id, name: agents.name, kind: agents.kind })
-      .from(agents)
-      .where(eq(agents.id, agentId));
-    return agent ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Create agent-specific tools for a given agent.
- * Runs all registered providers whose `appliesTo` matches, merges their tools.
- * Used by stream-runner.ts at runtime.
- */
-export async function createAgentSpecificTools(
-  agentId: PrefixedString<'agt'>,
-  context: ToolContext,
-): Promise<Record<string, Tool>> {
-  if (providers.length === 0) return {};
-
-  const agent = await resolveAgent(agentId);
-  if (!agent) return {};
-
-  const tools: Record<string, Tool> = {};
-  for (const provider of providers) {
-    if (provider.appliesTo(agent)) {
-      const providerTools = provider.createTools(context);
-      Object.assign(tools, providerTools);
-    }
-  }
-
-  return tools;
-}
-
-/**
- * Return the known tool name/type/displayName triples for agent-specific tools.
- * Used by routes/agents.ts for the tool-config UI endpoint.
- */
-export async function getAgentSpecificKnownTools(
-  agentId: PrefixedString<'agt'>,
-): Promise<{ toolType: AgentToolType; toolName: string; displayName: string }[]> {
+export async function getGlobalProviderKnownTools(): Promise<
+  { toolType: ToolType; toolName: string; displayName: string }[]
+> {
   if (providers.length === 0) return [];
 
-  const agent = await resolveAgent(agentId);
-  if (!agent) return [];
-
-  const knownTools: { toolType: AgentToolType; toolName: string; displayName: string }[] = [];
+  const knownTools: { toolType: ToolType; toolName: string; displayName: string }[] = [];
   for (const provider of providers) {
-    if (provider.appliesTo(agent)) {
-      knownTools.push(...provider.knownTools());
-    }
+    knownTools.push(...provider.knownTools());
   }
 
   return knownTools;
+}
+
+/**
+ * Register all built-in provider toolsets (browser, meetings) with the global registry.
+ * Call once at startup.
+ */
+export function registerProviderToolsets(): void {
+  registerToolset(browserToolset);
+  registerToolset(meetingsToolset);
 }

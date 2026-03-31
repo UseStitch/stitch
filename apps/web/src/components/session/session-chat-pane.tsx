@@ -11,7 +11,6 @@ import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/t
 import { DockContainer } from '@/components/chat/docks/dock';
 import { MessageList } from '@/components/chat/message-list';
 import {
-  findLastUsedAgentId,
   findLastUsedModel,
 } from '@/components/session/session-chat-pane/session-message-context';
 import { useQueuedEditPayload } from '@/components/session/session-chat-pane/use-queued-edit-payload';
@@ -21,7 +20,6 @@ import type {
   EditQueuedMessagePayload,
   SendQueuedMessageFn,
 } from '@/components/session/session-page-types';
-import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
@@ -66,11 +64,8 @@ export function SessionChatPane({
     (): ModelSpec | null => findLastUsedModel(messages),
     [messages],
   );
-  const lastUsedAgentId = React.useMemo(() => findLastUsedAgentId(messages), [messages]);
-
   const { value, setValue } = useSeededInput();
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
-  const { selectedAgent, handleAgentChange } = useChatAgent({ lastUsedAgentId });
   const sendMessage = useSendMessage();
   const splitSession = useSplitSession();
   const addToQueue = useAddToQueue();
@@ -106,13 +101,13 @@ export function SessionChatPane({
   const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
 
   const canSendQueuedMessage = React.useCallback(
-    () => canSend && selectedModel !== null && selectedAgent !== null,
-    [canSend, selectedModel, selectedAgent],
+    () => canSend && selectedModel !== null,
+    [canSend, selectedModel],
   );
 
   const sendQueuedMessage: SendQueuedMessageFn = React.useCallback(
     (content, queueAttachments) => {
-      if (!selectedModel || !selectedAgent) return;
+      if (!selectedModel) return;
 
       const assistantMessageId = createMessageId();
       startStream(id, assistantMessageId);
@@ -131,11 +126,10 @@ export function SessionChatPane({
             : undefined,
         providerId: selectedModel.providerId,
         modelId: selectedModel.modelId,
-        agentId: selectedAgent,
         assistantMessageId,
       });
     },
-    [id, selectedModel, selectedAgent, sendMessage, startStream],
+    [id, selectedModel, sendMessage, startStream],
   );
 
   useSendQueuedRef({
@@ -145,7 +139,7 @@ export function SessionChatPane({
   });
 
   async function handleSubmit(text: string, attachments: Attachment[]) {
-    if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
+    if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
 
     // If streaming or a send is in-flight, queue the message instead
     if (!canSend) {
@@ -185,7 +179,6 @@ export function SessionChatPane({
           : undefined,
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
-      agentId: selectedAgent,
       assistantMessageId,
     });
   }
@@ -257,8 +250,6 @@ export function SessionChatPane({
                         isStreaming={streamState.isStreaming}
                         selectedModel={selectedModel}
                         onModelChange={handleModelChange}
-                        selectedAgent={selectedAgent}
-                        onAgentChange={handleAgentChange}
                         placeholder={
                           isCompacting
                             ? 'Compacting conversation...'

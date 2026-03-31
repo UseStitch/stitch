@@ -14,7 +14,6 @@ const BASE_SYSTEM_PROMPT = readFileSync(
 ).trim();
 
 export function buildSystemPrompt(input: {
-  modelId: string;
   useBasePrompt: boolean;
   systemPrompt: string | null;
 }): string {
@@ -28,5 +27,5 @@ export function buildSystemPrompt(input: {
     }
   }
 
-  return `${identity()}\n\n${buildPromptEnvironment(input.modelId)}\n\n${promptBody}`;
+  return `${identity()}\n\n${buildPromptEnvironment()}\n\n${promptBody}`;
 }

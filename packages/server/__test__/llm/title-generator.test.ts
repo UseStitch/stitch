@@ -160,4 +160,26 @@ describe('generateTitle', () => {
     );
     expect(textContent?.text).toContain('My specific first message');
   });
+
+  test('includes attachment filenames in the title prompt when provided', async () => {
+    const model = makeMockModel('Test Title');
+    setupProvider(model);
+
+    await generateTitle('Please review this code', 'openai', 'gpt-5', [
+      'auth-service.ts',
+      'README.md',
+    ]);
+
+    expect(model.doGenerateCalls).toHaveLength(1);
+    const messages = model.doGenerateCalls[0].prompt;
+    const userMessage = messages.find((m) => m.role === 'user');
+    expect(userMessage).toBeDefined();
+
+    const textContent = userMessage!.content.find(
+      (c): c is { type: 'text'; text: string } => c.type === 'text',
+    );
+    expect(textContent?.text).toContain('Attached filenames:');
+    expect(textContent?.text).toContain('auth-service.ts');
+    expect(textContent?.text).toContain('README.md');
+  });
 });

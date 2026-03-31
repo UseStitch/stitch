@@ -100,6 +100,7 @@ type DoomLoopState = {
   totalUsage: LanguageModelUsage;
   finalFinishReason: string;
   isStopped: boolean;
+  summaryUsage?: LanguageModelUsage;
 };
 
 export async function checkAndHandleDoomLoop(opts: {
@@ -109,8 +110,17 @@ export async function checkAndHandleDoomLoop(opts: {
   conversation: ModelMessage[];
   stepOptions: StepOptions;
   currentState: DoomLoopState;
+  onDoomLoopAttemptFailure?: StepOptions['onAttemptFailure'];
 }): Promise<DoomLoopState> {
-  const { sessionId, messageId, toolCallHistory, conversation, stepOptions, currentState } = opts;
+  const {
+    sessionId,
+    messageId,
+    toolCallHistory,
+    conversation,
+    stepOptions,
+    currentState,
+    onDoomLoopAttemptFailure,
+  } = opts;
 
   if (!isDoomLoop(toolCallHistory)) {
     return currentState;
@@ -148,6 +158,7 @@ export async function checkAndHandleDoomLoop(opts: {
     const summaryResult = await executeStepWithRetry({
       ...stepOptions,
       conversation,
+      onAttemptFailure: onDoomLoopAttemptFailure,
     });
 
     const newUsage = Usage.addUsage(currentState.totalUsage, summaryResult.usage);
@@ -160,6 +171,7 @@ export async function checkAndHandleDoomLoop(opts: {
       totalUsage: newUsage,
       finalFinishReason: summaryResult.finishReason,
       isStopped: true,
+      summaryUsage: summaryResult.usage,
     };
   }
 

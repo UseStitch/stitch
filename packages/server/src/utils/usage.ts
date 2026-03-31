@@ -1,22 +1,29 @@
 import type { LanguageModelUsage } from 'ai';
 
+function safe(value: number | null | undefined): number {
+  if (typeof value !== 'number') {
+    return 0;
+  }
+
+  return Number.isFinite(value) ? value : 0;
+}
+
 export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUsage {
   return {
-    inputTokens: (a.inputTokens ?? 0) + (b.inputTokens ?? 0),
-    outputTokens: (a.outputTokens ?? 0) + (b.outputTokens ?? 0),
-    totalTokens: (a.totalTokens ?? 0) + (b.totalTokens ?? 0),
+    inputTokens: safe(a.inputTokens) + safe(b.inputTokens),
+    outputTokens: safe(a.outputTokens) + safe(b.outputTokens),
+    totalTokens: safe(a.totalTokens) + safe(b.totalTokens),
     inputTokenDetails: {
-      noCacheTokens:
-        (a.inputTokenDetails.noCacheTokens ?? 0) + (b.inputTokenDetails.noCacheTokens ?? 0),
+      noCacheTokens: safe(a.inputTokenDetails?.noCacheTokens) + safe(b.inputTokenDetails?.noCacheTokens),
       cacheReadTokens:
-        (a.inputTokenDetails.cacheReadTokens ?? 0) + (b.inputTokenDetails.cacheReadTokens ?? 0),
+        safe(a.inputTokenDetails?.cacheReadTokens) + safe(b.inputTokenDetails?.cacheReadTokens),
       cacheWriteTokens:
-        (a.inputTokenDetails.cacheWriteTokens ?? 0) + (b.inputTokenDetails.cacheWriteTokens ?? 0),
+        safe(a.inputTokenDetails?.cacheWriteTokens) + safe(b.inputTokenDetails?.cacheWriteTokens),
     },
     outputTokenDetails: {
-      textTokens: (a.outputTokenDetails.textTokens ?? 0) + (b.outputTokenDetails.textTokens ?? 0),
+      textTokens: safe(a.outputTokenDetails?.textTokens) + safe(b.outputTokenDetails?.textTokens),
       reasoningTokens:
-        (a.outputTokenDetails.reasoningTokens ?? 0) + (b.outputTokenDetails.reasoningTokens ?? 0),
+        safe(a.outputTokenDetails?.reasoningTokens) + safe(b.outputTokenDetails?.reasoningTokens),
     },
   };
 }

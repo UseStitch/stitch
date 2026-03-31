@@ -8,11 +8,23 @@ import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'title-generator' });
 
-const generateTitlePrompt = (firstMessage: string) => `
-Generate a short, descriptive title (30 chars max) for a conversation that starts with this message: 
-"${firstMessage}". 
-Just return the title, nothing else.
+const generateTitlePrompt = (firstMessage: string, filenames: string[] = []) => {
+  const normalizedFilenames = filenames.map((name) => name.trim()).filter(Boolean);
+  const filenameContext =
+    normalizedFilenames.length > 0
+      ? `\nAttached filenames:\n${normalizedFilenames.map((name) => `- ${name}`).join('\n')}`
+      : '';
+
+  return `
+Generate a short, descriptive title (30 chars max) for a conversation.
+If attached filenames are provided, prefer using them when they add useful context.
+
+First message:
+"${firstMessage}"${filenameContext}
+
+Return only the title.
 `;
+};
 
 type GeneratedTitle = {
   title: string;
@@ -25,6 +37,7 @@ export async function generateTitle(
   firstMessage: string,
   fallbackProviderId: string,
   fallbackModelId: string,
+  filenames?: string[],
 ): Promise<GeneratedTitle | null> {
   const resolved = await resolveCheapModel({
     providerIdKey: 'model.title.providerId',
@@ -41,7 +54,7 @@ export async function generateTitle(
       messages: [
         {
           role: 'user',
-          content: generateTitlePrompt(firstMessage),
+          content: generateTitlePrompt(firstMessage, filenames),
         },
       ],
     });

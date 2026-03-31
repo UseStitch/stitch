@@ -97,7 +97,6 @@ export type Message = {
   parts: StoredPart[];
   modelId: string;
   providerId: string;
-  agentId: PrefixedString<'agt'>;
   usage: LanguageModelUsage;
   costUsd: number | null;
   finishReason: string;

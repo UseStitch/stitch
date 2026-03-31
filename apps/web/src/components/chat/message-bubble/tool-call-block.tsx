@@ -7,8 +7,11 @@ import { FileToolBlock } from '@/components/chat/message-bubble/tool-call/file-t
 import { GenericToolBlock } from '@/components/chat/message-bubble/tool-call/generic-tool-block';
 import { McpToolBlock } from '@/components/chat/message-bubble/tool-call/mcp-tool-block';
 import { QuestionToolBlock } from '@/components/chat/message-bubble/tool-call/question-tool-block';
-import { SubAgentToolBlock } from '@/components/chat/message-bubble/tool-call/sub-agent-tool-block';
+import { ChildSessionToolBlock } from '@/components/chat/message-bubble/tool-call/child-session-tool-block';
+import { ToolsetToolBlock } from '@/components/chat/message-bubble/tool-call/toolset-tool-block';
 import { WebfetchToolBlock } from '@/components/chat/message-bubble/tool-call/webfetch-tool-block';
+
+const TOOLSET_TOOLS = new Set(['list_toolsets', 'activate_toolset', 'deactivate_toolset']);
 
 type ToolCallBlockProps = {
   toolName: string;
@@ -29,11 +32,23 @@ export function ToolCallBlock({
 }: ToolCallBlockProps) {
   const hasArgs = args !== undefined && args !== null;
   const isMcp = parseMcpToolName(toolName) !== null;
-  const isSubAgent = toolName.startsWith('subagent_');
+  const isChildSession = toolName === 'task';
+  const isToolsetTool = TOOLSET_TOOLS.has(toolName);
 
-  if (isSubAgent) {
+  if (isChildSession) {
     return (
-      <SubAgentToolBlock
+      <ChildSessionToolBlock
+        status={status}
+        args={args}
+        result={result}
+        error={error}
+      />
+    );
+  }
+
+  if (isToolsetTool) {
+    return (
+      <ToolsetToolBlock
         toolName={toolName}
         status={status}
         args={args}

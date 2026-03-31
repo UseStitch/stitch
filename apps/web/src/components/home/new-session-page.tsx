@@ -9,7 +9,6 @@ import { createMessageId } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment } from '@/components/chat/chat-input-parts/types';
-import { useChatAgent } from '@/hooks/session/use-chat-agent';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { sessionKeys, useCreateSession, useSendMessage } from '@/lib/queries/chat';
@@ -25,12 +24,11 @@ export function NewSessionPage() {
   const [value, setValue] = React.useState('');
 
   const { selectedModel, handleModelChange } = useChatModel();
-  const { selectedAgent, handleAgentChange } = useChatAgent();
 
   const isSubmitting = createSession.isPending || sendMessage.isPending;
 
   async function handleSubmit(text: string, attachments: Attachment[]) {
-    if ((!text.trim() && attachments.length === 0) || !selectedModel || !selectedAgent) return;
+    if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
 
     setNextSessionInputSeed(text);
 
@@ -59,7 +57,6 @@ export function NewSessionPage() {
           : undefined,
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
-      agentId: selectedAgent,
       assistantMessageId,
     });
 
@@ -82,8 +79,6 @@ export function NewSessionPage() {
             }}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
-            selectedAgent={selectedAgent}
-            onAgentChange={handleAgentChange}
             placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
             disabled={isSubmitting}
           />

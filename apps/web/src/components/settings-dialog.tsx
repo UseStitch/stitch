@@ -1,5 +1,4 @@
 import {
-  BotIcon,
   GlobeIcon,
   KeyboardIcon,
   NetworkIcon,
@@ -11,13 +10,13 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
-import { AgentsSettings } from '@/components/settings/agents';
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { BrowserSettings } from '@/components/settings/browser';
 import { GeneralSettings } from '@/components/settings/general';
 import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
 import { ModelsSettings } from '@/components/settings/models';
+import { PermissionsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -58,7 +57,7 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
       { id: 'models', label: 'Models', icon: <CpuIcon className="size-4" /> },
-      { id: 'agents', label: 'Agents', icon: <BotIcon className="size-4" /> },
+      { id: 'permissions', label: 'Permissions', icon: <ServerIcon className="size-4" /> },
       { id: 'mcp-servers', label: 'MCP Servers', icon: <NetworkIcon className="size-4" /> },
     ],
   },
@@ -131,8 +130,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <ProvidersSettings />;
     case 'models':
       return <ModelsSettings />;
-    case 'agents':
-      return <AgentsSettings />;
+    case 'permissions':
+      return <PermissionsSettings />;
     case 'mcp-servers':
       return <McpServersSettings />;
     default:

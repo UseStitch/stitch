@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { SessionPage } from '@/components/session/session-page';
-import { agentsQueryOptions } from '@/lib/queries/agents';
 import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
 import {
   enabledProviderModelsQueryOptions,
@@ -15,7 +14,6 @@ export const Route = createFileRoute('/session/$id')({
     Promise.all([
       context.queryClient.ensureQueryData(sessionQueryOptions(params.id)),
       context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
-      context.queryClient.ensureQueryData(agentsQueryOptions),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),

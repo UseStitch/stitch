@@ -1,5 +1,6 @@
 import { generateText, Output } from 'ai';
 import { and, desc, eq, inArray } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,6 +17,7 @@ import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
+import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
 
@@ -206,8 +208,10 @@ async function runTranscription(
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
+  const usageRunId = randomUUID();
   const abortController = new AbortController();
   activeTranscriptions.set(transcriptionId, abortController);
+  const usageRecords: NonNullable<Transcription['usage']>[] = [];
 
   try {
     const processingRows = await db
@@ -236,7 +240,6 @@ async function runTranscription(
     }
 
     const model = createProvider(input.credentials)(input.modelId);
-    const usageRecords: NonNullable<Transcription['usage']>[] = [];
     const transcriptParts: TranscriptEntry[][] = [];
 
     // --- Pass 1: Audio -> Transcript (chunked for long recordings) ---
@@ -286,6 +289,30 @@ async function runTranscription(
 
       transcriptParts.push(pass1Output.transcript);
       usageRecords.push(pass1Result.usage);
+
+      const pass1CostUsd = await calculateMessageCostUsd({
+        providerId: input.providerId,
+        modelId: input.modelId,
+        usage: pass1Result.usage,
+      });
+      await recordUsageEvent({
+        runId: usageRunId,
+        source: 'transcription_pass1',
+        status: 'succeeded',
+        meetingId: input.meetingId,
+        transcriptionId,
+        providerId: input.providerId,
+        modelId: input.modelId,
+        usage: pass1Result.usage,
+        costUsd: pass1CostUsd,
+        stepIndex: chunk.chunkIndex,
+        metadata: {
+          phase: 'pass1',
+          chunkIndex: chunk.chunkIndex,
+          totalChunks: chunk.totalChunks,
+        },
+        startedAt,
+      });
     }
 
     const transcript = smoothSpeakerAssignments(transcriptParts.flat());
@@ -334,6 +361,31 @@ async function runTranscription(
 
       chunkSummaries.push(chunkOutput.summary);
       usageRecords.push(analysisChunkResult.usage);
+
+      const chunkAnalysisCostUsd = await calculateMessageCostUsd({
+        providerId: input.providerId,
+        modelId: input.modelId,
+        usage: analysisChunkResult.usage,
+      });
+      await recordUsageEvent({
+        runId: usageRunId,
+        source: 'transcription_chunk_analysis',
+        status: 'succeeded',
+        meetingId: input.meetingId,
+        transcriptionId,
+        providerId: input.providerId,
+        modelId: input.modelId,
+        usage: analysisChunkResult.usage,
+        costUsd: chunkAnalysisCostUsd,
+        stepIndex: i + 1,
+        metadata: {
+          phase: 'chunk-analysis',
+          chunkIndex: i + 1,
+          totalChunks: transcriptChunks.length,
+          transcriptTurnsInChunk: chunk.length,
+        },
+        startedAt,
+      });
     }
 
     // --- Pass 3: Merge chunk summaries -> final title + summary ---
@@ -372,6 +424,28 @@ async function runTranscription(
       throw new Error('Model did not return a valid final analysis');
     }
     usageRecords.push(finalAnalysisResult.usage);
+
+    const finalAnalysisCostUsd = await calculateMessageCostUsd({
+      providerId: input.providerId,
+      modelId: input.modelId,
+      usage: finalAnalysisResult.usage,
+    });
+    await recordUsageEvent({
+      runId: usageRunId,
+      source: 'transcription_final_analysis',
+      status: 'succeeded',
+      meetingId: input.meetingId,
+      transcriptionId,
+      providerId: input.providerId,
+      modelId: input.modelId,
+      usage: finalAnalysisResult.usage,
+      costUsd: finalAnalysisCostUsd,
+      metadata: {
+        phase: 'final-analysis',
+        transcriptChunkCount: transcriptChunks.length,
+      },
+      startedAt,
+    });
 
     const recordingDir = path.dirname(meeting.recordingFilePath);
     const transcriptFilePath = path.join(recordingDir, `transcript-${transcriptionId}.txt`);
@@ -424,6 +498,17 @@ async function runTranscription(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const durationMs = Date.now() - startedAt;
+    const mergedUsage = usageRecords.reduce((acc, usage) => addUsage(acc, usage), ZERO_USAGE);
+    const costs = await Promise.all(
+      usageRecords.map((usage) =>
+        calculateMessageCostUsd({
+          providerId: input.providerId,
+          modelId: input.modelId,
+          usage,
+        }),
+      ),
+    );
+    const partialCostUsd = costs.reduce((sum, cost) => sum + cost, 0);
 
     log.error(
       { transcriptionId, meetingId: input.meetingId, error: errorMessage },
@@ -435,6 +520,8 @@ async function runTranscription(
       .set({
         status: 'failed',
         errorMessage,
+        usage: mergedUsage,
+        costUsd: partialCostUsd,
         durationMs,
         updatedAt: Date.now(),
       })
@@ -449,6 +536,26 @@ async function runTranscription(
       meetingId: input.meetingId,
       transcriptionId,
       error: errorMessage,
+    });
+
+    const failedAt = Date.now();
+    await recordUsageEvent({
+      runId: usageRunId,
+      source: 'transcription',
+      status: 'failed',
+      meetingId: input.meetingId,
+      transcriptionId,
+      providerId: input.providerId,
+      modelId: input.modelId,
+      usage: mergedUsage,
+      costUsd: partialCostUsd,
+      errorCode: errorMessage,
+      metadata: {
+        phase: 'transcription-run',
+      },
+      startedAt,
+      endedAt: failedAt,
+      durationMs,
     });
   } finally {
     activeTranscriptions.delete(transcriptionId);

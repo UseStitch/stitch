@@ -1,22 +1,13 @@
-import type { AgentKind, AgentToolType } from '@stitch/shared/agents/types';
-import type { PrefixedString } from '@stitch/shared/id';
+import type { ToolType } from '@stitch/shared/tools/types';
 
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Tool } from 'ai';
 
-export type AgentInfo = {
-  id: PrefixedString<'agt'>;
-  name: string;
-  kind: AgentKind | null;
-};
-
-export type AgentToolProvider = {
+export type ToolProvider = {
   /** Human-readable name for logging */
   name: string;
-  /** Return true if this provider should inject tools for the given agent */
-  appliesTo: (agent: AgentInfo) => boolean;
   /** Tool name/type/displayName triples for the UI tool-config endpoint */
-  knownTools: () => { toolType: AgentToolType; toolName: string; displayName: string }[];
+  knownTools: () => { toolType: ToolType; toolName: string; displayName: string }[];
   /** Create the actual tool instances for runtime use */
   createTools: (context: ToolContext) => Record<string, Tool>;
 };

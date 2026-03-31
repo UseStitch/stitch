@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type { McpAuthConfig, McpServer, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 
 import { serverFetch } from '@/lib/api';
+import { toolKeys } from '@/lib/queries/tools';
 
 const mcpKeys = {
   all: ['mcp'] as const,
@@ -57,6 +58,7 @@ export function useAddMcpServer() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
+      void queryClient.invalidateQueries({ queryKey: toolKeys.all });
     },
   });
 }
@@ -73,6 +75,24 @@ export function useDeleteMcpServer() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
+      void queryClient.invalidateQueries({ queryKey: toolKeys.all });
+    },
+  });
+}
+
+export function useRefreshMcpServers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await serverFetch('/mcp/refresh', { method: 'POST' });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to refresh MCP servers');
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
+      void queryClient.invalidateQueries({ queryKey: toolKeys.all });
     },
   });
 }

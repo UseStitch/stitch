@@ -4,7 +4,6 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getDisabledToolNames } from '@/agents/config/tool-config.js';
 import { markSessionUnread } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
@@ -22,15 +21,20 @@ import {
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import { createMcpToolsForAgent } from '@/mcp/tool-executor.js';
+import {
+  getSessionActiveToolsetIds,
+  setSessionActiveToolsetIds,
+} from '@/llm/stream/session-toolsets.js';
 import { createProvider } from '@/provider/provider.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
-import { createSubAgentTools } from '@/tools/delegation/sub-agent.js';
-import { createAgentSpecificTools } from '@/tools/providers/index.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
+import { createToolsetTools } from '@/tools/core/toolset-management.js';
+import { createTaskTool } from '@/tools/core/task.js';
+import { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
-import type { ModelMessage, LanguageModelUsage } from 'ai';
+import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 
 const log = Log.create({ service: 'stream-runner' });
 
@@ -39,7 +43,6 @@ async function saveAssistantMessage(opts: {
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   providerId: string;
-  agentId: PrefixedString<'agt'>;
   accumulatedParts: StoredPart[];
   totalUsage: LanguageModelUsage;
   finalFinishReason: string;
@@ -50,7 +53,6 @@ async function saveAssistantMessage(opts: {
     assistantMessageId,
     modelId,
     providerId,
-    agentId,
     accumulatedParts,
     totalUsage,
     finalFinishReason,
@@ -72,7 +74,6 @@ async function saveAssistantMessage(opts: {
     parts: accumulatedParts,
     modelId,
     providerId,
-    agentId: agentId,
     usage: totalUsage,
     costUsd,
     finishReason: finalFinishReason,
@@ -87,6 +88,18 @@ async function saveAssistantMessage(opts: {
     finishReason: finalFinishReason,
     usage: totalUsage,
   });
+}
+
+async function safeRecordUsageEvent(input: Parameters<typeof recordUsageEvent>[0]): Promise<void> {
+  if (process.env.VITEST === 'true') {
+    return;
+  }
+
+  try {
+    await recordUsageEvent(input);
+  } catch (error) {
+    log.warn({ error, source: input.source, runId: input.runId }, 'usage event write failed');
+  }
 }
 
 const TRANSIENT_PART_TYPES = new Set([
@@ -104,12 +117,12 @@ type RunStreamOptions = {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  agentId: PrefixedString<'agt'>;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
-  tools: ReturnType<typeof createTools>;
-  streamRunId: string;
+  /** Toolset IDs to pre-activate (e.g. inherited from parent session) */
+  activeToolsetIds?: string[];
+  streamRunId?: string;
 };
 
 type StreamRunnerDeps = {
@@ -129,12 +142,14 @@ type StreamRunnerContext = {
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   providerId: string;
-  agentId: PrefixedString<'agt'>;
   abortSignal: AbortSignal;
   streamRunId: string;
   startedAt: number;
   model: ReturnType<ReturnType<typeof createProvider>>;
-  tools: ReturnType<typeof createTools>;
+  /** Always-active tools (core + meta-tools + task) — never change during a run */
+  coreTools: Record<string, Tool>;
+  /** Manages dynamic toolset activation/deactivation */
+  toolsetManager: ToolsetManager;
 };
 
 type StreamRunnerState = {
@@ -155,6 +170,7 @@ type StreamRunnerState = {
   lastStepFinishReason: string;
   lastStepToolCallCount: number;
   lastStepResponseMessageCount: number;
+  peakStepUsage: LanguageModelUsage;
 };
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
@@ -172,16 +188,20 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   now: Date.now,
 };
 
+type InternalRunStreamOptions = RunStreamOptions & {
+  coreTools: Record<string, Tool>;
+  toolsetManager: ToolsetManager;
+  streamRunId: string;
+};
+
 class StreamRunner {
   private readonly ctx: StreamRunnerContext;
   private readonly state: StreamRunnerState;
   private readonly deps: StreamRunnerDeps;
 
-  constructor(opts: RunStreamOptions, deps: Partial<StreamRunnerDeps> = {}) {
+  constructor(opts: InternalRunStreamOptions, deps: Partial<StreamRunnerDeps> = {}) {
     const provider = createProvider(opts.credentials);
     const model = provider(opts.modelId);
-    const streamRunId = opts.streamRunId;
-    const agentId = opts.agentId;
     const startedAt = Date.now();
 
     this.ctx = {
@@ -189,12 +209,12 @@ class StreamRunner {
       assistantMessageId: opts.assistantMessageId,
       modelId: opts.modelId,
       providerId: opts.credentials.providerId,
-      agentId,
       abortSignal: opts.abortSignal,
-      streamRunId,
+      streamRunId: opts.streamRunId,
       startedAt,
       model,
-      tools: opts.tools,
+      coreTools: opts.coreTools,
+      toolsetManager: opts.toolsetManager,
     };
 
     this.state = {
@@ -215,6 +235,7 @@ class StreamRunner {
       lastStepFinishReason: 'unknown',
       lastStepToolCallCount: 0,
       lastStepResponseMessageCount: 0,
+      peakStepUsage: Usage.ZERO_USAGE,
     };
 
     this.deps = { ...DEFAULT_DEPS, ...deps };
@@ -248,6 +269,16 @@ class StreamRunner {
     await this.maybeRunCompaction();
   }
 
+  /**
+   * Build the current tool map: always-active core tools + dynamic toolset tools.
+   * Called each step to reflect any activate/deactivate changes.
+   */
+  private getCurrentTools(): Record<string, Tool> {
+    const dynamicTools = this.ctx.toolsetManager.getActiveTools();
+    const all = { ...this.ctx.coreTools, ...dynamicTools };
+    return Object.fromEntries(Object.entries(all).sort(([a], [b]) => a.localeCompare(b)));
+  }
+
   private buildStepOptions(step: number): StepOptions {
     return {
       sessionId: this.ctx.sessionId,
@@ -257,7 +288,7 @@ class StreamRunner {
       conversation: this.state.conversation,
       accumulatedParts: this.state.accumulatedParts,
       providerId: this.ctx.providerId,
-      tools: this.ctx.tools,
+      tools: this.getCurrentTools(),
       abortSignal: this.ctx.abortSignal,
       streamRunId: this.ctx.streamRunId,
     };
@@ -275,7 +306,6 @@ class StreamRunner {
         messageId: this.ctx.assistantMessageId,
         modelId: this.ctx.modelId,
         providerId: this.ctx.providerId,
-        agentId: this.ctx.agentId,
         userPromptPreview,
       },
       'stream.started',
@@ -330,11 +360,39 @@ class StreamRunner {
         });
       }
 
+      const stepStartedAt = this.deps.now();
+
       const stepResult = await this.deps.executeStepWithRetry({
         ...this.buildStepOptions(step),
-        tools: isLastStep ? ({} as StepOptions['tools']) : this.ctx.tools,
+        tools: isLastStep ? ({} as StepOptions['tools']) : this.getCurrentTools(),
+        onAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
+          const now = this.deps.now();
+          await safeRecordUsageEvent({
+            runId: this.ctx.streamRunId,
+            source: 'chat',
+            status: 'failed',
+            sessionId: this.ctx.sessionId,
+            messageId: this.ctx.assistantMessageId,
+            providerId: this.ctx.providerId,
+            modelId: this.ctx.modelId,
+            costUsd: 0,
+            errorCode,
+            stepIndex: step + 1,
+            attemptIndex: attempt,
+            metadata: {
+              phase: 'chat-step',
+              eventType: 'attempt-failure',
+              streamRunId: this.ctx.streamRunId,
+              isRetryable,
+            },
+            startedAt: now,
+            endedAt: now,
+            durationMs: 0,
+          });
+        },
       });
       this.state.totalUsage = Usage.addUsage(this.state.totalUsage, stepResult.usage);
+      this.updatePeakStepUsage(stepResult.usage);
       this.setFinishReason(stepResult.finishReason, 'step-finish');
       this.state.protocolViolationCount += stepResult.protocolViolationCount;
       this.state.lastStepFinishReason = stepResult.finishReason;
@@ -351,11 +409,40 @@ class StreamRunner {
           step,
           finishReason: stepResult.finishReason,
           usage: stepResult.usage,
+          cumulativeUsage: this.state.totalUsage,
           toolCallCount: stepResult.toolCalls.length,
           protocolViolationCount: this.state.protocolViolationCount,
         },
         'stream.step.finished',
       );
+
+      const stepFinishedAt = this.deps.now();
+      const stepCostUsd = await calculateMessageCostUsd({
+        providerId: this.ctx.providerId,
+        modelId: this.ctx.modelId,
+        usage: stepResult.usage,
+      });
+      await safeRecordUsageEvent({
+        runId: this.ctx.streamRunId,
+        source: 'chat',
+        status: 'succeeded',
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        providerId: this.ctx.providerId,
+        modelId: this.ctx.modelId,
+        usage: stepResult.usage,
+        costUsd: stepCostUsd,
+        stepIndex: step + 1,
+        attemptIndex: stepResult.attemptCount,
+        metadata: {
+          phase: 'chat-step',
+          eventType: 'step-success',
+          finishReason: stepResult.finishReason,
+        },
+        startedAt: stepStartedAt,
+        endedAt: stepFinishedAt,
+        durationMs: stepFinishedAt - stepStartedAt,
+      });
 
       for (const msg of stepResult.responseMessages) {
         this.state.conversation.push(msg);
@@ -441,10 +528,60 @@ class StreamRunner {
           finalFinishReason: this.state.finalFinishReason,
           isStopped: false,
         },
+        onDoomLoopAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
+          const now = this.deps.now();
+          await safeRecordUsageEvent({
+            runId: this.ctx.streamRunId,
+            source: 'doom_loop_summary',
+            status: 'failed',
+            sessionId: this.ctx.sessionId,
+            messageId: this.ctx.assistantMessageId,
+            providerId: this.ctx.providerId,
+            modelId: this.ctx.modelId,
+            costUsd: 0,
+            errorCode,
+            attemptIndex: attempt,
+            metadata: {
+              phase: 'doom-loop',
+              eventType: 'attempt-failure',
+              streamRunId: this.ctx.streamRunId,
+              isRetryable,
+            },
+            startedAt: now,
+            endedAt: now,
+            durationMs: 0,
+          });
+        },
       });
 
       this.state.totalUsage = doomLoopState.totalUsage;
       this.setFinishReason(doomLoopState.finalFinishReason, 'doom-loop');
+      if (doomLoopState.summaryUsage) {
+        const now = this.deps.now();
+        const summaryCostUsd = await calculateMessageCostUsd({
+          providerId: this.ctx.providerId,
+          modelId: this.ctx.modelId,
+          usage: doomLoopState.summaryUsage,
+        });
+        await safeRecordUsageEvent({
+          runId: this.ctx.streamRunId,
+          source: 'doom_loop_summary',
+          status: 'succeeded',
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+          providerId: this.ctx.providerId,
+          modelId: this.ctx.modelId,
+          usage: doomLoopState.summaryUsage,
+          costUsd: summaryCostUsd,
+          metadata: {
+            phase: 'doom-loop',
+            eventType: 'summary-after-stop',
+          },
+          startedAt: now,
+          endedAt: now,
+          durationMs: 0,
+        });
+      }
       if (doomLoopState.isStopped) {
         log.info(
           {
@@ -478,7 +615,9 @@ class StreamRunner {
     }
 
     const limits = await this.deps.getModelLimits(this.ctx.providerId, this.ctx.modelId);
-    if (!isOverflow(this.state.totalUsage, limits, { reserved: compactionSettings.reserved })) {
+    const contextPressureUsage = this.state.peakStepUsage;
+
+    if (!isOverflow(contextPressureUsage, limits, { reserved: compactionSettings.reserved })) {
       return;
     }
 
@@ -489,6 +628,7 @@ class StreamRunner {
         phase: 'compaction',
         streamRunId: this.ctx.streamRunId,
         sessionId: this.ctx.sessionId,
+        peakStepInputTokens: contextPressureUsage.inputTokens,
         totalTokens: this.state.totalUsage.totalTokens,
         inputTokens: this.state.totalUsage.inputTokens,
       },
@@ -796,7 +936,6 @@ class StreamRunner {
       assistantMessageId: this.ctx.assistantMessageId,
       modelId: this.ctx.modelId,
       providerId: this.ctx.providerId,
-      agentId: this.ctx.agentId,
       accumulatedParts: this.state.accumulatedParts,
       totalUsage: this.state.totalUsage,
       finalFinishReason: this.state.finalFinishReason,
@@ -804,6 +943,7 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
+    setSessionActiveToolsetIds(this.ctx.sessionId, this.ctx.toolsetManager.getActiveIds());
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
@@ -828,6 +968,8 @@ class StreamRunner {
         partCount: this.state.accumulatedParts.length,
         toolCallCount,
         toolErrorCount,
+        peakStepUsage: this.state.peakStepUsage,
+        totalUsage: this.state.totalUsage,
         protocolViolationCount: this.state.protocolViolationCount,
         needsCompaction: this.state.needsCompaction,
         contextOverflow: this.state.contextOverflow,
@@ -933,7 +1075,6 @@ class StreamRunner {
       sessionId: this.ctx.sessionId,
       providerId: this.ctx.providerId,
       modelId: this.ctx.modelId,
-      agentId: this.ctx.agentId,
       auto: true,
       overflow: this.state.contextOverflow,
     });
@@ -997,59 +1138,78 @@ class StreamRunner {
     );
     this.state.needsCompaction = next;
   }
+
+  private updatePeakStepUsage(stepUsage: LanguageModelUsage): void {
+    const currentInput = this.state.peakStepUsage.inputTokens ?? 0;
+    const nextInput = stepUsage.inputTokens ?? 0;
+    if (nextInput <= currentInput) {
+      return;
+    }
+
+    this.state.peakStepUsage = {
+      ...Usage.ZERO_USAGE,
+      ...stepUsage,
+      inputTokenDetails: {
+        ...Usage.ZERO_USAGE.inputTokenDetails,
+        ...stepUsage.inputTokenDetails,
+      },
+      outputTokenDetails: {
+        ...Usage.ZERO_USAGE.outputTokenDetails,
+        ...stepUsage.outputTokenDetails,
+      },
+    };
+  }
 }
 
 export async function runStream(opts: {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  agentId: PrefixedString<'agt'>;
   llmMessages: ModelMessage[];
   credentials: ProviderCredentials;
   abortSignal: AbortSignal;
-  /** When running as a sub-agent, set to the sub-agent's ID so questions/permissions are tagged. */
-  subAgentId?: PrefixedString<'agt'>;
+  /** Toolset IDs to pre-activate (e.g. inherited from parent task) */
+  activeToolsetIds?: string[];
 }): Promise<void> {
   const streamRunId = randomUUID();
-  const allStitchTools = createTools({
-    sessionId: opts.sessionId,
-    messageId: opts.assistantMessageId,
-    agentId: opts.agentId,
-    streamRunId,
-    subAgentId: opts.subAgentId,
-  });
-
-  const mcpTools = await createMcpToolsForAgent(opts.agentId, {
-    sessionId: opts.sessionId,
-    messageId: opts.assistantMessageId,
-    agentId: opts.agentId,
-    streamRunId,
-    subAgentId: opts.subAgentId,
-  });
-
-  const subAgentTools = await createSubAgentTools(opts.agentId, {
-    sessionId: opts.sessionId,
-    messageId: opts.assistantMessageId,
-    credentials: opts.credentials,
-    modelId: opts.modelId,
-    parentAbortSignal: opts.abortSignal,
-  });
 
   const toolContext = {
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
-    agentId: opts.agentId,
     streamRunId,
-    subAgentId: opts.subAgentId,
   };
-  const agentSpecificTools = await createAgentSpecificTools(opts.agentId, toolContext);
 
-  const allTools = { ...allStitchTools, ...mcpTools, ...subAgentTools, ...agentSpecificTools };
+  // Create per-session toolset manager
+  const toolsetManager = new ToolsetManager(toolContext);
 
-  const disabledNames = await getDisabledToolNames(opts.agentId);
-  const tools = Object.fromEntries(
-    Object.entries(allTools).filter(([name]) => !disabledNames.has(name)),
-  ) as ReturnType<typeof createTools>;
+  // Pre-activate requested toolsets (inherited from parent or explicit)
+  const toolsetIdsToActivate = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
+  if (toolsetIdsToActivate.length > 0) {
+    await Promise.all(toolsetIdsToActivate.map((id) => toolsetManager.activate(id)));
+  }
+
+  // Build always-active core tools
+  const coreStitchTools = createTools(toolContext);
+
+  // Build meta-tools (bound to this session's toolset manager)
+  const toolsetMetaTools = createToolsetTools(toolsetManager);
+
+  // Build task tool (bound to this session's context)
+  const taskTool = createTaskTool(toolContext, {
+    parentSessionId: opts.sessionId,
+    parentAbortSignal: opts.abortSignal,
+    credentials: opts.credentials,
+    modelId: opts.modelId,
+    providerId: opts.credentials.providerId,
+    toolsetManager,
+  });
+
+  // Combine all always-active tools
+  const coreTools: Record<string, Tool> = {
+    ...coreStitchTools,
+    ...toolsetMetaTools,
+    task: taskTool,
+  };
 
   const transformedMessages = await transformAttachmentsForModel(
     opts.llmMessages,
@@ -1060,7 +1220,8 @@ export async function runStream(opts: {
   const runner = new StreamRunner({
     ...opts,
     llmMessages: transformedMessages,
-    tools,
+    coreTools,
+    toolsetManager,
     streamRunId,
   });
   await runner.run();

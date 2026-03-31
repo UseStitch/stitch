@@ -1,7 +1,5 @@
 import * as React from 'react';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { cn } from '@/lib/utils';
@@ -14,8 +12,6 @@ type ChatInputProps = {
   isStreaming?: boolean;
   selectedModel: ModelSpec | null;
   onModelChange: (value: ModelSpec | null) => void;
-  selectedAgent: string | null;
-  onAgentChange: (value: PrefixedString<'agt'> | null) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;

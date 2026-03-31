@@ -1,6 +1,5 @@
 import { and, asc, eq, gte, lt } from 'drizzle-orm';
 
-import type { StoredPart } from '@stitch/shared/chat/messages';
 import {
   USAGE_SOURCES,
   type UsageDashboardResponse,
@@ -11,7 +10,7 @@ import {
 } from '@stitch/shared/usage/types';
 
 import { getDb } from '@/db/client.js';
-import { messages, recordingTranscriptions } from '@/db/schema.js';
+import { llmUsageEvents } from '@/db/schema.js';
 import type { LanguageModelUsage } from 'ai';
 
 type GetUsageDashboardInput = {
@@ -59,8 +58,7 @@ function addTokenMetrics(
   const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
   const cacheReadTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
   const cacheWriteTokens = usage.inputTokenDetails?.cacheWriteTokens ?? 0;
-  const totalTokens =
-    inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
+  const totalTokens = usage.totalTokens ?? inputTokens + outputTokens + reasoningTokens;
 
   target.inputTokens += inputTokens;
   target.outputTokens += outputTokens;
@@ -236,22 +234,13 @@ function resolveRangeStart(now: number, range: UsageDateRange): number {
 async function getEarliestUsageTimestamp(): Promise<number | null> {
   const db = getDb();
 
-  const [firstMessage, firstTranscription] = await Promise.all([
-    db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .orderBy(asc(messages.createdAt))
-      .limit(1),
-    db
-      .select({ createdAt: recordingTranscriptions.createdAt })
-      .from(recordingTranscriptions)
-      .orderBy(asc(recordingTranscriptions.createdAt))
-      .limit(1),
-  ]);
+  const firstEvent = await db
+    .select({ createdAt: llmUsageEvents.createdAt })
+    .from(llmUsageEvents)
+    .orderBy(asc(llmUsageEvents.createdAt))
+    .limit(1);
 
-  const timestamps = [firstMessage[0]?.createdAt, firstTranscription[0]?.createdAt].filter(
-    (value): value is number => typeof value === 'number',
-  );
+  const timestamps = [firstEvent[0]?.createdAt].filter((value): value is number => typeof value === 'number');
 
   if (timestamps.length === 0) return null;
   return Math.min(...timestamps);
@@ -282,9 +271,13 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
   return { from, to };
 }
 
-function classifyMessageSource(parts: StoredPart[]): UsageSource {
-  if (parts.some((part) => part.type === 'session-title')) {
+function normalizeEventSource(source: string): UsageSource {
+  if (source === 'title_generation') {
     return 'title_generation';
+  }
+
+  if (source.startsWith('transcription')) {
+    return 'transcription';
   }
 
   return 'chat';
@@ -320,51 +313,30 @@ export async function getUsageDashboard(
     return totalsBySource[source];
   };
 
-  const messageConditions = [
-    gte(messages.createdAt, window.from),
-    lt(messages.createdAt, window.to),
+  const eventConditions = [
+    gte(llmUsageEvents.startedAt, window.from),
+    lt(llmUsageEvents.startedAt, window.to),
+    eq(llmUsageEvents.isAttributable, true),
+    eq(llmUsageEvents.status, 'succeeded'),
   ];
   if (input.providerId) {
-    messageConditions.push(eq(messages.providerId, input.providerId));
+    eventConditions.push(eq(llmUsageEvents.providerId, input.providerId));
   }
   if (input.modelId) {
-    messageConditions.push(eq(messages.modelId, input.modelId));
+    eventConditions.push(eq(llmUsageEvents.modelId, input.modelId));
   }
 
-  const transcriptionConditions = [
-    gte(recordingTranscriptions.createdAt, window.from),
-    lt(recordingTranscriptions.createdAt, window.to),
-  ];
-  if (input.providerId) {
-    transcriptionConditions.push(eq(recordingTranscriptions.providerId, input.providerId));
-  }
-  if (input.modelId) {
-    transcriptionConditions.push(eq(recordingTranscriptions.modelId, input.modelId));
-  }
-
-  const [messageRows, transcriptionRows] = await Promise.all([
-    db
-      .select({
-        createdAt: messages.createdAt,
-        costUsd: messages.costUsd,
-        usage: messages.usage,
-        parts: messages.parts,
-        providerId: messages.providerId,
-        modelId: messages.modelId,
-      })
-      .from(messages)
-      .where(and(...messageConditions)),
-    db
-      .select({
-        createdAt: recordingTranscriptions.createdAt,
-        costUsd: recordingTranscriptions.costUsd,
-        usage: recordingTranscriptions.usage,
-        providerId: recordingTranscriptions.providerId,
-        modelId: recordingTranscriptions.modelId,
-      })
-      .from(recordingTranscriptions)
-      .where(and(...transcriptionConditions)),
-  ]);
+  const eventRows = await db
+    .select({
+      createdAt: llmUsageEvents.startedAt,
+      costUsd: llmUsageEvents.costUsd,
+      usage: llmUsageEvents.usage,
+      providerId: llmUsageEvents.providerId,
+      modelId: llmUsageEvents.modelId,
+      source: llmUsageEvents.source,
+    })
+    .from(llmUsageEvents)
+    .where(and(...eventConditions));
 
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
@@ -396,11 +368,10 @@ export async function getUsageDashboard(
     bucket.tokensBySource[args.source] =
       (bucket.tokensBySource[args.source] ?? 0) +
       (args.usage
-        ? (args.usage.inputTokens ?? 0) +
-          (args.usage.outputTokens ?? 0) +
-          (args.usage.outputTokenDetails?.reasoningTokens ?? 0) +
-          (args.usage.inputTokenDetails?.cacheReadTokens ?? 0) +
-          (args.usage.inputTokenDetails?.cacheWriteTokens ?? 0)
+        ? (args.usage.totalTokens ??
+          (args.usage.inputTokens ?? 0) +
+            (args.usage.outputTokens ?? 0) +
+            (args.usage.outputTokenDetails?.reasoningTokens ?? 0))
         : 0);
 
     const bucketMetrics = bucket.tokenMetricsBySource[args.source] ?? cloneEmptyTokenMetrics();
@@ -408,25 +379,13 @@ export async function getUsageDashboard(
     bucket.tokenMetricsBySource[args.source] = bucketMetrics;
   };
 
-  for (const row of messageRows) {
+  for (const row of eventRows) {
     usedProviderIds.add(row.providerId);
     usedModelKeys.add(`${row.providerId}::${row.modelId}`);
 
     addUsageRow({
       createdAt: row.createdAt,
-      source: classifyMessageSource(row.parts),
-      usage: row.usage,
-      costUsd: row.costUsd,
-    });
-  }
-
-  for (const row of transcriptionRows) {
-    usedProviderIds.add(row.providerId);
-    usedModelKeys.add(`${row.providerId}::${row.modelId}`);
-
-    addUsageRow({
-      createdAt: row.createdAt,
-      source: 'transcription',
+      source: normalizeEventSource(row.source),
       usage: row.usage,
       costUsd: row.costUsd,
     });

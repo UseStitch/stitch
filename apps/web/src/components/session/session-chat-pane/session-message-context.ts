@@ -1,5 +1,3 @@
-import type { PrefixedString } from '@stitch/shared/id';
-
 import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 
 type SessionMessagePart = {
@@ -9,7 +7,6 @@ type SessionMessagePart = {
 type SessionMessageContext = {
   providerId: string;
   modelId: string;
-  agentId: PrefixedString<'agt'> | null;
   isSummary: boolean;
   parts: SessionMessagePart[];
 };
@@ -29,18 +26,6 @@ export function findLastUsedModel(messages: SessionMessageContext[]): ModelSpec 
       providerId: message.providerId,
       modelId: message.modelId,
     };
-  }
-
-  return null;
-}
-
-export function findLastUsedAgentId(
-  messages: SessionMessageContext[],
-): PrefixedString<'agt'> | null {
-  for (let index = messages.length - 1; index >= 0; index--) {
-    const message = messages[index];
-    if (!message || shouldSkipMessage(message)) continue;
-    return message.agentId;
   }
 
   return null;

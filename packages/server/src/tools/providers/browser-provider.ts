@@ -1,12 +1,34 @@
-import { BROWSER_AGENT_KIND } from '@/agents/builtins/browser.js';
-import { createRegisteredTool } from '@/tools/core/browser.js';
-import type { AgentToolProvider } from '@/tools/providers/types.js';
+import { readFileSync } from 'node:fs';
 
-export const browserToolProvider: AgentToolProvider = {
+import { createRegisteredTool } from '@/tools/core/browser.js';
+import type { ToolProvider } from '@/tools/providers/types.js';
+import type { Toolset } from '@/tools/toolsets/types.js';
+
+const browserInstructions = readFileSync(
+  new URL('./instructions/browser.md', import.meta.url),
+  'utf8',
+).trim();
+
+export const browserToolProvider: ToolProvider = {
   name: 'browser',
-  appliesTo: (agent) => agent.kind === BROWSER_AGENT_KIND,
   knownTools: () => [{ toolType: 'stitch', toolName: 'browser', displayName: 'Browser' }],
   createTools: (context) => ({
     browser: createRegisteredTool(context),
   }),
+};
+
+export const browserToolset: Toolset = {
+  id: 'browser',
+  name: 'Browser',
+  description:
+    'Control a Chrome browser: navigate pages, click elements, type text, take screenshots, and interact with web applications.',
+  instructions: browserInstructions,
+  tools: () => [
+    {
+      name: 'browser',
+      description:
+        'Control a Chrome browser instance with actions like navigate, click, type, screenshot, scroll, and evaluate JavaScript.',
+    },
+  ],
+  activate: async (context) => browserToolProvider.createTools(context),
 };

@@ -18,7 +18,7 @@ type StorageState = {
 
 /**
  * Saves and loads browser storage state (cookies + localStorage) to/from
- * a JSON file. This lets the agent persist auth state across sessions
+ * a JSON file. This lets Stitch persist auth state across sessions
  * even when the user data dir doesn't carry over.
  *
  * Operates via CDP Network.getAllCookies / Network.setCookies and

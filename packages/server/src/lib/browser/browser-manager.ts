@@ -507,7 +507,7 @@ class BrowserManager {
     this.handleTargetDestroyed(crashedId);
   }
 
-  /** Expose download info for the agent */
+  /** Expose download info for Stitch */
   getDownloads() {
     return this.downloadWatchdog.getDownloads();
   }

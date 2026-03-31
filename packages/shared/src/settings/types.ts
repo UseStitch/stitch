@@ -11,7 +11,6 @@ export const SETTINGS_KEYS = [
   'compaction.auto',
   'compaction.prune',
   'compaction.reserved',
-  'agent.default',
   'appearance.mode',
   'appearance.theme',
   'onboarding.status',
@@ -39,12 +38,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'model.default.providerId',
     value: '',
-    description: 'Provider ID for the default model used for chat and coding tasks.',
+    description: 'Provider ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.default.modelId',
     value: '',
-    description: 'Model ID for the default model used for chat and coding tasks.',
+    description: 'Model ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.compaction.providerId',
@@ -97,7 +96,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '20000',
     description: 'Reserved token headroom used when deciding whether to compact.',
   },
-  { key: 'agent.default', value: '', description: 'Default agent used for new sessions.' },
   {
     key: 'appearance.mode',
     value: 'system',
