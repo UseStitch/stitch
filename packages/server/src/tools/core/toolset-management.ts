@@ -36,6 +36,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         toolsetId: toolset.id,
         name: toolset.name,
         description: toolset.description,
+        icon: toolset.icon ?? null,
         active: manager.isActive(toolsetId),
         hasInstructions: !!toolset.instructions,
         promptCount: toolset.prompts?.length ?? 0,
@@ -64,6 +65,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         return {
           toolsetId,
           status: 'already_active',
+          icon: getToolset(toolsetId)?.icon ?? null,
           message: `Toolset "${toolsetId}" is already active.`,
         };
       }
@@ -82,6 +84,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         toolsetId,
         status: 'activated',
         tools: toolNames,
+        icon: toolset?.icon ?? null,
         message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.join(', ')}`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
@@ -108,6 +111,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         return {
           toolsetId,
           status: 'not_active',
+          icon: getToolset(toolsetId)?.icon ?? null,
           message: `Toolset "${toolsetId}" was not active.`,
         };
       }
@@ -115,6 +119,7 @@ export function createToolsetTools(manager: ToolsetManager) {
       return {
         toolsetId,
         status: 'deactivated',
+        icon: getToolset(toolsetId)?.icon ?? null,
         message: `Toolset "${toolsetId}" deactivated. Its tools are no longer available.`,
       };
     },

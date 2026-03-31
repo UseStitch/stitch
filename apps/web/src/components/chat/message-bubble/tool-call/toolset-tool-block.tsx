@@ -2,6 +2,8 @@ import { PackageIcon, PackagePlusIcon, PackageMinusIcon, PackageSearchIcon } fro
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
+import { ConnectorIcon } from '@/components/connectors/connector-icon';
+
 import { ToolCard, getToolCardState, getToolLabel } from './card-primitives';
 
 const TOOLSET_TOOL_CONFIG: Record<
@@ -24,6 +26,12 @@ function getResultMessage(result: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+function getResultIcon(result: unknown): string | null {
+  if (!result || typeof result !== 'object') return null;
+  const value = (result as Record<string, unknown>).icon;
+  return typeof value === 'string' ? value : null;
+}
+
 type ToolsetToolBlockProps = {
   toolName: string;
   status: ToolCallStatus;
@@ -42,6 +50,7 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
   const Icon = config.icon;
   const toolsetId = getToolsetId(args);
   const resultMessage = getResultMessage(result);
+  const resultIcon = getResultIcon(result);
   const label = getToolLabel(status, error);
 
   const description = isActive
@@ -59,7 +68,11 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
             <ToolCard.Title>{config.label}</ToolCard.Title>
             {toolsetId ? (
               <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                <Icon className="size-2.5" />
+                {resultIcon ? (
+                  <ConnectorIcon icon={resultIcon} className="size-2.5" />
+                ) : (
+                  <Icon className="size-2.5" />
+                )}
                 {toolsetId}
               </span>
             ) : null}

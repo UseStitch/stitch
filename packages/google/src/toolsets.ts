@@ -7,6 +7,7 @@
  */
 
 import { GoogleClient, type GoogleClientConfig } from './client.js';
+import type { GoogleLogger } from './logger.js';
 import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
 import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
 import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.js';
@@ -16,12 +17,14 @@ export type GoogleToolsetDefinition = {
   id: string;
   name: string;
   description: string;
+  /** Icon slug for frontend display (e.g. "gmail", "googledrive", "googlecalendar"). */
+  icon?: string;
   instructions?: string;
   tools: () => { name: string; description: string }[];
   activate: (clientConfig: GoogleClientConfig) => Record<string, unknown>;
 };
 
-function createGmailToolset(scopes: string[]): GoogleToolsetDefinition {
+function createGmailToolset(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition {
   const canWrite = hasWriteAccess(scopes, 'gmail');
   const summaries = canWrite
     ? GMAIL_TOOL_SUMMARIES
@@ -30,6 +33,7 @@ function createGmailToolset(scopes: string[]): GoogleToolsetDefinition {
   return {
     id: 'google-gmail',
     name: 'Google Gmail',
+    icon: 'gmail',
     description:
       'Search, read, and send emails via Gmail. Activate to access your inbox, search messages, and compose emails.',
     instructions: [
@@ -40,16 +44,17 @@ function createGmailToolset(scopes: string[]): GoogleToolsetDefinition {
     ].join('\n'),
     tools: () => summaries,
     activate: (clientConfig) => {
-      const client = new GoogleClient(clientConfig);
+      const client = new GoogleClient({ ...clientConfig, logger });
       return createGmailTools(client, canWrite);
     },
   };
 }
 
-function createDriveToolset(): GoogleToolsetDefinition {
+function createDriveToolset(logger?: GoogleLogger): GoogleToolsetDefinition {
   return {
     id: 'google-drive',
     name: 'Google Drive',
+    icon: 'googledrive',
     description:
       'Search and read files from Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
     instructions: [
@@ -60,13 +65,13 @@ function createDriveToolset(): GoogleToolsetDefinition {
     ].join('\n'),
     tools: () => DRIVE_TOOL_SUMMARIES,
     activate: (clientConfig) => {
-      const client = new GoogleClient(clientConfig);
+      const client = new GoogleClient({ ...clientConfig, logger });
       return createDriveTools(client);
     },
   };
 }
 
-function createCalendarToolset(scopes: string[]): GoogleToolsetDefinition {
+function createCalendarToolset(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition {
   const canWrite = hasWriteAccess(scopes, 'calendar');
   const summaries = canWrite
     ? CALENDAR_TOOL_SUMMARIES
@@ -75,6 +80,7 @@ function createCalendarToolset(scopes: string[]): GoogleToolsetDefinition {
   return {
     id: 'google-calendar',
     name: 'Google Calendar',
+    icon: 'googlecalendar',
     description:
       'View and manage Google Calendar events. Check upcoming meetings, search events, and create new ones.',
     instructions: [
@@ -85,7 +91,7 @@ function createCalendarToolset(scopes: string[]): GoogleToolsetDefinition {
     ].join('\n'),
     tools: () => summaries,
     activate: (clientConfig) => {
-      const client = new GoogleClient(clientConfig);
+      const client = new GoogleClient({ ...clientConfig, logger });
       return createCalendarTools(client, canWrite);
     },
   };
@@ -95,19 +101,19 @@ function createCalendarToolset(scopes: string[]): GoogleToolsetDefinition {
  * Build the list of Google toolset definitions based on the granted scopes.
  * Only services that the user has authorized will be included.
  */
-export function buildGoogleToolsets(scopes: string[]): GoogleToolsetDefinition[] {
+export function buildGoogleToolsets(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition[] {
   const toolsets: GoogleToolsetDefinition[] = [];
 
   if (hasServiceAccess(scopes, 'gmail')) {
-    toolsets.push(createGmailToolset(scopes));
+    toolsets.push(createGmailToolset(scopes, logger));
   }
 
   if (hasServiceAccess(scopes, 'drive')) {
-    toolsets.push(createDriveToolset());
+    toolsets.push(createDriveToolset(logger));
   }
 
   if (hasServiceAccess(scopes, 'calendar')) {
-    toolsets.push(createCalendarToolset(scopes));
+    toolsets.push(createCalendarToolset(scopes, logger));
   }
 
   return toolsets;

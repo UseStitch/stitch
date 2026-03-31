@@ -4,9 +4,13 @@
  * callback that the server's connector system provides.
  */
 
+import { noopLogger, type GoogleLogger } from './logger.js';
+
 export type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
   getAccessToken: () => Promise<string>;
+  /** Optional logger instance — defaults to no-op if not provided. */
+  logger?: GoogleLogger;
 };
 
 export class GoogleApiError extends Error {
@@ -38,13 +42,17 @@ type RequestOptions = {
 
 export class GoogleClient {
   private readonly getAccessToken: () => Promise<string>;
+  readonly log: GoogleLogger;
 
   constructor(config: GoogleClientConfig) {
     this.getAccessToken = config.getAccessToken;
+    this.log = config.logger ?? noopLogger;
   }
 
   async request<T>(url: string, options?: RequestOptions): Promise<T> {
     const token = await this.getAccessToken();
+
+    this.log.debug({ url, method: options?.method ?? 'GET' }, 'Google API request');
 
     const response = await fetch(url, {
       method: options?.method,
@@ -71,6 +79,7 @@ export class GoogleClient {
         // Use default error message
       }
 
+      this.log.error({ url, status: response.status, errorCode }, errorMessage);
       throw new GoogleApiError(response.status, errorMessage, errorCode);
     }
 
@@ -79,6 +88,8 @@ export class GoogleClient {
 
   async requestText(url: string, options?: RequestOptions): Promise<string> {
     const token = await this.getAccessToken();
+
+    this.log.debug({ url, method: options?.method ?? 'GET' }, 'Google API text request');
 
     const response = await fetch(url, {
       method: options?.method,
@@ -91,10 +102,9 @@ export class GoogleClient {
     });
 
     if (!response.ok) {
-      throw new GoogleApiError(
-        response.status,
-        `Google API error: ${response.status} ${response.statusText}`,
-      );
+      const errorMessage = `Google API error: ${response.status} ${response.statusText}`;
+      this.log.error({ url, status: response.status }, errorMessage);
+      throw new GoogleApiError(response.status, errorMessage);
     }
 
     return response.text();

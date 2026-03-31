@@ -27,6 +27,7 @@ function toServerToolset(
     id: def.id,
     name: def.name,
     description: def.description,
+    icon: def.icon,
     instructions: def.instructions,
     tools: () => def.tools(),
     activate: async () => {
@@ -71,7 +72,7 @@ export async function registerGoogleToolsets(): Promise<void> {
   const instance = connected[0];
   const scopes = (instance.scopes as string[]) ?? [];
 
-  const toolsetDefs = buildGoogleToolsets(scopes);
+  const toolsetDefs = buildGoogleToolsets(scopes, log);
 
   for (const def of toolsetDefs) {
     registerToolset(toServerToolset(def, instance.id));
