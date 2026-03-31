@@ -3,7 +3,7 @@ import { eq, and, isNotNull, lt } from 'drizzle-orm';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
 import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import * as Log from '@/lib/log.js';
@@ -57,7 +57,25 @@ async function refreshExpiringTokens(): Promise<void> {
 
       const config = definition.authConfig as OAuthConfig;
 
-      if (!instance.clientId || !instance.clientSecret || !instance.refreshToken) continue;
+      if (!instance.refreshToken) continue;
+
+      let clientId = instance.clientId;
+      let clientSecret = instance.clientSecret;
+
+      if ((!clientId || !clientSecret) && instance.oauthProfileId) {
+        const [profile] = await db
+          .select({
+            clientId: connectorOAuthProfiles.clientId,
+            clientSecret: connectorOAuthProfiles.clientSecret,
+          })
+          .from(connectorOAuthProfiles)
+          .where(eq(connectorOAuthProfiles.id, instance.oauthProfileId));
+
+        clientId = profile?.clientId ?? null;
+        clientSecret = profile?.clientSecret ?? null;
+      }
+
+      if (!clientId || !clientSecret) continue;
 
       log.info(
         { event: 'token-refresh.refreshing', instanceId: instance.id, label: instance.label },
@@ -66,8 +84,8 @@ async function refreshExpiringTokens(): Promise<void> {
 
       const tokens = await refreshAccessToken(
         config.tokenUrl,
-        instance.clientId,
-        instance.clientSecret,
+        clientId,
+        clientSecret,
         instance.refreshToken,
       );
 

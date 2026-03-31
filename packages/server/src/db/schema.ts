@@ -312,6 +312,7 @@ export const connectorInstances = sqliteTable(
     id: text('id').$type<PrefixedString<'conn'>>().primaryKey(),
     connectorId: text('connector_id').notNull(),
     label: text('label').notNull(),
+    oauthProfileId: text('oauth_profile_id').$type<PrefixedString<'connp'>>(),
     clientId: text('client_id'),
     clientSecret: text('client_secret'),
     apiKey: text('api_key'),
@@ -331,9 +332,31 @@ export const connectorInstances = sqliteTable(
   },
   (table) => [
     index('connector_instances_connector_id_idx').on(table.connectorId),
+    index('connector_instances_oauth_profile_id_idx').on(table.oauthProfileId),
     check(
       'connector_status_check',
       sql`${table.status} in ('pending_setup', 'awaiting_auth', 'connected', 'error')`,
     ),
+  ],
+);
+
+export const connectorOAuthProfiles = sqliteTable(
+  'connector_oauth_profiles',
+  {
+    id: text('id').$type<PrefixedString<'connp'>>().primaryKey(),
+    connectorId: text('connector_id').notNull(),
+    label: text('label').notNull(),
+    clientId: text('client_id').notNull(),
+    clientSecret: text('client_secret').notNull(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('connector_oauth_profiles_connector_id_idx').on(table.connectorId),
+    uniqueIndex('connector_oauth_profiles_connector_label_idx').on(table.connectorId, table.label),
   ],
 );

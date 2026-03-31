@@ -9,6 +9,13 @@ import { getToolset } from '@/tools/toolsets/registry.js';
  * These are always-active tools that let the LLM discover, activate, and deactivate toolsets.
  */
 export function createToolsetTools(manager: ToolsetManager) {
+  const humanizeToolName = (name: string) =>
+    name
+      .split(/[_-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+
   const list_toolsets = tool({
     description: `List toolsets and inspect toolset contents. Call with no arguments for a compact catalog, or pass a toolset ID for detailed tools and prompts.`,
     inputSchema: z.object({
@@ -46,7 +53,11 @@ export function createToolsetTools(manager: ToolsetManager) {
             description: p.description,
             arguments: p.arguments,
           })) ?? [],
-        tools: tools.map((t) => ({ name: t.name, description: t.description })),
+        tools: tools.map((t) => ({
+          name: t.name,
+          displayName: humanizeToolName(t.name),
+          description: t.description,
+        })),
       };
     },
   });
@@ -84,8 +95,9 @@ export function createToolsetTools(manager: ToolsetManager) {
         toolsetId,
         status: 'activated',
         tools: toolNames,
+        toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.join(', ')}`,
+        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,

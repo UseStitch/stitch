@@ -1,5 +1,29 @@
 import type { ConnectorDefinition, OAuthConfig } from '@stitch/shared/connectors/types';
 
+const SERVICE_ACCESS_OPTIONS = [
+  {
+    id: 'gmail',
+    label: 'Gmail',
+    description: 'Search, read, and draft emails',
+    readScopes: ['https://www.googleapis.com/auth/gmail.readonly'],
+    writeScopes: ['https://www.googleapis.com/auth/gmail.modify'],
+  },
+  {
+    id: 'drive',
+    label: 'Google Drive',
+    description: 'Search and read files from Drive',
+    readScopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    writeScopes: ['https://www.googleapis.com/auth/drive.file'],
+  },
+  {
+    id: 'calendar',
+    label: 'Google Calendar',
+    description: 'View and manage calendar events',
+    readScopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+    writeScopes: ['https://www.googleapis.com/auth/calendar.events'],
+  },
+] as const;
+
 const GOOGLE_SCOPES = {
   openid: 'Verify your identity',
   'https://www.googleapis.com/auth/userinfo.email': 'View your email address',
@@ -40,6 +64,7 @@ const authConfig: OAuthConfig = {
   revokeUrl: 'https://oauth2.googleapis.com/revoke',
   defaultScopes: GOOGLE_DEFAULT_SCOPES,
   scopeDescriptions: GOOGLE_SCOPES,
+  serviceAccessOptions: [...SERVICE_ACCESS_OPTIONS],
   scopeApiMap: GOOGLE_SCOPE_API_MAP,
   additionalParams: {
     access_type: 'offline',
@@ -57,14 +82,26 @@ export const googleConnector: ConnectorDefinition = {
   authType: 'oauth2',
   authConfig,
   setupInstructions: [
-    'Go to the Google Cloud Console (https://console.cloud.google.com)',
-    'Create a new project or select an existing one',
-    'Navigate to "APIs & Services" → "Credentials"',
-    'Click "Create Credentials" → "OAuth client ID"',
-    'Select "Desktop app" as the application type',
-    'Give it a name (e.g., "Stitch Desktop")',
-    'Copy the Client ID and Client Secret',
-    'Navigate to "APIs & Services" → "Library" and enable the APIs you need: Gmail API, Google Drive API, and/or Google Calendar API (or use the "Enable APIs" button in the next step)',
-    'Navigate to "APIs & Services" → "OAuth consent screen" and add your email as a test user (required while the app is in testing mode)',
+    {
+      text: 'Open Google Cloud Console',
+      href: 'https://console.cloud.google.com',
+      hrefLabel: 'Google Cloud Console',
+    },
+    { text: 'Create a new project or select an existing one' },
+    { text: 'Go to APIs & Services -> Credentials' },
+    { text: 'Click Create Credentials -> OAuth client ID' },
+    { text: 'Select Desktop app as the application type' },
+    { text: 'Give it a name (for example, Stitch Desktop)' },
+    { text: 'Copy the Client ID and Client Secret' },
+    {
+      text: 'Enable APIs for services you plan to use (Gmail API, Google Drive API, Google Calendar API)',
+      href: 'https://console.cloud.google.com/apis/library',
+      hrefLabel: 'Google API Library',
+    },
+    {
+      text: 'Add your email as a test user in OAuth consent screen while app is in testing mode',
+      href: 'https://console.cloud.google.com/apis/credentials/consent',
+      hrefLabel: 'OAuth Consent Screen',
+    },
   ],
 };

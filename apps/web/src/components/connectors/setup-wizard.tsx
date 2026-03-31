@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ExternalLinkIcon,
@@ -6,14 +6,24 @@ import {
   Loader2Icon,
   ArrowRightIcon,
   ArrowLeftIcon,
+  Trash2Icon,
 } from 'lucide-react';
 
-import type { ConnectorDefinition, OAuthConfig, ApiKeyConfig } from '@stitch/shared/connectors/types';
+import { useQuery } from '@tanstack/react-query';
+
+import type {
+  ConnectorDefinition,
+  OAuthConfig,
+  ApiKeyConfig,
+  ConnectorSetupInstruction,
+  ConnectorOAuthProfile,
+} from '@stitch/shared/connectors/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +34,10 @@ import {
 } from '@/components/ui/dialog';
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import {
+  connectorOAuthProfilesQueryOptions,
   useCreateOAuthConnector,
+  useCreateOAuthProfile,
+  useDeleteOAuthProfile,
   useCreateApiKeyConnector,
   useAuthorizeConnector,
 } from '@/lib/queries/connectors';
@@ -43,6 +56,10 @@ export function SetupWizard({ definition, onClose }: Props) {
   // OAuth fields
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [credentialMode, setCredentialMode] = useState<'saved' | 'new'>('saved');
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [saveProfile, setSaveProfile] = useState(true);
+  const [profileLabel, setProfileLabel] = useState('');
   const [selectedScopes, setSelectedScopes] = useState<string[]>(
     definition.authType === 'oauth2'
       ? (definition.authConfig as OAuthConfig).defaultScopes
@@ -53,12 +70,32 @@ export function SetupWizard({ definition, onClose }: Props) {
   const [apiKey, setApiKey] = useState('');
 
   const createOAuth = useCreateOAuthConnector();
+  const createOAuthProfile = useCreateOAuthProfile();
+  const deleteOAuthProfile = useDeleteOAuthProfile();
   const createApiKey = useCreateApiKeyConnector();
   const authorize = useAuthorizeConnector();
 
   const isOAuth = definition.authType === 'oauth2';
   const oauthConfig = isOAuth ? (definition.authConfig as OAuthConfig) : null;
   const apiKeyConfig = !isOAuth ? (definition.authConfig as ApiKeyConfig) : null;
+  const { data: oauthProfiles = [] } = useQuery({
+    ...connectorOAuthProfilesQueryOptions(definition.id),
+    enabled: isOAuth,
+  });
+
+  const initialServiceAccess = useMemo(() => {
+    if (!oauthConfig?.serviceAccessOptions) return {} as Record<string, 'none' | 'read' | 'write'>;
+    return Object.fromEntries(
+      oauthConfig.serviceAccessOptions.map((option) => {
+        const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopes.includes(scope));
+        const hasRead = option.readScopes.some((scope) => selectedScopes.includes(scope));
+        return [option.id, hasWrite ? 'write' : hasRead ? 'read' : 'none'];
+      }),
+    ) as Record<string, 'none' | 'read' | 'write'>;
+  }, [oauthConfig?.serviceAccessOptions, selectedScopes]);
+  const [serviceAccess, setServiceAccess] = useState<Record<string, 'none' | 'read' | 'write'>>(
+    initialServiceAccess,
+  );
 
   function toggleScope(scope: string) {
     setSelectedScopes((prev) =>
@@ -66,13 +103,10 @@ export function SetupWizard({ definition, onClose }: Props) {
     );
   }
 
-  async function handleCreateAndAuthorize() {
+  async function handleCreateAndAuthorize(scopesOverride?: string[]) {
     if (isOAuth) {
-      if (!clientId.trim() || !clientSecret.trim()) {
-        toast.error('Client ID and Client Secret are required');
-        return;
-      }
-      if (selectedScopes.length === 0) {
+      const scopesToUse = scopesOverride ?? selectedScopes;
+      if (scopesToUse.length === 0) {
         toast.error('Select at least one scope');
         return;
       }
@@ -80,12 +114,46 @@ export function SetupWizard({ definition, onClose }: Props) {
       setStep('authorizing');
 
       try {
+        let oauthProfileId: string | undefined;
+        let rawClientId: string | undefined;
+        let rawClientSecret: string | undefined;
+
+        if (credentialMode === 'saved') {
+          if (!selectedProfileId) {
+            toast.error('Select an OAuth app profile');
+            setStep('credentials');
+            return;
+          }
+          oauthProfileId = selectedProfileId;
+        } else {
+          if (!clientId.trim() || !clientSecret.trim()) {
+            toast.error('Client ID and Client Secret are required');
+            setStep('credentials');
+            return;
+          }
+
+          if (saveProfile) {
+            const createdProfile = await createOAuthProfile.mutateAsync({
+              connectorId: definition.id,
+              label: profileLabel.trim() || `${definition.name} OAuth App`,
+              clientId: clientId.trim(),
+              clientSecret: clientSecret.trim(),
+            });
+            oauthProfileId = createdProfile.id;
+            setSelectedProfileId(createdProfile.id);
+          } else {
+            rawClientId = clientId.trim();
+            rawClientSecret = clientSecret.trim();
+          }
+        }
+
         const instance = await createOAuth.mutateAsync({
           connectorId: definition.id,
           label: label.trim() || definition.name,
-          clientId: clientId.trim(),
-          clientSecret: clientSecret.trim(),
-          scopes: selectedScopes,
+          oauthProfileId,
+          clientId: rawClientId,
+          clientSecret: rawClientSecret,
+          scopes: scopesToUse,
         });
 
         const { authUrl } = await authorize.mutateAsync(instance.id);
@@ -93,7 +161,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         setStep('done');
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Failed to create connector');
-        setStep('credentials');
+        setStep(credentialMode === 'saved' ? 'credentials' : 'scopes');
       }
     } else {
       if (!apiKey.trim()) {
@@ -121,12 +189,13 @@ export function SetupWizard({ definition, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-[min(56rem,calc(100vw-2rem))] max-h-[90vh] overflow-hidden sm:max-w-4xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <ConnectorIcon icon={definition.icon} className="size-7 rounded-md" />
             <DialogTitle>Connect {definition.name}</DialogTitle>
           </div>
+          <WizardProgress step={step} isOAuth={isOAuth} />
           <DialogDescription>
             {step === 'instructions' && 'Follow these steps to set up your credentials.'}
             {step === 'credentials' && 'Enter your credentials below.'}
@@ -155,6 +224,21 @@ export function SetupWizard({ definition, onClose }: Props) {
             setClientId={setClientId}
             clientSecret={clientSecret}
             setClientSecret={setClientSecret}
+            credentialMode={credentialMode}
+            setCredentialMode={setCredentialMode}
+            oauthProfiles={oauthProfiles}
+            selectedProfileId={selectedProfileId}
+            setSelectedProfileId={setSelectedProfileId}
+            saveProfile={saveProfile}
+            setSaveProfile={setSaveProfile}
+            profileLabel={profileLabel}
+            setProfileLabel={setProfileLabel}
+            onDeleteProfile={async (profileId) => {
+              await deleteOAuthProfile.mutateAsync({ profileId, connectorId: definition.id });
+              if (selectedProfileId === profileId) {
+                setSelectedProfileId(null);
+              }
+            }}
             apiKey={apiKey}
             setApiKey={setApiKey}
             apiKeyConfig={apiKeyConfig}
@@ -175,8 +259,13 @@ export function SetupWizard({ definition, onClose }: Props) {
             config={oauthConfig}
             selectedScopes={selectedScopes}
             toggleScope={toggleScope}
+            serviceAccess={serviceAccess}
+            setServiceAccess={setServiceAccess}
             onBack={() => setStep('credentials')}
-            onNext={() => void handleCreateAndAuthorize()}
+            onNext={(scopes) => {
+              setSelectedScopes(scopes);
+              void handleCreateAndAuthorize(scopes);
+            }}
           />
         )}
 
@@ -217,20 +306,33 @@ function InstructionsStep({
   instructions,
   onNext,
 }: {
-  instructions: string[];
+  instructions: ConnectorSetupInstruction[];
   onNext: () => void;
 }) {
   return (
     <>
-      <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg bg-muted/50 p-3">
-        <ol className="list-inside list-decimal space-y-2 text-xs text-foreground/80">
+      <ScrollArea className="h-[20rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+        <ol className="list-inside list-decimal space-y-2 text-sm text-foreground/85">
           {instructions.map((instruction, i) => (
             <li key={i} className="leading-relaxed">
-              {instruction}
+              <span>{instruction.text}</span>
+              {instruction.href ? (
+                <button
+                  type="button"
+                  className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
+                  onClick={() => {
+                    void (window.api?.shell?.openExternal(instruction.href!) ??
+                      window.open(instruction.href, '_blank'));
+                  }}
+                >
+                  {instruction.hrefLabel ?? 'Open'}
+                  <ExternalLinkIcon className="size-3" />
+                </button>
+              ) : null}
             </li>
           ))}
         </ol>
-      </div>
+      </ScrollArea>
       <DialogFooter>
         <Button onClick={onNext}>
           I have my credentials
@@ -249,6 +351,16 @@ function CredentialsStep({
   setClientId,
   clientSecret,
   setClientSecret,
+  credentialMode,
+  setCredentialMode,
+  oauthProfiles,
+  selectedProfileId,
+  setSelectedProfileId,
+  saveProfile,
+  setSaveProfile,
+  profileLabel,
+  setProfileLabel,
+  onDeleteProfile,
   apiKey,
   setApiKey,
   apiKeyConfig,
@@ -263,6 +375,16 @@ function CredentialsStep({
   setClientId: (v: string) => void;
   clientSecret: string;
   setClientSecret: (v: string) => void;
+  credentialMode: 'saved' | 'new';
+  setCredentialMode: (v: 'saved' | 'new') => void;
+  oauthProfiles: ConnectorOAuthProfile[];
+  selectedProfileId: string | null;
+  setSelectedProfileId: (v: string | null) => void;
+  saveProfile: boolean;
+  setSaveProfile: (v: boolean) => void;
+  profileLabel: string;
+  setProfileLabel: (v: string) => void;
+  onDeleteProfile: (profileId: string) => Promise<void>;
   apiKey: string;
   setApiKey: (v: string) => void;
   apiKeyConfig: ApiKeyConfig | null;
@@ -285,25 +407,106 @@ function CredentialsStep({
 
         {isOAuth ? (
           <>
-            <div className="space-y-1.5">
-              <Label htmlFor="clientId">Client ID</Label>
-              <Input
-                id="clientId"
-                placeholder="Your OAuth Client ID"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-border/60 p-1">
+              <Button
+                type="button"
+                variant={credentialMode === 'saved' ? 'secondary' : 'ghost'}
+                className="justify-start"
+                onClick={() => setCredentialMode('saved')}
+              >
+                Use saved OAuth app
+              </Button>
+              <Button
+                type="button"
+                variant={credentialMode === 'new' ? 'secondary' : 'ghost'}
+                className="justify-start"
+                onClick={() => setCredentialMode('new')}
+              >
+                Add new OAuth app
+              </Button>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="clientSecret">Client Secret</Label>
-              <Input
-                id="clientSecret"
-                type="password"
-                placeholder="Your OAuth Client Secret"
-                value={clientSecret}
-                onChange={(e) => setClientSecret(e.target.value)}
-              />
-            </div>
+
+            {credentialMode === 'saved' ? (
+              <ScrollArea className="h-[14rem] rounded-lg border border-border/60">
+                <div className="space-y-2 p-3">
+                  {oauthProfiles.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No saved OAuth apps yet. Add one once, then reuse it for all your accounts.
+                    </p>
+                  ) : (
+                    oauthProfiles.map((profile) => (
+                      <div
+                        key={profile.id}
+                        className="flex items-center gap-2 rounded-md border border-border/60 p-2"
+                      >
+                        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                          <input
+                            type="radio"
+                            name="oauth-profile"
+                            checked={selectedProfileId === profile.id}
+                            onChange={() => setSelectedProfileId(profile.id)}
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">{profile.label}</span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {profile.clientId}
+                            </span>
+                          </span>
+                        </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => void onDeleteProfile(profile.id)}
+                        >
+                          <Trash2Icon className="size-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="clientId">Client ID</Label>
+                  <Input
+                    id="clientId"
+                    placeholder="Your OAuth Client ID"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="clientSecret">Client Secret</Label>
+                  <Input
+                    id="clientSecret"
+                    type="password"
+                    placeholder="Your OAuth Client Secret"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={saveProfile}
+                    onCheckedChange={(checked) => setSaveProfile(Boolean(checked))}
+                  />
+                  Save OAuth app for reuse
+                </label>
+                {saveProfile ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="profileLabel">OAuth app name</Label>
+                    <Input
+                      id="profileLabel"
+                      placeholder="e.g. Work Google OAuth"
+                      value={profileLabel}
+                      onChange={(e) => setProfileLabel(e.target.value)}
+                    />
+                  </div>
+                ) : null}
+              </>
+            )}
           </>
         ) : (
           <div className="space-y-1.5">
@@ -362,37 +565,121 @@ function ScopesStep({
   config,
   selectedScopes,
   toggleScope,
+  serviceAccess,
+  setServiceAccess,
   onBack,
   onNext,
 }: {
   config: OAuthConfig;
   selectedScopes: string[];
   toggleScope: (scope: string) => void;
+  serviceAccess: Record<string, 'none' | 'read' | 'write'>;
+  setServiceAccess: (v: Record<string, 'none' | 'read' | 'write'>) => void;
   onBack: () => void;
-  onNext: () => void;
+  onNext: (scopes: string[]) => void;
 }) {
-  const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, selectedScopes);
+  const computedScopes = useMemo(() => {
+    const options = config.serviceAccessOptions;
+    if (!options || options.length === 0) return selectedScopes;
+
+    const serviceScopeSet = new Set<string>();
+    for (const option of options) {
+      for (const scope of option.readScopes) serviceScopeSet.add(scope);
+      for (const scope of option.writeScopes ?? []) serviceScopeSet.add(scope);
+    }
+
+    const baseScopes = config.defaultScopes.filter((scope) => !serviceScopeSet.has(scope));
+    const scopes = [...baseScopes];
+
+    for (const option of options) {
+      const access = serviceAccess[option.id] ?? 'none';
+      if (access === 'read' || access === 'write') {
+        scopes.push(...option.readScopes);
+      }
+      if (access === 'write') {
+        scopes.push(...(option.writeScopes ?? []));
+      }
+    }
+
+    return [...new Set(scopes)];
+  }, [config.defaultScopes, config.serviceAccessOptions, selectedScopes, serviceAccess]);
+
+  const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);
 
   return (
     <>
-      <div className="max-h-64 space-y-1.5 overflow-y-auto">
-        {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
-          <label
-            key={scope}
-            className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50"
-          >
-            <Checkbox
-              checked={selectedScopes.includes(scope)}
-              onCheckedChange={() => toggleScope(scope)}
-              className="mt-0.5"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium">{description}</p>
-              <p className="truncate text-[10px] text-muted-foreground">{scope}</p>
-            </div>
-          </label>
-        ))}
-      </div>
+      {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
+        <div className="space-y-3">
+          {config.serviceAccessOptions.map((option) => {
+            const value = serviceAccess[option.id] ?? 'none';
+            return (
+              <div key={option.id} className="rounded-lg border border-border/60 p-3">
+                <p className="text-sm font-medium">{option.label}</p>
+                {option.description ? (
+                  <p className="text-xs text-muted-foreground">{option.description}</p>
+                ) : null}
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={value === 'none' ? 'secondary' : 'outline'}
+                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}
+                  >
+                    Off
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={value === 'read' ? 'secondary' : 'outline'}
+                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}
+                  >
+                    Read
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={value === 'write' ? 'secondary' : 'outline'}
+                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}
+                  >
+                    Read + Write
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          <ScrollArea className="h-[8rem] rounded-md border border-border/60 p-2">
+            <p className="mb-1 text-xs font-medium">Advanced scopes preview</p>
+            <ul className="space-y-1 text-[11px] text-muted-foreground">
+              {computedScopes.map((scope) => (
+                <li key={scope} className="truncate">
+                  {scope}
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        </div>
+      ) : (
+        <ScrollArea className="h-[16rem]">
+          <div className="space-y-1.5">
+            {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
+              <label
+                key={scope}
+                className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50"
+              >
+                <Checkbox
+                  checked={selectedScopes.includes(scope)}
+                  onCheckedChange={() => toggleScope(scope)}
+                  className="mt-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium">{description}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">{scope}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
       {enableApisUrl && (
         <a
           href={enableApisUrl}
@@ -414,11 +701,48 @@ function ScopesStep({
           <ArrowLeftIcon className="size-3.5" />
           Back
         </Button>
-        <Button onClick={onNext} disabled={selectedScopes.length === 0}>
+        <Button onClick={() => onNext(computedScopes)} disabled={computedScopes.length === 0}>
           Connect & Authorize
           <ExternalLinkIcon className="size-3.5" />
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean }) {
+  const steps: Array<{ id: WizardStep; label: string }> = isOAuth
+    ? [
+        { id: 'instructions', label: 'Instructions' },
+        { id: 'credentials', label: 'Credentials' },
+        { id: 'scopes', label: 'Access' },
+        { id: 'authorizing', label: 'Authorize' },
+        { id: 'done', label: 'Done' },
+      ]
+    : [
+        { id: 'instructions', label: 'Instructions' },
+        { id: 'credentials', label: 'Credentials' },
+        { id: 'authorizing', label: 'Connect' },
+        { id: 'done', label: 'Done' },
+      ];
+
+  const activeIndex = steps.findIndex((item) => item.id === step);
+
+  return (
+    <div className="mt-2 grid grid-cols-5 gap-2">
+      {steps.map((item, index) => (
+        <div
+          key={item.id}
+          className={[
+            'rounded-md border px-2 py-1 text-center text-[11px]',
+            index <= activeIndex
+              ? 'border-primary/30 bg-primary/10 text-foreground'
+              : 'border-border/60 bg-muted/20 text-muted-foreground',
+          ].join(' ')}
+        >
+          {item.label}
+        </div>
+      ))}
+    </div>
   );
 }

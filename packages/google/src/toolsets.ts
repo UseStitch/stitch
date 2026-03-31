@@ -6,8 +6,7 @@
  * the scopes allow it.
  */
 
-import { GoogleClient, type GoogleClientConfig } from './client.js';
-import type { GoogleLogger } from './logger.js';
+import type { GoogleClient } from './client.js';
 import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
 import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
 import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.js';
@@ -21,10 +20,12 @@ export type GoogleToolsetDefinition = {
   icon?: string;
   instructions?: string;
   tools: () => { name: string; description: string }[];
-  activate: (clientConfig: GoogleClientConfig) => Record<string, unknown>;
+  activate: (resolveClient: Resolver) => Record<string, unknown>;
 };
 
-function createGmailToolset(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition {
+type Resolver = (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>;
+
+function createGmailToolset(scopes: string[]): GoogleToolsetDefinition {
   const canWrite = hasWriteAccess(scopes, 'gmail');
   const summaries = canWrite
     ? GMAIL_TOOL_SUMMARIES
@@ -43,14 +44,11 @@ function createGmailToolset(scopes: string[], logger?: GoogleLogger): GoogleTool
       canWrite ? 'You have send access. Use gmail_send to compose or reply to emails.' : 'You have read-only access. Sending emails is not available.',
     ].join('\n'),
     tools: () => summaries,
-    activate: (clientConfig) => {
-      const client = new GoogleClient({ ...clientConfig, logger });
-      return createGmailTools(client, canWrite);
-    },
+    activate: (resolveClient) => createGmailTools(resolveClient, canWrite),
   };
 }
 
-function createDriveToolset(logger?: GoogleLogger): GoogleToolsetDefinition {
+function createDriveToolset(): GoogleToolsetDefinition {
   return {
     id: 'google-drive',
     name: 'Google Drive',
@@ -64,14 +62,11 @@ function createDriveToolset(logger?: GoogleLogger): GoogleToolsetDefinition {
       'Google Docs are exported as plain text, Sheets as CSV. Binary files are downloaded directly.',
     ].join('\n'),
     tools: () => DRIVE_TOOL_SUMMARIES,
-    activate: (clientConfig) => {
-      const client = new GoogleClient({ ...clientConfig, logger });
-      return createDriveTools(client);
-    },
+    activate: (resolveClient) => createDriveTools(resolveClient),
   };
 }
 
-function createCalendarToolset(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition {
+function createCalendarToolset(scopes: string[]): GoogleToolsetDefinition {
   const canWrite = hasWriteAccess(scopes, 'calendar');
   const summaries = canWrite
     ? CALENDAR_TOOL_SUMMARIES
@@ -90,10 +85,7 @@ function createCalendarToolset(scopes: string[], logger?: GoogleLogger): GoogleT
       canWrite ? 'You have write access. Use calendar_create to schedule new events.' : 'You have read-only access. Creating events is not available.',
     ].join('\n'),
     tools: () => summaries,
-    activate: (clientConfig) => {
-      const client = new GoogleClient({ ...clientConfig, logger });
-      return createCalendarTools(client, canWrite);
-    },
+    activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
   };
 }
 
@@ -101,19 +93,19 @@ function createCalendarToolset(scopes: string[], logger?: GoogleLogger): GoogleT
  * Build the list of Google toolset definitions based on the granted scopes.
  * Only services that the user has authorized will be included.
  */
-export function buildGoogleToolsets(scopes: string[], logger?: GoogleLogger): GoogleToolsetDefinition[] {
+export function buildGoogleToolsets(scopes: string[]): GoogleToolsetDefinition[] {
   const toolsets: GoogleToolsetDefinition[] = [];
 
   if (hasServiceAccess(scopes, 'gmail')) {
-    toolsets.push(createGmailToolset(scopes, logger));
+    toolsets.push(createGmailToolset(scopes));
   }
 
   if (hasServiceAccess(scopes, 'drive')) {
-    toolsets.push(createDriveToolset(logger));
+    toolsets.push(createDriveToolset());
   }
 
   if (hasServiceAccess(scopes, 'calendar')) {
-    toolsets.push(createCalendarToolset(scopes, logger));
+    toolsets.push(createCalendarToolset(scopes));
   }
 
   return toolsets;

@@ -13,6 +13,7 @@ export const ID_PREFIXES = {
   recording: 'rec',
   transcription: 'transcr',
   connectorInstance: 'conn',
+  connectorOAuthProfile: 'connp',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -70,6 +71,7 @@ export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
 export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createTranscriptionId = createIdFactory(ID_PREFIXES.transcription);
 export const createConnectorInstanceId = createIdFactory(ID_PREFIXES.connectorInstance);
+export const createConnectorOAuthProfileId = createIdFactory(ID_PREFIXES.connectorOAuthProfile);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

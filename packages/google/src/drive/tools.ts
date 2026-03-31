@@ -5,23 +5,29 @@ import type { GoogleClient } from '../client.js';
 import * as DriveApi from './api.js';
 
 const driveSearchSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().describe('Google Drive search query'),
   maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
   pageToken: z.string().optional().describe('Pagination token from a previous search'),
 });
 
 const driveFileSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   fileId: z.string().describe('The Google Drive file ID'),
 });
 
-export function createDriveTools(client: GoogleClient): Record<string, Tool> {
+export function createDriveTools(
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+): Record<string, Tool> {
   return {
     drive_search: tool({
       description:
         'Search Google Drive files. Uses Drive query syntax (e.g. "name contains \'report\'", "mimeType=\'application/pdf\'", "modifiedTime > \'2024-01-01\'"). Returns file metadata.',
       inputSchema: driveSearchSchema,
       execute: async (input: z.infer<typeof driveSearchSchema>) => {
-        return DriveApi.searchFiles(client, input.query, input.maxResults, input.pageToken);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await DriveApi.searchFiles(client, input.query, input.maxResults, input.pageToken);
+        return { ...result, usedAccount };
       },
     }),
     drive_read: tool({
@@ -29,14 +35,18 @@ export function createDriveTools(client: GoogleClient): Record<string, Tool> {
         'Read the content of a Google Drive file by ID. Google Docs are exported as plain text, Sheets as CSV, other files downloaded directly. Best for text-based files.',
       inputSchema: driveFileSchema,
       execute: async (input: z.infer<typeof driveFileSchema>) => {
-        return DriveApi.getFileContent(client, input.fileId);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await DriveApi.getFileContent(client, input.fileId);
+        return { ...result, usedAccount };
       },
     }),
     drive_info: tool({
       description: 'Get metadata for a Google Drive file (name, type, size, dates, link).',
       inputSchema: driveFileSchema,
       execute: async (input: z.infer<typeof driveFileSchema>) => {
-        return DriveApi.getFileMetadata(client, input.fileId);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await DriveApi.getFileMetadata(client, input.fileId);
+        return { ...result, usedAccount };
       },
     }),
   };

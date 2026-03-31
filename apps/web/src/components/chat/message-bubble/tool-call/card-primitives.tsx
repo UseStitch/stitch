@@ -31,6 +31,12 @@ export function truncateText(value: string, max = 84): string {
   return `${value.slice(0, max - 1)}...`;
 }
 
+export function formatToolDisplayName(toolName: string): string {
+  const normalized = toolName.replace(/[_-]+/g, ' ').trim();
+  if (!normalized) return toolName;
+  return normalized.replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 function toolCallBorderClass({ hasError, isActive, hasSuccess }: ToolCardState) {
   if (hasError) return 'border-destructive/35 bg-destructive/5';
   if (hasSuccess) return 'border-success/35 bg-success/5';

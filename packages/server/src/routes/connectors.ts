@@ -6,12 +6,15 @@ import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/r
 import * as ConnectorIcons from '@/connectors/icons.js';
 import {
   listConnectorInstances,
+  listConnectorOAuthProfiles,
   getConnectorInstance,
+  createConnectorOAuthProfile,
   createOAuthConnectorInstance,
   createApiKeyConnectorInstance,
   authorizeOAuthInstance,
   updateConnectorInstance,
   deleteConnectorInstance,
+  deleteConnectorOAuthProfile,
   testConnectorInstance,
 } from '@/connectors/service.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -61,9 +64,22 @@ connectorsRouter.get('/instances/:id', async (c) => {
 const createOAuthSchema = z.object({
   connectorId: z.string().min(1),
   label: z.string().min(1),
+  oauthProfileId: z.string().min(1).optional(),
+  clientId: z.string().min(1).optional(),
+  clientSecret: z.string().min(1).optional(),
+  scopes: z.array(z.string()).min(1),
+}).refine((value) => {
+  if (value.oauthProfileId) return true;
+  return Boolean(value.clientId && value.clientSecret);
+}, {
+  message: 'oauthProfileId or both clientId and clientSecret are required',
+});
+
+const createOAuthProfileSchema = z.object({
+  connectorId: z.string().min(1),
+  label: z.string().min(1),
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
-  scopes: z.array(z.string()).min(1),
 });
 
 connectorsRouter.post(
@@ -106,6 +122,34 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
   void waitForTokens();
 
   return c.json({ authUrl: result.data.authUrl });
+});
+
+// List OAuth credential profiles for a connector
+connectorsRouter.get('/oauth-profiles/:connectorId', async (c) => {
+  const connectorId = c.req.param('connectorId');
+  const result = await listConnectorOAuthProfiles(connectorId);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
+});
+
+// Create OAuth credential profile
+connectorsRouter.post(
+  '/oauth-profiles',
+  zValidator('json', createOAuthProfileSchema),
+  async (c) => {
+    const body = c.req.valid('json');
+    const result = await createConnectorOAuthProfile(body);
+    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+    return c.json(result.data, 201);
+  },
+);
+
+// Delete OAuth credential profile
+connectorsRouter.delete('/oauth-profiles/:profileId', async (c) => {
+  const profileId = c.req.param('profileId');
+  const result = await deleteConnectorOAuthProfile(profileId);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.body(null, 204);
 });
 
 // Update a connector instance

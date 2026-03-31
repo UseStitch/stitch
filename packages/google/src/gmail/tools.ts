@@ -5,16 +5,19 @@ import type { GoogleClient } from '../client.js';
 import * as GmailApi from './api.js';
 
 const gmailSearchSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().describe('Gmail search query (same syntax as Gmail search bar)'),
   maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
   pageToken: z.string().optional().describe('Pagination token from a previous search'),
 });
 
 const gmailReadSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   messageId: z.string().describe('The Gmail message ID to read'),
 });
 
 const gmailSendSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   to: z.string().describe('Recipient email address'),
   subject: z.string().describe('Email subject line'),
   body: z.string().describe('Plain text email body'),
@@ -27,14 +30,19 @@ const gmailSendSchema = z.object({
   threadId: z.string().optional().describe('Gmail thread ID to reply within'),
 });
 
-export function createGmailTools(client: GoogleClient, hasWrite: boolean) {
+export function createGmailTools(
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  hasWrite: boolean,
+) {
   const tools: Record<string, Tool> = {
     gmail_search: tool({
       description:
         'Search Gmail messages using Gmail search syntax (e.g. "from:user@example.com", "subject:meeting", "is:unread", "newer_than:7d"). Returns message summaries.',
       inputSchema: gmailSearchSchema,
       execute: async (input: z.infer<typeof gmailSearchSchema>) => {
-        return GmailApi.searchMessages(client, input.query, input.maxResults, input.pageToken);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await GmailApi.searchMessages(client, input.query, input.maxResults, input.pageToken);
+        return { ...result, usedAccount };
       },
     }),
     gmail_read: tool({
@@ -42,7 +50,9 @@ export function createGmailTools(client: GoogleClient, hasWrite: boolean) {
         'Read the full content of a specific Gmail message by its ID. Returns headers, body text, and labels.',
       inputSchema: gmailReadSchema,
       execute: async (input: z.infer<typeof gmailReadSchema>) => {
-        return GmailApi.getMessage(client, input.messageId);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await GmailApi.getMessage(client, input.messageId);
+        return { ...result, usedAccount };
       },
     }),
   };
@@ -53,12 +63,14 @@ export function createGmailTools(client: GoogleClient, hasWrite: boolean) {
         'Send an email via Gmail. Can also reply to an existing thread by providing inReplyTo and threadId.',
       inputSchema: gmailSendSchema,
       execute: async (input: z.infer<typeof gmailSendSchema>) => {
-        return GmailApi.sendMessage(client, input.to, input.subject, input.body, {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await GmailApi.sendMessage(client, input.to, input.subject, input.body, {
           cc: input.cc,
           bcc: input.bcc,
           inReplyTo: input.inReplyTo,
           threadId: input.threadId,
         });
+        return { ...result, usedAccount };
       },
     });
   }

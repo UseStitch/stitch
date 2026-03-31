@@ -5,6 +5,7 @@ import type { GoogleClient } from '../client.js';
 import * as CalendarApi from './api.js';
 
 const calendarListSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().optional().describe('Free-text search across event fields'),
   timeMin: z
     .string()
@@ -19,11 +20,13 @@ const calendarListSchema = z.object({
 });
 
 const calendarGetSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   eventId: z.string().describe('The calendar event ID'),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
 const calendarCreateSchema = z.object({
+  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
   summary: z.string().describe('Event title'),
   description: z.string().optional().describe('Event description'),
   location: z.string().optional().describe('Event location'),
@@ -34,27 +37,34 @@ const calendarCreateSchema = z.object({
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
-export function createCalendarTools(client: GoogleClient, hasWrite: boolean) {
+export function createCalendarTools(
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  hasWrite: boolean,
+) {
   const tools: Record<string, Tool> = {
     calendar_list: tool({
       description:
         'List upcoming Google Calendar events. Defaults to upcoming events from now. Supports filtering by date range and text query.',
       inputSchema: calendarListSchema,
       execute: async (input: z.infer<typeof calendarListSchema>) => {
-        return CalendarApi.listEvents(client, {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await CalendarApi.listEvents(client, {
           query: input.query,
           timeMin: input.timeMin,
           timeMax: input.timeMax,
           maxResults: input.maxResults,
           calendarId: input.calendarId,
         });
+        return { ...result, usedAccount };
       },
     }),
     calendar_get: tool({
       description: 'Get full details for a specific Google Calendar event by its ID.',
       inputSchema: calendarGetSchema,
       execute: async (input: z.infer<typeof calendarGetSchema>) => {
-        return CalendarApi.getEvent(client, input.eventId, input.calendarId);
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await CalendarApi.getEvent(client, input.eventId, input.calendarId);
+        return { ...result, usedAccount };
       },
     }),
   };
@@ -64,7 +74,8 @@ export function createCalendarTools(client: GoogleClient, hasWrite: boolean) {
       description: 'Create a new Google Calendar event with a title, time, and optional attendees.',
       inputSchema: calendarCreateSchema,
       execute: async (input: z.infer<typeof calendarCreateSchema>) => {
-        return CalendarApi.createEvent(
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await CalendarApi.createEvent(
           client,
           {
             summary: input.summary,
@@ -76,6 +87,7 @@ export function createCalendarTools(client: GoogleClient, hasWrite: boolean) {
           },
           input.calendarId,
         );
+        return { ...result, usedAccount };
       },
     });
   }
