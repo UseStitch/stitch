@@ -61,7 +61,7 @@ function compactToolResultOutput(part: StoredPart & { type: 'tool-result' }): un
 
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
-  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
+  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null; userName?: string | null },
 ): ModelMessage[] {
   if (msgs.length === 0) {
     throw new Error('buildHistoryMessages requires at least one message');
@@ -237,6 +237,7 @@ export function buildHistoryMessages(
       content: buildSystemPrompt({
         useBasePrompt: promptConfig?.useBasePrompt ?? true,
         systemPrompt: promptConfig?.systemPrompt ?? null,
+        userName: promptConfig?.userName ?? null,
       }),
     });
   }

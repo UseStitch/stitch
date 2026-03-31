@@ -252,7 +252,7 @@ describe('buildHistoryMessages', () => {
     expect(typeof result[0]?.content).toBe('string');
     expect(result[0]?.content).toContain('<env>');
     expect(result[0]?.content).toContain('Preferred shell:');
-    expect(result[0]?.content).toContain('You are Stitch a local machine assistant.');
+    expect(result[0]?.content).toContain('You are Stitch, a local machine assistant');
   });
 
   test('uses custom system prompt when base prompt is disabled', () => {
@@ -297,6 +297,28 @@ describe('buildHistoryMessages', () => {
     expect(typeof result[0]?.content).toBe('string');
     expect(result[0]?.content).toContain('<env>');
     expect(result[0]?.content).toContain('Extra user instruction');
+  });
+
+  test('includes user profile name in system prompt when provided', () => {
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
+      {
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: 'Jane',
+      },
+    );
+
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(typeof result[0]?.content).toBe('string');
+    expect(result[0]?.content).toContain('helps Jane with day-to-day tasks');
   });
 
   test('throws when called with empty history', () => {

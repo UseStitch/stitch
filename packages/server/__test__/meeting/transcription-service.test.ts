@@ -28,6 +28,16 @@ function createStereoWav(durationSeconds: number, sampleRate = 16_000): Uint8Arr
 }
 
 describe('transcription-service helpers', () => {
+  test('injects profile name into transcription prompt local speaker label', () => {
+    const prompt = transcriptionInternals.buildTranscriptionPrompt('Jane');
+    expect(prompt).toContain('LEFT channel speaker as `Jane`.');
+  });
+
+  test('falls back to Local User when profile name is missing', () => {
+    const prompt = transcriptionInternals.buildTranscriptionPrompt(null);
+    expect(prompt).toContain('LEFT channel speaker as `Local User`.');
+  });
+
   test('splits long wav audio into chunked wav payloads', () => {
     const input = createStereoWav(3);
     const chunks = transcriptionInternals.splitWavIntoChunks(input, 1);

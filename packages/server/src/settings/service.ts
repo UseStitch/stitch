@@ -12,6 +12,8 @@ import type { ServiceResult } from '@/lib/service-result.js';
 const ALLOWED_KEYS: ReadonlySet<string> = new Set(SETTINGS_KEYS);
 const ONBOARDING_STATUSES = new Set(['pending', 'completed']);
 const BOOLEAN_SETTING_VALUES = new Set(['true', 'false']);
+const ONBOARDING_VERSION_PATTERN = /^\d+$/;
+const PROFILE_NAME_MAX_LENGTH = 80;
 
 export async function listSettings(): Promise<Record<string, string>> {
   const db = getDb();
@@ -32,6 +34,15 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
   }
   if (key === 'onboarding.status' && !ONBOARDING_STATUSES.has(value)) {
     return err('Invalid onboarding status', 400);
+  }
+  if (key === 'onboarding.version' && !ONBOARDING_VERSION_PATTERN.test(value)) {
+    return err('Invalid onboarding version', 400);
+  }
+  if (key === 'profile.name') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || trimmed.length > PROFILE_NAME_MAX_LENGTH) {
+      return err('Invalid profile name', 400);
+    }
   }
   if (
     (key === 'compaction.auto' ||

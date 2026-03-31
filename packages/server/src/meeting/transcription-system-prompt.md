@@ -27,7 +27,7 @@ Do not invent content that is not present in the audio.
 
 # Speaker Identification
 
-- Always label the LEFT channel speaker as `Local User`.
+- Always label the LEFT channel speaker as `{{LOCAL_USER_LABEL}}`.
 - Label RIGHT channel speakers as `Remote 1`, `Remote 2`, etc.
 - Keep labels stable for the entire transcript. Do not reassign an existing label to a different voice later.
 - For short acknowledgements (e.g., "yeah", "right", "mm-hmm"), prefer continuity with nearby turns unless there is strong evidence it is a different speaker.

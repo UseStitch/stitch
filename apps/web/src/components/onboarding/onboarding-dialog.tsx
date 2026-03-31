@@ -16,6 +16,8 @@ import {
 import { ProviderLogo } from '@/components/settings/provider-logo';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import {
@@ -25,9 +27,68 @@ import {
 } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type OnboardingStep = 'welcome' | 'provider' | 'success';
+type OnboardingStep = 'welcome' | 'profile' | 'provider' | 'success';
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
+const CURRENT_ONBOARDING_VERSION = '2';
+
+function OnboardingProfileStep({
+  initialName,
+  isSaving,
+  onContinue,
+}: {
+  initialName: string;
+  isSaving: boolean;
+  onContinue: (name: string) => void;
+}) {
+  const [name, setName] = React.useState(initialName);
+  const [touched, setTouched] = React.useState(false);
+
+  React.useEffect(() => {
+    setName(initialName);
+  }, [initialName]);
+
+  const trimmed = name.trim();
+  const hasError = touched && trimmed.length === 0;
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setTouched(true);
+    if (trimmed.length === 0) {
+      return;
+    }
+    onContinue(trimmed);
+  }
+
+  return (
+    <form className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6" onSubmit={handleSubmit}>
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight">Tell us your name</h2>
+        <p className="text-sm text-muted-foreground">
+          We&apos;ll use it to personalize responses and transcription speaker labels.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="onboarding-name">Name</Label>
+        <Input
+          id="onboarding-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={() => setTouched(true)}
+          placeholder="Jane"
+          maxLength={80}
+          autoFocus
+        />
+        {hasError && <p className="text-xs text-destructive">Please enter your name.</p>}
+      </div>
+
+      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0}>
+        {isSaving ? 'Saving...' : 'Continue'}
+      </Button>
+    </form>
+  );
+}
 
 function OnboardingProviderConfig({
   provider,
@@ -285,27 +346,60 @@ export function OnboardingDialog() {
   const saveOnboardingStatus = useMutation(
     saveSettingMutationOptions('onboarding.status', queryClient, { silent: true }),
   );
+  const saveOnboardingVersion = useMutation(
+    saveSettingMutationOptions('onboarding.version', queryClient, { silent: true }),
+  );
+  const saveProfileName = useMutation(
+    saveSettingMutationOptions('profile.name', queryClient, { silent: true }),
+  );
 
   const onboardingStatus = settings?.['onboarding.status'];
+  const onboardingVersion = settings?.['onboarding.version'] ?? '1';
+  const profileName = settings?.['profile.name']?.trim() ?? '';
+  const hasProfileName = profileName.length > 0;
   const hasEnabledProvider = (providers ?? []).some((provider) => provider.enabled);
   const isOnboarded = onboardingStatus === 'completed';
+  const isLatestOnboardingVersion = onboardingVersion === CURRENT_ONBOARDING_VERSION;
+  const isOnboardingComplete =
+    isOnboarded && isLatestOnboardingVersion && hasProfileName && hasEnabledProvider;
+
+  const completeOnboarding = React.useCallback(
+    async () => {
+      await saveOnboardingStatus.mutateAsync('completed');
+      await saveOnboardingVersion.mutateAsync(CURRENT_ONBOARDING_VERSION);
+    },
+    [saveOnboardingStatus, saveOnboardingVersion],
+  );
 
   React.useEffect(() => {
-    if (isSettingsPending || isProvidersPending || !hasEnabledProvider || isOnboarded) {
+    if (
+      isSettingsPending ||
+      isProvidersPending ||
+      !hasEnabledProvider ||
+      !hasProfileName ||
+      isOnboardingComplete
+    ) {
       return;
     }
-    if (didAutofinishRef.current || saveOnboardingStatus.isPending) {
+    if (
+      didAutofinishRef.current ||
+      saveOnboardingStatus.isPending ||
+      saveOnboardingVersion.isPending
+    ) {
       return;
     }
 
     didAutofinishRef.current = true;
-    saveOnboardingStatus.mutate('completed');
+    void completeOnboarding().catch(() => undefined);
   }, [
+    completeOnboarding,
+    hasProfileName,
     hasEnabledProvider,
-    isOnboarded,
+    isOnboardingComplete,
     isProvidersPending,
     isSettingsPending,
-    saveOnboardingStatus,
+    saveOnboardingStatus.isPending,
+    saveOnboardingVersion.isPending,
   ]);
 
   React.useEffect(() => {
@@ -321,7 +415,7 @@ export function OnboardingDialog() {
   }, [step]);
 
   const isLoading = isSettingsPending || isProvidersPending;
-  const open = !isLoading && !dismissed && !isOnboarded && !hasEnabledProvider;
+  const open = !isLoading && !dismissed && !isOnboardingComplete;
 
   if (!open) {
     return null;
@@ -345,24 +439,50 @@ export function OnboardingDialog() {
               <div className="max-w-lg space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
                 <p className="text-sm text-muted-foreground">
-                  Let&apos;s set up your first provider so you can start chatting in less than a
-                  minute.
+                  Let&apos;s personalize your profile and connect your first provider so you can start
+                  chatting in less than a minute.
                 </p>
               </div>
-              <Button size="lg" onClick={() => setStep('provider')}>
+              <Button size="lg" onClick={() => setStep('profile')}>
                 Continue
               </Button>
             </div>
           )}
 
+          {step === 'profile' && (
+            <OnboardingProfileStep
+              initialName={profileName}
+              isSaving={
+                saveProfileName.isPending ||
+                saveOnboardingStatus.isPending ||
+                saveOnboardingVersion.isPending
+              }
+              onContinue={(name) => {
+                saveProfileName.mutate(name, {
+                  onSuccess: () => {
+                    if (hasEnabledProvider) {
+                      void completeOnboarding()
+                        .then(() => {
+                          setStep('success');
+                        })
+                        .catch(() => undefined);
+                      return;
+                    }
+                    setStep('provider');
+                  },
+                });
+              }}
+            />
+          )}
+
           {step === 'provider' && (
             <OnboardingProviderStep
               onConnected={() => {
-                saveOnboardingStatus.mutate('completed', {
-                  onSuccess: () => {
+                void completeOnboarding()
+                  .then(() => {
                     setStep('success');
-                  },
-                });
+                  })
+                  .catch(() => undefined);
               }}
             />
           )}

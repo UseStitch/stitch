@@ -11,7 +11,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { Transcription } from '@stitch/shared/meetings/types';
 
 import { getDb } from '@/db/client.js';
-import { meetings, recordingTranscriptions } from '@/db/schema.js';
+import { meetings, recordingTranscriptions, userSettings } from '@/db/schema.js';
 import { iterateWavFileChunks, splitWavIntoChunks } from '@/lib/audio/wav.js';
 import * as Log from '@/lib/log.js';
 import { broadcast } from '@/lib/sse.js';
@@ -76,11 +76,12 @@ type TranscriptionInput = {
   credentials: ProviderCredentials;
 };
 
-function buildTranscriptionPrompt(): string {
+function buildTranscriptionPrompt(userName: string | null): string {
+  const localUserLabel = userName?.trim() || 'Local User';
   return TRANSCRIPTION_PROMPT_TEMPLATE.replaceAll(
     '{{CURRENT_DATE}}',
     new Date().toISOString().slice(0, 10),
-  );
+  ).replaceAll('{{LOCAL_USER_LABEL}}', localUserLabel);
 }
 
 function buildAnalysisPrompt(): string {
@@ -242,7 +243,14 @@ async function runTranscription(
       throw new Error(`Recording file not found at: ${meeting.recordingFilePath}`);
     }
 
+    const [profileNameRow] = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(eq(userSettings.key, 'profile.name'));
+    const profileName = profileNameRow?.value.trim() || null;
+
     const model = createProvider(input.credentials)(input.modelId);
+    const transcriptionPrompt = buildTranscriptionPrompt(profileName);
     const transcriptParts: TranscriptEntry[][] = [];
 
     // --- Pass 1: Audio -> Transcript (chunked for long recordings) ---
@@ -280,7 +288,7 @@ async function runTranscription(
             ],
           },
         ],
-        system: buildTranscriptionPrompt(),
+        system: transcriptionPrompt,
         abortSignal: abortController.signal,
       });
 
@@ -655,6 +663,7 @@ export async function recoverStaleTranscriptions(): Promise<number> {
 }
 
 export const transcriptionInternals = {
+  buildTranscriptionPrompt,
   splitWavIntoChunks,
   smoothSpeakerAssignments,
   chunkTranscriptEntries,

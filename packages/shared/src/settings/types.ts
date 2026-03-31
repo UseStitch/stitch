@@ -14,6 +14,8 @@ export const SETTINGS_KEYS = [
   'appearance.mode',
   'appearance.theme',
   'onboarding.status',
+  'onboarding.version',
+  'profile.name',
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
@@ -108,6 +110,16 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'onboarding.status',
     value: 'pending',
     description: 'Tracks whether onboarding is pending or completed.',
+  },
+  {
+    key: 'onboarding.version',
+    value: '1',
+    description: 'Tracks which onboarding step version has been completed.',
+  },
+  {
+    key: 'profile.name',
+    value: '',
+    description: 'Preferred user display name used in prompts and transcripts.',
   },
   {
     key: 'notifications.sound.enabled',

@@ -2,9 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { buildPromptEnvironment } from '@/llm/prompt/env.js';
 
-const identity = () => {
+const identity = (userName: string | null) => {
+  const identityLine = userName
+    ? `You are Stitch, a local machine assistant that helps ${userName} with day-to-day tasks on their computer.`
+    : 'You are Stitch, a local machine assistant that helps users with day-to-day tasks on their computer.';
   return `
-  You are Stitch a local machine assistant. You help users to interact with their local machine and perform their day to day tasks.
+  ${identityLine}
   `;
 };
 
@@ -16,8 +19,10 @@ const BASE_SYSTEM_PROMPT = readFileSync(
 export function buildSystemPrompt(input: {
   useBasePrompt: boolean;
   systemPrompt: string | null;
+  userName?: string | null;
 }): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
+  const userName = input.userName?.trim() || null;
 
   let promptBody = userPrompt;
   if (input.useBasePrompt) {
@@ -27,5 +32,5 @@ export function buildSystemPrompt(input: {
     }
   }
 
-  return `${identity()}\n\n${buildPromptEnvironment()}\n\n${promptBody}`;
+  return `${identity(userName)}\n\n${buildPromptEnvironment()}\n\n${promptBody}`;
 }

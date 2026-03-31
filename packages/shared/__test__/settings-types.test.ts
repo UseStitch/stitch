@@ -1,8 +1,13 @@
 import { describe, expect, test } from 'vitest';
 
-import { isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
+import { SETTINGS_KEYS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 
 describe('settings type helpers', () => {
+  test('includes onboarding/profile keys used by onboarding flow', () => {
+    expect(SETTINGS_KEYS).toContain('profile.name');
+    expect(SETTINGS_KEYS).toContain('onboarding.version');
+  });
+
   test('accepts Mod+single character leader keys', () => {
     expect(isValidLeaderKeyHotkey('Mod+X')).toBe(true);
     expect(isValidLeaderKeyHotkey('Mod+a')).toBe(true);

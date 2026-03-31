@@ -64,6 +64,19 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
   };
 }
 
+async function getProfileName(): Promise<string | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(eq(userSettings.key, 'profile.name'));
+  const trimmed = row?.value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed;
+}
+
 export function isOverflow(
   usage: LanguageModelUsage,
   limits: ModelLimits,
@@ -318,9 +331,11 @@ export async function compact(input: {
     }
     const relevantMsgs = historyMsgs.slice(startIndex);
 
+    const profileName = await getProfileName();
     const historyMessages = buildHistoryMessages(relevantMsgs, {
       useBasePrompt: true,
       systemPrompt: null,
+      userName: profileName,
     });
 
     const llmMessages: ModelMessage[] = [
@@ -478,7 +493,7 @@ export async function compact(input: {
  */
 export async function buildCompactedHistory(
   sessionId: PrefixedString<'ses'>,
-  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null },
+  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null; userName?: string | null },
 ): Promise<ModelMessage[]> {
   const db = getDb();
   const msgs = await db
@@ -496,7 +511,12 @@ export async function buildCompactedHistory(
     }
   }
 
-  return buildHistoryMessages(msgs.slice(startIndex), promptConfig);
+  const profileName = await getProfileName();
+  return buildHistoryMessages(msgs.slice(startIndex), {
+    useBasePrompt: promptConfig?.useBasePrompt ?? true,
+    systemPrompt: promptConfig?.systemPrompt ?? null,
+    userName: promptConfig?.userName ?? profileName,
+  });
 }
 
 /**
