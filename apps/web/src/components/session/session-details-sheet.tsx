@@ -125,7 +125,7 @@ export function SessionDetailsSheet({
   const totalUsageTokens = currentSessionTokens + childSessionsTokens;
 
   return (
-    <aside className={cn('h-full min-h-0 overflow-hidden bg-gradient-to-b from-muted/60 to-muted/35', className)}>
+    <aside className={cn('h-full min-h-0 overflow-hidden bg-linear-to-b from-muted/60 to-muted/35', className)}>
       <div className="h-full border-l border-foreground/20 bg-transparent">
         <div className="border-b border-border/80 bg-background/65 px-5 py-3.5 backdrop-blur-sm">
           <p className="text-base font-medium">Context</p>
