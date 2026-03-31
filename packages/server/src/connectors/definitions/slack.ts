@@ -12,6 +12,7 @@ export const slackConnector: ConnectorDefinition = {
   description:
     'Connect to your Slack workspace. Read channels, send messages, and search conversations.',
   icon: 'slack',
+  enabled: false,
   authType: 'api_key',
   authConfig,
   setupInstructions: [

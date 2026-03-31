@@ -77,6 +77,7 @@ export const googleConnector: ConnectorDefinition = {
   name: 'Google Workspace',
   description: 'Connect Gmail, Drive, and Calendar in one place.',
   icon: 'google',
+  enabled: true,
   serviceIcons: ['gmail', 'googledrive', 'googlecalendar'],
   authType: 'oauth2',
   authConfig,

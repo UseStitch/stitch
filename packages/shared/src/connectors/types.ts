@@ -42,6 +42,7 @@ export type ConnectorDefinition = {
   name: string;
   description: string;
   icon: string;
+  enabled: boolean;
   /** Sub-service icon slugs for display (e.g., gmail, googledrive, googlecalendar) */
   serviceIcons?: string[];
   authType: ConnectorAuthType;

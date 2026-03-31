@@ -18,6 +18,6 @@ export function getConnectorDefinition(id: string): ConnectorDefinition | undefi
   return definitions.get(id);
 }
 
-export function listConnectorDefinitions(): ConnectorDefinition[] {
-  return [...definitions.values()];
+export function listConnectorDefinitions({ includeDisabled = false }: { includeDisabled?: boolean } = {}): ConnectorDefinition[] {
+  return [...definitions.values()].filter((definition) => includeDisabled || definition.enabled);
 }
