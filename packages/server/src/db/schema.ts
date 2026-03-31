@@ -312,6 +312,8 @@ export const connectorInstances = sqliteTable(
     id: text('id').$type<PrefixedString<'conn'>>().primaryKey(),
     connectorId: text('connector_id').notNull(),
     label: text('label').notNull(),
+    appliedVersion: integer('applied_version').notNull().default(1),
+    capabilities: blob('capabilities', { mode: 'json' }).$type<string[]>().notNull().default([]),
     oauthProfileId: text('oauth_profile_id').$type<PrefixedString<'connp'>>(),
     clientId: text('client_id'),
     clientSecret: text('client_secret'),

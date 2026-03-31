@@ -13,6 +13,16 @@ export const slackConnector: ConnectorDefinition = {
     'Connect to your Slack workspace. Read channels, send messages, and search conversations.',
   icon: 'slack',
   enabled: false,
+  currentVersion: 1,
+  versionHistory: [
+    {
+      version: 1,
+      title: 'Initial Slack connector',
+      description: 'Bot token setup for Slack workspace access.',
+      action: 'none',
+      capabilities: ['slack.channels.read', 'slack.channels.write', 'slack.search.read'],
+    },
+  ],
   authType: 'api_key',
   authConfig,
   setupInstructions: [

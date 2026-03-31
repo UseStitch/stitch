@@ -16,6 +16,7 @@ import {
   deleteConnectorInstance,
   deleteConnectorOAuthProfile,
   testConnectorInstance,
+  upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 
@@ -158,6 +159,10 @@ const updateSchema = z.object({
   scopes: z.array(z.string()).optional(),
 });
 
+const upgradeSchema = z.object({
+  apiKey: z.string().min(1).optional(),
+});
+
 connectorsRouter.patch(
   '/instances/:id',
   zValidator('json', updateSchema),
@@ -185,3 +190,16 @@ connectorsRouter.post('/instances/:id/test', async (c) => {
   if (isServiceError(result)) return c.json({ error: result.error }, result.status);
   return c.json({ success: true });
 });
+
+// Upgrade a connector instance to the latest connector version
+connectorsRouter.post(
+  '/instances/:id/upgrade',
+  zValidator('json', upgradeSchema),
+  async (c) => {
+    const id = c.req.param('id');
+    const body = c.req.valid('json');
+    const result = await upgradeConnectorInstance(id, body);
+    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+    return c.json(result.data);
+  },
+);

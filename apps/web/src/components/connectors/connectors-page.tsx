@@ -20,6 +20,7 @@ export function ConnectorsPage() {
   const { data: instances } = useSuspenseQuery(connectorInstancesQueryOptions);
   const [setupConnector, setSetupConnector] = useState<ConnectorDefinition | null>(null);
   const [search, setSearch] = useState('');
+  const pendingUpdates = instances.filter((instance) => instance.upgrade?.available).length;
 
   const filteredDefinitions = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -54,6 +55,9 @@ export function ConnectorsPage() {
               <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
                 {instances.length}
               </Badge>
+              {pendingUpdates > 0 ? (
+                <span className="size-2 rounded-full bg-warning" aria-label="Upgrades available" />
+              ) : null}
             </TabsTrigger>
           </TabsList>
 

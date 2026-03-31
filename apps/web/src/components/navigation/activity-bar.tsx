@@ -1,9 +1,11 @@
 import { BarChart3Icon, MessageSquareIcon, MicIcon, PlugIcon, SettingsIcon } from 'lucide-react';
 
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDialogContext } from '@/context/dialog-context';
+import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
 
 type ActivityItem = {
@@ -67,12 +69,16 @@ export function ActivityBar() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { setSettingsTab } = useDialogContext();
+  const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
+  const pendingConnectorUpdates = connectorInstances.filter((instance) => instance.upgrade?.available).length;
 
   return (
     <div className="flex w-14 flex-col items-center border-r border-border/50 bg-sidebar px-1.5 pt-3 pb-3">
       <div className="flex w-full flex-col items-center gap-2">
         {ACTIVITY_ITEMS.map((item) => {
           const active = isActive(item.matchPrefix, currentPath);
+          const isConnectors = item.id === 'connectors';
+          const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger
@@ -80,7 +86,7 @@ export function ActivityBar() {
                   <Link
                     to={item.to}
                     className={cn(
-                      'flex size-10 items-center justify-center rounded-lg transition-colors',
+                      'relative flex size-10 items-center justify-center rounded-lg transition-colors',
                       active
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
@@ -89,8 +95,15 @@ export function ActivityBar() {
                 }
               >
                 {item.icon}
+                {showUpdateIndicator ? (
+                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+                ) : null}
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">
+                {isConnectors && pendingConnectorUpdates > 0
+                  ? `${item.label} (updates available)`
+                  : item.label}
+              </TooltipContent>
             </Tooltip>
           );
         })}

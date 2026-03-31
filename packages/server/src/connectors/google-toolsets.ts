@@ -21,7 +21,7 @@ import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js
 import type { Toolset } from '@/tools/toolsets/types.js';
 
 const log = Log.create({ service: 'google-toolsets' });
-const GOOGLE_TOOLSET_IDS = ['google-gmail', 'google-drive', 'google-calendar'] as const;
+const GOOGLE_TOOLSET_IDS = ['google-gmail', 'google-drive', 'google-calendar', 'google-docs'] as const;
 const REFRESH_BUFFER_MS = 60_000;
 
 async function resolveOAuthCredentials(instance: {
@@ -207,8 +207,16 @@ export async function registerGoogleToolsets(): Promise<void> {
   }
 
   const scopes = [...new Set(connected.flatMap((instance) => (instance.scopes as string[]) ?? []))];
+  const capabilities = [
+    ...new Set(connected.flatMap((instance) => (instance.capabilities as string[] | null) ?? [])),
+  ];
+  const appliedVersion = Math.max(
+    ...connected.map((instance) =>
+      Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1,
+    ),
+  );
 
-  const toolsetDefs = buildGoogleToolsets(scopes);
+  const toolsetDefs = buildGoogleToolsets({ scopes, capabilities, appliedVersion });
 
   for (const def of toolsetDefs) {
     registerToolset(toServerToolset(def));
@@ -221,6 +229,8 @@ export async function registerGoogleToolsets(): Promise<void> {
       instanceIds: connected.map((instance) => instance.id),
       toolsets: toolsetDefs.map((d) => d.id),
       scopes,
+      capabilities,
+      appliedVersion,
     },
     `Registered ${toolsetDefs.length} Google toolset(s) across ${connected.length} account(s)`,
   );

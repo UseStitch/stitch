@@ -22,12 +22,18 @@ export const CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
 ] as const;
 
-export type GoogleService = 'gmail' | 'drive' | 'calendar';
+export const DOCS_SCOPES = [
+  'https://www.googleapis.com/auth/documents.readonly',
+  'https://www.googleapis.com/auth/documents',
+] as const;
+
+export type GoogleService = 'gmail' | 'drive' | 'calendar' | 'docs';
 
 const SERVICE_SCOPE_MAP: Record<GoogleService, readonly string[]> = {
   gmail: GMAIL_SCOPES,
   drive: DRIVE_SCOPES,
   calendar: CALENDAR_SCOPES,
+  docs: DOCS_SCOPES,
 };
 
 /** Check if the granted scopes include access to a specific Google service. */
@@ -38,7 +44,7 @@ export function hasServiceAccess(grantedScopes: string[], service: GoogleService
 
 /** Return the list of Google services available for the given scopes. */
 export function getAvailableServices(grantedScopes: string[]): GoogleService[] {
-  return (['gmail', 'drive', 'calendar'] as const).filter((service) =>
+  return (['gmail', 'drive', 'calendar', 'docs'] as const).filter((service) =>
     hasServiceAccess(grantedScopes, service),
   );
 }
@@ -65,6 +71,9 @@ export function hasWriteAccess(grantedScopes: string[], service: GoogleService):
         s === 'https://www.googleapis.com/auth/calendar.events' ||
         s === 'https://www.googleapis.com/auth/calendar',
     );
+  }
+  if (service === 'docs') {
+    return grantedScopes.some((s) => s === 'https://www.googleapis.com/auth/documents');
   }
   return false;
 }

@@ -6,6 +6,7 @@ import {
   AlertCircleIcon,
   ClockIcon,
   Loader2Icon,
+  ArrowUpCircleIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ import {
   useAuthorizeConnector,
   useDeleteConnector,
   useTestConnector,
+  useUpgradeConnector,
 } from '@/lib/queries/connectors';
 
 type Props = {
@@ -60,6 +62,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
   const deleteMutation = useDeleteConnector();
   const testMutation = useTestConnector();
   const authorizeMutation = useAuthorizeConnector();
+  const upgradeMutation = useUpgradeConnector();
   const [testingId, setTestingId] = useState<string | null>(null);
 
   function getDefinition(connectorId: string) {
@@ -97,6 +100,38 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
     }
   }
 
+  async function handleUpgrade(instance: ConnectorInstanceSafe) {
+    if (!instance.upgrade?.available) {
+      return;
+    }
+
+    try {
+      let apiKey: string | undefined;
+      if (instance.upgrade.actions.includes('rotate_api_key')) {
+        const enteredApiKey = window.prompt('Enter the updated API key for this upgrade');
+        if (!enteredApiKey?.trim()) {
+          return;
+        }
+        apiKey = enteredApiKey.trim();
+      }
+
+      const result = await upgradeMutation.mutateAsync({
+        instanceId: instance.id,
+        apiKey,
+      });
+
+      if (result.type === 'reauthorize') {
+        void (window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank'));
+        toast.info('Opening browser to complete connector upgrade...');
+        return;
+      }
+
+      toast.success('Connector upgraded successfully');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector');
+    }
+  }
+
   return (
     <div className="space-y-3">
       {instances.map((instance) => {
@@ -120,6 +155,12 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   {statusConfig.icon}
                   {statusConfig.label}
                 </Badge>
+                {instance.upgrade?.available && (
+                  <Badge variant="outline" className="gap-1 text-warning">
+                    <ArrowUpCircleIcon className="size-3" />
+                    Upgrade available
+                  </Badge>
+                )}
               </div>
               {instance.accountEmail && (
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -129,6 +170,17 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
             </div>
 
             <div className="flex items-center gap-1">
+              {instance.upgrade?.available && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUpgrade(instance)}
+                  disabled={upgradeMutation.isPending}
+                >
+                  <ArrowUpCircleIcon className="size-3.5" />
+                  Upgrade
+                </Button>
+              )}
               {(instance.status === 'awaiting_auth' || instance.status === 'error') && (
                 <Button
                   variant="outline"

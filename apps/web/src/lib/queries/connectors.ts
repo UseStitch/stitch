@@ -206,3 +206,27 @@ export function useTestConnector() {
     },
   });
 }
+
+export function useUpgradeConnector() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      instanceId: string;
+      apiKey?: string;
+    }): Promise<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }> => {
+      const res = await serverFetch(`/connectors/instances/${input.instanceId}/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: input.apiKey }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Upgrade failed');
+      }
+      return res.json() as Promise<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
+    },
+  });
+}

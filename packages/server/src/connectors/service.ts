@@ -4,6 +4,7 @@ import { createConnectorInstanceId } from '@stitch/shared/id';
 import { createConnectorOAuthProfileId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 import type {
+  ConnectorDefinition,
   ConnectorInstance,
   ConnectorInstanceSafe,
   ConnectorOAuthProfile,
@@ -15,20 +16,43 @@ import { getDb } from '@/db/client.js';
 import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
-import { err, ok } from '@/lib/service-result.js';
+import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
+import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'connectors' });
 
-function toSafe(instance: ConnectorInstance): ConnectorInstanceSafe {
+function toSafe(instance: ConnectorInstance, definition: ConnectorDefinition | undefined): ConnectorInstanceSafe {
   const { clientSecret, accessToken, refreshToken, apiKey, ...rest } = instance;
+  const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
+  const storedCapabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
+  const effectiveCapabilities =
+    storedCapabilities.length > 0 && definition
+      ? storedCapabilities
+      : definition
+        ? getCapabilitiesForVersion(definition, appliedVersion)
+        : storedCapabilities;
+
+  const upgrade =
+    definition === undefined
+      ? null
+      : buildUpgradeState({
+          definition,
+          appliedVersion,
+          scopes: instance.scopes,
+          capabilities: effectiveCapabilities,
+        });
+
   return {
     ...rest,
+    appliedVersion,
+    capabilities: effectiveCapabilities,
     hasClientSecret: clientSecret !== null && clientSecret !== '',
     hasAccessToken: accessToken !== null && accessToken !== '',
     hasRefreshToken: refreshToken !== null && refreshToken !== '',
     hasApiKey: apiKey !== null && apiKey !== '',
+    upgrade,
   };
 }
 
@@ -50,7 +74,10 @@ export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]>
     .select()
     .from(connectorInstances)
     .orderBy(asc(connectorInstances.createdAt));
-  return rows.map((r) => toSafe(r as ConnectorInstance));
+  return rows.map((r) => {
+    const instance = r as ConnectorInstance;
+    return toSafe(instance, getConnectorDefinition(instance.connectorId));
+  });
 }
 
 export async function getConnectorInstance(
@@ -63,7 +90,8 @@ export async function getConnectorInstance(
     .where(eq(connectorInstances.id, id as PrefixedString<'conn'>));
 
   if (!row) return err('Connector instance not found', 404);
-  return ok(toSafe(row as ConnectorInstance));
+  const instance = row as ConnectorInstance;
+  return ok(toSafe(instance, getConnectorDefinition(instance.connectorId)));
 }
 
 export async function createOAuthConnectorInstance(input: {
@@ -112,6 +140,8 @@ export async function createOAuthConnectorInstance(input: {
     id,
     connectorId: input.connectorId,
     label: input.label,
+    appliedVersion: definition.currentVersion,
+    capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
     oauthProfileId,
     clientId,
     clientSecret,
@@ -136,7 +166,7 @@ export async function createOAuthConnectorInstance(input: {
     .select()
     .from(connectorInstances)
     .where(eq(connectorInstances.id, id));
-  return ok(toSafe(row as ConnectorInstance));
+  return ok(toSafe(row as ConnectorInstance, definition));
 }
 
 export async function createApiKeyConnectorInstance(input: {
@@ -155,6 +185,8 @@ export async function createApiKeyConnectorInstance(input: {
     id,
     connectorId: input.connectorId,
     label: input.label,
+    appliedVersion: definition.currentVersion,
+    capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
     oauthProfileId: null,
     clientId: null,
     clientSecret: null,
@@ -179,7 +211,7 @@ export async function createApiKeyConnectorInstance(input: {
     .select()
     .from(connectorInstances)
     .where(eq(connectorInstances.id, id));
-  return ok(toSafe(row as ConnectorInstance));
+  return ok(toSafe(row as ConnectorInstance, definition));
 }
 
 export async function authorizeOAuthInstance(
@@ -256,6 +288,8 @@ export async function authorizeOAuthInstance(
         status: 'connected' as ConnectorStatus,
         accountEmail,
         accountInfo,
+        appliedVersion: definition.currentVersion,
+        capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
         updatedAt: now,
       })
       .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
@@ -384,7 +418,94 @@ export async function updateConnectorInstance(
     .from(connectorInstances)
     .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
-  return ok(toSafe(row as ConnectorInstance));
+  const instance = row as ConnectorInstance;
+  return ok(toSafe(instance, getConnectorDefinition(instance.connectorId)));
+}
+
+export async function upgradeConnectorInstance(
+  instanceId: string,
+  input: { apiKey?: string },
+): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
+  const db = getDb();
+  const typedInstanceId = instanceId as PrefixedString<'conn'>;
+  const [instance] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId));
+
+  if (!instance) return err('Connector instance not found', 404);
+
+  const definition = getConnectorDefinition(instance.connectorId);
+  if (!definition) return err('Unknown connector type', 400);
+
+  const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
+  const capabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
+
+  const upgrade = buildUpgradeState({
+    definition,
+    appliedVersion,
+    scopes: (instance.scopes) ?? null,
+    capabilities,
+  });
+
+  if (!upgrade) {
+    return err('Connector is already up to date', 400);
+  }
+
+  const now = Date.now();
+  if (upgrade.actions.length === 0 || upgrade.actions.every((action) => action === 'none')) {
+    await db
+      .update(connectorInstances)
+      .set({
+        appliedVersion: definition.currentVersion,
+        capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
+        updatedAt: now,
+      })
+      .where(eq(connectorInstances.id, typedInstanceId));
+    return ok({ type: 'updated' });
+  }
+
+  if (upgrade.actions.includes('rotate_api_key')) {
+    if (!input.apiKey?.trim()) {
+      return err('A new API key is required to upgrade this connector', 400);
+    }
+
+    await db
+      .update(connectorInstances)
+      .set({
+        apiKey: input.apiKey.trim(),
+        appliedVersion: definition.currentVersion,
+        capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
+        status: 'connected' as ConnectorStatus,
+        updatedAt: now,
+      })
+      .where(eq(connectorInstances.id, typedInstanceId));
+
+    return ok({ type: 'updated' });
+  }
+
+  if (upgrade.actions.includes('reauthorize')) {
+    const currentScopes = (instance.scopes) ?? [];
+    const scopeSet = new Set([...currentScopes, ...upgrade.missingScopes]);
+    const nextScopes = [...scopeSet];
+
+    await db
+      .update(connectorInstances)
+      .set({
+        scopes: nextScopes,
+        status: 'awaiting_auth' as ConnectorStatus,
+        updatedAt: now,
+      })
+      .where(eq(connectorInstances.id, typedInstanceId));
+
+    const auth = await authorizeOAuthInstance(instanceId);
+    if (isServiceError(auth)) {
+      return auth;
+    }
+
+    const { waitForTokens } = auth.data;
+    void waitForTokens();
+    return ok({ type: 'reauthorize', authUrl: auth.data.authUrl });
+  }
+
+  return err('Unsupported upgrade action for connector', 400);
 }
 
 export async function deleteConnectorInstance(instanceId: string): Promise<ServiceResult<null>> {

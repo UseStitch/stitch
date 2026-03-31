@@ -22,6 +22,13 @@ const SERVICE_ACCESS_OPTIONS = [
     readScopes: ['https://www.googleapis.com/auth/calendar.readonly'],
     writeScopes: ['https://www.googleapis.com/auth/calendar.events'],
   },
+  {
+    id: 'docs',
+    label: 'Google Docs',
+    description: 'Search, read, and edit Google Docs documents',
+    readScopes: ['https://www.googleapis.com/auth/documents.readonly'],
+    writeScopes: ['https://www.googleapis.com/auth/documents'],
+  },
 ] as const;
 
 const GOOGLE_SCOPES = {
@@ -36,6 +43,8 @@ const GOOGLE_SCOPES = {
   'https://www.googleapis.com/auth/calendar.readonly': 'View your Google Calendar',
   'https://www.googleapis.com/auth/calendar.events': 'Create and edit calendar events',
   'https://www.googleapis.com/auth/calendar': 'Full access to Google Calendar',
+  'https://www.googleapis.com/auth/documents.readonly': 'Read your Google Docs documents',
+  'https://www.googleapis.com/auth/documents': 'Create and edit your Google Docs documents',
 } as const;
 
 const GOOGLE_DEFAULT_SCOPES = [
@@ -56,6 +65,8 @@ const GOOGLE_SCOPE_API_MAP: Record<string, string> = {
   'https://www.googleapis.com/auth/calendar.readonly': 'calendar-json.googleapis.com',
   'https://www.googleapis.com/auth/calendar.events': 'calendar-json.googleapis.com',
   'https://www.googleapis.com/auth/calendar': 'calendar-json.googleapis.com',
+  'https://www.googleapis.com/auth/documents.readonly': 'docs.googleapis.com',
+  'https://www.googleapis.com/auth/documents': 'docs.googleapis.com',
 };
 
 const authConfig: OAuthConfig = {
@@ -78,7 +89,33 @@ export const googleConnector: ConnectorDefinition = {
   description: 'Connect Gmail, Drive, and Calendar in one place.',
   icon: 'google',
   enabled: true,
-  serviceIcons: ['gmail', 'googledrive', 'googlecalendar'],
+  currentVersion: 2,
+  versionHistory: [
+    {
+      version: 1,
+      title: 'Initial Google Workspace connector',
+      description: 'Base support for Gmail, Drive, and Calendar.',
+      action: 'none',
+      capabilities: [
+        'google.gmail.read',
+        'google.gmail.write',
+        'google.drive.read',
+        'google.drive.write',
+        'google.calendar.read',
+        'google.calendar.write',
+      ],
+      requiredScopes: GOOGLE_DEFAULT_SCOPES,
+    },
+    {
+      version: 2,
+      title: 'Google Docs support',
+      description: 'Adds Google Docs read and write tools.',
+      action: 'reauthorize',
+      capabilities: ['google.docs.read', 'google.docs.write'],
+      requiredScopes: ['https://www.googleapis.com/auth/documents'],
+    },
+  ],
+  serviceIcons: ['gmail', 'googledrive', 'googlecalendar', 'googledocs'],
   authType: 'oauth2',
   authConfig,
   setupInstructions: [
@@ -94,7 +131,7 @@ export const googleConnector: ConnectorDefinition = {
     { text: 'Give it a name (for example, Stitch Desktop)' },
     { text: 'Copy the Client ID and Client Secret' },
     {
-      text: 'Enable APIs for services you plan to use (Gmail API, Google Drive API, Google Calendar API)',
+      text: 'Enable APIs for services you plan to use (Gmail API, Google Drive API, Google Calendar API, Google Docs API)',
       href: 'https://console.cloud.google.com/apis/library',
       hrefLabel: 'Google API Library',
     },

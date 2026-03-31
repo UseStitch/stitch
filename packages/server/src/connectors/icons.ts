@@ -18,6 +18,7 @@ const ALLOWED_SLUGS = new Set([
   'gmail',
   'googledrive',
   'googlecalendar',
+  'googledocs',
   'slack',
 ]);
 
