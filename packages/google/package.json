@@ -1,0 +1,24 @@
+{
+  "name": "@stitch/google",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./toolsets": "./src/toolsets.ts",
+    "./client": "./src/client.ts",
+    "./scopes": "./src/scopes.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ai": "catalog:ai",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
+  }
+}
