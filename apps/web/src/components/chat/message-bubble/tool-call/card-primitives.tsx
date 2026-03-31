@@ -47,15 +47,13 @@ function toolCallBorderClass({ hasError, isActive, hasSuccess }: ToolCardState) 
 function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
     case 'pending':
-      return (
-        <span className="mt-0.5 inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-info/35 border-t-info" />
-      );
+      return <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-info/35 border-t-info" />;
     case 'in-progress':
-      return <LoaderIcon className="mt-0.5 size-3.5 shrink-0 animate-spin text-info" />;
+      return <LoaderIcon className="size-3.5 shrink-0 animate-spin text-info" />;
     case 'completed':
-      return <CheckIcon className="mt-0.5 size-3.5 shrink-0 text-success" />;
+      return <CheckIcon className="size-3.5 shrink-0 text-success" />;
     case 'error':
-      return <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />;
+      return <AlertCircleIcon className="size-3.5 shrink-0 text-destructive" />;
   }
 }
 
@@ -95,7 +93,7 @@ function ToolCardHeader({
   return (
     <div
       className={cn(
-        'flex w-full items-start gap-2.5 px-3 py-2.5',
+        'flex w-full items-center gap-2.5 px-3 py-2.5',
         tone === 'accent' && 'bg-primary/5',
         className,
       )}
