@@ -189,8 +189,8 @@ export function SetupWizard({ definition, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[min(56rem,calc(100vw-2rem))] max-h-[90vh] overflow-hidden sm:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="flex w-[min(56rem,calc(100vw-2rem))] max-h-[90vh] min-h-0 flex-col overflow-hidden sm:max-w-4xl">
+        <DialogHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <ConnectorIcon icon={definition.icon} className="size-7 rounded-md" />
             <DialogTitle>Connect {definition.name}</DialogTitle>
@@ -208,76 +208,77 @@ export function SetupWizard({ definition, onClose }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        {step === 'instructions' && (
-          <InstructionsStep
-            instructions={definition.setupInstructions}
-            onNext={() => setStep('credentials')}
-          />
-        )}
+        <div className="min-h-0 flex-1">
+          {step === 'instructions' && (
+            <InstructionsStep
+              instructions={definition.setupInstructions}
+              onNext={() => setStep('credentials')}
+            />
+          )}
 
-        {step === 'credentials' && (
-          <CredentialsStep
-            isOAuth={isOAuth}
-            label={label}
-            setLabel={setLabel}
-            clientId={clientId}
-            setClientId={setClientId}
-            clientSecret={clientSecret}
-            setClientSecret={setClientSecret}
-            credentialMode={credentialMode}
-            setCredentialMode={setCredentialMode}
-            oauthProfiles={oauthProfiles}
-            selectedProfileId={selectedProfileId}
-            setSelectedProfileId={setSelectedProfileId}
-            saveProfile={saveProfile}
-            setSaveProfile={setSaveProfile}
-            profileLabel={profileLabel}
-            setProfileLabel={setProfileLabel}
-            onDeleteProfile={async (profileId) => {
-              await deleteOAuthProfile.mutateAsync({ profileId, connectorId: definition.id });
-              if (selectedProfileId === profileId) {
-                setSelectedProfileId(null);
-              }
-            }}
-            apiKey={apiKey}
-            setApiKey={setApiKey}
-            apiKeyConfig={apiKeyConfig}
-            definitionName={definition.name}
-            onBack={() => setStep('instructions')}
-            onNext={() => {
-              if (isOAuth && oauthConfig) {
-                setStep('scopes');
-              } else {
-                void handleCreateAndAuthorize();
-              }
-            }}
-          />
-        )}
+          {step === 'credentials' && (
+            <CredentialsStep
+              isOAuth={isOAuth}
+              label={label}
+              setLabel={setLabel}
+              clientId={clientId}
+              setClientId={setClientId}
+              clientSecret={clientSecret}
+              setClientSecret={setClientSecret}
+              credentialMode={credentialMode}
+              setCredentialMode={setCredentialMode}
+              oauthProfiles={oauthProfiles}
+              selectedProfileId={selectedProfileId}
+              setSelectedProfileId={setSelectedProfileId}
+              saveProfile={saveProfile}
+              setSaveProfile={setSaveProfile}
+              profileLabel={profileLabel}
+              setProfileLabel={setProfileLabel}
+              onDeleteProfile={async (profileId) => {
+                await deleteOAuthProfile.mutateAsync({ profileId, connectorId: definition.id });
+                if (selectedProfileId === profileId) {
+                  setSelectedProfileId(null);
+                }
+              }}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              apiKeyConfig={apiKeyConfig}
+              definitionName={definition.name}
+              onBack={() => setStep('instructions')}
+              onNext={() => {
+                if (isOAuth && oauthConfig) {
+                  setStep('scopes');
+                } else {
+                  void handleCreateAndAuthorize();
+                }
+              }}
+            />
+          )}
 
-        {step === 'scopes' && oauthConfig && (
-          <ScopesStep
-            config={oauthConfig}
-            selectedScopes={selectedScopes}
-            toggleScope={toggleScope}
-            serviceAccess={serviceAccess}
-            setServiceAccess={setServiceAccess}
-            onBack={() => setStep('credentials')}
-            onNext={(scopes) => {
-              setSelectedScopes(scopes);
-              void handleCreateAndAuthorize(scopes);
-            }}
-          />
-        )}
+          {step === 'scopes' && oauthConfig && (
+            <ScopesStep
+              config={oauthConfig}
+              selectedScopes={selectedScopes}
+              toggleScope={toggleScope}
+              serviceAccess={serviceAccess}
+              setServiceAccess={setServiceAccess}
+              onBack={() => setStep('credentials')}
+              onNext={(scopes) => {
+                setSelectedScopes(scopes);
+                void handleCreateAndAuthorize(scopes);
+              }}
+            />
+          )}
 
-        {step === 'authorizing' && (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <Loader2Icon className="size-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Setting up connection...</p>
-          </div>
-        )}
+          {step === 'authorizing' && (
+            <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 py-6">
+              <Loader2Icon className="size-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Setting up connection...</p>
+            </div>
+          )}
 
-        {step === 'done' && (
-          <div className="flex flex-col items-center gap-3 py-6">
+          {step === 'done' && (
+            <div className="flex h-full min-h-0 flex-col items-center gap-3 overflow-y-auto py-6">
             <div className="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
               <CheckIcon className="size-6" />
             </div>
@@ -292,11 +293,12 @@ export function SetupWizard({ definition, onClose }: Props) {
             ) : (
               <p className="text-sm font-medium">Connector connected</p>
             )}
-            <DialogFooter className="w-full">
+            <DialogFooter className="w-full shrink-0">
               <Button onClick={onClose}>Done</Button>
             </DialogFooter>
           </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -310,8 +312,8 @@ function InstructionsStep({
   onNext: () => void;
 }) {
   return (
-    <>
-      <ScrollArea className="h-[20rem] rounded-lg border border-border/60 bg-muted/30 p-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border/60 bg-muted/30 p-3">
         <ol className="list-inside list-decimal space-y-2 text-sm text-foreground/85">
           {instructions.map((instruction, i) => (
             <li key={i} className="leading-relaxed">
@@ -333,13 +335,13 @@ function InstructionsStep({
           ))}
         </ol>
       </ScrollArea>
-      <DialogFooter>
+      <DialogFooter className="shrink-0">
         <Button onClick={onNext}>
           I have my credentials
           <ArrowRightIcon className="size-3.5" />
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 }
 
@@ -393,8 +395,8 @@ function CredentialsStep({
   onNext: () => void;
 }) {
   return (
-    <>
-      <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         <div className="space-y-1.5">
           <Label htmlFor="label">Label</Label>
           <Input
@@ -427,7 +429,7 @@ function CredentialsStep({
             </div>
 
             {credentialMode === 'saved' ? (
-              <ScrollArea className="h-[14rem] rounded-lg border border-border/60">
+              <ScrollArea className="max-h-[34vh] rounded-lg border border-border/60">
                 <div className="space-y-2 p-3">
                   {oauthProfiles.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -537,7 +539,7 @@ function CredentialsStep({
           </div>
         )}
       </div>
-      <DialogFooter>
+      <DialogFooter className="shrink-0">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeftIcon className="size-3.5" />
           Back
@@ -547,7 +549,7 @@ function CredentialsStep({
           <ArrowRightIcon className="size-3.5" />
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 }
 
@@ -607,96 +609,88 @@ function ScopesStep({
   const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);
 
   return (
-    <>
-      {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
-        <div className="space-y-3">
-          {config.serviceAccessOptions.map((option) => {
-            const value = serviceAccess[option.id] ?? 'none';
-            return (
-              <div key={option.id} className="rounded-lg border border-border/60 p-3">
-                <p className="text-sm font-medium">{option.label}</p>
-                {option.description ? (
-                  <p className="text-xs text-muted-foreground">{option.description}</p>
-                ) : null}
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={value === 'none' ? 'secondary' : 'outline'}
-                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}
-                  >
-                    Off
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={value === 'read' ? 'secondary' : 'outline'}
-                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}
-                  >
-                    Read
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={value === 'write' ? 'secondary' : 'outline'}
-                    onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}
-                  >
-                    Read + Write
-                  </Button>
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
+          <div className="space-y-3">
+            {config.serviceAccessOptions.map((option) => {
+              const value = serviceAccess[option.id] ?? 'none';
+              return (
+                <div key={option.id} className="rounded-lg border border-border/60 p-3">
+                  <p className="text-sm font-medium">{option.label}</p>
+                  {option.description ? (
+                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={value === 'none' ? 'secondary' : 'outline'}
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}
+                    >
+                      Off
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={value === 'read' ? 'secondary' : 'outline'}
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}
+                    >
+                      Read
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={value === 'write' ? 'secondary' : 'outline'}
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}
+                    >
+                      Read + Write
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          <ScrollArea className="h-[8rem] rounded-md border border-border/60 p-2">
-            <p className="mb-1 text-xs font-medium">Advanced scopes preview</p>
-            <ul className="space-y-1 text-[11px] text-muted-foreground">
-              {computedScopes.map((scope) => (
-                <li key={scope} className="truncate">
-                  {scope}
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
-        </div>
-      ) : (
-        <ScrollArea className="h-[16rem]">
-          <div className="space-y-1.5">
-            {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
-              <label
-                key={scope}
-                className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50"
-              >
-                <Checkbox
-                  checked={selectedScopes.includes(scope)}
-                  onCheckedChange={() => toggleScope(scope)}
-                  className="mt-0.5"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium">{description}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">{scope}</p>
-                </div>
-              </label>
-            ))}
+              );
+            })}
           </div>
-        </ScrollArea>
-      )}
-      {enableApisUrl && (
-        <a
-          href={enableApisUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-2 text-xs text-primary hover:bg-muted"
-          onClick={(e) => {
-            e.preventDefault();
-            void (window.api?.shell?.openExternal(enableApisUrl) ??
-              window.open(enableApisUrl, '_blank'));
-          }}
-        >
-          <ExternalLinkIcon className="size-3" />
-          Enable required Google APIs in Cloud Console
-        </a>
-      )}
-      <DialogFooter>
+        ) : (
+          <ScrollArea className="max-h-[42vh] min-h-0">
+            <div className="space-y-1.5">
+              {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
+                <label
+                  key={scope}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50"
+                >
+                  <Checkbox
+                    checked={selectedScopes.includes(scope)}
+                    onCheckedChange={() => toggleScope(scope)}
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium">{description}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{scope}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+        {enableApisUrl && (
+          <a
+            href={enableApisUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-2 text-xs text-primary hover:bg-muted"
+            onClick={(e) => {
+              e.preventDefault();
+              void (window.api?.shell?.openExternal(enableApisUrl) ??
+                window.open(enableApisUrl, '_blank'));
+            }}
+          >
+            <ExternalLinkIcon className="size-3" />
+            Enable required Google APIs in Cloud Console
+          </a>
+        )}
+      </div>
+      <DialogFooter className="shrink-0">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeftIcon className="size-3.5" />
           Back
@@ -706,7 +700,7 @@ function ScopesStep({
           <ExternalLinkIcon className="size-3.5" />
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 }
 
@@ -729,7 +723,7 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const activeIndex = steps.findIndex((item) => item.id === step);
 
   return (
-    <div className="mt-2 grid grid-cols-5 gap-2">
+    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
       {steps.map((item, index) => (
         <div
           key={item.id}
