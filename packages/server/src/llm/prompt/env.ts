@@ -3,14 +3,16 @@ import path from 'node:path';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
 
-export function buildPromptEnvironment(): string {
+export function buildPromptEnvironment(input?: { userTimezone?: string | null }): string {
   const currentDate = new Date().toISOString().slice(0, 10);
   const preferredShell = resolvePreferredShell().shell;
   const homeDir = os.homedir();
+  const userTimezone = input?.userTimezone?.trim() || null;
 
   const lines = [
     '<env>',
     `Current date: ${currentDate}`,
+    ...(userTimezone ? [`User timezone: ${userTimezone}`] : []),
     `Operating system: ${process.platform} ${os.release()}`,
     `Home directory: ${homeDir}`,
     `Preferred shell: ${preferredShell}`,

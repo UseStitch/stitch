@@ -20,9 +20,11 @@ export function buildSystemPrompt(input: {
   useBasePrompt: boolean;
   systemPrompt: string | null;
   userName?: string | null;
+  userTimezone?: string | null;
 }): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
   const userName = input.userName?.trim() || null;
+  const userTimezone = input.userTimezone?.trim() || null;
 
   let promptBody = userPrompt;
   if (input.useBasePrompt) {
@@ -32,5 +34,5 @@ export function buildSystemPrompt(input: {
     }
   }
 
-  return `${identity(userName)}\n\n${buildPromptEnvironment()}\n\n${promptBody}`;
+  return `${identity(userName)}\n\n${buildPromptEnvironment({ userTimezone })}\n\n${promptBody}`;
 }

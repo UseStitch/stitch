@@ -14,6 +14,7 @@ const ONBOARDING_STATUSES = new Set(['pending', 'completed']);
 const BOOLEAN_SETTING_VALUES = new Set(['true', 'false']);
 const ONBOARDING_VERSION_PATTERN = /^\d+$/;
 const PROFILE_NAME_MAX_LENGTH = 80;
+const PROFILE_TIMEZONE_MAX_LENGTH = 120;
 
 export async function listSettings(): Promise<Record<string, string>> {
   const db = getDb();
@@ -42,6 +43,12 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     const trimmed = value.trim();
     if (trimmed.length === 0 || trimmed.length > PROFILE_NAME_MAX_LENGTH) {
       return err('Invalid profile name', 400);
+    }
+  }
+  if (key === 'profile.timezone') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || trimmed.length > PROFILE_TIMEZONE_MAX_LENGTH) {
+      return err('Invalid profile timezone', 400);
     }
   }
   if (

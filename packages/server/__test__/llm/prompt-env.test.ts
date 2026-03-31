@@ -17,4 +17,9 @@ describe('buildPromptEnvironment', () => {
       expect(env).not.toContain('Linux/XDG (user):');
     }
   });
+
+  test('includes user timezone when provided', () => {
+    const env = buildPromptEnvironment({ userTimezone: 'America/Los_Angeles' });
+    expect(env).toContain('User timezone: America/Los_Angeles');
+  });
 });

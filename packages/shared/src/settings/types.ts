@@ -16,6 +16,7 @@ export const SETTINGS_KEYS = [
   'onboarding.status',
   'onboarding.version',
   'profile.name',
+  'profile.timezone',
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
@@ -120,6 +121,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'profile.name',
     value: '',
     description: 'Preferred user display name used in prompts and transcripts.',
+  },
+  {
+    key: 'profile.timezone',
+    value: '',
+    description: 'Preferred IANA timezone used for time-aware prompts and tools.',
   },
   {
     key: 'notifications.sound.enabled',
