@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsageRouteImport } from './routes/usage'
 import { Route as RecordingsRouteImport } from './routes/recordings'
+import { Route as ConnectorsRouteImport } from './routes/connectors'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings.index'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
@@ -24,6 +25,11 @@ const UsageRoute = UsageRouteImport.update({
 const RecordingsRoute = RecordingsRouteImport.update({
   id: '/recordings',
   path: '/recordings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectorsRoute = ConnectorsRouteImport.update({
+  id: '/connectors',
+  path: '/connectors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,6 +55,7 @@ const RecordingsIdRoute = RecordingsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/connectors': typeof ConnectorsRoute
   '/recordings': typeof RecordingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/connectors': typeof ConnectorsRoute
   '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
@@ -65,6 +73,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/connectors': typeof ConnectorsRoute
   '/recordings': typeof RecordingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/recordings/$id': typeof RecordingsIdRoute
@@ -75,16 +84,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/connectors'
     | '/recordings'
     | '/usage'
     | '/recordings/$id'
     | '/session/$id'
     | '/recordings/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/usage' | '/recordings/$id' | '/session/$id' | '/recordings'
+  to:
+    | '/'
+    | '/connectors'
+    | '/usage'
+    | '/recordings/$id'
+    | '/session/$id'
+    | '/recordings'
   id:
     | '__root__'
     | '/'
+    | '/connectors'
     | '/recordings'
     | '/usage'
     | '/recordings/$id'
@@ -94,6 +111,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConnectorsRoute: typeof ConnectorsRoute
   RecordingsRoute: typeof RecordingsRouteWithChildren
   UsageRoute: typeof UsageRoute
   SessionIdRoute: typeof SessionIdRoute
@@ -113,6 +131,13 @@ declare module '@tanstack/react-router' {
       path: '/recordings'
       fullPath: '/recordings'
       preLoaderRoute: typeof RecordingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connectors': {
+      id: '/connectors'
+      path: '/connectors'
+      fullPath: '/connectors'
+      preLoaderRoute: typeof ConnectorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -162,6 +187,7 @@ const RecordingsRouteWithChildren = RecordingsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConnectorsRoute: ConnectorsRoute,
   RecordingsRoute: RecordingsRouteWithChildren,
   UsageRoute: UsageRoute,
   SessionIdRoute: SessionIdRoute,

@@ -1,4 +1,4 @@
-import { BarChart3Icon, MessageSquareIcon, MicIcon, SettingsIcon } from 'lucide-react';
+import { BarChart3Icon, MessageSquareIcon, MicIcon, PlugIcon, SettingsIcon } from 'lucide-react';
 
 import { Link, useRouterState } from '@tanstack/react-router';
 
@@ -36,6 +36,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Recordings',
     to: '/recordings',
     matchPrefix: '/recordings',
+  },
+  {
+    id: 'connectors',
+    icon: <PlugIcon className="size-5" />,
+    label: 'Connectors',
+    to: '/connectors',
+    matchPrefix: '/connectors',
   },
 ];
 
