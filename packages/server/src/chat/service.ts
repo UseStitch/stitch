@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, like, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -508,6 +508,12 @@ export async function getSessionStats(
 ): Promise<ServiceResult<SessionStats>> {
   const db = getDb();
 
+  const getMessageTokens = (usage: (typeof messages.$inferSelect)['usage']): number =>
+    usage?.totalTokens ??
+    (usage?.inputTokens ?? 0) +
+      (usage?.outputTokens ?? 0) +
+      (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) {
     return err('Session not found', 404);
@@ -519,7 +525,8 @@ export async function getSessionStats(
     .where(eq(messages.sessionId, sessionId))
     .orderBy(asc(messages.createdAt));
 
-  const totalCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+  const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+  const currentSessionTokens = sessionMessages.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
   const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
   const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
 
@@ -529,16 +536,17 @@ export async function getSessionStats(
     .from(sessions)
     .where(eq(sessions.parentSessionId, sessionId));
 
-  let childSessionCostUsd = 0;
+  let childSessionsCostUsd = 0;
+  let childSessionsTokens = 0;
   if (childSessions.length > 0) {
     const childIds = childSessions.map((c) => c.id);
-    for (const childId of childIds) {
-      const childMsgs = await db
-        .select({ costUsd: messages.costUsd })
-        .from(messages)
-        .where(eq(messages.sessionId, childId));
-      childSessionCostUsd += childMsgs.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
-    }
+    const childMsgs = await db
+      .select({ costUsd: messages.costUsd, usage: messages.usage })
+      .from(messages)
+      .where(inArray(messages.sessionId, childIds));
+
+    childSessionsCostUsd = childMsgs.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+    childSessionsTokens = childMsgs.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
   }
 
   // Find the latest assistant message with token usage (for context window stats)
@@ -613,6 +621,8 @@ export async function getSessionStats(
     messagesCount: sessionMessages.length,
     usagePercent,
     totalTokens,
+    currentSessionTokens,
+    childSessionsTokens,
     inputTokens,
     outputTokens,
     reasoningTokens,
@@ -620,7 +630,9 @@ export async function getSessionStats(
     cacheWriteTokens,
     userMessageCount,
     assistantMessageCount,
-    totalCostUsd: totalCostUsd + childSessionCostUsd,
+    totalCostUsd: currentSessionCostUsd + childSessionsCostUsd,
+    currentSessionCostUsd,
+    childSessionsCostUsd,
     sessionCreatedAt: session.createdAt,
     lastActivityAt: session.updatedAt,
   });

@@ -3,13 +3,14 @@ import * as React from 'react';
 import { MessageQueuePanel } from '@/components/session/message-queue-panel';
 import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
-import { SessionDetailsPanel } from '@/components/session/session-details-panel';
+import { SessionDetailsSheet } from '@/components/session/session-details-sheet';
 import { SessionPageHeader } from '@/components/session/session-page-header';
 import type {
   EditQueuedMessagePayload,
   RightPanel,
   SendQueuedMessageFn,
 } from '@/components/session/session-page-types';
+import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useMarkSessionRead } from '@/lib/queries/chat';
 
@@ -19,6 +20,7 @@ type SessionPageProps = {
 
 export function SessionPage({ sessionId }: SessionPageProps) {
   const { mutate: markReadMutate } = useMarkSessionRead();
+  const details = useSessionDetailsStats();
   const [rightPanel, setRightPanel] = React.useState<RightPanel>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
@@ -71,7 +73,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
                 {rightPanel === 'details' ? (
-                  <SessionDetailsPanel className="hidden lg:block" />
+                  <SessionDetailsSheet {...details} className="hidden lg:block" />
                 ) : (
                   <MessageQueuePanel
                     className="hidden lg:block"

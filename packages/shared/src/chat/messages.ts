@@ -131,6 +131,8 @@ export type SessionStats = {
   messagesCount: number;
   usagePercent: string;
   totalTokens: number;
+  currentSessionTokens: number;
+  childSessionsTokens: number;
   inputTokens: number;
   outputTokens: number;
   reasoningTokens: number;
@@ -139,6 +141,8 @@ export type SessionStats = {
   userMessageCount: number;
   assistantMessageCount: number;
   totalCostUsd: number;
+  currentSessionCostUsd: number;
+  childSessionsCostUsd: number;
   sessionCreatedAt: number | null;
   lastActivityAt: number | null;
 };

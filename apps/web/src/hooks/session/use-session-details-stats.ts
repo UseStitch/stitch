@@ -13,6 +13,8 @@ const EMPTY_STATS: SessionStats = {
   messagesCount: 0,
   usagePercent: '-',
   totalTokens: 0,
+  currentSessionTokens: 0,
+  childSessionsTokens: 0,
   inputTokens: 0,
   outputTokens: 0,
   reasoningTokens: 0,
@@ -21,6 +23,8 @@ const EMPTY_STATS: SessionStats = {
   userMessageCount: 0,
   assistantMessageCount: 0,
   totalCostUsd: 0,
+  currentSessionCostUsd: 0,
+  childSessionsCostUsd: 0,
   sessionCreatedAt: null,
   lastActivityAt: null,
 };
