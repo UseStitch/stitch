@@ -12,6 +12,7 @@ export const ID_PREFIXES = {
   queuedMessage: 'qmsg',
   recording: 'rec',
   transcription: 'transcr',
+  connectorInstance: 'conn',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -68,6 +69,7 @@ export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
 export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
 export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createTranscriptionId = createIdFactory(ID_PREFIXES.transcription);
+export const createConnectorInstanceId = createIdFactory(ID_PREFIXES.connectorInstance);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];
