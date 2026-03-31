@@ -98,7 +98,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {instances.map((instance) => {
         const def = getDefinition(instance.connectorId);
         const statusConfig = STATUS_CONFIG[instance.status];
@@ -107,9 +107,11 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="flex items-center gap-3 rounded-lg border border-border/50 bg-card p-3 text-sm"
+            className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/80 px-4 py-3.5 text-sm"
           >
-            <ConnectorIcon icon={def?.icon ?? instance.connectorId} className="size-8 shrink-0 rounded-md" />
+            <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">
+              <ConnectorIcon icon={def?.icon ?? instance.connectorId} className="size-7 rounded-md" />
+            </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

@@ -75,8 +75,7 @@ const authConfig: OAuthConfig = {
 export const googleConnector: ConnectorDefinition = {
   id: 'google',
   name: 'Google Workspace',
-  description:
-    'Connect to Gmail, Google Drive, and Google Calendar. Access emails, documents, spreadsheets, and calendar events.',
+  description: 'Connect Gmail, Drive, and Calendar in one place.',
   icon: 'google',
   serviceIcons: ['gmail', 'googledrive', 'googlecalendar'],
   authType: 'oauth2',

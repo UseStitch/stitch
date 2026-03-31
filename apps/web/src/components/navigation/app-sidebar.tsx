@@ -119,15 +119,20 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'recordings' {
+function useActiveContext(): 'chat' | 'recordings' | 'connectors' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/recordings')) return 'recordings';
+  if (path.startsWith('/connectors')) return 'connectors';
   return 'chat';
 }
 
 export function AppSidebar() {
   const context = useActiveContext();
+
+  if (context === 'connectors') {
+    return null;
+  }
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
