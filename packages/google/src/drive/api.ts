@@ -27,6 +27,7 @@ type DriveFile = {
   createdTime: string | undefined;
   modifiedTime: string | undefined;
   webViewLink: string | undefined;
+  owners: { displayName: string; emailAddress: string }[] | undefined;
 };
 
 type DriveSearchResult = {
@@ -50,6 +51,7 @@ function mapFile(raw: DriveFileRaw): DriveFile {
     createdTime: raw.createdTime,
     modifiedTime: raw.modifiedTime,
     webViewLink: raw.webViewLink,
+    owners: raw.owners,
   };
 }
 
@@ -119,5 +121,54 @@ export async function getFileContent(
     name: meta.name,
     mimeType: meta.mimeType,
     content,
+  };
+}
+
+type DriveWriteResult = {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink: string | undefined;
+};
+
+export async function createFile(
+  client: GoogleClient,
+  name: string,
+  content: string,
+  mimeType = 'text/plain',
+  parentId?: string,
+): Promise<DriveWriteResult> {
+  const metadata: Record<string, unknown> = { name, mimeType };
+  if (parentId) metadata['parents'] = [parentId];
+
+  const metadataPart = JSON.stringify(metadata);
+  const boundary = 'drive_upload_boundary';
+
+  const body = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    metadataPart,
+    `--${boundary}`,
+    `Content-Type: ${mimeType}`,
+    '',
+    content,
+    `--${boundary}--`,
+  ].join('\r\n');
+
+  const raw = await client.request<DriveFileRaw>(
+    `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    },
+  );
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    mimeType: raw.mimeType,
+    webViewLink: raw.webViewLink,
   };
 }

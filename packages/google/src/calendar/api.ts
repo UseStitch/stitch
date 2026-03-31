@@ -15,6 +15,9 @@ type CalendarEventRaw = {
   organizer?: { email: string; displayName?: string };
   created?: string;
   updated?: string;
+  conferenceData?: {
+    entryPoints?: { entryPointType: string; uri: string }[];
+  };
 };
 
 type CalendarListResponse = {
@@ -31,6 +34,7 @@ type CalendarEvent = {
   end: string | undefined;
   status: string | undefined;
   htmlLink: string | undefined;
+  meetLink: string | undefined;
   attendees: { email: string; displayName: string | undefined; responseStatus: string | undefined }[];
   organizer: { email: string; displayName: string | undefined } | undefined;
 };
@@ -41,6 +45,10 @@ type CalendarSearchResult = {
 };
 
 function mapEvent(raw: CalendarEventRaw): CalendarEvent {
+  const meetLink = raw.conferenceData?.entryPoints?.find(
+    (ep) => ep.entryPointType === 'video',
+  )?.uri;
+
   return {
     id: raw.id,
     summary: raw.summary,
@@ -50,6 +58,7 @@ function mapEvent(raw: CalendarEventRaw): CalendarEvent {
     end: raw.end?.dateTime ?? raw.end?.date,
     status: raw.status,
     htmlLink: raw.htmlLink,
+    meetLink,
     attendees: raw.attendees?.map((a) => ({
       email: a.email,
       displayName: a.displayName,
@@ -65,6 +74,7 @@ export async function listEvents(
     calendarId?: string;
     timeMin?: string;
     timeMax?: string;
+    timeZone?: string;
     maxResults?: number;
     query?: string;
     pageToken?: string;
@@ -79,6 +89,7 @@ export async function listEvents(
 
   if (options?.timeMin) params.set('timeMin', options.timeMin);
   if (options?.timeMax) params.set('timeMax', options.timeMax);
+  if (options?.timeZone) params.set('timeZone', options.timeZone);
   if (options?.query) params.set('q', options.query);
   if (options?.pageToken) params.set('pageToken', options.pageToken);
 
@@ -117,10 +128,16 @@ export async function createEvent(
     start: { dateTime: string; timeZone?: string };
     end: { dateTime: string; timeZone?: string };
     attendees?: string[];
+    addMeet?: boolean;
   },
   calendarId = 'primary',
 ): Promise<CalendarEvent> {
-  const body = {
+  const url = new URL(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
+  );
+  if (event.addMeet) url.searchParams.set('conferenceDataVersion', '1');
+
+  const body: Record<string, unknown> = {
     summary: event.summary,
     description: event.description,
     location: event.location,
@@ -129,10 +146,16 @@ export async function createEvent(
     attendees: event.attendees?.map((email) => ({ email })),
   };
 
-  const raw = await client.request<CalendarEventRaw>(
-    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
-    { method: 'POST', body: JSON.stringify(body) },
-  );
+  if (event.addMeet) {
+    body['conferenceData'] = {
+      createRequest: { requestId: `meet-${Date.now()}` },
+    };
+  }
+
+  const raw = await client.request<CalendarEventRaw>(url.toString(), {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 
   return mapEvent(raw);
 }

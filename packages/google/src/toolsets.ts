@@ -60,21 +60,28 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
   };
 }
 
-function createDriveToolset(): GoogleToolsetDefinition {
+function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
+  const canWrite =
+    hasWriteAccess(scopes, 'drive') && hasCapability(capabilities, 'google.drive.write');
+  const summaries = canWrite
+    ? DRIVE_TOOL_SUMMARIES
+    : DRIVE_TOOL_SUMMARIES.filter((t) => t.name !== 'drive_write');
+
   return {
     id: 'google-drive',
     name: 'Google Drive',
     icon: 'googledrive',
     description:
-      'Search and read files from Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
+      'Search, read, and create files in Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
     instructions: [
       'Drive search uses the Google Drive query syntax.',
       "Common queries: \"name contains 'report'\", \"mimeType='application/pdf'\", \"modifiedTime > '2024-01-01'\"",
       "Combine with: and, or, not. Example: \"name contains 'Q4' and mimeType='application/vnd.google-apps.spreadsheet'\"",
       'Google Docs are exported as plain text, Sheets as CSV. Binary files are downloaded directly.',
+      canWrite ? 'You have write access. Use drive_write to create new text or Markdown files.' : 'You have read-only access. Creating files is not available.',
     ].join('\n'),
-    tools: () => DRIVE_TOOL_SUMMARIES,
-    activate: (resolveClient) => createDriveTools(resolveClient),
+    tools: () => summaries,
+    activate: (resolveClient) => createDriveTools(resolveClient, canWrite),
   };
 }
 
@@ -94,8 +101,9 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
     instructions: [
       'Calendar tools default to the primary calendar. Use calendarId parameter for other calendars.',
       'Time parameters use ISO 8601 format (e.g., "2025-06-15T10:00:00Z").',
+      'Always pass the user\'s local IANA timezone (e.g. "America/New_York") so that "today" and time ranges are anchored to their local time, not UTC.',
       'The calendar_list tool defaults to showing upcoming events from now.',
-      canWrite ? 'You have write access. Use calendar_create to schedule new events.' : 'You have read-only access. Creating events is not available.',
+      canWrite ? 'You have write access. Use calendar_create to schedule new events. Pass addMeet: true to automatically attach a Google Meet link.' : 'You have read-only access. Creating events is not available.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
@@ -150,7 +158,7 @@ export function buildGoogleToolsets(input: string[] | BuildGoogleToolsetsInput):
   }
 
   if (hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, 'google.drive.read')) {
-    toolsets.push(createDriveToolset());
+    toolsets.push(createDriveToolset(scopes, capabilities));
   }
 
   if (hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, 'google.calendar.read')) {

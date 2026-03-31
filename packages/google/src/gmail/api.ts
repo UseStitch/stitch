@@ -40,6 +40,26 @@ function extractHeader(headers: GmailHeader[] | undefined, name: string): string
   return headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value;
 }
 
+function extractAttachments(payload: GmailMessagePart | undefined): GmailAttachment[] {
+  if (!payload?.parts) return [];
+
+  const attachments: GmailAttachment[] = [];
+  for (const part of payload.parts) {
+    const filename = extractHeader(part.headers, 'Content-Disposition')
+      ?.match(/filename="?([^";]+)"?/i)?.[1]
+      ?? part.headers?.find((h) => h.name.toLowerCase() === 'content-type')
+        ?.value.match(/name="?([^";]+)"?/i)?.[1];
+
+    if (filename && part.body?.size) {
+      attachments.push({ filename, mimeType: part.mimeType, size: part.body.size });
+    }
+
+    // Recurse into nested multipart
+    attachments.push(...extractAttachments(part));
+  }
+  return attachments;
+}
+
 function extractBody(payload: GmailMessagePart | undefined): string {
   if (!payload) return '';
 
@@ -66,6 +86,12 @@ function extractBody(payload: GmailMessagePart | undefined): string {
   return '';
 }
 
+type GmailAttachment = {
+  filename: string;
+  mimeType: string;
+  size: number;
+};
+
 type GmailMessage = {
   id: string;
   threadId: string;
@@ -76,6 +102,7 @@ type GmailMessage = {
   snippet: string;
   body: string;
   labels: string[];
+  attachments: GmailAttachment[];
 };
 
 type GmailSearchResult = {
@@ -140,6 +167,7 @@ export async function getMessage(client: GoogleClient, messageId: string): Promi
     snippet: raw.snippet,
     body: extractBody(raw.payload),
     labels: raw.labelIds ?? [],
+    attachments: extractAttachments(raw.payload),
   };
 }
 
@@ -148,7 +176,7 @@ export async function sendMessage(
   to: string,
   subject: string,
   body: string,
-  options?: { cc?: string; bcc?: string; inReplyTo?: string; threadId?: string },
+  options?: { from?: string; cc?: string; bcc?: string; inReplyTo?: string; threadId?: string },
 ): Promise<{ id: string; threadId: string }> {
   const headers = [
     `To: ${to}`,
@@ -156,6 +184,7 @@ export async function sendMessage(
     `Content-Type: text/plain; charset="UTF-8"`,
   ];
 
+  if (options?.from) headers.push(`From: ${options.from}`);
   if (options?.cc) headers.push(`Cc: ${options.cc}`);
   if (options?.bcc) headers.push(`Bcc: ${options.bcc}`);
   if (options?.inReplyTo) {

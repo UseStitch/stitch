@@ -12,6 +12,10 @@ const calendarListSchema = z.object({
     .optional()
     .describe('Start of time range (ISO 8601, e.g. "2025-01-01T00:00:00Z"). Defaults to now.'),
   timeMax: z.string().optional().describe('End of time range (ISO 8601)'),
+  timeZone: z
+    .string()
+    .optional()
+    .describe('IANA time zone (e.g. "America/New_York"). Pass the user\'s local timezone so "today" is interpreted correctly.'),
   maxResults: z.number().optional().default(10).describe('Max events to return (default 10)'),
   calendarId: z
     .string()
@@ -34,6 +38,7 @@ const calendarCreateSchema = z.object({
   endDateTime: z.string().describe('End time (ISO 8601)'),
   timeZone: z.string().optional().describe('Time zone (e.g. "America/Chicago"). Defaults to UTC.'),
   attendees: z.array(z.string()).optional().describe('List of attendee email addresses'),
+  addMeet: z.boolean().optional().describe('Set to true to automatically generate and attach a Google Meet video conference link'),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
@@ -52,6 +57,7 @@ export function createCalendarTools(
           query: input.query,
           timeMin: input.timeMin,
           timeMax: input.timeMax,
+          timeZone: input.timeZone,
           maxResults: input.maxResults,
           calendarId: input.calendarId,
         });
@@ -84,6 +90,7 @@ export function createCalendarTools(
             start: { dateTime: input.startDateTime, timeZone: input.timeZone },
             end: { dateTime: input.endDateTime, timeZone: input.timeZone },
             attendees: input.attendees,
+            addMeet: input.addMeet,
           },
           input.calendarId,
         );

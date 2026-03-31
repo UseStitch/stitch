@@ -21,12 +21,13 @@ const gmailSendSchema = z.object({
   to: z.string().describe('Recipient email address'),
   subject: z.string().describe('Email subject line'),
   body: z.string().describe('Plain text email body'),
+  from: z.string().optional().describe('Sender address — use when the account has multiple aliases and you need to send from a specific one'),
   cc: z.string().optional().describe('CC recipient(s)'),
   bcc: z.string().optional().describe('BCC recipient(s)'),
   inReplyTo: z
     .string()
     .optional()
-    .describe('Message-ID header of the message being replied to'),
+    .describe('Message-ID header of the message being replied to — read the original message first to get this value'),
   threadId: z.string().optional().describe('Gmail thread ID to reply within'),
 });
 
@@ -65,6 +66,7 @@ export function createGmailTools(
       execute: async (input: z.infer<typeof gmailSendSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
         const result = await GmailApi.sendMessage(client, input.to, input.subject, input.body, {
+          from: input.from,
           cc: input.cc,
           bcc: input.bcc,
           inReplyTo: input.inReplyTo,

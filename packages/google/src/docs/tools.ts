@@ -9,7 +9,9 @@ const docsSearchSchema = z.object({
   query: z
     .string()
     .optional()
-    .describe('Optional Google Drive query filter. Example: "name contains \'Q1\'"'),
+    .describe(
+      'Optional Google Drive query fragment to filter results. Examples: "name contains \'Q1\'", "modifiedTime > \'2024-01-01\'", "\'me\' in owners", "sharedWithMe". Omit to list all Docs.',
+    ),
   maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
   pageToken: z.string().optional().describe('Pagination token from a previous search'),
 });
