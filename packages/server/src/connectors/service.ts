@@ -278,10 +278,17 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
   try {
     if (definition.authType === 'oauth2' && instance.accessToken) {
       if (instance.connectorId === 'google') {
+        // Try userinfo first (requires openid scope), fall back to tokeninfo
         const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
           headers: { Authorization: `Bearer ${instance.accessToken}` },
         });
-        if (!res.ok) throw new Error(`Google API returned ${res.status}`);
+        if (!res.ok) {
+          // Fallback: validate the token itself via tokeninfo endpoint
+          const tokenRes = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?access_token=${instance.accessToken}`,
+          );
+          if (!tokenRes.ok) throw new Error(`Google API returned ${tokenRes.status}`);
+        }
       }
     } else if (definition.authType === 'api_key' && instance.apiKey) {
       if (instance.connectorId === 'slack') {

@@ -1,6 +1,8 @@
 import type { ConnectorDefinition, OAuthConfig } from '@stitch/shared/connectors/types';
 
 const GOOGLE_SCOPES = {
+  openid: 'Verify your identity',
+  'https://www.googleapis.com/auth/userinfo.email': 'View your email address',
   'https://www.googleapis.com/auth/gmail.readonly': 'Read your Gmail messages',
   'https://www.googleapis.com/auth/gmail.send': 'Send emails on your behalf',
   'https://www.googleapis.com/auth/gmail.modify': 'Read, send, and manage your Gmail',
@@ -13,6 +15,8 @@ const GOOGLE_SCOPES = {
 } as const;
 
 const GOOGLE_DEFAULT_SCOPES = [
+  'openid',
+  'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/calendar.readonly',
