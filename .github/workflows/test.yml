@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   unit:
-    name: unit + typecheck (${{ matrix.settings.name }})
+    name: unit (${{ matrix.settings.name }})
     strategy:
       fail-fast: false
       matrix:
