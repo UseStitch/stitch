@@ -3,18 +3,13 @@ import { createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
 import { open, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { createChunkNormalizer } from './mac-audio-normalizer.js';
+
 import type { WriteStream } from 'node:fs';
 
 const SAMPLE_RATE = 16000;
 const CHUNK_DURATION_MS = 100;
 const BYTES_PER_FLOAT32_SAMPLE = 4;
-const BYTES_PER_INT16_SAMPLE = 2;
-
-/**
- * Expected number of samples in each chunk based on sample rate and chunk duration.
- * Used to detect the native audio format by comparing against the actual chunk byte size.
- */
-const EXPECTED_SAMPLES_PER_CHUNK = (SAMPLE_RATE * CHUNK_DURATION_MS) / 1000;
 
 /** Default max recording duration: 4 hours */
 const DEFAULT_MAX_DURATION_SECS = 4 * 60 * 60;
@@ -54,98 +49,6 @@ export interface RecordingWriterOptions {
 }
 
 export type RecordingErrorCallback = (error: Error) => void;
-
-/**
- * Convert an int16 PCM buffer to float32 PCM.
- * Each int16 sample (2 bytes, range -32768..32767) is converted to a float32
- * sample (4 bytes, range -1..1).
- */
-function int16ToFloat32(input: Buffer): Buffer {
-  const sampleCount = input.length / BYTES_PER_INT16_SAMPLE;
-  const output = Buffer.alloc(sampleCount * BYTES_PER_FLOAT32_SAMPLE);
-  for (let i = 0; i < sampleCount; i++) {
-    const sample = input.readInt16LE(i * BYTES_PER_INT16_SAMPLE);
-    output.writeFloatLE(sample / 32768, i * BYTES_PER_FLOAT32_SAMPLE);
-  }
-  return output;
-}
-
-/**
- * Check whether a buffer contains float32 PCM audio rather than int16 data.
- *
- * Real float32 audio samples are finite and within [-1, 1] (or slightly beyond
- * for headroom). Int16 data misread as float32 produces NaN, infinity, or
- * finite values far outside the audio range (e.g. 1e8). We check that sampled
- * values are finite and within [-2, 2] to reliably distinguish the two.
- */
-function looksLikeFloat32(buf: Buffer): boolean {
-  const sampleCount = buf.length / BYTES_PER_FLOAT32_SAMPLE;
-  if (sampleCount < 1) return false;
-
-  // Sample up to 8 evenly-spaced float32 values
-  const step = Math.max(1, Math.floor(sampleCount / 8));
-
-  for (let i = 0; i < sampleCount && i / step < 8; i += step) {
-    const val = buf.readFloatLE(i * BYTES_PER_FLOAT32_SAMPLE);
-    if (!Number.isFinite(val) || val < -2 || val > 2) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Normalize an incoming audio chunk to mono float32 PCM before writing to disk.
- *
- * The native audio module may deliver either float32 or int16 data, and may
- * deliver mono or stereo depending on the platform and recorder type. Since
- * stereo int16 (2ch * 2B = 4B/frame) and mono float32 (1ch * 4B = 4B/frame)
- * produce identical chunk sizes, we probe the data content to distinguish them:
- * valid float32 audio samples are finite and in [-1, 1], while int16 bytes
- * misread as float32 produce NaN/infinity/huge values.
- *
- * For stereo int16 data, both channels are averaged to mono before conversion.
- */
-function normalizeChunk(chunk: Buffer): Buffer {
-  const expectedInt16Bytes = EXPECTED_SAMPLES_PER_CHUNK * BYTES_PER_INT16_SAMPLE;
-
-  // Unambiguously mono int16: exactly half the float32 size
-  if (chunk.length === expectedInt16Bytes) {
-    return int16ToFloat32(chunk);
-  }
-
-  // Ambiguous size or larger: probe the content to determine format
-  if (chunk.length % BYTES_PER_FLOAT32_SAMPLE === 0 && looksLikeFloat32(chunk)) {
-    return chunk;
-  }
-
-  // Data is int16 (possibly stereo). Convert to mono float32.
-  if (chunk.length % BYTES_PER_INT16_SAMPLE === 0) {
-    const channelCount = chunk.length / (EXPECTED_SAMPLES_PER_CHUNK * BYTES_PER_INT16_SAMPLE);
-    if (channelCount === 2) {
-      return stereoInt16ToMonoFloat32(chunk);
-    }
-    return int16ToFloat32(chunk);
-  }
-
-  return chunk;
-}
-
-/**
- * Convert a stereo int16 PCM buffer to mono float32 by averaging L+R channels.
- */
-function stereoInt16ToMonoFloat32(input: Buffer): Buffer {
-  const frameCount = input.length / (BYTES_PER_INT16_SAMPLE * 2);
-  const output = Buffer.alloc(frameCount * BYTES_PER_FLOAT32_SAMPLE);
-  for (let i = 0; i < frameCount; i++) {
-    const left = input.readInt16LE(i * 4);
-    const right = input.readInt16LE(i * 4 + 2);
-    const mono = (left + right) / 2 / 32768;
-    output.writeFloatLE(mono, i * BYTES_PER_FLOAT32_SAMPLE);
-  }
-  return output;
-}
 
 /** Internal state — not exported */
 class ActiveRecording implements RecordingHandle {
@@ -390,21 +293,22 @@ export class RecordingWriter {
       recording.onError = onError;
     }
 
-    // Stream audio chunks to disk. On macOS, the native module may deliver
-    // int16 or stereo data, so we normalize to mono float32 before writing.
-    // On Windows/Linux, data is already mono float32 — skip normalization.
-    const shouldNormalize = process.platform === 'darwin';
+    // Stream audio chunks to disk. On macOS, the native module delivers int16
+    // (and sometimes stereo) data, so we normalize to mono float32 before writing.
+    // On other platforms, data is already mono float32 — write directly.
+    const normalizeChunk =
+      process.platform === 'darwin' ? createChunkNormalizer(SAMPLE_RATE, CHUNK_DURATION_MS) : null;
 
     micRecorder.on('data', (chunk) => {
       recording.lastMicChunkAt = Date.now();
-      const data = shouldNormalize ? normalizeChunk(chunk.data) : chunk.data;
+      const data = normalizeChunk ? normalizeChunk(chunk.data) : chunk.data;
       recording.micBytesWritten += data.length;
       recording.micStream.write(data);
     });
 
     sysRecorder.on('data', (chunk) => {
       recording.lastSysChunkAt = Date.now();
-      const data = shouldNormalize ? normalizeChunk(chunk.data) : chunk.data;
+      const data = normalizeChunk ? normalizeChunk(chunk.data) : chunk.data;
       recording.sysBytesWritten += data.length;
       recording.sysStream.write(data);
     });
