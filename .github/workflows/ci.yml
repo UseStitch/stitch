@@ -1,0 +1,42 @@
+name: ci
+run-name: 'ci by @${{ github.actor }}'
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or commit to validate'
+        required: false
+        type: string
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Allow only release maintainers
+        if: ${{ github.actor != 'maharshi365' && github.actor != 'aditpatel14' }}
+        run: |
+          echo "Only maharshi365 or aditpatel14 can run this workflow."
+          exit 1
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Run full checks
+        run: bun run check
