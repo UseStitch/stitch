@@ -15,6 +15,13 @@ function getChildSessionTask(args: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function getChildSessionTitle(args: unknown): string | null {
+  const value = (args as { title?: unknown })?.title;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function getChildSessionResult(result: unknown): {
   childSessionId: string | null;
   childSessionName: string | null;
@@ -41,11 +48,12 @@ type ChildSessionToolBlockProps = {
 export function ChildSessionToolBlock({ status, args, result, error }: ChildSessionToolBlockProps) {
   const navigate = useNavigate();
   const { isActive } = getToolCardState(status);
+  const taskTitle = getChildSessionTitle(args);
   const task = getChildSessionTask(args);
   const { childSessionId, childSessionName, summary } = getChildSessionResult(result);
   const label = getToolLabel(status, error);
 
-  const displayName = childSessionName ?? 'Task';
+  const displayName = childSessionName ?? taskTitle ?? 'Task';
   const taskPreview = task ? truncateText(task, 120) : 'Waiting for task...';
   const canNavigate = childSessionId !== null;
 

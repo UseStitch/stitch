@@ -111,6 +111,7 @@ describe('task tool', () => {
 
     await taskTool.execute?.(
       {
+        title: 'Investigate flaky test',
         task: 'Investigate a flaky test',
       },
       {
@@ -133,5 +134,10 @@ describe('task tool', () => {
     const broadcastCallOrder = mocks.broadcastMock.mock.invocationCallOrder[0];
     const runStreamCallOrder = mocks.runStreamMock.mock.invocationCallOrder[0];
     expect(broadcastCallOrder).toBeLessThan(runStreamCallOrder);
+
+    expect(mocks.createSessionMock).toHaveBeenCalledWith({
+      title: 'Investigate flaky test',
+      parentSessionId,
+    });
   });
 });
