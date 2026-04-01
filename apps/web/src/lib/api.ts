@@ -27,6 +27,7 @@ declare global {
         maximize: () => Promise<void>;
         close: () => Promise<void>;
         isMaximized: () => Promise<boolean>;
+        isFullScreen: () => Promise<boolean>;
       };
       devtools?: {
         toggle: () => Promise<void>;

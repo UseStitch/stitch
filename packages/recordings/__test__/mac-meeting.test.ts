@@ -3,11 +3,14 @@ import { rm } from 'node:fs/promises';
 import { platform, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { MacMeetingService } from '../src/meetings/mac-meeting.js';
+
+
+import type { MeetingInfo } from '../src/meetings/meeting-service.js';
+import type { RecordingHandle, RecordingResult } from '../src/writers/recording-writer.js';
 
 const IS_MACOS = platform() === 'darwin';
 
-import type { MeetingInfo } from '../src/meeting-service.js';
-import type { RecordingHandle, RecordingResult } from '../src/recording-writer.js';
 
 // ---------------------------------------------------------------------------
 // Shared refs so tests can access mock instances (assigned inside vi.mock)
@@ -115,7 +118,7 @@ class MockRecordingWriter {
 // Import MacMeetingService (after mocks are set up)
 // ---------------------------------------------------------------------------
 
-import { MacMeetingService } from '../src/mac-meeting.js';
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -127,7 +130,7 @@ let writer: MockRecordingWriter;
 function createService(apps: string[] = ['chrome', 'slack', 'zoom']): MacMeetingService {
   return new MacMeetingService({
     apps,
-    writer: writer as unknown as import('../src/recording-writer.js').RecordingWriter,
+    writer: writer as unknown as import('../src/writers/recording-writer.js').RecordingWriter,
     pollIntervalMs: 1000,
   });
 }

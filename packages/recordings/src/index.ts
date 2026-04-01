@@ -1,8 +1,8 @@
-import { MacMeetingService } from './mac-meeting.js';
-import { WindowsMeetingService } from './windows-meeting.js';
+import { MacMeetingService } from './meetings/mac-meeting.js';
+import { WindowsMeetingService } from './meetings/windows-meeting.js';
 
-import type { MeetingService } from './meeting-service.js';
-import type { RecordingWriter } from './recording-writer.js';
+import type { MeetingService } from './meetings/meeting-service.js';
+import type { RecordingWriter } from './writers/recording-writer.js';
 
 export type {
   MeetingInfo,
@@ -10,22 +10,22 @@ export type {
   MeetingService,
   MeetingServiceLogger,
   StartRecordingOnDemandOptions,
-} from './meeting-service.js';
+} from './meetings/meeting-service.js';
 export type {
   RecordingFile,
   RecordingHandle,
   RecordingResult,
   RecordingWriterOptions,
   RecordingErrorCallback,
-} from './recording-writer.js';
-export { MeetingEventEmitter } from './meeting-service.js';
-export { RecordingWriter } from './recording-writer.js';
+} from './writers/recording-writer.js';
+export { MeetingEventEmitter } from './meetings/meeting-service.js';
+export { RecordingWriter } from './writers/recording-writer.js';
 
 export interface CreateMeetingServiceOptions {
   apps: string[];
   writer: RecordingWriter;
   pollIntervalMs?: number;
-  logger?: import('./meeting-service.js').MeetingServiceLogger;
+  logger?: import('./meetings/meeting-service.js').MeetingServiceLogger;
 }
 
 export function createMeetingService(options: CreateMeetingServiceOptions): MeetingService {

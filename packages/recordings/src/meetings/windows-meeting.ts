@@ -1,4 +1,4 @@
-import { MicrophoneActivityMonitor } from 'native-audio-node';
+import { execFile } from 'node:child_process';
 
 import { createRecordingId } from '@stitch/shared/id';
 
@@ -10,26 +10,29 @@ import type {
   MeetingServiceLogger,
   StartRecordingOnDemandOptions,
 } from './meeting-service.js';
-import type { RecordingHandle, RecordingResult } from './recording-writer.js';
-import type { RecordingWriter } from './recording-writer.js';
+import type { RecordingHandle, RecordingResult } from '../writers/recording-writer.js';
+import type { RecordingWriter } from '../writers/recording-writer.js';
 
-interface MicStatusEntry {
-  pid: number;
-  name: string;
-  bundleId: string;
+const REG_BASE =
+  'HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone';
+
+interface MicRegistryEntry {
+  app: string;
+  path: string;
+  key: string;
 }
 
+/** A meeting that was detected but not yet recording */
 interface DetectedMeeting {
   meeting: MeetingInfo;
-  processKey: string;
-  pid: number;
+  registryKey: string;
 }
 
+/** A meeting that has an active recording */
 interface RecordingSession {
   meeting: MeetingInfo;
   handle: RecordingHandle;
-  processKey: string;
-  pid: number;
+  registryKey: string;
 }
 
 interface ManualRecordingSession {
@@ -37,14 +40,14 @@ interface ManualRecordingSession {
   handle: RecordingHandle;
 }
 
-interface MacMeetingServiceOptions {
-  /** Keywords to match against app/bundle names (e.g. ["slack", "discord", "zoom"]). Case-insensitive substring match. */
+interface WindowsMeetingServiceOptions {
+  /** Keywords to match against app names (e.g. ["slack", "discord", "zoom"]). Case-insensitive substring match. */
   apps: string[];
   /** RecordingWriter instance */
   writer: RecordingWriter;
-  /** Fallback polling interval in ms when native events are unavailable (default 1000) */
+  /** Polling interval in ms (default 1000) */
   pollIntervalMs?: number;
-  /** Optional logger -- if omitted, logging is silently skipped */
+  /** Optional logger — if omitted, logging is silently skipped */
   logger?: MeetingServiceLogger;
 }
 
@@ -55,71 +58,62 @@ const noopLogger: MeetingServiceLogger = {
   error() {},
 };
 
-export class MacMeetingService extends MeetingEventEmitter implements MeetingService {
+export class WindowsMeetingService extends MeetingEventEmitter implements MeetingService {
   private readonly apps: string[];
   private readonly writer: RecordingWriter;
+  private readonly pollIntervalMs: number;
   private readonly log: MeetingServiceLogger;
-  private readonly monitor: MicrophoneActivityMonitor;
-  private readonly onMonitorChange: () => void;
-  private readonly onMonitorError: (err: Error) => void;
 
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private baseline = new Set<string>();
+
+  /** Detected meetings that are not yet recording */
   private detected = new Map<string, DetectedMeeting>();
+  /** Map from meetingId -> registryKey for quick lookup */
   private meetingIdToKey = new Map<string, string>();
+  /** Meetings that are actively recording */
   private recordings = new Map<string, RecordingSession>();
+  /** Recordings started manually and not tied to registry keys */
   private manualRecordings = new Map<string, ManualRecordingSession>();
 
   private running = false;
   private polling = false;
 
-  constructor(options: MacMeetingServiceOptions) {
+  constructor(options: WindowsMeetingServiceOptions) {
     super();
     this.apps = options.apps.map((a) => a.toLowerCase());
     this.writer = options.writer;
+    this.pollIntervalMs = options.pollIntervalMs ?? 1000;
     this.log = options.logger ?? noopLogger;
-
-    this.monitor = new MicrophoneActivityMonitor({
-      fallbackPollInterval: options.pollIntervalMs ?? 1000,
-    });
-
-    this.onMonitorChange = () => {
-      void this.reconcileActiveMeetings();
-    };
-
-    this.onMonitorError = (err: Error) => {
-      this.log.warn({ err: err.message }, 'microphone activity monitor error');
-      this.emit('error', err);
-    };
   }
 
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
 
-    this.monitor.on('change', this.onMonitorChange);
-    this.monitor.on('error', this.onMonitorError);
-    this.monitor.start();
-
-    const initial = this.queryActiveMicApps();
-    this.baseline = new Set(initial.map((e) => buildProcessKey(e)));
+    const initial = await this.queryActiveMicApps();
+    this.baseline = new Set(initial.map((e) => e.key));
 
     this.log.info(
       {
         baselineCount: initial.length,
-        baselineApps: initial.map((e) => e.name),
+        baselineApps: initial.map((e) => e.app),
         keywords: this.apps,
       },
       'meeting detection started',
     );
+
+    this.pollTimer = setInterval(() => this.poll(), this.pollIntervalMs);
   }
 
   async stop(): Promise<void> {
     if (!this.running) return;
     this.running = false;
 
-    this.monitor.off('change', this.onMonitorChange);
-    this.monitor.off('error', this.onMonitorError);
-    this.monitor.stop();
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
 
     for (const [, session] of this.recordings) {
       await this.writer.discard(session.handle);
@@ -135,12 +129,12 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
   }
 
   async startRecording(meetingId: string): Promise<void> {
-    const processKey = this.meetingIdToKey.get(meetingId);
-    if (!processKey) {
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) {
       throw new Error(`No detected meeting with id: ${meetingId}`);
     }
 
-    const detected = this.detected.get(processKey);
+    const detected = this.detected.get(registryKey);
     if (!detected) {
       throw new Error(`Meeting already ended or is already recording: ${meetingId}`);
     }
@@ -150,12 +144,11 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       this.emit('error', err);
     });
 
-    this.detected.delete(processKey);
-    this.recordings.set(processKey, {
+    this.detected.delete(registryKey);
+    this.recordings.set(registryKey, {
       meeting: detected.meeting,
       handle,
-      processKey,
-      pid: detected.pid,
+      registryKey,
     });
     this.log.info({ meetingId, app: detected.meeting.app }, 'recording started');
   }
@@ -186,8 +179,8 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
   }
 
   async stopRecording(meetingId: string): Promise<RecordingResult> {
-    const processKey = this.meetingIdToKey.get(meetingId);
-    if (!processKey) {
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) {
       const manualSession = this.manualRecordings.get(meetingId);
       if (!manualSession) {
         throw new Error(`No meeting with id: ${meetingId}`);
@@ -201,12 +194,12 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       return result;
     }
 
-    const session = this.recordings.get(processKey);
+    const session = this.recordings.get(registryKey);
     if (!session) {
       throw new Error(`No active recording for meeting: ${meetingId}`);
     }
 
-    this.recordings.delete(processKey);
+    this.recordings.delete(registryKey);
     this.meetingIdToKey.delete(meetingId);
 
     const result = await this.writer.stop(session.handle);
@@ -224,19 +217,19 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       return;
     }
 
-    const processKey = this.meetingIdToKey.get(meetingId);
-    if (!processKey) return;
+    const registryKey = this.meetingIdToKey.get(meetingId);
+    if (!registryKey) return;
 
-    if (this.detected.has(processKey)) {
-      this.detected.delete(processKey);
+    if (this.detected.has(registryKey)) {
+      this.detected.delete(registryKey);
       this.meetingIdToKey.delete(meetingId);
       this.log.info({ meetingId }, 'detected meeting cancelled');
       return;
     }
 
-    const session = this.recordings.get(processKey);
+    const session = this.recordings.get(registryKey);
     if (session) {
-      this.recordings.delete(processKey);
+      this.recordings.delete(registryKey);
       this.meetingIdToKey.delete(meetingId);
       await this.writer.discard(session.handle);
       this.log.info({ meetingId }, 'active recording cancelled');
@@ -245,65 +238,57 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
 
   // -- Internals --
 
-  private async reconcileActiveMeetings(): Promise<void> {
+  private async poll(): Promise<void> {
     if (this.polling) return;
     this.polling = true;
 
     try {
-      const entries = this.queryActiveMicApps();
-      this.log.debug({ entryCount: entries.length }, 'reconcile tick');
-      const currentKeys = new Set(entries.map((e) => buildProcessKey(e)));
+      const entries = await this.queryActiveMicApps();
+      this.log.debug({ entryCount: entries.length }, 'poll tick');
+      const currentKeys = new Set(entries.map((e) => e.key));
 
       if (entries.length > 0) {
         this.log.debug(
           {
-            entries: entries.map((e) => {
-              const key = buildProcessKey(e);
-              return {
-                app: e.name,
-                bundleId: e.bundleId,
-                isBaseline: this.baseline.has(key),
-                isDetected: this.detected.has(key),
-                isRecording: this.recordings.has(key),
-                isMonitored: this.isMonitoredApp(e),
-              };
-            }),
+            entries: entries.map((e) => ({
+              app: e.app,
+              isBaseline: this.baseline.has(e.key),
+              isDetected: this.detected.has(e.key),
+              isRecording: this.recordings.has(e.key),
+              isMonitored: this.isMonitoredApp(e.app),
+            })),
           },
-          'reconcile: active mic entries',
+          'poll: active mic entries',
         );
       }
 
-      // Detect new meetings
+      // Detect new meetings (don't auto-record)
       for (const entry of entries) {
-        const key = buildProcessKey(entry);
-        if (this.baseline.has(key)) continue;
-        if (this.detected.has(key)) continue;
-        if (this.recordings.has(key)) continue;
-        if (!this.isMonitoredApp(entry)) continue;
+        if (this.baseline.has(entry.key)) continue;
+        if (this.detected.has(entry.key)) continue;
+        if (this.recordings.has(entry.key)) continue;
+        if (!this.isMonitoredApp(entry.app)) continue;
 
         const now = new Date();
         const id = createRecordingId();
 
         const meeting: MeetingInfo = {
           id,
-          app: entry.name,
-          appPath: entry.bundleId,
+          app: entry.app,
+          appPath: entry.path,
           startedAt: now,
         };
 
-        this.log.info(
-          { meetingId: id, app: entry.name, bundleId: entry.bundleId, pid: entry.pid },
-          'new meeting detected',
-        );
-        this.detected.set(key, { meeting, processKey: key, pid: entry.pid });
-        this.meetingIdToKey.set(id, key);
+        this.log.info({ meetingId: id, app: entry.app }, 'new meeting detected');
+        this.detected.set(entry.key, { meeting, registryKey: entry.key });
+        this.meetingIdToKey.set(id, entry.key);
         this.emit('meeting:start', meeting);
       }
 
       // Collect ended meetings before mutating maps
       const endedDetected: [string, DetectedMeeting][] = [];
       for (const [key, detected] of this.detected) {
-        if (!currentKeys.has(key) || !isProcessAlive(detected.pid)) {
+        if (!currentKeys.has(key)) {
           endedDetected.push([key, detected]);
         }
       }
@@ -311,12 +296,6 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
       const endedRecordings: [string, RecordingSession][] = [];
       for (const [key, session] of this.recordings) {
         if (!currentKeys.has(key)) {
-          endedRecordings.push([key, session]);
-        } else if (!isProcessAlive(session.pid)) {
-          this.log.info(
-            { meetingId: session.meeting.id, pid: session.pid },
-            'recording process no longer alive',
-          );
           endedRecordings.push([key, session]);
         }
       }
@@ -357,62 +336,57 @@ export class MacMeetingService extends MeetingEventEmitter implements MeetingSer
         this.baseline.delete(key);
       }
     } catch (err) {
-      this.log.error({ err }, 'reconcile error');
+      this.log.error({ err }, 'poll error');
       this.emit('error', err instanceof Error ? err : new Error(String(err)));
     } finally {
       this.polling = false;
     }
   }
 
-  private isMonitoredApp(entry: MicStatusEntry): boolean {
-    const name = entry.name.toLowerCase();
-    const bundleId = entry.bundleId.toLowerCase();
-    return this.apps.some((keyword) => name.includes(keyword) || bundleId.includes(keyword));
+  private isMonitoredApp(appName: string): boolean {
+    const lower = appName.toLowerCase();
+    return this.apps.some((keyword) => lower.includes(keyword));
   }
 
-  private queryActiveMicApps(): MicStatusEntry[] {
-    const processes = this.monitor.getActiveProcesses();
-    return processes.map((processInfo) => ({
-      pid: processInfo.pid,
-      name: processInfo.name,
-      bundleId: processInfo.bundleId,
-    }));
+  private queryActiveMicApps(): Promise<MicRegistryEntry[]> {
+    return new Promise((resolve) => {
+      execFile('reg', ['query', REG_BASE, '/s', '/v', 'LastUsedTimeStop'], (err, stdout) => {
+        if (err) {
+          this.log.warn({ err: err.message }, 'registry query failed');
+          resolve([]);
+          return;
+        }
+        resolve(this.parseRegistryOutput(stdout));
+      });
+    });
   }
-}
 
-/**
- * Build a stable key for a process.
- *
- * Most apps (Zoom, Slack, etc.) get a bundle-based key so that PID recycling
- * doesn't cause false "new meeting" detections.
- *
- * Multi-process apps like Chrome spawn many "Helper" subprocesses that share
- * the same bundleId. Each helper represents a separate tab / media context,
- * so we key those by PID to track them independently. This ensures that when
- * one helper releases the mic the recording stops, even if a different helper
- * still has mic access.
- */
-function buildProcessKey(entry: MicStatusEntry): string {
-  if (entry.bundleId !== 'unknown') {
-    const lower = entry.name.toLowerCase();
-    if (lower.includes('helper')) {
-      return `pid:${entry.pid}`;
+  private parseRegistryOutput(output: string): MicRegistryEntry[] {
+    const entries: MicRegistryEntry[] = [];
+    const blocks = output.split(/\r?\n\r?\n/);
+
+    for (const block of blocks) {
+      const lines = block.trim().split(/\r?\n/);
+      if (lines.length < 2) continue;
+
+      const keyLine = lines[0];
+      if (!keyLine) continue;
+
+      const valueLine = lines.find((l) => l.includes('LastUsedTimeStop'));
+      if (!valueLine) continue;
+
+      const match = valueLine.match(/REG_QWORD\s+(0x[0-9a-fA-F]+)/);
+      if (!match || !match[1]) continue;
+
+      if (BigInt(match[1]) !== 0n) continue;
+
+      const subkey = keyLine.split('\\').pop() || '';
+      const exePath = subkey.replace(/#/g, '\\');
+      const appName = exePath.split('\\').pop() || subkey;
+
+      entries.push({ app: appName, path: exePath, key: subkey });
     }
-    return `bundle:${entry.bundleId}`;
-  }
-  return `pid:${entry.pid}`;
-}
 
-/**
- * Check whether a process is still running.
- * Uses signal 0 which doesn't actually send a signal — it just checks
- * whether the process exists and is reachable.
- */
-function isProcessAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
+    return entries;
   }
 }

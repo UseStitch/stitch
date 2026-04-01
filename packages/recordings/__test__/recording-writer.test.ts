@@ -4,9 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { RecordingWriter } from '../src/recording-writer.js';
+import { RecordingWriter } from '../src/writers/recording-writer.js';
 
-import type { RecordingHandle } from '../src/recording-writer.js';
+import type { RecordingHandle } from '../src/writers/recording-writer.js';
+
+const IS_MACOS = process.platform === 'darwin';
 
 // ---------------------------------------------------------------------------
 // Mock native-audio-node
@@ -142,7 +144,7 @@ afterEach(async () => {
 // Constructor
 // ---------------------------------------------------------------------------
 
-describe('RecordingWriter constructor', () => {
+describe.skipIf(!IS_MACOS)('RecordingWriter constructor', () => {
   test('throws when baseDir does not exist', () => {
     expect(() => new RecordingWriter(join(tempDir, 'nonexistent'))).toThrow(
       'directory does not exist',
@@ -164,7 +166,7 @@ describe('RecordingWriter constructor', () => {
 // start()
 // ---------------------------------------------------------------------------
 
-describe('start()', () => {
+describe.skipIf(!IS_MACOS)('start()', () => {
   test('returns a handle with correct id, dir, and startedAt', async () => {
     const now = new Date('2026-01-15T10:00:00.000Z');
     vi.setSystemTime(now);
@@ -292,7 +294,7 @@ describe('start()', () => {
 // stop()
 // ---------------------------------------------------------------------------
 
-describe('stop()', () => {
+describe.skipIf(!IS_MACOS)('stop()', () => {
   test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
@@ -444,7 +446,7 @@ describe('stop()', () => {
 // discard()
 // ---------------------------------------------------------------------------
 
-describe('discard()', () => {
+describe.skipIf(!IS_MACOS)('discard()', () => {
   test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
@@ -528,7 +530,7 @@ describe('discard()', () => {
 // WAV interleaving (tested indirectly via stop())
 // ---------------------------------------------------------------------------
 
-describe('interleaveToWav (via stop)', () => {
+describe.skipIf(!IS_MACOS)('interleaveToWav (via stop)', () => {
   test('zero-pads the shorter channel when files differ in length', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
