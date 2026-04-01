@@ -22,10 +22,21 @@ permissions:
   contents: write
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require production branch
+        run: |
+          if [ "${{ github.ref_name }}" != "production" ]; then
+            echo "Release workflow must run from the production branch."
+            exit 1
+          fi
+
   # ---------------------------------------------------------------------------
   # Version: compute the next semver tag
   # ---------------------------------------------------------------------------
   version:
+    needs: guard
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
@@ -78,6 +89,7 @@ jobs:
   # Quality gates: test + typecheck (per OS, in parallel)
   # ---------------------------------------------------------------------------
   quality-windows:
+    needs: guard
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +105,7 @@ jobs:
           wait $PID_TC || exit 1
 
   quality-macos:
+    needs: guard
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -198,6 +211,8 @@ jobs:
   release:
     needs: [version, build-windows, build-macos]
     runs-on: ubuntu-latest
+    environment:
+      name: production
     steps:
       - uses: actions/checkout@v4
 
