@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   unit:
-    name: unit (${{ matrix.settings.name }})
+    name: unit + typecheck (${{ matrix.settings.name }})
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +32,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-bun
+
+      - name: Run typecheck
+        run: bun run typecheck
 
       - name: Run unit tests
         run: bun run --filter '*' test
