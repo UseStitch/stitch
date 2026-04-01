@@ -214,3 +214,48 @@ function ProductList({ filters, minRating }: Props) {
   // ...
 }
 ```
+
+## Git
+
+### Branch Naming Conventions
+
+- Use the format: `<type>/<task-description>`
+- **Types:**
+  - `feature/` - New features or functionality
+  - `improvement/` - Improvements to features or enhancements.
+  - `fix/` - Bug fixes
+  - `chore/` - Maintenance tasks, dependency updates, refactoring
+  - `docs/` - Documentation updates
+  - `test/` - Test additions or modifications
+- **Examples:**
+  - `feature/add-user-authentication`
+  - `fix/resolve-workflow-execution-error`
+  - `chore/update-dependencies`
+
+### Commit Messages
+
+- NEVER include the coding agent (Claude or any other agent) as an author in commit messages.
+- NEVER `Co-Authored-By: Claude <noreply@anthropic.com>` or similar attribution.
+- NEVER commit changes without explicit go-ahead from the user.
+
+### Pull Requests
+
+- Never include the coding agent (Claude or any other agent) as an author in pull request descriptions.
+
+**Creating Pull Requests:**
+
+- Never include the coding agent (Claude or any other agent) as an author in pull request descriptions.
+- Use `gh` command for all GitHub-related tasks.
+- Never add test plans directly to the PR body for merges into `dev`.
+
+##### Creating PRs
+
+1.  **Gather Context**:
+    - Use git commands to check the diff
+    - Review all commits and changes.
+2.  **Draft Concise PR Body**:
+    - Focus on high-level features and major components, not individual commits
+    - Group related implementation details into single bullet points
+    - Avoid listing minor refactors, code moves, or formatting changes unless significant
+    - Write from a user/reviewer perspective: what capabilities were added, not how
+    - **Important**: Bug fixes made while building a feature are part of the feature development, not separate bug fixes. Only list bugs in the Bug Fixes section if they were outside the scope of the main PR work (e.g., fixing an existing unrelated bug discovered during development)
