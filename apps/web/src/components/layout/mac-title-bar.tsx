@@ -2,11 +2,12 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import { ServerStatus } from '@/components/layout/server-status';
 import { useSidebar } from '@/components/ui/sidebar';
-
-const MAC_TRAFFIC_LIGHTS_SPACE_PX = 76;
+import { useFullScreen } from '@/hooks/ui/use-fullscreen';
+import { cn } from '@/lib/utils';
 
 export function MacTitleBar() {
   const { open, toggleSidebar } = useSidebar();
+  const isFullScreen = useFullScreen();
 
   return (
     <div
@@ -14,10 +15,9 @@ export function MacTitleBar() {
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div
-        className="flex h-full items-center"
+        className={cn('flex h-full items-center', !isFullScreen && 'pl-6')}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <div style={{ width: MAC_TRAFFIC_LIGHTS_SPACE_PX }} />
         <button
           onClick={toggleSidebar}
           className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
