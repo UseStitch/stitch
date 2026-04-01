@@ -18,7 +18,13 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Allow only release maintainers
         if: ${{ github.actor != 'maharshi365' && github.actor != 'aditpatel14' }}
