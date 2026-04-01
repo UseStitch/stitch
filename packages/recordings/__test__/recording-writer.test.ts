@@ -645,7 +645,7 @@ describe.skipIf(!IS_MACOS)('interleaveToWav (via stop)', () => {
 // Int16 format handling (chunk-size and content-based detection)
 // ---------------------------------------------------------------------------
 
-describe('int16 format handling', () => {
+describe.skipIf(!IS_MACOS)('int16 format handling', () => {
   test('correctly converts mono int16 data to float32 (3200-byte chunk)', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
