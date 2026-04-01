@@ -18,11 +18,7 @@ permissions:
 
 jobs:
   typecheck:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/setup-bun
-
-      - name: Run typecheck
-        run: bun run typecheck
+      - name: Typecheck is run in test workflow
+        run: echo "Typecheck runs in the OS-specific test jobs."

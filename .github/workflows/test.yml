@@ -33,5 +33,8 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
+      - name: Run typecheck
+        run: bun run typecheck
+
       - name: Run unit tests
         run: bun run --filter '*' test
