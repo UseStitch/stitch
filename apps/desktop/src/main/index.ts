@@ -90,6 +90,14 @@ async function createWindow() {
     });
   });
 
+  mainWindow.on('enter-full-screen', () => {
+    mainWindow?.webContents.send('window:fullscreen-changed', true);
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    mainWindow?.webContents.send('window:fullscreen-changed', false);
+  });
+
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     await waitForDevServer(process.env['ELECTRON_RENDERER_URL']);
     void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
@@ -124,6 +132,10 @@ ipcMain.handle('window:close', () => {
 
 ipcMain.handle('window:isMaximized', () => {
   return mainWindow?.isMaximized() ?? false;
+});
+
+ipcMain.handle('window:isFullScreen', () => {
+  return mainWindow?.isFullScreen() ?? false;
 });
 
 ipcMain.handle('get-server-config', () => ({ url: serverUrl }));

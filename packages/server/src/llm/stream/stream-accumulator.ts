@@ -31,6 +31,7 @@ export class StreamAccumulator {
     private readonly accumulatedParts: StoredPart[],
     private readonly toolCalls: ToolCallRecord[],
     private readonly streamRunId: string,
+    private readonly broadcast: typeof Sse.broadcast = Sse.broadcast,
   ) {}
 
   getProtocolViolationCount(): number {
@@ -70,7 +71,7 @@ export class StreamAccumulator {
   }
 
   private broadcastPartUpdate(partId: PartId, part: unknown): Promise<void> {
-    return Sse.broadcast('stream-part-update', {
+    return this.broadcast('stream-part-update', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
@@ -79,7 +80,7 @@ export class StreamAccumulator {
   }
 
   private broadcastPartDelta(partId: PartId, delta: unknown): Promise<void> {
-    return Sse.broadcast('stream-part-delta', {
+    return this.broadcast('stream-part-delta', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
@@ -202,7 +203,7 @@ export class StreamAccumulator {
       }
 
       case 'tool-input-start':
-        await Sse.broadcast('stream-tool-state', {
+        await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.id,
@@ -225,7 +226,7 @@ export class StreamAccumulator {
           inputJson: stableStringify(part.input),
         });
 
-        await Sse.broadcast('stream-tool-state', {
+        await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -250,7 +251,7 @@ export class StreamAccumulator {
         const truncationMeta = this.getToolTruncationMeta(part.output);
         const sanitizedOutput = this.stripToolTruncationMeta(part.output);
 
-        await Sse.broadcast('stream-tool-state', {
+        await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -280,7 +281,7 @@ export class StreamAccumulator {
         const partId = createPartId();
         const errorText = String(part.error);
 
-        await Sse.broadcast('stream-tool-state', {
+        await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -340,7 +341,7 @@ export class StreamAccumulator {
           },
           'stream part error',
         );
-        await Sse.broadcast('stream-error', {
+        await this.broadcast('stream-error', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           error: errorText,

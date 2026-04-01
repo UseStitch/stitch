@@ -142,6 +142,7 @@
         "ai": "catalog:ai",
         "typescript": "catalog:",
         "vitest": "catalog:testing",
+        "zod": "catalog:",
       },
     },
   },

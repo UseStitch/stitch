@@ -4,9 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { RecordingWriter } from '../src/recording-writer.js';
+import { RecordingWriter } from '../src/writers/recording-writer.js';
 
-import type { RecordingHandle } from '../src/recording-writer.js';
+import type { RecordingHandle } from '../src/writers/recording-writer.js';
+
+const IS_MACOS = process.platform === 'darwin';
 
 // ---------------------------------------------------------------------------
 // Mock native-audio-node
@@ -24,7 +26,12 @@ interface MockRecorderInstance {
   started: boolean;
   stopped: boolean;
   emitData(samples: number[]): void;
+  emitInt16Data(samples: number[]): void;
+  emitStereoInt16Data(frames: [number, number][]): void;
   emitSilence(sampleCount: number): void;
+  emitInt16Silence(sampleCount: number): void;
+  emitStereoInt16Silence(frameCount: number): void;
+  emitMetadata(meta: { isFloat: boolean; bitsPerChannel: number }): void;
   emitError(msg: string): void;
   on(event: string, listener: (...args: unknown[]) => void): this;
   emit(event: string, ...args: unknown[]): boolean;
@@ -53,8 +60,43 @@ vi.mock('native-audio-node', () => {
       this.emit('data', { data: buf });
     }
 
+    emitInt16Data(samples: number[]): void {
+      const buf = Buffer.alloc(samples.length * 2);
+      for (let i = 0; i < samples.length; i++) {
+        buf.writeInt16LE(Math.round(samples[i] * 32768), i * 2);
+      }
+      this.emit('data', { data: buf });
+    }
+
+    emitStereoInt16Data(frames: [number, number][]): void {
+      const buf = Buffer.alloc(frames.length * 4);
+      for (let i = 0; i < frames.length; i++) {
+        buf.writeInt16LE(Math.round(frames[i][0] * 32768), i * 4);
+        buf.writeInt16LE(Math.round(frames[i][1] * 32768), i * 4 + 2);
+      }
+      this.emit('data', { data: buf });
+    }
+
     emitSilence(sampleCount: number): void {
       this.emitData(Array.from({ length: sampleCount }, () => 0));
+    }
+
+    emitInt16Silence(sampleCount: number): void {
+      this.emitInt16Data(Array.from({ length: sampleCount }, () => 0));
+    }
+
+    emitStereoInt16Silence(frameCount: number): void {
+      this.emitStereoInt16Data(Array.from({ length: frameCount }, (): [number, number] => [0, 0]));
+    }
+
+    emitMetadata(meta: { isFloat: boolean; bitsPerChannel: number }): void {
+      this.emit('metadata', {
+        sampleRate: 16000,
+        channelsPerFrame: 1,
+        bitsPerChannel: meta.bitsPerChannel,
+        isFloat: meta.isFloat,
+        encoding: meta.isFloat ? 'pcm_f32le' : 'pcm_s16le',
+      });
     }
 
     emitError(msg: string): void {
@@ -102,7 +144,7 @@ afterEach(async () => {
 // Constructor
 // ---------------------------------------------------------------------------
 
-describe('RecordingWriter constructor', () => {
+describe.skipIf(!IS_MACOS)('RecordingWriter constructor', () => {
   test('throws when baseDir does not exist', () => {
     expect(() => new RecordingWriter(join(tempDir, 'nonexistent'))).toThrow(
       'directory does not exist',
@@ -124,7 +166,7 @@ describe('RecordingWriter constructor', () => {
 // start()
 // ---------------------------------------------------------------------------
 
-describe('start()', () => {
+describe.skipIf(!IS_MACOS)('start()', () => {
   test('returns a handle with correct id, dir, and startedAt', async () => {
     const now = new Date('2026-01-15T10:00:00.000Z');
     vi.setSystemTime(now);
@@ -252,7 +294,7 @@ describe('start()', () => {
 // stop()
 // ---------------------------------------------------------------------------
 
-describe('stop()', () => {
+describe.skipIf(!IS_MACOS)('stop()', () => {
   test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
@@ -404,7 +446,7 @@ describe('stop()', () => {
 // discard()
 // ---------------------------------------------------------------------------
 
-describe('discard()', () => {
+describe.skipIf(!IS_MACOS)('discard()', () => {
   test('throws if recording id is not found', async () => {
     const writer = new RecordingWriter(tempDir);
     const fakeHandle: RecordingHandle = {
@@ -488,7 +530,7 @@ describe('discard()', () => {
 // WAV interleaving (tested indirectly via stop())
 // ---------------------------------------------------------------------------
 
-describe('interleaveToWav (via stop)', () => {
+describe.skipIf(!IS_MACOS)('interleaveToWav (via stop)', () => {
   test('zero-pads the shorter channel when files differ in length', async () => {
     vi.useRealTimers();
     const writer = new RecordingWriter(tempDir);
@@ -596,5 +638,133 @@ describe('interleaveToWav (via stop)', () => {
     // Should just be a 44-byte header with 0 data size
     expect(wav.length).toBe(44);
     expect(wav.readUInt32LE(40)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Int16 format handling (chunk-size and content-based detection)
+// ---------------------------------------------------------------------------
+
+describe('int16 format handling', () => {
+  test('correctly converts mono int16 data to float32 (3200-byte chunk)', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-int16');
+
+    // A full 1600-sample mono int16 chunk = 3200 bytes — unambiguously int16
+    const samples = Array.from({ length: 1600 }, (_, i) => (i === 0 ? 0.25 : 0));
+    recorderRefs.mic!.emitInt16Data(samples);
+    recorderRefs.sys!.emitInt16Data(samples.map((_, i) => (i === 0 ? 0.75 : 0)));
+
+    const result = await writer.stop(handle);
+
+    const wav = readFileSync(result.file.path);
+    const dataOffset = 44;
+
+    const expectedMic = Math.round((Math.round(0.25 * 32768) / 32768) * 32767);
+    const expectedSys = Math.round((Math.round(0.75 * 32768) / 32768) * 32767);
+
+    expect(wav.readInt16LE(dataOffset)).toBe(expectedMic);
+    expect(wav.readInt16LE(dataOffset + 2)).toBe(expectedSys);
+  });
+
+  test('correctly converts stereo int16 data to mono float32 (6400-byte chunk)', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-stereo-int16');
+
+    // 1600-frame stereo int16 chunk = 6400 bytes — same size as mono float32.
+    // Use non-trivial values so the float32 probe detects NaN (int16 byte patterns
+    // with negative values produce NaN when read as float32).
+    const frames: [number, number][] = Array.from(
+      { length: 1600 },
+      (_, i): [number, number] => [0.4 * ((i % 2 === 0) ? 1 : -1), 0.6 * ((i % 2 === 0) ? 1 : -1)],
+    );
+    recorderRefs.mic!.emitStereoInt16Data(frames);
+    recorderRefs.sys!.emitInt16Silence(1600);
+
+    const result = await writer.stop(handle);
+
+    const wav = readFileSync(result.file.path);
+    const dataOffset = 44;
+
+    // Stereo is averaged to mono: (0.4 + 0.6) / 2 = 0.5 for first frame
+    const leftInt16 = Math.round(0.4 * 32768);
+    const rightInt16 = Math.round(0.6 * 32768);
+    const monoFloat = (leftInt16 + rightInt16) / 2 / 32768;
+    const expected = Math.round(monoFloat * 32767);
+
+    expect(wav.readInt16LE(dataOffset)).toBeCloseTo(expected, -1);
+  });
+
+  test('duration is correct when int16 chunks are converted to float32', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-int16-dur');
+
+    // 10 full chunks of 1600 mono int16 samples = 16000 samples = 1 second
+    for (let c = 0; c < 10; c++) {
+      recorderRefs.mic!.emitInt16Silence(1600);
+      recorderRefs.sys!.emitInt16Silence(1600);
+    }
+
+    const result = await writer.stop(handle);
+    expect(result.file.durationSecs).toBe(1);
+  });
+
+  test('duration is correct for stereo int16 chunks (downmixed to mono)', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-stereo-dur');
+
+    // 10 full chunks of 1600-frame stereo int16 = 1 second
+    for (let c = 0; c < 10; c++) {
+      recorderRefs.mic!.emitStereoInt16Silence(1600);
+      recorderRefs.sys!.emitInt16Silence(1600);
+    }
+
+    const result = await writer.stop(handle);
+    expect(result.file.durationSecs).toBe(1);
+  });
+
+  test('float32 chunks pass through without conversion', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-f32-passthrough');
+
+    // Emit a full 1600-sample float32 chunk (6400 bytes)
+    // Content probing will see valid float32 values and pass through
+    const samples = Array.from({ length: 1600 }, (_, i) => (i === 0 ? 0.25 : 0));
+    recorderRefs.mic!.emitData(samples);
+    recorderRefs.sys!.emitData(samples.map((_, i) => (i === 0 ? 0.75 : 0)));
+
+    const result = await writer.stop(handle);
+
+    const wav = readFileSync(result.file.path);
+    const dataOffset = 44;
+
+    expect(wav.readInt16LE(dataOffset)).toBe(Math.round(0.25 * 32767));
+    expect(wav.readInt16LE(dataOffset + 2)).toBe(Math.round(0.75 * 32767));
+  });
+
+  test('WAV header is correct when int16 input is normalized to float32', async () => {
+    vi.useRealTimers();
+    const writer = new RecordingWriter(tempDir);
+    const handle = await writer.start('rec-int16-header');
+
+    recorderRefs.mic!.emitInt16Silence(1600);
+    recorderRefs.sys!.emitInt16Silence(1600);
+
+    const result = await writer.stop(handle);
+
+    const wav = readFileSync(result.file.path);
+    expect(wav.toString('ascii', 0, 4)).toBe('RIFF');
+    expect(wav.toString('ascii', 8, 12)).toBe('WAVE');
+    expect(wav.readUInt16LE(20)).toBe(1);
+    expect(wav.readUInt16LE(22)).toBe(2);
+    expect(wav.readUInt32LE(24)).toBe(16000);
+    expect(wav.readUInt16LE(34)).toBe(16);
+    expect(wav.readUInt32LE(40)).toBe(1600 * 4);
+    expect(wav.length).toBe(44 + 1600 * 4);
   });
 });

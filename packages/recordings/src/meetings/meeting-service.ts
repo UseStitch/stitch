@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import type { RecordingResult } from './recording-writer.js';
+import type { RecordingResult } from '../writers/recording-writer.js';
 
 export interface MeetingServiceLogger {
   debug(extra: Record<string, any>, message: string): void;

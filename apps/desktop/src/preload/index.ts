@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('api', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
+    isFullScreen: () => ipcRenderer.invoke('window:isFullScreen') as Promise<boolean>,
   },
   devtools: {
     toggle: () => ipcRenderer.invoke('devtools:toggle'),

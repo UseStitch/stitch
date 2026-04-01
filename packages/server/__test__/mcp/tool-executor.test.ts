@@ -1,37 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
+import type { McpServerWithTools } from '@/mcp/service.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
-
-vi.mock('@/mcp/service.js', () => ({
-  getMcpServersWithCachedTools: vi.fn(async () => [
-    {
-      id: 'mcp_test_server',
-      name: 'My MCP Server',
-      transport: 'http',
-      url: 'https://example.com/mcp',
-      authConfig: { type: 'none' },
-      tools: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    },
-  ]),
-  fetchMcpTools: vi.fn(async () => [
-    { name: 'lookup', description: 'Lookup data', inputSchema: {} },
-  ]),
-}));
-
-vi.mock('@/mcp/client.js', () => ({
-  getMcpClient: vi.fn(async () => ({
-    experimental_listPrompts: async () => ({ prompts: [] }),
-  })),
-  withMcpClient: vi.fn(),
-  evictMcpClient: vi.fn(),
-}));
-
-vi.mock('@/mcp/icons.js', () => ({
-  cacheMcpIcon: vi.fn(async () => null),
-}));
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {
@@ -39,21 +10,37 @@ function clearToolsets(): void {
   }
 }
 
+const TEST_SERVER: McpServerWithTools = {
+  id: 'mcp_test_server',
+  name: 'My MCP Server',
+  url: 'https://example.com/mcp',
+  authConfig: { type: 'none' as const },
+  tools: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
+};
+
 describe('refreshMcpToolsets', () => {
   beforeEach(() => {
     clearToolsets();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: false })),
-    );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   test('registers MCP toolsets using stable server id', async () => {
-    await refreshMcpToolsets({ refreshTools: true });
+    await refreshMcpToolsets(
+      { refreshTools: true },
+      {
+        getMcpServersWithCachedTools: async () => [TEST_SERVER],
+        fetchMcpTools: async () => ({
+          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
+        }),
+        fetchServerInfo: async () => null,
+        fetchServerPrompts: async () => [],
+        buildServerPresentation: async () => ({
+          serverId: TEST_SERVER.id,
+          name: TEST_SERVER.name,
+          tools: {},
+        }),
+      },
+    );
+
     expect(listToolsetIds()).toContain('mcp:mcp_test_server');
   });
 
@@ -66,7 +53,23 @@ describe('refreshMcpToolsets', () => {
       activate: async () => ({}),
     });
 
-    await refreshMcpToolsets({ refreshTools: true });
+    await refreshMcpToolsets(
+      { refreshTools: true },
+      {
+        getMcpServersWithCachedTools: async () => [TEST_SERVER],
+        fetchMcpTools: async () => ({
+          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
+        }),
+        fetchServerInfo: async () => null,
+        fetchServerPrompts: async () => [],
+        buildServerPresentation: async () => ({
+          serverId: TEST_SERVER.id,
+          name: TEST_SERVER.name,
+          tools: {},
+        }),
+      },
+    );
+
     expect(listToolsetIds()).not.toContain('mcp:stale-server');
   });
 });

@@ -123,6 +123,7 @@ type RunStreamOptions = {
   /** Toolset IDs to pre-activate (e.g. inherited from parent session) */
   activeToolsetIds?: string[];
   streamRunId?: string;
+  model?: ReturnType<ReturnType<typeof createProvider>>;
 };
 
 type StreamRunnerDeps = {
@@ -200,8 +201,7 @@ class StreamRunner {
   private readonly deps: StreamRunnerDeps;
 
   constructor(opts: InternalRunStreamOptions, deps: Partial<StreamRunnerDeps> = {}) {
-    const provider = createProvider(opts.credentials);
-    const model = provider(opts.modelId);
+    const model = opts.model ?? createProvider(opts.credentials)(opts.modelId);
     const startedAt = Date.now();
 
     this.ctx = {
@@ -1170,6 +1170,8 @@ export async function runStream(opts: {
   abortSignal: AbortSignal;
   /** Toolset IDs to pre-activate (e.g. inherited from parent task) */
   activeToolsetIds?: string[];
+  model?: ReturnType<ReturnType<typeof createProvider>>;
+  deps?: Partial<StreamRunnerDeps>;
 }): Promise<void> {
   const streamRunId = randomUUID();
 
@@ -1223,6 +1225,6 @@ export async function runStream(opts: {
     coreTools,
     toolsetManager,
     streamRunId,
-  });
+  }, opts.deps);
   await runner.run();
 }

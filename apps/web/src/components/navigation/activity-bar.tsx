@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDialogContext } from '@/context/dialog-context';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
+import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { cn } from '@/lib/utils';
 
 type ActivityItem = {
@@ -71,9 +72,20 @@ export function ActivityBar() {
   const { setSettingsTab } = useDialogContext();
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
   const pendingConnectorUpdates = connectorInstances.filter((instance) => instance.upgrade?.available).length;
+  const isMac = window.electron?.platform === 'darwin';
+  const isFullScreen = useFullScreen();
+  const showTrafficLightPadding = isMac && !isFullScreen;
 
   return (
-    <div className="flex w-14 flex-col items-center border-r border-border/50 bg-sidebar px-1.5 pt-3 pb-3">
+    <div
+      className={cn(
+        'relative flex w-14 flex-col items-center bg-sidebar px-1.5 pb-3',
+        showTrafficLightPadding ? 'pt-10' : 'border-r border-border/50 pt-3',
+      )}
+    >
+      {showTrafficLightPadding && (
+        <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
+      )}
       <div className="flex w-full flex-col items-center gap-2">
         {ACTIVITY_ITEMS.map((item) => {
           const active = isActive(item.matchPrefix, currentPath);

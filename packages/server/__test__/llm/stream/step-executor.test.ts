@@ -8,17 +8,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 
-const mocks = vi.hoisted(() => ({
-  broadcastMock: vi.fn(async () => {}),
-}));
-
-vi.mock('@/lib/sse.js', () => ({
-  broadcast: mocks.broadcastMock,
-}));
-
-vi.mock('@/provider/provider.js', () => ({
-  createProvider: vi.fn(() => vi.fn(() => ({ id: 'mock-model' }))),
-}));
+const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
 
 const FINISH_STOP = {
   type: 'finish' as const,
@@ -63,6 +53,7 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
     tools: {} as StepOptions['tools'],
     abortSignal: new AbortController().signal,
     streamRunId: 'run_1',
+    broadcast: broadcastMock as StepOptions['broadcast'],
     ...overrides,
   };
 }
@@ -70,7 +61,7 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
 describe('executeStepWithRetry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.broadcastMock.mockResolvedValue(undefined);
+    broadcastMock.mockResolvedValue(undefined);
   });
 
   test('completes a simple text stream and returns stop finish reason', async () => {
@@ -301,7 +292,7 @@ describe('executeStepWithRetry', () => {
     const opts = getDefaultOpts(model);
     await executeStepWithRetry(opts);
 
-    const eventTypes = mocks.broadcastMock.mock.calls.map((call: unknown[]) => String(call[0]));
+    const eventTypes = broadcastMock.mock.calls.map((call: unknown[]) => String(call[0]));
     expect(eventTypes).toContain('stream-part-update');
     expect(eventTypes).toContain('stream-part-delta');
   });

@@ -8,17 +8,9 @@ import type { WriteStream } from 'node:fs';
 const SAMPLE_RATE = 16000;
 const CHUNK_DURATION_MS = 100;
 const BYTES_PER_FLOAT32_SAMPLE = 4;
-
-/** Default max recording duration: 4 hours */
 const DEFAULT_MAX_DURATION_SECS = 4 * 60 * 60;
-
-/** If no audio chunk arrives for this long, consider the device stale */
 const STALE_DEVICE_THRESHOLD_MS = 5_000;
-
-/** How often to check for stale devices */
 const HEALTH_CHECK_INTERVAL_MS = 2_000;
-
-/** Chunk size when reading raw PCM files for interleaving (64 KB) */
 const READ_CHUNK_BYTES = 65_536;
 
 export interface RecordingFile {
@@ -30,11 +22,9 @@ export interface RecordingFile {
 export interface RecordingResult {
   id: string;
   dir: string;
-  /** Single stereo WAV: left channel = mic, right channel = speaker */
   file: RecordingFile;
 }
 
-/** Opaque handle returned from start(). Pass this to stop() or discard(). */
 export interface RecordingHandle {
   readonly id: string;
   readonly dir: string;
@@ -42,13 +32,11 @@ export interface RecordingHandle {
 }
 
 export interface RecordingWriterOptions {
-  /** Max recording duration in seconds (default: 4 hours). Recording auto-stops after this. */
   maxDurationSecs?: number;
 }
 
 export type RecordingErrorCallback = (error: Error) => void;
 
-/** Internal state — not exported */
 class ActiveRecording implements RecordingHandle {
   readonly id: string;
   readonly dir: string;
@@ -69,8 +57,6 @@ class ActiveRecording implements RecordingHandle {
   healthCheckTimer: ReturnType<typeof setInterval> | null = null;
   maxDurationTimer: ReturnType<typeof setTimeout> | null = null;
   onError: RecordingErrorCallback | null = null;
-
-  /** Set to true once stop/discard has been called to prevent double-cleanup */
   stopped = false;
 
   constructor(
@@ -121,7 +107,6 @@ function closeWriteStream(stream: WriteStream): Promise<void> {
   });
 }
 
-/** Write a 44-byte WAV header for stereo 16-bit PCM */
 function buildWavHeader(dataSize: number, sampleRate: number): Buffer {
   const channels = 2;
   const bitsPerSample = 16;
@@ -147,11 +132,6 @@ function buildWavHeader(dataSize: number, sampleRate: number): Buffer {
   return header;
 }
 
-/**
- * Read two raw float32 PCM files and interleave them into a stereo int16 WAV file.
- * Processes in fixed-size chunks to avoid loading everything into memory at once.
- * The shorter file is zero-padded.
- */
 async function interleaveToWav(
   micPath: string,
   sysPath: string,
@@ -165,8 +145,6 @@ async function interleaveToWav(
   const micSamples = micBytes / BYTES_PER_FLOAT32_SAMPLE;
   const sysSamples = sysBytes / BYTES_PER_FLOAT32_SAMPLE;
   const totalSamples = Math.max(micSamples, sysSamples);
-
-  // stereo int16: 2 channels * 2 bytes = 4 bytes per sample pair
   const dataSize = totalSamples * 4;
 
   const [micFh, sysFh] = await Promise.all([open(micPath, 'r'), open(sysPath, 'r')]);
@@ -175,7 +153,6 @@ async function interleaveToWav(
     const wavHeader = buildWavHeader(dataSize, sampleRate);
     const outStream = createWriteStream(outPath);
 
-    // Write header first
     await new Promise<void>((resolve, reject) => {
       outStream.write(wavHeader, (err) => {
         if (err) reject(err);
@@ -183,7 +160,6 @@ async function interleaveToWav(
       });
     });
 
-    // Process in chunks
     const samplesPerChunk = Math.floor(READ_CHUNK_BYTES / BYTES_PER_FLOAT32_SAMPLE);
     let samplesProcessed = 0;
 
@@ -200,7 +176,6 @@ async function interleaveToWav(
         sysFh.read(sysBuf, 0, float32ByteCount, fileOffset),
       ]);
 
-      // Interleave this chunk to stereo int16
       const int16Chunk = Buffer.alloc(samplesToRead * 4);
       for (let i = 0; i < samplesToRead; i++) {
         const micSample =
@@ -216,7 +191,6 @@ async function interleaveToWav(
         int16Chunk.writeInt16LE(Math.round(sysSample * 32767), i * 4 + 2);
       }
 
-      // Write with backpressure
       const canContinue = outStream.write(int16Chunk);
       if (!canContinue) {
         await new Promise<void>((resolve) => outStream.once('drain', resolve));
@@ -238,7 +212,7 @@ async function interleaveToWav(
   }
 }
 
-export class RecordingWriter {
+export abstract class PlatformRecordingWriter {
   private readonly baseDir: string;
   private readonly maxDurationSecs: number;
   private readonly activeRecordings = new Map<string, ActiveRecording>();
@@ -254,7 +228,8 @@ export class RecordingWriter {
     this.maxDurationSecs = options?.maxDurationSecs ?? DEFAULT_MAX_DURATION_SECS;
   }
 
-  /** Start capturing mic + speaker audio. Returns an opaque handle to stop later. */
+  protected abstract normalizeChunk(chunk: Buffer): Buffer;
+
   async start(recordingId: string, onError?: RecordingErrorCallback): Promise<RecordingHandle> {
     const dir = join(this.baseDir, recordingId);
     mkdirSync(dir, { recursive: true });
@@ -291,20 +266,20 @@ export class RecordingWriter {
       recording.onError = onError;
     }
 
-    // Stream audio chunks to disk
     micRecorder.on('data', (chunk) => {
       recording.lastMicChunkAt = Date.now();
-      recording.micBytesWritten += chunk.data.length;
-      recording.micStream.write(chunk.data);
+      const data = this.normalizeChunk(chunk.data);
+      recording.micBytesWritten += data.length;
+      recording.micStream.write(data);
     });
 
     sysRecorder.on('data', (chunk) => {
       recording.lastSysChunkAt = Date.now();
-      recording.sysBytesWritten += chunk.data.length;
-      recording.sysStream.write(chunk.data);
+      const data = this.normalizeChunk(chunk.data);
+      recording.sysBytesWritten += data.length;
+      recording.sysStream.write(data);
     });
 
-    // Handle native recorder errors
     micRecorder.on('error', (err: Error) => {
       recording.onError?.(new Error(`Microphone recorder error: ${err.message}`));
     });
@@ -313,7 +288,6 @@ export class RecordingWriter {
       recording.onError?.(new Error(`System audio recorder error: ${err.message}`));
     });
 
-    // Device health monitoring
     recording.healthCheckTimer = setInterval(() => {
       const now = Date.now();
       if (now - recording.lastMicChunkAt > STALE_DEVICE_THRESHOLD_MS) {
@@ -328,23 +302,17 @@ export class RecordingWriter {
       }
     }, HEALTH_CHECK_INTERVAL_MS);
 
-    // Max duration safety
     recording.maxDurationTimer = setTimeout(async () => {
       recording.onError?.(
         new Error(`Recording reached max duration of ${this.maxDurationSecs}s — auto-stopping`),
       );
-      // The consumer is responsible for calling stop() in response to this error.
-      // We just notify — forcibly stopping here could race with the consumer.
     }, this.maxDurationSecs * 1000);
 
     this.activeRecordings.set(recordingId, recording);
-
     await Promise.all([micRecorder.start(), sysRecorder.start()]);
-
     return recording;
   }
 
-  /** Stop recording, finalize the stereo WAV, and clean up temp files. */
   async stop(handle: RecordingHandle): Promise<RecordingResult> {
     const recording = this.activeRecordings.get(handle.id);
     if (!recording) {
@@ -353,20 +321,17 @@ export class RecordingWriter {
     if (recording.stopped) {
       throw new Error(`Recording already stopped: ${handle.id}`);
     }
+
     recording.stopped = true;
     recording.clearTimers();
     this.activeRecordings.delete(handle.id);
 
-    // Stop native recorders
     await Promise.all([recording.micRecorder.stop(), recording.sysRecorder.stop()]);
-
-    // Close write streams so all data is flushed to disk
     await Promise.all([
       closeWriteStream(recording.micStream),
       closeWriteStream(recording.sysStream),
     ]);
 
-    // Interleave raw files into stereo WAV (streaming, not in-memory)
     const wavPath = join(recording.dir, 'recording.wav');
     const durationSecs = await interleaveToWav(
       recording.micRawPath,
@@ -375,7 +340,6 @@ export class RecordingWriter {
       SAMPLE_RATE,
     );
 
-    // Clean up temp raw files
     await Promise.all([
       rm(recording.micRawPath, { force: true }),
       rm(recording.sysRawPath, { force: true }),
@@ -388,25 +352,23 @@ export class RecordingWriter {
     };
   }
 
-  /** Stop recording without writing any files. Cleans up temp files and directory. */
   async discard(handle: RecordingHandle): Promise<void> {
     const recording = this.activeRecordings.get(handle.id);
     if (!recording) {
       throw new Error(`No active recording with id: ${handle.id}`);
     }
     if (recording.stopped) return;
+
     recording.stopped = true;
     recording.clearTimers();
     this.activeRecordings.delete(handle.id);
 
     await Promise.all([recording.micRecorder.stop(), recording.sysRecorder.stop()]);
-
     await Promise.all([
       closeWriteStream(recording.micStream),
       closeWriteStream(recording.sysStream),
     ]);
 
-    // Remove the entire recording directory (contains only temp files)
     await rm(recording.dir, { recursive: true, force: true });
   }
 }

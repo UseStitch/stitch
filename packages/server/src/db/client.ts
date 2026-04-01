@@ -17,6 +17,10 @@ const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
 
+function getDatabasePath(): string {
+  return process.env['STITCH_DB_PATH']?.trim() || PATHS.filePaths.db;
+}
+
 function seedShortcuts(db: Db): void {
   for (const def of SHORTCUT_DEFAULTS) {
     db.insert(schema.keyboardShortcuts)
@@ -54,11 +58,8 @@ export function getDb(): Db {
 }
 
 export async function initDb(): Promise<void> {
-  fs.mkdirSync(path.dirname(PATHS.filePaths.db), { recursive: true });
-
-  if (typeof Bun === 'undefined') {
-    throw new Error('Bun runtime is required for SQLite initialization');
-  }
+  const dbPath = getDatabasePath();
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
   const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
     import('bun:sqlite'),
@@ -66,7 +67,7 @@ export async function initDb(): Promise<void> {
     import('drizzle-orm/bun-sqlite/migrator'),
   ]);
 
-  const sqlite = new BunDatabase(PATHS.filePaths.db, { create: true });
+  const sqlite = new BunDatabase(dbPath, { create: true });
   sqlite.run('PRAGMA journal_mode = WAL');
   sqlite.run('PRAGMA synchronous = NORMAL');
   sqlite.run('PRAGMA busy_timeout = 5000');
@@ -78,5 +79,5 @@ export async function initDb(): Promise<void> {
   seedShortcuts(_db);
   seedSettings(_db);
 
-  log.info({ path: PATHS.filePaths.db, runtime: 'bun-sqlite' }, 'database initialized');
+  log.info({ path: dbPath, runtime: 'bun-sqlite' }, 'database initialized');
 }

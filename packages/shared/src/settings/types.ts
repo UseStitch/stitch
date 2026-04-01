@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export const SETTINGS_KEYS = [
   'model.default.providerId',
   'model.default.modelId',
@@ -25,17 +27,40 @@ export const SETTINGS_KEYS = [
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
+export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
+  'model.default.providerId': z.string(),
+  'model.default.modelId': z.string(),
+  'model.compaction.providerId': z.string(),
+  'model.compaction.modelId': z.string(),
+  'model.title.providerId': z.string(),
+  'model.title.modelId': z.string(),
+  'recordings.default.providerId': z.string(),
+  'recordings.default.modelId': z.string(),
+  'recordings.autoTranscribe': z.coerce.boolean(),
+  'compaction.auto': z.coerce.boolean(),
+  'compaction.prune': z.coerce.boolean(),
+  'compaction.reserved': z.coerce.number().int().min(0),
+  'appearance.mode': z.enum(['light', 'dark', 'system']),
+  'appearance.theme': z.enum(['default', 'dracula', 'solarized', 'tokyonight']),
+  'onboarding.status': z.enum(['pending', 'completed']),
+  'onboarding.version': z.string().regex(/^\d+$/),
+  'profile.name': z.string().min(1).max(80),
+  'profile.timezone': z.string().min(1).max(120),
+  'notifications.sound.enabled': z.coerce.boolean(),
+  'browser.profileImported': z.string(),
+  'browser.activeProfile': z.string(),
+  'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
+} as const;
+
+export function isValidLeaderKeyHotkey(value: string): boolean {
+  return SETTINGS_SCHEMAS['shortcuts.leaderKey'].safeParse(value).success;
+}
+
 export type SettingDefault = {
   key: SettingsKey;
   value: string;
   description: string;
 };
-
-const LEADER_KEY_HOTKEY_PATTERN = /^Mod\+[A-Za-z0-9]$/;
-
-export function isValidLeaderKeyHotkey(value: string): boolean {
-  return LEADER_KEY_HOTKEY_PATTERN.test(value);
-}
 
 export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
