@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./recording-writer": "./src/recording-writer.ts",
-    "./meeting-service": "./src/meeting-service.ts"
+    "./recording-writer": "./src/writers/recording-writer.ts",
+    "./meeting-service": "./src/meetings/meeting-service.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
