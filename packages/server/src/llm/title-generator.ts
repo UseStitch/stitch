@@ -33,13 +33,23 @@ type GeneratedTitle = {
   modelId: string;
 };
 
+type TitleGeneratorDeps = {
+  resolveModel?: typeof resolveCheapModel;
+  getModel?: (resolved: {
+    providerId: string;
+    modelId: string;
+    credentials: Parameters<typeof createProvider>[0];
+  }) => ReturnType<ReturnType<typeof createProvider>>;
+};
+
 export async function generateTitle(
   firstMessage: string,
   fallbackProviderId: string,
   fallbackModelId: string,
   filenames?: string[],
+  deps?: TitleGeneratorDeps,
 ): Promise<GeneratedTitle | null> {
-  const resolved = await resolveCheapModel({
+  const resolved = await (deps?.resolveModel ?? resolveCheapModel)({
     providerIdKey: 'model.title.providerId',
     modelIdKey: 'model.title.modelId',
     fallbackProviderId,
@@ -48,7 +58,9 @@ export async function generateTitle(
   if (!resolved) return null;
 
   try {
-    const model = createProvider(resolved.credentials)(resolved.modelId);
+    const model = deps?.getModel
+      ? deps.getModel(resolved)
+      : createProvider(resolved.credentials)(resolved.modelId);
     const result = await generateText({
       model,
       messages: [

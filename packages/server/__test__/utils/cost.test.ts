@@ -1,12 +1,7 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
-import * as Models from '@/provider/models.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import type { LanguageModelUsage } from 'ai';
-
-vi.mock('@/provider/models.js', () => ({
-  get: vi.fn(),
-}));
 
 function buildUsage(input: {
   inputTokens?: number;
@@ -31,107 +26,68 @@ function buildUsage(input: {
 }
 
 describe('calculateMessageCostUsd', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   test('returns 0 when model pricing is unavailable', async () => {
-    vi.mocked(Models.get).mockResolvedValue({
-      openai: {
-        id: 'openai',
-        name: 'OpenAI',
-        env: [],
-        models: {
-          'openai/gpt-5.3-codex': {
-            id: 'openai/gpt-5.3-codex',
-            name: 'GPT-5.3 Codex',
-            release_date: '2026-01-01',
-            attachment: false,
-            reasoning: true,
-            temperature: true,
-            tool_call: true,
-            limit: { context: 200_000, output: 8_192 },
-            options: {},
-          },
-        },
-      },
-    } as never);
-
     const cost = await calculateMessageCostUsd({
       providerId: 'openai',
       modelId: 'openai/gpt-5.3-codex',
       usage: buildUsage({ inputTokens: 1_000, outputTokens: 500 }),
+      providers: {
+        openai: {
+          id: 'openai',
+          name: 'OpenAI',
+          env: [],
+          models: {
+            'openai/gpt-5.3-codex': {
+              id: 'openai/gpt-5.3-codex',
+              name: 'GPT-5.3 Codex',
+              release_date: '2026-01-01',
+              attachment: false,
+              reasoning: true,
+              temperature: true,
+              tool_call: true,
+              limit: { context: 200_000, output: 8_192 },
+              options: {},
+            },
+          },
+        },
+      } as never,
     });
 
     expect(cost).toBe(0);
   });
 
   test('calculates input and output cost per million tokens', async () => {
-    vi.mocked(Models.get).mockResolvedValue({
-      openai: {
-        id: 'openai',
-        name: 'OpenAI',
-        env: [],
-        models: {
-          'openai/gpt-5.3-codex': {
-            id: 'openai/gpt-5.3-codex',
-            name: 'GPT-5.3 Codex',
-            release_date: '2026-01-01',
-            attachment: false,
-            reasoning: true,
-            temperature: true,
-            tool_call: true,
-            cost: { input: 2, output: 8 },
-            limit: { context: 200_000, output: 8_192 },
-            options: {},
-          },
-        },
-      },
-    } as never);
-
     const cost = await calculateMessageCostUsd({
       providerId: 'openai',
       modelId: 'openai/gpt-5.3-codex',
       usage: buildUsage({ inputTokens: 1_000_000, outputTokens: 500_000 }),
+      providers: {
+        openai: {
+          id: 'openai',
+          name: 'OpenAI',
+          env: [],
+          models: {
+            'openai/gpt-5.3-codex': {
+              id: 'openai/gpt-5.3-codex',
+              name: 'GPT-5.3 Codex',
+              release_date: '2026-01-01',
+              attachment: false,
+              reasoning: true,
+              temperature: true,
+              tool_call: true,
+              cost: { input: 2, output: 8 },
+              limit: { context: 200_000, output: 8_192 },
+              options: {},
+            },
+          },
+        },
+      } as never,
     });
 
     expect(cost).toBe(6);
   });
 
   test('uses cache-specific rates and over-200k context rates', async () => {
-    vi.mocked(Models.get).mockResolvedValue({
-      anthropic: {
-        id: 'anthropic',
-        name: 'Anthropic',
-        env: [],
-        models: {
-          'anthropic/claude': {
-            id: 'anthropic/claude',
-            name: 'Claude',
-            release_date: '2026-01-01',
-            attachment: false,
-            reasoning: true,
-            temperature: true,
-            tool_call: true,
-            cost: {
-              input: 3,
-              output: 15,
-              cache_read: 0.3,
-              cache_write: 3.75,
-              context_over_200k: {
-                input: 6,
-                output: 22.5,
-                cache_read: 0.6,
-                cache_write: 7.5,
-              },
-            },
-            limit: { context: 300_000, output: 8_192 },
-            options: {},
-          },
-        },
-      },
-    } as never);
-
     const cost = await calculateMessageCostUsd({
       providerId: 'anthropic',
       modelId: 'anthropic/claude',
@@ -142,6 +98,38 @@ describe('calculateMessageCostUsd', () => {
         cacheReadTokens: 100_000,
         cacheWriteTokens: 50_000,
       }),
+      providers: {
+        anthropic: {
+          id: 'anthropic',
+          name: 'Anthropic',
+          env: [],
+          models: {
+            'anthropic/claude': {
+              id: 'anthropic/claude',
+              name: 'Claude',
+              release_date: '2026-01-01',
+              attachment: false,
+              reasoning: true,
+              temperature: true,
+              tool_call: true,
+              cost: {
+                input: 3,
+                output: 15,
+                cache_read: 0.3,
+                cache_write: 3.75,
+                context_over_200k: {
+                  input: 6,
+                  output: 22.5,
+                  cache_read: 0.6,
+                  cache_write: 7.5,
+                },
+              },
+              limit: { context: 300_000, output: 8_192 },
+              options: {},
+            },
+          },
+        },
+      } as never,
     });
 
     expect(cost).toBe(3.285);

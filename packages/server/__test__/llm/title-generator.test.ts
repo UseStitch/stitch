@@ -4,25 +4,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { generateTitle } from '@/llm/title-generator.js';
 
-const mocks = vi.hoisted(() => ({
-  resolveCheapModelMock: vi.fn(),
-  createProviderMock: vi.fn(),
-}));
-
-vi.mock('@/llm/resolve-cheap-model.js', () => ({
-  resolveCheapModel: mocks.resolveCheapModelMock,
-}));
-
-vi.mock('@/provider/provider.js', () => ({
-  createProvider: mocks.createProviderMock,
-}));
-
 const RESOLVED_MODEL = {
   providerId: 'openai',
   modelId: 'gpt-5-nano',
   credentials: {
-    providerId: 'openai',
-    auth: { method: 'api-key', apiKey: 'test-key' },
+    providerId: 'openai' as const,
+    auth: { method: 'api-key' as const, apiKey: 'test-key' },
   },
 };
 
@@ -40,11 +27,6 @@ function makeMockModel(text: string): MockLanguageModelV3 {
   });
 }
 
-function setupProvider(model: MockLanguageModelV3): void {
-  mocks.createProviderMock.mockReturnValue(() => model);
-  mocks.resolveCheapModelMock.mockResolvedValue(RESOLVED_MODEL);
-}
-
 describe('generateTitle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,9 +34,11 @@ describe('generateTitle', () => {
 
   test('returns trimmed title from model response', async () => {
     const model = makeMockModel('  Project Setup  ');
-    setupProvider(model);
 
-    const result = await generateTitle('Help me set up my project', 'openai', 'gpt-5');
+    const result = await generateTitle('Help me set up my project', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).not.toBeNull();
     expect(result!.title).toBe('Project Setup');
@@ -64,9 +48,10 @@ describe('generateTitle', () => {
 
   test('strips surrounding quotes from title', async () => {
     const model = makeMockModel('"Debug Auth Flow"');
-    setupProvider(model);
-
-    const result = await generateTitle('I have a bug in my auth', 'openai', 'gpt-5');
+    const result = await generateTitle('I have a bug in my auth', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).not.toBeNull();
     expect(result!.title).toBe('Debug Auth Flow');
@@ -74,9 +59,10 @@ describe('generateTitle', () => {
 
   test('strips single quotes from title', async () => {
     const model = makeMockModel("'Fix Login Bug'");
-    setupProvider(model);
-
-    const result = await generateTitle('Login is broken', 'openai', 'gpt-5');
+    const result = await generateTitle('Login is broken', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).not.toBeNull();
     expect(result!.title).toBe('Fix Login Bug');
@@ -84,27 +70,28 @@ describe('generateTitle', () => {
 
   test('returns null when model returns empty text', async () => {
     const model = makeMockModel('   ');
-    setupProvider(model);
-
-    const result = await generateTitle('Hello', 'openai', 'gpt-5');
+    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).toBeNull();
   });
 
   test('returns null when no cheap model can be resolved', async () => {
-    mocks.resolveCheapModelMock.mockResolvedValue(null);
-
-    const result = await generateTitle('Hello', 'openai', 'gpt-5');
+    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => null,
+    });
 
     expect(result).toBeNull();
-    expect(mocks.createProviderMock).not.toHaveBeenCalled();
   });
 
   test('returns usage data from the model response', async () => {
     const model = makeMockModel('Chat Title');
-    setupProvider(model);
-
-    const result = await generateTitle('Tell me about AI', 'openai', 'gpt-5');
+    const result = await generateTitle('Tell me about AI', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).not.toBeNull();
     expect(result!.usage).not.toBeNull();
@@ -124,9 +111,11 @@ describe('generateTitle', () => {
         });
       },
     });
-    setupProvider(model);
 
-    const result = await generateTitle('Hello', 'openai', 'gpt-5');
+    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).toBeNull();
   });
@@ -137,18 +126,22 @@ describe('generateTitle', () => {
         throw new Error('unexpected network failure');
       },
     });
-    setupProvider(model);
 
-    const result = await generateTitle('Hello', 'openai', 'gpt-5');
+    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(result).toBeNull();
   });
 
   test('passes first message to model as part of the prompt', async () => {
     const model = makeMockModel('Test Title');
-    setupProvider(model);
 
-    await generateTitle('My specific first message', 'openai', 'gpt-5');
+    await generateTitle('My specific first message', 'openai', 'gpt-5', undefined, {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(model.doGenerateCalls).toHaveLength(1);
     const messages = model.doGenerateCalls[0].prompt;
@@ -163,12 +156,11 @@ describe('generateTitle', () => {
 
   test('includes attachment filenames in the title prompt when provided', async () => {
     const model = makeMockModel('Test Title');
-    setupProvider(model);
 
-    await generateTitle('Please review this code', 'openai', 'gpt-5', [
-      'auth-service.ts',
-      'README.md',
-    ]);
+    await generateTitle('Please review this code', 'openai', 'gpt-5', ['auth-service.ts', 'README.md'], {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(model.doGenerateCalls).toHaveLength(1);
     const messages = model.doGenerateCalls[0].prompt;

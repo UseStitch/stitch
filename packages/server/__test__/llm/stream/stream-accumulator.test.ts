@@ -11,18 +11,12 @@ import {
 } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 
-const mocks = vi.hoisted(() => ({
-  broadcastMock: vi.fn(async () => {}),
-}));
-
-vi.mock('@/lib/sse.js', () => ({
-  broadcast: mocks.broadcastMock,
-}));
+const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
 
 function getBroadcastCalls(eventType: string): unknown[][] {
-  return mocks.broadcastMock.mock.calls.filter(
+  return broadcastMock.mock.calls.filter(
     (call: unknown[]) => call[0] === eventType,
-  ) as unknown[][];
+  );
 }
 
 function createAccumulator(
@@ -36,13 +30,14 @@ function createAccumulator(
     accumulatedParts ?? [],
     toolCalls ?? [],
     'run_1',
+    broadcastMock as never,
   );
 }
 
 describe('StreamAccumulator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.broadcastMock.mockResolvedValue(undefined);
+    broadcastMock.mockResolvedValue(undefined);
   });
 
   // ─── Text accumulation ──────────────────────────────────────────────

@@ -1,25 +1,14 @@
+import fs from 'node:fs/promises';
+
 import { tool } from 'ai';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
+import { PATHS } from '@/lib/paths.js';
 import { withTruncation } from '@/tools/runtime/wrappers.js';
-
-const mocks = vi.hoisted(() => ({
-  truncateOutput: vi.fn(),
-}));
-
-vi.mock('@/tools/runtime/truncation.js', () => ({
-  truncateOutput: mocks.truncateOutput,
-}));
 
 describe('withTruncation', () => {
   test('returns compact result when truncation is triggered', async () => {
-    mocks.truncateOutput.mockResolvedValue({
-      truncated: true,
-      content: 'preview',
-      outputPath: '/tmp/tool-output',
-    });
-
     const wrapped = withTruncation(
       tool({
         description: 'test tool',
@@ -29,25 +18,27 @@ describe('withTruncation', () => {
           attachment: 'x'.repeat(20_000),
         }),
       }),
+      { maxBytes: 120 },
     );
 
     const result = await wrapped.execute?.({}, {} as never);
-
-    expect(result).toEqual({
-      output: 'preview',
+    expect(result).toMatchObject({
+      output: expect.stringContaining('truncated'),
       __stitchToolResultMeta: {
         truncated: true,
-        outputPath: '/tmp/tool-output',
+        outputPath: expect.stringContaining(PATHS.dirPaths.toolOutput),
       },
     });
+
+    if (!result || typeof result !== 'object' || !('__stitchToolResultMeta' in result)) {
+      throw new Error('expected truncation metadata in wrapped tool result');
+    }
+    const outputPath = (result as { __stitchToolResultMeta: { outputPath: string } })
+      .__stitchToolResultMeta.outputPath;
+    await expect(fs.stat(outputPath)).resolves.toBeDefined();
   });
 
   test('returns original result when truncation is not needed', async () => {
-    mocks.truncateOutput.mockResolvedValue({
-      truncated: false,
-      content: 'small output',
-    });
-
     const wrapped = withTruncation(
       tool({
         description: 'test tool',

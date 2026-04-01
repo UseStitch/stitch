@@ -44,6 +44,7 @@ export type StepOptions = {
   tools: Record<string, Tool>;
   abortSignal: AbortSignal;
   streamRunId: string;
+  broadcast?: typeof Sse.broadcast;
   onAttemptFailure?: (input: {
     step: number;
     attempt: number;
@@ -134,6 +135,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     accumulatedParts,
     toolCalls,
     opts.streamRunId,
+    opts.broadcast,
   );
 
   const resolveResponseMessages = async (phase: 'finish' | 'unknown'): Promise<ModelMessage[]> => {
@@ -321,7 +323,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       }
 
       if (!retryMessage || attempt >= MAX_RETRIES) {
-        await Sse.broadcast('stream-error', {
+        await (opts.broadcast ?? Sse.broadcast)('stream-error', {
           sessionId: opts.sessionId,
           messageId: opts.messageId,
           error: errorInfo.message,
@@ -351,7 +353,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         'retrying step',
       );
 
-      await Sse.broadcast('stream-retry', {
+      await (opts.broadcast ?? Sse.broadcast)('stream-retry', {
         sessionId: opts.sessionId,
         messageId: opts.messageId,
         attempt,

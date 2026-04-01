@@ -20,8 +20,9 @@ export async function calculateMessageCostUsd(input: {
   providerId: string;
   modelId: string;
   usage: LanguageModelUsage;
+  providers?: Awaited<ReturnType<typeof Models.get>>;
 }): Promise<number> {
-  const providers = await Models.get();
+  const providers = input.providers ?? (await Models.get());
   const model = providers[input.providerId]?.models[input.modelId];
   const modelCost = model?.cost;
   if (!modelCost) {
