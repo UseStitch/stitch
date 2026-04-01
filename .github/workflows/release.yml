@@ -32,62 +32,6 @@ jobs:
             exit 1
           fi
 
-  # ---------------------------------------------------------------------------
-  # Version: compute the next semver tag
-  # ---------------------------------------------------------------------------
-  version:
-    needs: guard
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.bump.outputs.version }}
-      tag: ${{ steps.bump.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Compute next version
-        id: bump
-        shell: bash
-        run: |
-          # Get latest version tag, default to 0.0.0 if none exist
-          LATEST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
-          if [ -z "$LATEST" ]; then
-            LATEST="v0.0.0"
-          fi
-          LATEST="${LATEST#v}"
-
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
-          MAJOR="${MAJOR:-0}"
-          MINOR="${MINOR:-0}"
-          PATCH="${PATCH:-0}"
-
-          BUMP="${{ inputs.bump }}"
-          case "$BUMP" in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          TAG="v${VERSION}"
-
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Bumping ${LATEST} -> ${VERSION} (${BUMP})"
-
-  # ---------------------------------------------------------------------------
-  # Quality gates: test + typecheck (per OS, in parallel)
-  # ---------------------------------------------------------------------------
   quality-windows:
     needs: guard
     runs-on: windows-latest
@@ -120,24 +64,43 @@ jobs:
           wait $PID_TEST || exit 1
           wait $PID_TC || exit 1
 
-  # ---------------------------------------------------------------------------
-  # Build: Windows x64
-  # ---------------------------------------------------------------------------
+  prepare-release:
+    needs: [guard, quality-windows, quality-macos]
+    runs-on: ubuntu-latest
+    outputs:
+      previous_tag: ${{ steps.publish.outputs.previous_tag }}
+      version: ${{ steps.publish.outputs.version }}
+      tag: ${{ steps.publish.outputs.tag }}
+      release_sha: ${{ steps.publish.outputs.release_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch tags
+        run: git fetch --force --tags
+
+      - name: Commit release version and tag
+        id: publish
+        env:
+          RELEASE_BUMP: ${{ inputs.bump }}
+        run: bun run release:publish
+
   build-windows:
-    needs: [version, quality-windows]
+    needs: prepare-release
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.release_sha }}
       - uses: ./.github/actions/setup-bun
-
-      - name: Set version in package manifests
-        shell: bash
-        run: |
-          for PKG in apps/desktop apps/web; do
-            TMPFILE=$(mktemp)
-            jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' "$PKG/package.json" > "$TMPFILE"
-            mv "$TMPFILE" "$PKG/package.json"
-          done
 
       - name: Build all packages
         shell: bash
@@ -162,24 +125,14 @@ jobs:
             apps/desktop/dist/*.exe
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Build: macOS ARM64
-  # ---------------------------------------------------------------------------
   build-macos:
-    needs: [version, quality-macos]
+    needs: prepare-release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.release_sha }}
       - uses: ./.github/actions/setup-bun
-
-      - name: Set version in package manifests
-        shell: bash
-        run: |
-          for PKG in apps/desktop apps/web; do
-            TMPFILE=$(mktemp)
-            jq --arg v "${{ needs.version.outputs.version }}" '.version = $v' "$PKG/package.json" > "$TMPFILE"
-            mv "$TMPFILE" "$PKG/package.json"
-          done
 
       - name: Build all packages
         shell: bash
@@ -205,16 +158,15 @@ jobs:
             apps/desktop/dist/*.zip
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Release: create GitHub Release and upload all installers
-  # ---------------------------------------------------------------------------
   release:
-    needs: [version, build-windows, build-macos]
+    needs: [prepare-release, build-windows, build-macos]
     runs-on: ubuntu-latest
     environment:
       name: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.release_sha }}
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
@@ -228,17 +180,19 @@ jobs:
           name: stitch-macos-arm64
           path: artifacts/macos
 
-      - name: Create Git tag
-        run: |
-          git tag "${{ needs.version.outputs.tag }}"
-          git push origin "${{ needs.version.outputs.tag }}"
+      - name: Generate release notes body
+        env:
+          RELEASE_PREVIOUS_TAG: ${{ needs.prepare-release.outputs.previous_tag }}
+          RELEASE_NOTES_PATH: ${{ runner.temp }}/release-notes.md
+        run: bun run release:notes
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          name: Stitch ${{ needs.version.outputs.tag }}
-          generate_release_notes: true
+          tag_name: ${{ needs.prepare-release.outputs.tag }}
+          target_commitish: ${{ needs.prepare-release.outputs.release_sha }}
+          name: Stitch ${{ needs.prepare-release.outputs.tag }}
+          body_path: ${{ runner.temp }}/release-notes.md
           files: |
             artifacts/windows/*
             artifacts/macos/*

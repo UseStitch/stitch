@@ -1,0 +1,54 @@
+name: sync-production-to-master
+
+on:
+  workflow_run:
+    workflows: ['release']
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-sync-pr:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure production is ahead of master
+        id: diff
+        run: |
+          git fetch origin master production
+          AHEAD_COUNT=$(git rev-list --count origin/master..origin/production)
+          echo "ahead_count=${AHEAD_COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing sync PR
+        id: existing
+        if: ${{ steps.diff.outputs.ahead_count != '0' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COUNT=$(gh pr list --base master --head production --state open --json number --jq 'length')
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Open sync PR
+        if: ${{ steps.diff.outputs.ahead_count != '0' && steps.existing.outputs.count == '0' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(cat <<'EOF'
+          ## Summary
+          - sync release commits from production back into master
+          - keep long-lived branches aligned after automated release tagging/versioning
+          EOF
+          )
+          gh pr create \
+            --base master \
+            --head production \
+            --title "chore(release): sync production back to master" \
+            --body "$BODY"
