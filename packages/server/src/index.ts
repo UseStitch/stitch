@@ -8,6 +8,7 @@ import { PATHS } from '@/lib/paths.js';
 import { browserRouter } from '@/routes/browser.js';
 import { chatRouter } from '@/routes/chat.js';
 import { configRouter } from '@/routes/config.js';
+import { connectorsRouter } from '@/routes/connectors.js';
 import { eventsRouter } from '@/routes/events.js';
 import { mcpRouter } from '@/routes/mcp.js';
 import { meetingsRouter } from '@/routes/meetings.js';
@@ -19,7 +20,6 @@ import { queueRouter } from '@/routes/queue.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
 import { usageRouter } from '@/routes/usage.js';
-import { connectorsRouter } from '@/routes/connectors.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {

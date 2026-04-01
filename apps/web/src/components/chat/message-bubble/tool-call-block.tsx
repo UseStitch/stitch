@@ -105,5 +105,13 @@ export function ToolCallBlock({
     );
   }
 
-  return <GenericToolBlock toolName={toolName} status={status} args={args} result={result} error={error} />;
+  return (
+    <GenericToolBlock
+      toolName={toolName}
+      status={status}
+      args={args}
+      result={result}
+      error={error}
+    />
+  );
 }

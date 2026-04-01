@@ -1,5 +1,5 @@
-import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { startTokenRefreshService } from '@/connectors/auth/token-refresh.js';
+import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { registerGoogleToolsets } from '@/connectors/google-toolsets.js';
 import { initDb } from '@/db/client.js';
 import * as Log from '@/lib/log.js';

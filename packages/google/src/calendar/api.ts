@@ -35,7 +35,11 @@ type CalendarEvent = {
   status: string | undefined;
   htmlLink: string | undefined;
   meetLink: string | undefined;
-  attendees: { email: string; displayName: string | undefined; responseStatus: string | undefined }[];
+  attendees: {
+    email: string;
+    displayName: string | undefined;
+    responseStatus: string | undefined;
+  }[];
   organizer: { email: string; displayName: string | undefined } | undefined;
 };
 
@@ -59,12 +63,15 @@ function mapEvent(raw: CalendarEventRaw): CalendarEvent {
     status: raw.status,
     htmlLink: raw.htmlLink,
     meetLink,
-    attendees: raw.attendees?.map((a) => ({
-      email: a.email,
-      displayName: a.displayName,
-      responseStatus: a.responseStatus,
-    })) ?? [],
-    organizer: raw.organizer ? { email: raw.organizer.email, displayName: raw.organizer.displayName } : undefined,
+    attendees:
+      raw.attendees?.map((a) => ({
+        email: a.email,
+        displayName: a.displayName,
+        responseStatus: a.responseStatus,
+      })) ?? [],
+    organizer: raw.organizer
+      ? { email: raw.organizer.email, displayName: raw.organizer.displayName }
+      : undefined,
   };
 }
 
@@ -132,9 +139,7 @@ export async function createEvent(
   },
   calendarId = 'primary',
 ): Promise<CalendarEvent> {
-  const url = new URL(
-    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
-  );
+  const url = new URL(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`);
   if (event.addMeet) url.searchParams.set('conferenceDataVersion', '1');
 
   const body: Record<string, unknown> = {

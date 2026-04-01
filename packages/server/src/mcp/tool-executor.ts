@@ -269,10 +269,13 @@ async function buildServerPresentation(
   };
 }
 
-async function refreshMcpToolsetsInternal(options?: {
-  serverIds?: string[];
-  refreshTools?: boolean;
-}, deps: McpToolExecutorDeps = DEFAULT_DEPS): Promise<void> {
+async function refreshMcpToolsetsInternal(
+  options?: {
+    serverIds?: string[];
+    refreshTools?: boolean;
+  },
+  deps: McpToolExecutorDeps = DEFAULT_DEPS,
+): Promise<void> {
   const refreshTools = options?.refreshTools ?? true;
   const configuredServers = await deps.getMcpServersWithCachedTools();
   const serverIdSet = options?.serverIds ? new Set(options.serverIds) : null;
@@ -311,7 +314,8 @@ async function refreshMcpToolsetsInternal(options?: {
   const serverSnapshots = await Promise.all(
     serversToRefresh.map(async (server) => {
       const tools = refreshTools
-        ? await deps.fetchMcpTools(server.id)
+        ? await deps
+            .fetchMcpTools(server.id)
             .then((result) => (isServiceError(result) ? (server.tools ?? []) : result.data))
             .catch(() => server.tools ?? [])
         : (server.tools ?? []);
@@ -365,10 +369,13 @@ async function refreshMcpToolsetsInternal(options?: {
   );
 }
 
-export async function refreshMcpToolsets(options?: {
-  serverIds?: string[];
-  refreshTools?: boolean;
-}, deps?: Partial<McpToolExecutorDeps>): Promise<void> {
+export async function refreshMcpToolsets(
+  options?: {
+    serverIds?: string[];
+    refreshTools?: boolean;
+  },
+  deps?: Partial<McpToolExecutorDeps>,
+): Promise<void> {
   const resolvedDeps: McpToolExecutorDeps = {
     ...DEFAULT_DEPS,
     ...deps,

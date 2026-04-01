@@ -18,9 +18,12 @@ type SearchToolBlockProps = {
 
 function getSearchArgs(args: unknown): { query: string | null; account: string | null } {
   const value = args as { query?: unknown; account?: unknown } | undefined;
-  const query = typeof value?.query === 'string' && value.query.trim().length > 0 ? value.query.trim() : null;
+  const query =
+    typeof value?.query === 'string' && value.query.trim().length > 0 ? value.query.trim() : null;
   const account =
-    typeof value?.account === 'string' && value.account.trim().length > 0 ? value.account.trim() : null;
+    typeof value?.account === 'string' && value.account.trim().length > 0
+      ? value.account.trim()
+      : null;
   return { query, account };
 }
 
@@ -65,7 +68,10 @@ export function SearchToolBlock({ toolName, status, args, result, onAbort }: Sea
             </ToolCard.TitleContent>
           </span>
           <ChevronRightIcon
-            className={cn('size-3 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+            className={cn(
+              'size-3 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-90',
+            )}
           />
         </button>
         <ToolCard.Actions className="self-center">

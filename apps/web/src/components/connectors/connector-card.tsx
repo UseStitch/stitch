@@ -2,10 +2,10 @@ import { PlusIcon, CheckCircle2Icon } from 'lucide-react';
 
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type ConnectorCardProps = {
   definition: ConnectorDefinition;

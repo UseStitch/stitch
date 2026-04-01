@@ -64,7 +64,10 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
   };
 }
 
-async function getPromptUserContext(): Promise<{ userName: string | null; userTimezone: string | null }> {
+async function getPromptUserContext(): Promise<{
+  userName: string | null;
+  userTimezone: string | null;
+}> {
   const db = getDb();
   const rows = await db
     .select({ key: userSettings.key, value: userSettings.value })

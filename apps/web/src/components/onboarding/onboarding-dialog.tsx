@@ -104,7 +104,10 @@ function OnboardingProfileStep({
   }
 
   return (
-    <form className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6" onSubmit={handleSubmit}>
+    <form
+      className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6"
+      onSubmit={handleSubmit}
+    >
       <div className="space-y-2 text-center">
         <h2 className="text-2xl font-semibold tracking-tight">Tell us your name</h2>
         <p className="text-sm text-muted-foreground">
@@ -143,7 +146,11 @@ function OnboardingProfileStep({
         {hasTimezoneError && <p className="text-xs text-destructive">Please select a timezone.</p>}
       </div>
 
-      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}>
+      <Button
+        size="lg"
+        type="submit"
+        disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}
+      >
         {isSaving ? 'Saving...' : 'Continue'}
       </Button>
     </form>
@@ -432,13 +439,10 @@ export function OnboardingDialog() {
     hasProfileTimezone &&
     hasEnabledProvider;
 
-  const completeOnboarding = React.useCallback(
-    async () => {
-      await saveOnboardingStatus.mutateAsync('completed');
-      await saveOnboardingVersion.mutateAsync(CURRENT_ONBOARDING_VERSION);
-    },
-    [saveOnboardingStatus, saveOnboardingVersion],
-  );
+  const completeOnboarding = React.useCallback(async () => {
+    await saveOnboardingStatus.mutateAsync('completed');
+    await saveOnboardingVersion.mutateAsync(CURRENT_ONBOARDING_VERSION);
+  }, [saveOnboardingStatus, saveOnboardingVersion]);
 
   React.useEffect(() => {
     if (
@@ -510,8 +514,8 @@ export function OnboardingDialog() {
               <div className="max-w-lg space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
                 <p className="text-sm text-muted-foreground">
-                  Let&apos;s personalize your profile and connect your first provider so you can start
-                  chatting in less than a minute.
+                  Let&apos;s personalize your profile and connect your first provider so you can
+                  start chatting in less than a minute.
                 </p>
               </div>
               <Button size="lg" onClick={() => setStep('profile')}>

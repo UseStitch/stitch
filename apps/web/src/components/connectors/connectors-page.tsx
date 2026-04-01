@@ -1,6 +1,7 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
 import { PlugIcon, SearchIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 
@@ -114,10 +115,7 @@ export function ConnectorsPage() {
       </div>
 
       {setupConnector && (
-        <SetupWizard
-          definition={setupConnector}
-          onClose={() => setSetupConnector(null)}
-        />
+        <SetupWizard definition={setupConnector} onClose={() => setSetupConnector(null)} />
       )}
     </div>
   );

@@ -1,38 +1,57 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
-import type { GoogleClient } from '../client.js';
 import * as GmailApi from './api.js';
 
+import type { GoogleClient } from '../client.js';
+
 const gmailSearchSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().describe('Gmail search query (same syntax as Gmail search bar)'),
   maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
   pageToken: z.string().optional().describe('Pagination token from a previous search'),
 });
 
 const gmailReadSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   messageId: z.string().describe('The Gmail message ID to read'),
 });
 
 const gmailSendSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   to: z.string().describe('Recipient email address'),
   subject: z.string().describe('Email subject line'),
   body: z.string().describe('Plain text email body'),
-  from: z.string().optional().describe('Sender address — use when the account has multiple aliases and you need to send from a specific one'),
+  from: z
+    .string()
+    .optional()
+    .describe(
+      'Sender address — use when the account has multiple aliases and you need to send from a specific one',
+    ),
   cc: z.string().optional().describe('CC recipient(s)'),
   bcc: z.string().optional().describe('BCC recipient(s)'),
   inReplyTo: z
     .string()
     .optional()
-    .describe('Message-ID header of the message being replied to — read the original message first to get this value'),
+    .describe(
+      'Message-ID header of the message being replied to — read the original message first to get this value',
+    ),
   threadId: z.string().optional().describe('Gmail thread ID to reply within'),
 });
 
 export function createGmailTools(
-  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (
+    account?: string,
+  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
 ) {
   const tools: Record<string, Tool> = {
@@ -42,7 +61,12 @@ export function createGmailTools(
       inputSchema: gmailSearchSchema,
       execute: async (input: z.infer<typeof gmailSearchSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await GmailApi.searchMessages(client, input.query, input.maxResults, input.pageToken);
+        const result = await GmailApi.searchMessages(
+          client,
+          input.query,
+          input.maxResults,
+          input.pageToken,
+        );
         return { ...result, usedAccount };
       },
     }),

@@ -1,6 +1,6 @@
+import crypto from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { URL, URLSearchParams } from 'node:url';
-import crypto from 'node:crypto';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
@@ -107,9 +107,7 @@ export async function startOAuthFlow(
 
         if (!code || returnedState !== state) {
           res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(
-            buildHtmlResponse('Authorization Failed', 'Invalid callback parameters', false),
-          );
+          res.end(buildHtmlResponse('Authorization Failed', 'Invalid callback parameters', false));
           clearTimeout(timeout);
           server.close();
           reject(new Error('Invalid OAuth callback: missing code or state mismatch'));
@@ -189,7 +187,10 @@ async function exchangeCodeForTokens(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    log.error({ event: 'oauth.token.exchange.failed', status: response.status, errorBody }, 'Token exchange failed');
+    log.error(
+      { event: 'oauth.token.exchange.failed', status: response.status, errorBody },
+      'Token exchange failed',
+    );
     throw new Error(`Token exchange failed (${response.status}): ${errorBody}`);
   }
 
@@ -229,7 +230,10 @@ export async function refreshAccessToken(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    log.error({ event: 'oauth.refresh.failed', status: response.status, errorBody }, 'Token refresh failed');
+    log.error(
+      { event: 'oauth.refresh.failed', status: response.status, errorBody },
+      'Token refresh failed',
+    );
     throw new Error(`Token refresh failed (${response.status}): ${errorBody}`);
   }
 

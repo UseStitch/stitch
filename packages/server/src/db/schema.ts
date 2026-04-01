@@ -12,8 +12,8 @@ import {
 
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
-import type { PrefixedString } from '@stitch/shared/id';
 import type { ConnectorStatus } from '@stitch/shared/connectors/types';
+import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
 import type {

@@ -45,9 +45,10 @@ function extractAttachments(payload: GmailMessagePart | undefined): GmailAttachm
 
   const attachments: GmailAttachment[] = [];
   for (const part of payload.parts) {
-    const filename = extractHeader(part.headers, 'Content-Disposition')
-      ?.match(/filename="?([^";]+)"?/i)?.[1]
-      ?? part.headers?.find((h) => h.name.toLowerCase() === 'content-type')
+    const filename =
+      extractHeader(part.headers, 'Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ??
+      part.headers
+        ?.find((h) => h.name.toLowerCase() === 'content-type')
         ?.value.match(/name="?([^";]+)"?/i)?.[1];
 
     if (filename && part.body?.size) {
@@ -106,7 +107,14 @@ type GmailMessage = {
 };
 
 type GmailSearchResult = {
-  messages: { id: string; threadId: string; snippet: string; from: string | undefined; subject: string | undefined; date: string | undefined }[];
+  messages: {
+    id: string;
+    threadId: string;
+    snippet: string;
+    from: string | undefined;
+    subject: string | undefined;
+    date: string | undefined;
+  }[];
   nextPageToken: string | undefined;
   totalEstimate: number;
 };
@@ -178,11 +186,7 @@ export async function sendMessage(
   body: string,
   options?: { from?: string; cc?: string; bcc?: string; inReplyTo?: string; threadId?: string },
 ): Promise<{ id: string; threadId: string }> {
-  const headers = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-  ];
+  const headers = [`To: ${to}`, `Subject: ${subject}`, `Content-Type: text/plain; charset="UTF-8"`];
 
   if (options?.from) headers.push(`From: ${options.from}`);
   if (options?.cc) headers.push(`Cc: ${options.cc}`);

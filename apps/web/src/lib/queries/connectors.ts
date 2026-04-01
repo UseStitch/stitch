@@ -12,7 +12,8 @@ const connectorKeys = {
   all: ['connectors'] as const,
   definitions: () => [...connectorKeys.all, 'definitions'] as const,
   instances: () => [...connectorKeys.all, 'instances'] as const,
-  oauthProfiles: (connectorId: string) => [...connectorKeys.all, 'oauth-profiles', connectorId] as const,
+  oauthProfiles: (connectorId: string) =>
+    [...connectorKeys.all, 'oauth-profiles', connectorId] as const,
   instance: (id: string) => [...connectorKeys.all, 'instance', id] as const,
 };
 
@@ -101,7 +102,9 @@ export function useCreateOAuthProfile() {
       return res.json() as Promise<ConnectorOAuthProfile>;
     },
     onSuccess: (_, vars) => {
-      void queryClient.invalidateQueries({ queryKey: connectorKeys.oauthProfiles(vars.connectorId) });
+      void queryClient.invalidateQueries({
+        queryKey: connectorKeys.oauthProfiles(vars.connectorId),
+      });
       void queryClient.invalidateQueries({ queryKey: connectorKeys.instances() });
     },
   });
@@ -120,7 +123,9 @@ export function useDeleteOAuthProfile() {
       }
     },
     onSuccess: (_, vars) => {
-      void queryClient.invalidateQueries({ queryKey: connectorKeys.oauthProfiles(vars.connectorId) });
+      void queryClient.invalidateQueries({
+        queryKey: connectorKeys.oauthProfiles(vars.connectorId),
+      });
       void queryClient.invalidateQueries({ queryKey: connectorKeys.instances() });
     },
   });

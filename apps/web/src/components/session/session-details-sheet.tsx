@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react';
-
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 
 type SessionDetailsSheetProps = {
   sessionTitle: string;
@@ -57,12 +56,22 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
       <p className="text-[13px] text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground [font-variant-numeric:tabular-nums]">{value}</p>
+      <p className="text-sm font-medium text-foreground [font-variant-numeric:tabular-nums]">
+        {value}
+      </p>
     </div>
   );
 }
 
-function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
     <section className="rounded-xl border border-border/80 bg-background/80 p-4 shadow-sm backdrop-blur-sm sm:p-5">
       <div className="space-y-1 border-b border-border/70 pb-3">
@@ -84,7 +93,12 @@ function SplitRow({
   emphasize?: boolean;
 }) {
   return (
-    <div className={cn('flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1', emphasize && 'pt-2')}>
+    <div
+      className={cn(
+        'flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1',
+        emphasize && 'pt-2',
+      )}
+    >
       <p className={cn('text-sm text-muted-foreground', emphasize && 'text-foreground')}>{label}</p>
       <p
         className={cn(
@@ -125,7 +139,12 @@ export function SessionDetailsSheet({
   const totalUsageTokens = currentSessionTokens + childSessionsTokens;
 
   return (
-    <aside className={cn('h-full min-h-0 overflow-hidden bg-linear-to-b from-muted/60 to-muted/35', className)}>
+    <aside
+      className={cn(
+        'h-full min-h-0 overflow-hidden bg-linear-to-b from-muted/60 to-muted/35',
+        className,
+      )}
+    >
       <div className="h-full border-l border-foreground/20 bg-transparent">
         <div className="border-b border-border/80 bg-background/65 px-5 py-3.5 backdrop-blur-sm">
           <p className="text-base font-medium">Context</p>
@@ -156,29 +175,37 @@ export function SessionDetailsSheet({
                 <DetailItem label="Session Created" value={formatDate(sessionCreatedAt)} />
                 <DetailItem label="Last Activity" value={formatDate(lastActivityAt)} />
                 <DetailItem label="User Messages" value={formatNumber(userMessageCount)} />
-                <DetailItem label="Assistant Messages" value={formatNumber(assistantMessageCount)} />
+                <DetailItem
+                  label="Assistant Messages"
+                  value={formatNumber(assistantMessageCount)}
+                />
               </div>
             </Section>
 
             <Section title="Spending (USD)" description="Where money was spent.">
               <div className="space-y-2.5">
-                <SplitRow label="This session" value={USD_FORMATTER.format(currentSessionCostUsd)} />
-                <SplitRow label="Child sessions" value={USD_FORMATTER.format(childSessionsCostUsd)} />
+                <SplitRow
+                  label="This session"
+                  value={USD_FORMATTER.format(currentSessionCostUsd)}
+                />
+                <SplitRow
+                  label="Child sessions"
+                  value={USD_FORMATTER.format(childSessionsCostUsd)}
+                />
                 <div className="border-t border-border/70" />
                 <SplitRow label="Total" value={USD_FORMATTER.format(totalCostUsd)} emphasize />
               </div>
             </Section>
 
-            <Section
-              title="AI Usage (Tokens)"
-              description="How much AI processing was used."
-            >
+            <Section title="AI Usage (Tokens)" description="How much AI processing was used.">
               <div className="space-y-2.5">
                 <SplitRow label="This session" value={formatNumber(currentSessionTokens)} />
                 <SplitRow label="Child sessions" value={formatNumber(childSessionsTokens)} />
                 <div className="border-t border-border/70" />
                 <SplitRow label="Total" value={formatNumber(totalUsageTokens)} emphasize />
-                <p className="pt-1 text-[13px] text-muted-foreground">Tokens = AI processing units.</p>
+                <p className="pt-1 text-[13px] text-muted-foreground">
+                  Tokens = AI processing units.
+                </p>
               </div>
             </Section>
 

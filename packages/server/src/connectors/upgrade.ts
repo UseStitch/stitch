@@ -65,7 +65,9 @@ export function buildUpgradeState(input: {
 
   const targetCapabilities = getCapabilitiesForVersion(input.definition, toVersion);
   const currentCapabilities = new Set(input.capabilities);
-  const newCapabilities = targetCapabilities.filter((capability) => !currentCapabilities.has(capability));
+  const newCapabilities = targetCapabilities.filter(
+    (capability) => !currentCapabilities.has(capability),
+  );
 
   const latestVersion = pendingVersions[pendingVersions.length - 1];
 

@@ -34,7 +34,11 @@ type Props = {
 
 const STATUS_CONFIG: Record<
   ConnectorStatus,
-  { label: string; icon: React.ReactNode; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+  {
+    label: string;
+    icon: React.ReactNode;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  }
 > = {
   connected: {
     label: 'Connected',
@@ -121,7 +125,9 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       });
 
       if (result.type === 'reauthorize') {
-        void (window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank'));
+        void (
+          window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank')
+        );
         toast.info('Opening browser to complete connector upgrade...');
         return;
       }
@@ -145,7 +151,10 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
             className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/80 px-4 py-3.5 text-sm"
           >
             <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">
-              <ConnectorIcon icon={def?.icon ?? instance.connectorId} className="size-7 rounded-md" />
+              <ConnectorIcon
+                icon={def?.icon ?? instance.connectorId}
+                className="size-7 rounded-md"
+              />
             </div>
 
             <div className="min-w-0 flex-1">

@@ -1,12 +1,12 @@
 import { BarChart3Icon, MessageSquareIcon, MicIcon, PlugIcon, SettingsIcon } from 'lucide-react';
 
-import { Link, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Link, useRouterState } from '@tanstack/react-router';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDialogContext } from '@/context/dialog-context';
-import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
+import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
 
 type ActivityItem = {
@@ -71,7 +71,9 @@ export function ActivityBar() {
   const currentPath = routerState.location.pathname;
   const { setSettingsTab } = useDialogContext();
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
-  const pendingConnectorUpdates = connectorInstances.filter((instance) => instance.upgrade?.available).length;
+  const pendingConnectorUpdates = connectorInstances.filter(
+    (instance) => instance.upgrade?.available,
+  ).length;
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const showTrafficLightPadding = isMac && !isFullScreen;

@@ -14,9 +14,7 @@ import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
 
 function getBroadcastCalls(eventType: string): unknown[][] {
-  return broadcastMock.mock.calls.filter(
-    (call: unknown[]) => call[0] === eventType,
-  );
+  return broadcastMock.mock.calls.filter((call: unknown[]) => call[0] === eventType);
 }
 
 function createAccumulator(

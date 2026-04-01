@@ -2,8 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/registry.js';
 import * as ConnectorIcons from '@/connectors/icons.js';
+import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/registry.js';
 import {
   listConnectorInstances,
   listConnectorOAuthProfiles,
@@ -18,8 +18,8 @@ import {
   testConnectorInstance,
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
-import { isServiceError } from '@/lib/service-result.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
@@ -64,19 +64,24 @@ connectorsRouter.get('/instances/:id', async (c) => {
 });
 
 // Create an OAuth connector instance
-const createOAuthSchema = z.object({
-  connectorId: z.string().min(1),
-  label: z.string().min(1),
-  oauthProfileId: z.string().min(1).optional(),
-  clientId: z.string().min(1).optional(),
-  clientSecret: z.string().min(1).optional(),
-  scopes: z.array(z.string()).min(1),
-}).refine((value) => {
-  if (value.oauthProfileId) return true;
-  return Boolean(value.clientId && value.clientSecret);
-}, {
-  message: 'oauthProfileId or both clientId and clientSecret are required',
-});
+const createOAuthSchema = z
+  .object({
+    connectorId: z.string().min(1),
+    label: z.string().min(1),
+    oauthProfileId: z.string().min(1).optional(),
+    clientId: z.string().min(1).optional(),
+    clientSecret: z.string().min(1).optional(),
+    scopes: z.array(z.string()).min(1),
+  })
+  .refine(
+    (value) => {
+      if (value.oauthProfileId) return true;
+      return Boolean(value.clientId && value.clientSecret);
+    },
+    {
+      message: 'oauthProfileId or both clientId and clientSecret are required',
+    },
+  );
 
 const createOAuthProfileSchema = z.object({
   connectorId: z.string().min(1),
@@ -85,16 +90,12 @@ const createOAuthProfileSchema = z.object({
   clientSecret: z.string().min(1),
 });
 
-connectorsRouter.post(
-  '/instances/oauth',
-  zValidator('json', createOAuthSchema),
-  async (c) => {
-    const body = c.req.valid('json');
-    const result = await createOAuthConnectorInstance(body);
-    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-    return c.json(result.data, 201);
-  },
-);
+connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createOAuthConnectorInstance(body);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.json(result.data, 201);
+});
 
 // Create an API key connector instance
 const createApiKeySchema = z.object({
@@ -103,16 +104,12 @@ const createApiKeySchema = z.object({
   apiKey: z.string().min(1),
 });
 
-connectorsRouter.post(
-  '/instances/api-key',
-  zValidator('json', createApiKeySchema),
-  async (c) => {
-    const body = c.req.valid('json');
-    const result = await createApiKeyConnectorInstance(body);
-    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-    return c.json(result.data, 201);
-  },
-);
+connectorsRouter.post('/instances/api-key', zValidator('json', createApiKeySchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createApiKeyConnectorInstance(body);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.json(result.data, 201);
+});
 
 // Start OAuth authorization flow for an instance
 connectorsRouter.post('/instances/:id/authorize', async (c) => {
@@ -124,7 +121,10 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
-    log.warn({ event: 'connector.authorize.background_failed', id, error: message }, 'background connector authorization failed');
+    log.warn(
+      { event: 'connector.authorize.background_failed', id, error: message },
+      'background connector authorization failed',
+    );
   });
 
   return c.json({ authUrl: result.data.authUrl });
@@ -168,17 +168,13 @@ const upgradeSchema = z.object({
   apiKey: z.string().min(1).optional(),
 });
 
-connectorsRouter.patch(
-  '/instances/:id',
-  zValidator('json', updateSchema),
-  async (c) => {
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
-    const result = await updateConnectorInstance(id, body);
-    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-    return c.json(result.data);
-  },
-);
+connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
+  const result = await updateConnectorInstance(id, body);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
+});
 
 // Delete a connector instance
 connectorsRouter.delete('/instances/:id', async (c) => {
@@ -197,14 +193,10 @@ connectorsRouter.post('/instances/:id/test', async (c) => {
 });
 
 // Upgrade a connector instance to the latest connector version
-connectorsRouter.post(
-  '/instances/:id/upgrade',
-  zValidator('json', upgradeSchema),
-  async (c) => {
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
-    const result = await upgradeConnectorInstance(id, body);
-    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-    return c.json(result.data);
-  },
-);
+connectorsRouter.post('/instances/:id/upgrade', zValidator('json', upgradeSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
+  const result = await upgradeConnectorInstance(id, body);
+  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
+});

@@ -1,8 +1,5 @@
 import { asc, eq } from 'drizzle-orm';
 
-import { createConnectorInstanceId } from '@stitch/shared/id';
-import { createConnectorOAuthProfileId } from '@stitch/shared/id';
-import type { PrefixedString } from '@stitch/shared/id';
 import type {
   ConnectorDefinition,
   ConnectorInstance,
@@ -11,20 +8,26 @@ import type {
   ConnectorStatus,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
+import { createConnectorInstanceId } from '@stitch/shared/id';
+import { createConnectorOAuthProfileId } from '@stitch/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
+import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
+import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import { getConnectorDefinition } from '@/connectors/registry.js';
+import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
-import { getConnectorDefinition } from '@/connectors/registry.js';
-import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
-import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
+import * as Log from '@/lib/log.js';
 import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'connectors' });
 
-function toSafe(instance: ConnectorInstance, definition: ConnectorDefinition | undefined): ConnectorInstanceSafe {
+function toSafe(
+  instance: ConnectorInstance,
+  definition: ConnectorDefinition | undefined,
+): ConnectorInstanceSafe {
   const { clientSecret, accessToken, refreshToken, apiKey, ...rest } = instance;
   const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
   const storedCapabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
@@ -164,10 +167,7 @@ export async function createOAuthConnectorInstance(input: {
     `Connector instance created: ${input.label}`,
   );
 
-  const [row] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, id));
+  const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, id));
   return ok(toSafe(row as ConnectorInstance, definition));
 }
 
@@ -210,10 +210,7 @@ export async function createApiKeyConnectorInstance(input: {
     `API key connector instance created: ${input.label}`,
   );
 
-  const [row] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, id));
+  const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, id));
   return ok(toSafe(row as ConnectorInstance, definition));
 }
 
@@ -433,7 +430,10 @@ export async function upgradeConnectorInstance(
 ): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
   const db = getDb();
   const typedInstanceId = instanceId as PrefixedString<'conn'>;
-  const [instance] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId));
+  const [instance] = await db
+    .select()
+    .from(connectorInstances)
+    .where(eq(connectorInstances.id, typedInstanceId));
 
   if (!instance) return err('Connector instance not found', 404);
 
@@ -446,7 +446,7 @@ export async function upgradeConnectorInstance(
   const upgrade = buildUpgradeState({
     definition,
     appliedVersion,
-    scopes: (instance.scopes) ?? null,
+    scopes: instance.scopes ?? null,
     capabilities,
   });
 
@@ -495,7 +495,7 @@ export async function upgradeConnectorInstance(
       return err('Connector upgrade requires reauthorization, but connector is not OAuth2', 400);
     }
 
-    const currentScopes = (instance.scopes) ?? [];
+    const currentScopes = instance.scopes ?? [];
     const scopeSet = new Set([...currentScopes, ...upgrade.missingScopes]);
     const nextScopes = [...scopeSet];
 
@@ -632,7 +632,10 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
     return ok(true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    log.error({ event: 'connector.test.failed', instanceId, error: message }, 'Connection test failed');
+    log.error(
+      { event: 'connector.test.failed', instanceId, error: message },
+      'Connection test failed',
+    );
 
     await db
       .update(connectorInstances)

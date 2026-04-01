@@ -526,7 +526,10 @@ export async function getSessionStats(
     .orderBy(asc(messages.createdAt));
 
   const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
-  const currentSessionTokens = sessionMessages.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
+  const currentSessionTokens = sessionMessages.reduce(
+    (acc, m) => acc + getMessageTokens(m.usage),
+    0,
+  );
   const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
   const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
 

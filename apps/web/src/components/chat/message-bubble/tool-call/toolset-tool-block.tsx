@@ -2,9 +2,9 @@ import { PackageIcon, PackagePlusIcon, PackageMinusIcon, PackageSearchIcon } fro
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ConnectorIcon } from '@/components/connectors/connector-icon';
-
 import { ToolCard, getToolCardState, getToolLabel } from './card-primitives';
+
+import { ConnectorIcon } from '@/components/connectors/connector-icon';
 
 const TOOLSET_TOOL_CONFIG: Record<
   string,

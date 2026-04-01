@@ -1,11 +1,15 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
-import type { GoogleClient } from '../client.js';
 import * as CalendarApi from './api.js';
 
+import type { GoogleClient } from '../client.js';
+
 const calendarListSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().optional().describe('Free-text search across event fields'),
   timeMin: z
     .string()
@@ -15,22 +19,27 @@ const calendarListSchema = z.object({
   timeZone: z
     .string()
     .optional()
-    .describe('IANA time zone (e.g. "America/New_York"). Pass the user\'s local timezone so "today" is interpreted correctly.'),
+    .describe(
+      'IANA time zone (e.g. "America/New_York"). Pass the user\'s local timezone so "today" is interpreted correctly.',
+    ),
   maxResults: z.number().optional().default(10).describe('Max events to return (default 10)'),
-  calendarId: z
-    .string()
-    .optional()
-    .describe('Calendar ID to query (defaults to primary calendar)'),
+  calendarId: z.string().optional().describe('Calendar ID to query (defaults to primary calendar)'),
 });
 
 const calendarGetSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   eventId: z.string().describe('The calendar event ID'),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
 const calendarCreateSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   summary: z.string().describe('Event title'),
   description: z.string().optional().describe('Event description'),
   location: z.string().optional().describe('Event location'),
@@ -38,12 +47,19 @@ const calendarCreateSchema = z.object({
   endDateTime: z.string().describe('End time (ISO 8601)'),
   timeZone: z.string().optional().describe('Time zone (e.g. "America/Chicago"). Defaults to UTC.'),
   attendees: z.array(z.string()).optional().describe('List of attendee email addresses'),
-  addMeet: z.boolean().optional().describe('Set to true to automatically generate and attach a Google Meet video conference link'),
+  addMeet: z
+    .boolean()
+    .optional()
+    .describe(
+      'Set to true to automatically generate and attach a Google Meet video conference link',
+    ),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
 export function createCalendarTools(
-  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (
+    account?: string,
+  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
 ) {
   const tools: Record<string, Tool> = {
@@ -103,7 +119,10 @@ export function createCalendarTools(
 }
 
 export const CALENDAR_TOOL_SUMMARIES = [
-  { name: 'calendar_list', description: 'List upcoming Google Calendar events with optional date/text filtering' },
+  {
+    name: 'calendar_list',
+    description: 'List upcoming Google Calendar events with optional date/text filtering',
+  },
   { name: 'calendar_get', description: 'Get full details for a specific calendar event' },
   { name: 'calendar_create', description: 'Create a new calendar event (requires write access)' },
 ];

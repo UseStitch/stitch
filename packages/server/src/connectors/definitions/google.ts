@@ -1,4 +1,3 @@
-import type { ConnectorDefinition, OAuthConfig } from '@stitch/shared/connectors/types';
 import {
   GOOGLE_DEFAULT_SCOPES,
   GOOGLE_SCOPE_CALENDAR,
@@ -24,6 +23,7 @@ import {
   GOOGLE_CAPABILITY_GMAIL_READ,
   GOOGLE_CAPABILITY_GMAIL_WRITE,
 } from '@stitch/google/toolsets';
+import type { ConnectorDefinition, OAuthConfig } from '@stitch/shared/connectors/types';
 
 const SERVICE_ACCESS_OPTIONS = [
   {

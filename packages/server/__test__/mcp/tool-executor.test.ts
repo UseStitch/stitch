@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
-import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
+import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 
 function clearToolsets(): void {

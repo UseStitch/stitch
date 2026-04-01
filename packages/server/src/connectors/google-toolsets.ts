@@ -5,9 +5,9 @@
  */
 
 import { eq } from 'drizzle-orm';
-import type { Tool } from 'ai';
 
 import { GoogleClient } from '@stitch/google/client';
+import { hasServiceAccess } from '@stitch/google/scopes';
 import {
   GOOGLE_CAPABILITY_CALENDAR_READ,
   GOOGLE_CAPABILITY_DOCS_READ,
@@ -17,17 +17,17 @@ import {
   type GoogleToolsetDefinition,
   buildGoogleToolsets,
 } from '@stitch/google/toolsets';
-import { hasServiceAccess } from '@stitch/google/scopes';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
-import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
+import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
+import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'google-toolsets' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -42,16 +42,28 @@ function accountSupportsToolset(
 ): boolean {
   const scopes = account.scopes ?? [];
   if (toolsetId === 'google-gmail') {
-    return hasServiceAccess(scopes, 'gmail') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_GMAIL_READ);
+    return (
+      hasServiceAccess(scopes, 'gmail') &&
+      hasCapability(account.capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
+    );
   }
   if (toolsetId === 'google-drive') {
-    return hasServiceAccess(scopes, 'drive') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_DRIVE_READ);
+    return (
+      hasServiceAccess(scopes, 'drive') &&
+      hasCapability(account.capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
+    );
   }
   if (toolsetId === 'google-calendar') {
-    return hasServiceAccess(scopes, 'calendar') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_CALENDAR_READ);
+    return (
+      hasServiceAccess(scopes, 'calendar') &&
+      hasCapability(account.capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
+    );
   }
   if (toolsetId === 'google-docs') {
-    return hasServiceAccess(scopes, 'docs') && hasCapability(account.capabilities, GOOGLE_CAPABILITY_DOCS_READ);
+    return (
+      hasServiceAccess(scopes, 'docs') &&
+      hasCapability(account.capabilities, GOOGLE_CAPABILITY_DOCS_READ)
+    );
   }
   return false;
 }
@@ -87,21 +99,24 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           .from(connectorInstances)
           .where(eq(connectorInstances.connectorId, 'google'));
 
-        const connected = rows.filter((row) => row.status === 'connected' && Boolean(row.accessToken));
+        const connected = rows.filter(
+          (row) => row.status === 'connected' && Boolean(row.accessToken),
+        );
         if (connected.length === 0) {
-          throw new Error('No connected Google accounts found. Connect and authorize Google first.');
+          throw new Error(
+            'No connected Google accounts found. Connect and authorize Google first.',
+          );
         }
 
         const normalized = account?.trim().toLowerCase();
-        const chosen =
-          normalized
-            ? connected.find((row) => {
-                const email = row.accountEmail?.toLowerCase();
-                const label = row.label.toLowerCase();
-                const id = row.id.toLowerCase();
-                return email === normalized || label === normalized || id === normalized;
-              })
-            : connected[0];
+        const chosen = normalized
+          ? connected.find((row) => {
+              const email = row.accountEmail?.toLowerCase();
+              const label = row.label.toLowerCase();
+              const id = row.id.toLowerCase();
+              return email === normalized || label === normalized || id === normalized;
+            })
+          : connected[0];
 
         if (!chosen) {
           const available = connected.map((row) => row.accountEmail ?? row.label).join(', ');
@@ -131,14 +146,17 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               .where(eq(connectorInstances.id, chosen.id));
 
             if (!latest) {
-              throw new Error(`Google account ${chosen.accountEmail ?? chosen.label} is not authorized.`);
+              throw new Error(
+                `Google account ${chosen.accountEmail ?? chosen.label} is not authorized.`,
+              );
             }
 
             const now = Date.now();
             const shouldRefresh =
               Boolean(latest.refreshToken) &&
               (latest.accessToken === null ||
-                (latest.tokenExpiresAt !== null && latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
+                (latest.tokenExpiresAt !== null &&
+                  latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
 
             if (shouldRefresh) {
               const definition = getConnectorDefinition(latest.connectorId);
@@ -209,7 +227,10 @@ export async function registerGoogleToolsets(): Promise<void> {
   const connected = instances.filter((i) => i.status === 'connected' && i.accessToken);
 
   if (connected.length === 0) {
-    log.info({ event: 'google-toolsets.none' }, 'No connected Google instances, skipping toolset registration');
+    log.info(
+      { event: 'google-toolsets.none' },
+      'No connected Google instances, skipping toolset registration',
+    );
     return;
   }
 

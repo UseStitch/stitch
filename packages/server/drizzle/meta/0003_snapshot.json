@@ -124,16 +124,12 @@
       "indexes": {
         "connector_instances_connector_id_idx": {
           "name": "connector_instances_connector_id_idx",
-          "columns": [
-            "connector_id"
-          ],
+          "columns": ["connector_id"],
           "isUnique": false
         },
         "connector_instances_oauth_profile_id_idx": {
           "name": "connector_instances_oauth_profile_id_idx",
-          "columns": [
-            "oauth_profile_id"
-          ],
+          "columns": ["oauth_profile_id"],
           "isUnique": false
         }
       },
@@ -203,17 +199,12 @@
       "indexes": {
         "connector_oauth_profiles_connector_id_idx": {
           "name": "connector_oauth_profiles_connector_id_idx",
-          "columns": [
-            "connector_id"
-          ],
+          "columns": ["connector_id"],
           "isUnique": false
         },
         "connector_oauth_profiles_connector_label_idx": {
           "name": "connector_oauth_profiles_connector_label_idx",
-          "columns": [
-            "connector_id",
-            "label"
-          ],
+          "columns": ["connector_id", "label"],
           "isUnique": true
         }
       },
@@ -489,31 +480,22 @@
       "indexes": {
         "llm_usage_events_run_id_idx": {
           "name": "llm_usage_events_run_id_idx",
-          "columns": [
-            "run_id"
-          ],
+          "columns": ["run_id"],
           "isUnique": false
         },
         "llm_usage_events_source_idx": {
           "name": "llm_usage_events_source_idx",
-          "columns": [
-            "source"
-          ],
+          "columns": ["source"],
           "isUnique": false
         },
         "llm_usage_events_created_at_idx": {
           "name": "llm_usage_events_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "llm_usage_events_provider_model_idx": {
           "name": "llm_usage_events_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": false
         }
       },
@@ -785,12 +767,8 @@
           "name": "messages_session_id_sessions_id_fk",
           "tableFrom": "messages",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -834,10 +812,7 @@
       "indexes": {
         "model_visibility_provider_model_idx": {
           "name": "model_visibility_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": true
         }
       },
@@ -941,12 +916,8 @@
           "name": "permission_responses_session_id_sessions_id_fk",
           "tableFrom": "permission_responses",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1067,12 +1038,8 @@
           "name": "questions_session_id_sessions_id_fk",
           "tableFrom": "questions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1141,12 +1108,8 @@
           "name": "queued_messages_session_id_sessions_id_fk",
           "tableFrom": "queued_messages",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1276,12 +1239,8 @@
           "name": "recording_transcriptions_meeting_id_meetings_id_fk",
           "tableFrom": "recording_transcriptions",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1348,12 +1307,8 @@
           "name": "sessions_parent_session_id_sessions_id_fk",
           "tableFrom": "sessions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "parent_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1411,10 +1366,7 @@
       "indexes": {
         "tool_permissions_tool_pattern_idx": {
           "name": "tool_permissions_tool_pattern_idx",
-          "columns": [
-            "tool_name",
-            "pattern"
-          ],
+          "columns": ["tool_name", "pattern"],
           "isUnique": true
         }
       },

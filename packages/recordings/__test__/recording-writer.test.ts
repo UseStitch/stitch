@@ -676,10 +676,10 @@ describe.skipIf(!IS_MACOS)('int16 format handling', () => {
     // 1600-frame stereo int16 chunk = 6400 bytes — same size as mono float32.
     // Use non-trivial values so the float32 probe detects NaN (int16 byte patterns
     // with negative values produce NaN when read as float32).
-    const frames: [number, number][] = Array.from(
-      { length: 1600 },
-      (_, i): [number, number] => [0.4 * ((i % 2 === 0) ? 1 : -1), 0.6 * ((i % 2 === 0) ? 1 : -1)],
-    );
+    const frames: [number, number][] = Array.from({ length: 1600 }, (_, i): [number, number] => [
+      0.4 * (i % 2 === 0 ? 1 : -1),
+      0.6 * (i % 2 === 0 ? 1 : -1),
+    ]);
     recorderRefs.mic!.emitStereoInt16Data(frames);
     recorderRefs.sys!.emitInt16Silence(1600);
 

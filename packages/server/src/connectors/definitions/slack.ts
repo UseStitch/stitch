@@ -34,7 +34,9 @@ export const slackConnector: ConnectorDefinition = {
     { text: 'Click Create New App -> From scratch' },
     { text: 'Give it a name (for example, Stitch Bot) and select your workspace' },
     { text: 'Navigate to OAuth & Permissions in the sidebar' },
-    { text: 'Under Scopes -> Bot Token Scopes, add channels:read, channels:history, chat:write, users:read' },
+    {
+      text: 'Under Scopes -> Bot Token Scopes, add channels:read, channels:history, chat:write, users:read',
+    },
     {
       text: 'Add search:read under User Token Scopes if you need Slack search support',
     },

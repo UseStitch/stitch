@@ -47,7 +47,9 @@ function toolCallBorderClass({ hasError, isActive, hasSuccess }: ToolCardState) 
 function StatusIcon({ status }: { status: ToolCallStatus }) {
   switch (status) {
     case 'pending':
-      return <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-info/35 border-t-info" />;
+      return (
+        <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-info/35 border-t-info" />
+      );
     case 'in-progress':
       return <LoaderIcon className="size-3.5 shrink-0 animate-spin text-info" />;
     case 'completed':

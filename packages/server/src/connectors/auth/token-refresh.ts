@@ -2,11 +2,11 @@ import { eq, and, isNotNull, lt } from 'drizzle-orm';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
-import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
+import { getDb } from '@/db/client.js';
+import { connectorInstances } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'token-refresh' });

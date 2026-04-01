@@ -1,11 +1,15 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
-import type { GoogleClient } from '../client.js';
 import * as DocsApi from './api.js';
 
+import type { GoogleClient } from '../client.js';
+
 const docsSearchSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   query: z
     .string()
     .optional()
@@ -17,18 +21,27 @@ const docsSearchSchema = z.object({
 });
 
 const docsReadSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   documentId: z.string().describe('The Google Docs document ID'),
 });
 
 const docsCreateSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   title: z.string().describe('Title for the new Google Doc'),
   content: z.string().optional().describe('Optional initial plain text body content'),
 });
 
 const docsUpdateSchema = z.object({
-  account: z.string().optional().describe('Optional account email or label when multiple Google accounts are connected'),
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
   documentId: z.string().describe('The Google Docs document ID'),
   content: z.string().describe('Plain text content to write to the document'),
   mode: z
@@ -39,7 +52,9 @@ const docsUpdateSchema = z.object({
 });
 
 export function createDocsTools(
-  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (
+    account?: string,
+  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
 ): Record<string, Tool> {
   const tools: Record<string, Tool> = {
@@ -49,7 +64,12 @@ export function createDocsTools(
       inputSchema: docsSearchSchema,
       execute: async (input: z.infer<typeof docsSearchSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DocsApi.searchDocuments(client, input.query, input.maxResults, input.pageToken);
+        const result = await DocsApi.searchDocuments(
+          client,
+          input.query,
+          input.maxResults,
+          input.pageToken,
+        );
         return { ...result, usedAccount };
       },
     }),
@@ -81,7 +101,12 @@ export function createDocsTools(
       inputSchema: docsUpdateSchema,
       execute: async (input: z.infer<typeof docsUpdateSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DocsApi.updateDocument(client, input.documentId, input.content, input.mode);
+        const result = await DocsApi.updateDocument(
+          client,
+          input.documentId,
+          input.content,
+          input.mode,
+        );
         return { ...result, usedAccount };
       },
     });

@@ -1219,12 +1219,15 @@ export async function runStream(opts: {
     opts.modelId,
   );
 
-  const runner = new StreamRunner({
-    ...opts,
-    llmMessages: transformedMessages,
-    coreTools,
-    toolsetManager,
-    streamRunId,
-  }, opts.deps);
+  const runner = new StreamRunner(
+    {
+      ...opts,
+      llmMessages: transformedMessages,
+      coreTools,
+      toolsetManager,
+      streamRunId,
+    },
+    opts.deps,
+  );
   await runner.run();
 }

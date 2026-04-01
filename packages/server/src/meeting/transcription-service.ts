@@ -55,7 +55,9 @@ const chunkAnalysisSchema = z.object({
 const finalAnalysisSchema = z.object({
   summary: z
     .string()
-    .describe('Structured markdown meeting summary using h1 topic headings and h2 category sub-sections'),
+    .describe(
+      'Structured markdown meeting summary using h1 topic headings and h2 category sub-sections',
+    ),
   title: z
     .string()
     .max(60)

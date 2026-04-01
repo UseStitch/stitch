@@ -6,12 +6,13 @@
  * the scopes allow it.
  */
 
-import type { GoogleClient } from './client.js';
-import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
-import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
 import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.js';
 import { DOCS_TOOL_SUMMARIES, createDocsTools } from './docs/tools.js';
+import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
+import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
 import { hasServiceAccess, hasWriteAccess } from './scopes.js';
+
+import type { GoogleClient } from './client.js';
 
 export const GOOGLE_CAPABILITY_GMAIL_READ = 'google.gmail.read';
 export const GOOGLE_CAPABILITY_GMAIL_WRITE = 'google.gmail.write';
@@ -80,7 +81,9 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
       'Gmail tools use standard Gmail search syntax for queries.',
       'Common operators: from:, to:, subject:, is:unread, is:starred, has:attachment, newer_than:, older_than:, label:',
       'Example queries: "from:boss@company.com newer_than:7d", "subject:invoice is:unread", "has:attachment filename:pdf"',
-      canWrite ? 'You have send access. Use gmail_send to compose or reply to emails.' : 'You have read-only access. Sending emails is not available.',
+      canWrite
+        ? 'You have send access. Use gmail_send to compose or reply to emails.'
+        : 'You have read-only access. Sending emails is not available.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createGmailTools(resolveClient, canWrite),
@@ -102,10 +105,12 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
       'Search, read, and create files in Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
     instructions: [
       'Drive search uses the Google Drive query syntax.',
-      "Common queries: \"name contains 'report'\", \"mimeType='application/pdf'\", \"modifiedTime > '2024-01-01'\"",
+      'Common queries: "name contains \'report\'", "mimeType=\'application/pdf\'", "modifiedTime > \'2024-01-01\'"',
       "Combine with: and, or, not. Example: \"name contains 'Q4' and mimeType='application/vnd.google-apps.spreadsheet'\"",
       'Google Docs are exported as plain text, Sheets as CSV. Binary files are downloaded directly.',
-      canWrite ? 'You have write access. Use drive_write to create new text or Markdown files.' : 'You have read-only access. Creating files is not available.',
+      canWrite
+        ? 'You have write access. Use drive_write to create new text or Markdown files.'
+        : 'You have read-only access. Creating files is not available.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createDriveTools(resolveClient, canWrite),
@@ -114,7 +119,8 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
 
 function createCalendarToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
   const canWrite =
-    hasWriteAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
+    hasWriteAccess(scopes, 'calendar') &&
+    hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
   const summaries = canWrite
     ? CALENDAR_TOOL_SUMMARIES
     : CALENDAR_TOOL_SUMMARIES.filter((t) => t.name !== 'calendar_create');
@@ -130,7 +136,9 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
       'Time parameters use ISO 8601 format (e.g., "2025-06-15T10:00:00Z").',
       'Always pass the user\'s local IANA timezone (e.g. "America/New_York") so that "today" and time ranges are anchored to their local time, not UTC.',
       'The calendar_list tool defaults to showing upcoming events from now.',
-      canWrite ? 'You have write access. Use calendar_create to schedule new events. Pass addMeet: true to automatically attach a Google Meet link.' : 'You have read-only access. Creating events is not available.',
+      canWrite
+        ? 'You have write access. Use calendar_create to schedule new events. Pass addMeet: true to automatically attach a Google Meet link.'
+        : 'You have read-only access. Creating events is not available.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
@@ -138,7 +146,8 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
 }
 
 function createDocsToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
-  const canWrite = hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
+  const canWrite =
+    hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
   const summaries = canWrite
     ? DOCS_TOOL_SUMMARIES
     : DOCS_TOOL_SUMMARIES.filter((t) => t.name !== 'docs_create' && t.name !== 'docs_update');
@@ -165,25 +174,39 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
  * Build the list of Google toolset definitions based on the granted scopes.
  * Only services that the user has authorized will be included.
  */
-export function buildGoogleToolsets(input: string[] | BuildGoogleToolsetsInput): GoogleToolsetDefinition[] {
+export function buildGoogleToolsets(
+  input: string[] | BuildGoogleToolsetsInput,
+): GoogleToolsetDefinition[] {
   const normalizedInput = Array.isArray(input) ? { scopes: input } : input;
   const scopes = normalizedInput.scopes;
   const capabilities = normalizedInput.capabilities ?? [...GOOGLE_DEFAULT_CAPABILITIES];
   const toolsets: GoogleToolsetDefinition[] = [];
 
-  if (hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)) {
+  if (
+    hasServiceAccess(scopes, 'gmail') &&
+    hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
+  ) {
     toolsets.push(createGmailToolset(scopes, capabilities));
   }
 
-  if (hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)) {
+  if (
+    hasServiceAccess(scopes, 'drive') &&
+    hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
+  ) {
     toolsets.push(createDriveToolset(scopes, capabilities));
   }
 
-  if (hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)) {
+  if (
+    hasServiceAccess(scopes, 'calendar') &&
+    hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
+  ) {
     toolsets.push(createCalendarToolset(scopes, capabilities));
   }
 
-  if (hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)) {
+  if (
+    hasServiceAccess(scopes, 'docs') &&
+    hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)
+  ) {
     toolsets.push(createDocsToolset(scopes, capabilities));
   }
 

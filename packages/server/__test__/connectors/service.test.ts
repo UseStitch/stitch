@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ConnectorDefinition, ConnectorInstance } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { connectorInstances } from '@/db/schema.js';
+import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import { getConnectorDefinition } from '@/connectors/registry.js';
 import {
   authorizeOAuthInstance,
   createApiKeyConnectorInstance,
@@ -11,8 +12,7 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import { getDb } from '@/db/client.js';
-import { getConnectorDefinition } from '@/connectors/registry.js';
-import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import { connectorInstances } from '@/db/schema.js';
 import { isServiceError } from '@/lib/service-result.js';
 
 vi.mock('@/db/client.js', () => ({
@@ -202,7 +202,10 @@ describe('connector service', () => {
 
     expect(isServiceError(result)).toBe(false);
     if (!isServiceError(result)) {
-      expect(result.data).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
+      expect(result.data).toEqual({
+        type: 'reauthorize',
+        authUrl: 'https://example.com/authorize',
+      });
     }
 
     const upgradeUpdate = state.updates.find((update) => update['status'] === 'awaiting_auth');
@@ -270,7 +273,10 @@ describe('connector service', () => {
   });
 
   test('authorizeOAuthInstance marks connector as error when token exchange fails', async () => {
-    const definition = oauthDefinition({ currentVersion: 1, versionHistory: oauthDefinition().versionHistory.slice(0, 1) });
+    const definition = oauthDefinition({
+      currentVersion: 1,
+      versionHistory: oauthDefinition().versionHistory.slice(0, 1),
+    });
     const instance: ConnectorInstance = {
       id: 'conn_auth_fail' as PrefixedString<'conn'>,
       connectorId: definition.id,

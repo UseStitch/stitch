@@ -3,14 +3,13 @@ import { rm } from 'node:fs/promises';
 import { platform, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { MacMeetingService } from '../src/meetings/mac-meeting.js';
 
+import { MacMeetingService } from '../src/meetings/mac-meeting.js';
 
 import type { MeetingInfo } from '../src/meetings/meeting-service.js';
 import type { RecordingHandle, RecordingResult } from '../src/writers/recording-writer.js';
 
 const IS_MACOS = platform() === 'darwin';
-
 
 // ---------------------------------------------------------------------------
 // Shared refs so tests can access mock instances (assigned inside vi.mock)
@@ -117,8 +116,6 @@ class MockRecordingWriter {
 // ---------------------------------------------------------------------------
 // Import MacMeetingService (after mocks are set up)
 // ---------------------------------------------------------------------------
-
-
 
 // ---------------------------------------------------------------------------
 // Helpers

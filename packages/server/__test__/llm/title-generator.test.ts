@@ -157,10 +157,16 @@ describe('generateTitle', () => {
   test('includes attachment filenames in the title prompt when provided', async () => {
     const model = makeMockModel('Test Title');
 
-    await generateTitle('Please review this code', 'openai', 'gpt-5', ['auth-service.ts', 'README.md'], {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
+    await generateTitle(
+      'Please review this code',
+      'openai',
+      'gpt-5',
+      ['auth-service.ts', 'README.md'],
+      {
+        resolveModel: async () => RESOLVED_MODEL,
+        getModel: () => model,
+      },
+    );
 
     expect(model.doGenerateCalls).toHaveLength(1);
     const messages = model.doGenerateCalls[0].prompt;

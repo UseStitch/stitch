@@ -10,8 +10,8 @@ import type {
   RightPanel,
   SendQueuedMessageFn,
 } from '@/components/session/session-page-types';
-import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useMarkSessionRead } from '@/lib/queries/chat';
 
 type SessionPageProps = {

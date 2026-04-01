@@ -4,14 +4,14 @@ import { createRecordingId } from '@stitch/shared/id';
 
 import { MeetingEventEmitter } from './meeting-service.js';
 
+import type { RecordingHandle, RecordingResult } from '../writers/recording-writer.js';
+import type { RecordingWriter } from '../writers/recording-writer.js';
 import type {
   MeetingInfo,
   MeetingService,
   MeetingServiceLogger,
   StartRecordingOnDemandOptions,
 } from './meeting-service.js';
-import type { RecordingHandle, RecordingResult } from '../writers/recording-writer.js';
-import type { RecordingWriter } from '../writers/recording-writer.js';
 
 interface MicStatusEntry {
   pid: number;

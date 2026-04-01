@@ -1,5 +1,3 @@
-import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import {
   ExternalLinkIcon,
   CheckIcon,
@@ -8,6 +6,8 @@ import {
   ArrowLeftIcon,
   Trash2Icon,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { useQuery } from '@tanstack/react-query';
 
@@ -19,11 +19,9 @@ import type {
   ConnectorOAuthProfile,
 } from '@stitch/shared/connectors/types';
 
+import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +30,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   connectorOAuthProfilesQueryOptions,
   useCreateOAuthConnector,
@@ -61,9 +61,7 @@ export function SetupWizard({ definition, onClose }: Props) {
   const [saveProfile, setSaveProfile] = useState(true);
   const [profileLabel, setProfileLabel] = useState('');
   const [selectedScopes, setSelectedScopes] = useState<string[]>(
-    definition.authType === 'oauth2'
-      ? (definition.authConfig as OAuthConfig).defaultScopes
-      : [],
+    definition.authType === 'oauth2' ? (definition.authConfig as OAuthConfig).defaultScopes : [],
   );
 
   // API key fields
@@ -93,9 +91,8 @@ export function SetupWizard({ definition, onClose }: Props) {
       }),
     ) as Record<string, 'none' | 'read' | 'write'>;
   }, [oauthConfig?.serviceAccessOptions, selectedScopes]);
-  const [serviceAccess, setServiceAccess] = useState<Record<string, 'none' | 'read' | 'write'>>(
-    initialServiceAccess,
-  );
+  const [serviceAccess, setServiceAccess] =
+    useState<Record<string, 'none' | 'read' | 'write'>>(initialServiceAccess);
 
   function toggleScope(scope: string) {
     setSelectedScopes((prev) =>
@@ -189,7 +186,7 @@ export function SetupWizard({ definition, onClose }: Props) {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex w-[min(56rem,calc(100vw-2rem))] max-h-[90vh] min-h-0 flex-col overflow-hidden sm:max-w-4xl">
+      <DialogContent className="flex max-h-[90vh] min-h-0 w-[min(56rem,calc(100vw-2rem))] flex-col overflow-hidden sm:max-w-4xl">
         <DialogHeader className="shrink-0">
           <div className="flex items-center gap-2">
             <ConnectorIcon icon={definition.icon} className="size-7 rounded-md" />
@@ -279,24 +276,24 @@ export function SetupWizard({ definition, onClose }: Props) {
 
           {step === 'done' && (
             <div className="flex h-full min-h-0 flex-col items-center gap-3 overflow-y-auto py-6">
-            <div className="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
-              <CheckIcon className="size-6" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
+                <CheckIcon className="size-6" />
+              </div>
+              {isOAuth ? (
+                <>
+                  <p className="text-sm font-medium">Authorization started</p>
+                  <p className="text-center text-xs text-muted-foreground">
+                    A browser window has opened for you to authorize access. Once you approve, the
+                    connector will be ready to use. You can close this dialog.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-medium">Connector connected</p>
+              )}
+              <DialogFooter className="w-full shrink-0">
+                <Button onClick={onClose}>Done</Button>
+              </DialogFooter>
             </div>
-            {isOAuth ? (
-              <>
-                <p className="text-sm font-medium">Authorization started</p>
-                <p className="text-center text-xs text-muted-foreground">
-                  A browser window has opened for you to authorize access. Once you approve, the
-                  connector will be ready to use. You can close this dialog.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm font-medium">Connector connected</p>
-            )}
-            <DialogFooter className="w-full shrink-0">
-              <Button onClick={onClose}>Done</Button>
-            </DialogFooter>
-          </div>
           )}
         </div>
       </DialogContent>
@@ -323,8 +320,10 @@ function InstructionsStep({
                   type="button"
                   className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
                   onClick={() => {
-                    void (window.api?.shell?.openExternal(instruction.href!) ??
-                      window.open(instruction.href, '_blank'));
+                    void (
+                      window.api?.shell?.openExternal(instruction.href!) ??
+                      window.open(instruction.href, '_blank')
+                    );
                   }}
                 >
                   {instruction.hrefLabel ?? 'Open'}
@@ -449,7 +448,9 @@ function CredentialsStep({
                             onChange={() => setSelectedProfileId(profile.id)}
                           />
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium">{profile.label}</span>
+                            <span className="block truncate text-sm font-medium">
+                              {profile.label}
+                            </span>
                             <span className="block truncate text-xs text-muted-foreground">
                               {profile.clientId}
                             </span>
@@ -528,8 +529,10 @@ function CredentialsStep({
                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 onClick={(e) => {
                   e.preventDefault();
-                  void (window.api?.shell?.openExternal(apiKeyConfig.helpUrl!) ??
-                    window.open(apiKeyConfig.helpUrl, '_blank'));
+                  void (
+                    window.api?.shell?.openExternal(apiKeyConfig.helpUrl!) ??
+                    window.open(apiKeyConfig.helpUrl, '_blank')
+                  );
                 }}
               >
                 <ExternalLinkIcon className="size-3" />
@@ -681,8 +684,10 @@ function ScopesStep({
             className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-2 text-xs text-primary hover:bg-muted"
             onClick={(e) => {
               e.preventDefault();
-              void (window.api?.shell?.openExternal(enableApisUrl) ??
-                window.open(enableApisUrl, '_blank'));
+              void (
+                window.api?.shell?.openExternal(enableApisUrl) ??
+                window.open(enableApisUrl, '_blank')
+              );
             }}
           >
             <ExternalLinkIcon className="size-3" />
@@ -723,7 +728,9 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const activeIndex = steps.findIndex((item) => item.id === step);
 
   return (
-    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
+    <div
+      className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}
+    >
       {steps.map((item, index) => (
         <div
           key={item.id}

@@ -140,7 +140,9 @@ export async function searchDocuments(
     params.set('pageToken', pageToken);
   }
 
-  const response = await client.request<DriveListResponse>(`${DRIVE_API}/files?${params.toString()}`);
+  const response = await client.request<DriveListResponse>(
+    `${DRIVE_API}/files?${params.toString()}`,
+  );
 
   return {
     documents: response.files.map((file) => ({
@@ -153,7 +155,10 @@ export async function searchDocuments(
   };
 }
 
-export async function readDocument(client: GoogleClient, documentId: string): Promise<DocsReadResult> {
+export async function readDocument(
+  client: GoogleClient,
+  documentId: string,
+): Promise<DocsReadResult> {
   const doc = await client.request<DocsDocumentRaw>(`${DOCS_API}/documents/${documentId}`);
   const text = normalizeText(collectText(doc.body?.content));
 
@@ -170,10 +175,13 @@ export async function createDocument(
   title: string,
   content?: string,
 ): Promise<{ id: string; title: string; webViewLink: string }> {
-  const created = await client.request<{ documentId: string; title: string }>(`${DOCS_API}/documents`, {
-    method: 'POST',
-    body: JSON.stringify({ title }),
-  });
+  const created = await client.request<{ documentId: string; title: string }>(
+    `${DOCS_API}/documents`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    },
+  );
 
   const initialContent = content?.trim();
   if (initialContent) {

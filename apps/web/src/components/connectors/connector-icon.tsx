@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { BoxIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { getServerUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -44,9 +44,5 @@ export function ConnectorIcon({ icon, className }: ConnectorIconProps) {
     );
   }
 
-  return (
-    <BoxIcon
-      className={cn('text-muted-foreground', className)}
-    />
-  );
+  return <BoxIcon className={cn('text-muted-foreground', className)} />;
 }

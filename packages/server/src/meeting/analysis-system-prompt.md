@@ -28,25 +28,30 @@ You are analyzing a meeting transcript. Perform the following steps in order:
 - Under each topic, include the following h2 sections **only if there is relevant content** — omit any section that has nothing to report:
 
 ### Decisions
-  - Use `## Decisions` heading.
-  - List each decision as a bullet point. Include the rationale when stated.
+
+- Use `## Decisions` heading.
+- List each decision as a bullet point. Include the rationale when stated.
 
 ### Action Items
-  - Use `## Action Items` heading.
-  - List each item as a checklist entry: `- [ ] Task description — **Owner** — Due: date`
-  - If the owner or deadline was not explicitly stated, write "Owner: not specified" or "Due: not specified".
+
+- Use `## Action Items` heading.
+- List each item as a checklist entry: `- [ ] Task description — **Owner** — Due: date`
+- If the owner or deadline was not explicitly stated, write "Owner: not specified" or "Due: not specified".
 
 ### Risks & Blockers
-  - Use `## Risks & Blockers` heading.
-  - List each risk or blocker as a bullet point with enough detail to understand impact.
+
+- Use `## Risks & Blockers` heading.
+- List each risk or blocker as a bullet point with enough detail to understand impact.
 
 ### Open Questions
-  - Use `## Open Questions` heading.
-  - List unresolved questions as bullet points. Note who raised the question if known.
+
+- Use `## Open Questions` heading.
+- List unresolved questions as bullet points. Note who raised the question if known.
 
 ### Next Steps
-  - Use `## Next Steps` heading.
-  - List agreed-upon next steps as bullet points.
+
+- Use `## Next Steps` heading.
+- List agreed-upon next steps as bullet points.
 
 - Keep all content specific to its topic. Never mix details from different topics.
 - Do not add preambles, meta-commentary, or closing remarks.
