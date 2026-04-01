@@ -22,7 +22,8 @@
     "./tools/bash-families": "./src/tools/bash-families.ts",
     "./tools/bash-presets": "./src/tools/bash-presets.ts",
     "./tools/types": "./src/tools/types.ts",
-    "./usage/types": "./src/usage/types.ts"
+    "./usage/types": "./src/usage/types.ts",
+    "./connectors/types": "./src/connectors/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

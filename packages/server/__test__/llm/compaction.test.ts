@@ -321,6 +321,28 @@ describe('buildHistoryMessages', () => {
     expect(result[0]?.content).toContain('helps Jane with day-to-day tasks');
   });
 
+  test('includes user timezone in system prompt environment when provided', () => {
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
+      {
+        useBasePrompt: true,
+        systemPrompt: null,
+        userTimezone: 'America/New_York',
+      },
+    );
+
+    expect(result[0]).toMatchObject({ role: 'system' });
+    expect(typeof result[0]?.content).toBe('string');
+    expect(result[0]?.content).toContain('User timezone: America/New_York');
+  });
+
   test('throws when called with empty history', () => {
     expect(() => buildHistoryMessages([])).toThrow(
       'buildHistoryMessages requires at least one message',

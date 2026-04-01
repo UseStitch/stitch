@@ -11,6 +11,7 @@ import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
+import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import { runStream } from '@/llm/stream/runner.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
@@ -27,7 +28,7 @@ Use this tool for:
 - Work that can be parallelized or isolated
 
 The child session inherits your active toolsets and permissions.
-Keep task descriptions detailed and specific - the child session starts fresh with only the task description.
+Provide a concise title (30 chars max) and a detailed task description - the child session starts fresh with only what you provide.
 The child session can ask questions and request permissions from the user, just like you can.
 
 Returns a summary of the completed work. You can also link the user to the child session for full details.`;
@@ -45,19 +46,37 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
   return tool({
     description: TASK_DESCRIPTION,
     inputSchema: z.object({
+      title: z
+        .string()
+        .trim()
+        .min(1)
+        .max(30)
+        .describe('Short task title for the child session (30 chars max)'),
       task: z.string().describe('Detailed description of the task to accomplish'),
       toolsets: z
         .array(z.string())
         .optional()
         .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
-    execute: async ({ task, toolsets: additionalToolsets }) => {
+    execute: async ({ title, task, toolsets: additionalToolsets }, { toolCallId }) => {
       const childSession = await createSession({
-        title: task.slice(0, 100),
+        title,
         parentSessionId: deps.parentSessionId,
       });
 
       const childSessionId = childSession.id;
+
+      await Sse.broadcast('stream-tool-state', {
+        sessionId: context.sessionId,
+        messageId: context.messageId,
+        toolCallId,
+        toolName: 'task',
+        status: 'in-progress',
+        output: {
+          childSessionId,
+          childSessionName: childSession.title,
+        },
+      });
 
       log.info(
         {

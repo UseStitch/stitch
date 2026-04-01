@@ -18,6 +18,7 @@ export const SETTINGS_KEYS = [
   'onboarding.status',
   'onboarding.version',
   'profile.name',
+  'profile.timezone',
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
@@ -44,6 +45,7 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'onboarding.status': z.enum(['pending', 'completed']),
   'onboarding.version': z.string().regex(/^\d+$/),
   'profile.name': z.string().min(1).max(80),
+  'profile.timezone': z.string().min(1).max(120),
   'notifications.sound.enabled': z.coerce.boolean(),
   'browser.profileImported': z.string(),
   'browser.activeProfile': z.string(),
@@ -144,6 +146,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'profile.name',
     value: '',
     description: 'Preferred user display name used in prompts and transcripts.',
+  },
+  {
+    key: 'profile.timezone',
+    value: '',
+    description: 'Preferred IANA timezone used for time-aware prompts and tools.',
   },
   {
     key: 'notifications.sound.enabled',

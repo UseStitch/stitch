@@ -98,6 +98,7 @@ export class ToolsetManager {
     id: string;
     name: string;
     description: string;
+    icon?: string;
     active: boolean;
     hasInstructions: boolean;
     promptCount: number;
@@ -106,6 +107,7 @@ export class ToolsetManager {
       id: ts.id,
       name: ts.name,
       description: ts.description,
+      icon: ts.icon,
       active: this.activeIds.has(ts.id),
       hasInstructions: !!ts.instructions,
       promptCount: ts.prompts?.length ?? 0,

@@ -13,6 +13,7 @@ import {
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { ConnectorStatus } from '@stitch/shared/connectors/types';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
 import type {
@@ -302,5 +303,62 @@ export const recordingTranscriptions = sqliteTable(
       'transcription_status_check',
       sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
     ),
+  ],
+);
+
+export const connectorInstances = sqliteTable(
+  'connector_instances',
+  {
+    id: text('id').$type<PrefixedString<'conn'>>().primaryKey(),
+    connectorId: text('connector_id').notNull(),
+    label: text('label').notNull(),
+    appliedVersion: integer('applied_version').notNull().default(1),
+    capabilities: blob('capabilities', { mode: 'json' }).$type<string[]>().notNull().default([]),
+    oauthProfileId: text('oauth_profile_id').$type<PrefixedString<'connp'>>(),
+    clientId: text('client_id'),
+    clientSecret: text('client_secret'),
+    apiKey: text('api_key'),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    tokenExpiresAt: integer('token_expires_at', { mode: 'number' }),
+    scopes: blob('scopes', { mode: 'json' }).$type<string[]>(),
+    status: text('status').$type<ConnectorStatus>().notNull().default('pending_setup'),
+    accountEmail: text('account_email'),
+    accountInfo: blob('account_info', { mode: 'json' }).$type<Record<string, unknown>>(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('connector_instances_connector_id_idx').on(table.connectorId),
+    index('connector_instances_oauth_profile_id_idx').on(table.oauthProfileId),
+    check(
+      'connector_status_check',
+      sql`${table.status} in ('pending_setup', 'awaiting_auth', 'connected', 'error')`,
+    ),
+  ],
+);
+
+export const connectorOAuthProfiles = sqliteTable(
+  'connector_oauth_profiles',
+  {
+    id: text('id').$type<PrefixedString<'connp'>>().primaryKey(),
+    connectorId: text('connector_id').notNull(),
+    label: text('label').notNull(),
+    clientId: text('client_id').notNull(),
+    clientSecret: text('client_secret').notNull(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('connector_oauth_profiles_connector_id_idx').on(table.connectorId),
+    uniqueIndex('connector_oauth_profiles_connector_label_idx').on(table.connectorId, table.label),
   ],
 );

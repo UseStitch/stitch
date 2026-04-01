@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { eq, asc, like } from 'drizzle-orm';
+import { eq, asc, like, inArray } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -64,17 +64,18 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
   };
 }
 
-async function getProfileName(): Promise<string | null> {
+async function getPromptUserContext(): Promise<{ userName: string | null; userTimezone: string | null }> {
   const db = getDb();
-  const [row] = await db
-    .select({ value: userSettings.value })
+  const rows = await db
+    .select({ key: userSettings.key, value: userSettings.value })
     .from(userSettings)
-    .where(eq(userSettings.key, 'profile.name'));
-  const trimmed = row?.value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  return trimmed;
+    .where(inArray(userSettings.key, ['profile.name', 'profile.timezone']));
+  const byKey = new Map(rows.map((row) => [row.key, row.value.trim()]));
+
+  return {
+    userName: byKey.get('profile.name') || null,
+    userTimezone: byKey.get('profile.timezone') || null,
+  };
 }
 
 export function isOverflow(
@@ -331,11 +332,12 @@ export async function compact(input: {
     }
     const relevantMsgs = historyMsgs.slice(startIndex);
 
-    const profileName = await getProfileName();
+    const promptUserContext = await getPromptUserContext();
     const historyMessages = buildHistoryMessages(relevantMsgs, {
       useBasePrompt: true,
       systemPrompt: null,
-      userName: profileName,
+      userName: promptUserContext.userName,
+      userTimezone: promptUserContext.userTimezone,
     });
 
     const llmMessages: ModelMessage[] = [
@@ -493,7 +495,12 @@ export async function compact(input: {
  */
 export async function buildCompactedHistory(
   sessionId: PrefixedString<'ses'>,
-  promptConfig?: { useBasePrompt: boolean; systemPrompt: string | null; userName?: string | null },
+  promptConfig?: {
+    useBasePrompt: boolean;
+    systemPrompt: string | null;
+    userName?: string | null;
+    userTimezone?: string | null;
+  },
 ): Promise<ModelMessage[]> {
   const db = getDb();
   const msgs = await db
@@ -511,11 +518,12 @@ export async function buildCompactedHistory(
     }
   }
 
-  const profileName = await getProfileName();
+  const promptUserContext = await getPromptUserContext();
   return buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig?.useBasePrompt ?? true,
     systemPrompt: promptConfig?.systemPrompt ?? null,
-    userName: promptConfig?.userName ?? profileName,
+    userName: promptConfig?.userName ?? promptUserContext.userName,
+    userTimezone: promptConfig?.userTimezone ?? promptUserContext.userTimezone,
   });
 }
 

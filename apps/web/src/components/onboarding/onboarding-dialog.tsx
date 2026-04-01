@@ -18,6 +18,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import {
@@ -30,26 +37,59 @@ import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/
 type OnboardingStep = 'welcome' | 'profile' | 'provider' | 'success';
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
-const CURRENT_ONBOARDING_VERSION = '2';
+const CURRENT_ONBOARDING_VERSION = '3';
+
+function getDetectedTimezone(): string {
+  const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return typeof resolved === 'string' && resolved.trim().length > 0 ? resolved.trim() : 'UTC';
+}
+
+function getTimezoneOptions(initialTimezone: string): string[] {
+  const intlWithSupportedValues = Intl as typeof Intl & {
+    supportedValuesOf?: (key: string) => string[];
+  };
+  const listed = intlWithSupportedValues.supportedValuesOf?.('timeZone') ?? [];
+  const preferred = [initialTimezone].filter((value) => value.length > 0);
+
+  if (listed.length === 0) {
+    return preferred;
+  }
+
+  return Array.from(new Set([...preferred, ...listed]));
+}
 
 function OnboardingProfileStep({
   initialName,
+  initialTimezone,
   isSaving,
   onContinue,
 }: {
   initialName: string;
+  initialTimezone: string;
   isSaving: boolean;
-  onContinue: (name: string) => void;
+  onContinue: (name: string, timezone: string) => void;
 }) {
+  const detectedTimezone = React.useMemo(() => getDetectedTimezone(), []);
   const [name, setName] = React.useState(initialName);
+  const [timezone, setTimezone] = React.useState(initialTimezone || detectedTimezone);
   const [touched, setTouched] = React.useState(false);
+  const timezoneOptions = React.useMemo(
+    () => getTimezoneOptions(initialTimezone || detectedTimezone),
+    [detectedTimezone, initialTimezone],
+  );
 
   React.useEffect(() => {
     setName(initialName);
   }, [initialName]);
 
+  React.useEffect(() => {
+    setTimezone(initialTimezone || detectedTimezone);
+  }, [detectedTimezone, initialTimezone]);
+
   const trimmed = name.trim();
+  const trimmedTimezone = timezone.trim();
   const hasError = touched && trimmed.length === 0;
+  const hasTimezoneError = touched && trimmedTimezone.length === 0;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,7 +97,10 @@ function OnboardingProfileStep({
     if (trimmed.length === 0) {
       return;
     }
-    onContinue(trimmed);
+    if (trimmedTimezone.length === 0) {
+      return;
+    }
+    onContinue(trimmed, trimmedTimezone);
   }
 
   return (
@@ -83,7 +126,24 @@ function OnboardingProfileStep({
         {hasError && <p className="text-xs text-destructive">Please enter your name.</p>}
       </div>
 
-      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0}>
+      <div className="space-y-2">
+        <Label htmlFor="onboarding-timezone">Timezone</Label>
+        <Select value={timezone} onValueChange={(value) => setTimezone(value ?? '')}>
+          <SelectTrigger id="onboarding-timezone" className="w-full">
+            <SelectValue placeholder="Select your timezone" />
+          </SelectTrigger>
+          <SelectContent className="max-h-80">
+            {timezoneOptions.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasTimezoneError && <p className="text-xs text-destructive">Please select a timezone.</p>}
+      </div>
+
+      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}>
         {isSaving ? 'Saving...' : 'Continue'}
       </Button>
     </form>
@@ -352,16 +412,25 @@ export function OnboardingDialog() {
   const saveProfileName = useMutation(
     saveSettingMutationOptions('profile.name', queryClient, { silent: true }),
   );
+  const saveProfileTimezone = useMutation(
+    saveSettingMutationOptions('profile.timezone', queryClient, { silent: true }),
+  );
 
   const onboardingStatus = settings?.['onboarding.status'];
   const onboardingVersion = settings?.['onboarding.version'] ?? '1';
   const profileName = settings?.['profile.name']?.trim() ?? '';
+  const profileTimezone = settings?.['profile.timezone']?.trim() ?? '';
   const hasProfileName = profileName.length > 0;
+  const hasProfileTimezone = profileTimezone.length > 0;
   const hasEnabledProvider = (providers ?? []).some((provider) => provider.enabled);
   const isOnboarded = onboardingStatus === 'completed';
   const isLatestOnboardingVersion = onboardingVersion === CURRENT_ONBOARDING_VERSION;
   const isOnboardingComplete =
-    isOnboarded && isLatestOnboardingVersion && hasProfileName && hasEnabledProvider;
+    isOnboarded &&
+    isLatestOnboardingVersion &&
+    hasProfileName &&
+    hasProfileTimezone &&
+    hasEnabledProvider;
 
   const completeOnboarding = React.useCallback(
     async () => {
@@ -377,6 +446,7 @@ export function OnboardingDialog() {
       isProvidersPending ||
       !hasEnabledProvider ||
       !hasProfileName ||
+      !hasProfileTimezone ||
       isOnboardingComplete
     ) {
       return;
@@ -394,6 +464,7 @@ export function OnboardingDialog() {
   }, [
     completeOnboarding,
     hasProfileName,
+    hasProfileTimezone,
     hasEnabledProvider,
     isOnboardingComplete,
     isProvidersPending,
@@ -452,25 +523,28 @@ export function OnboardingDialog() {
           {step === 'profile' && (
             <OnboardingProfileStep
               initialName={profileName}
+              initialTimezone={profileTimezone}
               isSaving={
                 saveProfileName.isPending ||
+                saveProfileTimezone.isPending ||
                 saveOnboardingStatus.isPending ||
                 saveOnboardingVersion.isPending
               }
-              onContinue={(name) => {
-                saveProfileName.mutate(name, {
-                  onSuccess: () => {
+              onContinue={(name, timezone) => {
+                void Promise.all([
+                  saveProfileName.mutateAsync(name),
+                  saveProfileTimezone.mutateAsync(timezone),
+                ])
+                  .then(() => {
                     if (hasEnabledProvider) {
-                      void completeOnboarding()
-                        .then(() => {
-                          setStep('success');
-                        })
-                        .catch(() => undefined);
-                      return;
+                      return completeOnboarding().then(() => {
+                        setStep('success');
+                      });
                     }
                     setStep('provider');
-                  },
-                });
+                    return undefined;
+                  })
+                  .catch(() => undefined);
               }}
             />
           )}

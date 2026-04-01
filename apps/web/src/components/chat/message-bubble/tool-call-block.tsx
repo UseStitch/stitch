@@ -8,10 +8,12 @@ import { FileToolBlock } from '@/components/chat/message-bubble/tool-call/file-t
 import { GenericToolBlock } from '@/components/chat/message-bubble/tool-call/generic-tool-block';
 import { McpToolBlock } from '@/components/chat/message-bubble/tool-call/mcp-tool-block';
 import { QuestionToolBlock } from '@/components/chat/message-bubble/tool-call/question-tool-block';
+import { SearchToolBlock } from '@/components/chat/message-bubble/tool-call/search-tool-block';
 import { ToolsetToolBlock } from '@/components/chat/message-bubble/tool-call/toolset-tool-block';
 import { WebfetchToolBlock } from '@/components/chat/message-bubble/tool-call/webfetch-tool-block';
 
 const TOOLSET_TOOLS = new Set(['list_toolsets', 'activate_toolset', 'deactivate_toolset']);
+const SEARCH_TOOLS = new Set(['gmail_search', 'drive_search']);
 
 type ToolCallBlockProps = {
   toolName: string;
@@ -75,6 +77,18 @@ export function ToolCallBlock({
     return <BashToolBlock toolName={toolName} status={status} args={args} onAbort={onAbort} />;
   }
 
+  if (SEARCH_TOOLS.has(toolName) && hasArgs) {
+    return (
+      <SearchToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        onAbort={onAbort}
+      />
+    );
+  }
+
   if ((toolName === 'write' || toolName === 'edit' || toolName === 'read') && hasArgs) {
     return <FileToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
@@ -91,5 +105,5 @@ export function ToolCallBlock({
     );
   }
 
-  return <GenericToolBlock toolName={toolName} status={status} error={error} />;
+  return <GenericToolBlock toolName={toolName} status={status} args={args} result={result} error={error} />;
 }

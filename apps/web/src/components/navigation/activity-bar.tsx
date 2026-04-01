@@ -1,9 +1,11 @@
-import { BarChart3Icon, MessageSquareIcon, MicIcon, SettingsIcon } from 'lucide-react';
+import { BarChart3Icon, MessageSquareIcon, MicIcon, PlugIcon, SettingsIcon } from 'lucide-react';
 
 import { Link, useRouterState } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDialogContext } from '@/context/dialog-context';
+import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +40,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     to: '/recordings',
     matchPrefix: '/recordings',
   },
+  {
+    id: 'connectors',
+    icon: <PlugIcon className="size-5" />,
+    label: 'Connectors',
+    to: '/connectors',
+    matchPrefix: '/connectors',
+  },
 ];
 
 const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
@@ -61,6 +70,8 @@ export function ActivityBar() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { setSettingsTab } = useDialogContext();
+  const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
+  const pendingConnectorUpdates = connectorInstances.filter((instance) => instance.upgrade?.available).length;
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const showTrafficLightPadding = isMac && !isFullScreen;
@@ -78,6 +89,8 @@ export function ActivityBar() {
       <div className="flex w-full flex-col items-center gap-2">
         {ACTIVITY_ITEMS.map((item) => {
           const active = isActive(item.matchPrefix, currentPath);
+          const isConnectors = item.id === 'connectors';
+          const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger
@@ -85,7 +98,7 @@ export function ActivityBar() {
                   <Link
                     to={item.to}
                     className={cn(
-                      'flex size-10 items-center justify-center rounded-lg transition-colors',
+                      'relative flex size-10 items-center justify-center rounded-lg transition-colors',
                       active
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                         : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
@@ -94,8 +107,15 @@ export function ActivityBar() {
                 }
               >
                 {item.icon}
+                {showUpdateIndicator ? (
+                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+                ) : null}
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">
+                {isConnectors && pendingConnectorUpdates > 0
+                  ? `${item.label} (updates available)`
+                  : item.label}
+              </TooltipContent>
             </Tooltip>
           );
         })}

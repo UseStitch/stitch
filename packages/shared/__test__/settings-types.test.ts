@@ -5,6 +5,7 @@ import { SETTINGS_KEYS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/t
 describe('settings type helpers', () => {
   test('includes onboarding/profile keys used by onboarding flow', () => {
     expect(SETTINGS_KEYS).toContain('profile.name');
+    expect(SETTINGS_KEYS).toContain('profile.timezone');
     expect(SETTINGS_KEYS).toContain('onboarding.version');
   });
 

@@ -27,6 +27,11 @@ export type Toolset = {
   /** Brief description for LLM discovery (included in system prompt catalog) */
   description: string;
   /**
+   * Icon slug served at /connectors/icons/:slug (e.g. "gmail", "googledrive").
+   * Used by the frontend to display a connector-specific icon for the toolset.
+   */
+  icon?: string;
+  /**
    * Operational instructions injected into context when the toolset is activated.
    * For builtin toolsets these come from .md files; for MCP servers from the
    * `instructions` field of the initialize response.
