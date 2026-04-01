@@ -11,6 +11,7 @@ import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
+import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import { runStream } from '@/llm/stream/runner.js';
 import type { ProviderCredentials } from '@/provider/provider.js';
@@ -51,13 +52,25 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         .optional()
         .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
-    execute: async ({ task, toolsets: additionalToolsets }) => {
+    execute: async ({ task, toolsets: additionalToolsets }, { toolCallId }) => {
       const childSession = await createSession({
         title: task.slice(0, 100),
         parentSessionId: deps.parentSessionId,
       });
 
       const childSessionId = childSession.id;
+
+      await Sse.broadcast('stream-tool-state', {
+        sessionId: context.sessionId,
+        messageId: context.messageId,
+        toolCallId,
+        toolName: 'task',
+        status: 'in-progress',
+        output: {
+          childSessionId,
+          childSessionName: childSession.title,
+        },
+      });
 
       log.info(
         {
