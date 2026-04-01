@@ -11,6 +11,7 @@
     "format": "oxfmt write .",
     "format:check": "oxfmt check .",
     "typecheck": "turbo typecheck",
+    "test": "turbo test",
     "knip": "knip",
     "check": "bun run scripts/check.ts"
   },
