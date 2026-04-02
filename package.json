@@ -13,7 +13,11 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "knip": "knip",
-    "check": "bun run scripts/check.ts"
+    "check": "bun run scripts/check.ts",
+    "release:version": "bun run scripts/release/version.ts",
+    "release:bump": "bun run scripts/release/bump.ts",
+    "release:notes": "bun run scripts/release/notes.ts",
+    "release:publish": "bun run scripts/release/publish.ts"
   },
   "devDependencies": {
     "knip": "latest",
