@@ -34,6 +34,7 @@ const config: KnipConfig = {
     'tailwindcss',
     '@tailwindcss/typography',
   ],
+  ignoreBinaries: ['gh'],
 };
 
 export default config;
