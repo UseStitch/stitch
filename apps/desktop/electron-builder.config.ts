@@ -12,7 +12,31 @@ const config: Configuration = {
     {
       from: 'resources/',
       to: '',
-      filter: ['stitch-server*', 'icon.png', 'icon.ico'],
+      filter: ['icon.png', 'icon.ico'],
+    },
+    {
+      from: '../../packages/server/dist',
+      to: '',
+      filter: ['stitch-server*'],
+    },
+    {
+      from: '../../packages/server/drizzle',
+      to: 'drizzle',
+      filter: ['**/*'],
+    },
+    {
+      from: '../web/dist',
+      to: 'web/dist',
+      filter: ['**/*'],
+    },
+    {
+      from: '../../packages/server/src',
+      to: 'server-assets',
+      filter: [
+        'meeting/*.md',
+        'tools/providers/instructions/*.md',
+        'llm/prompt/base-system-prompt.txt',
+      ],
     },
   ],
   icon: 'resources/icon.png',
@@ -26,6 +50,7 @@ const config: Configuration = {
   mac: {
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
+    binaries: ['Contents/Resources/stitch-server'],
     target: ['dmg', 'zip'],
   },
   linux: {
