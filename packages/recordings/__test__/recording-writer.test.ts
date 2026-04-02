@@ -37,7 +37,7 @@ interface MockRecorderInstance {
   emit(event: string, ...args: unknown[]): boolean;
 }
 
-vi.mock('native-audio-node', () => {
+vi.mock('../src/native-audio.js', () => {
   const { EventEmitter } = require('node:events');
 
   class MockRecorder extends EventEmitter {

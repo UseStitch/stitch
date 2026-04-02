@@ -20,6 +20,11 @@ const config: Configuration = {
       filter: ['stitch-server*'],
     },
     {
+      from: '../../packages/server/dist/node_modules',
+      to: 'node_modules',
+      filter: ['**/*'],
+    },
+    {
       from: '../../packages/server/drizzle',
       to: 'drizzle',
       filter: ['**/*'],

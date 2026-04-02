@@ -32,7 +32,7 @@ interface MockMonitorInstance {
 const monitorRef: { current: MockMonitorInstance | null } = { current: null };
 const processRef: { current: MockProcessInfo[] } = { current: [] };
 
-vi.mock('native-audio-node', () => {
+vi.mock('../src/native-audio.js', () => {
   const { EventEmitter } = require('node:events');
 
   class MockMicrophoneActivityMonitor extends EventEmitter {
