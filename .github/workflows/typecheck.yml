@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - master
+      - production
+      - release/**
   pull_request:
     branches:
       - master
+      - production
   workflow_dispatch:
 
 concurrency:

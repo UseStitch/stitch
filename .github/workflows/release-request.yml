@@ -1,0 +1,70 @@
+name: release-request
+run-name: 'release request ${{ inputs.bump }}'
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release-request-${{ inputs.bump }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require production branch
+        run: |
+          if [ "${{ github.ref_name }}" != "production" ]; then
+            echo "Release request workflow must run from the production branch."
+            exit 1
+          fi
+
+  request:
+    needs: guard
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.request.outputs.version }}
+      tag: ${{ steps.request.outputs.tag }}
+      branch: ${{ steps.request.outputs.branch }}
+      pr_url: ${{ steps.request.outputs.pr_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup-bun
+
+      - uses: ./.github/actions/setup-git-committer
+        id: committer
+        with:
+          app-id: ${{ vars.STITCH_RELEASE_APP_ID }}
+          app-private-key: ${{ secrets.STITCH_RELEASE_APP_PRIVATE_KEY }}
+          bot-name: stitch-release[bot]
+          bot-email: stitch-release[bot]@users.noreply.github.com
+
+      - name: Prepare release branch and PR
+        id: request
+        env:
+          GH_TOKEN: ${{ steps.committer.outputs.token }}
+          RELEASE_BUMP: ${{ inputs.bump }}
+          RELEASE_BASE_BRANCH: production
+          RELEASE_BRANCH_PREFIX: release
+        run: bun run release:request
+
+      - name: Print release PR
+        run: |
+          echo "Release PR: ${{ steps.request.outputs.pr_url }}"

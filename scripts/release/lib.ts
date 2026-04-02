@@ -14,6 +14,12 @@ export interface ReleaseVersionInfo {
   tag: string;
 }
 
+export interface ReleaseRequestInfo extends ReleaseVersionInfo {
+  branch: string;
+  releaseSha: string;
+  prUrl: string;
+}
+
 interface Semver {
   major: number;
   minor: number;
@@ -69,6 +75,26 @@ export async function getLatestTag(): Promise<string | null> {
   }
 
   return null;
+}
+
+export async function tagExistsRemotely(tag: string): Promise<boolean> {
+  const output = (await $`git ls-remote --tags origin refs/tags/${tag}`.text()).trim();
+  return output.length > 0;
+}
+
+export async function tagExistsLocally(tag: string): Promise<boolean> {
+  const output = (await $`git tag --list ${tag}`.text()).trim();
+  return output.length > 0;
+}
+
+export async function resolveTagSha(tag: string): Promise<string | null> {
+  const result = await $`git rev-list -n 1 ${tag}`.nothrow();
+  if (result.exitCode !== 0) {
+    return null;
+  }
+
+  const sha = result.text().trim();
+  return sha.length > 0 ? sha : null;
 }
 
 export async function computeNextVersion(bump: BumpKind): Promise<ReleaseVersionInfo> {
@@ -135,4 +161,8 @@ export async function updateWorkspaceVersions(root: string, version: string): Pr
 
 export function isValidBump(value: string): value is BumpKind {
   return value === 'major' || value === 'minor' || value === 'patch';
+}
+
+export function isReleaseCommitMessage(value: string): boolean {
+  return /^release: v\d+\.\d+\.\d+$/.test(value.trim());
 }

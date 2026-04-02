@@ -1,0 +1,61 @@
+name: 'Setup Git Committer'
+description: 'Configure git user and authenticated origin remote'
+
+inputs:
+  app-id:
+    description: 'Optional GitHub App ID'
+    required: false
+    default: ''
+  app-private-key:
+    description: 'Optional GitHub App private key'
+    required: false
+    default: ''
+  bot-name:
+    description: 'Git committer name'
+    required: false
+    default: 'github-actions[bot]'
+  bot-email:
+    description: 'Git committer email'
+    required: false
+    default: '41898282+github-actions[bot]@users.noreply.github.com'
+
+outputs:
+  token:
+    description: 'Token used for git and gh operations'
+    value: ${{ steps.select-token.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create app token
+      if: ${{ inputs.app-id != '' && inputs.app-private-key != '' }}
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Resolve auth token
+      id: select-token
+      shell: bash
+      run: |
+        TOKEN="${{ steps.app-token.outputs.token }}"
+        if [ -z "$TOKEN" ]; then
+          TOKEN="${{ github.token }}"
+        fi
+        echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+    - name: Configure git user
+      shell: bash
+      run: |
+        git config --global user.name "${{ inputs.bot-name }}"
+        git config --global user.email "${{ inputs.bot-email }}"
+
+    - name: Clear checkout auth
+      shell: bash
+      run: git config --local --unset-all http.https://github.com/.extraheader || true
+
+    - name: Configure git remote
+      shell: bash
+      run: git remote set-url origin https://x-access-token:${{ steps.select-token.outputs.token }}@github.com/${{ github.repository }}

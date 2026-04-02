@@ -17,7 +17,8 @@
     "release:version": "bun run scripts/release/version.ts",
     "release:bump": "bun run scripts/release/bump.ts",
     "release:notes": "bun run scripts/release/notes.ts",
-    "release:publish": "bun run scripts/release/publish.ts"
+    "release:request": "bun run scripts/release/request.ts",
+    "release:tag": "bun run scripts/release/tag.ts"
   },
   "devDependencies": {
     "knip": "latest",

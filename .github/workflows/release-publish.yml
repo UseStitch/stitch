@@ -1,77 +1,42 @@
-name: release
-run-name: 'release ${{ inputs.bump }}'
+name: release-publish
+run-name: 'release publish ${{ github.ref_name }}'
 
 on:
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: 'Version bump type'
-        required: true
-        type: choice
-        default: patch
-        options:
-          - patch
-          - minor
-          - major
+  push:
+    branches:
+      - production
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: release-publish-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
-  guard:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require production branch
-        run: |
-          if [ "${{ github.ref_name }}" != "production" ]; then
-            echo "Release workflow must run from the production branch."
-            exit 1
-          fi
-
-  quality-windows:
-    needs: guard
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-bun
-      - name: Run tests and typecheck
-        shell: bash
-        run: |
-          bun run --filter '*' test &
-          PID_TEST=$!
-          bun run typecheck &
-          PID_TC=$!
-          wait $PID_TEST || exit 1
-          wait $PID_TC || exit 1
-
-  quality-macos:
-    needs: guard
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-bun
-      - name: Run tests and typecheck
-        shell: bash
-        run: |
-          bun run --filter '*' test &
-          PID_TEST=$!
-          bun run typecheck &
-          PID_TC=$!
-          wait $PID_TEST || exit 1
-          wait $PID_TC || exit 1
-
-  prepare-release:
-    needs: [guard, quality-windows, quality-macos]
+  detect:
     runs-on: ubuntu-latest
     outputs:
-      previous_tag: ${{ steps.publish.outputs.previous_tag }}
-      version: ${{ steps.publish.outputs.version }}
-      tag: ${{ steps.publish.outputs.tag }}
-      release_sha: ${{ steps.publish.outputs.release_sha }}
+      is_release: ${{ steps.detect.outputs.is_release }}
+    steps:
+      - name: Detect release commit
+        id: detect
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" =~ ^release:\ v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  prepare-release:
+    needs: detect
+    if: needs.detect.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      previous_tag: ${{ steps.tag.outputs.previous_tag }}
+      version: ${{ steps.tag.outputs.version }}
+      tag: ${{ steps.tag.outputs.tag }}
+      release_sha: ${{ steps.tag.outputs.release_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,19 +44,22 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Configure git author
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - uses: ./.github/actions/setup-git-committer
+        id: committer
+        with:
+          app-id: ${{ vars.STITCH_RELEASE_APP_ID }}
+          app-private-key: ${{ secrets.STITCH_RELEASE_APP_PRIVATE_KEY }}
+          bot-name: stitch-release[bot]
+          bot-email: stitch-release[bot]@users.noreply.github.com
 
       - name: Fetch tags
         run: git fetch --force --tags
 
-      - name: Commit release version and tag
-        id: publish
+      - name: Create or verify release tag
+        id: tag
         env:
-          RELEASE_BUMP: ${{ inputs.bump }}
-        run: bun run release:publish
+          GH_TOKEN: ${{ steps.committer.outputs.token }}
+        run: bun run release:tag
 
   build-windows:
     needs: prepare-release
@@ -100,6 +68,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare-release.outputs.release_sha }}
+
       - uses: ./.github/actions/setup-bun
 
       - name: Build all packages
@@ -121,8 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stitch-windows-x64
-          path: |
-            apps/desktop/dist/*.exe
+          path: apps/desktop/dist/*.exe
           if-no-files-found: error
 
   build-macos:
@@ -132,6 +100,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare-release.outputs.release_sha }}
+
       - uses: ./.github/actions/setup-bun
 
       - name: Build all packages
