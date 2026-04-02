@@ -1,6 +1,6 @@
 {
   "name": "@stitch/desktop",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "Stitch desktop application",
   "author": "Stitch",
   "private": true,
