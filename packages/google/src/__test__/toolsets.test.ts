@@ -3,6 +3,50 @@ import { describe, expect, it } from 'vitest';
 import { buildGoogleToolsets } from '../toolsets.js';
 
 describe('buildGoogleToolsets', () => {
+  it('exposes gmail label read tools with gmail readonly scope', () => {
+    const gmail = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
+      capabilities: ['google.gmail.read', 'google.gmail.write'],
+    }).find((toolset) => toolset.id === 'google-gmail');
+
+    expect(gmail?.tools().map((tool) => tool.name)).toEqual([
+      'gmail_search',
+      'gmail_read',
+      'listLabels',
+      'getLabels',
+    ]);
+  });
+
+  it('exposes gmail modify tools only with gmail.modify scope', () => {
+    const sendOnly = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/gmail.send'],
+      capabilities: ['google.gmail.read', 'google.gmail.write'],
+    }).find((toolset) => toolset.id === 'google-gmail');
+
+    const modify = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/gmail.modify'],
+      capabilities: ['google.gmail.read', 'google.gmail.write'],
+    }).find((toolset) => toolset.id === 'google-gmail');
+
+    expect(sendOnly?.tools().map((tool) => tool.name)).toEqual([
+      'gmail_search',
+      'gmail_read',
+      'gmail_send',
+      'listLabels',
+      'getLabels',
+    ]);
+
+    expect(modify?.tools().map((tool) => tool.name)).toEqual([
+      'gmail_search',
+      'gmail_read',
+      'gmail_send',
+      'listLabels',
+      'getLabels',
+      'modifyLabels',
+      'modifyMessages',
+    ]);
+  });
+
   it('includes docs toolset when docs read scope and capability are present', () => {
     const toolsets = buildGoogleToolsets({
       scopes: ['https://www.googleapis.com/auth/documents.readonly'],

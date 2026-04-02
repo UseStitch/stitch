@@ -93,3 +93,13 @@ export function hasWriteAccess(grantedScopes: string[], service: GoogleService):
   }
   return false;
 }
+
+/** Check if granted scopes can send Gmail messages. */
+export function hasGmailSendAccess(grantedScopes: string[]): boolean {
+  return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY);
+}
+
+/** Check if granted scopes can modify Gmail resources (labels, message labels). */
+export function hasGmailModifyAccess(grantedScopes: string[]): boolean {
+  return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_MODIFY);
+}
