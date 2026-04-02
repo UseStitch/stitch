@@ -140,7 +140,13 @@ jobs:
         with:
           name: desktop-${{ matrix.os }}
           if-no-files-found: error
-          path: apps/desktop/dist/**/*
+          path: |
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/*.blockmap
+            apps/desktop/dist/*.yml
+            apps/desktop/dist/*.yaml
 
   release:
     needs:
