@@ -134,6 +134,8 @@ jobs:
 
       - name: Build desktop package
         working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bun run package
 
       - name: Upload desktop artifacts
