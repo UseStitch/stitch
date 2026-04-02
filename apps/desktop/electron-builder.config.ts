@@ -44,7 +44,8 @@ const config: Configuration = {
     include: 'installer/installer.nsh',
   },
   win: {
-    icon: 'resources/icon.ico',
+    icon: 'resources/icon.png',
+    signAndEditExecutable: true,
     target: ['nsis'],
   },
   mac: {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -11,7 +11,7 @@ import { SseClient } from './sse-client';
 import { destroyTray, initTray } from './tray';
 
 const WEB_DEV_URL = 'http://localhost:5173';
-const WINDOW_ICON_NAME = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+const WINDOW_ICON_NAME = 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 
@@ -24,10 +24,6 @@ function getPackagedWebDistPath(): string {
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit(0);
-}
-
-if (process.platform === 'win32') {
-  app.setAppUserModelId('com.stitch.desktop');
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -53,11 +49,15 @@ async function waitForDevServer(url: string): Promise<void> {
 
 async function createWindow() {
   const isMac = process.platform === 'darwin';
+  const iconCandidates = process.platform === 'win32' ? ['icon.png', 'icon.ico'] : ['icon.png'];
+  const windowIcon = iconCandidates
+    .map((name) => nativeImage.createFromPath(resolveResourcePath(name)))
+    .find((image) => !image.isEmpty());
 
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: resolveResourcePath(WINDOW_ICON_NAME),
+    ...(windowIcon ? { icon: windowIcon } : { icon: resolveResourcePath(WINDOW_ICON_NAME) }),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
@@ -73,6 +73,10 @@ async function createWindow() {
     void shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  if (windowIcon) {
+    mainWindow.setIcon(windowIcon);
+  }
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     dialog.showErrorBox(

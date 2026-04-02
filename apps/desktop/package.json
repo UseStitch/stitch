@@ -1,6 +1,8 @@
 {
   "name": "@stitch/desktop",
   "version": "0.0.0",
+  "description": "Stitch desktop application",
+  "author": "Stitch",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
