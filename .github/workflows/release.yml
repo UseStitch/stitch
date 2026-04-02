@@ -145,8 +145,8 @@ jobs:
             apps/desktop/dist/*.dmg
             apps/desktop/dist/*.zip
             apps/desktop/dist/*.blockmap
-            apps/desktop/dist/*.yml
-            apps/desktop/dist/*.yaml
+            apps/desktop/dist/latest*.yml
+            apps/desktop/dist/latest*.yaml
 
   release:
     needs:
