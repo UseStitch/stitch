@@ -51,9 +51,9 @@ jobs:
             throw new Error(`Unsupported bump type: ${bump}`)
           }
 
-          const files = ['package.json', 'apps/desktop/package.json']
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          const current = String(pkg.version)
+          const sourceFile = 'apps/desktop/package.json'
+          const sourcePkg = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
+          const current = String(sourcePkg.version ?? '')
           const parts = current.split('.').map(Number)
 
           if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
@@ -73,6 +73,12 @@ jobs:
 
           const next = parts.join('.')
 
+          const files = [sourceFile]
+          const rootPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          if (typeof rootPkg.version === 'string' && rootPkg.version.length > 0) {
+            files.push('package.json')
+          }
+
           for (const file of files) {
             const json = JSON.parse(fs.readFileSync(file, 'utf8'))
             json.version = next
@@ -88,7 +94,7 @@ jobs:
           VERSION: ${{ steps.bump.outputs.version }}
           TAG: ${{ steps.bump.outputs.tag }}
         run: |
-          git add package.json apps/desktop/package.json
+          git add apps/desktop/package.json package.json
           git commit -m "chore(release): bump version to ${TAG}"
           git tag "${TAG}"
           git push origin HEAD:production
