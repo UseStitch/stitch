@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { initNotifications } from './notifications';
+import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 import { SseClient } from './sse-client';
 import { destroyTray, initTray } from './tray';
@@ -53,7 +54,7 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: join(__dirname, `../../resources/${WINDOW_ICON_NAME}`),
+    icon: resolveResourcePath(WINDOW_ICON_NAME),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,

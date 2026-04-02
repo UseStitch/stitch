@@ -12,7 +12,7 @@ const config: Configuration = {
     {
       from: 'resources/',
       to: '',
-      filter: ['stitch-server*'],
+      filter: ['stitch-server*', 'icon.png', 'icon.ico'],
     },
   ],
   icon: 'resources/icon.png',
