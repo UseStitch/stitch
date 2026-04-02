@@ -1,0 +1,171 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.bump }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    if: github.ref_name == 'production'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup git committer
+        uses: ./.github/actions/setup-git-committer
+
+      - name: Bump version
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          node <<'EOF'
+          const fs = require('node:fs')
+
+          const bump = process.env.BUMP
+          if (!['patch', 'minor', 'major'].includes(bump)) {
+            throw new Error(`Unsupported bump type: ${bump}`)
+          }
+
+          const files = ['package.json', 'apps/desktop/package.json']
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          const current = String(pkg.version)
+          const parts = current.split('.').map(Number)
+
+          if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
+            throw new Error(`Current version is not semver-compatible: ${current}`)
+          }
+
+          if (bump === 'major') {
+            parts[0] += 1
+            parts[1] = 0
+            parts[2] = 0
+          } else if (bump === 'minor') {
+            parts[1] += 1
+            parts[2] = 0
+          } else {
+            parts[2] += 1
+          }
+
+          const next = parts.join('.')
+
+          for (const file of files) {
+            const json = JSON.parse(fs.readFileSync(file, 'utf8'))
+            json.version = next
+            fs.writeFileSync(file, `${JSON.stringify(json, null, 2)}\n`)
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${next}\n`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=v${next}\n`)
+          EOF
+
+      - name: Commit and tag
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git add package.json apps/desktop/package.json
+          git commit -m "chore(release): bump version to ${TAG}"
+          git tag "${TAG}"
+          git push origin HEAD:production
+          git push origin "${TAG}"
+
+  build:
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Build desktop package
+        working-directory: apps/desktop
+        run: bun run package
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          if-no-files-found: error
+          path: apps/desktop/dist/*
+
+  release:
+    needs:
+      - version
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub release and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" release-assets/* --clobber
+          else
+            gh release create "${TAG}" release-assets/* --title "${TAG}" --notes "Release ${TAG}"
+          fi
+
+  sync-master:
+    needs:
+      - version
+      - release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Setup git committer
+        uses: ./.github/actions/setup-git-committer
+
+      - name: Merge production into master
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          git fetch origin master production
+          git merge --ff-only origin/production || git merge --no-ff origin/production -m "chore(release): sync production into master after ${TAG}"
+          git push origin master
