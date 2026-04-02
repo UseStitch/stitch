@@ -80,6 +80,11 @@ export async function spawnServer(port: number): Promise<string> {
   serverProcess = spawn(cmd, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
+    env: {
+      ...process.env,
+      NODE_ENV: app.isPackaged ? 'production' : 'development',
+      STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
+    },
     ...(cwd && { cwd }),
   });
 

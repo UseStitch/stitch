@@ -14,6 +14,16 @@ const WEB_DEV_URL = 'http://localhost:5173';
 const WINDOW_ICON_NAME = 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
+const DEV_APP_NAME = 'stitch-dev';
+
+function configureAppIdentityForEnvironment(): void {
+  if (app.isPackaged) {
+    return;
+  }
+
+  app.setName('Stitch Dev');
+  app.setPath('userData', join(app.getPath('appData'), DEV_APP_NAME));
+}
 
 function getPackagedWebDistPath(): string {
   return join(process.resourcesPath, 'web/dist/index.html');
@@ -21,6 +31,7 @@ function getPackagedWebDistPath(): string {
 
 // Enforce single instance before any other initialization.
 // app.exit() is used instead of app.quit() to avoid ghost processes on Windows.
+configureAppIdentityForEnvironment();
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit(0);

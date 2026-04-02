@@ -70,8 +70,9 @@ function envPaths(name: string, { suffix = 'nodejs' } = {}): EnvPaths {
   };
 }
 
+const envAppName = process.env['STITCH_APP_NAME']?.trim();
 const isDev = process.env.NODE_ENV === 'development';
-const APP_NAME = isDev ? 'stitch-dev' : 'stitch';
+const APP_NAME = envAppName && isSafeFilename(envAppName) ? envAppName : isDev ? 'stitch-dev' : 'stitch';
 const paths = envPaths(APP_NAME, { suffix: '' });
 
 export const PATHS = {
