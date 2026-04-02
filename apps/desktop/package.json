@@ -1,12 +1,16 @@
 {
   "name": "@stitch/desktop",
   "version": "0.0.1",
+  "description": "Stitch desktop application",
+  "author": "Stitch",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "package": "electron-builder --config electron-builder.config.ts",
+    "build:web": "bun run --filter @stitch/web build",
+    "build:sidecar": "bun run --filter @stitch/server build",
+    "package": "bun run build:web && bun run build && bun run build:sidecar && electron-builder --config electron-builder.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

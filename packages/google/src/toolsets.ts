@@ -10,7 +10,12 @@ import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.j
 import { DOCS_TOOL_SUMMARIES, createDocsTools } from './docs/tools.js';
 import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
 import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
-import { hasServiceAccess, hasWriteAccess } from './scopes.js';
+import {
+  hasGmailModifyAccess,
+  hasGmailSendAccess,
+  hasServiceAccess,
+  hasWriteAccess,
+} from './scopes.js';
 
 import type { GoogleClient } from './client.js';
 
@@ -65,11 +70,14 @@ function hasCapability(capabilities: string[], capability: string): boolean {
 }
 
 function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
-  const canWrite =
-    hasWriteAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_WRITE);
-  const summaries = canWrite
-    ? GMAIL_TOOL_SUMMARIES
-    : GMAIL_TOOL_SUMMARIES.filter((t) => t.name !== 'gmail_send');
+  const canWriteCapability = hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_WRITE);
+  const canSend = hasGmailSendAccess(scopes) && canWriteCapability;
+  const canModify = hasGmailModifyAccess(scopes) && canWriteCapability;
+  const summaries = GMAIL_TOOL_SUMMARIES.filter((t) => {
+    if (t.name === 'gmail_send') return canSend;
+    if (t.name === 'modifyLabels' || t.name === 'modifyMessages') return canModify;
+    return true;
+  });
 
   return {
     id: 'google-gmail',
@@ -81,12 +89,15 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
       'Gmail tools use standard Gmail search syntax for queries.',
       'Common operators: from:, to:, subject:, is:unread, is:starred, has:attachment, newer_than:, older_than:, label:',
       'Example queries: "from:boss@company.com newer_than:7d", "subject:invoice is:unread", "has:attachment filename:pdf"',
-      canWrite
+      canSend
         ? 'You have send access. Use gmail_send to compose or reply to emails.'
-        : 'You have read-only access. Sending emails is not available.',
+        : 'You do not have send access. Sending emails is not available.',
+      canModify
+        ? 'You have label modify access. Use modifyLabels and modifyMessages to manage labels and archive messages.'
+        : 'You have read-only label access. Use listLabels and getLabels to inspect labels.',
     ].join('\n'),
     tools: () => summaries,
-    activate: (resolveClient) => createGmailTools(resolveClient, canWrite),
+    activate: (resolveClient) => createGmailTools(resolveClient, { canSend, canModify }),
   };
 }
 

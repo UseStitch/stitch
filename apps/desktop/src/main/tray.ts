@@ -1,6 +1,6 @@
 import { app, Menu, nativeImage, Tray } from 'electron';
-import { join } from 'node:path';
 
+import { resolveResourcePath } from './resources';
 import type { SseClient } from './sse-client';
 import type { BrowserWindow } from 'electron';
 
@@ -11,7 +11,7 @@ let currentState: TrayState = 'idle';
 let detectedMeetingId: string | null = null;
 
 function getAppIcon(): Electron.NativeImage {
-  const iconPath = join(__dirname, '../../resources/icon.png');
+  const iconPath = resolveResourcePath('icon.png');
   const image = nativeImage.createFromPath(iconPath);
   // Resize to 16x16 for tray — avoids platform issues with large icons
   return image.resize({ width: 16, height: 16 });

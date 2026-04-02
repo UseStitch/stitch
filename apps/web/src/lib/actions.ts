@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useMatchRoute, useNavigate } from '@tanstack/react-router';
 
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
@@ -14,8 +14,9 @@ export interface Action {
 
 export function useActions(): Action[] {
   const navigate = useNavigate();
-  const params = useParams({ strict: false });
-  const sessionId = params.id;
+  const matchRoute = useMatchRoute();
+  const sessionMatch = matchRoute({ to: '/session/$id' });
+  const sessionId = sessionMatch ? sessionMatch.id : undefined;
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,

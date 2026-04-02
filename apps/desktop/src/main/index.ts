@@ -1,29 +1,29 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { initNotifications } from './notifications';
+import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 import { SseClient } from './sse-client';
 import { destroyTray, initTray } from './tray';
 
 const WEB_DEV_URL = 'http://localhost:5173';
-const WEB_DIST = join(__dirname, '../../web/dist/index.html');
-const WINDOW_ICON_NAME = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+const WINDOW_ICON_NAME = 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
+
+function getPackagedWebDistPath(): string {
+  return join(process.resourcesPath, 'web/dist/index.html');
+}
 
 // Enforce single instance before any other initialization.
 // app.exit() is used instead of app.quit() to avoid ghost processes on Windows.
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit(0);
-}
-
-if (process.platform === 'win32') {
-  app.setAppUserModelId('com.stitch.desktop');
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -49,11 +49,15 @@ async function waitForDevServer(url: string): Promise<void> {
 
 async function createWindow() {
   const isMac = process.platform === 'darwin';
+  const iconCandidates = process.platform === 'win32' ? ['icon.png', 'icon.ico'] : ['icon.png'];
+  const windowIcon = iconCandidates
+    .map((name) => nativeImage.createFromPath(resolveResourcePath(name)))
+    .find((image) => !image.isEmpty());
 
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    icon: join(__dirname, `../../resources/${WINDOW_ICON_NAME}`),
+    ...(windowIcon ? { icon: windowIcon } : { icon: resolveResourcePath(WINDOW_ICON_NAME) }),
     frame: false,
     ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
@@ -68,6 +72,17 @@ async function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  if (windowIcon) {
+    mainWindow.setIcon(windowIcon);
+  }
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    dialog.showErrorBox(
+      'Failed to load Stitch UI',
+      `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
+    );
   });
 
   // Hide to tray on close instead of quitting, unless the app is actually quitting.
@@ -105,7 +120,7 @@ async function createWindow() {
     await waitForDevServer(WEB_DEV_URL);
     void mainWindow.loadURL(WEB_DEV_URL);
   } else {
-    void mainWindow.loadFile(WEB_DIST);
+    void mainWindow.loadFile(getPackagedWebDistPath());
   }
 
   if (!app.isPackaged) {
@@ -177,40 +192,49 @@ ipcMain.handle('dialog:openPath', async () => {
 });
 
 void app.whenReady().then(async () => {
-  // Register launch at startup for packaged builds only.
-  if (app.isPackaged) {
-    app.setLoginItemSettings({ openAtLogin: true });
+  try {
+    // Register launch at startup for packaged builds only.
+    if (app.isPackaged) {
+      app.setLoginItemSettings({ openAtLogin: true });
+    }
+
+    // When a second instance attempts to launch, focus the existing window.
+    app.on('second-instance', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    const port = await findAvailablePort();
+    serverUrl = await spawnServer(port);
+
+    await createWindow();
+
+    // Initialize SSE client, notifications, and system tray
+    const getWindow = () => mainWindow;
+    sseClient = new SseClient(serverUrl);
+    initNotifications(sseClient, serverUrl, getWindow);
+    initTray(sseClient, serverUrl, getWindow);
+    sseClient.start();
+
+    app.on('activate', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      } else {
+        void createWindow();
+      }
+    });
+  } catch (error) {
+    sseClient?.stop();
+    destroyTray();
+    killServer();
+    const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    dialog.showErrorBox('Stitch failed to start', detail);
+    app.exit(1);
   }
-
-  // When a second instance attempts to launch, focus the existing window.
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
-
-  const port = await findAvailablePort();
-  serverUrl = await spawnServer(port);
-
-  await createWindow();
-
-  // Initialize SSE client, notifications, and system tray
-  const getWindow = () => mainWindow;
-  sseClient = new SseClient(serverUrl);
-  initNotifications(sseClient, serverUrl, getWindow);
-  initTray(sseClient, serverUrl, getWindow);
-  sseClient.start();
-
-  app.on('activate', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-      mainWindow.focus();
-    } else {
-      void createWindow();
-    }
-  });
 });
 
 app.on('before-quit', () => {

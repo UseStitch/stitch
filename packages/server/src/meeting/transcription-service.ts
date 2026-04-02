@@ -20,15 +20,28 @@ import type { ProviderCredentials } from '@/provider/provider.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
+import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 
 const log = Log.create({ service: 'transcription' });
 
 const TRANSCRIPTION_PROMPT_TEMPLATE = fs
-  .readFileSync(new URL('./transcription-system-prompt.md', import.meta.url), 'utf8')
+  .readFileSync(
+    resolveRuntimeAssetPath(
+      new URL('./transcription-system-prompt.md', import.meta.url),
+      'meeting/transcription-system-prompt.md',
+    ),
+    'utf8',
+  )
   .trim();
 
 const ANALYSIS_PROMPT_TEMPLATE = fs
-  .readFileSync(new URL('./analysis-system-prompt.md', import.meta.url), 'utf8')
+  .readFileSync(
+    resolveRuntimeAssetPath(
+      new URL('./analysis-system-prompt.md', import.meta.url),
+      'meeting/analysis-system-prompt.md',
+    ),
+    'utf8',
+  )
   .trim();
 
 const transcriptEntrySchema = z.object({

@@ -12,13 +12,21 @@ import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 type Db = BunSQLiteDatabase<typeof schema>;
 
-const MIGRATIONS_DIR = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
 
 function getDatabasePath(): string {
   return process.env['STITCH_DB_PATH']?.trim() || PATHS.filePaths.db;
+}
+
+function getMigrationsDir(): string {
+  const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
+  if (fs.existsSync(sourceMigrationsDir)) {
+    return sourceMigrationsDir;
+  }
+
+  return path.join(path.dirname(process.execPath), 'drizzle');
 }
 
 function seedShortcuts(db: Db): void {
@@ -59,6 +67,7 @@ export function getDb(): Db {
 
 export async function initDb(): Promise<void> {
   const dbPath = getDatabasePath();
+  const migrationsDir = getMigrationsDir();
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
   const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
@@ -74,10 +83,10 @@ export async function initDb(): Promise<void> {
   sqlite.run('PRAGMA foreign_keys = ON');
 
   _db = drizzle({ client: sqlite, schema }) as Db;
-  migrate(_db, { migrationsFolder: MIGRATIONS_DIR });
+  migrate(_db, { migrationsFolder: migrationsDir });
 
   seedShortcuts(_db);
   seedSettings(_db);
 
-  log.info({ path: dbPath, runtime: 'bun-sqlite' }, 'database initialized');
+  log.info({ path: dbPath, migrationsDir, runtime: 'bun-sqlite' }, 'database initialized');
 }

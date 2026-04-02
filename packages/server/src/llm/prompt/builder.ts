@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { buildPromptEnvironment } from '@/llm/prompt/env.js';
+import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 
 const identity = (userName: string | null) => {
   const identityLine = userName
@@ -12,7 +13,7 @@ const identity = (userName: string | null) => {
 };
 
 const BASE_SYSTEM_PROMPT = readFileSync(
-  new URL('./base-system-prompt.txt', import.meta.url),
+  resolveRuntimeAssetPath(new URL('./base-system-prompt.txt', import.meta.url), 'llm/prompt/base-system-prompt.txt'),
   'utf8',
 ).trim();
 

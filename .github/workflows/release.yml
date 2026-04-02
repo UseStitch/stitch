@@ -20,12 +20,23 @@ permissions:
   contents: write
 
 jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure workflow is dispatched from production
+        run: |
+          if [ "${{ github.ref_name }}" != "production" ]; then
+            echo "This workflow must be run from the production branch."
+            exit 1
+          fi
+
   version:
-    if: github.ref_name == 'production'
+    needs: guard
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
+      commit: ${{ steps.commit.outputs.commit }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -90,30 +101,32 @@ jobs:
           EOF
 
       - name: Commit and tag
+        id: commit
         env:
           VERSION: ${{ steps.bump.outputs.version }}
           TAG: ${{ steps.bump.outputs.tag }}
         run: |
           git add apps/desktop/package.json package.json
           git commit -m "chore(release): bump version to ${TAG}"
-          git tag "${TAG}"
           git push origin HEAD:production
-          git push origin "${TAG}"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: version
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - windows-latest
-          - macos-latest
+        include:
+          - runner: windows-2022
+            os: windows
+          - runner: macos-14
+            os: macos
     steps:
-      - name: Checkout release tag
+      - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.version.outputs.tag }}
+          ref: ${{ needs.version.outputs.commit }}
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
@@ -127,7 +140,7 @@ jobs:
         with:
           name: desktop-${{ matrix.os }}
           if-no-files-found: error
-          path: apps/desktop/dist/*
+          path: apps/desktop/dist/**/*
 
   release:
     needs:
@@ -146,11 +159,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
+          COMMIT: ${{ needs.version.outputs.commit }}
         run: |
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" release-assets/* --clobber
           else
-            gh release create "${TAG}" release-assets/* --title "${TAG}" --notes "Release ${TAG}"
+            gh release create "${TAG}" release-assets/* --target "${COMMIT}" --title "${TAG}" --notes "Release ${TAG}"
           fi
 
   sync-master:

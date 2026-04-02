@@ -10,6 +10,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
 
 export default defineConfig({
+  base: './',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version as string),
   },

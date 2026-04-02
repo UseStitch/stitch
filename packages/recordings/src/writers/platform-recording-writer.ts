@@ -1,4 +1,4 @@
-import { MicrophoneRecorder, SystemAudioRecorder } from 'native-audio-node';
+import { MicrophoneRecorder, SystemAudioRecorder } from '../native-audio.js';
 import { createWriteStream, existsSync, mkdirSync, statSync } from 'node:fs';
 import { open, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';

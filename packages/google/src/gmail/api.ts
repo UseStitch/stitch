@@ -119,6 +119,94 @@ type GmailSearchResult = {
   totalEstimate: number;
 };
 
+type GmailLabelRaw = {
+  id: string;
+  name: string;
+  type?: string;
+  messageListVisibility?: string;
+  labelListVisibility?: string;
+  messagesTotal?: number;
+  messagesUnread?: number;
+  threadsTotal?: number;
+  threadsUnread?: number;
+};
+
+type GmailLabel = {
+  id: string;
+  name: string;
+  type: string | undefined;
+  messageListVisibility: string | undefined;
+  labelListVisibility: string | undefined;
+  messagesTotal: number | undefined;
+  messagesUnread: number | undefined;
+  threadsTotal: number | undefined;
+  threadsUnread: number | undefined;
+};
+
+type GmailLabelListResponse = {
+  labels?: GmailLabelRaw[];
+};
+
+type GmailModifyThreadRaw = {
+  id: string;
+  historyId?: string;
+};
+
+type GmailModifyLabelsInput =
+  | {
+      operation: 'create';
+      name: string;
+      messageListVisibility?: string;
+      labelListVisibility?: string;
+    }
+  | {
+      operation: 'update';
+      labelId: string;
+      name?: string;
+      messageListVisibility?: string;
+      labelListVisibility?: string;
+    }
+  | {
+      operation: 'delete';
+      labelId: string;
+    };
+
+type GmailModifyLabelsResult =
+  | {
+      operation: 'create' | 'update';
+      label: GmailLabel;
+    }
+  | {
+      operation: 'delete';
+      labelId: string;
+      deleted: true;
+    };
+
+type GmailModifyMessagesResult = {
+  modifiedTarget: 'message' | 'thread';
+  modifiedCount: number;
+  results: {
+    id: string;
+    threadId: string | undefined;
+    historyId: string | undefined;
+    labelIds: string[] | undefined;
+  }[];
+};
+
+function mapLabel(raw: GmailLabelRaw): GmailLabel {
+  return {
+    id: raw.id,
+    name: raw.name,
+    type: raw.type,
+    messageListVisibility: raw.messageListVisibility,
+    labelListVisibility: raw.labelListVisibility,
+    messagesTotal: raw.messagesTotal,
+    messagesUnread: raw.messagesUnread,
+    threadsTotal: raw.threadsTotal,
+    threadsUnread: raw.threadsUnread,
+  };
+}
+
 export async function searchMessages(
   client: GoogleClient,
   query: string,
@@ -206,4 +294,130 @@ export async function sendMessage(
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function listLabels(client: GoogleClient): Promise<{ labels: GmailLabel[] }> {
+  const response = await client.request<GmailLabelListResponse>(`${GMAIL_API}/labels`);
+  return {
+    labels: (response.labels ?? []).map(mapLabel),
+  };
+}
+
+export async function getLabels(client: GoogleClient, labelId: string): Promise<GmailLabel> {
+  const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`);
+  return mapLabel(raw);
+}
+
+export async function modifyLabels(
+  client: GoogleClient,
+  input: GmailModifyLabelsInput,
+): Promise<GmailModifyLabelsResult> {
+  if (input.operation === 'create') {
+    const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: input.name,
+        messageListVisibility: input.messageListVisibility,
+        labelListVisibility: input.labelListVisibility,
+      }),
+    });
+
+    return {
+      operation: 'create',
+      label: mapLabel(raw),
+    };
+  }
+
+  if (input.operation === 'update') {
+    const raw = await client.request<GmailLabelRaw>(
+      `${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: input.name,
+          messageListVisibility: input.messageListVisibility,
+          labelListVisibility: input.labelListVisibility,
+        }),
+      },
+    );
+
+    return {
+      operation: 'update',
+      label: mapLabel(raw),
+    };
+  }
+
+  await client.request(`${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`, {
+    method: 'DELETE',
+  });
+
+  return {
+    operation: 'delete',
+    labelId: input.labelId,
+    deleted: true,
+  };
+}
+
+export async function modifyMessages(
+  client: GoogleClient,
+  input: {
+    messageIds: string[];
+    addLabelIds?: string[];
+    removeLabelIds?: string[];
+    modifyThreads?: boolean;
+  },
+): Promise<GmailModifyMessagesResult> {
+  const payload = {
+    addLabelIds: input.addLabelIds,
+    removeLabelIds: input.removeLabelIds,
+  };
+
+  if (input.modifyThreads) {
+    const results = await Promise.all(
+      input.messageIds.map(async (messageId) => {
+        const raw = await client.request<GmailModifyThreadRaw>(
+          `${GMAIL_API}/threads/${encodeURIComponent(messageId)}/modify`,
+          {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          },
+        );
+
+        return {
+          id: raw.id,
+          threadId: raw.id,
+          historyId: raw.historyId,
+          labelIds: undefined,
+        };
+      }),
+    );
+
+    return {
+      modifiedTarget: 'thread',
+      modifiedCount: results.length,
+      results,
+    };
+  }
+
+  await client.request(`${GMAIL_API}/messages/batchModify`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ids: input.messageIds,
+      addLabelIds: input.addLabelIds,
+      removeLabelIds: input.removeLabelIds,
+    }),
+  });
+
+  const results = input.messageIds.map((id) => ({
+    id,
+    threadId: undefined,
+    historyId: undefined,
+    labelIds: undefined,
+  }));
+
+  return {
+    modifiedTarget: 'message',
+    modifiedCount: results.length,
+    results,
+  };
 }

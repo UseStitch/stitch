@@ -1,4 +1,4 @@
-import { MicrophoneActivityMonitor } from 'native-audio-node';
+import { MicrophoneActivityMonitor } from '../native-audio.js';
 
 import { createRecordingId } from '@stitch/shared/id';
 
