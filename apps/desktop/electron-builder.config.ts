@@ -46,6 +46,7 @@ const config: Configuration = {
   ],
   icon: 'resources/icon.png',
   nsis: {
+    artifactName: '${productName}-v${version}-windows-setup.${ext}',
     include: 'installer/installer.nsh',
   },
   win: {
@@ -54,6 +55,7 @@ const config: Configuration = {
     target: ['nsis'],
   },
   mac: {
+    artifactName: '${productName}-v${version}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
     binaries: ['Contents/Resources/stitch-server'],
