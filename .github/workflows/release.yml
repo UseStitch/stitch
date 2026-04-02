@@ -162,10 +162,23 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
           COMMIT: ${{ needs.version.outputs.commit }}
         run: |
+          shopt -s globstar nullglob
+          assets=()
+          for path in release-assets/**/*; do
+            if [ -f "$path" ]; then
+              assets+=("$path")
+            fi
+          done
+
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No release asset files were found."
+            exit 1
+          fi
+
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" release-assets/* --clobber
+            gh release upload "${TAG}" "${assets[@]}" --clobber
           else
-            gh release create "${TAG}" release-assets/* --target "${COMMIT}" --title "${TAG}" --notes "Release ${TAG}"
+            gh release create "${TAG}" "${assets[@]}" --target "${COMMIT}" --title "${TAG}" --notes "Release ${TAG}"
           fi
 
   sync-master:
