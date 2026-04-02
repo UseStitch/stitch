@@ -9,6 +9,7 @@ import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 import { SseClient } from './sse-client';
 import { destroyTray, initTray } from './tray';
+import { createUpdater } from './updater';
 
 const WEB_DEV_URL = 'http://localhost:5173';
 const WINDOW_ICON_NAME = 'icon.png';
@@ -41,6 +42,23 @@ let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
 let sseClient: SseClient | null = null;
 let isQuitting = false;
+let isShuttingDown = false;
+
+function shutdownRuntime(): void {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  sseClient?.stop();
+  destroyTray();
+  killServer();
+}
+
+const updater = createUpdater({
+  getWindow: () => mainWindow,
+  prepareForInstall: () => {
+    isQuitting = true;
+    shutdownRuntime();
+  },
+});
 
 async function waitForDevServer(url: string): Promise<void> {
   const deadline = Date.now() + DEV_SERVER_TIMEOUT_MS;
@@ -202,6 +220,18 @@ ipcMain.handle('dialog:openPath', async () => {
   return result.canceled ? [] : result.filePaths;
 });
 
+ipcMain.handle('updater:check', () => {
+  return updater.checkForUpdates();
+});
+
+ipcMain.handle('updater:getState', () => {
+  return updater.getState();
+});
+
+ipcMain.handle('updater:install', () => {
+  return updater.installUpdate();
+});
+
 void app.whenReady().then(async () => {
   try {
     // Register launch at startup for packaged builds only.
@@ -223,6 +253,11 @@ void app.whenReady().then(async () => {
 
     await createWindow();
 
+    updater.init();
+    setTimeout(() => {
+      void updater.checkForUpdates();
+    }, 15_000);
+
     // Initialize SSE client, notifications, and system tray
     const getWindow = () => mainWindow;
     sseClient = new SseClient(serverUrl);
@@ -239,9 +274,7 @@ void app.whenReady().then(async () => {
       }
     });
   } catch (error) {
-    sseClient?.stop();
-    destroyTray();
-    killServer();
+    shutdownRuntime();
     const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
     dialog.showErrorBox('Stitch failed to start', detail);
     app.exit(1);
@@ -250,9 +283,7 @@ void app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
-  sseClient?.stop();
-  destroyTray();
-  killServer();
+  shutdownRuntime();
 });
 
 // The tray keeps the app alive even when the window is hidden.
