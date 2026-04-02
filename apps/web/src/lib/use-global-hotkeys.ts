@@ -1,7 +1,6 @@
 import type { Hotkey } from '@tanstack/react-hotkeys';
 import { useHotkey, useHotkeySequence } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
 
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
@@ -34,17 +33,13 @@ function resolveLeaderHotkey(
 export function useGlobalHotkeys(actions: Action[]) {
   const shortcuts = useShortcuts();
   const actionMap = new Map(actions.map((a) => [a.id, a]));
-  const params = useParams({ strict: false });
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const isSessionPage = !!params.id;
   const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
 
   const commandPalette = shortcuts.get('command-palette');
   const openSettings = shortcuts.get('open-settings');
   const newSession = shortcuts.get('new-session');
-  const renameSession = shortcuts.get('rename-session');
-  const stopStream = shortcuts.get('stop-stream');
   const openChat = shortcuts.get('open-chat');
   const openRecordings = shortcuts.get('open-recordings');
 
@@ -60,15 +55,6 @@ export function useGlobalHotkeys(actions: Action[]) {
     preventDefault: true,
     enabled: !!newSession?.hotkey,
   });
-  useHotkey(renameSession?.hotkey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
-    preventDefault: true,
-    enabled: !!renameSession?.hotkey && isSessionPage,
-  });
-  useHotkeySequence(
-    [stopStream?.hotkey ?? 'Escape', stopStream?.hotkey ?? 'Escape'],
-    () => actionMap.get('stop-stream')?.run(),
-    { enabled: !!stopStream?.hotkey && isSessionPage, timeout: 500 },
-  );
 
   // Leader key sequences
   const defaultChatHotkey = getDefaultShortcutHotkey('open-chat');
