@@ -63,6 +63,7 @@ jobs:
           }
 
           const sourceFile = 'apps/desktop/package.json'
+          const webFile = 'apps/web/package.json'
           const sourcePkg = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
           const current = String(sourcePkg.version ?? '')
           const parts = current.split('.').map(Number)
@@ -84,7 +85,7 @@ jobs:
 
           const next = parts.join('.')
 
-          const files = [sourceFile]
+          const files = [sourceFile, webFile]
           const rootPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
           if (typeof rootPkg.version === 'string' && rootPkg.version.length > 0) {
             files.push('package.json')
@@ -106,7 +107,7 @@ jobs:
           VERSION: ${{ steps.bump.outputs.version }}
           TAG: ${{ steps.bump.outputs.tag }}
         run: |
-          git add apps/desktop/package.json package.json
+          git add apps/desktop/package.json apps/web/package.json package.json
           git commit -m "chore(release): bump version to ${TAG}"
           git push origin HEAD:production
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
