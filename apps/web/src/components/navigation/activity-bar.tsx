@@ -8,6 +8,7 @@ import { useDialogContext } from '@/context/dialog-context';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
+import { hasUpdaterBadge, useUpdaterStore } from '@/stores/updater-store';
 
 type ActivityItem = {
   id: string;
@@ -74,6 +75,8 @@ export function ActivityBar() {
   const pendingConnectorUpdates = connectorInstances.filter(
     (instance) => instance.upgrade?.available,
   ).length;
+  const updaterStatus = useUpdaterStore((state) => state.updater.status);
+  const showSettingsUpdateIndicator = hasUpdaterBadge(updaterStatus);
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const showTrafficLightPadding = isMac && !isFullScreen;
@@ -154,14 +157,19 @@ export function ActivityBar() {
               <button
                 type="button"
                 onClick={() => setSettingsTab('general')}
-                className="flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 aria-label="Open settings"
               />
             }
           >
             <SettingsIcon className="size-5" />
+            {showSettingsUpdateIndicator ? (
+              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+            ) : null}
           </TooltipTrigger>
-          <TooltipContent side="right">Settings</TooltipContent>
+          <TooltipContent side="right">
+            {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
+          </TooltipContent>
         </Tooltip>
       </div>
     </div>

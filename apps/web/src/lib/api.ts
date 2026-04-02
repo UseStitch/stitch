@@ -13,6 +13,22 @@ export type ContextMenuParams = {
   };
 };
 
+export type DesktopUpdaterStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'no-update'
+  | 'error';
+
+export type DesktopUpdaterState = {
+  status: DesktopUpdaterStatus;
+  version?: string;
+  progress?: number;
+  error?: string;
+};
+
 declare global {
   interface Window {
     electron?: {
@@ -39,6 +55,11 @@ declare global {
       files?: {
         writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
         openPath: () => Promise<string[]>;
+      };
+      updater?: {
+        check: () => Promise<DesktopUpdaterState>;
+        getState: () => Promise<DesktopUpdaterState>;
+        install: () => Promise<boolean>;
       };
       spellcheck?: {
         replaceMisspelling: (word: string) => Promise<void>;

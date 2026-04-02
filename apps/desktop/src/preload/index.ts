@@ -47,6 +47,23 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('files:writeTmp', data, ext) as Promise<string>,
     openPath: () => ipcRenderer.invoke('dialog:openPath') as Promise<string[]>,
   },
+  updater: {
+    check: () =>
+      ipcRenderer.invoke('updater:check') as Promise<{
+        status: string;
+        version?: string;
+        progress?: number;
+        error?: string;
+      }>,
+    getState: () =>
+      ipcRenderer.invoke('updater:getState') as Promise<{
+        status: string;
+        version?: string;
+        progress?: number;
+        error?: string;
+      }>,
+    install: () => ipcRenderer.invoke('updater:install') as Promise<boolean>,
+  },
   spellcheck: {
     replaceMisspelling: (word: string) => ipcRenderer.invoke('spellcheck:replaceMisspelling', word),
     addToDictionary: (word: string) => ipcRenderer.invoke('spellcheck:addToDictionary', word),

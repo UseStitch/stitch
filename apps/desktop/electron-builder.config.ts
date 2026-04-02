@@ -3,6 +3,13 @@ import type { Configuration } from 'electron-builder';
 const config: Configuration = {
   appId: 'com.stitch.desktop',
   productName: 'Stitch',
+  publish: [
+    {
+      provider: 'github',
+      owner: 'UseStitch',
+      repo: 'stitch',
+    },
+  ],
   directories: {
     output: 'dist',
     buildResources: 'resources',

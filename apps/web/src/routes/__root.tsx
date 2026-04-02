@@ -20,6 +20,7 @@ import { NotificationSound } from '@/hooks/sse/use-notification-sound';
 import { StreamSync } from '@/hooks/sse/use-stream-sync';
 import { UnreadSync } from '@/hooks/sse/use-unread-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
+import { UpdaterSync } from '@/hooks/ui/use-updater-sync';
 import { useActions } from '@/lib/actions';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
@@ -81,6 +82,7 @@ function RootLayout() {
                 <NotificationSound />
                 <UnreadSync />
                 <MeetingSync />
+                <UpdaterSync />
                 <RecordingBanner />
                 <Outlet />
               </SidebarInset>

@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { LoaderIcon } from 'lucide-react';
+
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import {
@@ -14,6 +16,7 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -26,6 +29,7 @@ import {
   saveSettingMutationOptions,
   settingsQueryOptions,
 } from '@/lib/queries/settings';
+import { useUpdaterStore } from '@/stores/updater-store';
 
 type ModelOption = {
   label: string;
@@ -212,6 +216,10 @@ export function GeneralSettings() {
         </React.Suspense>
       </section>
       <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-medium">App Updates</h3>
+        <AppUpdatesContent />
+      </section>
+      <section className="mt-8 space-y-3">
         <h3 className="text-sm font-medium">Notifications</h3>
         <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
           <NotificationsContent />
@@ -223,6 +231,76 @@ export function GeneralSettings() {
           <RecordingsContent />
         </React.Suspense>
       </section>
+    </div>
+  );
+}
+
+function updaterStatusLabel(status: string, progress?: number): string {
+  if (status === 'checking') return 'Checking for updates...';
+  if (status === 'available') return 'Update available. Downloading in background...';
+  if (status === 'downloading') return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
+  if (status === 'downloaded') return 'Update ready. Restart Stitch to install.';
+  if (status === 'no-update') return 'You are up to date.';
+  if (status === 'error') return 'Could not check for updates.';
+  if (status === 'installing') return 'Installing update and restarting...';
+  return 'Check for updates manually.';
+}
+
+function AppUpdatesContent() {
+  const updater = useUpdaterStore((state) => state.updater);
+  const setInstalling = useUpdaterStore((state) => state.setInstalling);
+  const [checkPending, setCheckPending] = React.useState(false);
+  const [installPending, setInstallPending] = React.useState(false);
+
+  const statusText = updaterStatusLabel(updater.status, updater.progress);
+  const actionPending = checkPending || installPending;
+  const canCheck = updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
+  const canInstall = updater.status === 'downloaded' && !actionPending;
+
+  function handleCheckUpdates() {
+    setCheckPending(true);
+    const startedAt = Date.now();
+    void window.api?.updater?.check().finally(() => {
+      const elapsedMs = Date.now() - startedAt;
+      const remainingMs = Math.max(0, 700 - elapsedMs);
+      window.setTimeout(() => setCheckPending(false), remainingMs);
+    });
+  }
+
+  function handleInstallUpdate() {
+    setInstallPending(true);
+    setInstalling();
+    void window.api?.updater
+      ?.install()
+      .finally(() => {
+        setInstallPending(false);
+      });
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <Label className="text-sm font-medium">Desktop app updates</Label>
+        <p className="text-xs text-muted-foreground">{statusText}</p>
+        {updater.error ? <p className="text-xs text-destructive">{updater.error}</p> : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={!canCheck}>
+          {checkPending ? (
+            <>
+              <LoaderIcon className="size-3.5 animate-spin" />
+              Checking...
+            </>
+          ) : (
+            'Check for updates'
+          )}
+        </Button>
+        {canInstall ? (
+          <Button type="button" size="sm" onClick={handleInstallUpdate}>
+            Restart to update
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
