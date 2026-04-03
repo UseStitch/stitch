@@ -1,13 +1,13 @@
 /**
- * Bridge between @stitch/google toolset definitions and the server's
+ * Bridge between @stitch-connectors/google toolset definitions and the server's
  * toolset registry. Queries connector instances for Google, checks scopes,
  * and registers only the toolsets the user has authorized.
  */
 
 import { eq } from 'drizzle-orm';
 
-import { GoogleClient } from '@stitch/google/client';
-import { hasServiceAccess } from '@stitch/google/scopes';
+import { GoogleClient } from '@stitch-connectors/google/client';
+import { hasServiceAccess } from '@stitch-connectors/google/scopes';
 import {
   GOOGLE_CAPABILITY_CALENDAR_READ,
   GOOGLE_CAPABILITY_DOCS_READ,
@@ -16,7 +16,7 @@ import {
   GOOGLE_TOOLSET_IDS,
   type GoogleToolsetDefinition,
   buildGoogleToolsets,
-} from '@stitch/google/toolsets';
+} from '@stitch-connectors/google/toolsets';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
@@ -68,7 +68,7 @@ function accountSupportsToolset(
   return false;
 }
 
-/** Convert a @stitch/google toolset definition into the server Toolset type. */
+/** Convert a @stitch-connectors/google toolset definition into the server Toolset type. */
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
   return {
     id: def.id,

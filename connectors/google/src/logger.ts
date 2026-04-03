@@ -1,5 +1,5 @@
 /**
- * Minimal logger interface for @stitch/google.
+ * Minimal logger interface for @stitch-connectors/google.
  * Matches a subset of the server's Logger type so the server can pass its
  * own logger in without the google package depending on the server.
  */

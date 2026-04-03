@@ -12,7 +12,7 @@ import {
   GOOGLE_SCOPE_GMAIL_READONLY,
   GOOGLE_SCOPE_GMAIL_SEND,
   GOOGLE_SCOPE_USERINFO_EMAIL,
-} from '@stitch/google/scopes';
+} from '@stitch-connectors/google/scopes';
 import {
   GOOGLE_CAPABILITY_CALENDAR_READ,
   GOOGLE_CAPABILITY_CALENDAR_WRITE,
@@ -22,7 +22,7 @@ import {
   GOOGLE_CAPABILITY_DRIVE_WRITE,
   GOOGLE_CAPABILITY_GMAIL_READ,
   GOOGLE_CAPABILITY_GMAIL_WRITE,
-} from '@stitch/google/toolsets';
+} from '@stitch-connectors/google/toolsets';
 import type { ConnectorDefinition, OAuthConfig } from '@stitch/shared/connectors/types';
 
 const SERVICE_ACCESS_OPTIONS = [

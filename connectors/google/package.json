@@ -1,5 +1,5 @@
 {
-  "name": "@stitch/google",
+  "name": "@stitch-connectors/google",
   "version": "0.0.0",
   "private": true,
   "type": "module",

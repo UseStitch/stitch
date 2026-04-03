@@ -23,6 +23,10 @@ const config: KnipConfig = {
       entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
+    'connectors/*': {
+      entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
+      project: ['src/**/*.{ts,tsx}'],
+    },
   },
   ignoreDependencies: [
     'oxlint',
