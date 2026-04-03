@@ -599,32 +599,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
         }
       }
     } else if (definition.authType === 'api_key' && instance.apiKey) {
-      if (instance.connectorId === 'slack') {
-        const res = await fetch('https://slack.com/api/auth.test', {
-          headers: { Authorization: `Bearer ${instance.apiKey}` },
-        });
-        const data = (await res.json()) as { ok: boolean; error?: string };
-        if (!data.ok) throw new Error(`Slack API error: ${data.error}`);
-
-        // Update account info from Slack
-        const infoRes = await fetch('https://slack.com/api/team.info', {
-          headers: { Authorization: `Bearer ${instance.apiKey}` },
-        });
-        const infoData = (await infoRes.json()) as {
-          ok: boolean;
-          team?: { name: string; domain: string };
-        };
-        if (infoData.ok && infoData.team) {
-          await db
-            .update(connectorInstances)
-            .set({
-              accountInfo: infoData.team as unknown as Record<string, unknown>,
-              accountEmail: infoData.team.domain,
-              updatedAt: Date.now(),
-            })
-            .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
-        }
-      }
+      return err('Connector test is not supported for this connector type', 400);
     } else {
       return err('Connector has no credentials to test', 400);
     }
