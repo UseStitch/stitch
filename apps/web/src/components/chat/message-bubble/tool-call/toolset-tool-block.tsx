@@ -1,6 +1,7 @@
 import { PackageIcon, PackagePlusIcon, PackageMinusIcon, PackageSearchIcon } from 'lucide-react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import { ToolCard, getToolCardState, getToolLabel } from './card-primitives';
 
@@ -26,10 +27,18 @@ function getResultMessage(result: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-function getResultIcon(result: unknown): string | null {
+function getResultIcon(result: unknown): ConnectorIconSource | null {
   if (!result || typeof result !== 'object') return null;
   const value = (result as Record<string, unknown>).icon;
-  return typeof value === 'string' ? value : null;
+  if (!value || typeof value !== 'object') return null;
+  const typed = value as { type?: unknown; slug?: unknown; svgString?: unknown };
+  if (typed.type === 'simpleIcons' && typeof typed.slug === 'string') {
+    return { type: 'simpleIcons', slug: typed.slug };
+  }
+  if (typed.type === 'svgString' && typeof typed.svgString === 'string') {
+    return { type: 'svgString', svgString: typed.svgString };
+  }
+  return null;
 }
 
 type ToolsetToolBlockProps = {

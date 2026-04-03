@@ -6,15 +6,12 @@ import * as ConnectorIcons from '@/connectors/icons.js';
 import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/registry.js';
 import {
   listConnectorInstances,
-  listConnectorOAuthProfiles,
   getConnectorInstance,
-  createConnectorOAuthProfile,
   createOAuthConnectorInstance,
   createApiKeyConnectorInstance,
   authorizeOAuthInstance,
   updateConnectorInstance,
   deleteConnectorInstance,
-  deleteConnectorOAuthProfile,
   testConnectorInstance,
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
@@ -24,10 +21,10 @@ import { isServiceError } from '@/lib/service-result.js';
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
 
-// Serve connector icon SVGs (cached from Simple Icons)
-connectorsRouter.get('/icons/:slug', async (c) => {
+// Serve connector icon SVGs from Simple Icons CDN with local cache.
+connectorsRouter.get('/icons/simple-icons/:slug', async (c) => {
   const slug = c.req.param('slug');
-  const svg = await ConnectorIcons.get(slug);
+  const svg = await ConnectorIcons.get({ type: 'simpleIcons', slug });
   if (!svg) return c.json({ error: 'Icon not found' }, 404);
 
   c.header('Content-Type', 'image/svg+xml; charset=utf-8');
@@ -68,27 +65,10 @@ const createOAuthSchema = z
   .object({
     connectorId: z.string().min(1),
     label: z.string().min(1),
-    oauthProfileId: z.string().min(1).optional(),
-    clientId: z.string().min(1).optional(),
-    clientSecret: z.string().min(1).optional(),
+    clientId: z.string().min(1),
+    clientSecret: z.string().min(1),
     scopes: z.array(z.string()).min(1),
-  })
-  .refine(
-    (value) => {
-      if (value.oauthProfileId) return true;
-      return Boolean(value.clientId && value.clientSecret);
-    },
-    {
-      message: 'oauthProfileId or both clientId and clientSecret are required',
-    },
-  );
-
-const createOAuthProfileSchema = z.object({
-  connectorId: z.string().min(1),
-  label: z.string().min(1),
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
-});
+  });
 
 connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
   const body = c.req.valid('json');
@@ -128,34 +108,6 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
   });
 
   return c.json({ authUrl: result.data.authUrl });
-});
-
-// List OAuth credential profiles for a connector
-connectorsRouter.get('/oauth-profiles/:connectorId', async (c) => {
-  const connectorId = c.req.param('connectorId');
-  const result = await listConnectorOAuthProfiles(connectorId);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data);
-});
-
-// Create OAuth credential profile
-connectorsRouter.post(
-  '/oauth-profiles',
-  zValidator('json', createOAuthProfileSchema),
-  async (c) => {
-    const body = c.req.valid('json');
-    const result = await createConnectorOAuthProfile(body);
-    if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-    return c.json(result.data, 201);
-  },
-);
-
-// Delete OAuth credential profile
-connectorsRouter.delete('/oauth-profiles/:profileId', async (c) => {
-  const profileId = c.req.param('profileId');
-  const result = await deleteConnectorOAuthProfile(profileId);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.body(null, 204);
 });
 
 // Update a connector instance

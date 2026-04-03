@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
+    "./connector": "./src/connector.ts",
     "./toolsets": "./src/toolsets.ts",
     "./client": "./src/client.ts",
     "./scopes": "./src/scopes.ts"
@@ -13,6 +15,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@stitch-connectors/sdk": "workspace:*",
+    "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
     "zod": "catalog:"
   },

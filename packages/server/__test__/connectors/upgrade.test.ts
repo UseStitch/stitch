@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
-
-import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
 
 const definition: ConnectorDefinition = {
   id: 'example',
   name: 'Example',
   description: 'Example connector',
-  icon: 'example',
+  icon: { type: 'simpleIcons', slug: 'example' },
   enabled: true,
   currentVersion: 3,
   versionHistory: [

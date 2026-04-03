@@ -88,7 +88,6 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
             accessToken: connectorInstances.accessToken,
             refreshToken: connectorInstances.refreshToken,
             tokenExpiresAt: connectorInstances.tokenExpiresAt,
-            oauthProfileId: connectorInstances.oauthProfileId,
             clientId: connectorInstances.clientId,
             clientSecret: connectorInstances.clientSecret,
             connectorId: connectorInstances.connectorId,
@@ -138,7 +137,6 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                 accessToken: connectorInstances.accessToken,
                 refreshToken: connectorInstances.refreshToken,
                 tokenExpiresAt: connectorInstances.tokenExpiresAt,
-                oauthProfileId: connectorInstances.oauthProfileId,
                 clientId: connectorInstances.clientId,
                 clientSecret: connectorInstances.clientSecret,
               })

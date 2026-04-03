@@ -2,6 +2,10 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 export type ConnectorAuthType = 'oauth2' | 'api_key';
 
+export type ConnectorIconSource =
+  | { type: 'svgString'; svgString: string }
+  | { type: 'simpleIcons'; slug: string };
+
 export type ConnectorUpgradeAction = 'none' | 'reauthorize' | 'rotate_api_key';
 
 export type ConnectorStatus = 'pending_setup' | 'awaiting_auth' | 'connected' | 'error';
@@ -43,12 +47,12 @@ export type ConnectorDefinition = {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  icon: ConnectorIconSource;
   enabled: boolean;
   currentVersion: number;
   versionHistory: ConnectorVersion[];
-  /** Sub-service icon slugs for display (e.g., gmail, googledrive, googlecalendar) */
-  serviceIcons?: string[];
+  /** Sub-service icons for display (e.g., gmail, googledrive, googlecalendar). */
+  serviceIcons?: Record<string, ConnectorIconSource>;
   authType: ConnectorAuthType;
   authConfig: OAuthConfig | ApiKeyConfig;
   setupInstructions: ConnectorSetupInstruction[];
@@ -63,23 +67,12 @@ export type ConnectorVersion = {
   requiredScopes?: string[];
 };
 
-export type ConnectorOAuthProfile = {
-  id: PrefixedString<'connp'>;
-  connectorId: string;
-  label: string;
-  clientId: string;
-  hasClientSecret: boolean;
-  createdAt: number;
-  updatedAt: number;
-};
-
 export type ConnectorInstance = {
   id: PrefixedString<'conn'>;
   connectorId: string;
   label: string;
   appliedVersion: number;
   capabilities: string[];
-  oauthProfileId: PrefixedString<'connp'> | null;
   clientId: string | null;
   clientSecret: string | null;
   apiKey: string | null;

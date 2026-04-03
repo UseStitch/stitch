@@ -80,8 +80,22 @@
       "name": "@stitch-connectors/google",
       "version": "0.0.0",
       "dependencies": {
+        "@stitch-connectors/sdk": "workspace:*",
+        "@stitch/shared": "workspace:*",
         "ai": "catalog:ai",
         "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:testing",
+      },
+    },
+    "connectors/sdk": {
+      "name": "@stitch-connectors/sdk",
+      "version": "0.0.0",
+      "dependencies": {
+        "@stitch/shared": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -117,6 +131,7 @@
         "@hono/zod-validator": "^0.7.6",
         "@openrouter/ai-sdk-provider": "catalog:ai",
         "@stitch-connectors/google": "workspace:*",
+        "@stitch-connectors/sdk": "workspace:*",
         "@stitch/recordings": "workspace:*",
         "@stitch/shared": "workspace:*",
         "ai": "catalog:ai",
@@ -796,6 +811,8 @@
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@stitch-connectors/google": ["@stitch-connectors/google@workspace:connectors/google"],
+
+    "@stitch-connectors/sdk": ["@stitch-connectors/sdk@workspace:connectors/sdk"],
 
     "@stitch/desktop": ["@stitch/desktop@workspace:apps/desktop"],
 

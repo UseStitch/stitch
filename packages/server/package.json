@@ -22,6 +22,7 @@
     "@hono/zod-validator": "^0.7.6",
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "@stitch-connectors/google": "workspace:*",
+    "@stitch-connectors/sdk": "workspace:*",
     "@stitch/recordings": "workspace:*",
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
