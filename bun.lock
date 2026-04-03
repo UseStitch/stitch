@@ -116,6 +116,15 @@
         "vitest": "catalog:testing",
       },
     },
+    "packages/scheduler": {
+      "name": "@stitch/scheduler",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:testing",
+      },
+    },
     "packages/server": {
       "name": "@stitch/server",
       "version": "0.0.0",
@@ -133,6 +142,7 @@
         "@stitch-connectors/google": "workspace:*",
         "@stitch-connectors/sdk": "workspace:*",
         "@stitch/recordings": "workspace:*",
+        "@stitch/scheduler": "workspace:*",
         "@stitch/shared": "workspace:*",
         "ai": "catalog:ai",
         "drizzle-orm": "^0.45.1",
@@ -817,6 +827,8 @@
     "@stitch/desktop": ["@stitch/desktop@workspace:apps/desktop"],
 
     "@stitch/recordings": ["@stitch/recordings@workspace:packages/recordings"],
+
+    "@stitch/scheduler": ["@stitch/scheduler@workspace:packages/scheduler"],
 
     "@stitch/server": ["@stitch/server@workspace:packages/server"],
 
