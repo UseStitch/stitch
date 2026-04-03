@@ -24,6 +24,7 @@
     "@stitch-connectors/google": "workspace:*",
     "@stitch-connectors/sdk": "workspace:*",
     "@stitch/recordings": "workspace:*",
+    "@stitch/scheduler": "workspace:*",
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
     "drizzle-orm": "^0.45.1",
