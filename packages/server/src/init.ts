@@ -1,6 +1,6 @@
 import { startTokenRefreshService } from '@/connectors/auth/token-refresh.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
-import { registerGoogleToolsets } from '@/connectors/google-toolsets.js';
+import { initConnectorRuntime } from '@/connectors/runtime.js';
 import { initDb } from '@/db/client.js';
 import * as Log from '@/lib/log.js';
 import * as Scheduler from '@/lib/scheduler.js';
@@ -36,8 +36,7 @@ export async function init() {
   registerAllConnectors();
   startTokenRefreshService();
 
-  // Register Google toolsets based on connected instances and scopes
-  await registerGoogleToolsets();
+  await initConnectorRuntime();
 
   Scheduler.scheduleRecurring('log-cleanup', LOG_CLEANUP_INTERVAL_MS, () => Log.cleanup());
 

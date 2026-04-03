@@ -55,11 +55,11 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
             </Button>
           </div>
 
-          {definition.serviceIcons && definition.serviceIcons.length > 0 && (
+          {definition.serviceIcons && Object.keys(definition.serviceIcons).length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-muted/60 p-2">
-              {definition.serviceIcons.map((slug) => (
-                <div key={slug} className="rounded-md border border-border/70 bg-muted p-1">
-                  <ConnectorIcon icon={slug} className="size-4" />
+              {Object.entries(definition.serviceIcons).map(([key, icon]) => (
+                <div key={key} className="rounded-md border border-border/70 bg-muted p-1">
+                  <ConnectorIcon icon={icon} className="size-4" />
                 </div>
               ))}
             </div>

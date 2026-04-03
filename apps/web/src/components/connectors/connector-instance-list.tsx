@@ -152,7 +152,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
           >
             <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">
               <ConnectorIcon
-                icon={def?.icon ?? instance.connectorId}
+                icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
                 className="size-7 rounded-md"
               />
             </div>

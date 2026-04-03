@@ -1,0 +1,28 @@
+{
+  "name": "@stitch-connectors/google",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./connector": "./src/connector.ts",
+    "./toolsets": "./src/toolsets.ts",
+    "./client": "./src/client.ts",
+    "./scopes": "./src/scopes.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@stitch-connectors/sdk": "workspace:*",
+    "@stitch/shared": "workspace:*",
+    "ai": "catalog:ai",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:testing"
+  }
+}

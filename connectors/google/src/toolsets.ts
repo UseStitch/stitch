@@ -17,6 +17,8 @@ import {
   hasWriteAccess,
 } from './scopes.js';
 
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
+
 import type { GoogleClient } from './client.js';
 
 export const GOOGLE_CAPABILITY_GMAIL_READ = 'google.gmail.read';
@@ -50,8 +52,7 @@ export type GoogleToolsetDefinition = {
   id: string;
   name: string;
   description: string;
-  /** Icon slug for frontend display (e.g. "gmail", "googledrive", "googlecalendar"). */
-  icon?: string;
+  icon?: ConnectorIconSource;
   instructions?: string;
   tools: () => { name: string; description: string }[];
   activate: (resolveClient: Resolver) => Record<string, unknown>;
@@ -82,7 +83,7 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
   return {
     id: 'google-gmail',
     name: 'Google Gmail',
-    icon: 'gmail',
+    icon: { type: 'simpleIcons', slug: 'gmail' },
     description:
       'Search, read, and send emails via Gmail. Activate to access your inbox, search messages, and compose emails.',
     instructions: [
@@ -111,7 +112,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
   return {
     id: 'google-drive',
     name: 'Google Drive',
-    icon: 'googledrive',
+    icon: { type: 'simpleIcons', slug: 'googledrive' },
     description:
       'Search, read, and create files in Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
     instructions: [
@@ -139,7 +140,7 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
   return {
     id: 'google-calendar',
     name: 'Google Calendar',
-    icon: 'googlecalendar',
+    icon: { type: 'simpleIcons', slug: 'googlecalendar' },
     description:
       'View and manage Google Calendar events. Check upcoming meetings, search events, and create new ones.',
     instructions: [
@@ -166,7 +167,7 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
   return {
     id: 'google-docs',
     name: 'Google Docs',
-    icon: 'googledocs',
+    icon: { type: 'simpleIcons', slug: 'googledocs' },
     description:
       'Search, read, create, and update Google Docs documents. Use Docs for structured notes, drafts, and collaborative writing.',
     instructions: [

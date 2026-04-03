@@ -9,7 +9,7 @@ function buildDefinition(overrides: Partial<ConnectorDefinition> = {}): Connecto
     id: 'registry-test',
     name: 'Registry Test',
     description: 'Registry validation test',
-    icon: 'test',
+    icon: { type: 'simpleIcons', slug: 'test' },
     enabled: true,
     currentVersion: 2,
     versionHistory: [

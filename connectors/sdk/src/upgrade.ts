@@ -1,16 +1,13 @@
-import type {
-  ConnectorDefinition,
-  ConnectorInstanceSafe,
-  ConnectorUpgradeAction,
-  ConnectorVersion,
-} from '@stitch/shared/connectors/types';
+import type { ConnectorUpgradeAction, ConnectorVersion } from '@stitch/shared/connectors/types';
 
-function getSortedVersions(definition: ConnectorDefinition): ConnectorVersion[] {
+import type { ConnectorDefinitionInput, ConnectorUpgradeState } from './types.js';
+
+function getSortedVersions(definition: ConnectorDefinitionInput): ConnectorVersion[] {
   return [...definition.versionHistory].sort((a, b) => a.version - b.version);
 }
 
 export function getCapabilitiesForVersion(
-  definition: ConnectorDefinition,
+  definition: ConnectorDefinitionInput,
   appliedVersion: number,
 ): string[] {
   const capabilities = new Set<string>();
@@ -26,7 +23,7 @@ export function getCapabilitiesForVersion(
 }
 
 function getPendingVersions(
-  definition: ConnectorDefinition,
+  definition: ConnectorDefinitionInput,
   appliedVersion: number,
 ): ConnectorVersion[] {
   return getSortedVersions(definition).filter(
@@ -35,11 +32,11 @@ function getPendingVersions(
 }
 
 export function buildUpgradeState(input: {
-  definition: ConnectorDefinition;
+  definition: ConnectorDefinitionInput;
   appliedVersion: number;
   scopes: string[] | null;
   capabilities: string[];
-}): ConnectorInstanceSafe['upgrade'] {
+}): ConnectorUpgradeState {
   const fromVersion = Math.max(1, input.appliedVersion);
   const toVersion = input.definition.currentVersion;
 
@@ -65,9 +62,7 @@ export function buildUpgradeState(input: {
 
   const targetCapabilities = getCapabilitiesForVersion(input.definition, toVersion);
   const currentCapabilities = new Set(input.capabilities);
-  const newCapabilities = targetCapabilities.filter(
-    (capability) => !currentCapabilities.has(capability),
-  );
+  const newCapabilities = targetCapabilities.filter((capability) => !currentCapabilities.has(capability));
 
   const latestVersion = pendingVersions[pendingVersions.length - 1];
 
