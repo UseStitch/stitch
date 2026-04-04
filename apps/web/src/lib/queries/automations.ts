@@ -3,14 +3,17 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type {
   Automation,
   CreateAutomationInput,
+  RunAutomationResponse,
   UpdateAutomationInput,
 } from '@stitch/shared/automations/types';
+import type { Session } from '@stitch/shared/chat/messages';
 
 import { serverFetch } from '@/lib/api';
 
 const automationKeys = {
   all: ['automations'] as const,
   list: () => [...automationKeys.all, 'list'] as const,
+  sessions: (automationId: string) => [...automationKeys.all, 'sessions', automationId] as const,
 };
 
 export const automationsQueryOptions = queryOptions({
@@ -88,6 +91,39 @@ export function useDeleteAutomation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
+    },
+  });
+}
+
+export const automationSessionsQueryOptions = (automationId: string) =>
+  queryOptions({
+    queryKey: automationKeys.sessions(automationId),
+    queryFn: async (): Promise<Session[]> => {
+      const res = await serverFetch(`/automations/${automationId}/sessions`);
+      if (!res.ok) throw new Error('Failed to fetch automation sessions');
+      return res.json() as Promise<Session[]>;
+    },
+    staleTime: 30_000,
+  });
+
+export function useRunAutomation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (automationId: string): Promise<RunAutomationResponse> => {
+      const res = await serverFetch(`/automations/${automationId}/run`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to run automation');
+      }
+
+      return res.json() as Promise<RunAutomationResponse>;
+    },
+    onSuccess: (_data, automationId) => {
+      void queryClient.invalidateQueries({ queryKey: automationKeys.sessions(automationId) });
+      void queryClient.invalidateQueries({ queryKey: automationKeys.list() });
     },
   });
 }

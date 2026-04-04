@@ -61,6 +61,7 @@ export const automations = sqliteTable('automations', {
   modelId: text('model_id').notNull(),
   initialMessage: text('initial_message').notNull(),
   title: text('title').notNull(),
+  runCount: integer('run_count').notNull().default(0),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -83,6 +84,10 @@ export const providerConfig = sqliteTable('provider_config', {
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
+  type: text('type', { enum: ['chat', 'automation'] }).notNull().default('chat'),
+  automationId: text('automation_id')
+    .$type<PrefixedString<'auto'> | null>()
+    .references(() => automations.id, { onDelete: 'set null' }),
   parentSessionId: text('parent_session_id')
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),

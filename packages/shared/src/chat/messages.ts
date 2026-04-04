@@ -110,6 +110,8 @@ export type Message = {
 export type Session = {
   id: PrefixedString<'ses'>;
   title: string | null;
+  type: 'chat' | 'automation';
+  automationId: PrefixedString<'auto'> | null;
   parentSessionId: PrefixedString<'ses'> | null;
   isUnread: boolean;
   createdAt: number;

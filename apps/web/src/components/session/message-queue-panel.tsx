@@ -2,7 +2,6 @@ import { ArrowUpIcon, PaperclipIcon, PencilIcon, Trash2Icon } from 'lucide-react
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
 
 import type { QueuedMessage } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -17,14 +16,14 @@ import { queuedMessagesQueryOptions, useRemoveFromQueue } from '@/lib/queries/qu
 import { cn } from '@/lib/utils';
 
 type MessageQueuePanelProps = {
+  sessionId: string;
   className?: string;
   onEdit: (payload: EditQueuedMessagePayload) => void;
   sendQueuedRef: React.RefObject<SendQueuedMessageFn | null>;
 };
 
-export function MessageQueuePanel({ className, onEdit, sendQueuedRef }: MessageQueuePanelProps) {
-  const { id } = useParams({ from: '/session/$id' });
-  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(id));
+export function MessageQueuePanel({ sessionId, className, onEdit, sendQueuedRef }: MessageQueuePanelProps) {
+  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(sessionId));
 
   const items = queuedMessages ?? [];
 
@@ -54,7 +53,7 @@ export function MessageQueuePanel({ className, onEdit, sendQueuedRef }: MessageQ
                 <QueuedMessageCard
                   key={item.id}
                   item={item}
-                  sessionId={id}
+                  sessionId={sessionId}
                   onEdit={onEdit}
                   sendQueuedRef={sendQueuedRef}
                 />

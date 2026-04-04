@@ -6,6 +6,7 @@ export type Automation = {
   modelId: string;
   initialMessage: string;
   title: string;
+  runCount: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -18,3 +19,9 @@ export type CreateAutomationInput = {
 };
 
 export type UpdateAutomationInput = Partial<CreateAutomationInput>;
+
+export type RunAutomationResponse = {
+  sessionId: PrefixedString<'ses'>;
+  assistantMessageId: PrefixedString<'msg'>;
+  userMessageId: PrefixedString<'msg'>;
+};

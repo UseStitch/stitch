@@ -43,7 +43,7 @@ export const sessionsQueryOptions = queryOptions({
   queryKey: sessionKeys.list(),
   staleTime: Infinity,
   queryFn: async (): Promise<Session[]> => {
-    const res = await serverFetch('/chat/sessions');
+    const res = await serverFetch('/chat/sessions?type=chat');
     if (!res.ok) throw new Error('Failed to fetch sessions');
     return res.json() as Promise<Session[]>;
   },

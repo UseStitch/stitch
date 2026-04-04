@@ -1,11 +1,18 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
-import { createAutomationId } from '@stitch/shared/id';
-import type { Automation, CreateAutomationInput, UpdateAutomationInput } from '@stitch/shared/automations/types';
+import type { Session } from '@stitch/shared/chat/messages';
+import { createAutomationId, createMessageId } from '@stitch/shared/id';
+import type {
+  Automation,
+  CreateAutomationInput,
+  RunAutomationResponse,
+  UpdateAutomationInput,
+} from '@stitch/shared/automations/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
-import { automations, providerConfig } from '@/db/schema.js';
+import { automations, providerConfig, sessions } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/provider/models.js';
@@ -139,4 +146,83 @@ export async function deleteAutomation(automationId: string): Promise<ServiceRes
   }
 
   return ok(null);
+}
+
+export async function listAutomationSessions(automationId: string): Promise<ServiceResult<Session[]>> {
+  const db = getDb();
+  const [existing] = await db
+    .select({ id: automations.id })
+    .from(automations)
+    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  if (!existing) {
+    return err('Automation not found', 404);
+  }
+
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.type, 'automation'),
+        eq(sessions.automationId, automationId as PrefixedString<'auto'>),
+      ),
+    )
+    .orderBy(desc(sessions.updatedAt));
+
+  return ok(rows);
+}
+
+export async function runAutomation(automationId: string): Promise<ServiceResult<RunAutomationResponse>> {
+  const db = getDb();
+
+  const [automation] = await db
+    .select()
+    .from(automations)
+    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  if (!automation) {
+    return err('Automation not found', 404);
+  }
+
+  const validation = await validateProviderModel(automation.providerId, automation.modelId);
+  if ('error' in validation) {
+    return validation;
+  }
+
+  const [updatedAutomation] = await db
+    .update(automations)
+    .set({
+      runCount: sql`${automations.runCount} + 1`,
+      updatedAt: Date.now(),
+    })
+    .where(eq(automations.id, automation.id))
+    .returning({ runCount: automations.runCount });
+
+  if (!updatedAutomation) {
+    return err('Automation not found', 404);
+  }
+
+  const title = `${automation.title} #${updatedAutomation.runCount}`;
+  const session = await createSession({
+    title,
+    type: 'automation',
+    automationId: automation.id,
+  });
+
+  const assistantMessageId = createMessageId();
+  const sendResult = await sendMessage({
+    sessionId: session.id,
+    content: automation.initialMessage,
+    providerId: automation.providerId,
+    modelId: automation.modelId,
+    assistantMessageId,
+  });
+  if ('error' in sendResult) {
+    return sendResult;
+  }
+
+  return ok({
+    sessionId: session.id,
+    assistantMessageId,
+    userMessageId: sendResult.data.userMessageId as PrefixedString<'msg'>,
+  });
 }

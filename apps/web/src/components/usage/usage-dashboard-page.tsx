@@ -41,6 +41,7 @@ const RANGE_LABELS: Record<UsageDateRange, string> = {
 
 const SOURCE_LABELS: Record<string, string> = {
   chat: 'Chat',
+  automation: 'Automation',
   title_generation: 'Title Generation',
   transcription: 'Transcription',
 };

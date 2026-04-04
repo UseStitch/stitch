@@ -10,7 +10,7 @@ import {
 } from '@stitch/shared/usage/types';
 
 import { getDb } from '@/db/client.js';
-import { llmUsageEvents } from '@/db/schema.js';
+import { llmUsageEvents, sessions } from '@/db/schema.js';
 import type { LanguageModelUsage } from 'ai';
 
 type GetUsageDashboardInput = {
@@ -273,13 +273,17 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
   return { from, to };
 }
 
-function normalizeEventSource(source: string): UsageSource {
+function normalizeEventSource(source: string, sessionType: 'chat' | 'automation' | null): UsageSource {
   if (source === 'title_generation') {
     return 'title_generation';
   }
 
   if (source.startsWith('transcription')) {
     return 'transcription';
+  }
+
+  if (sessionType === 'automation') {
+    return 'automation';
   }
 
   return 'chat';
@@ -336,8 +340,10 @@ export async function getUsageDashboard(
       providerId: llmUsageEvents.providerId,
       modelId: llmUsageEvents.modelId,
       source: llmUsageEvents.source,
+      sessionType: sessions.type,
     })
     .from(llmUsageEvents)
+    .leftJoin(sessions, eq(llmUsageEvents.sessionId, sessions.id))
     .where(and(...eventConditions));
 
   const usedProviderIds = new Set<string>();
@@ -387,7 +393,7 @@ export async function getUsageDashboard(
 
     addUsageRow({
       createdAt: row.createdAt,
-      source: normalizeEventSource(row.source),
+      source: normalizeEventSource(row.source, row.sessionType ?? null),
       usage: row.usage,
       costUsd: row.costUsd,
     });

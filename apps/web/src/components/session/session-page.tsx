@@ -20,7 +20,7 @@ type SessionPageProps = {
 
 export function SessionPage({ sessionId }: SessionPageProps) {
   const { mutate: markReadMutate } = useMarkSessionRead();
-  const details = useSessionDetailsStats();
+  const details = useSessionDetailsStats(sessionId);
   const [rightPanel, setRightPanel] = React.useState<RightPanel>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
@@ -48,6 +48,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
     <>
       <div className="flex h-full flex-col overflow-hidden">
         <SessionPageHeader
+          sessionId={sessionId}
           rightPanel={rightPanel}
           onToggleDetails={toggleDetails}
           onToggleQueue={toggleQueue}
@@ -60,6 +61,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
         >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
             <SessionChatPane
+              sessionId={sessionId}
               onOpenQueue={openQueue}
               editPayload={editPayload}
               onConsumeEditPayload={() => setEditPayload(null)}
@@ -76,6 +78,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
                   <SessionDetailsSheet {...details} className="hidden lg:block" />
                 ) : (
                   <MessageQueuePanel
+                    sessionId={sessionId}
                     className="hidden lg:block"
                     onEdit={setEditPayload}
                     sendQueuedRef={sendQueuedRef}
@@ -88,6 +91,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
       </div>
 
       <SessionDeleteDialog
+        sessionId={sessionId}
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onDeleted={() => setRightPanel('closed')}

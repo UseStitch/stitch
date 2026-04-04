@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
 import type { RightPanel } from '@/components/session/session-page-types';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
 
 type SessionPageHeaderProps = {
+  sessionId: string;
   rightPanel: RightPanel;
   onToggleDetails: () => void;
   onToggleQueue: () => void;
@@ -32,15 +33,15 @@ type SessionPageHeaderProps = {
 };
 
 export function SessionPageHeader({
+  sessionId,
   rightPanel,
   onToggleDetails,
   onToggleQueue,
   onDeleteSession,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
-  const { id } = useParams({ from: '/session/$id' });
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
-  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(id));
+  const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
+  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(sessionId));
 
   const queueCount = queuedMessages?.length ?? 0;
   const isChildSession = session.parentSessionId !== null;

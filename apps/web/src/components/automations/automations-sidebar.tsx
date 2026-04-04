@@ -1,6 +1,7 @@
 import { BotIcon, PlusIcon } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
+import { Link, useParams } from '@tanstack/react-router';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,14 +15,15 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { automationsQueryOptions } from '@/lib/queries/automations';
-import { cn } from '@/lib/utils';
 import { useAutomationStore } from '@/stores/automation-store';
 
 export function AutomationsSidebarContent() {
-  const { data: automations = [] } = useQuery(automationsQueryOptions);
-  const selectedAutomationId = useAutomationStore((state) => state.selectedAutomationId);
-  const setSelectedAutomationId = useAutomationStore((state) => state.setSelectedAutomationId);
+  const params = useParams({ strict: false });
+
   const openCreateDialog = useAutomationStore((state) => state.openCreateDialog);
+
+  const { data: automations = [] } = useQuery(automationsQueryOptions);
+  const selectedAutomationId = typeof params.automationId === 'string' ? params.automationId : null;
 
   return (
     <>
@@ -40,19 +42,22 @@ export function AutomationsSidebarContent() {
       <SidebarContent>
         {automations.length > 0 ? (
           <SidebarGroup>
-            <SidebarGroupLabel>All</SidebarGroupLabel>
+            <SidebarGroupLabel>All automations</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {automations.map((automation) => (
                   <SidebarMenuItem key={automation.id}>
                     <SidebarMenuButton
                       isActive={automation.id === selectedAutomationId}
-                      onClick={() => setSelectedAutomationId(automation.id)}
-                      className="truncate"
+                      render={
+                        <Link
+                          to="/automations/$automationId"
+                          params={{ automationId: automation.id }}
+                          className="truncate"
+                        />
+                      }
                     >
-                      <span className={cn('truncate', automation.id === selectedAutomationId && 'font-medium')}>
-                        {automation.title}
-                      </span>
+                      <span className="truncate">{automation.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

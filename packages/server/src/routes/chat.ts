@@ -29,7 +29,9 @@ chatRouter.post('/sessions', async (c) => {
 });
 
 chatRouter.get('/sessions', async (c) => {
-  const rows = await listSessions();
+  const type = c.req.query('type');
+  const sessionType = type === 'automation' ? 'automation' : 'chat';
+  const rows = await listSessions(sessionType);
   return c.json(rows);
 });
 

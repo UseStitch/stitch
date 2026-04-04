@@ -7,7 +7,9 @@ import type { CreateAutomationInput, UpdateAutomationInput } from '@stitch/share
 import {
   createAutomation,
   deleteAutomation,
+  listAutomationSessions,
   listAutomations,
+  runAutomation,
   updateAutomation,
 } from '@/automations/service.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -61,4 +63,24 @@ automationsRouter.delete('/:id', async (c) => {
   }
 
   return c.body(null, 204);
+});
+
+automationsRouter.get('/:id/sessions', async (c) => {
+  const id = c.req.param('id');
+  const result = await listAutomationSessions(id);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data);
+});
+
+automationsRouter.post('/:id/run', async (c) => {
+  const id = c.req.param('id');
+  const result = await runAutomation(id);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data, 201);
 });

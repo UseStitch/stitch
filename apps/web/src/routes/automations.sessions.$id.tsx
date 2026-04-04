@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { SessionPage } from '@/components/session/session-page';
 import { useActions } from '@/lib/actions';
-import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
+import { sessionMessagesInfiniteQueryOptions, sessionQueryOptions } from '@/lib/queries/chat';
 import {
   enabledProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -11,12 +11,12 @@ import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
 
-export const Route = createFileRoute('/session/$id')({
+export const Route = createFileRoute('/automations/sessions/$id')({
   loader: async ({ context, params }) => {
     const session = await context.queryClient.ensureQueryData(sessionQueryOptions(params.id));
 
-    if (session.type === 'automation') {
-      throw redirect({ to: '/automations/sessions/$id', params: { id: params.id } });
+    if (session.type !== 'automation') {
+      throw redirect({ to: '/session/$id', params: { id: params.id } });
     }
 
     await Promise.all([
@@ -27,12 +27,11 @@ export const Route = createFileRoute('/session/$id')({
       context.queryClient.ensureQueryData(queuedMessagesQueryOptions(params.id)),
     ]);
   },
-  component: SessionRouteComponent,
+  component: RouteComponent,
 });
 
-function SessionRouteComponent() {
+function RouteComponent() {
   const { id } = Route.useParams();
-
   const actions = useActions();
   useSessionHotkeys(actions);
 
