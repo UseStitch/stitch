@@ -15,6 +15,7 @@ import type { Automation } from '@stitch/shared/automations/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
 import type { ProviderModels } from '@/lib/queries/providers';
 
 type AutomationsTableProps = {
@@ -86,6 +87,13 @@ export function AutomationsTable({
         header: 'Runs',
         cell: ({ getValue }) => <span className="text-sm tabular-nums">{getValue()}</span>,
       }),
+      columnHelper.display({
+        id: 'schedule',
+        header: 'Schedule',
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">{getAutomationScheduleLabel(row.original.schedule)}</span>
+        ),
+      }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
         cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{formatDate(getValue())}</span>,
@@ -140,7 +148,7 @@ export function AutomationsTable({
   return (
     <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left">
+        <table className="w-full min-w-[900px] text-left">
           <thead className="border-b border-border/60 bg-muted/30">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>

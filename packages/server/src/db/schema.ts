@@ -25,6 +25,7 @@ import type {
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
+import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -61,6 +62,7 @@ export const automations = sqliteTable('automations', {
   modelId: text('model_id').notNull(),
   initialMessage: text('initial_message').notNull(),
   title: text('title').notNull(),
+  schedule: blob('schedule', { mode: 'json' }).$type<AutomationScheduleBlob | null>(),
   runCount: integer('run_count').notNull().default(0),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()

@@ -10,6 +10,7 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
+import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
   automationsQueryOptions,
@@ -19,6 +20,7 @@ import {
   useUpdateAutomation,
 } from '@/lib/queries/automations';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useAutomationStore } from '@/stores/automation-store';
 
 type AutomationsPageProps = {
@@ -29,6 +31,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: automations } = useSuspenseQuery(automationsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: settings } = useQuery(settingsQueryOptions);
 
   const createAutomation = useCreateAutomation();
   const updateAutomation = useUpdateAutomation();
@@ -91,6 +94,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
+  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const selectedScheduleLabel = selectedAutomation
+    ? getAutomationScheduleLabel(selectedAutomation.schedule)
+    : 'Manual';
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -129,6 +136,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                       selectedAutomation.modelId}
                   </p>
                   <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
+                  <p className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -194,6 +202,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         mode="create"
         providerModels={providerModels}
         isPending={createAutomation.isPending}
+        timezone={timezone}
         onSubmit={async (input) => {
           try {
             const created = await createAutomation.mutateAsync(input);
@@ -215,6 +224,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         automation={editingAutomation ?? undefined}
         providerModels={providerModels}
         isPending={updateAutomation.isPending}
+        timezone={timezone}
         onSubmit={async (input) => {
           if (!editingAutomation) return;
           try {

@@ -12,13 +12,31 @@ import {
   runAutomation,
   updateAutomation,
 } from '@/automations/service.js';
+import {
+  syncAutomationSchedule,
+  unregisterAutomationSchedule,
+} from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
+
+const scheduleSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('interval'),
+      everyMinutes: z.number().int().min(1),
+    }),
+    z.object({
+      type: z.literal('cron'),
+      expression: z.string().trim().min(1),
+    }),
+  ])
+  .nullable();
 
 const createAutomationSchema = z.object({
   providerId: z.string().trim().min(1),
   modelId: z.string().trim().min(1),
   title: z.string().trim().min(1),
   initialMessage: z.string().trim().min(1),
+  schedule: scheduleSchema.optional().default(null),
 });
 
 const updateAutomationSchema = createAutomationSchema
@@ -41,6 +59,13 @@ automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c
     return c.json({ error: result.error }, result.status);
   }
 
+  try {
+    await syncAutomationSchedule(result.data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to schedule automation';
+    return c.json({ error: message }, 500);
+  }
+
   return c.json(result.data, 201);
 });
 
@@ -52,6 +77,13 @@ automationsRouter.patch('/:id', zValidator('json', updateAutomationSchema), asyn
     return c.json({ error: result.error }, result.status);
   }
 
+  try {
+    await syncAutomationSchedule(result.data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to schedule automation';
+    return c.json({ error: message }, 500);
+  }
+
   return c.json(result.data);
 });
 
@@ -60,6 +92,13 @@ automationsRouter.delete('/:id', async (c) => {
   const result = await deleteAutomation(id);
   if (isServiceError(result)) {
     return c.json({ error: result.error }, result.status);
+  }
+
+  try {
+    await unregisterAutomationSchedule(id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to unschedule automation';
+    return c.json({ error: message }, 500);
   }
 
   return c.body(null, 204);

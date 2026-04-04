@@ -21,6 +21,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "cron-parser": "^5.5.0",
+    "date-fns": "^4.1.0",
     "katex": "^0.16.38",
     "lucide-react": "^0.577.0",
     "react": "19.2.4",

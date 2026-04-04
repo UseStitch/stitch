@@ -64,6 +64,13 @@
       "when": 1775320909985,
       "tag": "0008_skinny_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1775323352253,
+      "tag": "0009_outgoing_northstar",
+      "breakpoints": true
     }
   ]
 }

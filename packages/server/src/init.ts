@@ -7,6 +7,7 @@ import { initMeetingService } from '@/meeting/service.js';
 import { recoverStaleTranscriptions } from '@/meeting/transcription-service.js';
 import { startScheduler } from '@/scheduler/runtime.js';
 import { registerProviderToolsets } from '@/tools/providers/index.js';
+import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 
 const log = Log.create({ service: 'init' });
 
@@ -28,6 +29,7 @@ export async function init() {
   await initConnectorRuntime();
 
   await startScheduler();
+  await syncAllAutomationSchedules();
 
   log.info('server initialized');
 }
