@@ -134,6 +134,13 @@ const browserInputSchema = z.object({
     .string()
     .optional()
     .describe('Search engine: "google" (default), "duckduckgo", "bing". For search action.'),
+  headless: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      'Run the browser without a visible window. Defaults to true. Set to false only when you need to show the browser to the user.',
+    ),
 });
 
 type BrowserInput = z.infer<typeof browserInputSchema>;
@@ -180,7 +187,7 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
   const browser = getBrowserManager();
 
   // Auto-launch on first use — any action can be the first call
-  await browser.launch();
+  await browser.launch({ headless: input.headless });
 
   switch (input.action) {
     case 'snapshot': {
