@@ -247,6 +247,27 @@ function ProductList({ filters, minRating }: Props) {
 - Never include the coding agent (Claude or any other agent) as an author in pull request descriptions.
 - Use `gh` command for all GitHub-related tasks.
 - Never add test plans directly to the PR body for merges into `dev`.
+- Example structure:
+
+      ```markdown
+      ## 🚀 Change Summary
+
+      <One paragraph overview of what this PR enables>
+
+      ### ✨ New Features
+      - **Major Feature Name**: Brief description of what it enables and key capabilities
+      - **Another Feature**: What problem it solves or functionality it adds
+
+      ### 🛠 Improvements & Refactors
+      - Only significant improvements that affect functionality or performance
+      - Consolidate minor refactors into one line if needed
+
+      ### 🐛 Bug Fixes
+      - Only user-facing bugs or critical issues fixed
+
+      ### 📚 Documentation
+      - Major documentation additions (if applicable)
+      ```
 
 ##### Creating PRs
 
