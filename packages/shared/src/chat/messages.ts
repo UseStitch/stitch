@@ -70,6 +70,16 @@ export type StreamErrorPart = {
   details?: StreamErrorDetails;
 };
 
+export type AutomationGenerationPart = {
+  type: 'automation-generation';
+  title: string;
+  toolsets: string[];
+  steps: string[];
+  prompt: string;
+  providerId: string;
+  modelId: string;
+};
+
 export type AllPart =
   | TextStartPart
   | TextDeltaPart
@@ -84,6 +94,7 @@ export type AllPart =
   | CompactionPart
   | SessionTitlePart
   | StreamErrorPart
+  | AutomationGenerationPart
   | UserImagePart
   | UserFilePart
   | UserTextFilePart;

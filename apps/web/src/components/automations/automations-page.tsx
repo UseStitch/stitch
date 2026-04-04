@@ -203,12 +203,14 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         providerModels={providerModels}
         isPending={createAutomation.isPending}
         timezone={timezone}
-        onSubmit={async (input) => {
+        onSubmit={async (input, action) => {
           try {
             const created = await createAutomation.mutateAsync(input);
             closeCreateDialog();
             toast.success('Automation created');
-            void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
+            if (action === 'create-view') {
+              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
+            }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation');
           }
@@ -225,7 +227,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         providerModels={providerModels}
         isPending={updateAutomation.isPending}
         timezone={timezone}
-        onSubmit={async (input) => {
+        onSubmit={async (input, _action) => {
           if (!editingAutomation) return;
           try {
             await updateAutomation.mutateAsync({ automationId: editingAutomation.id, input });

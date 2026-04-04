@@ -1,7 +1,12 @@
 import * as React from 'react';
 
-import type { Automation, AutomationSchedule } from '@stitch/shared/automations/types';
+import type {
+  Automation,
+  AutomationSchedule,
+  GeneratedAutomationDraft,
+} from '@stitch/shared/automations/types';
 
+import ChatMarkdown from '@/components/chat/chat-markdown';
 import { CronExpressionBuilder } from '@/components/cron-expression-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -24,13 +29,17 @@ type AutomationDialogProps = {
   mode: 'create' | 'edit';
   automation?: Automation;
   providerModels: ProviderModels[];
-  onSubmit: (input: {
-    providerId: string;
-    modelId: string;
-    title: string;
-    initialMessage: string;
-    schedule: AutomationSchedule | null;
-  }) => Promise<void>;
+  prefill?: GeneratedAutomationDraft | null;
+  onSubmit: (
+    input: {
+      providerId: string;
+      modelId: string;
+      title: string;
+      initialMessage: string;
+      schedule: AutomationSchedule | null;
+    },
+    action: 'create' | 'create-view' | 'save',
+  ) => Promise<void>;
   isPending: boolean;
   timezone: string;
 };
@@ -48,6 +57,7 @@ export function AutomationDialog({
   mode,
   automation,
   providerModels,
+  prefill,
   onSubmit,
   isPending,
   timezone,
@@ -58,7 +68,7 @@ export function AutomationDialog({
   const [modelId, setModelId] = React.useState('');
   const [isScheduled, setIsScheduled] = React.useState(false);
   const [scheduleType, setScheduleType] = React.useState<'interval' | 'cron'>('interval');
-  const [editorView, setEditorView] = React.useState<'prompt' | 'schedule'>('prompt');
+  const [editorView, setEditorView] = React.useState<'prompt' | 'preview' | 'schedule'>('prompt');
   const [intervalMinutes, setIntervalMinutes] = React.useState('60');
   const [cronExpression, setCronExpression] = React.useState('0 9 * * *');
 
@@ -92,16 +102,16 @@ export function AutomationDialog({
     }
 
     const initialSelection = getInitialSelection(providerModels);
-    setTitle('');
-    setInitialMessage('');
-    setProviderId(initialSelection?.providerId ?? '');
-    setModelId(initialSelection?.modelId ?? '');
+    setTitle(prefill?.title ?? '');
+    setInitialMessage(prefill?.prompt ?? '');
+    setProviderId(prefill?.providerId ?? initialSelection?.providerId ?? '');
+    setModelId(prefill?.modelId ?? initialSelection?.modelId ?? '');
     setIsScheduled(false);
     setScheduleType('interval');
     setEditorView('prompt');
     setIntervalMinutes('60');
     setCronExpression('0 9 * * *');
-  }, [open, mode, automation, providerModels]);
+  }, [open, mode, automation, providerModels, prefill]);
 
   const selectedProvider = providerModels.find((provider) => provider.providerId === providerId) ?? null;
   const availableModels = React.useMemo(() => selectedProvider?.models ?? [], [selectedProvider]);
@@ -141,7 +151,7 @@ export function AutomationDialog({
     (!isScheduled || (scheduleType === 'interval' ? isIntervalValid : isCronValid)) &&
     !isPending;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (action: 'create' | 'create-view' | 'save') => {
     if (!canSubmit) return;
 
     const schedule: AutomationSchedule | null = !isScheduled
@@ -150,13 +160,16 @@ export function AutomationDialog({
         ? { type: 'interval', everyMinutes: parsedIntervalMinutes }
         : { type: 'cron', expression: cronExpression.trim() };
 
-    await onSubmit({
+    await onSubmit(
+      {
       title: title.trim(),
       initialMessage: initialMessage.trim(),
       providerId,
       modelId,
       schedule,
-    });
+      },
+      action,
+    );
   };
 
   return (
@@ -280,6 +293,14 @@ export function AutomationDialog({
               <Button
                 type="button"
                 size="sm"
+                variant={editorView === 'preview' ? 'secondary' : 'ghost'}
+                onClick={() => setEditorView('preview')}
+              >
+                Preview
+              </Button>
+              <Button
+                type="button"
+                size="sm"
                 variant={editorView === 'schedule' ? 'secondary' : 'ghost'}
                 onClick={() => {
                   if (!isScheduled) return;
@@ -291,7 +312,21 @@ export function AutomationDialog({
               </Button>
             </div>
 
-            {editorView === 'prompt' || !isScheduled ? (
+            {editorView === 'preview' ? (
+              <div className="flex min-h-0 flex-1 flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Prompt preview</Label>
+                  <span className="text-xs text-muted-foreground">Markdown</span>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/10 p-3">
+                  {initialMessage.trim() ? (
+                    <ChatMarkdown text={initialMessage} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Prompt preview appears here.</p>
+                  )}
+                </div>
+              </div>
+            ) : editorView === 'prompt' || !isScheduled ? (
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="automation-message">Initial prompt</Label>
@@ -306,7 +341,7 @@ export function AutomationDialog({
                     value={initialMessage}
                     onChange={(event) => setInitialMessage(event.target.value)}
                     placeholder="Write the prompt that should be sent when this automation starts..."
-                    className="min-h-[220px] flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1.5 py-1 text-sm leading-6 shadow-none focus-visible:ring-0"
+                    className="min-h-55 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1.5 py-1 text-sm leading-6 shadow-none focus-visible:ring-0"
                   />
                 </div>
               </div>
@@ -346,9 +381,20 @@ export function AutomationDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={!canSubmit}>
-            {isPending ? (mode === 'create' ? 'Creating...' : 'Saving...') : mode === 'create' ? 'Create' : 'Save'}
-          </Button>
+          {mode === 'create' ? (
+            <>
+              <Button variant="outline" onClick={() => void handleSubmit('create')} disabled={!canSubmit}>
+                {isPending ? 'Creating...' : 'Create'}
+              </Button>
+              <Button onClick={() => void handleSubmit('create-view')} disabled={!canSubmit}>
+                {isPending ? 'Creating...' : 'Create and View'}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => void handleSubmit('save')} disabled={!canSubmit}>
+              {isPending ? 'Saving...' : 'Save'}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

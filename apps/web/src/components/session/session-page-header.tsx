@@ -2,6 +2,7 @@ import {
   ArrowLeftIcon,
   BotIcon,
   EllipsisIcon,
+  SparklesIcon,
   InfoIcon,
   ListOrderedIcon,
   PencilLineIcon,
@@ -30,6 +31,8 @@ type SessionPageHeaderProps = {
   onToggleDetails: () => void;
   onToggleQueue: () => void;
   onDeleteSession: () => void;
+  onGenerateAutomation: () => void;
+  generateAutomationPending?: boolean;
 };
 
 export function SessionPageHeader({
@@ -38,6 +41,8 @@ export function SessionPageHeader({
   onToggleDetails,
   onToggleQueue,
   onDeleteSession,
+  onGenerateAutomation,
+  generateAutomationPending = false,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
@@ -115,6 +120,10 @@ export function SessionPageHeader({
                 <DropdownMenuItem onClick={() => setRenameSessionOpen(true)}>
                   <PencilLineIcon className="size-4" />
                   Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onGenerateAutomation} disabled={generateAutomationPending}>
+                  <SparklesIcon className="size-4" />
+                  {generateAutomationPending ? 'Generating...' : 'Generate automation'}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={onDeleteSession}>
                   <Trash2Icon className="size-4" />

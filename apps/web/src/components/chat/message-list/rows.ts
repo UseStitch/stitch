@@ -38,7 +38,15 @@ export function buildRows(
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    if (message.parts.some((part) => part.type === 'session-title')) continue;
+    if (
+      message.parts.some(
+        (part) =>
+          part.type === 'session-title' ||
+          part.type === 'automation-generation',
+      )
+    ) {
+      continue;
+    }
 
     if (message.role === 'user' && message.parts.some((part) => part.type === 'compaction')) {
       const next = messages[i + 1];
@@ -50,7 +58,15 @@ export function buildRows(
   }
 
   for (const message of messages) {
-    if (message.parts.some((part) => part.type === 'session-title')) continue;
+    if (
+      message.parts.some(
+        (part) =>
+          part.type === 'session-title' ||
+          part.type === 'automation-generation',
+      )
+    ) {
+      continue;
+    }
 
     if (message.role === 'user' && message.parts.some((part) => part.type === 'compaction')) {
       const summary = summaryByMarker.get(message.id);

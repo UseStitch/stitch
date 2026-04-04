@@ -46,3 +46,12 @@ export type RunAutomationResponse = {
   assistantMessageId: PrefixedString<'msg'>;
   userMessageId: PrefixedString<'msg'>;
 };
+
+export type GeneratedAutomationDraft = {
+  title: string;
+  toolsets: string[];
+  steps: string[];
+  prompt: string;
+  providerId: string;
+  modelId: string;
+};
