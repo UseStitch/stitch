@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
+  createAutomationId,
   createPermissionRuleId,
   createMessageId,
   createPartId,
@@ -27,6 +28,7 @@ describe('id helpers', () => {
       { create: createQuestionId, prefix: 'quest' },
       { create: createPermissionResponseId, prefix: 'permres' },
       { create: createPermissionRuleId, prefix: 'perm' },
+      { create: createAutomationId, prefix: 'auto' },
     ] as const;
 
     for (const { create, prefix } of cases) {

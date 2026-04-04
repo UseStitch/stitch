@@ -137,33 +137,26 @@ function SuspenseShikiCodeBlock({
 
   const highlighter = use(getHighlighterPromise(language, theme));
 
-  const highlightedHtml = React.useMemo(() => {
-    try {
-      return highlighter.codeToHtml(code, {
-        lang: language as SupportedLanguage,
-        theme: theme === 'dark' ? 'github-dark' : 'github-light',
-      });
-    } catch (error) {
-      console.warn(
-        `Code highlighting failed for language "${language}", falling back to plain text.`,
-        error instanceof Error ? error.message : error,
-      );
-      return highlighter.codeToHtml(code, {
-        lang: 'text',
-        theme: theme === 'dark' ? 'github-dark' : 'github-light',
-      });
-    }
-  }, [code, highlighter, language, theme]);
+  let highlightedHtml: string;
+  try {
+    highlightedHtml = highlighter.codeToHtml(code, {
+      lang: language as SupportedLanguage,
+      theme: theme === 'dark' ? 'github-dark' : 'github-light',
+    });
+  } catch (error) {
+    console.warn(
+      `Code highlighting failed for language "${language}", falling back to plain text.`,
+      error instanceof Error ? error.message : error,
+    );
+    highlightedHtml = highlighter.codeToHtml(code, {
+      lang: 'text',
+      theme: theme === 'dark' ? 'github-dark' : 'github-light',
+    });
+  }
 
-  React.useEffect(() => {
-    if (!isStreaming) {
-      highlightedCodeCache.set(
-        cacheKey,
-        highlightedHtml,
-        estimateHighlightedSize(highlightedHtml, code),
-      );
-    }
-  }, [cacheKey, code, highlightedHtml, isStreaming]);
+  if (!isStreaming) {
+    highlightedCodeCache.set(cacheKey, highlightedHtml, estimateHighlightedSize(highlightedHtml, code));
+  }
 
   return (
     <div

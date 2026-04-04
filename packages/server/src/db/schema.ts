@@ -55,6 +55,20 @@ export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
     .$defaultFn(() => Date.now()),
 });
 
+export const automations = sqliteTable('automations', {
+  id: text('id').$type<PrefixedString<'auto'>>().primaryKey(),
+  providerId: text('provider_id').notNull(),
+  modelId: text('model_id').notNull(),
+  initialMessage: text('initial_message').notNull(),
+  title: text('title').notNull(),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
 export const providerConfig = sqliteTable('provider_config', {
   providerId: text('provider_id').primaryKey(),
   credentials: blob('credentials', { mode: 'json' }).$type<ProviderCredentials>().notNull(),

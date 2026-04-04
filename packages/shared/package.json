@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./appearance/types": "./src/appearance/types.ts",
+    "./automations/types": "./src/automations/types.ts",
     "./chat/errors": "./src/chat/errors.ts",
     "./chat/messages": "./src/chat/messages.ts",
     "./chat/queue": "./src/chat/queue.ts",
