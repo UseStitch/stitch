@@ -7,7 +7,7 @@ import {
   ChevronRight,
   SpellCheck,
 } from 'lucide-react';
-import { useEffect, useCallback, useState, useRef, forwardRef } from 'react';
+import { useEffect, useLayoutEffect, useCallback, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { ContextMenuParams } from '@/lib/api';
@@ -78,7 +78,7 @@ function SpellingSubmenu({
 }: SpellingSubmenuProps) {
   const [style, setStyle] = useState<React.CSSProperties>({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!anchorRef.current) return;
     const rect = anchorRef.current.getBoundingClientRect();
     const submenuWidth = 192;

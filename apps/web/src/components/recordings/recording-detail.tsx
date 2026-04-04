@@ -66,10 +66,6 @@ export function RecordingDetail({ meeting, onDelete }: { meeting: Meeting; onDel
   const [selectedModel, setSelectedModel] = React.useState<AudioModelSpec | null>(null);
 
   React.useEffect(() => {
-    setSelectedModel(null);
-  }, [meeting.id]);
-
-  React.useEffect(() => {
     if (selectedModel || audioModels.length === 0) {
       return;
     }
