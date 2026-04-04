@@ -419,10 +419,16 @@ class BrowserManager {
       return;
     }
 
-    const userDataDir = await resolveActiveProfileDir();
+    const [userDataDir, settings] = await Promise.all([
+      resolveActiveProfileDir(),
+      listSettings(),
+    ]);
+
+    const headless = options.headless ?? settings['browser.headless'] !== 'false';
+
     const instance = await launchChrome({
       userDataDir,
-      headless: options.headless,
+      headless,
       port: options.port,
       width: options.width ?? DEFAULT_WIDTH,
       height: options.height ?? DEFAULT_HEIGHT,
