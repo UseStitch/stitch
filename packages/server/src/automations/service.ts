@@ -86,17 +86,6 @@ function parseCronField(raw: string, min: number, max: number): boolean {
 function validateAutomationSchedule(schedule: AutomationSchedule | null): ServiceResult<AutomationSchedule | null> {
   if (schedule === null) return ok(null);
 
-  if (schedule.type === 'interval') {
-    if (!Number.isInteger(schedule.everyMinutes) || schedule.everyMinutes < 1) {
-      return err('Interval schedule must be at least 1 minute', 400);
-    }
-
-    return ok({
-      type: 'interval',
-      everyMinutes: schedule.everyMinutes,
-    });
-  }
-
   const expression = normalizeText(schedule.expression);
   const fields = expression.split(/\s+/);
   if (fields.length !== 5) {

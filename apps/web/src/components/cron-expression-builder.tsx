@@ -73,9 +73,15 @@ export function CronExpressionBuilder({
   const [months, setMonths] = React.useState<number[]>([]); // Empty means *
   const [daysOfWeek, setDaysOfWeek] = React.useState<number[]>([1]); // Default Mon
 
+  // Track when we're syncing from an external value change to avoid
+  // the construct effect firing with stale state before parse completes.
+  const isSyncingRef = React.useRef(true);
+
   // Parse incoming cron expression
   React.useEffect(() => {
     if (!value) return;
+
+    isSyncingRef.current = true;
 
     const parts = value.trim().split(' ');
     if (parts.length < 5) return;
@@ -185,8 +191,10 @@ export function CronExpressionBuilder({
 
   // Update on state change
   React.useEffect(() => {
-    // We don't want to trigger this immediately on mount/parse, but parsing sets state which triggers this.
-    // However, if parsing sets state to exactly what matches value, constructCron won't call onChange due to check.
+    if (isSyncingRef.current) {
+      isSyncingRef.current = false;
+      return;
+    }
     constructCron();
   }, [constructCron]);
 
@@ -255,6 +263,7 @@ export function CronExpressionBuilder({
         Hours
       </Label>
       <ToggleGroup
+        multiple
         value={hours.map((h) => h.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0)
@@ -281,6 +290,7 @@ export function CronExpressionBuilder({
         Days of Week
       </Label>
       <ToggleGroup
+        multiple
         value={daysOfWeek.map((d) => d.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0)
@@ -307,6 +317,7 @@ export function CronExpressionBuilder({
         Days of Month
       </Label>
       <ToggleGroup
+        multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0)
@@ -335,6 +346,7 @@ export function CronExpressionBuilder({
         Months
       </Label>
       <ToggleGroup
+        multiple
         value={months.map((m) => m.toString())}
         onValueChange={(vals) => {
           // If empty, it means all months (cron *)

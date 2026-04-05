@@ -12,13 +12,6 @@ function getAutomationJobKey(automationId: string): string {
 }
 
 function toSchedulerSchedule(schedule: AutomationSchedule): JobSchedule {
-  if (schedule.type === 'interval') {
-    return {
-      type: 'interval',
-      everyMs: schedule.everyMinutes * 60_000,
-    };
-  }
-
   return {
     type: 'cron',
     expression: schedule.expression,

@@ -12,17 +12,12 @@ export type Automation = {
   updatedAt: number;
 };
 
-export type AutomationIntervalSchedule = {
-  type: 'interval';
-  everyMinutes: number;
-};
-
 export type AutomationCronSchedule = {
   type: 'cron';
   expression: string;
 };
 
-export type AutomationSchedule = AutomationIntervalSchedule | AutomationCronSchedule;
+export type AutomationSchedule = AutomationCronSchedule;
 
 export type AutomationScheduleBlobV1 = {
   version: 1;

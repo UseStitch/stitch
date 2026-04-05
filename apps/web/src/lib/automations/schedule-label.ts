@@ -1,3 +1,6 @@
+import { CronExpressionParser } from 'cron-parser';
+import { format } from 'date-fns';
+
 import type { AutomationSchedule } from '@stitch/shared/automations/types';
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -59,9 +62,25 @@ function formatCron(expression: string): string {
 export function getAutomationScheduleLabel(schedule: AutomationSchedule | null): string {
   if (!schedule) return 'Manual';
 
-  if (schedule.type === 'interval') {
-    return `Every ${schedule.everyMinutes} minute${schedule.everyMinutes === 1 ? '' : 's'}`;
-  }
-
   return formatCron(schedule.expression);
+}
+
+export function getUpcomingRuns(
+  schedule: AutomationSchedule | null,
+  count: number,
+  timezone?: string,
+): string[] {
+  if (!schedule) return [];
+
+  try {
+    const interval = CronExpressionParser.parse(schedule.expression, { tz: timezone });
+    const runs: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const date = interval.next().toDate();
+      runs.push(format(date, 'MMM d, h:mm a'));
+    }
+    return runs;
+  } catch {
+    return [];
+  }
 }

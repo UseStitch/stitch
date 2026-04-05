@@ -10,7 +10,7 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
-import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
+import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
   automationsQueryOptions,
@@ -98,6 +98,9 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const selectedScheduleLabel = selectedAutomation
     ? getAutomationScheduleLabel(selectedAutomation.schedule)
     : 'Manual';
+  const upcomingRuns = selectedAutomation
+    ? getUpcomingRuns(selectedAutomation.schedule, 3, timezone)
+    : [];
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -136,7 +139,20 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                       selectedAutomation.modelId}
                   </p>
                   <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
-                  <p className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
+                    {upcomingRuns.length > 0 && (
+                      <span className="text-xs text-muted-foreground">· Next runs:</span>
+                    )}
+                    {upcomingRuns.map((run) => (
+                      <span
+                        key={run}
+                        className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                      >
+                        {run}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

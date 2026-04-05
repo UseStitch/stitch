@@ -19,16 +19,10 @@ import {
 import { isServiceError } from '@/lib/service-result.js';
 
 const scheduleSchema = z
-  .discriminatedUnion('type', [
-    z.object({
-      type: z.literal('interval'),
-      everyMinutes: z.number().int().min(1),
-    }),
-    z.object({
-      type: z.literal('cron'),
-      expression: z.string().trim().min(1),
-    }),
-  ])
+  .object({
+    type: z.literal('cron'),
+    expression: z.string().trim().min(1),
+  })
   .nullable();
 
 const createAutomationSchema = z.object({

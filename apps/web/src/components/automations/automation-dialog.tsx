@@ -67,9 +67,7 @@ export function AutomationDialog({
   const [providerId, setProviderId] = React.useState('');
   const [modelId, setModelId] = React.useState('');
   const [isScheduled, setIsScheduled] = React.useState(false);
-  const [scheduleType, setScheduleType] = React.useState<'interval' | 'cron'>('interval');
   const [editorView, setEditorView] = React.useState<'prompt' | 'preview' | 'schedule'>('prompt');
-  const [intervalMinutes, setIntervalMinutes] = React.useState('60');
   const [cronExpression, setCronExpression] = React.useState('0 9 * * *');
 
   React.useEffect(() => {
@@ -83,18 +81,10 @@ export function AutomationDialog({
       const schedule = automation.schedule;
       if (!schedule) {
         setIsScheduled(false);
-        setScheduleType('interval');
         setEditorView('prompt');
-        setIntervalMinutes('60');
         setCronExpression('0 9 * * *');
-      } else if (schedule.type === 'interval') {
-        setIsScheduled(true);
-        setScheduleType('interval');
-        setEditorView('schedule');
-        setIntervalMinutes(String(schedule.everyMinutes));
       } else {
         setIsScheduled(true);
-        setScheduleType('cron');
         setEditorView('schedule');
         setCronExpression(schedule.expression);
       }
@@ -107,9 +97,7 @@ export function AutomationDialog({
     setProviderId(prefill?.providerId ?? initialSelection?.providerId ?? '');
     setModelId(prefill?.modelId ?? initialSelection?.modelId ?? '');
     setIsScheduled(false);
-    setScheduleType('interval');
     setEditorView('prompt');
-    setIntervalMinutes('60');
     setCronExpression('0 9 * * *');
   }, [open, mode, automation, providerModels, prefill]);
 
@@ -129,18 +117,12 @@ export function AutomationDialog({
     }
   }, [selectedProvider, availableModels, modelId]);
 
-  const parsedIntervalMinutes = Number.parseInt(intervalMinutes, 10);
-  const isIntervalValid = Number.isInteger(parsedIntervalMinutes) && parsedIntervalMinutes >= 1;
   const isCronValid = cronExpression.trim().length > 0;
-  const intervalSummaryMinutes = Number.isInteger(parsedIntervalMinutes) && parsedIntervalMinutes >= 1 ? parsedIntervalMinutes : 1;
   const triggerLabel = isScheduled ? 'Scheduled' : 'Manual';
-  const scheduleTypeLabel = scheduleType === 'interval' ? 'Interval' : 'Cron';
   const scheduleSummary = getAutomationScheduleLabel(
     !isScheduled
       ? null
-      : scheduleType === 'interval'
-        ? { type: 'interval', everyMinutes: intervalSummaryMinutes }
-        : { type: 'cron', expression: cronExpression.trim() },
+      : { type: 'cron', expression: cronExpression.trim() },
   );
 
   const canSubmit =
@@ -148,7 +130,7 @@ export function AutomationDialog({
     initialMessage.trim().length > 0 &&
     providerId.length > 0 &&
     modelId.length > 0 &&
-    (!isScheduled || (scheduleType === 'interval' ? isIntervalValid : isCronValid)) &&
+    (!isScheduled || isCronValid) &&
     !isPending;
 
   const handleSubmit = async (action: 'create' | 'create-view' | 'save') => {
@@ -156,9 +138,7 @@ export function AutomationDialog({
 
     const schedule: AutomationSchedule | null = !isScheduled
       ? null
-      : scheduleType === 'interval'
-        ? { type: 'interval', everyMinutes: parsedIntervalMinutes }
-        : { type: 'cron', expression: cronExpression.trim() };
+      : { type: 'cron', expression: cronExpression.trim() };
 
     await onSubmit(
       {
@@ -256,24 +236,6 @@ export function AutomationDialog({
               </Select>
             </div>
 
-            {isScheduled ? (
-              <div className="space-y-1.5">
-                <Label>Schedule type</Label>
-                <Select
-                  value={scheduleType}
-                  onValueChange={(value) => setScheduleType(value === 'cron' ? 'cron' : 'interval')}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>{scheduleTypeLabel}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="interval">Interval</SelectItem>
-                    <SelectItem value="cron">Cron</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-
             <div className="rounded-lg border border-border/60 bg-card/70 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Current schedule</p>
               <p className="mt-1 text-sm text-foreground">{scheduleSummary}</p>
@@ -346,32 +308,10 @@ export function AutomationDialog({
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col space-y-3">
-                {scheduleType === 'interval' ? (
-                  <div className="space-y-1.5 rounded-xl border border-border/60 bg-muted/15 p-3">
-                    <Label htmlFor="automation-interval">Every (minutes)</Label>
-                    <Input
-                      id="automation-interval"
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={intervalMinutes}
-                      onChange={(event) => setIntervalMinutes(event.target.value)}
-                    />
-                    {!isIntervalValid ? (
-                      <p className="text-xs text-destructive">Interval must be at least 1 minute.</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Automation will run repeatedly based on this minute interval.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex min-h-0 flex-1 flex-col space-y-2">
-                    <Label>Cron schedule</Label>
-                    <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
-                      <CronExpressionBuilder value={cronExpression} onChange={setCronExpression} timezone={timezone} />
-                    </div>
-                  </div>
-                )}
+              <div className="flex min-h-0 flex-1 flex-col space-y-2">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
+                  <CronExpressionBuilder value={cronExpression} onChange={setCronExpression} timezone={timezone} />
+                </div>
               </div>
             )}
           </div>
