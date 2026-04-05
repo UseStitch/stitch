@@ -2,7 +2,7 @@ import * as React from 'react';
 import { StickToBottom } from 'use-stick-to-bottom';
 
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = {
+  sessionId: string;
   onOpenQueue: () => void;
   editPayload: EditQueuedMessagePayload | null;
   onConsumeEditPayload: () => void;
@@ -46,12 +47,13 @@ type SessionChatPaneProps = {
 };
 
 export function SessionChatPane({
+  sessionId,
   onOpenQueue,
   editPayload,
   onConsumeEditPayload,
   sendQueuedRef,
 }: SessionChatPaneProps) {
-  const { id } = useParams({ from: '/session/$id' });
+  const id = sessionId;
   const navigate = useNavigate();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
   const isChildSession = session.parentSessionId !== null;

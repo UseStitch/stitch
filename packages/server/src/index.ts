@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { init } from '@/init.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { automationsRouter } from '@/routes/automations.js';
 import { browserRouter } from '@/routes/browser.js';
 import { chatRouter } from '@/routes/chat.js';
 import { configRouter } from '@/routes/config.js';
@@ -47,6 +48,7 @@ const app = new Hono();
 
 app.use(cors());
 app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
+app.route('/automations', automationsRouter);
 app.route('/browser', browserRouter);
 app.route('/chat', chatRouter);
 app.route('/chat', questionsRouter);

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -14,18 +14,18 @@ import {
 import { useDeleteSession } from '@/lib/queries/chat';
 
 type SessionDeleteDialogProps = {
+  sessionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDeleted?: () => void;
 };
 
-export function SessionDeleteDialog({ open, onOpenChange, onDeleted }: SessionDeleteDialogProps) {
-  const { id } = useParams({ from: '/session/$id' });
+export function SessionDeleteDialog({ sessionId, open, onOpenChange, onDeleted }: SessionDeleteDialogProps) {
   const navigate = useNavigate();
   const deleteSession = useDeleteSession();
 
   async function handleDeleteSession() {
-    await deleteSession.mutateAsync({ sessionId: id as PrefixedString<'ses'> });
+    await deleteSession.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'> });
     onOpenChange(false);
     onDeleted?.();
     void navigate({ to: '/' });

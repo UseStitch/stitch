@@ -24,7 +24,9 @@
     "react/jsx-no-target-blank": "error",
     "react/no-deprecated": "error",
     "react/react-in-jsx-scope": "off",
-    "react/hooks-extra/no-direct-set-state-in-use-effect": "error"
+    "react/hooks-extra/no-direct-set-state-in-use-effect": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error"
   },
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
   "overrides": [

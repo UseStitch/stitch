@@ -1,4 +1,10 @@
-export const USAGE_SOURCES = ['chat', 'title_generation', 'transcription'] as const;
+export const USAGE_SOURCES = [
+  'chat',
+  'automation',
+  'automation_generation',
+  'title_generation',
+  'transcription',
+] as const;
 
 export type UsageSource = (typeof USAGE_SOURCES)[number] | (string & {});
 

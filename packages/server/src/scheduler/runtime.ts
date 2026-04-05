@@ -1,4 +1,5 @@
 import { createScheduler } from '@stitch/scheduler';
+import type { JobSchedule, RegisteredJob } from '@stitch/scheduler';
 
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
@@ -85,4 +86,38 @@ export async function stopScheduler(): Promise<void> {
   if (!scheduler) return;
   await scheduler.stop();
   scheduler = null;
+}
+
+export async function registerSchedulerJob(input: {
+  key: string;
+  schedule: JobSchedule;
+  callback: RegisteredJob['callback'];
+  immediate?: boolean;
+  maxConcurrency?: number;
+  queueEnabled?: boolean;
+  catchup?: RegisteredJob['catchup'];
+  catchupMaxRuns?: number;
+}): Promise<void> {
+  if (!scheduler) {
+    throw new Error('Scheduler is not started');
+  }
+
+  await scheduler.registerJob({
+    key: input.key,
+    schedule: input.schedule,
+    callback: input.callback,
+    immediate: input.immediate,
+    maxConcurrency: input.maxConcurrency,
+    queueEnabled: input.queueEnabled,
+    catchup: input.catchup,
+    catchupMaxRuns: input.catchupMaxRuns,
+  });
+}
+
+export async function unregisterSchedulerJob(key: string): Promise<void> {
+  if (!scheduler) {
+    throw new Error('Scheduler is not started');
+  }
+
+  await scheduler.unregisterJob(key);
 }

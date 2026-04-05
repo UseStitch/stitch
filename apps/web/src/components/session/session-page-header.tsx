@@ -2,6 +2,7 @@ import {
   ArrowLeftIcon,
   BotIcon,
   EllipsisIcon,
+  SparklesIcon,
   InfoIcon,
   ListOrderedIcon,
   PencilLineIcon,
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 
 import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
 import type { RightPanel } from '@/components/session/session-page-types';
 import { Button } from '@/components/ui/button';
@@ -25,22 +26,27 @@ import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
 
 type SessionPageHeaderProps = {
+  sessionId: string;
   rightPanel: RightPanel;
   onToggleDetails: () => void;
   onToggleQueue: () => void;
   onDeleteSession: () => void;
+  onGenerateAutomation: () => void;
+  generateAutomationPending?: boolean;
 };
 
 export function SessionPageHeader({
+  sessionId,
   rightPanel,
   onToggleDetails,
   onToggleQueue,
   onDeleteSession,
+  onGenerateAutomation,
+  generateAutomationPending = false,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
-  const { id } = useParams({ from: '/session/$id' });
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
-  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(id));
+  const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
+  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(sessionId));
 
   const queueCount = queuedMessages?.length ?? 0;
   const isChildSession = session.parentSessionId !== null;
@@ -114,6 +120,10 @@ export function SessionPageHeader({
                 <DropdownMenuItem onClick={() => setRenameSessionOpen(true)}>
                   <PencilLineIcon className="size-4" />
                   Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onGenerateAutomation} disabled={generateAutomationPending}>
+                  <SparklesIcon className="size-4" />
+                  {generateAutomationPending ? 'Generating...' : 'Generate automation'}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={onDeleteSession}>
                   <Trash2Icon className="size-4" />

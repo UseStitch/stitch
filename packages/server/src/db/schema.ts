@@ -25,6 +25,7 @@ import type {
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
+import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -55,6 +56,22 @@ export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
     .$defaultFn(() => Date.now()),
 });
 
+export const automations = sqliteTable('automations', {
+  id: text('id').$type<PrefixedString<'auto'>>().primaryKey(),
+  providerId: text('provider_id').notNull(),
+  modelId: text('model_id').notNull(),
+  initialMessage: text('initial_message').notNull(),
+  title: text('title').notNull(),
+  schedule: blob('schedule', { mode: 'json' }).$type<AutomationScheduleBlob | null>(),
+  runCount: integer('run_count').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
 export const providerConfig = sqliteTable('provider_config', {
   providerId: text('provider_id').primaryKey(),
   credentials: blob('credentials', { mode: 'json' }).$type<ProviderCredentials>().notNull(),
@@ -69,6 +86,10 @@ export const providerConfig = sqliteTable('provider_config', {
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
+  type: text('type', { enum: ['chat', 'automation'] }).notNull().default('chat'),
+  automationId: text('automation_id')
+    .$type<PrefixedString<'auto'> | null>()
+    .references(() => automations.id, { onDelete: 'set null' }),
   parentSessionId: text('parent_session_id')
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),

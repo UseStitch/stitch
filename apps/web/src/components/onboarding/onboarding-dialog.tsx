@@ -78,14 +78,6 @@ function OnboardingProfileStep({
     [detectedTimezone, initialTimezone],
   );
 
-  React.useEffect(() => {
-    setName(initialName);
-  }, [initialName]);
-
-  React.useEffect(() => {
-    setTimezone(initialTimezone || detectedTimezone);
-  }, [detectedTimezone, initialTimezone]);
-
   const trimmed = name.trim();
   const trimmedTimezone = timezone.trim();
   const hasError = touched && trimmed.length === 0;

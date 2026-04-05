@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
+import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
   Sidebar,
@@ -119,11 +120,12 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'recordings' | 'connectors' {
+function useActiveContext(): 'chat' | 'recordings' | 'connectors' | 'automations' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/recordings')) return 'recordings';
   if (path.startsWith('/connectors')) return 'connectors';
+  if (path.startsWith('/automations')) return 'automations';
   return 'chat';
 }
 
@@ -136,7 +138,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
-      {context === 'recordings' ? <RecordingsSidebarContent /> : <ChatSidebarContent />}
+      {context === 'recordings' ? (
+        <RecordingsSidebarContent />
+      ) : context === 'automations' ? (
+        <AutomationsSidebarContent />
+      ) : (
+        <ChatSidebarContent />
+      )}
     </Sidebar>
   );
 }

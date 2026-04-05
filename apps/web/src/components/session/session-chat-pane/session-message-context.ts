@@ -15,6 +15,7 @@ function shouldSkipMessage(message: SessionMessageContext): boolean {
   if (message.isSummary) return true;
   if (message.parts.some((part) => part.type === 'session-title')) return true;
   if (message.parts.some((part) => part.type === 'compaction')) return true;
+  if (message.parts.some((part) => part.type === 'automation-generation')) return true;
   return false;
 }
 

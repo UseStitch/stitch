@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
 
 import type { SessionStats } from '@stitch/shared/chat/messages';
 
@@ -29,8 +28,7 @@ const EMPTY_STATS: SessionStats = {
   lastActivityAt: null,
 };
 
-export function useSessionDetailsStats(): SessionStats {
-  const { id } = useParams({ from: '/session/$id' });
-  const { data } = useQuery(sessionStatsQueryOptions(id));
+export function useSessionDetailsStats(sessionId: string): SessionStats {
+  const { data } = useQuery(sessionStatsQueryOptions(sessionId));
   return data ?? EMPTY_STATS;
 }
