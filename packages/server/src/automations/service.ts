@@ -17,8 +17,8 @@ import { getDb } from '@/db/client.js';
 import { automations, providerConfig, sessions } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isAllowedProvider } from '@/provider/models.js';
-import * as Models from '@/provider/models.js';
+import { isAllowedProvider } from '@/llm/provider/models.js';
+import * as Models from '@/llm/provider/models.js';
 
 type AutomationDbRow = typeof automations.$inferSelect;
 type AutomationRow = Automation;

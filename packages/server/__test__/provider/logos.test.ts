@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, test, vi } from 'vitest';
 
-import * as ProviderLogos from '@/provider/logos.js';
+import * as ProviderLogos from '@/llm/provider/logos.js';
 
 async function tmpdir(): Promise<{ path: string; [Symbol.asyncDispose]: () => Promise<void> }> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'provider-logos-test-'));

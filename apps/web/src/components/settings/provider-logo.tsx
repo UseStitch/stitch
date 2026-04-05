@@ -27,7 +27,7 @@ export function ProviderLogo({ providerId, providerName, className = 'size-4.5' 
     setFailed(false);
   }, [providerId]);
 
-  const logoUrl = baseUrl ? `${baseUrl}/provider/${providerId}/logo` : null;
+  const logoUrl = baseUrl ? `${baseUrl}/llm/provider/${providerId}/logo` : null;
 
   if (logoUrl && !failed) {
     return (

@@ -4,7 +4,7 @@ import type { JobSchedule, RegisteredJob } from '@stitch/scheduler';
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
-import * as ModelsDev from '@/provider/models.js';
+import * as ModelsDev from '@/llm/provider/models.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
 import * as ToolTruncation from '@/tools/runtime/truncation.js';
 

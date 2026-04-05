@@ -1,4 +1,4 @@
-import * as Models from '@/provider/models.js';
+import * as Models from '@/llm/provider/models.js';
 import type { LanguageModelUsage } from 'ai';
 
 const TOKENS_PER_MILLION = 1_000_000;

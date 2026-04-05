@@ -18,7 +18,7 @@ import {
   isStreamAbortedError,
   StreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { createProvider } from '@/provider/provider.js';
+import { createProvider } from '@/llm/provider/provider.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 

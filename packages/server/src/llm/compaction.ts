@@ -14,9 +14,9 @@ import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-contr
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
-import * as Models from '@/provider/models.js';
-import { createProvider } from '@/provider/provider.js';
-import type { ProviderCredentials } from '@/provider/provider.js';
+import * as Models from '@/llm/provider/models.js';
+import { createProvider } from '@/llm/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';

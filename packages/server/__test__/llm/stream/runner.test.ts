@@ -3,7 +3,7 @@ import { MockLanguageModelV3 } from 'ai/test';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { runStream } from '@/llm/stream/runner.js';
-import type { ProviderCredentials } from '@/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 
 const CREDENTIALS: ProviderCredentials = {
   providerId: 'openai',

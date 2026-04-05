@@ -14,7 +14,7 @@ import {
   listProviderModels,
   listProviders,
   upsertProviderCredentials,
-} from '@/provider/service.js';
+} from '@/llm/provider/service.js';
 
 const log = Log.create({ service: 'provider-routes' });
 

@@ -13,7 +13,7 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { createProvider } from '@/provider/provider.js';
+import { createProvider } from '@/llm/provider/provider.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { isAllowedProvider } from '@/provider/models.js';
+import { isAllowedProvider } from '@/llm/provider/models.js';
 
 const log = Log.create({ service: 'provider-logos' });
 const LOGO_BASE_URL = 'https://models.dev/logos';

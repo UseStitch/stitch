@@ -19,8 +19,8 @@ import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/st
 import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortPermissionResponses } from '@/permission/service.js';
-import * as Models from '@/provider/models.js';
-import { listProviders } from '@/provider/service.js';
+import * as Models from '@/llm/provider/models.js';
+import { listProviders } from '@/llm/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
