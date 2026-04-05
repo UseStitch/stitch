@@ -92,7 +92,6 @@ export const PATHS = {
     mcpIcons: path.join(paths.cache, 'mcp-icons'),
     connectorIcons: path.join(paths.cache, 'connector-icons'),
     browsers: path.join(paths.data, 'browsers'),
-    recordings: path.join(paths.data, 'recordings'),
   },
 } as const;
 

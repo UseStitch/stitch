@@ -45,11 +45,6 @@ export function useActions(): Action[] {
       label: 'Rename session',
       run: () => setRenameSessionOpen(!renameSessionOpen),
     },
-    {
-      id: 'open-recordings',
-      label: 'Recordings',
-      run: () => void navigate({ to: '/recordings' }),
-    },
   ];
 
   if (sessionId) {

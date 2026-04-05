@@ -6,7 +6,6 @@ import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
-import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
   Sidebar,
   SidebarContent,
@@ -120,10 +119,9 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'recordings' | 'connectors' | 'automations' {
+function useActiveContext(): 'chat' | 'connectors' | 'automations' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
-  if (path.startsWith('/recordings')) return 'recordings';
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
   return 'chat';
@@ -138,9 +136,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
-      {context === 'recordings' ? (
-        <RecordingsSidebarContent />
-      ) : context === 'automations' ? (
+      {context === 'automations' ? (
         <AutomationsSidebarContent />
       ) : (
         <ChatSidebarContent />

@@ -133,44 +133,6 @@ export type PermissionResponseResolvedPayload = {
   sessionId: PrefixedString<'ses'>;
 };
 
-export type MeetingDetectedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  app: string;
-  startedAt: number;
-};
-
-export type MeetingRecordingStartedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  app: string;
-  startedAt: number;
-};
-
-export type MeetingRecordingFinishedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  app: string;
-  durationSecs: number;
-};
-
-export type MeetingEndedPayload = {
-  meetingId: PrefixedString<'rec'>;
-};
-
-export type TranscriptionStartedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  transcriptionId: PrefixedString<'transcr'>;
-};
-
-export type TranscriptionCompletedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  transcriptionId: PrefixedString<'transcr'>;
-};
-
-export type TranscriptionFailedPayload = {
-  meetingId: PrefixedString<'rec'>;
-  transcriptionId: PrefixedString<'transcr'>;
-  error: string;
-};
-
 export const SSE_EVENT_NAMES = [
   'heartbeat',
   'connected',
@@ -191,13 +153,6 @@ export const SSE_EVENT_NAMES = [
   'question-rejected',
   'permission-response-requested',
   'permission-response-resolved',
-  'meeting-detected',
-  'meeting-recording-started',
-  'meeting-recording-finished',
-  'meeting-ended',
-  'transcription-started',
-  'transcription-completed',
-  'transcription-failed',
 ] as const;
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
@@ -222,13 +177,6 @@ export type SseEventPayloadMap = {
   'question-rejected': QuestionRejectedPayload;
   'permission-response-requested': PermissionResponseRequestedPayload;
   'permission-response-resolved': PermissionResponseResolvedPayload;
-  'meeting-detected': MeetingDetectedPayload;
-  'meeting-recording-started': MeetingRecordingStartedPayload;
-  'meeting-recording-finished': MeetingRecordingFinishedPayload;
-  'meeting-ended': MeetingEndedPayload;
-  'transcription-started': TranscriptionStartedPayload;
-  'transcription-completed': TranscriptionCompletedPayload;
-  'transcription-failed': TranscriptionFailedPayload;
 };
 
 export type SseEvent = {

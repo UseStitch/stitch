@@ -41,7 +41,6 @@ export function useGlobalHotkeys(actions: Action[]) {
   const openSettings = shortcuts.get('open-settings');
   const newSession = shortcuts.get('new-session');
   const openChat = shortcuts.get('open-chat');
-  const openRecordings = shortcuts.get('open-recordings');
 
   useHotkey(commandPalette?.hotkey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
     preventDefault: true,
@@ -58,24 +57,14 @@ export function useGlobalHotkeys(actions: Action[]) {
 
   // Leader key sequences
   const defaultChatHotkey = getDefaultShortcutHotkey('open-chat');
-  const defaultRecordingsHotkey = getDefaultShortcutHotkey('open-recordings');
 
   const chatResolved =
     resolveLeaderHotkey(openChat?.hotkey ?? defaultChatHotkey ?? '', leaderKey) ??
     (defaultChatHotkey ? resolveLeaderHotkey(defaultChatHotkey, leaderKey) : null);
-  const recordingsResolved =
-    resolveLeaderHotkey(openRecordings?.hotkey ?? defaultRecordingsHotkey ?? '', leaderKey) ??
-    (defaultRecordingsHotkey ? resolveLeaderHotkey(defaultRecordingsHotkey, leaderKey) : null);
 
   useHotkeySequence(
     chatResolved ? [chatResolved.leader, chatResolved.suffix] : ['Mod+X', 'C'],
     () => actionMap.get('open-chat')?.run(),
     { enabled: !!chatResolved, timeout: 1000 },
-  );
-
-  useHotkeySequence(
-    recordingsResolved ? [recordingsResolved.leader, recordingsResolved.suffix] : ['Mod+X', 'R'],
-    () => actionMap.get('open-recordings')?.run(),
-    { enabled: !!recordingsResolved, timeout: 1000 },
   );
 }
