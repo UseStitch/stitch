@@ -40,7 +40,7 @@ export function useSaveProviderConfigMutation({
 }: SaveProviderConfigMutationOptions) {
   return useMutation({
     mutationFn: async (body: ProviderConfigBody) => {
-      const res = await serverFetch(`/provider/${providerId}/config`, {
+      const res = await serverFetch(`/llm/provider/${providerId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -75,7 +75,7 @@ export function useDeleteProviderConfigMutation({
 }: DeleteProviderConfigMutationOptions) {
   return useMutation({
     mutationFn: async () => {
-      const res = await serverFetch(`/provider/${providerId}/config`, { method: 'DELETE' });
+      const res = await serverFetch(`/llm/provider/${providerId}/config`, { method: 'DELETE' });
       if (!res.ok) throw new Error(errorMessage);
     },
     onSuccess: async () => {

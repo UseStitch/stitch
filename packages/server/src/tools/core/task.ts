@@ -14,7 +14,7 @@ import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import { runStream } from '@/llm/stream/runner.js';
-import type { ProviderCredentials } from '@/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 

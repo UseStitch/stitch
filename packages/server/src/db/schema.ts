@@ -26,7 +26,7 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 
-import type { ProviderCredentials } from '@/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
 
 export const userSettings = sqliteTable('user_settings', {

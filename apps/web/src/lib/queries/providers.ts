@@ -49,7 +49,7 @@ export const providersQueryOptions = queryOptions({
   queryKey: providerKeys.list(),
   staleTime: Infinity,
   queryFn: async (): Promise<ProviderSummary[]> => {
-    const res = await serverFetch('/provider');
+    const res = await serverFetch('/llm/provider');
     if (!res.ok) throw new Error('Failed to fetch providers');
     return res.json() as Promise<ProviderSummary[]>;
   },
@@ -59,7 +59,7 @@ export const enabledProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.enabledModels(),
   staleTime: Infinity,
   queryFn: async (): Promise<ProviderModels[]> => {
-    const providersRes = await serverFetch('/provider');
+    const providersRes = await serverFetch('/llm/provider');
     if (!providersRes.ok) throw new Error('Failed to fetch providers');
     const providers = (await providersRes.json()) as ProviderSummary[];
     const enabled = providers.filter((p) => p.enabled);
@@ -68,7 +68,7 @@ export const enabledProviderModelsQueryOptions = queryOptions({
 
     const results = await Promise.all(
       enabled.map(async (provider) => {
-        const res = await serverFetch(`/provider/${provider.id}/models`);
+        const res = await serverFetch(`/llm/provider/${provider.id}/models`);
         if (!res.ok) return { providerId: provider.id, providerName: provider.name, models: [] };
         const models = (await res.json()) as ModelSummary[];
         return { providerId: provider.id, providerName: provider.name, models };
@@ -83,8 +83,8 @@ export const visibleProviderModelsQueryOptions = queryOptions({
   staleTime: Infinity,
   queryFn: async (): Promise<ProviderModels[]> => {
     const [providersRes, visibilityRes] = await Promise.all([
-      serverFetch('/provider'),
-      serverFetch('/models/visibility'),
+      serverFetch('/llm/provider'),
+      serverFetch('/llm/models/visibility'),
     ]);
     if (!providersRes.ok) throw new Error('Failed to fetch providers');
     if (!visibilityRes.ok) throw new Error('Failed to fetch model visibility');
@@ -101,7 +101,7 @@ export const visibleProviderModelsQueryOptions = queryOptions({
 
     const allProviderModels = await Promise.all(
       enabled.map(async (provider) => {
-        const res = await serverFetch(`/provider/${provider.id}/models`);
+        const res = await serverFetch(`/llm/provider/${provider.id}/models`);
         if (!res.ok)
           return {
             providerId: provider.id,
@@ -140,7 +140,7 @@ export const providerConfigQueryOptions = (providerId: string) =>
     queryKey: providerKeys.config(providerId),
     staleTime: Infinity,
     queryFn: async (): Promise<ProviderCredentials | null> => {
-      const res = await serverFetch(`/provider/${providerId}/config`);
+      const res = await serverFetch(`/llm/provider/${providerId}/config`);
       if (res.status === 404) return null;
       if (!res.ok) throw new Error('Failed to fetch provider config');
       return res.json() as Promise<ProviderCredentials>;

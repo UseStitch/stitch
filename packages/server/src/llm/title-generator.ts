@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import * as Log from '@/lib/log.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
-import { createProvider } from '@/provider/provider.js';
+import { createProvider } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'title-generator' });

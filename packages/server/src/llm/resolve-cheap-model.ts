@@ -4,8 +4,8 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { userSettings, providerConfig } from '@/db/schema.js';
-import * as Models from '@/provider/models.js';
-import type { ProviderCredentials } from '@/provider/provider.js';
+import * as Models from '@/llm/provider/models.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 
 const CHEAP_MODEL_PRIORITY = [
   'claude-haiku-4-5',

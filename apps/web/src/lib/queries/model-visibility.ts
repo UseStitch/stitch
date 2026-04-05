@@ -18,7 +18,7 @@ export const modelVisibilityQueryOptions = queryOptions({
   queryKey: modelVisibilityKeys.list(),
   staleTime: Infinity,
   queryFn: async (): Promise<VisibilityOverride[]> => {
-    const res = await serverFetch('/models/visibility');
+    const res = await serverFetch('/llm/models/visibility');
     if (!res.ok) throw new Error('Failed to fetch model visibility overrides');
     return res.json() as Promise<VisibilityOverride[]>;
   },
@@ -37,7 +37,7 @@ export function useSetModelVisibility() {
       visibility: 'show' | 'hide';
     }) => {
       const res = await serverFetch(
-        `/models/visibility/${encodeURIComponent(providerId)}/${encodeURIComponent(modelId)}`,
+        `/llm/models/visibility/${encodeURIComponent(providerId)}/${encodeURIComponent(modelId)}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -61,7 +61,7 @@ export function useResetModelVisibility() {
   return useMutation({
     mutationFn: async ({ providerId, modelId }: { providerId: string; modelId: string }) => {
       const res = await serverFetch(
-        `/models/visibility/${encodeURIComponent(providerId)}/${encodeURIComponent(modelId)}`,
+        `/llm/models/visibility/${encodeURIComponent(providerId)}/${encodeURIComponent(modelId)}`,
         { method: 'DELETE' },
       );
       if (!res.ok && res.status !== 404) {
