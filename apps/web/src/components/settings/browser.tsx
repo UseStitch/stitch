@@ -5,8 +5,9 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { chromeProfilesQueryOptions, importProfileMutationOptions } from '@/lib/queries/browser';
-import { settingsQueryOptions } from '@/lib/queries/settings';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 function formatImportedLabel(raw: string): string {
@@ -126,6 +127,34 @@ function ProfileList() {
   );
 }
 
+function HeadlessToggle() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const headless = settings['browser.headless'] !== 'false';
+
+  const saveMutation = useMutation(
+    saveSettingMutationOptions('browser.headless', queryClient, { silent: true }),
+  );
+
+  function handleToggle(checked: boolean) {
+    saveMutation.mutate(checked ? 'true' : 'false');
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <Label htmlFor="headless-toggle" className="text-sm font-medium">
+          Headless mode
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Run the browser in the background without a visible window
+        </p>
+      </div>
+      <Switch id="headless-toggle" checked={headless} onCheckedChange={handleToggle} />
+    </div>
+  );
+}
+
 export function BrowserSettings() {
   const isMac = window.electron?.platform === 'darwin';
 
@@ -136,9 +165,16 @@ export function BrowserSettings() {
         <p className="mt-1 text-sm text-muted-foreground">Configure the browser used by Stitch</p>
       </div>
 
+      <section className="space-y-3">
+        <h3 className="text-sm font-medium">Display</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <HeadlessToggle />
+        </React.Suspense>
+      </section>
+
       {isMac ? (
         <>
-          <section className="space-y-3">
+          <section className="mt-8 space-y-3">
             <h3 className="text-sm font-medium">Chrome Profile</h3>
             <p className="text-xs text-muted-foreground">
               Import your Chrome profile to use your existing logins, cookies, and sessions. This
@@ -162,7 +198,7 @@ export function BrowserSettings() {
           </section>
         </>
       ) : (
-        <section className="space-y-3">
+        <section className="mt-8 space-y-3">
           <h3 className="text-sm font-medium">Chrome Profile</h3>
           <p className="text-xs text-muted-foreground">
             The browser uses a default Chrome profile on Windows. Profile importing is only

@@ -194,6 +194,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
             return latest.accessToken;
           },
           logger: log,
+          quotaAccountKey: chosen.id,
         });
 
         return {
