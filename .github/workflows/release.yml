@@ -23,10 +23,10 @@ jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
-      - name: Ensure workflow is dispatched from production
+      - name: Ensure workflow is dispatched from master
         run: |
-          if [ "${{ github.ref_name }}" != "production" ]; then
-            echo "This workflow must be run from the production branch."
+          if [ "${{ github.ref_name }}" != "master" ]; then
+            echo "This workflow must be run from the master branch."
             exit 1
           fi
 
@@ -48,6 +48,11 @@ jobs:
 
       - name: Setup git committer
         uses: ./.github/actions/setup-git-committer
+        with:
+          app-id: ${{ vars.STITCH_APP_ID }}
+          app-private-key: ${{ secrets.STITCH_APP_PRIVATE_KEY }}
+          bot-name: stitch[bot]
+          bot-email: stitch[bot]@users.noreply.github.com
 
       - name: Bump version
         id: bump
@@ -109,7 +114,7 @@ jobs:
         run: |
           git add apps/desktop/package.json apps/web/package.json package.json
           git commit -m "chore(release): bump version to ${TAG}"
-          git push origin HEAD:production
+          git push origin HEAD:master
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
@@ -211,26 +216,3 @@ jobs:
           else
             gh release create "${TAG}" "${assets[@]}" --target "${COMMIT}" --title "${TAG}" --notes "Release ${TAG}"
           fi
-
-  sync-master:
-    needs:
-      - version
-      - release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: master
-
-      - name: Setup git committer
-        uses: ./.github/actions/setup-git-committer
-
-      - name: Merge production into master
-        env:
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          git fetch origin master production
-          git merge --ff-only origin/production || git merge --no-ff origin/production -m "chore(release): sync production into master after ${TAG}"
-          git push origin master
