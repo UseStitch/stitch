@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stitch</title>
+    <style>
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: #000;
+        color: #fff;
+        font-size: 16px;
+        line-height: 1.6;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 80px 24px;
+        max-width: 640px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 20px;
+      }
+
+      p {
+        font-size: 1rem;
+        color: #aaa;
+        max-width: 480px;
+        margin-bottom: 12px;
+      }
+
+      p:last-of-type {
+        margin-bottom: 60px;
+      }
+
+      .downloads {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+      }
+
+      .downloads-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #555;
+        margin-bottom: 4px;
+      }
+
+      .downloads-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        border: 1px solid #fff;
+        text-decoration: none;
+        color: #fff;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: #fff;
+        color: #000;
+      }
+
+      .btn-sub {
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: inherit;
+        opacity: 0.6;
+        margin-left: 6px;
+      }
+
+      .btn-disabled {
+        display: inline-block;
+        padding: 12px 24px;
+        border: 1px solid #333;
+        color: #444;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: default;
+        white-space: nowrap;
+      }
+
+      .btn-all {
+        font-size: 0.8rem;
+        color: #555;
+        text-decoration: none;
+        padding: 4px 0;
+        border-bottom: 1px solid #333;
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .btn-all:hover {
+        color: #fff;
+        border-color: #fff;
+      }
+
+      footer {
+        text-align: center;
+        padding: 24px;
+        font-size: 0.8rem;
+        color: #555;
+        border-top: 1px solid #222;
+      }
+
+      footer a {
+        color: #555;
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Stitch</h1>
+      <p>AI that works locally.</p>
+      <p>
+        Stitch runs entirely on your machine — your data stays yours.
+        Connect your tools, automate your work, and let AI handle the rest.
+      </p>
+
+      <div class="downloads">
+        <div class="downloads-label">Download</div>
+        <div class="downloads-row">
+          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-v0.0.0-windows-setup.exe">
+            Windows
+          </a>
+          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-v0.0.0-macos-arm64.dmg">
+            macOS <span class="btn-sub">Apple Silicon</span>
+          </a>
+          <span class="btn-disabled">
+            macOS <span class="btn-sub">Intel &mdash; coming soon</span>
+          </span>
+        </div>
+        <a class="btn-all" href="https://github.com/UseStitch/stitch/releases">All releases &rarr;</a>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        Stitch &copy; 2026 &nbsp;&middot;&nbsp;
+        <a href="https://github.com/UseStitch/stitch">GitHub</a>
+      </p>
+    </footer>
+  </body>
+</html>
