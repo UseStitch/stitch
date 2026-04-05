@@ -44,21 +44,6 @@ type AutomationDialogProps = {
   timezone: string;
 };
 
-function intervalMinutesToCron(everyMinutes: number): string {
-  if (everyMinutes >= 1440 && everyMinutes % 1440 === 0) {
-    return '0 9 * * *';
-  }
-  if (everyMinutes >= 60 && everyMinutes % 60 === 0) {
-    const step = everyMinutes / 60;
-    const hours: number[] = [];
-    for (let h = 0; h < 24; h += step) {
-      hours.push(h);
-    }
-    return `0 ${hours.join(',')} * * *`;
-  }
-  return '0 * * * *';
-}
-
 function getInitialSelection(providerModels: ProviderModels[]): { providerId: string; modelId: string } | null {
   const provider = providerModels[0];
   const model = provider?.models[0];
@@ -98,10 +83,6 @@ export function AutomationDialog({
         setIsScheduled(false);
         setEditorView('prompt');
         setCronExpression('0 9 * * *');
-      } else if (schedule.type === 'interval') {
-        setIsScheduled(true);
-        setEditorView('schedule');
-        setCronExpression(intervalMinutesToCron(schedule.everyMinutes));
       } else {
         setIsScheduled(true);
         setEditorView('schedule');

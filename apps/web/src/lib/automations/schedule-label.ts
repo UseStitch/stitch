@@ -62,19 +62,6 @@ function formatCron(expression: string): string {
 export function getAutomationScheduleLabel(schedule: AutomationSchedule | null): string {
   if (!schedule) return 'Manual';
 
-  if (schedule.type === 'interval') {
-    const minutes = schedule.everyMinutes;
-    if (minutes >= 1440 && minutes % 1440 === 0) {
-      const days = minutes / 1440;
-      return `Every ${days} day${days === 1 ? '' : 's'}`;
-    }
-    if (minutes >= 60 && minutes % 60 === 0) {
-      const hours = minutes / 60;
-      return `Every ${hours} hour${hours === 1 ? '' : 's'}`;
-    }
-    return `Every ${minutes} minute${minutes === 1 ? '' : 's'}`;
-  }
-
   return formatCron(schedule.expression);
 }
 
@@ -85,30 +72,15 @@ export function getUpcomingRuns(
 ): string[] {
   if (!schedule) return [];
 
-  if (schedule.type === 'cron') {
-    try {
-      const interval = CronExpressionParser.parse(schedule.expression, { tz: timezone });
-      const runs: string[] = [];
-      for (let i = 0; i < count; i++) {
-        const date = interval.next().toDate();
-        runs.push(format(date, 'MMM d, h:mm a'));
-      }
-      return runs;
-    } catch {
-      return [];
-    }
-  }
-
-  if (schedule.type === 'interval') {
-    const now = Date.now();
-    const intervalMs = schedule.everyMinutes * 60_000;
+  try {
+    const interval = CronExpressionParser.parse(schedule.expression, { tz: timezone });
     const runs: string[] = [];
-    for (let i = 1; i <= count; i++) {
-      const date = new Date(now + intervalMs * i);
+    for (let i = 0; i < count; i++) {
+      const date = interval.next().toDate();
       runs.push(format(date, 'MMM d, h:mm a'));
     }
     return runs;
+  } catch {
+    return [];
   }
-
-  return [];
 }
