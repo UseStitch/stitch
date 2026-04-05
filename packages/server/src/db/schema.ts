@@ -15,7 +15,6 @@ import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { ConnectorStatus } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
-import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
 import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
 import type {
   ToolPermissionValue,
@@ -136,8 +135,6 @@ export const llmUsageEvents = sqliteTable(
     isAttributable: integer('is_attributable', { mode: 'boolean' }).notNull().default(true),
     sessionId: text('session_id').$type<PrefixedString<'ses'> | null>(),
     messageId: text('message_id').$type<PrefixedString<'msg'> | null>(),
-    meetingId: text('meeting_id').$type<PrefixedString<'rec'> | null>(),
-    transcriptionId: text('transcription_id').$type<PrefixedString<'transcr'> | null>(),
     stepIndex: integer('step_index'),
     attemptIndex: integer('attempt_index'),
     providerId: text('provider_id').notNull(),
@@ -329,63 +326,6 @@ export const scheduledJobRuns = sqliteTable(
     check(
       'scheduled_job_runs_status_check',
       sql`${table.status} in ('running', 'succeeded', 'failed')`,
-    ),
-  ],
-);
-
-export const meetings = sqliteTable(
-  'meetings',
-  {
-    id: text('id').$type<PrefixedString<'rec'>>().primaryKey(),
-    app: text('app').notNull(),
-    appPath: text('app_path').notNull(),
-    status: text('status').$type<MeetingStatus>().notNull().default('detected'),
-    recordingFilePath: text('recording_file_path'),
-    durationSecs: real('duration_secs'),
-    startedAt: integer('started_at', { mode: 'number' }).notNull(),
-    endedAt: integer('ended_at', { mode: 'number' }),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    check('meetings_status_check', sql`${table.status} in ('detected', 'recording', 'completed')`),
-  ],
-);
-
-export const recordingTranscriptions = sqliteTable(
-  'recording_transcriptions',
-  {
-    id: text('id').$type<PrefixedString<'transcr'>>().primaryKey(),
-    meetingId: text('meeting_id')
-      .$type<PrefixedString<'rec'>>()
-      .notNull()
-      .references(() => meetings.id, { onDelete: 'cascade' }),
-    filePath: text('file_path').notNull().default(''),
-    transcript: text('transcript').notNull().default(''),
-    summary: text('summary').notNull().default(''),
-    title: text('title').notNull().default(''),
-    status: text('status').$type<TranscriptionStatus>().notNull().default('pending'),
-    errorMessage: text('error_message'),
-    modelId: text('model_id').notNull(),
-    providerId: text('provider_id').notNull(),
-    usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
-    costUsd: real('cost_usd').notNull().default(0),
-    durationMs: integer('duration_ms'),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    check(
-      'transcription_status_check',
-      sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
     ),
   ],
 );

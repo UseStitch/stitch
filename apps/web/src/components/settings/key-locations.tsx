@@ -14,7 +14,6 @@ interface Paths {
   };
   dirPaths: {
     toolOutput: string;
-    recordings: string;
   };
 }
 
@@ -55,7 +54,6 @@ function formatPaths(paths: Paths): PathGroup[] {
       title: 'Output & Media',
       items: [
         { label: 'Tool Output', path: paths.dirPaths.toolOutput },
-        { label: 'Recordings', path: paths.dirPaths.recordings },
       ],
     },
   ];

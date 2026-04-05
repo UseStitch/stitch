@@ -29,14 +29,6 @@
     "react/exhaustive-deps": "error"
   },
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
-  "overrides": [
-    {
-      "files": ["packages/recordings/src/native-audio.ts"],
-      "rules": {
-        "import/no-dynamic-require": "off"
-      }
-    }
-  ],
   "env": {
     "browser": true,
     "node": true,

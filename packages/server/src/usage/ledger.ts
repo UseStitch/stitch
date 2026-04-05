@@ -52,8 +52,6 @@ export async function recordUsageEvent(input: {
   isAttributable?: boolean;
   sessionId?: PrefixedString<'ses'> | null;
   messageId?: PrefixedString<'msg'> | null;
-  meetingId?: PrefixedString<'rec'> | null;
-  transcriptionId?: PrefixedString<'transcr'> | null;
   stepIndex?: number;
   attemptIndex?: number;
   providerId: string;
@@ -80,8 +78,6 @@ export async function recordUsageEvent(input: {
     isAttributable: input.isAttributable ?? true,
     sessionId: input.sessionId ?? null,
     messageId: input.messageId ?? null,
-    meetingId: input.meetingId ?? null,
-    transcriptionId: input.transcriptionId ?? null,
     stepIndex: input.stepIndex,
     attemptIndex: input.attemptIndex,
     providerId: input.providerId,

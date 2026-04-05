@@ -71,6 +71,13 @@
       "when": 1775323352253,
       "tag": "0009_outgoing_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1775423603592,
+      "tag": "0010_adorable_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }
