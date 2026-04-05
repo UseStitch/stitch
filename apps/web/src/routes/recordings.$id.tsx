@@ -34,7 +34,7 @@ function RecordingDetailComponent() {
 
   return (
     <>
-      <RecordingDetail meeting={meeting} onDelete={() => setDeleteDialogOpen(true)} />
+      <RecordingDetail key={meeting.id} meeting={meeting} onDelete={() => setDeleteDialogOpen(true)} />
       <RecordingDeleteDialog
         meetingId={meeting.id}
         open={deleteDialogOpen}

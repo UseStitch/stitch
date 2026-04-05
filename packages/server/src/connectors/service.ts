@@ -4,20 +4,19 @@ import type {
   ConnectorDefinition,
   ConnectorInstance,
   ConnectorInstanceSafe,
-  ConnectorOAuthProfile,
   ConnectorStatus,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
+import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 import { createConnectorInstanceId } from '@stitch/shared/id';
-import { createConnectorOAuthProfileId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
-import { buildUpgradeState, getCapabilitiesForVersion } from '@/connectors/upgrade.js';
+import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances, connectorOAuthProfiles } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -60,18 +59,6 @@ function toSafe(
   };
 }
 
-type ConnectorOAuthProfileRow = ConnectorOAuthProfile & {
-  clientSecret: string;
-};
-
-function toSafeOAuthProfile(profile: ConnectorOAuthProfileRow): ConnectorOAuthProfile {
-  const { clientSecret, ...rest } = profile;
-  return {
-    ...rest,
-    hasClientSecret: clientSecret.trim().length > 0,
-  };
-}
-
 export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]> {
   const db = getDb();
   const rows = await db
@@ -101,9 +88,8 @@ export async function getConnectorInstance(
 export async function createOAuthConnectorInstance(input: {
   connectorId: string;
   label: string;
-  oauthProfileId?: string;
-  clientId?: string;
-  clientSecret?: string;
+  clientId: string;
+  clientSecret: string;
   scopes: string[];
 }): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const definition = getConnectorDefinition(input.connectorId);
@@ -114,31 +100,10 @@ export async function createOAuthConnectorInstance(input: {
   const db = getDb();
   const id = createConnectorInstanceId();
 
-  let oauthProfileId: PrefixedString<'connp'> | null = null;
-  let clientId: string | null = null;
-  let clientSecret: string | null = null;
-
-  if (input.oauthProfileId) {
-    const [profile] = await db
-      .select()
-      .from(connectorOAuthProfiles)
-      .where(eq(connectorOAuthProfiles.id, input.oauthProfileId as PrefixedString<'connp'>));
-
-    if (!profile) return err('OAuth profile not found', 404);
-    if (profile.connectorId !== input.connectorId) {
-      return err('OAuth profile connector mismatch', 400);
-    }
-
-    oauthProfileId = profile.id;
-    clientId = profile.clientId;
-    clientSecret = profile.clientSecret;
-  } else {
-    if (!input.clientId || !input.clientSecret) {
-      return err('OAuth profile or client credentials are required', 400);
-    }
-
-    clientId = input.clientId;
-    clientSecret = input.clientSecret;
+  const clientId = input.clientId.trim();
+  const clientSecret = input.clientSecret.trim();
+  if (!clientId || !clientSecret) {
+    return err('Client credentials are required', 400);
   }
 
   const instance = {
@@ -147,7 +112,6 @@ export async function createOAuthConnectorInstance(input: {
     label: input.label,
     appliedVersion: definition.currentVersion,
     capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
-    oauthProfileId,
     clientId,
     clientSecret,
     apiKey: null,
@@ -190,7 +154,6 @@ export async function createApiKeyConnectorInstance(input: {
     label: input.label,
     appliedVersion: definition.currentVersion,
     capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
-    oauthProfileId: null,
     clientId: null,
     clientSecret: null,
     apiKey: input.apiKey,
@@ -250,23 +213,16 @@ export async function authorizeOAuthInstance(
       const tokens = await waitForTokens();
       const now = Date.now();
 
-      // Fetch account info for Google
       let accountEmail: string | null = null;
       let accountInfo: Record<string, unknown> | null = null;
-
-      if (instance.connectorId === 'google') {
-        try {
-          const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: { Authorization: `Bearer ${tokens.accessToken}` },
-          });
-          if (res.ok) {
-            const info = (await res.json()) as { email?: string; name?: string; picture?: string };
-            accountEmail = info.email ?? null;
-            accountInfo = info as Record<string, unknown>;
-          }
-        } catch {
-          // Non-critical, continue without account info
-        }
+      const module = getConnectorModule(instance.connectorId);
+      if (module?.hooks?.onAuthorized) {
+        const hookResult = await module.hooks.onAuthorized({
+          instance,
+          accessToken: tokens.accessToken,
+        });
+        accountEmail = hookResult.accountEmail;
+        accountInfo = hookResult.accountInfo;
       }
 
       await db
@@ -289,17 +245,7 @@ export async function authorizeOAuthInstance(
         `Connector authorized: ${instance.label}`,
       );
 
-      if (instance.connectorId === 'google') {
-        void import('@/connectors/google-toolsets.js')
-          .then((mod) => mod.registerGoogleToolsets())
-          .catch((error) => {
-            const message = error instanceof Error ? error.message : String(error);
-            log.warn(
-              { event: 'connector.google_toolsets.refresh_failed', instanceId, error: message },
-              'failed to refresh Google toolsets after authorization',
-            );
-          });
-      }
+      await refreshConnectorToolsetsFor(instance.connectorId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await db
@@ -315,83 +261,6 @@ export async function authorizeOAuthInstance(
   };
 
   return ok({ authUrl, waitForTokens: tokenHandler });
-}
-
-export async function listConnectorOAuthProfiles(
-  connectorId: string,
-): Promise<ServiceResult<ConnectorOAuthProfile[]>> {
-  const definition = getConnectorDefinition(connectorId);
-  if (!definition) return err('Unknown connector type', 400);
-  if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
-
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(connectorOAuthProfiles)
-    .where(eq(connectorOAuthProfiles.connectorId, connectorId))
-    .orderBy(asc(connectorOAuthProfiles.createdAt));
-
-  return ok(rows.map((row) => toSafeOAuthProfile(row as ConnectorOAuthProfileRow)));
-}
-
-export async function createConnectorOAuthProfile(input: {
-  connectorId: string;
-  label: string;
-  clientId: string;
-  clientSecret: string;
-}): Promise<ServiceResult<ConnectorOAuthProfile>> {
-  const definition = getConnectorDefinition(input.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
-  if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
-
-  const db = getDb();
-  const id = createConnectorOAuthProfileId();
-  const now = Date.now();
-
-  try {
-    await db.insert(connectorOAuthProfiles).values({
-      id,
-      connectorId: input.connectorId,
-      label: input.label,
-      clientId: input.clientId,
-      clientSecret: input.clientSecret,
-      createdAt: now,
-      updatedAt: now,
-    });
-  } catch {
-    return err('OAuth profile label already exists for this connector', 400);
-  }
-
-  const [row] = await db
-    .select()
-    .from(connectorOAuthProfiles)
-    .where(eq(connectorOAuthProfiles.id, id));
-
-  return ok(toSafeOAuthProfile(row as ConnectorOAuthProfileRow));
-}
-
-export async function deleteConnectorOAuthProfile(profileId: string): Promise<ServiceResult<null>> {
-  const db = getDb();
-  const typedProfileId = profileId as PrefixedString<'connp'>;
-
-  const [profile] = await db
-    .select()
-    .from(connectorOAuthProfiles)
-    .where(eq(connectorOAuthProfiles.id, typedProfileId));
-
-  if (!profile) return err('OAuth profile not found', 404);
-
-  const inUse = await db
-    .select({ id: connectorInstances.id })
-    .from(connectorInstances)
-    .where(eq(connectorInstances.oauthProfileId, typedProfileId));
-
-  if (inUse.length > 0) {
-    return err('OAuth profile is in use by one or more connectors', 400);
-  }
-
-  await db.delete(connectorOAuthProfiles).where(eq(connectorOAuthProfiles.id, typedProfileId));
-  return ok(null);
 }
 
 export async function updateConnectorInstance(
@@ -551,17 +420,11 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
     .delete(connectorInstances)
     .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
-  if (existing.connectorId === 'google') {
-    void import('@/connectors/google-toolsets.js')
-      .then((mod) => mod.registerGoogleToolsets())
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        log.warn(
-          { event: 'connector.google_toolsets.refresh_failed', instanceId, error: message },
-          'failed to refresh Google toolsets after deletion',
-        );
-      });
+  const module = getConnectorModule(existing.connectorId);
+  if (module?.hooks?.onDeleted) {
+    await module.hooks.onDeleted({ instance: existing });
   }
+  await refreshConnectorToolsetsFor(existing.connectorId);
 
   log.info(
     { event: 'connector.deleted', instanceId },
@@ -584,52 +447,19 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
   if (!definition) return err('Unknown connector type', 400);
 
   try {
-    if (definition.authType === 'oauth2' && instance.accessToken) {
-      if (instance.connectorId === 'google') {
-        // Try userinfo first (requires openid scope), fall back to tokeninfo
-        const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { Authorization: `Bearer ${instance.accessToken}` },
-        });
-        if (!res.ok) {
-          // Fallback: validate the token itself via tokeninfo endpoint
-          const tokenRes = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?access_token=${instance.accessToken}`,
-          );
-          if (!tokenRes.ok) throw new Error(`Google API returned ${tokenRes.status}`);
-        }
-      }
-    } else if (definition.authType === 'api_key' && instance.apiKey) {
-      if (instance.connectorId === 'slack') {
-        const res = await fetch('https://slack.com/api/auth.test', {
-          headers: { Authorization: `Bearer ${instance.apiKey}` },
-        });
-        const data = (await res.json()) as { ok: boolean; error?: string };
-        if (!data.ok) throw new Error(`Slack API error: ${data.error}`);
+    const module = getConnectorModule(instance.connectorId);
+    if (module?.hooks?.testConnection) {
+      await module.hooks.testConnection({ instance });
+      return ok(true);
+    }
 
-        // Update account info from Slack
-        const infoRes = await fetch('https://slack.com/api/team.info', {
-          headers: { Authorization: `Bearer ${instance.apiKey}` },
-        });
-        const infoData = (await infoRes.json()) as {
-          ok: boolean;
-          team?: { name: string; domain: string };
-        };
-        if (infoData.ok && infoData.team) {
-          await db
-            .update(connectorInstances)
-            .set({
-              accountInfo: infoData.team as unknown as Record<string, unknown>,
-              accountEmail: infoData.team.domain,
-              updatedAt: Date.now(),
-            })
-            .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
-        }
-      }
+    if (definition.authType === 'oauth2' && instance.accessToken) {
+      return ok(true);
+    } else if (definition.authType === 'api_key' && instance.apiKey) {
+      return err('Connector test is not supported for this connector type', 400);
     } else {
       return err('Connector has no credentials to test', 400);
     }
-
-    return ok(true);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     log.error(

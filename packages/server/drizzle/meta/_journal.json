@@ -36,6 +36,41 @@
       "when": 1774992262416,
       "tag": "0004_graceful_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1775256383180,
+      "tag": "0005_calm_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1775258328166,
+      "tag": "0006_cold_the_santerians",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1775317825423,
+      "tag": "0007_fluffy_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1775320909985,
+      "tag": "0008_skinny_iceman",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1775323352253,
+      "tag": "0009_outgoing_northstar",
+      "breakpoints": true
     }
   ]
 }

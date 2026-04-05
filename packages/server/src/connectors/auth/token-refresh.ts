@@ -11,30 +11,9 @@ import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'token-refresh' });
 
-const REFRESH_INTERVAL_MS = 60_000; // Check every minute
 const REFRESH_BUFFER_MS = 5 * 60_000; // Refresh 5 minutes before expiry
 
-let intervalId: ReturnType<typeof setInterval> | null = null;
-
-export function startTokenRefreshService(): void {
-  if (intervalId) return;
-
-  intervalId = setInterval(() => {
-    void refreshExpiringTokens();
-  }, REFRESH_INTERVAL_MS);
-
-  log.info({ event: 'token-refresh.started' }, 'Token refresh service started');
-}
-
-export function stopTokenRefreshService(): void {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-    log.info({ event: 'token-refresh.stopped' }, 'Token refresh service stopped');
-  }
-}
-
-async function refreshExpiringTokens(): Promise<void> {
+export async function refreshExpiringTokens(): Promise<void> {
   const db = getDb();
   const now = Date.now();
   const threshold = now + REFRESH_BUFFER_MS;

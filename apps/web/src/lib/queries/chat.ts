@@ -7,6 +7,9 @@ import {
 import type { InfiniteData } from '@tanstack/react-query';
 
 import type {
+  GeneratedAutomationDraft,
+} from '@stitch/shared/automations/types';
+import type {
   Message,
   Session,
   SessionStats,
@@ -43,7 +46,7 @@ export const sessionsQueryOptions = queryOptions({
   queryKey: sessionKeys.list(),
   staleTime: Infinity,
   queryFn: async (): Promise<Session[]> => {
-    const res = await serverFetch('/chat/sessions');
+    const res = await serverFetch('/chat/sessions?type=chat');
     if (!res.ok) throw new Error('Failed to fetch sessions');
     return res.json() as Promise<Session[]>;
   },
@@ -236,6 +239,26 @@ export function useMarkSessionRead() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
+export function useGenerateAutomationDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string): Promise<GeneratedAutomationDraft> => {
+      const res = await serverFetch(`/chat/sessions/${sessionId}/generate-automation`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to generate automation draft');
+      }
+
+      return res.json() as Promise<GeneratedAutomationDraft>;
+    },
+    onSuccess: (_data, sessionId) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
   });
 }

@@ -4,19 +4,15 @@ import {
   Loader2Icon,
   ArrowRightIcon,
   ArrowLeftIcon,
-  Trash2Icon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-
-import { useQuery } from '@tanstack/react-query';
 
 import type {
   ConnectorDefinition,
   OAuthConfig,
   ApiKeyConfig,
   ConnectorSetupInstruction,
-  ConnectorOAuthProfile,
 } from '@stitch/shared/connectors/types';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
@@ -34,10 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  connectorOAuthProfilesQueryOptions,
   useCreateOAuthConnector,
-  useCreateOAuthProfile,
-  useDeleteOAuthProfile,
   useCreateApiKeyConnector,
   useAuthorizeConnector,
 } from '@/lib/queries/connectors';
@@ -56,10 +49,6 @@ export function SetupWizard({ definition, onClose }: Props) {
   // OAuth fields
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
-  const [credentialMode, setCredentialMode] = useState<'saved' | 'new'>('saved');
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [saveProfile, setSaveProfile] = useState(true);
-  const [profileLabel, setProfileLabel] = useState('');
   const [selectedScopes, setSelectedScopes] = useState<string[]>(
     definition.authType === 'oauth2' ? (definition.authConfig as OAuthConfig).defaultScopes : [],
   );
@@ -68,18 +57,12 @@ export function SetupWizard({ definition, onClose }: Props) {
   const [apiKey, setApiKey] = useState('');
 
   const createOAuth = useCreateOAuthConnector();
-  const createOAuthProfile = useCreateOAuthProfile();
-  const deleteOAuthProfile = useDeleteOAuthProfile();
   const createApiKey = useCreateApiKeyConnector();
   const authorize = useAuthorizeConnector();
 
   const isOAuth = definition.authType === 'oauth2';
   const oauthConfig = isOAuth ? (definition.authConfig as OAuthConfig) : null;
   const apiKeyConfig = !isOAuth ? (definition.authConfig as ApiKeyConfig) : null;
-  const { data: oauthProfiles = [] } = useQuery({
-    ...connectorOAuthProfilesQueryOptions(definition.id),
-    enabled: isOAuth,
-  });
 
   const initialServiceAccess = useMemo(() => {
     if (!oauthConfig?.serviceAccessOptions) return {} as Record<string, 'none' | 'read' | 'write'>;
@@ -111,45 +94,17 @@ export function SetupWizard({ definition, onClose }: Props) {
       setStep('authorizing');
 
       try {
-        let oauthProfileId: string | undefined;
-        let rawClientId: string | undefined;
-        let rawClientSecret: string | undefined;
-
-        if (credentialMode === 'saved') {
-          if (!selectedProfileId) {
-            toast.error('Select an OAuth app profile');
-            setStep('credentials');
-            return;
-          }
-          oauthProfileId = selectedProfileId;
-        } else {
-          if (!clientId.trim() || !clientSecret.trim()) {
-            toast.error('Client ID and Client Secret are required');
-            setStep('credentials');
-            return;
-          }
-
-          if (saveProfile) {
-            const createdProfile = await createOAuthProfile.mutateAsync({
-              connectorId: definition.id,
-              label: profileLabel.trim() || `${definition.name} OAuth App`,
-              clientId: clientId.trim(),
-              clientSecret: clientSecret.trim(),
-            });
-            oauthProfileId = createdProfile.id;
-            setSelectedProfileId(createdProfile.id);
-          } else {
-            rawClientId = clientId.trim();
-            rawClientSecret = clientSecret.trim();
-          }
+        if (!clientId.trim() || !clientSecret.trim()) {
+          toast.error('Client ID and Client Secret are required');
+          setStep('credentials');
+          return;
         }
 
         const instance = await createOAuth.mutateAsync({
           connectorId: definition.id,
           label: label.trim() || definition.name,
-          oauthProfileId,
-          clientId: rawClientId,
-          clientSecret: rawClientSecret,
+          clientId: clientId.trim(),
+          clientSecret: clientSecret.trim(),
           scopes: scopesToUse,
         });
 
@@ -158,7 +113,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         setStep('done');
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Failed to create connector');
-        setStep(credentialMode === 'saved' ? 'credentials' : 'scopes');
+        setStep('scopes');
       }
     } else {
       if (!apiKey.trim()) {
@@ -222,21 +177,6 @@ export function SetupWizard({ definition, onClose }: Props) {
               setClientId={setClientId}
               clientSecret={clientSecret}
               setClientSecret={setClientSecret}
-              credentialMode={credentialMode}
-              setCredentialMode={setCredentialMode}
-              oauthProfiles={oauthProfiles}
-              selectedProfileId={selectedProfileId}
-              setSelectedProfileId={setSelectedProfileId}
-              saveProfile={saveProfile}
-              setSaveProfile={setSaveProfile}
-              profileLabel={profileLabel}
-              setProfileLabel={setProfileLabel}
-              onDeleteProfile={async (profileId) => {
-                await deleteOAuthProfile.mutateAsync({ profileId, connectorId: definition.id });
-                if (selectedProfileId === profileId) {
-                  setSelectedProfileId(null);
-                }
-              }}
               apiKey={apiKey}
               setApiKey={setApiKey}
               apiKeyConfig={apiKeyConfig}
@@ -352,16 +292,6 @@ function CredentialsStep({
   setClientId,
   clientSecret,
   setClientSecret,
-  credentialMode,
-  setCredentialMode,
-  oauthProfiles,
-  selectedProfileId,
-  setSelectedProfileId,
-  saveProfile,
-  setSaveProfile,
-  profileLabel,
-  setProfileLabel,
-  onDeleteProfile,
   apiKey,
   setApiKey,
   apiKeyConfig,
@@ -376,16 +306,6 @@ function CredentialsStep({
   setClientId: (v: string) => void;
   clientSecret: string;
   setClientSecret: (v: string) => void;
-  credentialMode: 'saved' | 'new';
-  setCredentialMode: (v: 'saved' | 'new') => void;
-  oauthProfiles: ConnectorOAuthProfile[];
-  selectedProfileId: string | null;
-  setSelectedProfileId: (v: string | null) => void;
-  saveProfile: boolean;
-  setSaveProfile: (v: boolean) => void;
-  profileLabel: string;
-  setProfileLabel: (v: string) => void;
-  onDeleteProfile: (profileId: string) => Promise<void>;
   apiKey: string;
   setApiKey: (v: string) => void;
   apiKeyConfig: ApiKeyConfig | null;
@@ -408,108 +328,25 @@ function CredentialsStep({
 
         {isOAuth ? (
           <>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-border/60 p-1">
-              <Button
-                type="button"
-                variant={credentialMode === 'saved' ? 'secondary' : 'ghost'}
-                className="justify-start"
-                onClick={() => setCredentialMode('saved')}
-              >
-                Use saved OAuth app
-              </Button>
-              <Button
-                type="button"
-                variant={credentialMode === 'new' ? 'secondary' : 'ghost'}
-                className="justify-start"
-                onClick={() => setCredentialMode('new')}
-              >
-                Add new OAuth app
-              </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="clientId">Client ID</Label>
+              <Input
+                id="clientId"
+                placeholder="Your OAuth Client ID"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+              />
             </div>
-
-            {credentialMode === 'saved' ? (
-              <ScrollArea className="max-h-[34vh] rounded-lg border border-border/60">
-                <div className="space-y-2 p-3">
-                  {oauthProfiles.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No saved OAuth apps yet. Add one once, then reuse it for all your accounts.
-                    </p>
-                  ) : (
-                    oauthProfiles.map((profile) => (
-                      <div
-                        key={profile.id}
-                        className="flex items-center gap-2 rounded-md border border-border/60 p-2"
-                      >
-                        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                          <input
-                            type="radio"
-                            name="oauth-profile"
-                            checked={selectedProfileId === profile.id}
-                            onChange={() => setSelectedProfileId(profile.id)}
-                          />
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium">
-                              {profile.label}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {profile.clientId}
-                            </span>
-                          </span>
-                        </label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => void onDeleteProfile(profile.id)}
-                        >
-                          <Trash2Icon className="size-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            ) : (
-              <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="clientId">Client ID</Label>
-                  <Input
-                    id="clientId"
-                    placeholder="Your OAuth Client ID"
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="clientSecret">Client Secret</Label>
-                  <Input
-                    id="clientSecret"
-                    type="password"
-                    placeholder="Your OAuth Client Secret"
-                    value={clientSecret}
-                    onChange={(e) => setClientSecret(e.target.value)}
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={saveProfile}
-                    onCheckedChange={(checked) => setSaveProfile(Boolean(checked))}
-                  />
-                  Save OAuth app for reuse
-                </label>
-                {saveProfile ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="profileLabel">OAuth app name</Label>
-                    <Input
-                      id="profileLabel"
-                      placeholder="e.g. Work Google OAuth"
-                      value={profileLabel}
-                      onChange={(e) => setProfileLabel(e.target.value)}
-                    />
-                  </div>
-                ) : null}
-              </>
-            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="clientSecret">Client Secret</Label>
+              <Input
+                id="clientSecret"
+                type="password"
+                placeholder="Your OAuth Client Secret"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+              />
+            </div>
           </>
         ) : (
           <div className="space-y-1.5">

@@ -1,4 +1,5 @@
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import type { Tool } from 'ai';
 
 /** Brief summary of a single tool inside a toolset, used for LLM discovery. */
@@ -26,11 +27,8 @@ export type Toolset = {
   name: string;
   /** Brief description for LLM discovery (included in system prompt catalog) */
   description: string;
-  /**
-   * Icon slug served at /connectors/icons/:slug (e.g. "gmail", "googledrive").
-   * Used by the frontend to display a connector-specific icon for the toolset.
-   */
-  icon?: string;
+  /** Connector icon descriptor used by the frontend to render a toolset icon. */
+  icon?: ConnectorIconSource;
   /**
    * Operational instructions injected into context when the toolset is activated.
    * For builtin toolsets these come from .md files; for MCP servers from the

@@ -3,7 +3,6 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type {
   ConnectorDefinition,
   ConnectorInstanceSafe,
-  ConnectorOAuthProfile,
 } from '@stitch/shared/connectors/types';
 
 import { serverFetch } from '@/lib/api';
@@ -12,8 +11,6 @@ const connectorKeys = {
   all: ['connectors'] as const,
   definitions: () => [...connectorKeys.all, 'definitions'] as const,
   instances: () => [...connectorKeys.all, 'instances'] as const,
-  oauthProfiles: (connectorId: string) =>
-    [...connectorKeys.all, 'oauth-profiles', connectorId] as const,
   instance: (id: string) => [...connectorKeys.all, 'instance', id] as const,
 };
 
@@ -41,27 +38,14 @@ export const connectorInstancesQueryOptions = queryOptions({
   },
 });
 
-export function connectorOAuthProfilesQueryOptions(connectorId: string) {
-  return queryOptions({
-    queryKey: connectorKeys.oauthProfiles(connectorId),
-    staleTime: 30_000,
-    queryFn: async (): Promise<ConnectorOAuthProfile[]> => {
-      const res = await serverFetch(`/connectors/oauth-profiles/${connectorId}`);
-      if (!res.ok) throw new Error('Failed to fetch OAuth profiles');
-      return res.json() as Promise<ConnectorOAuthProfile[]>;
-    },
-  });
-}
-
 export function useCreateOAuthConnector() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
       connectorId: string;
       label: string;
-      oauthProfileId?: string;
-      clientId?: string;
-      clientSecret?: string;
+      clientId: string;
+      clientSecret: string;
       scopes: string[];
     }): Promise<ConnectorInstanceSafe> => {
       const res = await serverFetch('/connectors/instances/oauth', {
@@ -77,56 +61,6 @@ export function useCreateOAuthConnector() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
-    },
-  });
-}
-
-export function useCreateOAuthProfile() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: {
-      connectorId: string;
-      label: string;
-      clientId: string;
-      clientSecret: string;
-    }): Promise<ConnectorOAuthProfile> => {
-      const res = await serverFetch('/connectors/oauth-profiles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to create OAuth profile');
-      }
-      return res.json() as Promise<ConnectorOAuthProfile>;
-    },
-    onSuccess: (_, vars) => {
-      void queryClient.invalidateQueries({
-        queryKey: connectorKeys.oauthProfiles(vars.connectorId),
-      });
-      void queryClient.invalidateQueries({ queryKey: connectorKeys.instances() });
-    },
-  });
-}
-
-export function useDeleteOAuthProfile() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { profileId: string; connectorId: string }) => {
-      const res = await serverFetch(`/connectors/oauth-profiles/${input.profileId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to delete OAuth profile');
-      }
-    },
-    onSuccess: (_, vars) => {
-      void queryClient.invalidateQueries({
-        queryKey: connectorKeys.oauthProfiles(vars.connectorId),
-      });
-      void queryClient.invalidateQueries({ queryKey: connectorKeys.instances() });
     },
   });
 }

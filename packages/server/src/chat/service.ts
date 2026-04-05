@@ -31,6 +31,8 @@ const DEFAULT_PAGE_SIZE = 50;
 
 type CreateSessionInput = {
   title?: string;
+  type?: 'chat' | 'automation';
+  automationId?: PrefixedString<'auto'>;
   parentSessionId?: string;
 };
 
@@ -57,6 +59,8 @@ export async function createSession(input: CreateSessionInput) {
   await db.insert(sessions).values({
     id,
     title,
+    type: input.type ?? 'chat',
+    automationId: input.automationId ?? null,
     parentSessionId: (input.parentSessionId ?? null) as PrefixedString<'ses'> | null,
     createdAt: now,
     updatedAt: now,
@@ -66,9 +70,9 @@ export async function createSession(input: CreateSessionInput) {
   return session;
 }
 
-export async function listSessions() {
+export async function listSessions(type: 'chat' | 'automation' = 'chat') {
   const db = getDb();
-  return db.select().from(sessions).orderBy(asc(sessions.createdAt));
+  return db.select().from(sessions).where(eq(sessions.type, type)).orderBy(asc(sessions.createdAt));
 }
 
 export async function getSessionById(sessionId: PrefixedString<'ses'>) {

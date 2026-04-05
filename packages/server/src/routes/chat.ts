@@ -3,6 +3,9 @@ import { Hono } from 'hono';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import {
+  generateAutomationDraft,
+} from '@/automations/generation.js';
+import {
   abortSessionRun,
   createSession,
   deleteSession,
@@ -29,7 +32,9 @@ chatRouter.post('/sessions', async (c) => {
 });
 
 chatRouter.get('/sessions', async (c) => {
-  const rows = await listSessions();
+  const type = c.req.query('type');
+  const sessionType = type === 'automation' ? 'automation' : 'chat';
+  const rows = await listSessions(sessionType);
   return c.json(rows);
 });
 
@@ -172,4 +177,15 @@ chatRouter.post('/sessions/:id/compact', async (c) => {
   }
 
   return c.json(result.data, 202);
+});
+
+chatRouter.post('/sessions/:id/generate-automation', async (c) => {
+  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+
+  const result = await generateAutomationDraft(sessionId);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error, details: result.details }, result.status);
+  }
+
+  return c.json(result.data, 201);
 });

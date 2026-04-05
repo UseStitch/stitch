@@ -20,6 +20,10 @@
         "elementNamePattern": ["@tanstack/**"]
       },
       {
+        "groupName": "stitch-connectors",
+        "elementNamePattern": ["@stitch-connectors/**"]
+      },
+      {
         "groupName": "stitch",
         "elementNamePattern": ["@stitch/**"]
       }
@@ -27,6 +31,7 @@
     "groups": [
       ["value-builtin", "value-external"],
       "tanstack",
+      "stitch-connectors",
       "stitch",
       ["value-parent", "value-sibling", "value-index"],
       "unknown"

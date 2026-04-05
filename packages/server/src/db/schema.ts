@@ -16,6 +16,7 @@ import type { ConnectorStatus } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 import type { MeetingStatus, TranscriptionStatus } from '@stitch/shared/meetings/types';
+import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
 import type {
   ToolPermissionValue,
   PermissionResponseStatus,
@@ -24,6 +25,7 @@ import type {
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
+import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 
 import type { ProviderCredentials } from '@/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -54,6 +56,22 @@ export const keyboardShortcuts = sqliteTable('keyboard_shortcuts', {
     .$defaultFn(() => Date.now()),
 });
 
+export const automations = sqliteTable('automations', {
+  id: text('id').$type<PrefixedString<'auto'>>().primaryKey(),
+  providerId: text('provider_id').notNull(),
+  modelId: text('model_id').notNull(),
+  initialMessage: text('initial_message').notNull(),
+  title: text('title').notNull(),
+  schedule: blob('schedule', { mode: 'json' }).$type<AutomationScheduleBlob | null>(),
+  runCount: integer('run_count').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
 export const providerConfig = sqliteTable('provider_config', {
   providerId: text('provider_id').primaryKey(),
   credentials: blob('credentials', { mode: 'json' }).$type<ProviderCredentials>().notNull(),
@@ -68,6 +86,10 @@ export const providerConfig = sqliteTable('provider_config', {
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
+  type: text('type', { enum: ['chat', 'automation'] }).notNull().default('chat'),
+  automationId: text('automation_id')
+    .$type<PrefixedString<'auto'> | null>()
+    .references(() => automations.id, { onDelete: 'set null' }),
   parentSessionId: text('parent_session_id')
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),
@@ -249,6 +271,68 @@ export const queuedMessages = sqliteTable('queued_messages', {
     .$defaultFn(() => Date.now()),
 });
 
+export const scheduledJobs = sqliteTable(
+  'scheduled_jobs',
+  {
+    id: text('id').$type<PrefixedString<'schjob'>>().primaryKey(),
+    key: text('key').notNull(),
+    schedule: blob('schedule', { mode: 'json' }).$type<JobSchedule>().notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    maxConcurrency: integer('max_concurrency').notNull().default(1),
+    queueEnabled: integer('queue_enabled', { mode: 'boolean' }).notNull().default(true),
+    catchup: text('catchup').$type<CatchupPolicy>().notNull().default('one'),
+    catchupMaxRuns: integer('catchup_max_runs').notNull().default(100),
+    nextRunAt: integer('next_run_at', { mode: 'number' }).notNull(),
+    runningCount: integer('running_count').notNull().default(0),
+    queuedCount: integer('queued_count').notNull().default(0),
+    totalRuns: integer('total_runs').notNull().default(0),
+    totalFailures: integer('total_failures').notNull().default(0),
+    lastRunAt: integer('last_run_at', { mode: 'number' }),
+    lastSuccessAt: integer('last_success_at', { mode: 'number' }),
+    lastErrorAt: integer('last_error_at', { mode: 'number' }),
+    lastErrorMessage: text('last_error_message'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('scheduled_jobs_key_uidx').on(table.key),
+    index('scheduled_jobs_next_run_at_idx').on(table.nextRunAt),
+    check('scheduled_jobs_catchup_check', sql`${table.catchup} in ('none', 'one', 'all')`),
+  ],
+);
+
+export const scheduledJobRuns = sqliteTable(
+  'scheduled_job_runs',
+  {
+    id: text('id').$type<PrefixedString<'schrun'>>().primaryKey(),
+    jobId: text('job_id')
+      .$type<PrefixedString<'schjob'>>()
+      .notNull()
+      .references(() => scheduledJobs.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    status: text('status').$type<'running' | 'succeeded' | 'failed'>().notNull().default('running'),
+    scheduledFor: integer('scheduled_for', { mode: 'number' }).notNull(),
+    startedAt: integer('started_at', { mode: 'number' }).notNull(),
+    finishedAt: integer('finished_at', { mode: 'number' }),
+    errorMessage: text('error_message'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('scheduled_job_runs_job_id_idx').on(table.jobId),
+    index('scheduled_job_runs_key_idx').on(table.key),
+    check(
+      'scheduled_job_runs_status_check',
+      sql`${table.status} in ('running', 'succeeded', 'failed')`,
+    ),
+  ],
+);
+
 export const meetings = sqliteTable(
   'meetings',
   {
@@ -314,7 +398,6 @@ export const connectorInstances = sqliteTable(
     label: text('label').notNull(),
     appliedVersion: integer('applied_version').notNull().default(1),
     capabilities: blob('capabilities', { mode: 'json' }).$type<string[]>().notNull().default([]),
-    oauthProfileId: text('oauth_profile_id').$type<PrefixedString<'connp'>>(),
     clientId: text('client_id'),
     clientSecret: text('client_secret'),
     apiKey: text('api_key'),
@@ -334,31 +417,9 @@ export const connectorInstances = sqliteTable(
   },
   (table) => [
     index('connector_instances_connector_id_idx').on(table.connectorId),
-    index('connector_instances_oauth_profile_id_idx').on(table.oauthProfileId),
     check(
       'connector_status_check',
       sql`${table.status} in ('pending_setup', 'awaiting_auth', 'connected', 'error')`,
     ),
-  ],
-);
-
-export const connectorOAuthProfiles = sqliteTable(
-  'connector_oauth_profiles',
-  {
-    id: text('id').$type<PrefixedString<'connp'>>().primaryKey(),
-    connectorId: text('connector_id').notNull(),
-    label: text('label').notNull(),
-    clientId: text('client_id').notNull(),
-    clientSecret: text('client_secret').notNull(),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    index('connector_oauth_profiles_connector_id_idx').on(table.connectorId),
-    uniqueIndex('connector_oauth_profiles_connector_label_idx').on(table.connectorId, table.label),
   ],
 );

@@ -80,6 +80,11 @@ export function buildHistoryMessages(
       continue;
     }
 
+    const hasAutomationGeneration = msg.parts.some((p) => p.type === 'automation-generation');
+    if (hasAutomationGeneration) {
+      continue;
+    }
+
     if (msg.role === 'user') {
       const hasCompaction = msg.parts.some((p) => p.type === 'compaction');
       if (hasCompaction) continue;
