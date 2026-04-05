@@ -59,6 +59,33 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10...
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
 
+function buildCronExpression(
+  freq: Frequency,
+  mins: number[],
+  hrs: number[],
+  dom: number[],
+  mon: number[],
+  dow: number[],
+): string {
+  const formatPart = (vals: number[]) => {
+    if (vals.length === 0) return '*';
+    return vals.join(',');
+  };
+  const mStr = mins.length > 0 ? mins[0].toString() : '0';
+  switch (freq) {
+    case 'hourly':
+      return `${mStr} * * * *`;
+    case 'daily':
+      return `${mStr} ${formatPart(hrs)} * * *`;
+    case 'weekly':
+      return `${mStr} ${formatPart(hrs)} * * ${formatPart(dow)}`;
+    case 'monthly':
+      return `${mStr} ${formatPart(hrs)} ${formatPart(dom)} ${formatPart(mon)} *`;
+    default:
+      return `${mStr} * * * *`;
+  }
+}
+
 export function CronExpressionBuilder({
   value,
   onChange,
@@ -131,64 +158,23 @@ export function CronExpressionBuilder({
     }
   }, [value]);
 
-  // Construct cron expression
-  const constructCron = React.useCallback(() => {
-    // Helper to format part
-    const formatPart = (vals: number[], allChar = '*') => {
-      if (vals.length === 0) return allChar;
-      return vals.join(',');
-    };
-
-    const mStr = minutes.length > 0 ? minutes[0].toString() : '0';
-
-    let cron = '';
-    switch (frequency) {
-      case 'hourly':
-        cron = `${mStr} * * * *`;
-        break;
-      case 'daily': {
-        const hStr = formatPart(hours);
-        cron = `${mStr} ${hStr} * * *`;
-        break;
-      }
-      case 'weekly': {
-        const hStr = formatPart(hours);
-        const dowStr = formatPart(daysOfWeek);
-        cron = `${mStr} ${hStr} * * ${dowStr}`;
-        break;
-      }
-      case 'monthly': {
-        const hStr = formatPart(hours);
-        const domStr = formatPart(daysOfMonth);
-        const monStr = formatPart(months);
-        cron = `${mStr} ${hStr} ${domStr} ${monStr} *`;
-        break;
-      }
-      default:
-        cron = value; // Fallback
-    }
-
-    // Only update if changed
-    if (cron !== value) {
-      onChange(cron);
-    }
-  }, [
-    frequency,
-    minutes,
-    hours,
-    daysOfWeek,
-    daysOfMonth,
-    months,
-    onChange,
-    value,
-  ]);
-
-  // Update on state change
-  React.useEffect(() => {
-    // We don't want to trigger this immediately on mount/parse, but parsing sets state which triggers this.
-    // However, if parsing sets state to exactly what matches value, constructCron won't call onChange due to check.
-    constructCron();
-  }, [constructCron]);
+  const emitCron = (overrides: {
+    frequency?: Frequency;
+    minutes?: number[];
+    hours?: number[];
+    daysOfMonth?: number[];
+    months?: number[];
+    daysOfWeek?: number[];
+  }) => {
+    onChange(buildCronExpression(
+      overrides.frequency ?? frequency,
+      overrides.minutes ?? minutes,
+      overrides.hours ?? hours,
+      overrides.daysOfMonth ?? daysOfMonth,
+      overrides.months ?? months,
+      overrides.daysOfWeek ?? daysOfWeek,
+    ));
+  };
 
   // Calculate upcoming executions
   const upcomingExecutions = React.useMemo(() => {
@@ -196,7 +182,7 @@ export function CronExpressionBuilder({
     try {
       const interval = CronExpressionParser.parse(value, options);
       const runs: { date: string; time: string; key: string }[] = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 3; i++) {
         const date = interval.next().toDate();
         runs.push({
           date: format(date, 'MMM d, yyyy'),
@@ -232,7 +218,11 @@ export function CronExpressionBuilder({
         value={[minutes[0]?.toString() ?? '0']}
         onValueChange={(vals) => {
           const val = vals[0];
-          if (val) setMinutes([Number.parseInt(val)]);
+          if (val) {
+            const newMinutes = [Number.parseInt(val)];
+            setMinutes(newMinutes);
+            emitCron({ minutes: newMinutes });
+          }
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -255,10 +245,14 @@ export function CronExpressionBuilder({
         Hours
       </Label>
       <ToggleGroup
+        multiple
         value={hours.map((h) => h.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setHours(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          if (vals.length > 0) {
+            const newHours = vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b);
+            setHours(newHours);
+            emitCron({ hours: newHours });
+          }
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -281,10 +275,14 @@ export function CronExpressionBuilder({
         Days of Week
       </Label>
       <ToggleGroup
+        multiple
         value={daysOfWeek.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setDaysOfWeek(vals.map((v) => Number.parseInt(v)));
+          if (vals.length > 0) {
+            const newDow = vals.map((v) => Number.parseInt(v));
+            setDaysOfWeek(newDow);
+            emitCron({ daysOfWeek: newDow });
+          }
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -307,12 +305,14 @@ export function CronExpressionBuilder({
         Days of Month
       </Label>
       <ToggleGroup
+        multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setDaysOfMonth(
-              vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b),
-            );
+          if (vals.length > 0) {
+            const newDom = vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b);
+            setDaysOfMonth(newDom);
+            emitCron({ daysOfMonth: newDom });
+          }
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -335,10 +335,12 @@ export function CronExpressionBuilder({
         Months
       </Label>
       <ToggleGroup
+        multiple
         value={months.map((m) => m.toString())}
         onValueChange={(vals) => {
-          // If empty, it means all months (cron *)
-          setMonths(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          const newMonths = vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b);
+          setMonths(newMonths);
+          emitCron({ months: newMonths });
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -368,13 +370,19 @@ export function CronExpressionBuilder({
               const newFreq = val as Frequency;
               setFrequency(newFreq);
 
+              const overrides: Parameters<typeof emitCron>[0] = { frequency: newFreq };
+
               // Ensure required fields are populated when switching
               if (newFreq === 'monthly' && daysOfMonth.length === 0) {
                 setDaysOfMonth([1]);
+                overrides.daysOfMonth = [1];
               }
               if (newFreq === 'weekly' && daysOfWeek.length === 0) {
-                setDaysOfWeek([1]); // Monday
+                setDaysOfWeek([1]);
+                overrides.daysOfWeek = [1];
               }
+
+              emitCron(overrides);
             }
           }}
           className="justify-start border rounded-md p-1 w-fit"
@@ -430,26 +438,26 @@ export function CronExpressionBuilder({
         </ScrollArea>
 
         {/* Upcoming Executions Sidebar */}
-        <div className="lg:w-64 shrink-0 flex flex-col gap-3 border-l lg:pl-6 border-border/50">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <h3 className="text-xs font-semibold uppercase tracking-wider">
+        <div className="lg:w-48 shrink-0 flex flex-col gap-2 border-l lg:pl-4 border-border/50">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider">
               Upcoming Runs
             </h3>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             {upcomingExecutions.length > 0 ? (
               upcomingExecutions.map((execution) => (
                 <div
                   key={execution.key}
-                  className="flex flex-col gap-0.5 rounded-md border bg-card/50 p-2.5 text-sm shadow-sm"
+                  className="flex items-baseline justify-between rounded border bg-card/50 px-2 py-1.5 text-xs"
                 >
                   <span className="font-medium text-foreground">
                     {execution.date}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    at {execution.time}
+                  <span className="text-muted-foreground">
+                    {execution.time}
                   </span>
                 </div>
               ))
