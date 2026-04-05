@@ -7,7 +7,7 @@
   "scripts": {
     "test": "vitest run",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile dist/stitch-server && bun run scripts/copy-native-modules.ts",
+    "build": "bun build src/index.ts --compile --outfile dist/stitch-server",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

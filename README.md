@@ -18,7 +18,6 @@ Stitch is currently in **alpha**. Things will break, behavior may change quickly
 - `packages/server` (`@stitch/server`): Local backend service and AI/runtime orchestration.
 - `packages/shared` (`@stitch/shared`): Shared types and cross-package contracts.
 - `packages/scheduler` (`@stitch/scheduler`): Scheduling utilities and job-related logic.
-- `packages/recordings` (`@stitch/recordings`): Meeting and recording-related services.
 
 ### Connectors
 

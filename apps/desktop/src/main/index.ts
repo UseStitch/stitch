@@ -4,10 +4,8 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { initNotifications } from './notifications';
 import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
-import { SseClient } from './sse-client';
 import { destroyTray, initTray } from './tray';
 import { createUpdater } from './updater';
 
@@ -40,14 +38,12 @@ if (!gotTheLock) {
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
-let sseClient: SseClient | null = null;
 let isQuitting = false;
 let isShuttingDown = false;
 
 function shutdownRuntime(): void {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  sseClient?.stop();
   destroyTray();
   killServer();
 }
@@ -258,12 +254,9 @@ void app.whenReady().then(async () => {
       void updater.checkForUpdates();
     }, 15_000);
 
-    // Initialize SSE client, notifications, and system tray
+    // Initialize system tray
     const getWindow = () => mainWindow;
-    sseClient = new SseClient(serverUrl);
-    initNotifications(sseClient, serverUrl, getWindow);
-    initTray(sseClient, serverUrl, getWindow);
-    sseClient.start();
+    initTray(getWindow);
 
     app.on('activate', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
