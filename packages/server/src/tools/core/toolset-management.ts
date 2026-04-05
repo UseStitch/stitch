@@ -22,7 +22,7 @@ export function createToolsetTools(manager: ToolsetManager) {
       toolsetId: z
         .string()
         .optional()
-        .describe('Optional toolset ID to inspect in detail (e.g. "browser", "meetings")'),
+        .describe('Optional toolset ID to inspect in detail (e.g. "browser")'),
     }),
     execute: async ({ toolsetId }) => {
       if (!toolsetId) {
@@ -65,7 +65,7 @@ export function createToolsetTools(manager: ToolsetManager) {
   const activate_toolset = tool({
     description: `Activate a toolset to make its tools callable. Activate only what you need. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
     inputSchema: z.object({
-      toolsetId: z.string().describe('The toolset ID to activate (e.g. "browser", "meetings")'),
+      toolsetId: z.string().describe('The toolset ID to activate (e.g. "browser")'),
       verbose: z
         .boolean()
         .optional()

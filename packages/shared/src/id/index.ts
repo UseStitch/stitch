@@ -10,7 +10,6 @@ export const ID_PREFIXES = {
   permissionRule: 'perm',
   mcpServer: 'mcp',
   queuedMessage: 'qmsg',
-  recording: 'rec',
   connectorInstance: 'conn',
   automation: 'auto',
   scheduledJob: 'schjob',
@@ -69,7 +68,6 @@ export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permission
 export const createPermissionRuleId = createIdFactory(ID_PREFIXES.permissionRule);
 export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
 export const createQueuedMessageId = createIdFactory(ID_PREFIXES.queuedMessage);
-export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createConnectorInstanceId = createIdFactory(ID_PREFIXES.connectorInstance);
 export const createAutomationId = createIdFactory(ID_PREFIXES.automation);
 export const createScheduledJobId = createIdFactory(ID_PREFIXES.scheduledJob);

@@ -21,7 +21,7 @@ export type ToolsetPrompt = {
  * reduce context window usage.
  */
 export type Toolset = {
-  /** Unique identifier, e.g. "browser", "meetings", "mcp:<serverName>" */
+  /** Unique identifier, e.g. "browser", "mcp:<serverName>" */
   id: string;
   /** Human-readable display name */
   name: string;

@@ -24,7 +24,7 @@ export async function getGlobalProviderKnownTools(): Promise<
 }
 
 /**
- * Register all built-in provider toolsets (browser, meetings) with the global registry.
+ * Register all built-in provider toolsets (browser) with the global registry.
  * Call once at startup.
  */
 export function registerProviderToolsets(): void {

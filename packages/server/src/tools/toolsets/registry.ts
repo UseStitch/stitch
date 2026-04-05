@@ -3,7 +3,7 @@ import type { Toolset } from '@/tools/toolsets/types.js';
 
 const log = Log.create({ service: 'toolset-registry' });
 
-/** Global registry of all available toolsets (browser, meetings, MCP servers, etc.) */
+/** Global registry of all available toolsets (browser, MCP servers, etc.) */
 const toolsets = new Map<string, Toolset>();
 
 export function registerToolset(toolset: Toolset): void {
