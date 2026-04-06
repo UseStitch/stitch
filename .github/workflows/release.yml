@@ -128,6 +128,10 @@ jobs:
             os: windows
           - runner: macos-14
             os: macos
+            arch: arm64
+          - runner: macos-13
+            os: macos
+            arch: x64
     steps:
       - name: Checkout release commit
         uses: actions/checkout@v5
@@ -168,7 +172,7 @@ jobs:
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.os }}
+          name: desktop-${{ matrix.os }}-${{ matrix.arch || 'x64' }}
           if-no-files-found: error
           path: |
             apps/desktop/dist/*.exe
