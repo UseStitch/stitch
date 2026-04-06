@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stitch</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='256' height='256' viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232196f3;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%2300e5ff;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='55' fill='%231c1e2e'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='50' cy='200' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='200' r='15' fill='%232d314d'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='M50 200 200 50'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='m50 50 150 150'/%3E%3C/svg%3E" />
     <style>
       *, *::before, *::after {
         box-sizing: border-box;
@@ -97,23 +98,84 @@
         color: #000;
       }
 
-      .btn-sub {
-        font-size: 0.75rem;
-        font-weight: 400;
-        color: inherit;
-        opacity: 0.6;
-        margin-left: 6px;
+      .btn-group {
+        position: relative;
+        display: inline-block;
       }
 
-      .btn-disabled {
+      .btn-group summary {
         display: inline-block;
         padding: 12px 24px;
-        border: 1px solid #333;
-        color: #444;
+        border: 1px solid #fff;
+        text-decoration: none;
+        color: #fff;
         font-size: 0.875rem;
         font-weight: 500;
-        cursor: default;
+        transition: background 0.15s, color 0.15s;
         white-space: nowrap;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .btn-group summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .btn-group summary::after {
+        content: "";
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: 8px;
+        vertical-align: middle;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid currentColor;
+      }
+
+      .btn-group[open] summary {
+        background: #fff;
+        color: #000;
+        border-bottom-color: transparent;
+      }
+
+      .btn-group summary:hover {
+        background: #fff;
+        color: #000;
+      }
+
+      .btn-dropdown {
+        position: absolute;
+        top: 100%;
+        left: -1px;
+        right: -1px;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        border: 1px solid #fff;
+        border-top: none;
+        background: #000;
+      }
+
+      .btn-dropdown a {
+        display: block;
+        padding: 10px 24px;
+        text-decoration: none;
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 400;
+        white-space: nowrap;
+        text-align: center;
+        transition: background 0.15s, color 0.15s;
+      }
+
+      .btn-dropdown a + a {
+        border-top: 1px solid #222;
+      }
+
+      .btn-dropdown a:hover {
+        background: #fff;
+        color: #000;
       }
 
       .btn-all {
@@ -163,12 +225,13 @@
           <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
             Windows
           </a>
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
-            macOS <span class="btn-sub">Apple Silicon</span>
-          </a>
-          <span class="btn-disabled">
-            macOS <span class="btn-sub">Intel &mdash; coming soon</span>
-          </span>
+          <details class="btn-group">
+            <summary>macOS</summary>
+            <div class="btn-dropdown">
+              <a href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">Apple Silicon</a>
+              <a href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-x64.dmg">Intel</a>
+            </div>
+          </details>
         </div>
         <a class="btn-all" href="https://github.com/UseStitch/stitch/releases">All releases &rarr;</a>
       </div>
@@ -181,4 +244,11 @@
       </p>
     </footer>
   </body>
+  <script>
+    document.addEventListener('click', function (e) {
+      document.querySelectorAll('.btn-group[open]').forEach(function (d) {
+        if (!d.contains(e.target)) d.removeAttribute('open');
+      });
+    });
+  </script>
 </html>
