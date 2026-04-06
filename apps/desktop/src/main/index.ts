@@ -14,6 +14,7 @@ const WINDOW_ICON_NAME = 'icon.png';
 const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 const DEV_APP_NAME = 'stitch-dev';
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
 
 function configureAppIdentityForEnvironment(): void {
   if (app.isPackaged) {
@@ -253,6 +254,9 @@ void app.whenReady().then(async () => {
     setTimeout(() => {
       void updater.checkForUpdates();
     }, 15_000);
+    setInterval(() => {
+      void updater.checkForUpdates();
+    }, UPDATE_CHECK_INTERVAL_MS);
 
     // Initialize system tray
     const getWindow = () => mainWindow;
