@@ -388,12 +388,13 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
     .from(sessions)
     .where(eq(sessions.parentSessionId, sessionId));
 
-  for (const child of childSessions) {
-    AbortRegistry.abort(child.id);
-    cancelDecision(child.id);
-    await abortQuestions(child.id);
-    await abortPermissionResponses(child.id);
-  }
+  await Promise.all(
+    childSessions.map(async (child) => {
+      AbortRegistry.abort(child.id);
+      cancelDecision(child.id);
+      await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id)]);
+    }),
+  );
 }
 
 function getSplitTitle(baseTitle: string, n: number): string {
@@ -490,8 +491,9 @@ export async function requestCompaction(
     .select()
     .from(messages)
     .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt))
-    .then((rows) => rows.at(-1));
+    .orderBy(desc(messages.createdAt))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!lastMessage) {
     return err('Session has no messages to compact', 400);
