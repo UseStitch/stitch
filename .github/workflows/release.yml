@@ -129,9 +129,11 @@ jobs:
           - runner: macos-14
             os: macos
             arch: arm64
-          - runner: macos-13
+            package_script: package
+          - runner: macos-14
             os: macos
             arch: x64
+            package_script: package:x64
     steps:
       - name: Checkout release commit
         uses: actions/checkout@v5
@@ -167,7 +169,7 @@ jobs:
         working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bun run package
+        run: bun run ${{ matrix.package_script || 'package' }}
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
