@@ -4,89 +4,374 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stitch</title>
+    <meta name="description" content="Stitch is a local-first AI desktop app. Connect your tools, automate your work, and keep your data on your machine." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='256' height='256' viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232196f3;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%2300e5ff;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='55' fill='%231c1e2e'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='50' cy='200' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='200' r='15' fill='%232d314d'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='M50 200 200 50'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='m50 50 150 150'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Apply saved theme immediately to prevent flash
+      (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
     <style>
-      *, *::before, *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
+      /* ── Reset ── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      html, body { height: 100%; }
+
+      /* ── Color tokens ── */
+      :root {
+        --color-bg:            #000;
+        --color-bg-subtle:     #0a0a0a;
+        --color-bg-muted:      #111;
+        --color-text:          #fff;
+        --color-text-secondary:#888;
+        --color-text-muted:    #777;
+        --color-text-faint:    #555;
+        --color-text-ghost:    #444;
+        --color-border:        #1a1a1a;
+        --color-border-mid:    #222;
+        --color-border-strong: #333;
+        --color-border-nav:    #111;
+        --color-step-number:   #1a1a1a;
+        --color-dot:           #555;
+        --color-success:       #4a9;
+        --color-btn-bg:        #fff;
+        --color-btn-text:      #000;
+        --color-btn-hover-bg:  #ddd;
+        --color-btn-outline-border: #fff;
+        --color-dropdown-bg:   #000;
+        --color-dropdown-hover:#fff;
+        --color-dropdown-text: #fff;
+        --color-dropdown-hover-text: #000;
+        --color-nav-bg:        rgba(0, 0, 0, 0.85);
+        --color-cursor:        #fff;
+        --color-prompt:        #fff;
+        --color-cmd:           #aaa;
+        --color-output:        #555;
+        --color-terminal-body: #666;
+        --color-icon-stroke:   #fff;
+        --color-chip-text:     #aaa;
+        --color-chip-hover:    #fff;
+        --color-note-link:     #888;
+        --color-footer-text:   #555;
+        --color-footer-hover:  #fff;
       }
 
-      html, body {
-        height: 100%;
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) {
+          --color-bg:            #fff;
+          --color-bg-subtle:     #f8f8f8;
+          --color-bg-muted:      #f0f0f0;
+          --color-text:          #111;
+          --color-text-secondary:#666;
+          --color-text-muted:    #777;
+          --color-text-faint:    #999;
+          --color-text-ghost:    #aaa;
+          --color-border:        #e0e0e0;
+          --color-border-mid:    #ddd;
+          --color-border-strong: #ccc;
+          --color-border-nav:    #e8e8e8;
+          --color-step-number:   #e0e0e0;
+          --color-dot:           #999;
+          --color-success:       #2a7;
+          --color-btn-bg:        #111;
+          --color-btn-text:      #fff;
+          --color-btn-hover-bg:  #333;
+          --color-btn-outline-border: #111;
+          --color-dropdown-bg:   #fff;
+          --color-dropdown-hover:#111;
+          --color-dropdown-text: #333;
+          --color-dropdown-hover-text: #fff;
+          --color-nav-bg:        rgba(255, 255, 255, 0.85);
+          --color-cursor:        #111;
+          --color-prompt:        #111;
+          --color-cmd:           #444;
+          --color-output:        #999;
+          --color-terminal-body: #888;
+          --color-icon-stroke:   #333;
+          --color-chip-text:     #666;
+          --color-chip-hover:    #111;
+          --color-note-link:     #555;
+          --color-footer-text:   #999;
+          --color-footer-hover:  #111;
+        }
+      }
+
+      :root[data-theme="light"] {
+        --color-bg:            #fff;
+        --color-bg-subtle:     #f8f8f8;
+        --color-bg-muted:      #f0f0f0;
+        --color-text:          #111;
+        --color-text-secondary:#666;
+        --color-text-muted:    #777;
+        --color-text-faint:    #999;
+        --color-text-ghost:    #aaa;
+        --color-border:        #e0e0e0;
+        --color-border-mid:    #ddd;
+        --color-border-strong: #ccc;
+        --color-border-nav:    #e8e8e8;
+        --color-step-number:   #e0e0e0;
+        --color-dot:           #999;
+        --color-success:       #2a7;
+        --color-btn-bg:        #111;
+        --color-btn-text:      #fff;
+        --color-btn-hover-bg:  #333;
+        --color-btn-outline-border: #111;
+        --color-dropdown-bg:   #fff;
+        --color-dropdown-hover:#111;
+        --color-dropdown-text: #333;
+        --color-dropdown-hover-text: #fff;
+        --color-nav-bg:        rgba(255, 255, 255, 0.85);
+        --color-cursor:        #111;
+        --color-prompt:        #111;
+        --color-cmd:           #444;
+        --color-output:        #999;
+        --color-terminal-body: #888;
+        --color-icon-stroke:   #333;
+        --color-chip-text:     #666;
+        --color-chip-hover:    #111;
+        --color-note-link:     #555;
+        --color-footer-text:   #999;
+        --color-footer-hover:  #111;
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-        background: #000;
-        color: #fff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: var(--color-bg);
+        color: var(--color-text);
         font-size: 16px;
         line-height: 1.6;
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
 
-      main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        padding: 80px 24px;
-        max-width: 640px;
+      /* ── Layout ── */
+      .container {
+        max-width: 960px;
         margin: 0 auto;
+        padding: 0 24px;
         width: 100%;
       }
 
-      h1 {
-        font-size: 2rem;
+      /* ── Nav ── */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        padding: 16px 0;
+        background: var(--color-nav-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--color-border-nav);
+      }
+
+      nav .container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1rem;
         font-weight: 600;
-        letter-spacing: -0.02em;
+        color: var(--color-text);
+        text-decoration: none;
+        letter-spacing: -0.01em;
+      }
+
+      .nav-brand svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .nav-links a {
+        font-size: 0.8rem;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+
+      .nav-links a:hover {
+        color: var(--color-text);
+      }
+
+      .nav-cta {
+        padding: 6px 16px;
+        border: 1px solid var(--color-border-strong);
+        color: var(--color-text) !important;
+        font-size: 0.8rem !important;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+      }
+
+      .nav-cta:hover {
+        background: var(--color-bg-muted);
+        border-color: var(--color-text-faint);
+      }
+
+      .theme-toggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-secondary);
+        transition: color 0.15s;
+      }
+
+      .theme-toggle:hover {
+        color: var(--color-text);
+      }
+
+      .theme-toggle svg {
+        width: 16px;
+        height: 16px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .theme-toggle .icon-sun { display: none; }
+      .theme-toggle .icon-moon { display: block; }
+
+      :root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+      :root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) .theme-toggle .icon-sun { display: block; }
+        :root:not([data-theme="dark"]) .theme-toggle .icon-moon { display: none; }
+      }
+
+      /* ── Hero ── */
+      .hero {
+        padding: 100px 0 80px;
+        text-align: center;
+      }
+
+      .hero h1 {
+        font-size: 3rem;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
         margin-bottom: 20px;
       }
 
-      p {
-        font-size: 1rem;
-        color: #aaa;
-        max-width: 480px;
-        margin-bottom: 12px;
+      .hero .subtitle {
+        font-size: 1.15rem;
+        color: var(--color-text-secondary);
+        max-width: 540px;
+        margin: 0 auto 40px;
+        line-height: 1.7;
       }
 
-      p:last-of-type {
-        margin-bottom: 60px;
-      }
-
-      .downloads {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        width: 100%;
-      }
-
-      .downloads-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #555;
-        margin-bottom: 4px;
-      }
-
-      .downloads-row {
+      .hero-ctas {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 12px;
+        margin-bottom: 20px;
+        scroll-margin-top: 80px;
       }
 
+      .hero-meta {
+        font-size: 0.75rem;
+        color: var(--color-text-ghost);
+        margin-top: 4px;
+      }
+
+      .hero-meta a {
+        color: var(--color-text-faint);
+        text-decoration: none;
+        border-bottom: 1px solid var(--color-border-strong);
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .hero-meta a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+      }
+
+      /* ── Terminal mockup ── */
+      .terminal {
+        max-width: 640px;
+        margin: 48px auto 0;
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        overflow: hidden;
+        text-align: left;
+      }
+
+      .terminal-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 16px;
+        background: var(--color-bg-subtle);
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .terminal-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--color-border);
+      }
+
+      .terminal-body {
+        padding: 20px 20px 24px;
+        font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+        font-size: 0.8125rem;
+        line-height: 1.8;
+        color: var(--color-terminal-body);
+        min-height: 180px;
+      }
+
+      .terminal-body .prompt { color: var(--color-prompt); }
+      .terminal-body .cmd { color: var(--color-cmd); }
+      .terminal-body .output { color: var(--color-output); }
+      .terminal-body .success { color: var(--color-success); }
+
+      .terminal-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 15px;
+        background: var(--color-cursor);
+        vertical-align: text-bottom;
+        animation: blink 1s step-end infinite;
+      }
+
+      @keyframes blink {
+        50% { opacity: 0; }
+      }
+
+      /* ── Buttons ── */
       .btn {
         display: inline-block;
-        padding: 12px 24px;
-        border: 1px solid #fff;
+        padding: 12px 28px;
+        border: 1px solid var(--color-btn-outline-border);
         text-decoration: none;
-        color: #fff;
+        color: var(--color-text);
         font-size: 0.875rem;
         font-weight: 500;
         transition: background 0.15s, color 0.15s;
@@ -94,8 +379,18 @@
       }
 
       .btn:hover {
-        background: #fff;
-        color: #000;
+        background: var(--color-btn-bg);
+        color: var(--color-btn-text);
+      }
+
+      .btn-primary {
+        background: var(--color-btn-bg);
+        color: var(--color-btn-text);
+      }
+
+      .btn-primary:hover {
+        background: var(--color-btn-hover-bg);
+        border-color: var(--color-btn-hover-bg);
       }
 
       .btn-group {
@@ -105,10 +400,11 @@
 
       .btn-group summary {
         display: inline-block;
-        padding: 12px 24px;
-        border: 1px solid #fff;
+        padding: 12px 28px;
+        border: 1px solid var(--color-btn-outline-border);
+        background: var(--color-btn-bg);
         text-decoration: none;
-        color: #fff;
+        color: var(--color-btn-text);
         font-size: 0.875rem;
         font-weight: 500;
         transition: background 0.15s, color 0.15s;
@@ -117,9 +413,7 @@
         list-style: none;
       }
 
-      .btn-group summary::-webkit-details-marker {
-        display: none;
-      }
+      .btn-group summary::-webkit-details-marker { display: none; }
 
       .btn-group summary::after {
         content: "";
@@ -134,14 +428,15 @@
       }
 
       .btn-group[open] summary {
-        background: #fff;
-        color: #000;
+        background: var(--color-btn-hover-bg);
+        color: var(--color-btn-text);
         border-bottom-color: transparent;
       }
 
       .btn-group summary:hover {
-        background: #fff;
-        color: #000;
+        background: var(--color-btn-hover-bg);
+        border-color: var(--color-btn-hover-bg);
+        color: var(--color-btn-text);
       }
 
       .btn-dropdown {
@@ -152,16 +447,16 @@
         display: flex;
         flex-direction: column;
         z-index: 10;
-        border: 1px solid #fff;
+        border: 1px solid var(--color-btn-outline-border);
         border-top: none;
-        background: #000;
+        background: var(--color-dropdown-bg);
       }
 
       .btn-dropdown a {
         display: block;
         padding: 10px 24px;
         text-decoration: none;
-        color: #fff;
+        color: var(--color-dropdown-text);
         font-size: 0.8rem;
         font-weight: 400;
         white-space: nowrap;
@@ -170,59 +465,432 @@
       }
 
       .btn-dropdown a + a {
-        border-top: 1px solid #222;
+        border-top: 1px solid var(--color-border-mid);
       }
 
       .btn-dropdown a:hover {
-        background: #fff;
-        color: #000;
+        background: var(--color-dropdown-hover);
+        color: var(--color-dropdown-hover-text);
       }
 
-      .btn-all {
+      /* ── Sections ── */
+      section {
+        padding: 80px 0;
+      }
+
+      section + section {
+        border-top: 1px solid var(--color-border-nav);
+      }
+
+      .section-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--color-text-faint);
+        margin-bottom: 16px;
+      }
+
+      .section-heading {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 16px;
+        line-height: 1.2;
+      }
+
+      .section-desc {
+        font-size: 1rem;
+        color: var(--color-text-secondary);
+        max-width: 560px;
+        margin-bottom: 48px;
+        line-height: 1.7;
+      }
+
+      /* ── Feature Grid ── */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--color-border);
+        border: 1px solid var(--color-border);
+      }
+
+      .feature-card {
+        background: var(--color-bg);
+        padding: 32px 28px;
+      }
+
+      .feature-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-bg-muted);
+        border: 1px solid var(--color-border);
+      }
+
+      .feature-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--color-icon-stroke);
+        fill: none;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .feature-card h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        letter-spacing: -0.01em;
+      }
+
+      .feature-card p {
+        font-size: 0.82rem;
+        color: var(--color-text-muted);
+        line-height: 1.6;
+      }
+
+      /* ── Steps / How It Works ── */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 48px;
+        counter-reset: step;
+      }
+
+      .step {
+        counter-increment: step;
+      }
+
+      .step-number {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--color-step-number);
+        margin-bottom: 16px;
+        letter-spacing: -0.02em;
+        width: auto;
+        height: auto;
+        background: none;
+        border: none;
+        border-radius: 0;
+      }
+
+      .step h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .step p {
+        font-size: 0.82rem;
+        color: var(--color-text-muted);
+        line-height: 1.6;
+      }
+
+      /* ── Use Cases ── */
+      .use-cases {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .use-case {
+        display: flex;
+        gap: 20px;
+        padding: 24px 0;
+        border-bottom: 1px solid var(--color-border);
+        align-items: flex-start;
+      }
+
+      .use-case:first-child {
+        border-top: 1px solid var(--color-border);
+      }
+
+      .use-case-icon {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        background: var(--color-bg-muted);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .use-case-icon svg {
+        width: 18px;
+        height: 18px;
+        stroke: var(--color-icon-stroke);
+        fill: none;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .use-case h3 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .use-case p {
         font-size: 0.8rem;
-        color: #555;
+        color: var(--color-text-muted);
+        line-height: 1.6;
+      }
+
+      /* ── Privacy Grid ── */
+      .privacy-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0;
+      }
+
+      .privacy-item {
+        padding: 24px 0 24px 20px;
+        border-left: 2px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border-nav);
+      }
+
+      .privacy-item:nth-child(odd) {
+        padding-right: 32px;
+      }
+
+      .privacy-item:nth-child(even) {
+        margin-left: 32px;
+      }
+
+      .privacy-item:nth-last-child(-n+2) {
+        border-bottom: none;
+      }
+
+      .privacy-item h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .privacy-item p {
+        font-size: 0.82rem;
+        color: var(--color-text-muted);
+        line-height: 1.6;
+      }
+
+      /* ── Integrations ── */
+      .integrations-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .integration-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border: 1px solid var(--color-border);
+        font-size: 0.8rem;
+        color: var(--color-chip-text);
+        transition: border-color 0.15s, color 0.15s;
+      }
+
+      .integration-chip:hover {
+        border-color: var(--color-border-strong);
+        color: var(--color-chip-hover);
+      }
+
+      .integration-chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-dot);
+      }
+
+      .integrations-note {
+        font-size: 0.8rem;
+        color: var(--color-text-faint);
+      }
+
+      .integrations-note a {
+        color: var(--color-note-link);
         text-decoration: none;
-        padding: 4px 0;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--color-border-strong);
         transition: color 0.15s, border-color 0.15s;
       }
 
-      .btn-all:hover {
-        color: #fff;
-        border-color: #fff;
+      .integrations-note a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
       }
 
+      /* ── CTA Section ── */
+      .cta-section {
+        text-align: center;
+        padding: 100px 0;
+      }
+
+      .cta-section h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 16px;
+      }
+
+      .cta-section p {
+        font-size: 1rem;
+        color: var(--color-text-secondary);
+        margin-bottom: 36px;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .cta-section .hero-ctas {
+        margin-bottom: 0;
+      }
+
+      /* ── Footer ── */
       footer {
         text-align: center;
         padding: 24px;
         font-size: 0.8rem;
-        color: #555;
-        border-top: 1px solid #222;
+        color: var(--color-footer-text);
+        border-top: 1px solid var(--color-border-mid);
       }
 
       footer a {
-        color: #555;
+        color: var(--color-footer-text);
         text-decoration: none;
       }
 
       footer a:hover {
-        color: #fff;
+        color: var(--color-footer-hover);
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .hero {
+          padding: 64px 0 56px;
+        }
+
+        .hero h1 {
+          font-size: 2rem;
+        }
+
+        .hero .subtitle {
+          font-size: 1rem;
+        }
+
+        .terminal {
+          margin-top: 32px;
+        }
+
+        section {
+          padding: 56px 0;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .steps {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+
+        .use-cases {
+          grid-template-columns: 1fr;
+        }
+
+        .privacy-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .privacy-item:nth-child(even) {
+          margin-left: 0;
+        }
+
+        .privacy-item:nth-last-child(2) {
+          border-bottom: 1px solid var(--color-border-nav);
+        }
+
+        .section-heading {
+          font-size: 1.4rem;
+        }
+
+        .nav-links .hide-mobile {
+          display: none;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero h1 {
+          font-size: 1.65rem;
+        }
+
+        .hero-ctas {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .hero-ctas .btn,
+        .hero-ctas .btn-group {
+          width: 100%;
+          text-align: center;
+        }
+
+        .hero-ctas .btn-group summary {
+          width: 100%;
+          text-align: center;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Stitch</h1>
-      <p>AI that works locally.</p>
-      <p>
-        Stitch runs entirely on your machine — your data stays yours.
-        Connect your tools, automate your work, and let AI handle the rest.
-      </p>
 
-      <div class="downloads">
-        <div class="downloads-label">Download</div>
-        <div class="downloads-row">
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
+    <!-- Nav -->
+    <nav>
+      <div class="container">
+        <a class="nav-brand" href="#">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#2196f3;stop-opacity:1"/><stop offset="100%" style="stop-color:#00e5ff;stop-opacity:1"/></linearGradient></defs>
+            <rect width="256" height="256" rx="55" fill="#1c1e2e"/>
+            <circle cx="50" cy="50" r="15" fill="#2d314d"/><circle cx="200" cy="50" r="15" fill="#2d314d"/><circle cx="50" cy="200" r="15" fill="#2d314d"/><circle cx="200" cy="200" r="15" fill="#2d314d"/>
+            <path stroke="url(#logo-grad)" stroke-width="18" stroke-linecap="round" d="M50 200 200 50"/>
+            <path stroke="url(#logo-grad)" stroke-width="18" stroke-linecap="round" d="m50 50 150 150"/>
+          </svg>
+          Stitch
+        </a>
+        <div class="nav-links">
+          <a href="#features" class="hide-mobile">Features</a>
+          <a href="#privacy" class="hide-mobile">Privacy</a>
+          <a href="#how-it-works" class="hide-mobile">How it works</a>
+          <a href="https://github.com/UseStitch/stitch" class="hide-mobile">GitHub</a>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+            <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </button>
+          <a class="nav-cta" href="#download">Download</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="hero">
+      <div class="container">
+        <h1>Stitch. AI that works locally.</h1>
+        <p class="subtitle">
+          Stitch is a free, open-source desktop app that works out of the box.
+          It runs on your machine by default &mdash; no cloud required, no
+          account needed, no tracking.
+        </p>
+        <div class="hero-ctas" id="download">
+          <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
             Windows
           </a>
           <details class="btn-group">
@@ -233,22 +901,389 @@
             </div>
           </details>
         </div>
-        <a class="btn-all" href="https://github.com/UseStitch/stitch/releases">All releases &rarr;</a>
-      </div>
-    </main>
+        <p class="hero-meta">
+          Free &amp; open source &nbsp;&middot;&nbsp;
+          <a href="https://github.com/UseStitch/stitch/releases">All releases &rarr;</a>
+        </p>
 
+        <!-- Terminal mockup -->
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="prompt">stitch</span> <span class="cmd">Summarize my unread emails and draft replies to anything urgent</span></div>
+            <div class="output">&nbsp;</div>
+            <div class="output">Reading 12 unread emails from Gmail...</div>
+            <div class="output">3 flagged as urgent</div>
+            <div class="success">Drafted 3 replies, saved to Drafts folder</div>
+            <div class="output">&nbsp;</div>
+            <div><span class="prompt">stitch</span> <span class="cmd">Find all invoices on my desktop and organize them by month</span></div>
+            <div class="output">Found 23 PDF invoices...</div>
+            <div class="success">Moved to ~/Documents/Invoices/2026-01 through 2026-04</div>
+            <div class="output">&nbsp;</div>
+            <div><span class="prompt">stitch</span> <span class="terminal-cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="container">
+        <p class="section-label">Capabilities</p>
+        <h2 class="section-heading">One app that handles it all</h2>
+        <p class="section-desc">
+          Stitch connects to the tools you already use and automates the work
+          you do every day &mdash; right from your desktop.
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+            </div>
+            <h3>File management</h3>
+            <p>
+              Organize, rename, move, and search through files and folders.
+              Stitch works with your local documents, spreadsheets, PDFs, and more.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22 6 12 13 2 6"></polyline></svg>
+            </div>
+            <h3>Email &amp; calendar</h3>
+            <p>
+              Connect Gmail and Google Calendar. Stitch can read, draft, and send
+              emails, manage your schedule, and handle routine communications.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <h3>Web browsing</h3>
+            <p>
+              Research topics, look up information, fill out forms, and pull data
+              from websites &mdash; Stitch drives a real browser on your behalf.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <h3>Scheduled automations</h3>
+            <p>
+              Set tasks to run on a schedule. Daily email summaries, weekly file
+              cleanups, monthly report generation &mdash; automate the repetitive stuff.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <h3>Plain language</h3>
+            <p>
+              No code, no complex setup. Just tell Stitch what you need in
+              everyday language and it figures out how to get it done.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h3>Works out of the box</h3>
+            <p>
+              Download, open, and start working. No lengthy onboarding,
+              no configuration wizards. Connect an AI provider and you're ready.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works">
+      <div class="container">
+        <p class="section-label">How it works</p>
+        <h2 class="section-heading">Download, configure, go</h2>
+        <p class="section-desc">
+          Get started in minutes. Stitch handles the complexity so you can
+          focus on what you want to accomplish.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h3>Install &amp; connect a provider</h3>
+            <p>
+              Download Stitch and connect your AI provider &mdash; OpenAI,
+              Anthropic, Google, or run local models. Bring your own API keys.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h3>Describe your task</h3>
+            <p>
+              Tell Stitch what you need in plain language. Organize files,
+              draft an email, research a topic, clean up your schedule &mdash;
+              anything you'd do yourself at a computer.
+            </p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h3>Review &amp; approve</h3>
+            <p>
+              Stitch asks for permission before running sensitive actions.
+              You stay in control while the AI handles the work.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section id="use-cases">
+      <div class="container">
+        <p class="section-label">Use cases</p>
+        <h2 class="section-heading">Automate the work you shouldn't be doing manually</h2>
+        <p class="section-desc">
+          Stitch handles the repetitive, time-consuming tasks that eat into
+          your day &mdash; so you can focus on what actually matters.
+        </p>
+
+        <div class="use-cases">
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22 6 12 13 2 6"></polyline></svg>
+            </div>
+            <div>
+              <h3>Email &amp; inbox management</h3>
+              <p>
+                Summarize unread emails, draft replies, triage your inbox by priority,
+                and send follow-ups &mdash; all without opening your email client.
+              </p>
+            </div>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div>
+              <h3>Scheduling &amp; calendar</h3>
+              <p>
+                Check your availability, create events, reschedule meetings,
+                and get a daily briefing of what's ahead &mdash; hands-free.
+              </p>
+            </div>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+            </div>
+            <div>
+              <h3>File &amp; document organization</h3>
+              <p>
+                Sort invoices by month, rename scattered files, clean up your desktop,
+                convert between formats, and keep your documents tidy on autopilot.
+              </p>
+            </div>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <div>
+              <h3>Research &amp; report writing</h3>
+              <p>
+                Search the web, read through documents, compile findings into
+                summaries, and generate formatted reports you can share.
+              </p>
+            </div>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <div>
+              <h3>Recurring admin tasks</h3>
+              <p>
+                Set up scheduled automations for things you do every day or week &mdash;
+                expense tracking, status reports, data entry, log reviews.
+              </p>
+            </div>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">
+              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </div>
+            <div>
+              <h3>Back-office operations</h3>
+              <p>
+                Automate bookkeeping prep, generate client communications,
+                process form submissions, and handle the busywork that piles up.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Extensibility -->
+    <section id="extensibility">
+      <div class="container">
+        <p class="section-label">Extensibility</p>
+        <h2 class="section-heading">Bring your own models and tools</h2>
+        <p class="section-desc">
+          Stitch is not locked to a single provider. Use the models and
+          integrations that work for you.
+        </p>
+
+        <div class="integrations-row">
+          <div class="integration-chip"><span class="dot"></span> OpenAI</div>
+          <div class="integration-chip"><span class="dot"></span> Anthropic</div>
+          <div class="integration-chip"><span class="dot"></span> Google Gemini</div>
+          <div class="integration-chip"><span class="dot"></span> Local models</div>
+          <div class="integration-chip"><span class="dot"></span> MCP servers</div>
+        </div>
+
+        <p class="integrations-note">
+          Stitch supports the
+          <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">Model Context Protocol</a>,
+          so you can add new tools and capabilities from the growing MCP ecosystem.
+        </p>
+      </div>
+    </section>
+
+    <!-- Privacy & Open Source -->
+    <section id="privacy">
+      <div class="container">
+        <p class="section-label">Privacy &amp; trust</p>
+        <h2 class="section-heading">Your data never leaves your machine</h2>
+        <p class="section-desc">
+          Most AI tools send your files, emails, and documents to the cloud.
+          Stitch doesn't. Everything runs locally on your computer, and the
+          entire codebase is open for anyone to inspect.
+        </p>
+
+        <div class="privacy-grid">
+          <div class="privacy-item">
+            <h3>100% local processing</h3>
+            <p>
+              Stitch runs on your computer, not in the cloud. Your files, emails,
+              and documents are processed locally and never uploaded to our servers.
+              There are no servers.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>No accounts or tracking</h3>
+            <p>
+              No sign-ups, no telemetry, no analytics. Download the app and start
+              using it immediately. Stitch doesn't know who you are and doesn't
+              want to.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>Fully open source</h3>
+            <p>
+              Every line of code is public on GitHub. Audit what it does, build
+              it from source, or contribute. No black boxes, no proprietary
+              backends, no trust required.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>You approve every action</h3>
+            <p>
+              Stitch asks for your permission before doing anything sensitive.
+              You see exactly what it plans to do and can say no. You're always
+              in the loop.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>Bring your own AI provider</h3>
+            <p>
+              Connect your own API key from OpenAI, Anthropic, or Google &mdash;
+              or run a local model for fully offline use. Your API key talks
+              directly to the provider, not through us.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>Permission controls</h3>
+            <p>
+              Define rules for what the AI can and can't do. Restrict access to
+              specific folders, block destructive commands, or require approval
+              for every action.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+      <div class="container">
+        <h2>Try Stitch &mdash; it's free and private</h2>
+        <p>
+          Open source, runs locally, no account required.
+          Download and start automating your work in minutes.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
+            Windows
+          </a>
+          <details class="btn-group">
+            <summary>macOS</summary>
+            <div class="btn-dropdown">
+              <a href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">Apple Silicon</a>
+              <a href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-x64.dmg">Intel</a>
+            </div>
+          </details>
+          <a class="btn" href="https://github.com/UseStitch/stitch">GitHub</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
     <footer>
       <p>
         Stitch &copy; 2026 &nbsp;&middot;&nbsp;
         <a href="https://github.com/UseStitch/stitch">GitHub</a>
       </p>
     </footer>
-  </body>
-  <script>
-    document.addEventListener('click', function (e) {
-      document.querySelectorAll('.btn-group[open]').forEach(function (d) {
-        if (!d.contains(e.target)) d.removeAttribute('open');
+
+    <script>
+      // Close open dropdowns on outside click
+      document.addEventListener('click', function (e) {
+        document.querySelectorAll('.btn-group[open]').forEach(function (d) {
+          if (!d.contains(e.target)) d.removeAttribute('open');
+        });
       });
-    });
-  </script>
+
+      // Theme toggle
+      (function () {
+        var stored = localStorage.getItem('theme');
+        if (stored) {
+          document.documentElement.setAttribute('data-theme', stored);
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', function () {
+          var current = document.documentElement.getAttribute('data-theme');
+          var isLight;
+
+          if (current) {
+            isLight = current === 'light';
+          } else {
+            isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+          }
+
+          var next = isLight ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        });
+      })();
+    </script>
+  </body>
 </html>
