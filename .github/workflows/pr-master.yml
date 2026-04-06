@@ -24,6 +24,7 @@ jobs:
         with:
           filters: |
             ci:
+              - '**'
               - '!apps/website/**'
               - '!**/*.md'
               - '!LICENSE'
