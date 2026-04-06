@@ -677,12 +677,13 @@ class StreamRunner {
         .map((p) => p.toolCallId),
     );
 
-    for (const part of this.state.accumulatedParts) {
-      if (part.type !== 'tool-call' || toolCallIds.has(part.toolCallId)) {
-        continue;
-      }
+    const now = this.deps.now();
+    const unresolvedParts = this.state.accumulatedParts.filter(
+      (part): part is StoredPart & { type: 'tool-call' } =>
+        part.type === 'tool-call' && !toolCallIds.has(part.toolCallId),
+    );
 
-      const now = this.deps.now();
+    for (const part of unresolvedParts) {
       this.state.accumulatedParts.push({
         type: 'tool-result',
         id: createPartId(),
@@ -693,16 +694,20 @@ class StreamRunner {
         startedAt: now,
         endedAt: now,
       } as StoredPart);
-
-      await this.deps.broadcast('stream-tool-state', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        status: 'error',
-        error: 'Aborted',
-      });
     }
+
+    await Promise.all(
+      unresolvedParts.map((part) =>
+        this.deps.broadcast('stream-tool-state', {
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          status: 'error',
+          error: 'Aborted',
+        }),
+      ),
+    );
   }
 
   private async handlePermissionRejected(error: unknown): Promise<void> {
@@ -740,16 +745,18 @@ class StreamRunner {
         p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
     );
 
-    for (const call of unresolvedToolCalls) {
-      await this.deps.broadcast('stream-tool-state', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: call.toolCallId,
-        toolName: call.toolName,
-        status: 'error',
-        error: 'Blocked before completion',
-      });
-    }
+    await Promise.all(
+      unresolvedToolCalls.map((call) =>
+        this.deps.broadcast('stream-tool-state', {
+          sessionId: this.ctx.sessionId,
+          messageId: this.ctx.assistantMessageId,
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          status: 'error',
+          error: 'Blocked before completion',
+        }),
+      ),
+    );
   }
 
   private handleContextOverflow(): void {

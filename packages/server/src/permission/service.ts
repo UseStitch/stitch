@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPermissionResponseId, createPermissionRuleId } from '@stitch/shared/id';
@@ -52,36 +52,23 @@ export async function upsertPerm(opts: {
   const db = getDb();
   const now = Date.now();
 
-  const where =
-    opts.pattern === null
-      ? and(eq(toolPermissions.toolName, opts.toolName), isNull(toolPermissions.pattern))
-      : and(eq(toolPermissions.toolName, opts.toolName), eq(toolPermissions.pattern, opts.pattern));
-
-  const existing = await db
-    .select({ id: toolPermissions.id })
-    .from(toolPermissions)
-    .where(where)
-    .then((rows) => rows[0]);
-
-  if (existing) {
-    await db
-      .update(toolPermissions)
-      .set({
+  await db
+    .insert(toolPermissions)
+    .values({
+      id: createPermissionRuleId(),
+      toolName: opts.toolName,
+      permission: opts.permission,
+      pattern: opts.pattern,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [toolPermissions.toolName, toolPermissions.pattern],
+      set: {
         permission: opts.permission,
         updatedAt: now,
-      })
-      .where(eq(toolPermissions.id, existing.id));
-    return;
-  }
-
-  await db.insert(toolPermissions).values({
-    id: createPermissionRuleId(),
-    toolName: opts.toolName,
-    permission: opts.permission,
-    pattern: opts.pattern,
-    createdAt: now,
-    updatedAt: now,
-  });
+      },
+    });
 }
 
 export async function getPerms(): Promise<ToolPermission[]> {
@@ -123,20 +110,22 @@ export async function requestPermissionResponse(opts: {
   const id = createPermissionResponseId();
   const now = Date.now();
 
-  await db.insert(permissionResponses).values({
-    id,
-    sessionId: opts.sessionId,
-    messageId: opts.messageId,
-    toolCallId: opts.toolCallId,
-    toolName: opts.toolName,
-    toolInput: opts.toolInput,
-    systemReminder: opts.systemReminder,
-    suggestion: opts.suggestion ?? null,
-    status: 'pending',
-    createdAt: now,
-  });
+  const [row] = await db
+    .insert(permissionResponses)
+    .values({
+      id,
+      sessionId: opts.sessionId,
+      messageId: opts.messageId,
+      toolCallId: opts.toolCallId,
+      toolName: opts.toolName,
+      toolInput: opts.toolInput,
+      systemReminder: opts.systemReminder,
+      suggestion: opts.suggestion ?? null,
+      status: 'pending',
+      createdAt: now,
+    })
+    .returning();
 
-  const [row] = await db.select().from(permissionResponses).where(eq(permissionResponses.id, id));
   if (!row) throw new Error('Permission response not found after create');
 
   await broadcast('permission-response-requested', {
@@ -211,19 +200,15 @@ async function resolvePermissionResponse(opts: {
     });
   }
 
-  await db
+  const [permissionResponse] = await db
     .update(permissionResponses)
     .set({
       status: opts.status,
       entry: opts.entry ?? null,
       resolvedAt: now,
     })
-    .where(eq(permissionResponses.id, opts.permissionResponseId));
-
-  const [permissionResponse] = await db
-    .select()
-    .from(permissionResponses)
-    .where(eq(permissionResponses.id, opts.permissionResponseId));
+    .where(eq(permissionResponses.id, opts.permissionResponseId))
+    .returning();
 
   await broadcast('permission-response-resolved', {
     permissionResponseId: opts.permissionResponseId,
@@ -293,52 +278,55 @@ export async function getPendingPermissionResponses(
   const rows = await db
     .select()
     .from(permissionResponses)
-    .where(eq(permissionResponses.sessionId, sessionId));
+    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
 
-  return rows.filter((p) => p.status === 'pending').map(toPermissionResponse);
+  return rows.map(toPermissionResponse);
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {
   const db = getDb();
   const now = Date.now();
-  const all = await db
+
+  const pending = await db
     .select()
     .from(permissionResponses)
-    .where(eq(permissionResponses.sessionId, sessionId));
-  const pending = all.filter((p) => p.status === 'pending');
+    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
+
   if (pending.length === 0) return;
 
   await db
     .update(permissionResponses)
     .set({ status: 'rejected', resolvedAt: now })
-    .where(eq(permissionResponses.sessionId, sessionId));
+    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
 
-  for (const row of pending) {
-    const id = row.id;
-    const entry = pendingPermissionResponses.get(id);
-    const streamRunId = entry?.streamRunId;
-    if (entry) {
-      entry.reject(
-        new PermissionResponseAbortedError('Permission response aborted by session abort'),
-      );
-      pendingPermissionResponses.delete(id);
-    }
+  await Promise.all(
+    pending.map(async (row) => {
+      const id = row.id;
+      const entry = pendingPermissionResponses.get(id);
+      const streamRunId = entry?.streamRunId;
+      if (entry) {
+        entry.reject(
+          new PermissionResponseAbortedError('Permission response aborted by session abort'),
+        );
+        pendingPermissionResponses.delete(id);
+      }
 
-    await broadcast('permission-response-resolved', {
-      permissionResponseId: row.id,
-      sessionId,
-    });
-
-    log.info(
-      {
-        event: 'stream.permission.aborted',
-        streamRunId,
-        sessionId,
+      await broadcast('permission-response-resolved', {
         permissionResponseId: row.id,
-      },
-      'permission aborted',
-    );
-  }
+        sessionId,
+      });
+
+      log.info(
+        {
+          event: 'stream.permission.aborted',
+          streamRunId,
+          sessionId,
+          permissionResponseId: row.id,
+        },
+        'permission aborted',
+      );
+    }),
+  );
 
   log.info(
     {

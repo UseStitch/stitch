@@ -30,7 +30,7 @@ permissionsRouter.get('/sessions/:id/permission-responses', async (c) => {
   const db = getDb();
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const [session] = await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return c.json({ error: 'Session not found' }, 404);
 
   const rows = await getPendingPermissionResponses(sessionId);

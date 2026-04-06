@@ -56,17 +56,19 @@ export async function createSession(input: CreateSessionInput) {
   const title =
     input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
 
-  await db.insert(sessions).values({
-    id,
-    title,
-    type: input.type ?? 'chat',
-    automationId: input.automationId ?? null,
-    parentSessionId: (input.parentSessionId ?? null) as PrefixedString<'ses'> | null,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const [session] = await db
+    .insert(sessions)
+    .values({
+      id,
+      title,
+      type: input.type ?? 'chat',
+      automationId: input.automationId ?? null,
+      parentSessionId: (input.parentSessionId ?? null) as PrefixedString<'ses'> | null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, id));
   return session;
 }
 
@@ -154,9 +156,10 @@ async function maybeGenerateTitle(input: {
   const db = getDb();
 
   const existingMessages = await db
-    .select()
+    .select({ id: messages.id })
     .from(messages)
-    .where(eq(messages.sessionId, input.sessionId));
+    .where(eq(messages.sessionId, input.sessionId))
+    .limit(1);
   if (existingMessages.length > 0) {
     return;
   }
@@ -378,22 +381,22 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
-  await abortQuestions(sessionId);
-  await abortPermissionResponses(sessionId);
 
-  // Cascade abort to any active child sessions
   const db = getDb();
   const childSessions = await db
     .select({ id: sessions.id })
     .from(sessions)
     .where(eq(sessions.parentSessionId, sessionId));
 
-  for (const child of childSessions) {
-    AbortRegistry.abort(child.id);
-    cancelDecision(child.id);
-    await abortQuestions(child.id);
-    await abortPermissionResponses(child.id);
-  }
+  await Promise.all([
+    abortQuestions(sessionId),
+    abortPermissionResponses(sessionId),
+    ...childSessions.map(async (child) => {
+      AbortRegistry.abort(child.id);
+      cancelDecision(child.id);
+      await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id)]);
+    }),
+  ]);
 }
 
 function getSplitTitle(baseTitle: string, n: number): string {
@@ -445,28 +448,30 @@ export async function splitSession(
   const newSessionId = createSessionId();
   const now = Date.now();
 
-  await db.insert(sessions).values({
-    id: newSessionId,
-    title: newTitle,
-    parentSessionId: sessionId,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const [newSession] = await db
+    .insert(sessions)
+    .values({
+      id: newSessionId,
+      title: newTitle,
+      parentSessionId: sessionId,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
-  for (const msg of priorMessages) {
-    const newMsgId = createMessageId();
-    await db.insert(messages).values({
-      ...msg,
-      id: newMsgId,
-      sessionId: newSessionId,
-      usage: undefined,
-      costUsd: 0,
-      createdAt: msg.createdAt,
-      updatedAt: msg.updatedAt,
-    });
+  if (priorMessages.length > 0) {
+    await db.insert(messages).values(
+      priorMessages.map((msg) => ({
+        ...msg,
+        id: createMessageId(),
+        sessionId: newSessionId,
+        usage: undefined,
+        costUsd: 0,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt,
+      })),
+    );
   }
-
-  const [newSession] = await db.select().from(sessions).where(eq(sessions.id, newSessionId));
 
   const prefillText = splitMsg.parts
     .filter((p): p is StoredPart & { type: 'text-delta'; text: string } => p.type === 'text-delta')
@@ -523,11 +528,24 @@ export async function getSessionStats(
     return err('Session not found', 404);
   }
 
-  const sessionMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt));
+  const [sessionMessages, childSessions] = await Promise.all([
+    db
+      .select({
+        costUsd: messages.costUsd,
+        usage: messages.usage,
+        role: messages.role,
+        parts: messages.parts,
+        providerId: messages.providerId,
+        modelId: messages.modelId,
+      })
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId))
+      .orderBy(asc(messages.createdAt)),
+    db
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(eq(sessions.parentSessionId, sessionId)),
+  ]);
 
   const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
   const currentSessionTokens = sessionMessages.reduce(
@@ -536,12 +554,6 @@ export async function getSessionStats(
   );
   const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
   const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
-
-  // Aggregate cost from child sessions (spawned by the task tool)
-  const childSessions = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.parentSessionId, sessionId));
 
   let childSessionsCostUsd = 0;
   let childSessionsTokens = 0;
