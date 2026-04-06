@@ -4,6 +4,13 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - 'apps/website/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.opencode/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/CODEOWNERS'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
