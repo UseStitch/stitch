@@ -1,11 +1,12 @@
 import type { ToolType } from '@stitch/shared/tools/types';
 
 import { browserToolProvider, browserToolset } from '@/tools/providers/browser-provider.js';
+import { macosToolProvider, macosToolset } from '@/tools/providers/macos-provider.js';
 import { meetingsToolProvider, meetingsToolset } from '@/tools/providers/meetings-provider.js';
 import type { ToolProvider } from '@/tools/providers/types.js';
 import { registerToolset } from '@/tools/toolsets/registry.js';
 
-const providers: ToolProvider[] = [meetingsToolProvider, browserToolProvider];
+const providers: ToolProvider[] = [meetingsToolProvider, browserToolProvider, macosToolProvider];
 
 /**
  * Return the known tool name/type/displayName triples for global provider tools.
@@ -25,10 +26,11 @@ export async function getGlobalProviderKnownTools(): Promise<
 }
 
 /**
- * Register all built-in provider toolsets (browser, meetings) with the global registry.
+ * Register all built-in provider toolsets (browser, meetings, macos) with the global registry.
  * Call once at startup.
  */
 export function registerProviderToolsets(): void {
   registerToolset(browserToolset);
+  registerToolset(macosToolset);
   registerToolset(meetingsToolset);
 }
