@@ -9,12 +9,13 @@
         "oxfmt": "latest",
         "oxlint": "latest",
         "oxlint-tsgolint": "^0.16.0",
+        "pathe": "^2.0.3",
         "turbo": "latest",
       },
     },
     "apps/desktop": {
       "name": "@stitch/desktop",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "electron-updater": "^6.8.3",
         "tree-kill": "1.2.2",
@@ -29,7 +30,7 @@
     },
     "apps/web": {
       "name": "@stitch/web",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@stitch/shared": "workspace:*",
