@@ -86,7 +86,7 @@ function RootLayout() {
           </RightClickMenu>
         </div>
       </div>
-      <CommandPalette />
+      <CommandPalette actions={actions} />
       <SettingsDialog />
       <OnboardingDialog />
       <RenameSessionDialog />

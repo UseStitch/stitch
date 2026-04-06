@@ -16,12 +16,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useDialogContext } from '@/context/dialog-context';
-import { useActions, type Action } from '@/lib/actions';
+import type { Action } from '@/lib/actions';
 import { useShortcuts } from '@/lib/shortcuts';
 
-export function CommandPalette() {
+type CommandPaletteProps = {
+  actions: Action[];
+};
+
+export function CommandPalette({ actions }: CommandPaletteProps) {
   const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext();
-  const actions = useActions();
   const shortcuts = useShortcuts();
 
   function handleSelect(action: Action) {
@@ -44,7 +47,7 @@ export function CommandPalette() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Actions">
-              {actions.map((action) => {
+              {actions.filter((a) => a.id !== 'command-palette').map((action) => {
                 const info = shortcuts.get(action.id);
                 const hotkey = info?.hotkey ?? null;
                 const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');

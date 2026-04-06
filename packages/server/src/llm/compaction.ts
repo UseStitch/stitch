@@ -37,6 +37,8 @@ type CompactionSettings = {
   reserved?: number;
 };
 
+type StoredMessage = typeof messages.$inferSelect;
+
 function parseBooleanSetting(value: string | undefined): boolean | undefined {
   if (value === 'true') return true;
   if (value === 'false') return false;
@@ -107,17 +109,7 @@ export function isOverflow(
  * that exceed the PRUNE_PROTECT token threshold. This reclaims context
  * space without a full compaction summary.
  */
-async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
-  log.info({ sessionId }, 'pruning');
-
-  const db = getDb();
-  const now = Date.now();
-  const msgs = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt));
-
+async function prune(msgs: StoredMessage[]): Promise<number> {
   let total = 0;
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
@@ -155,28 +147,34 @@ async function prune(sessionId: PrefixedString<'ses'>): Promise<number> {
       arr.push(entry.partIndex);
     }
 
-    await Promise.all(
-      Array.from(grouped.entries()).map(async ([messageId, partIndices]) => {
-        const [msg] = await db.select().from(messages).where(eq(messages.id, messageId));
-        if (!msg) return;
+    const msgById = new Map(msgs.map((m) => [m.id, m]));
+    const db = getDb();
+    const now = Date.now();
 
-        const updatedParts = [...msg.parts];
-        for (const partIndex of partIndices) {
-          const part = updatedParts[partIndex];
-          if (part?.type === 'tool-result') {
-            updatedParts[partIndex] = {
-              ...part,
-              output: '[Old tool result content cleared]',
-            } as StoredPart;
+    await db.transaction(async (tx) => {
+      await Promise.all(
+        Array.from(grouped.entries()).map(async ([messageId, partIndices]) => {
+          const msg = msgById.get(messageId);
+          if (!msg) return;
+
+          const updatedParts = [...msg.parts];
+          for (const partIndex of partIndices) {
+            const part = updatedParts[partIndex];
+            if (part?.type === 'tool-result') {
+              updatedParts[partIndex] = {
+                ...part,
+                output: '[Old tool result content cleared]',
+              } as StoredPart;
+            }
           }
-        }
 
-        await db
-          .update(messages)
-          .set({ parts: updatedParts, updatedAt: now })
-          .where(eq(messages.id, messageId));
-      }),
-    );
+          await tx
+            .update(messages)
+            .set({ parts: updatedParts, updatedAt: now })
+            .where(eq(messages.id, messageId));
+        }),
+      );
+    });
 
     log.info({ count: toPrune.length }, 'pruned');
   }
@@ -261,6 +259,7 @@ export async function compact(input: {
   auto: boolean;
   overflow?: boolean;
   severity?: CompactionSeverity;
+  compactionSettings?: CompactionSettings;
 }): Promise<'continue' | 'error'> {
   const { sessionId } = input;
   const severity: CompactionSeverity = input.severity ?? (input.overflow ? 'overflow' : 'normal');
@@ -276,7 +275,11 @@ export async function compact(input: {
   try {
     log.info({ sessionId, auto: input.auto }, 'compaction starting');
 
-    const compactionSettings = await getCompactionSettings();
+    const [compactionSettings, promptUserContext, resolved] = await Promise.all([
+      input.compactionSettings ?? getCompactionSettings(),
+      getPromptUserContext(),
+      resolveCompactionModel(input.providerId, input.modelId),
+    ]);
 
     await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
 
@@ -293,35 +296,30 @@ export async function compact(input: {
       endedAt: now,
     } as StoredPart;
 
-    await db.transaction(async (tx) => {
-      await tx.insert(messages).values({
-        id: compactionMarkerId,
-        sessionId,
-        role: 'user',
-        parts: [compactionPart],
-        modelId: input.modelId,
-        providerId: input.providerId,
-        costUsd: 0,
-        createdAt: now,
-        updatedAt: now,
-        startedAt: now,
-        duration: null,
-      });
-
-      if (compactionSettings.prune) {
-        await prune(sessionId);
-      }
+    await db.insert(messages).values({
+      id: compactionMarkerId,
+      sessionId,
+      role: 'user',
+      parts: [compactionPart],
+      modelId: input.modelId,
+      providerId: input.providerId,
+      costUsd: 0,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+      duration: null,
     });
-
-    const resolved = await resolveCompactionModel(input.providerId, input.modelId);
-    const provider = createProvider(resolved.credentials);
-    const model = provider(resolved.modelId);
 
     const allMsgs = await db
       .select()
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt));
+
+    if (compactionSettings.prune) {
+      log.info({ sessionId }, 'pruning');
+      await prune(allMsgs);
+    }
 
     const markerIndex = allMsgs.findIndex((m) => m.id === compactionMarkerId);
     const historyMsgs = allMsgs.slice(0, markerIndex);
@@ -335,13 +333,15 @@ export async function compact(input: {
     }
     const relevantMsgs = historyMsgs.slice(startIndex);
 
-    const promptUserContext = await getPromptUserContext();
     const historyMessages = buildHistoryMessages(relevantMsgs, {
       useBasePrompt: true,
       systemPrompt: null,
       userName: promptUserContext.userName,
       userTimezone: promptUserContext.userTimezone,
     });
+
+    const provider = createProvider(resolved.credentials);
+    const model = provider(resolved.modelId);
 
     const llmMessages: ModelMessage[] = [
       ...historyMessages,
@@ -506,11 +506,17 @@ export async function buildCompactedHistory(
   },
 ): Promise<ModelMessage[]> {
   const db = getDb();
-  const msgs = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt));
+
+  const [msgs, promptUserContext] = await Promise.all([
+    db
+      .select()
+      .from(messages)
+      .where(eq(messages.sessionId, sessionId))
+      .orderBy(asc(messages.createdAt)),
+    promptConfig?.userName !== undefined && promptConfig?.userTimezone !== undefined
+      ? Promise.resolve({ userName: promptConfig.userName ?? null, userTimezone: promptConfig.userTimezone ?? null })
+      : getPromptUserContext(),
+  ]);
 
   // Find the last compaction boundary (summary message)
   let startIndex = 0;
@@ -521,12 +527,11 @@ export async function buildCompactedHistory(
     }
   }
 
-  const promptUserContext = await getPromptUserContext();
   return buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig?.useBasePrompt ?? true,
     systemPrompt: promptConfig?.systemPrompt ?? null,
-    userName: promptConfig?.userName ?? promptUserContext.userName,
-    userTimezone: promptConfig?.userTimezone ?? promptUserContext.userTimezone,
+    userName: promptUserContext.userName,
+    userTimezone: promptUserContext.userTimezone,
   });
 }
 

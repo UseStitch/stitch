@@ -495,8 +495,9 @@ export async function requestCompaction(
     .select()
     .from(messages)
     .where(eq(messages.sessionId, sessionId))
-    .orderBy(asc(messages.createdAt))
-    .then((rows) => rows.at(-1));
+    .orderBy(desc(messages.createdAt))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!lastMessage) {
     return err('Session has no messages to compact', 400);

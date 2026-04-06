@@ -18,6 +18,15 @@ const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
 };
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 
+function isToolResultError(output: unknown): boolean {
+  return (
+    output !== null &&
+    output !== undefined &&
+    typeof output === 'object' &&
+    'error' in (output)
+  );
+}
+
 function toPreviewText(value: unknown): string {
   if (typeof value === 'string') {
     return value.slice(0, TOOL_RESULT_PREVIEW_CHARS);
@@ -36,12 +45,7 @@ function toPreviewText(value: unknown): string {
 
 function compactToolResultOutput(part: StoredPart & { type: 'tool-result' }): unknown {
   const output = part.output;
-  const isError =
-    output !== null &&
-    output !== undefined &&
-    typeof output === 'object' &&
-    'error' in (output as object);
-  if (isError) {
+  if (isToolResultError(output)) {
     return output;
   }
 
@@ -250,18 +254,13 @@ export function buildHistoryMessages(
           content: toolResultParts
             .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
             .map((tr) => {
-              const isError =
-                tr.output !== null &&
-                tr.output !== undefined &&
-                typeof tr.output === 'object' &&
-                'error' in (tr.output as object);
               const compactedOutput = compactToolResultOutput(tr);
 
               return {
                 type: 'tool-result' as const,
                 toolCallId: tr.toolCallId,
                 toolName: tr.toolName,
-                output: isError
+                output: isToolResultError(tr.output)
                   ? { type: 'error-json' as const, value: compactedOutput as never }
                   : { type: 'json' as const, value: compactedOutput as never },
               };
