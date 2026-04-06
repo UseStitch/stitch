@@ -39,7 +39,7 @@ jobs:
       commit: ${{ steps.commit.outputs.commit }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -130,7 +130,7 @@ jobs:
             os: macos
     steps:
       - name: Checkout release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.version.outputs.commit }}
 
@@ -138,7 +138,7 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Cache Turbo artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ hashFiles('**/bun.lock', 'turbo.json') }}
@@ -146,7 +146,7 @@ jobs:
             ${{ runner.os }}-turbo-
 
       - name: Cache Electron assets
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
