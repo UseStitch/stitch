@@ -1,22 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stitch</title>
     <style>
-      *, *::before, *::after {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
       }
 
-      html, body {
+      html,
+      body {
         height: 100%;
       }
 
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
         background: #000;
         color: #fff;
         font-size: 16px;
@@ -88,7 +91,9 @@
         color: #fff;
         font-size: 0.875rem;
         font-weight: 500;
-        transition: background 0.15s, color 0.15s;
+        transition:
+          background 0.15s,
+          color 0.15s;
         white-space: nowrap;
       }
 
@@ -122,7 +127,9 @@
         text-decoration: none;
         padding: 4px 0;
         border-bottom: 1px solid #333;
-        transition: color 0.15s, border-color 0.15s;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
       }
 
       .btn-all:hover {
@@ -148,29 +155,41 @@
       }
     </style>
   </head>
+
   <body>
     <main>
       <h1>Stitch</h1>
       <p>AI that works locally.</p>
       <p>
-        Stitch runs entirely on your machine — your data stays yours.
-        Connect your tools, automate your work, and let AI handle the rest.
+        Stitch runs entirely on your machine — your data stays yours. Connect your tools, automate
+        your work, and let AI handle the rest.
       </p>
 
       <div class="downloads">
         <div class="downloads-label">Download</div>
         <div class="downloads-row">
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
+          <a
+            class="btn"
+            href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe"
+          >
             Windows
           </a>
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
+          <a
+            class="btn"
+            href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg"
+          >
             macOS <span class="btn-sub">Apple Silicon</span>
           </a>
-          <span class="btn-disabled">
-            macOS <span class="btn-sub">Intel &mdash; coming soon</span>
-          </span>
+          <a
+            class="btn"
+            href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-x64.dmg"
+          >
+            macOS <span class="btn-sub">Intel</span>
+          </a>
         </div>
-        <a class="btn-all" href="https://github.com/UseStitch/stitch/releases">All releases &rarr;</a>
+        <a class="btn-all" href="https://github.com/UseStitch/stitch/releases"
+          >All releases &rarr;</a
+        >
       </div>
     </main>
 

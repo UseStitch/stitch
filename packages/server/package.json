@@ -8,6 +8,7 @@
     "test": "vitest run",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile --outfile dist/stitch-server",
+    "build:x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/stitch-server",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
