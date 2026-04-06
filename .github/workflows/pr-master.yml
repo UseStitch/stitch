@@ -4,13 +4,6 @@ on:
   pull_request:
     branches:
       - master
-    paths-ignore:
-      - 'apps/website/**'
-      - '**/*.md'
-      - 'LICENSE'
-      - '.opencode/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/CODEOWNERS'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,8 +13,27 @@ permissions:
   contents: read
 
 jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      run-ci: ${{ steps.filter.outputs.ci }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ci:
+              - '!apps/website/**'
+              - '!**/*.md'
+              - '!LICENSE'
+              - '!.opencode/**'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/CODEOWNERS'
+
   check:
     name: check (${{ matrix.os }})
+    needs: filter
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,12 +43,15 @@ jobs:
           - macos-latest
     steps:
       - name: Checkout repository
+        if: needs.filter.outputs.run-ci == 'true'
         uses: actions/checkout@v5
 
       - name: Setup Bun
+        if: needs.filter.outputs.run-ci == 'true'
         uses: ./.github/actions/setup-bun
 
       - name: Cache Turbo artifacts
+        if: needs.filter.outputs.run-ci == 'true'
         uses: actions/cache@v5
         with:
           path: .turbo
@@ -45,7 +60,9 @@ jobs:
             ${{ runner.os }}-turbo-
 
       - name: Run tests
+        if: needs.filter.outputs.run-ci == 'true'
         run: bun run test
 
       - name: Run typecheck
+        if: needs.filter.outputs.run-ci == 'true'
         run: bun run typecheck
