@@ -1,0 +1,5 @@
+[install]
+# Hoist all transitive deps to root node_modules.
+# Prevents broken resolutions when node_modules is restored from CI cache on Windows,
+# where tar does not preserve the hardlinks used by bun's isolated linker virtual store.
+publicHoistPattern = '*'
