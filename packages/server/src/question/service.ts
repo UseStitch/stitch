@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createQuestionId } from '@stitch/shared/id';
@@ -55,17 +55,19 @@ export async function askQuestion(opts: {
     'asking question',
   );
 
-  await db.insert(questions).values({
-    id,
-    sessionId: opts.sessionId,
-    questions: opts.questions,
-    status: 'pending',
-    toolCallId: opts.toolCallId,
-    messageId: opts.messageId,
-    createdAt: now,
-  });
+  const [row] = await db
+    .insert(questions)
+    .values({
+      id,
+      sessionId: opts.sessionId,
+      questions: opts.questions,
+      status: 'pending',
+      toolCallId: opts.toolCallId,
+      messageId: opts.messageId,
+      createdAt: now,
+    })
+    .returning();
 
-  const [row] = await db.select().from(questions).where(eq(questions.id, id));
   if (!row) {
     throw new Error(`Question not found after create: ${id}`);
   }
@@ -75,10 +77,7 @@ export async function askQuestion(opts: {
   });
 
   return new Promise((resolve, reject) => {
-    let pollInterval: ReturnType<typeof setInterval>;
-
     const cleanup = () => {
-      clearInterval(pollInterval);
       pendingQuestions.delete(id);
     };
 
@@ -96,32 +95,6 @@ export async function askQuestion(opts: {
     }
 
     pendingQuestions.set(id, { resolve, reject, streamRunId: opts.streamRunId });
-
-    pollInterval = setInterval(async () => {
-      const db = getDb();
-      const [q] = await db.select().from(questions).where(eq(questions.id, id));
-
-      if (!q) {
-        opts.abortSignal?.removeEventListener('abort', abortHandler);
-        cleanup();
-        reject(new Error('Question not found'));
-        return;
-      }
-
-      if (q.status === 'answered') {
-        opts.abortSignal?.removeEventListener('abort', abortHandler);
-        cleanup();
-        resolve(q.answers ?? []);
-        return;
-      }
-
-      if (q.status === 'rejected') {
-        opts.abortSignal?.removeEventListener('abort', abortHandler);
-        cleanup();
-        reject(new Error('Question rejected by user'));
-        return;
-      }
-    }, 1000);
   });
 }
 
@@ -132,16 +105,16 @@ export async function replyQuestion(
   const db = getDb();
   const now = Date.now();
 
-  await db
+  const [question] = await db
     .update(questions)
     .set({
       answers,
       status: 'answered',
       answeredAt: now,
     })
-    .where(eq(questions.id, questionId));
+    .where(eq(questions.id, questionId))
+    .returning();
 
-  const [question] = await db.select().from(questions).where(eq(questions.id, questionId));
   if (!question) {
     throw new Error(`Question not found: ${questionId}`);
   }
@@ -218,9 +191,12 @@ export async function getPendingQuestions(
   sessionId: PrefixedString<'ses'>,
 ): Promise<QuestionRequest[]> {
   const db = getDb();
-  const rows = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
+  const rows = await db
+    .select()
+    .from(questions)
+    .where(and(eq(questions.sessionId, sessionId), eq(questions.status, 'pending')));
 
-  return rows.filter((q) => q.status === 'pending').map(toQuestionRequest);
+  return rows.map(toQuestionRequest);
 }
 
 /**
@@ -231,35 +207,39 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
   const db = getDb();
   const now = Date.now();
 
-  const pending = await db.select().from(questions).where(eq(questions.sessionId, sessionId));
+  const pendingRows = await db
+    .select()
+    .from(questions)
+    .where(and(eq(questions.sessionId, sessionId), eq(questions.status, 'pending')));
 
-  const pendingRows = pending.filter((q) => q.status === 'pending');
   if (pendingRows.length === 0) return;
 
   await db
     .update(questions)
     .set({ status: 'rejected', answeredAt: now })
-    .where(eq(questions.sessionId, sessionId));
+    .where(and(eq(questions.sessionId, sessionId), eq(questions.status, 'pending')));
 
-  for (const q of pendingRows) {
-    const entry = pendingQuestions.get(q.id);
-    const streamRunId = entry?.streamRunId;
-    if (entry) {
-      entry.reject(new QuestionAbortedError('Question aborted by session abort'));
-      pendingQuestions.delete(q.id);
-    }
-    await broadcast('question-rejected', { questionId: q.id, sessionId });
+  await Promise.all(
+    pendingRows.map(async (q) => {
+      const entry = pendingQuestions.get(q.id);
+      const streamRunId = entry?.streamRunId;
+      if (entry) {
+        entry.reject(new QuestionAbortedError('Question aborted by session abort'));
+        pendingQuestions.delete(q.id);
+      }
+      await broadcast('question-rejected', { questionId: q.id, sessionId });
 
-    log.info(
-      {
-        event: 'stream.question.aborted',
-        streamRunId,
-        sessionId,
-        questionId: q.id,
-      },
-      'question aborted',
-    );
-  }
+      log.info(
+        {
+          event: 'stream.question.aborted',
+          streamRunId,
+          sessionId,
+          questionId: q.id,
+        },
+        'question aborted',
+      );
+    }),
+  );
 
   log.info({ sessionId, count: pendingRows.length }, 'aborted pending questions');
 }
