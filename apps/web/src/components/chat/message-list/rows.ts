@@ -33,7 +33,6 @@ export function buildRows(
     rows.push({ kind: 'load-more' });
   }
 
-  const summaryByMarker = new Map<string, Message>();
   const pairedSummaryIds = new Set<string>();
 
   for (let i = 0; i < messages.length; i++) {
@@ -50,27 +49,12 @@ export function buildRows(
 
     if (message.role === 'user' && message.parts.some((part) => part.type === 'compaction')) {
       const next = messages[i + 1];
+      let summaryParts: Message['parts'] | undefined;
       if (next?.isSummary) {
-        summaryByMarker.set(message.id, next);
+        summaryParts = next.parts;
         pairedSummaryIds.add(next.id);
       }
-    }
-  }
-
-  for (const message of messages) {
-    if (
-      message.parts.some(
-        (part) =>
-          part.type === 'session-title' ||
-          part.type === 'automation-generation',
-      )
-    ) {
-      continue;
-    }
-
-    if (message.role === 'user' && message.parts.some((part) => part.type === 'compaction')) {
-      const summary = summaryByMarker.get(message.id);
-      rows.push({ kind: 'compaction', id: message.id, summaryParts: summary?.parts });
+      rows.push({ kind: 'compaction', id: message.id, summaryParts });
       continue;
     }
 

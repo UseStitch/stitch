@@ -172,6 +172,7 @@ type StreamRunnerState = {
   lastStepToolCallCount: number;
   lastStepResponseMessageCount: number;
   peakStepUsage: LanguageModelUsage;
+  compactionSettings: Parameters<typeof compact>[0]['compactionSettings'];
 };
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
@@ -236,6 +237,7 @@ class StreamRunner {
       lastStepToolCallCount: 0,
       lastStepResponseMessageCount: 0,
       peakStepUsage: Usage.ZERO_USAGE,
+      compactionSettings: undefined,
     };
 
     this.deps = { ...DEFAULT_DEPS, ...deps };
@@ -621,6 +623,7 @@ class StreamRunner {
       return;
     }
 
+    this.state.compactionSettings = compactionSettings;
     this.setNeedsCompaction(true, 'token-overflow');
     log.info(
       {
@@ -1077,6 +1080,7 @@ class StreamRunner {
       modelId: this.ctx.modelId,
       auto: true,
       overflow: this.state.contextOverflow,
+      compactionSettings: this.state.compactionSettings,
     });
 
     if (result === 'error') {
