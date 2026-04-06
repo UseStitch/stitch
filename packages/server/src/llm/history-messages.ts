@@ -7,6 +7,9 @@ import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'history-messages' });
 
+const PRESERVE_RECENT_ASSISTANT_TURNS = 3;
+const IMAGE_PRUNED_PLACEHOLDER = '[Image already processed by model]';
+
 const DEFAULT_TOOL_RESULT_BUDGET_TOKENS = 1_000;
 const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
   browser: 600,
@@ -74,7 +77,21 @@ export function buildHistoryMessages(
 
   const llmMessages: ModelMessage[] = [];
 
-  for (const msg of msgs) {
+  let assistantTurnsSeen = 0;
+  let attachmentCutoffIndex = 0;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === 'assistant' && !msgs[i].isSummary) {
+      assistantTurnsSeen++;
+      if (assistantTurnsSeen > PRESERVE_RECENT_ASSISTANT_TURNS) {
+        attachmentCutoffIndex = i;
+        break;
+      }
+    }
+  }
+
+  for (let msgIdx = 0; msgIdx < msgs.length; msgIdx++) {
+    const msg = msgs[msgIdx];
+    const shouldPruneAttachments = msgIdx < attachmentCutoffIndex;
     const hasSessionTitle = msg.parts.some((p) => p.type === 'session-title');
     if (hasSessionTitle) {
       continue;
@@ -125,23 +142,36 @@ export function buildHistoryMessages(
         content.push({ type: 'text', text });
       }
 
-      for (const img of imageParts) {
-        const base64 = img.dataUrl.includes(',') ? img.dataUrl.split(',')[1] : img.dataUrl;
-        content.push({
-          type: 'image',
-          image: base64,
-          mediaType: img.mime,
-        });
-      }
+      if (shouldPruneAttachments) {
+        for (const _img of imageParts) {
+          content.push({ type: 'text', text: IMAGE_PRUNED_PLACEHOLDER });
+        }
+        for (const file of fileParts) {
+          const label = file.filename ? `"${file.filename}"` : 'attachment';
+          content.push({
+            type: 'text',
+            text: `[File ${label} already processed by model]`,
+          });
+        }
+      } else {
+        for (const img of imageParts) {
+          const base64 = img.dataUrl.includes(',') ? img.dataUrl.split(',')[1] : img.dataUrl;
+          content.push({
+            type: 'image',
+            image: base64,
+            mediaType: img.mime,
+          });
+        }
 
-      for (const file of fileParts) {
-        const base64 = file.dataUrl.includes(',') ? file.dataUrl.split(',')[1] : file.dataUrl;
-        content.push({
-          type: 'file',
-          data: base64,
-          mediaType: file.mime,
-          filename: file.filename,
-        });
+        for (const file of fileParts) {
+          const base64 = file.dataUrl.includes(',') ? file.dataUrl.split(',')[1] : file.dataUrl;
+          content.push({
+            type: 'file',
+            data: base64,
+            mediaType: file.mime,
+            filename: file.filename,
+          });
+        }
       }
 
       for (const tf of textFileParts) {

@@ -348,4 +348,134 @@ describe('buildHistoryMessages', () => {
       'buildHistoryMessages requires at least one message',
     );
   });
+
+  function imagePart(dataUrl = 'data:image/png;base64,AAAA', mime = 'image/png'): StoredPart {
+    return {
+      type: 'user-image',
+      id: 'prt_img' as StoredPart['id'],
+      dataUrl,
+      mime,
+      ...timing,
+    } as StoredPart;
+  }
+
+  function filePart(
+    dataUrl = 'data:application/pdf;base64,BBBB',
+    mime = 'application/pdf',
+    filename = 'doc.pdf',
+  ): StoredPart {
+    return {
+      type: 'user-file',
+      id: 'prt_file' as StoredPart['id'],
+      dataUrl,
+      mime,
+      filename,
+      ...timing,
+    } as StoredPart;
+  }
+
+  function userMsg(parts: StoredPart[]) {
+    return { role: 'user' as const, isSummary: false, modelId: 'test', parts };
+  }
+
+  function assistantMsg(text: string) {
+    return {
+      role: 'assistant' as const,
+      isSummary: false,
+      modelId: 'test',
+      parts: [textPart(text)],
+    };
+  }
+
+  test('preserves images within the last 3 assistant turns', () => {
+    const msgs = [
+      userMsg([textPart('look at this'), imagePart()]),
+      assistantMsg('I see the image'),
+      userMsg([textPart('and this'), imagePart()]),
+      assistantMsg('Got it'),
+      userMsg([textPart('last one')]),
+      assistantMsg('Done'),
+    ];
+
+    const result = buildHistoryMessages(msgs);
+    const userMessages = result.filter((m) => m.role === 'user');
+
+    for (const um of userMessages) {
+      if (typeof um.content === 'string') continue;
+      const parts = um.content as Array<{ type: string; text?: string }>;
+      const placeholders = parts.filter(
+        (p) => p.type === 'text' && p.text?.includes('already processed'),
+      );
+      expect(placeholders).toHaveLength(0);
+    }
+
+    const firstContent = userMessages[0].content as Array<{ type: string }>;
+    const realImages = firstContent.filter((p) => p.type === 'image');
+    expect(realImages).toHaveLength(1);
+  });
+
+  test('prunes images older than 3 assistant turns', () => {
+    const msgs = [
+      userMsg([textPart('old image'), imagePart('data:image/png;base64,OLD')]),
+      assistantMsg('turn 1'),
+      userMsg([textPart('msg 2')]),
+      assistantMsg('turn 2'),
+      userMsg([textPart('msg 3')]),
+      assistantMsg('turn 3'),
+      userMsg([textPart('recent image'), imagePart('data:image/png;base64,NEW')]),
+      assistantMsg('turn 4'),
+    ];
+
+    const result = buildHistoryMessages(msgs);
+    const userMessages = result.filter((m) => m.role === 'user');
+
+    const firstUserContent = userMessages[0].content as Array<{ type: string; text?: string }>;
+    const imagePlaceholders = firstUserContent.filter(
+      (p) => p.type === 'text' && p.text?.includes('already processed'),
+    );
+    expect(imagePlaceholders).toHaveLength(1);
+
+    const lastImageUser = userMessages[userMessages.length - 1];
+    const lastContent = lastImageUser.content as Array<{ type: string }>;
+    const realImages = lastContent.filter((p) => p.type === 'image');
+    expect(realImages).toHaveLength(1);
+  });
+
+  test('prunes file attachments older than 3 assistant turns', () => {
+    const msgs = [
+      userMsg([textPart('old file'), filePart()]),
+      assistantMsg('turn 1'),
+      userMsg([textPart('msg 2')]),
+      assistantMsg('turn 2'),
+      userMsg([textPart('msg 3')]),
+      assistantMsg('turn 3'),
+      userMsg([textPart('msg 4')]),
+      assistantMsg('turn 4'),
+    ];
+
+    const result = buildHistoryMessages(msgs);
+    const userMessages = result.filter((m) => m.role === 'user');
+
+    const firstUserContent = userMessages[0].content as Array<{ type: string; text?: string }>;
+    const filePlaceholders = firstUserContent.filter(
+      (p) => p.type === 'text' && p.text?.includes('"doc.pdf" already processed'),
+    );
+    expect(filePlaceholders).toHaveLength(1);
+  });
+
+  test('keeps all images when fewer than 3 assistant turns exist', () => {
+    const msgs = [
+      userMsg([textPart('image here'), imagePart()]),
+      assistantMsg('turn 1'),
+      userMsg([textPart('another')]),
+      assistantMsg('turn 2'),
+    ];
+
+    const result = buildHistoryMessages(msgs);
+    const userMessages = result.filter((m) => m.role === 'user');
+
+    const firstContent = userMessages[0].content as Array<{ type: string }>;
+    const realImages = firstContent.filter((p) => p.type === 'image');
+    expect(realImages).toHaveLength(1);
+  });
 });
