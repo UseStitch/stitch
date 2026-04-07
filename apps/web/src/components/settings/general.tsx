@@ -232,7 +232,38 @@ function updaterStatusLabel(status: string, progress?: number): string {
   return 'Check for updates manually.';
 }
 
+const RELEASES_URL = 'https://github.com/UseStitch/stitch/releases/latest';
+
 function AppUpdatesContent() {
+  const isMac = window.electron?.platform === 'darwin';
+
+  if (isMac) {
+    return (
+      <div className="flex items-center justify-between gap-4 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Desktop app updates</Label>
+          <p className="text-xs text-muted-foreground">
+            Auto-updates are not available on macOS. Download the latest version from the releases
+            page.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => void window.api?.shell?.openExternal(RELEASES_URL)}
+        >
+          Download update
+        </Button>
+      </div>
+    );
+  }
+
+  return <AutoUpdatesContent />;
+}
+
+function AutoUpdatesContent() {
   const updater = useUpdaterStore((state) => state.updater);
   const setInstalling = useUpdaterStore((state) => state.setInstalling);
   const [checkPending, setCheckPending] = React.useState(false);

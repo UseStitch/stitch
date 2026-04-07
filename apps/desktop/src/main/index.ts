@@ -250,13 +250,15 @@ void app.whenReady().then(async () => {
 
     await createWindow();
 
-    updater.init();
-    setTimeout(() => {
-      void updater.checkForUpdates();
-    }, 15_000);
-    setInterval(() => {
-      void updater.checkForUpdates();
-    }, UPDATE_CHECK_INTERVAL_MS);
+    if (process.platform !== 'darwin') {
+      updater.init();
+      setTimeout(() => {
+        void updater.checkForUpdates();
+      }, 15_000);
+      setInterval(() => {
+        void updater.checkForUpdates();
+      }, UPDATE_CHECK_INTERVAL_MS);
+    }
 
     // Initialize system tray
     const getWindow = () => mainWindow;
