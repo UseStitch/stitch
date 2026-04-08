@@ -41,6 +41,7 @@ const settingsSearchSchema = z.object({
       'models',
       'permissions',
       'mcp-servers',
+      'memory',
     ])
     .optional(),
 });
