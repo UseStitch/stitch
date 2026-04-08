@@ -21,6 +21,10 @@ export const SETTINGS_KEYS = [
   'browser.activeProfile',
   'browser.headless',
   'shortcuts.leaderKey',
+  'memory.enabled',
+  'memory.autoExtract',
+  'memory.embedding.providerId',
+  'memory.embedding.modelId',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -46,6 +50,10 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'browser.activeProfile': z.string(),
   'browser.headless': z.coerce.boolean(),
   'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
+  'memory.enabled': z.coerce.boolean(),
+  'memory.autoExtract': z.coerce.boolean(),
+  'memory.embedding.providerId': z.string(),
+  'memory.embedding.modelId': z.string(),
 } as const;
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
@@ -160,5 +168,29 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: 'Mod+X',
     description:
       'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
+  },
+  {
+    key: 'memory.enabled',
+    value: 'true',
+    description:
+      'Enable persistent memory system that learns user preferences and facts across sessions.',
+  },
+  {
+    key: 'memory.autoExtract',
+    value: 'true',
+    description:
+      'Automatically extract and store memories from conversations after each response.',
+  },
+  {
+    key: 'memory.embedding.providerId',
+    value: '',
+    description:
+      'Provider ID for the embedding model. Empty uses the local all-MiniLM-L6-v2 model.',
+  },
+  {
+    key: 'memory.embedding.modelId',
+    value: '',
+    description:
+      'Embedding model ID from the selected provider. Empty uses the local all-MiniLM-L6-v2 model.',
   },
 ];
