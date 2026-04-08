@@ -2,12 +2,14 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { resetEmbedder } from '@/memory/embedding/factory.js';
 import {
   getAllSemanticMemories,
   searchSemanticMemories,
   updateSemanticMemory,
   deleteSemanticMemory,
 } from '@/memory/service.js';
+import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@/memory/types.js';
 
 const patchSchema = z.object({
@@ -56,5 +58,11 @@ memoryRouter.delete('/semantic/:id', async (c) => {
 memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c) => {
   const { ids } = c.req.valid('json');
   await Promise.all(ids.map((id) => deleteSemanticMemory(id)));
+  return c.body(null, 204);
+});
+
+memoryRouter.post('/reset', async (c) => {
+  await dropSemanticTable();
+  resetEmbedder();
   return c.body(null, 204);
 });

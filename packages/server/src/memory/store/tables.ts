@@ -52,4 +52,12 @@ export async function getSemanticTable(dimensions: number): Promise<LanceTable> 
   return db.createEmptyTable(SEMANTIC_TABLE, semanticSchema(dimensions));
 }
 
+export async function dropSemanticTable(): Promise<void> {
+  const db = await getConnection();
+  if (await tableExists(SEMANTIC_TABLE)) {
+    await db.dropTable(SEMANTIC_TABLE);
+    log.info('dropped semantic_memories table');
+  }
+}
+
 

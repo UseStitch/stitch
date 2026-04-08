@@ -21,6 +21,10 @@ const DEFAULT_DIMENSIONS = 1536;
 
 let cachedEmbedder: MemoryEmbedder | null = null;
 
+export function resetEmbedder(): void {
+  cachedEmbedder = null;
+}
+
 /**
  * Create a MemoryEmbedder based on the user's settings.
  *

@@ -112,3 +112,18 @@ export function bulkDeleteMemoriesMutationOptions(
     onError: (err) => toast.error(err.message),
   };
 }
+
+export function resetMemoriesMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<void, Error, void> {
+  return {
+    mutationFn: async () => {
+      const res = await serverFetch('/memory/reset', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to reset memories');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
+    },
+    onError: (err) => toast.error(err.message),
+  };
+}

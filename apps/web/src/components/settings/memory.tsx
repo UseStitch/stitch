@@ -14,12 +14,22 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
   visibleProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
+import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -62,6 +72,9 @@ function EmbeddingModelSelect({
   providerModels: ProviderModels[];
 }) {
   const queryClient = useQueryClient();
+  const [pendingValue, setPendingValue] = React.useState<ModelOption | null | undefined>(
+    undefined,
+  );
 
   const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
   const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
@@ -78,8 +91,27 @@ function EmbeddingModelSelect({
   const deleteModelMutation = useMutation(
     deleteSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
   );
+  const resetMutation = useMutation(resetMemoriesMutationOptions(queryClient));
+
+  function isActualChange(value: ModelOption | null): boolean {
+    if (!value) return !!(currentProviderId || currentModelId);
+    return value.providerId !== currentProviderId || value.modelId !== currentModelId;
+  }
 
   function handleValueChange(value: ModelOption | null) {
+    if (!isActualChange(value)) return;
+
+    // Only prompt if there are existing memories (i.e. a model was already set or local was used).
+    // We always show the dialog whenever a real change happens — the user may have local memories.
+    setPendingValue(value);
+  }
+
+  async function handleConfirm() {
+    const value = pendingValue;
+    setPendingValue(undefined);
+
+    await resetMutation.mutateAsync();
+
     if (!value) {
       if (currentProviderId) deleteProviderMutation.mutate();
       if (currentModelId) deleteModelMutation.mutate();
@@ -89,6 +121,10 @@ function EmbeddingModelSelect({
     saveModelMutation.mutate(value.modelId);
   }
 
+  function handleCancel() {
+    setPendingValue(undefined);
+  }
+
   const selectedOption =
     currentProviderId && currentModelId
       ? (allOptions.find(
@@ -96,36 +132,64 @@ function EmbeddingModelSelect({
         ) ?? null)
       : null;
 
+  const isConfirming = resetMutation.isPending;
+
   return (
-    <Combobox<ModelOption>
-      value={selectedOption}
-      onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput
-        placeholder="Local (all-MiniLM-L6-v2)"
-        showClear={!!(currentProviderId && currentModelId)}
-      />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={item.value} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+    <>
+      <Combobox<ModelOption>
+        value={selectedOption}
+        onValueChange={handleValueChange}
+        isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
+        items={groups}
+      >
+        <ComboboxInput
+          placeholder="Local (all-MiniLM-L6-v2)"
+          showClear={!!(currentProviderId && currentModelId)}
+        />
+        <ComboboxContent side="bottom" sideOffset={4} align="start">
+          <ComboboxEmpty>No models found</ComboboxEmpty>
+          <ComboboxList>
+            {(group, index) => (
+              <ComboboxGroup key={group.value} items={group.items}>
+                <ComboboxLabel>{group.value}</ComboboxLabel>
+                <ComboboxCollection>
+                  {(item) => (
+                    <ComboboxItem key={item.value} value={item}>
+                      {item.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxCollection>
+                {index < groups.length - 1 && <ComboboxSeparator />}
+              </ComboboxGroup>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+
+      <Dialog open={pendingValue !== undefined} onOpenChange={(open) => !open && handleCancel()}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change embedding model?</DialogTitle>
+            <DialogDescription>
+              Switching the embedding model will permanently delete all stored memories. This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel} disabled={isConfirming}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirm()}
+              disabled={isConfirming}
+            >
+              {isConfirming ? 'Deleting...' : 'Delete memories & switch'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
