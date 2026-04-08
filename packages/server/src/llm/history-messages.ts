@@ -19,12 +19,7 @@ const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 
 function isToolResultError(output: unknown): boolean {
-  return (
-    output !== null &&
-    output !== undefined &&
-    typeof output === 'object' &&
-    'error' in (output)
-  );
+  return output !== null && output !== undefined && typeof output === 'object' && 'error' in output;
 }
 
 function toPreviewText(value: unknown): string {

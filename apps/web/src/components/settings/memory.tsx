@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { Button } from '@/components/ui/button';
 import {
   Combobox,
   ComboboxCollection,
@@ -22,14 +23,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  embeddingProviderModelsQueryOptions,
-  type ProviderModels,
-} from '@/lib/queries/providers';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
+import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -72,9 +69,7 @@ function EmbeddingModelSelect({
   providerModels: ProviderModels[];
 }) {
   const queryClient = useQueryClient();
-  const [pendingValue, setPendingValue] = React.useState<ModelOption | null | undefined>(
-    undefined,
-  );
+  const [pendingValue, setPendingValue] = React.useState<ModelOption | null | undefined>(undefined);
 
   const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
   const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
@@ -237,9 +232,7 @@ function MemoryToggles() {
           id="auto-extract-toggle"
           checked={autoExtract}
           disabled={!memoryEnabled}
-          onCheckedChange={(checked) =>
-            saveAutoExtractMutation.mutate(checked ? 'true' : 'false')
-          }
+          onCheckedChange={(checked) => saveAutoExtractMutation.mutate(checked ? 'true' : 'false')}
         />
       </div>
     </>

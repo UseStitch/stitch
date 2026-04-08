@@ -1,10 +1,14 @@
-import { randomUUID } from 'node:crypto';
-
-import { eq } from 'drizzle-orm';
 import { generateText, Output } from 'ai';
+import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import * as Log from '@/lib/log.js';
+import { createProvider } from '@/llm/provider/provider.js';
+import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import {
   buildExtractionPrompt,
@@ -19,13 +23,8 @@ import {
   searchSemanticMemories,
 } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
-import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
-import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { createProvider } from '@/llm/provider/provider.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
-import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'memory-processor' });
 
@@ -136,7 +135,8 @@ export async function processMemories(input: {
       facts.map((fact) => searchSemanticMemories(fact.content, 5)),
     );
 
-    for (let i = 0; i < facts.length; i++) {      const fact = facts[i];
+    for (let i = 0; i < facts.length; i++) {
+      const fact = facts[i];
       const existing = existingMemoriesPerFact[i];
 
       const dedupPrompt = buildDeduplicationPrompt(fact, existing);
@@ -164,7 +164,11 @@ export async function processMemories(input: {
       if (!decision || decision.action === 'NONE') continue;
 
       log.info(
-        { factContent: fact.content, action: decision.action, existingMemoryId: decision.existingMemoryId },
+        {
+          factContent: fact.content,
+          action: decision.action,
+          existingMemoryId: decision.existingMemoryId,
+        },
         'dedup: applying decision',
       );
 

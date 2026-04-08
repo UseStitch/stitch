@@ -1,9 +1,8 @@
+import * as lancedb from '@lancedb/lancedb';
 import path from 'node:path';
 
-import * as lancedb from '@lancedb/lancedb';
-
-import { PATHS } from '@/lib/paths.js';
 import * as Log from '@/lib/log.js';
+import { PATHS } from '@/lib/paths.js';
 
 const log = Log.create({ service: 'memory-store' });
 

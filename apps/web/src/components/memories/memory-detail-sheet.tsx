@@ -2,6 +2,11 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import {
+  CATEGORY_LABELS,
+  CONFIDENCE_LABELS,
+  CONFIDENCE_VARIANTS,
+} from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,28 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  CATEGORY_LABELS,
-  CONFIDENCE_LABELS,
-  CONFIDENCE_VARIANTS,
-} from '@/components/memories/constants';
-import type {
-  MemoryCategory,
-  MemoryConfidence,
-  SemanticMemory,
-} from '@/lib/queries/memories';
-import {
-  deleteMemoryMutationOptions,
-  updateMemoryMutationOptions,
-} from '@/lib/queries/memories';
+import type { MemoryCategory, MemoryConfidence, SemanticMemory } from '@/lib/queries/memories';
+import { deleteMemoryMutationOptions, updateMemoryMutationOptions } from '@/lib/queries/memories';
 
 type Props = {
   memory: SemanticMemory | null;
@@ -93,14 +80,16 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
 
   const isDirty =
     memory &&
-    (content !== memory.content || category !== memory.category || confidence !== memory.confidence);
+    (content !== memory.content ||
+      category !== memory.category ||
+      confidence !== memory.confidence);
 
   if (!memory) return null;
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="flex w-full flex-col sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Memory</SheetTitle>
           </SheetHeader>
@@ -157,7 +146,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             </div>
 
             {/* Read-only metadata */}
-            <div className="rounded-lg border border-border bg-muted/30 p-3 flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Source</span>
                 <Badge variant="outline" className="capitalize">

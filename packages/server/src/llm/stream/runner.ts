@@ -11,6 +11,8 @@ import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
+import { createProvider } from '@/llm/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
@@ -25,8 +27,6 @@ import {
   setSessionActiveToolsetIds,
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { processMemories } from '@/memory/processor.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';

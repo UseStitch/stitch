@@ -152,9 +152,7 @@ export async function getAudioModels(): Promise<Record<string, RawProvider>> {
 }
 
 function isEmbeddingModel(model: RawModel): boolean {
-  return (
-    model.id.toLowerCase().includes('embed') || model.name.toLowerCase().includes('embed')
-  );
+  return model.id.toLowerCase().includes('embed') || model.name.toLowerCase().includes('embed');
 }
 
 /** Returns only embedding models per provider, preserving the allowed-provider filter. */

@@ -3,12 +3,12 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import {
   CATEGORY_LABELS,
   CATEGORY_VARIANTS,
   CONFIDENCE_LABELS,
 } from '@/components/memories/constants';
+import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,11 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  MemoryCategory,
-  MemorySource,
-  SemanticMemory,
-} from '@/lib/queries/memories';
+import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
 import {
   bulkDeleteMemoriesMutationOptions,
   semanticMemoriesQueryOptions,
@@ -136,7 +132,7 @@ export function MemoriesPage() {
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative w-64">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search memories…"
               value={searchInput}
@@ -186,7 +182,7 @@ export function MemoriesPage() {
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-border overflow-hidden bg-background">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
           {/* Column headers */}
           <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
             <div className="flex w-6 items-center justify-center">
@@ -299,11 +295,7 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
           onToggleSelect();
         }}
       >
-        <Checkbox
-          checked={selected}
-          onCheckedChange={onToggleSelect}
-          aria-label="Select memory"
-        />
+        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
       </div>
 
       <p className="flex-1 truncate text-sm">{memory.content}</p>
@@ -315,11 +307,13 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
       </div>
 
       <div className="flex w-24 justify-center">
-        <span className="text-xs text-muted-foreground">{CONFIDENCE_LABELS[memory.confidence]}</span>
+        <span className="text-xs text-muted-foreground">
+          {CONFIDENCE_LABELS[memory.confidence]}
+        </span>
       </div>
 
       <div className="flex w-24 justify-center">
-        <Badge variant="outline" className="capitalize text-xs">
+        <Badge variant="outline" className="text-xs capitalize">
           {memory.source}
         </Badge>
       </div>

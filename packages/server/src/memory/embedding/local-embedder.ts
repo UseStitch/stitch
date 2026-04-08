@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { PATHS } from '@/lib/paths.js';
+import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 const DIMENSIONS = 384;

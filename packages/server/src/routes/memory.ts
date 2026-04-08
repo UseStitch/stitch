@@ -30,7 +30,11 @@ memoryRouter.get('/semantic', async (c) => {
   const q = c.req.query('q');
 
   if (q) {
-    const results = await searchSemanticMemories(q, 50, source as 'chat' | 'automation' | undefined);
+    const results = await searchSemanticMemories(
+      q,
+      50,
+      source as 'chat' | 'automation' | undefined,
+    );
     return c.json(results);
   }
 

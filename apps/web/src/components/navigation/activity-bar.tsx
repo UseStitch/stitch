@@ -1,4 +1,11 @@
-import { BarChart3Icon, BotIcon, BrainIcon, MessageSquareIcon, PlugIcon, SettingsIcon } from 'lucide-react';
+import {
+  BarChart3Icon,
+  BotIcon,
+  BrainIcon,
+  MessageSquareIcon,
+  PlugIcon,
+  SettingsIcon,
+} from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';

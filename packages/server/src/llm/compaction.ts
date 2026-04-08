@@ -12,11 +12,11 @@ import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import * as Models from '@/llm/provider/models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -515,7 +515,10 @@ export async function buildCompactedHistory(
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
     promptConfig?.userName !== undefined && promptConfig?.userTimezone !== undefined
-      ? Promise.resolve({ userName: promptConfig.userName ?? null, userTimezone: promptConfig.userTimezone ?? null })
+      ? Promise.resolve({
+          userName: promptConfig.userName ?? null,
+          userTimezone: promptConfig.userTimezone ?? null,
+        })
       : getPromptUserContext(),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
   ]);

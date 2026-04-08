@@ -23,7 +23,9 @@ const memoriesKeys = {
   semanticSearch: (q: string) => [...memoriesKeys.semantic(), 'search', q] as const,
 };
 
-export const semanticMemoriesQueryOptions = (source?: import('@stitch/shared/memory/types').MemorySource) =>
+export const semanticMemoriesQueryOptions = (
+  source?: import('@stitch/shared/memory/types').MemorySource,
+) =>
   queryOptions({
     queryKey: [...memoriesKeys.semantic(), source ?? 'all'],
     queryFn: async (): Promise<import('@stitch/shared/memory/types').SemanticMemory[]> => {

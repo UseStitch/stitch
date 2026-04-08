@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { VectorQuery } from '@lancedb/lancedb';
-
+import * as Log from '@/lib/log.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { createEmbedder } from '@/memory/embedding/factory.js';
 import { getSemanticTable } from '@/memory/store/tables.js';
@@ -11,7 +10,7 @@ import type {
   MemorySource,
   ExtractedFact,
 } from '@/memory/types.js';
-import * as Log from '@/lib/log.js';
+import type { VectorQuery } from '@lancedb/lancedb';
 
 const log = Log.create({ service: 'memory-service' });
 
@@ -94,7 +93,10 @@ export async function updateSemanticMemory(
     // Content change requires re-embedding; vector is not a SQL scalar so fall back to delete+add.
     const vector = await embedder.embed(updates.content);
 
-    const existing = await table.query().where(`id = '${escapeSql(id)}'`).toArray();
+    const existing = await table
+      .query()
+      .where(`id = '${escapeSql(id)}'`)
+      .toArray();
     if (existing.length === 0) {
       log.warn({ id }, 'semantic memory not found for update');
       return;
@@ -150,15 +152,10 @@ export async function searchSemanticMemories(
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  const [count, vector] = await Promise.all([
-    table.countRows(),
-    embedder.embed(query),
-  ]);
+  const [count, vector] = await Promise.all([table.countRows(), embedder.embed(query)]);
   if (count === 0) return [];
 
-  let search = (table.search(vector) as VectorQuery)
-    .distanceType('cosine')
-    .limit(limit);
+  let search = (table.search(vector) as VectorQuery).distanceType('cosine').limit(limit);
 
   if (sourceFilter) {
     search = search.where(`source = '${escapeSql(sourceFilter)}'`);
@@ -181,7 +178,9 @@ export async function searchSemanticMemories(
   }));
 }
 
-export async function getAllSemanticMemories(sourceFilter?: MemorySource): Promise<SemanticMemory[]> {
+export async function getAllSemanticMemories(
+  sourceFilter?: MemorySource,
+): Promise<SemanticMemory[]> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 

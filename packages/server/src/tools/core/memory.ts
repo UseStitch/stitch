@@ -1,13 +1,13 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { getMemoryConfig } from '@/memory/config.js';
 import {
   addSemanticMemory,
   deleteSemanticMemory,
   searchSemanticMemories,
   getAllSemanticMemories,
 } from '@/memory/service.js';
-import { getMemoryConfig } from '@/memory/config.js';
 import { MEMORY_CATEGORIES } from '@/memory/types.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 
@@ -19,10 +19,7 @@ const memoryInputSchema = z.object({
     .describe(
       'Action to perform: "remember" to store a fact, "recall" to search memories, "forget" to delete a memory, "list" to show all memories',
     ),
-  content: z
-    .string()
-    .optional()
-    .describe('The fact to remember, or the search query for recall'),
+  content: z.string().optional().describe('The fact to remember, or the search query for recall'),
   category: z
     .enum(MEMORY_CATEGORIES)
     .optional()
@@ -105,8 +102,7 @@ function createMemoryTool(context: ToolContext) {
           }
 
           const lines = all.map(
-            (m) =>
-              `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence})`,
+            (m) => `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence})`,
           );
 
           return { output: `${all.length} memories:\n${lines.join('\n')}` };

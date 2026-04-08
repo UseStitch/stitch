@@ -273,7 +273,10 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
   return { from, to };
 }
 
-function normalizeEventSource(source: string, sessionType: 'chat' | 'automation' | null): UsageSource {
+function normalizeEventSource(
+  source: string,
+  sessionType: 'chat' | 'automation' | null,
+): UsageSource {
   if (source === 'title_generation') {
     return 'title_generation';
   }

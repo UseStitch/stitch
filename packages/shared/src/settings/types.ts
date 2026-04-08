@@ -178,8 +178,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'memory.autoExtract',
     value: 'true',
-    description:
-      'Automatically extract and store memories from conversations after each response.',
+    description: 'Automatically extract and store memories from conversations after each response.',
   },
   {
     key: 'memory.embedding.providerId',

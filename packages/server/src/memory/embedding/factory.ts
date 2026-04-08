@@ -1,12 +1,13 @@
+import { inArray } from 'drizzle-orm';
+
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
-import { inArray } from 'drizzle-orm';
+import * as Log from '@/lib/log.js';
+import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
+import { invalidateMemoryConfig, getMemoryConfig } from '@/memory/config.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { LocalEmbedder, resetPipeline } from '@/memory/embedding/local-embedder.js';
 import { ProviderEmbedder } from '@/memory/embedding/provider-embedder.js';
-import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
-import { invalidateMemoryConfig, getMemoryConfig } from '@/memory/config.js';
-import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'memory-embedder' });
 

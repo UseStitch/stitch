@@ -1,8 +1,8 @@
 import { embed, embedMany, type EmbeddingModel } from 'ai';
 
-import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 
 /**
  * Embedding implementation using AI SDK providers (OpenAI, Google, etc.).

@@ -1,10 +1,7 @@
-import { getMemoryConfig } from '@/memory/config.js';
-import {
-  searchSemanticMemories,
-  touchSemanticMemories,
-} from '@/memory/service.js';
-import type { MemorySource } from '@/memory/types.js';
 import * as Log from '@/lib/log.js';
+import { getMemoryConfig } from '@/memory/config.js';
+import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
+import type { MemorySource } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-retriever' });
 

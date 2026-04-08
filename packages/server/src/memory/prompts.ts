@@ -12,7 +12,9 @@ export const extractionSchema = z.object({
     z.object({
       content: z.string().describe('A single, self-contained statement about the user.'),
       category: z.enum(MEMORY_CATEGORIES).describe('The category of the fact.'),
-      confidence: z.enum(MEMORY_CONFIDENCES).describe('"stated" if explicit, "inferred" if implied.'),
+      confidence: z
+        .enum(MEMORY_CONFIDENCES)
+        .describe('"stated" if explicit, "inferred" if implied.'),
     }),
   ),
 });
