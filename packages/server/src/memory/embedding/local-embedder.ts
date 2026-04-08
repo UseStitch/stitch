@@ -1,4 +1,7 @@
+import path from 'node:path';
+
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
+import { PATHS } from '@/lib/paths.js';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 const DIMENSIONS = 384;
@@ -9,16 +12,35 @@ type Pipeline = (
 ) => Promise<{ tolist(): number[][] }>;
 
 let pipelineInstance: Pipeline | null = null;
+let pipelineLoadPromise: Promise<Pipeline> | null = null;
 
 async function getPipeline(): Promise<Pipeline> {
   if (pipelineInstance) return pipelineInstance;
 
-  const { pipeline } = await import('@huggingface/transformers');
-  pipelineInstance = (await pipeline('feature-extraction', MODEL_NAME, {
-    dtype: 'fp32',
-  })) as unknown as Pipeline;
+  // Ensure concurrent callers share a single load promise rather than racing
+  // to download and initialize the model simultaneously.
+  if (pipelineLoadPromise) return pipelineLoadPromise;
 
-  return pipelineInstance;
+  pipelineLoadPromise = (async () => {
+    const { pipeline, env } = await import('@huggingface/transformers');
+    // Store model files under the app's cache directory so they persist across
+    // runs and are accessible in packaged (asar) builds where ./.cache is read-only.
+    env.cacheDir = path.join(PATHS.cacheDir, 'hf-models');
+
+    const instance = (await pipeline('feature-extraction', MODEL_NAME, {
+      dtype: 'fp32',
+    })) as unknown as Pipeline;
+
+    pipelineInstance = instance;
+    return instance;
+  })();
+
+  return pipelineLoadPromise;
+}
+
+export function resetPipeline(): void {
+  pipelineInstance = null;
+  pipelineLoadPromise = null;
 }
 
 /**

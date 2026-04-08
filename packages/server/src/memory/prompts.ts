@@ -85,10 +85,15 @@ export function buildDeduplicationPrompt(
   return `You are a memory deduplication system. Given a newly extracted fact and a list of existing memories, decide what action to take.
 
 Actions:
-- "ADD": The fact is new and not covered by any existing memory. Add it.
-- "UPDATE": The fact updates, corrects, or refines an existing memory. Provide the existingMemoryId and the updated content.
-- "DELETE": The fact contradicts an existing memory and the existing memory should be removed. Provide the existingMemoryId.
-- "NONE": The fact is already captured by an existing memory with no meaningful difference. Skip it.
+- "ADD": The fact is genuinely new information not covered by any existing memory.
+- "UPDATE": The fact refines or extends an existing memory with meaningfully new detail. Provide existingMemoryId and the merged updatedContent.
+- "DELETE": An existing memory is now FACTUALLY WRONG because this new fact directly contradicts it (e.g. old memory says "uses Windows", new fact says "switched to macOS"). Only use this when the existing memory is objectively incorrect. Provide existingMemoryId.
+- "NONE": The fact is already captured, is essentially identical, or is only a minor rephrasing of an existing memory. When in doubt, use NONE.
+
+Important rules:
+- The assistant RECITING a memory back to the user is NOT a contradiction — do not DELETE in this case.
+- Prefer NONE over DELETE. Only DELETE when the existing memory is clearly and factually wrong.
+- Prefer NONE over UPDATE for minor wording differences.
 
 <new_fact>
 content: ${fact.content}

@@ -80,34 +80,46 @@ export async function updateSemanticMemory(
   const table = await getSemanticTable(embedder.dimensions);
   const timestamp = now();
 
-  // LanceDB update uses SQL-style expressions for new values.
-  // For vector + metadata updates, delete-then-insert is the pragmatic approach.
-  const existing = await table
-    .query()
-    .where(`id = '${escapeSql(id)}'`)
-    .toArray();
-
-  if (existing.length === 0) {
-    log.warn({ id }, 'semantic memory not found for update');
-    return;
+  const columns: Record<string, string> = {
+    updatedAt: `'${escapeSql(timestamp)}'`,
+  };
+  if (updates.category !== undefined) {
+    columns.category = `'${escapeSql(updates.category)}'`;
+  }
+  if (updates.confidence !== undefined) {
+    columns.confidence = `'${escapeSql(updates.confidence)}'`;
   }
 
-  const row = existing[0];
-  const newContent = updates.content ?? (row.content as string);
-  const vector =
-    updates.content !== undefined ? await embedder.embed(newContent) : row.vector;
+  if (updates.content !== undefined) {
+    // Content change requires re-embedding; vector is not a SQL scalar so fall back to delete+add.
+    const vector = await embedder.embed(updates.content);
 
-  await table.delete(`id = '${escapeSql(id)}'`);
-  await table.add([
-    {
-      ...row,
-      content: newContent,
-      category: updates.category ?? row.category,
-      confidence: updates.confidence ?? row.confidence,
+    const existing = await table.query().where(`id = '${escapeSql(id)}'`).toArray();
+    if (existing.length === 0) {
+      log.warn({ id }, 'semantic memory not found for update');
+      return;
+    }
+    const row = existing[0];
+
+    const newRecord = {
+      id: row.id as string,
+      content: updates.content,
+      category: (updates.category ?? row.category) as string,
+      confidence: (updates.confidence ?? row.confidence) as string,
+      source: row.source as string,
+      sourceId: row.sourceId as string,
+      createdAt: row.createdAt as string,
       updatedAt: timestamp,
+      accessCount: row.accessCount as number,
+      lastAccessedAt: row.lastAccessedAt as string,
       vector,
-    },
-  ]);
+    };
+
+    await table.delete(`id = '${escapeSql(id)}'`);
+    await table.add([newRecord]);
+  } else {
+    await table.update({ valuesSql: columns, where: `id = '${escapeSql(id)}'` });
+  }
 
   log.info({ id }, 'updated semantic memory');
 }
@@ -202,15 +214,11 @@ export async function touchSemanticMemories(ids: string[]): Promise<void> {
   const timestamp = now();
 
   const escapedList = ids.map((id) => `'${escapeSql(id)}'`).join(', ');
-  const rows = await table.query().where(`id IN (${escapedList})`).toArray();
-  if (rows.length === 0) return;
-
-  const updated = rows.map((row) => ({
-    ...row,
-    accessCount: (row.accessCount as number) + 1,
-    lastAccessedAt: timestamp,
-  }));
-
-  await table.delete(`id IN (${escapedList})`);
-  await table.add(updated);
+  await table.update({
+    valuesSql: {
+      accessCount: 'accessCount + 1',
+      lastAccessedAt: `'${escapeSql(timestamp)}'`,
+    },
+    where: `id IN (${escapedList})`,
+  });
 }

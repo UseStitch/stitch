@@ -2,7 +2,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema.js';
 import { inArray } from 'drizzle-orm';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
-import { LocalEmbedder } from '@/memory/embedding/local-embedder.js';
+import { LocalEmbedder, resetPipeline } from '@/memory/embedding/local-embedder.js';
 import { ProviderEmbedder } from '@/memory/embedding/provider-embedder.js';
 import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
 import { invalidateMemoryConfig, getMemoryConfig } from '@/memory/config.js';
@@ -16,6 +16,7 @@ let cachedEmbedder: MemoryEmbedder | null = null;
 
 export function resetEmbedder(): void {
   cachedEmbedder = null;
+  resetPipeline();
   invalidateMemoryConfig();
 }
 

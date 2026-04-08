@@ -100,7 +100,6 @@ export async function processMemories(input: {
     const model = createProvider(resolved.credentials)(resolved.modelId);
     const runId = randomUUID();
 
-    // Step 1: Extract facts from the conversation turn (structured output)
     const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);
     const extractionStart = Date.now();
     const extractionResult = await generateText({
@@ -133,14 +132,11 @@ export async function processMemories(input: {
       'extracted facts from conversation turn',
     );
 
-    // Step 2: Search for existing memories for all facts in parallel
     const existingMemoriesPerFact = await Promise.all(
       facts.map((fact) => searchSemanticMemories(fact.content, 5)),
     );
 
-    // Step 3: For each fact, run deduplication and apply the decision
-    for (let i = 0; i < facts.length; i++) {
-      const fact = facts[i];
+    for (let i = 0; i < facts.length; i++) {      const fact = facts[i];
       const existing = existingMemoriesPerFact[i];
 
       const dedupPrompt = buildDeduplicationPrompt(fact, existing);
@@ -166,6 +162,11 @@ export async function processMemories(input: {
 
       const decision = dedupResult.output;
       if (!decision || decision.action === 'NONE') continue;
+
+      log.info(
+        { factContent: fact.content, action: decision.action, existingMemoryId: decision.existingMemoryId },
+        'dedup: applying decision',
+      );
 
       switch (decision.action) {
         case 'ADD': {
