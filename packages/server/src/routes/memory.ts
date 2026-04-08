@@ -8,6 +8,7 @@ import {
   searchSemanticMemories,
   updateSemanticMemory,
   deleteSemanticMemory,
+  deleteSemanticMemories,
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@/memory/types.js';
@@ -57,7 +58,7 @@ memoryRouter.delete('/semantic/:id', async (c) => {
 
 memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c) => {
   const { ids } = c.req.valid('json');
-  await Promise.all(ids.map((id) => deleteSemanticMemory(id)));
+  await deleteSemanticMemories(ids);
   return c.body(null, 204);
 });
 

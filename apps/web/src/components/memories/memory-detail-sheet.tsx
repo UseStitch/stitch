@@ -27,6 +27,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  CATEGORY_LABELS,
+  CONFIDENCE_LABELS,
+  CONFIDENCE_VARIANTS,
+} from '@/components/memories/constants';
 import type {
   MemoryCategory,
   MemoryConfidence,
@@ -36,25 +41,6 @@ import {
   deleteMemoryMutationOptions,
   updateMemoryMutationOptions,
 } from '@/lib/queries/memories';
-
-const CATEGORY_LABELS: Record<MemoryCategory, string> = {
-  preference: 'Preference',
-  fact: 'Fact',
-  workflow: 'Workflow',
-  constraint: 'Constraint',
-};
-
-const CONFIDENCE_LABELS: Record<MemoryConfidence, string> = {
-  stated: 'Stated',
-  inferred: 'Inferred',
-  confirmed: 'Confirmed',
-};
-
-const CONFIDENCE_VARIANTS: Record<MemoryConfidence, 'default' | 'secondary' | 'outline'> = {
-  stated: 'default',
-  inferred: 'secondary',
-  confirmed: 'outline',
-};
 
 type Props = {
   memory: SemanticMemory | null;

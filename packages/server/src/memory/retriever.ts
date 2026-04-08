@@ -24,28 +24,23 @@ export async function retrieveMemoryContext(
   query: string,
   sourceFilter?: MemorySource,
 ): Promise<string | null> {
-  try {
-    const config = await getMemoryConfig();
-    if (!config.enabled) return null;
+  const config = await getMemoryConfig();
+  if (!config.enabled) return null;
 
-    const semantic = await searchSemanticMemories(query, SEMANTIC_LIMIT, sourceFilter);
-    const relevant = semantic.filter((m) => m.score >= MIN_RELEVANCE_SCORE);
+  const semantic = await searchSemanticMemories(query, SEMANTIC_LIMIT, sourceFilter);
+  const relevant = semantic.filter((m) => m.score >= MIN_RELEVANCE_SCORE);
 
-    if (relevant.length === 0) return null;
+  if (relevant.length === 0) return null;
 
-    touchSemanticMemories(relevant.map((m) => m.id)).catch((err) =>
-      log.warn({ error: err }, 'failed to touch semantic memories'),
-    );
+  touchSemanticMemories(relevant.map((m) => m.id)).catch((err) =>
+    log.warn({ error: err }, 'failed to touch semantic memories'),
+  );
 
-    const entries = relevant.map(
-      (m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`,
-    );
+  const entries = relevant.map(
+    (m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`,
+  );
 
-    log.debug({ semanticCount: relevant.length }, 'retrieved memory context');
+  log.debug({ semanticCount: relevant.length }, 'retrieved memory context');
 
-    return `Known facts about the user:\n${entries.join('\n')}`;
-  } catch (error) {
-    log.error({ error }, 'failed to retrieve memory context');
-    return null;
-  }
+  return `Known facts about the user:\n${entries.join('\n')}`;
 }

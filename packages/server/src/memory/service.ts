@@ -23,6 +23,11 @@ async function getEmbedder(): Promise<MemoryEmbedder> {
   return createEmbedder();
 }
 
+/** Escape a string value for use in a LanceDB SQL where clause. */
+function escapeSql(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 // ---------------------------------------------------------------------------
 // Semantic memories
 // ---------------------------------------------------------------------------
@@ -33,8 +38,10 @@ export async function addSemanticMemory(
   sourceId: string,
 ): Promise<SemanticMemory> {
   const embedder = await getEmbedder();
-  const vector = await embedder.embed(fact.content);
-  const table = await getSemanticTable(embedder.dimensions);
+  const [vector, table] = await Promise.all([
+    embedder.embed(fact.content),
+    getSemanticTable(embedder.dimensions),
+  ]);
   const timestamp = now();
   const id = randomUUID();
 
@@ -77,7 +84,7 @@ export async function updateSemanticMemory(
   // For vector + metadata updates, delete-then-insert is the pragmatic approach.
   const existing = await table
     .query()
-    .where(`id = '${id}'`)
+    .where(`id = '${escapeSql(id)}'`)
     .toArray();
 
   if (existing.length === 0) {
@@ -90,7 +97,7 @@ export async function updateSemanticMemory(
   const vector =
     updates.content !== undefined ? await embedder.embed(newContent) : row.vector;
 
-  await table.delete(`id = '${id}'`);
+  await table.delete(`id = '${escapeSql(id)}'`);
   await table.add([
     {
       ...row,
@@ -108,8 +115,19 @@ export async function updateSemanticMemory(
 export async function deleteSemanticMemory(id: string): Promise<void> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
-  await table.delete(`id = '${id}'`);
+  await table.delete(`id = '${escapeSql(id)}'`);
   log.info({ id }, 'deleted semantic memory');
+}
+
+export async function deleteSemanticMemories(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  const embedder = await getEmbedder();
+  const table = await getSemanticTable(embedder.dimensions);
+
+  const escapedList = ids.map((id) => `'${escapeSql(id)}'`).join(', ');
+  await table.delete(`id IN (${escapedList})`);
+  log.info({ count: ids.length }, 'bulk deleted semantic memories');
 }
 
 export async function searchSemanticMemories(
@@ -120,16 +138,18 @@ export async function searchSemanticMemories(
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  const count = await table.countRows();
+  const [count, vector] = await Promise.all([
+    table.countRows(),
+    embedder.embed(query),
+  ]);
   if (count === 0) return [];
 
-  const vector = await embedder.embed(query);
   let search = (table.search(vector) as VectorQuery)
     .distanceType('cosine')
     .limit(limit);
 
   if (sourceFilter) {
-    search = search.where(`source = '${sourceFilter}'`);
+    search = search.where(`source = '${escapeSql(sourceFilter)}'`);
   }
 
   const results = await search.toArray();
@@ -155,7 +175,7 @@ export async function getAllSemanticMemories(sourceFilter?: MemorySource): Promi
 
   let query = table.query();
   if (sourceFilter) {
-    query = query.where(`source = '${sourceFilter}'`);
+    query = query.where(`source = '${escapeSql(sourceFilter)}'`);
   }
 
   const rows = await query.toArray();
@@ -181,21 +201,16 @@ export async function touchSemanticMemories(ids: string[]): Promise<void> {
   const table = await getSemanticTable(embedder.dimensions);
   const timestamp = now();
 
-  // Batch touch: update accessCount and lastAccessedAt for each matched id
-  for (const id of ids) {
-    const rows = await table.query().where(`id = '${id}'`).toArray();
-    if (rows.length === 0) continue;
+  const escapedList = ids.map((id) => `'${escapeSql(id)}'`).join(', ');
+  const rows = await table.query().where(`id IN (${escapedList})`).toArray();
+  if (rows.length === 0) return;
 
-    const row = rows[0];
-    await table.delete(`id = '${id}'`);
-    await table.add([
-      {
-        ...row,
-        accessCount: (row.accessCount as number) + 1,
-        lastAccessedAt: timestamp,
-      },
-    ]);
-  }
+  const updated = rows.map((row) => ({
+    ...row,
+    accessCount: (row.accessCount as number) + 1,
+    lastAccessedAt: timestamp,
+  }));
+
+  await table.delete(`id IN (${escapedList})`);
+  await table.add(updated);
 }
-
-

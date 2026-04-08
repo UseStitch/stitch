@@ -4,6 +4,11 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
+import {
+  CATEGORY_LABELS,
+  CATEGORY_VARIANTS,
+  CONFIDENCE_LABELS,
+} from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,38 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type {
+  MemoryCategory,
+  MemorySource,
+  SemanticMemory,
+} from '@/lib/queries/memories';
 import {
   bulkDeleteMemoriesMutationOptions,
   semanticMemoriesQueryOptions,
   semanticMemorySearchQueryOptions,
-  type MemoryCategory,
-  type MemoryConfidence,
-  type MemorySource,
-  type SemanticMemory,
 } from '@/lib/queries/memories';
-
-const CATEGORY_LABELS: Record<MemoryCategory, string> = {
-  preference: 'Preference',
-  fact: 'Fact',
-  workflow: 'Workflow',
-  constraint: 'Constraint',
-};
-
-const CATEGORY_VARIANTS: Record<
-  MemoryCategory,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  preference: 'default',
-  fact: 'secondary',
-  workflow: 'outline',
-  constraint: 'destructive',
-};
-
-const CONFIDENCE_LABELS: Record<MemoryConfidence, string> = {
-  stated: 'Stated',
-  inferred: 'Inferred',
-  confirmed: 'Confirmed',
-};
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {

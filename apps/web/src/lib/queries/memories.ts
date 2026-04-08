@@ -4,27 +4,17 @@ import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/
 
 import { serverFetch } from '@/lib/api';
 
-export type MemoryCategory = 'preference' | 'fact' | 'workflow' | 'constraint';
-export type MemoryConfidence = 'stated' | 'inferred' | 'confirmed';
-export type MemorySource = 'chat' | 'automation';
-
-export type SemanticMemory = {
-  id: string;
-  content: string;
-  category: MemoryCategory;
-  confidence: MemoryConfidence;
-  source: MemorySource;
-  sourceId: string;
-  createdAt: string;
-  updatedAt: string;
-  accessCount: number;
-  lastAccessedAt: string;
-};
+export type {
+  MemoryCategory,
+  MemoryConfidence,
+  MemorySource,
+  SemanticMemory,
+} from '@stitch/shared/memory/types';
 
 type SemanticMemoryUpdate = {
   content?: string;
-  category?: MemoryCategory;
-  confidence?: MemoryConfidence;
+  category?: import('@stitch/shared/memory/types').MemoryCategory;
+  confidence?: import('@stitch/shared/memory/types').MemoryConfidence;
 };
 
 const memoriesKeys = {
@@ -33,26 +23,26 @@ const memoriesKeys = {
   semanticSearch: (q: string) => [...memoriesKeys.semantic(), 'search', q] as const,
 };
 
-export const semanticMemoriesQueryOptions = (source?: MemorySource) =>
+export const semanticMemoriesQueryOptions = (source?: import('@stitch/shared/memory/types').MemorySource) =>
   queryOptions({
     queryKey: [...memoriesKeys.semantic(), source ?? 'all'],
-    queryFn: async (): Promise<SemanticMemory[]> => {
+    queryFn: async (): Promise<import('@stitch/shared/memory/types').SemanticMemory[]> => {
       const params = new URLSearchParams();
       if (source) params.set('source', source);
       const res = await serverFetch(`/memory/semantic?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch memories');
-      return res.json() as Promise<SemanticMemory[]>;
+      return res.json() as Promise<import('@stitch/shared/memory/types').SemanticMemory[]>;
     },
   });
 
 export const semanticMemorySearchQueryOptions = (q: string) =>
   queryOptions({
     queryKey: memoriesKeys.semanticSearch(q),
-    queryFn: async (): Promise<SemanticMemory[]> => {
+    queryFn: async (): Promise<import('@stitch/shared/memory/types').SemanticMemory[]> => {
       const params = new URLSearchParams({ q });
       const res = await serverFetch(`/memory/semantic?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to search memories');
-      return res.json() as Promise<SemanticMemory[]>;
+      return res.json() as Promise<import('@stitch/shared/memory/types').SemanticMemory[]>;
     },
     enabled: q.trim().length > 0,
   });

@@ -31,6 +31,37 @@ const log = Log.create({ service: 'memory-processor' });
 
 const MEMORY_SOURCE = 'memory_extraction' as const;
 
+function recordUsageFireAndForget(params: {
+  runId: string;
+  providerId: string;
+  modelId: string;
+  usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
+  metadata: Record<string, unknown>;
+  startedAt: number;
+  endedAt: number;
+}): void {
+  calculateMessageCostUsd({
+    providerId: params.providerId,
+    modelId: params.modelId,
+    usage: params.usage,
+  })
+    .then((costUsd) =>
+      recordUsageEvent({
+        runId: params.runId,
+        source: MEMORY_SOURCE,
+        status: 'succeeded',
+        providerId: params.providerId,
+        modelId: params.modelId,
+        usage: params.usage,
+        costUsd,
+        metadata: params.metadata,
+        startedAt: params.startedAt,
+        endedAt: params.endedAt,
+      }),
+    )
+    .catch((err) => log.warn({ error: err }, 'failed to record memory usage event'));
+}
+
 /**
  * Asynchronously process a conversation turn to extract and persist memories.
  *
@@ -51,12 +82,15 @@ export async function processMemories(input: {
       return;
     }
 
-    const resolved = await resolveCheapModel({
-      providerIdKey: 'model.title.providerId',
-      modelIdKey: 'model.title.modelId',
-      fallbackProviderId: input.providerId,
-      fallbackModelId: input.modelId,
-    });
+    const [resolved, memorySource] = await Promise.all([
+      resolveCheapModel({
+        providerIdKey: 'model.title.providerId',
+        modelIdKey: 'model.title.modelId',
+        fallbackProviderId: input.providerId,
+        fallbackModelId: input.modelId,
+      }),
+      resolveMemorySource(input.sessionId, input.memorySource),
+    ]);
 
     if (!resolved) {
       log.warn('no model available for memory extraction');
@@ -65,19 +99,6 @@ export async function processMemories(input: {
 
     const model = createProvider(resolved.credentials)(resolved.modelId);
     const runId = randomUUID();
-
-    let memorySource: MemorySource = input.memorySource ?? 'chat';
-    if (!input.memorySource) {
-      const db = getDb();
-      const [session] = await db
-        .select({ type: sessions.type })
-        .from(sessions)
-        .where(eq(sessions.id, input.sessionId as PrefixedString<'ses'>))
-        .limit(1);
-      if (session?.type === 'automation') {
-        memorySource = 'automation';
-      }
-    }
 
     // Step 1: Extract facts from the conversation turn (structured output)
     const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);
@@ -90,19 +111,11 @@ export async function processMemories(input: {
     const extractionEnd = Date.now();
 
     if (extractionResult.usage) {
-      const costUsd = await calculateMessageCostUsd({
-        providerId: resolved.providerId,
-        modelId: resolved.modelId,
-        usage: extractionResult.usage,
-      });
-      await recordUsageEvent({
+      recordUsageFireAndForget({
         runId,
-        source: MEMORY_SOURCE,
-        status: 'succeeded',
         providerId: resolved.providerId,
         modelId: resolved.modelId,
         usage: extractionResult.usage,
-        costUsd,
         metadata: { phase: 'extraction' },
         startedAt: extractionStart,
         endedAt: extractionEnd,
@@ -120,9 +133,15 @@ export async function processMemories(input: {
       'extracted facts from conversation turn',
     );
 
-    // Step 2: For each fact, check for duplicates and decide action (structured output)
-    for (const fact of facts) {
-      const existing = await searchSemanticMemories(fact.content, 5);
+    // Step 2: Search for existing memories for all facts in parallel
+    const existingMemoriesPerFact = await Promise.all(
+      facts.map((fact) => searchSemanticMemories(fact.content, 5)),
+    );
+
+    // Step 3: For each fact, run deduplication and apply the decision
+    for (let i = 0; i < facts.length; i++) {
+      const fact = facts[i];
+      const existing = existingMemoriesPerFact[i];
 
       const dedupPrompt = buildDeduplicationPrompt(fact, existing);
       const dedupStart = Date.now();
@@ -134,19 +153,11 @@ export async function processMemories(input: {
       const dedupEnd = Date.now();
 
       if (dedupResult.usage) {
-        const costUsd = await calculateMessageCostUsd({
-          providerId: resolved.providerId,
-          modelId: resolved.modelId,
-          usage: dedupResult.usage,
-        });
-        await recordUsageEvent({
+        recordUsageFireAndForget({
           runId,
-          source: MEMORY_SOURCE,
-          status: 'succeeded',
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: dedupResult.usage,
-          costUsd,
           metadata: { phase: 'deduplication', factContent: fact.content },
           startedAt: dedupStart,
           endedAt: dedupEnd,
@@ -182,4 +193,20 @@ export async function processMemories(input: {
   } catch (error) {
     log.error({ error, sessionId: input.sessionId }, 'memory processing failed');
   }
+}
+
+async function resolveMemorySource(
+  sessionId: string,
+  override: MemorySource | undefined,
+): Promise<MemorySource> {
+  if (override) return override;
+
+  const db = getDb();
+  const [session] = await db
+    .select({ type: sessions.type })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId as PrefixedString<'ses'>))
+    .limit(1);
+
+  return session?.type === 'automation' ? 'automation' : 'chat';
 }

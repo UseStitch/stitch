@@ -15,6 +15,8 @@ const log = Log.create({ service: 'memory-tables' });
 
 const SEMANTIC_TABLE = 'semantic_memories';
 
+let cachedTable: LanceTable | null = null;
+
 function semanticSchema(dimensions: number): Schema {
   return new Schema([
     new Field('id', new Utf8(), false),
@@ -35,29 +37,28 @@ function semanticSchema(dimensions: number): Schema {
   ]);
 }
 
+export async function getSemanticTable(dimensions: number): Promise<LanceTable> {
+  if (cachedTable) return cachedTable;
 
-async function tableExists(name: string): Promise<boolean> {
   const db = await getConnection();
   const names = await db.tableNames();
-  return names.includes(name);
-}
 
-export async function getSemanticTable(dimensions: number): Promise<LanceTable> {
-  const db = await getConnection();
-  if (await tableExists(SEMANTIC_TABLE)) {
-    return db.openTable(SEMANTIC_TABLE);
+  if (names.includes(SEMANTIC_TABLE)) {
+    cachedTable = await db.openTable(SEMANTIC_TABLE);
+  } else {
+    log.info({ dimensions }, 'creating semantic_memories table');
+    cachedTable = await db.createEmptyTable(SEMANTIC_TABLE, semanticSchema(dimensions));
   }
 
-  log.info({ dimensions }, 'creating semantic_memories table');
-  return db.createEmptyTable(SEMANTIC_TABLE, semanticSchema(dimensions));
+  return cachedTable;
 }
 
 export async function dropSemanticTable(): Promise<void> {
   const db = await getConnection();
-  if (await tableExists(SEMANTIC_TABLE)) {
+  const names = await db.tableNames();
+  if (names.includes(SEMANTIC_TABLE)) {
     await db.dropTable(SEMANTIC_TABLE);
+    cachedTable = null;
     log.info('dropped semantic_memories table');
   }
 }
-
-
