@@ -278,6 +278,10 @@ function normalizeEventSource(source: string, sessionType: 'chat' | 'automation'
     return 'title_generation';
   }
 
+  if (source === 'memory_extraction') {
+    return 'memory_extraction';
+  }
+
   if (source.startsWith('transcription')) {
     return 'transcription';
   }
