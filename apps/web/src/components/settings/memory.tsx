@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  visibleProviderModelsQueryOptions,
+  embeddingProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
@@ -248,7 +248,7 @@ function MemoryToggles() {
 
 function EmbeddingModelContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
 
   const memoryEnabled = settings['memory.enabled'] !== 'false';
 

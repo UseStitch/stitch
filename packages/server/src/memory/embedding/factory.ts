@@ -5,18 +5,11 @@ import { userSettings, providerConfig } from '@/db/schema.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { LocalEmbedder } from '@/memory/embedding/local-embedder.js';
 import { ProviderEmbedder } from '@/memory/embedding/provider-embedder.js';
+import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'memory-embedder' });
 
-/** Known embedding model dimensions by provider/model. */
-const KNOWN_DIMENSIONS: Record<string, number> = {
-  'text-embedding-3-small': 1536,
-  'text-embedding-3-large': 3072,
-  'text-embedding-ada-002': 1536,
-  'gemini-embedding-001': 768,
-  'embedding-001': 768,
-};
 const DEFAULT_DIMENSIONS = 1536;
 
 let cachedEmbedder: MemoryEmbedder | null = null;
@@ -64,7 +57,7 @@ export async function createEmbedder(): Promise<MemoryEmbedder> {
     return cachedEmbedder;
   }
 
-  const dimensions = KNOWN_DIMENSIONS[modelId] ?? DEFAULT_DIMENSIONS;
+  const dimensions = (await getEmbeddingModelDimensions(providerId, modelId)) ?? DEFAULT_DIMENSIONS;
   log.info({ providerId, modelId, dimensions }, 'using provider embedder');
   cachedEmbedder = new ProviderEmbedder(config.credentials, modelId, dimensions);
   return cachedEmbedder;

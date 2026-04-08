@@ -43,11 +43,13 @@ export const providerKeys = {
   config: (providerId: string) => [...providerKeys.all, 'config', providerId] as const,
   enabledModels: () => [...providerKeys.all, 'enabled-models'] as const,
   visibleModels: () => [...providerKeys.all, 'visible-models'] as const,
+  embeddingModels: () => [...providerKeys.all, 'embedding-models'] as const,
 };
 
 export const providersQueryOptions = queryOptions({
   queryKey: providerKeys.list(),
-  staleTime: Infinity,
+  staleTime: 60 * 60 * 1000,
+  refetchOnWindowFocus: true,
   queryFn: async (): Promise<ProviderSummary[]> => {
     const res = await serverFetch('/llm/provider');
     if (!res.ok) throw new Error('Failed to fetch providers');
@@ -57,7 +59,8 @@ export const providersQueryOptions = queryOptions({
 
 export const enabledProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.enabledModels(),
-  staleTime: Infinity,
+  staleTime: 60 * 60 * 1000,
+  refetchOnWindowFocus: true,
   queryFn: async (): Promise<ProviderModels[]> => {
     const providersRes = await serverFetch('/llm/provider');
     if (!providersRes.ok) throw new Error('Failed to fetch providers');
@@ -80,7 +83,8 @@ export const enabledProviderModelsQueryOptions = queryOptions({
 
 export const visibleProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.visibleModels(),
-  staleTime: Infinity,
+  staleTime: 60 * 60 * 1000,
+  refetchOnWindowFocus: true,
   queryFn: async (): Promise<ProviderModels[]> => {
     const [providersRes, visibilityRes] = await Promise.all([
       serverFetch('/llm/provider'),
@@ -146,3 +150,14 @@ export const providerConfigQueryOptions = (providerId: string) =>
       return res.json() as Promise<ProviderCredentials>;
     },
   });
+
+export const embeddingProviderModelsQueryOptions = queryOptions({
+  queryKey: providerKeys.embeddingModels(),
+  staleTime: 60 * 60 * 1000,
+  refetchOnWindowFocus: true,
+  queryFn: async (): Promise<ProviderModels[]> => {
+    const res = await serverFetch('/llm/provider/embedding-models');
+    if (!res.ok) throw new Error('Failed to fetch embedding models');
+    return res.json() as Promise<ProviderModels[]>;
+  },
+});
