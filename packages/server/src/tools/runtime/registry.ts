@@ -5,6 +5,7 @@ import * as BashTool from '@/tools/core/bash.js';
 import * as EditTool from '@/tools/core/edit.js';
 import * as GlobTool from '@/tools/core/glob.js';
 import * as GrepTool from '@/tools/core/grep.js';
+import * as MemoryTool from '@/tools/core/memory.js';
 import * as QuestionTool from '@/tools/core/question.js';
 import * as ReadTool from '@/tools/core/read.js';
 import * as WebfetchTool from '@/tools/core/webfetch.js';
@@ -26,6 +27,7 @@ const STITCH_TOOL_MODULES = {
   grep: GrepTool,
   edit: EditTool,
   write: WriteTool,
+  memory: MemoryTool,
 } as const;
 
 export const STITCH_KNOWN_TOOLS: KnownTool[] = Object.entries(STITCH_TOOL_MODULES).map(

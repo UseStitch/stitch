@@ -17,6 +17,7 @@ import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.j
 import * as Models from '@/llm/provider/models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { retrieveMemoryContext } from '@/memory/retriever.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';
@@ -507,7 +508,7 @@ export async function buildCompactedHistory(
 ): Promise<ModelMessage[]> {
   const db = getDb();
 
-  const [msgs, promptUserContext] = await Promise.all([
+  const [msgs, promptUserContext, sessionRow] = await Promise.all([
     db
       .select()
       .from(messages)
@@ -516,7 +517,11 @@ export async function buildCompactedHistory(
     promptConfig?.userName !== undefined && promptConfig?.userTimezone !== undefined
       ? Promise.resolve({ userName: promptConfig.userName ?? null, userTimezone: promptConfig.userTimezone ?? null })
       : getPromptUserContext(),
+    db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
   ]);
+
+  // Automations can read all memories; chat only sees 'chat' memories
+  const memorySourceFilter = sessionRow[0]?.type === 'automation' ? undefined : ('chat' as const);
 
   // Find the last compaction boundary (summary message)
   let startIndex = 0;
@@ -527,11 +532,26 @@ export async function buildCompactedHistory(
     }
   }
 
+  // Extract the latest user message text for memory retrieval
+  let memoryContext: string | null = null;
+  const latestUserMsg = [...msgs].reverse().find((m) => m.role === 'user');
+  if (latestUserMsg) {
+    const userText = latestUserMsg.parts
+      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
+      .map((p) => p.text)
+      .join('');
+
+    if (userText.length > 0) {
+      memoryContext = await retrieveMemoryContext(userText, memorySourceFilter).catch(() => null);
+    }
+  }
+
   return buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig?.useBasePrompt ?? true,
     systemPrompt: promptConfig?.systemPrompt ?? null,
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
+    memoryContext,
   });
 }
 
