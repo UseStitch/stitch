@@ -3,6 +3,7 @@ export const USAGE_SOURCES = [
   'automation',
   'automation_generation',
   'title_generation',
+  'memory_extraction',
 ] as const;
 
 export type UsageSource = (typeof USAGE_SOURCES)[number] | (string & {});

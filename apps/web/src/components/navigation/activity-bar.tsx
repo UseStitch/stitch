@@ -1,6 +1,7 @@
 import {
   BarChart3Icon,
   BotIcon,
+  BrainIcon,
   MessageSquareIcon,
   MicIcon,
   PlugIcon,
@@ -54,6 +55,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Automations',
     to: '/automations',
     matchPrefix: '/automations',
+  },
+  {
+    id: 'memories',
+    icon: <BrainIcon className="size-5" />,
+    label: 'Memories',
+    to: '/memories',
+    matchPrefix: '/memories',
   },
 ];
 

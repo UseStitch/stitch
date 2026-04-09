@@ -124,6 +124,33 @@ export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSu
     }));
 }
 
+export async function listEnabledProviderEmbeddingModels(): Promise<ProviderModelsSummary[]> {
+  const db = getDb();
+  const [providers, configs] = await Promise.all([
+    Models.getEmbeddingModels(),
+    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+  ]);
+  const enabledIds = new Set(configs.map((row) => row.providerId));
+
+  return Object.values(providers)
+    .filter((provider) => enabledIds.has(provider.id))
+    .map((provider) => ({
+      providerId: provider.id,
+      providerName: provider.name,
+      models: Object.values(provider.models).map(toModelSummary),
+    }));
+}
+
+export async function getEmbeddingModelDimensions(
+  providerId: string,
+  modelId: string,
+): Promise<number | undefined> {
+  const providers = await Models.getEmbeddingModels();
+  const model = providers[providerId]?.models[modelId];
+  if (!model) return undefined;
+  return Models.getEmbeddingDimensions(model);
+}
+
 export async function getProviderModel(
   providerId: string,
   modelId: string,

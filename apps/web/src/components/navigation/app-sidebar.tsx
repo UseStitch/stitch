@@ -119,28 +119,26 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'connectors' | 'automations' {
+function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' | 'usage' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
+  if (path.startsWith('/memories')) return 'memories';
+  if (path.startsWith('/usage')) return 'usage';
   return 'chat';
 }
 
 export function AppSidebar() {
   const context = useActiveContext();
 
-  if (context === 'connectors') {
+  if (context === 'connectors' || context === 'memories' || context === 'usage') {
     return null;
   }
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
-      {context === 'automations' ? (
-        <AutomationsSidebarContent />
-      ) : (
-        <ChatSidebarContent />
-      )}
+      {context === 'automations' ? <AutomationsSidebarContent /> : <ChatSidebarContent />}
     </Sidebar>
   );
 }

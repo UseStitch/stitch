@@ -11,6 +11,7 @@ import {
   getProviderLogo,
   getProviderModel,
   listEnabledProviderAudioModels,
+  listEnabledProviderEmbeddingModels,
   listProviderModels,
   listProviders,
   upsertProviderCredentials,
@@ -29,6 +30,11 @@ providerRouter.get('/', async (c) => {
 
 providerRouter.get('/audio-models', async (c) => {
   const providers = await listEnabledProviderAudioModels();
+  return c.json(providers);
+});
+
+providerRouter.get('/embedding-models', async (c) => {
+  const providers = await listEnabledProviderEmbeddingModels();
   return c.json(providers);
 });
 

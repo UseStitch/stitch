@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { resetEmbedder } from '@/memory/embedding/factory.js';
 import { deleteSetting, listSettings, saveSetting } from '@/settings/service.js';
 
 const settingValueSchema = z.object({ value: z.string() });
@@ -32,6 +33,10 @@ settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) =>
     }
   }
 
+  if (key === 'memory.embedding.providerId' || key === 'memory.embedding.modelId') {
+    resetEmbedder();
+  }
+
   return c.body(null, 204);
 });
 
@@ -49,6 +54,10 @@ settingsRouter.delete('/:key', async (c) => {
       const message = error instanceof Error ? error.message : 'Failed to reschedule automations';
       return c.json({ error: message }, 500);
     }
+  }
+
+  if (key === 'memory.embedding.providerId' || key === 'memory.embedding.modelId') {
+    resetEmbedder();
   }
 
   return c.body(null, 204);

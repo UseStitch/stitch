@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsageRouteImport } from './routes/usage'
 import { Route as RecordingsRouteImport } from './routes/recordings'
+import { Route as MemoriesRouteImport } from './routes/memories'
 import { Route as ConnectorsRouteImport } from './routes/connectors'
 import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,11 @@ const UsageRoute = UsageRouteImport.update({
 const RecordingsRoute = RecordingsRouteImport.update({
   id: '/recordings',
   path: '/recordings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MemoriesRoute = MemoriesRouteImport.update({
+  id: '/memories',
+  path: '/memories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConnectorsRoute = ConnectorsRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/automations': typeof AutomationsRouteWithChildren
   '/connectors': typeof ConnectorsRoute
+  '/memories': typeof MemoriesRoute
   '/recordings': typeof RecordingsRoute
   '/usage': typeof UsageRoute
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connectors': typeof ConnectorsRoute
+  '/memories': typeof MemoriesRoute
   '/recordings': typeof RecordingsRoute
   '/usage': typeof UsageRoute
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/automations': typeof AutomationsRouteWithChildren
   '/connectors': typeof ConnectorsRoute
+  '/memories': typeof MemoriesRoute
   '/recordings': typeof RecordingsRoute
   '/usage': typeof UsageRoute
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/'
     | '/automations'
     | '/connectors'
+    | '/memories'
     | '/recordings'
     | '/usage'
     | '/automations/$automationId'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/connectors'
+    | '/memories'
     | '/recordings'
     | '/usage'
     | '/automations/$automationId'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/'
     | '/automations'
     | '/connectors'
+    | '/memories'
     | '/recordings'
     | '/usage'
     | '/automations/$automationId'
@@ -137,6 +149,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AutomationsRoute: typeof AutomationsRouteWithChildren
   ConnectorsRoute: typeof ConnectorsRoute
+  MemoriesRoute: typeof MemoriesRoute
   RecordingsRoute: typeof RecordingsRoute
   UsageRoute: typeof UsageRoute
   SessionIdRoute: typeof SessionIdRoute
@@ -156,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/recordings'
       fullPath: '/recordings'
       preLoaderRoute: typeof RecordingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/memories': {
+      id: '/memories'
+      path: '/memories'
+      fullPath: '/memories'
+      preLoaderRoute: typeof MemoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/connectors': {
@@ -230,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AutomationsRoute: AutomationsRouteWithChildren,
   ConnectorsRoute: ConnectorsRoute,
+  MemoriesRoute: MemoriesRoute,
   RecordingsRoute: RecordingsRoute,
   UsageRoute: UsageRoute,
   SessionIdRoute: SessionIdRoute,

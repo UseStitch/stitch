@@ -11,6 +11,8 @@ import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
+import { createProvider } from '@/llm/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
@@ -25,8 +27,7 @@ import {
   setSessionActiveToolsetIds,
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { processMemories } from '@/memory/processor.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
@@ -269,6 +270,7 @@ class StreamRunner {
     }
 
     await this.maybeRunCompaction();
+    this.maybeProcessMemories();
   }
 
   /**
@@ -1102,6 +1104,70 @@ class StreamRunner {
         'compaction failed',
       );
     }
+  }
+
+  /**
+   * Fire-and-forget async memory extraction from the conversation turn.
+   * Extracts the last user message and the assistant's response text,
+   * then hands them to the memory processor.
+   */
+  private maybeProcessMemories(): void {
+    const userMessage = this.getLastUserText();
+    const assistantMessage = this.getAssistantText();
+
+    if (!userMessage || !assistantMessage) return;
+
+    processMemories({
+      sessionId: this.ctx.sessionId,
+      userMessage,
+      assistantMessage,
+      providerId: this.ctx.providerId,
+      modelId: this.ctx.modelId,
+    }).catch((error) => {
+      log.warn(
+        {
+          event: 'stream.memory_processing.failed',
+          streamRunId: this.ctx.streamRunId,
+          sessionId: this.ctx.sessionId,
+          error,
+        },
+        'async memory processing failed',
+      );
+    });
+  }
+
+  private getLastUserText(): string | null {
+    for (let i = this.state.conversation.length - 1; i >= 0; i--) {
+      const msg = this.state.conversation[i];
+      if (msg?.role !== 'user') continue;
+
+      const { content } = msg;
+      if (typeof content === 'string') return content;
+
+      if (Array.isArray(content)) {
+        const textPart = content.find(
+          (part) => typeof part === 'object' && part !== null && part.type === 'text',
+        );
+        if (textPart && typeof textPart === 'object' && 'text' in textPart) {
+          return textPart.text;
+        }
+      }
+
+      return null;
+    }
+    return null;
+  }
+
+  private getAssistantText(): string | null {
+    const textParts = this.state.accumulatedParts
+      .filter(
+        (p): p is StoredPart & { type: 'text-delta' } =>
+          p.type === 'text-delta' && typeof p.text === 'string',
+      )
+      .map((p) => p.text);
+
+    const text = textParts.join('').trim();
+    return text.length > 0 ? text : null;
   }
 
   private setFinishReason(next: string, reason: string): void {
