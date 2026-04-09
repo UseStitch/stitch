@@ -91,7 +91,7 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
     });
   }
 
-  if (processName === 'discord' && hasCallHint('discord', windowTitle)) {
+  if (processName === 'discord') {
     observations.push({
       key: 'desktop:discord',
       platform: 'discord',
@@ -102,7 +102,7 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
     });
   }
 
-  if ((processName === 'chrome' || processName === 'msedge') && /google meet|meet\.google\.com/.test(windowTitle.toLowerCase())) {
+  if ((processName === 'chrome' || processName === 'msedge') && /google meet|meet\.google\.com|^meet\s+-\s+/.test(windowTitle.toLowerCase())) {
     observations.push({
       key: `browser:google-meet:${processName}`,
       platform: 'google-meet',

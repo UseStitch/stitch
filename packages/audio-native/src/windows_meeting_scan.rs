@@ -197,6 +197,7 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
       "stage",
       "google meet",
       "meet.google.com",
+      "meet -",
     ];
 
     fn pick_best_title(titles: &[String]) -> Option<String> {
