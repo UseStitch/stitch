@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Video } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useQuery } from '@tanstack/react-query';
@@ -65,11 +66,20 @@ export function MeetingRecordingBanner() {
   }
 
   return (
-    <div className="border-b border-border/60 bg-info/10 px-4 py-2">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
-        <p className="text-xs text-info-foreground">
-          Active call detected in {platformLabel(detection.platform)}. Start recording in Stitch?
-        </p>
+    <div className="border-b border-border/40 bg-card px-4 py-3 shadow-sm transition-all">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary"></span>
+            </span>
+            <Video className="h-4 w-4" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Active call detected in <strong className="font-medium text-foreground">{platformLabel(detection.platform)}</strong>. Would you like to start recording?
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -86,6 +96,7 @@ export function MeetingRecordingBanner() {
               );
             }}
             disabled={startRecording.isPending}
+            className="shadow-sm"
           >
             Start recording
           </Button>
@@ -101,6 +112,7 @@ export function MeetingRecordingBanner() {
               });
               setDetection(null);
             }}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Dismiss
           </Button>
