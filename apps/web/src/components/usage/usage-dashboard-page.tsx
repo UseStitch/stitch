@@ -44,6 +44,7 @@ const SOURCE_LABELS: Record<string, string> = {
   automation: 'Automation',
   title_generation: 'Title Generation',
   transcription: 'Transcription',
+  memory_extraction: 'Memory',
 };
 
 const TOKEN_TYPE_KEYS = [

@@ -1,4 +1,5 @@
 import {
+  BrainIcon,
   GlobeIcon,
   KeyboardIcon,
   NetworkIcon,
@@ -15,6 +16,7 @@ import { BrowserSettings } from '@/components/settings/browser';
 import { GeneralSettings } from '@/components/settings/general';
 import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
+import { MemorySettings } from '@/components/settings/memory';
 import { ModelsSettings } from '@/components/settings/models';
 import { PermissionsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
@@ -57,6 +59,7 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
       { id: 'models', label: 'Models', icon: <CpuIcon className="size-4" /> },
+      { id: 'memory', label: 'Memory', icon: <BrainIcon className="size-4" /> },
       { id: 'permissions', label: 'Permissions', icon: <ServerIcon className="size-4" /> },
       { id: 'mcp-servers', label: 'MCP Servers', icon: <NetworkIcon className="size-4" /> },
     ],
@@ -130,6 +133,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <ProvidersSettings />;
     case 'models':
       return <ModelsSettings />;
+    case 'memory':
+      return <MemorySettings />;
     case 'permissions':
       return <PermissionsSettings />;
     case 'mcp-servers':

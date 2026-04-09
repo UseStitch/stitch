@@ -19,12 +19,7 @@ const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 
 function isToolResultError(output: unknown): boolean {
-  return (
-    output !== null &&
-    output !== undefined &&
-    typeof output === 'object' &&
-    'error' in (output)
-  );
+  return output !== null && output !== undefined && typeof output === 'object' && 'error' in output;
 }
 
 function toPreviewText(value: unknown): string {
@@ -73,6 +68,7 @@ export function buildHistoryMessages(
     systemPrompt: string | null;
     userName?: string | null;
     userTimezone?: string | null;
+    memoryContext?: string | null;
   },
 ): ModelMessage[] {
   if (msgs.length === 0) {
@@ -278,6 +274,7 @@ export function buildHistoryMessages(
         systemPrompt: promptConfig?.systemPrompt ?? null,
         userName: promptConfig?.userName ?? null,
         userTimezone: promptConfig?.userTimezone ?? null,
+        memoryContext: promptConfig?.memoryContext ?? null,
       }),
     });
   }

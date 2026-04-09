@@ -1,0 +1,326 @@
+import { BrainIcon, SearchIcon, Trash2Icon } from 'lucide-react';
+import * as React from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import {
+  CATEGORY_LABELS,
+  CATEGORY_VARIANTS,
+  CONFIDENCE_LABELS,
+} from '@/components/memories/constants';
+import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
+import {
+  bulkDeleteMemoriesMutationOptions,
+  semanticMemoriesQueryOptions,
+  semanticMemorySearchQueryOptions,
+} from '@/lib/queries/memories';
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+type FilterSource = MemorySource | 'all';
+type FilterCategory = MemoryCategory | 'all';
+
+export function MemoriesPage() {
+  const queryClient = useQueryClient();
+  const [searchInput, setSearchInput] = React.useState('');
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
+  const [filterSource, setFilterSource] = React.useState<FilterSource>('all');
+  const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('all');
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [sheetMemory, setSheetMemory] = React.useState<SemanticMemory | null>(null);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const isSearching = debouncedSearch.length > 0;
+
+  const listQuery = useQuery(
+    semanticMemoriesQueryOptions(filterSource === 'all' ? undefined : filterSource),
+  );
+  const searchQuery = useQuery(semanticMemorySearchQueryOptions(debouncedSearch));
+
+  const memories = React.useMemo(() => {
+    const source = isSearching ? (searchQuery.data ?? []) : (listQuery.data ?? []);
+    if (filterCategory === 'all') return source;
+    return source.filter((m) => m.category === filterCategory);
+  }, [isSearching, searchQuery.data, listQuery.data, filterCategory]);
+
+  const bulkDeleteMutation = useMutation(bulkDeleteMemoriesMutationOptions(queryClient));
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === memories.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(memories.map((m) => m.id)));
+    }
+  }
+
+  function openMemory(memory: SemanticMemory) {
+    setSheetMemory(memory);
+    setSheetOpen(true);
+  }
+
+  function handleBulkDelete() {
+    bulkDeleteMutation.mutate(Array.from(selectedIds), {
+      onSuccess: () => {
+        setSelectedIds(new Set());
+        setBulkDeleteOpen(false);
+      },
+    });
+  }
+
+  const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
+  const allSelected = memories.length > 0 && selectedIds.size === memories.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < memories.length;
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto">
+      <div className="mx-auto w-full max-w-5xl px-6 py-8">
+        {/* Page header */}
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <BrainIcon className="size-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold">Memories</h1>
+            <p className="text-sm text-muted-foreground">
+              {isLoading
+                ? 'Loading…'
+                : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
+            </p>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="relative w-64">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search memories…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
+            <SelectTrigger className="w-36 bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              <SelectItem value="chat">Chat</SelectItem>
+              <SelectItem value="automation">Automation</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filterCategory}
+            onValueChange={(v) => setFilterCategory(v as FilterCategory)}
+          >
+            <SelectTrigger className="w-40 bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="preference">Preference</SelectItem>
+              <SelectItem value="fact">Fact</SelectItem>
+              <SelectItem value="workflow">Workflow</SelectItem>
+              <SelectItem value="constraint">Constraint</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteOpen(true)}
+              className="ml-auto"
+            >
+              <Trash2Icon />
+              Delete {selectedIds.size}
+            </Button>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
+          {/* Column headers */}
+          <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
+            <div className="flex w-6 items-center justify-center">
+              <Checkbox
+                checked={allSelected}
+                data-indeterminate={someSelected || undefined}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Select all"
+              />
+            </div>
+            <span className="flex-1">Content</span>
+            <span className="w-28 text-center">Category</span>
+            <span className="w-24 text-center">Confidence</span>
+            <span className="w-24 text-center">Source</span>
+            <span className="w-24 text-right">Created</span>
+          </div>
+
+          {/* Rows */}
+          {isLoading ? (
+            <div className="flex flex-col divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-6" />
+                  <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+                  <div className="h-5 w-24 animate-pulse rounded-full bg-muted" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : memories.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+              <BrainIcon className="size-10 text-muted-foreground/30" />
+              <p className="text-sm font-medium text-muted-foreground">
+                {isSearching ? 'No memories match your search' : 'No memories yet'}
+              </p>
+              {!isSearching && (
+                <p className="max-w-xs text-xs text-muted-foreground/70">
+                  Memories are automatically extracted from your conversations when memory is
+                  enabled in settings.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y divide-border">
+              {memories.map((memory) => (
+                <MemoryRow
+                  key={memory.id}
+                  memory={memory}
+                  selected={selectedIds.has(memory.id)}
+                  onToggleSelect={() => toggleSelect(memory.id)}
+                  onClick={() => openMemory(memory)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Detail sheet */}
+      <MemoryDetailSheet memory={sheetMemory} open={sheetOpen} onOpenChange={setSheetOpen} />
+
+      {/* Bulk delete confirmation */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>
+              Delete {selectedIds.size} {selectedIds.size === 1 ? 'memory' : 'memories'}?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            These memories will be permanently removed and cannot be recovered.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+type MemoryRowProps = {
+  memory: SemanticMemory;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onClick: () => void;
+};
+
+function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps) {
+  return (
+    <div
+      className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+      onClick={onClick}
+    >
+      <div
+        className="flex w-6 items-center justify-center"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleSelect();
+        }}
+      >
+        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
+      </div>
+
+      <p className="flex-1 truncate text-sm">{memory.content}</p>
+
+      <div className="flex w-28 justify-center">
+        <Badge variant={CATEGORY_VARIANTS[memory.category]}>
+          {CATEGORY_LABELS[memory.category]}
+        </Badge>
+      </div>
+
+      <div className="flex w-24 justify-center">
+        <span className="text-xs text-muted-foreground">
+          {CONFIDENCE_LABELS[memory.confidence]}
+        </span>
+      </div>
+
+      <div className="flex w-24 justify-center">
+        <Badge variant="outline" className="text-xs capitalize">
+          {memory.source}
+        </Badge>
+      </div>
+
+      <span className="w-24 text-right text-xs text-muted-foreground">
+        {formatDate(memory.createdAt)}
+      </span>
+    </div>
+  );
+}

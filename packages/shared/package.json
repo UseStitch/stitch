@@ -23,7 +23,8 @@
     "./tools/bash-presets": "./src/tools/bash-presets.ts",
     "./tools/types": "./src/tools/types.ts",
     "./usage/types": "./src/usage/types.ts",
-    "./connectors/types": "./src/connectors/types.ts"
+    "./connectors/types": "./src/connectors/types.ts",
+    "./memory/types": "./src/memory/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

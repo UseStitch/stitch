@@ -1,4 +1,11 @@
-import { BarChart3Icon, BotIcon, MessageSquareIcon, PlugIcon, SettingsIcon } from 'lucide-react';
+import {
+  BarChart3Icon,
+  BotIcon,
+  BrainIcon,
+  MessageSquareIcon,
+  PlugIcon,
+  SettingsIcon,
+} from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';
@@ -47,6 +54,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Automations',
     to: '/automations',
     matchPrefix: '/automations',
+  },
+  {
+    id: 'memories',
+    icon: <BrainIcon className="size-5" />,
+    label: 'Memories',
+    to: '/memories',
+    matchPrefix: '/memories',
   },
 ];
 
