@@ -69,24 +69,19 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
       return BOOL(1);
     }
 
-    let map = unsafe { &mut *(lparam.0 as *mut HashMap<u32, String>) };
-    match map.get(&pid) {
-      Some(existing) if existing.len() >= title.len() => {}
-      _ => {
-        map.insert(pid, title);
-      }
-    }
+    let map = unsafe { &mut *(lparam.0 as *mut HashMap<u32, Vec<String>>) };
+    map.entry(pid).or_default().push(title);
 
     BOOL(1)
   }
 
-  fn list_top_window_titles() -> HashMap<u32, String> {
-    let mut titles: HashMap<u32, String> = HashMap::new();
+  fn list_all_window_titles() -> HashMap<u32, Vec<String>> {
+    let mut titles: HashMap<u32, Vec<String>> = HashMap::new();
 
     unsafe {
       let _ = EnumWindows(
         Some(enum_windows_callback),
-        LPARAM((&mut titles as *mut HashMap<u32, String>) as isize),
+        LPARAM((&mut titles as *mut HashMap<u32, Vec<String>>) as isize),
       );
     }
 
@@ -98,48 +93,125 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
   let result = (|| -> Result<Vec<WindowsMeetingRow>, String> {
     let enumerator = DeviceEnumerator::new()
       .map_err(|error| format!("failed to create WASAPI enumerator: {error}"))?;
-    let device = enumerator
-      .get_default_device(&Direction::Capture)
-      .map_err(|error| format!("failed to get default capture device: {error}"))?;
-    let session_manager = device
-      .get_iaudiosessionmanager()
-      .map_err(|error| format!("failed to get audio session manager: {error}"))?;
-    let session_enumerator = session_manager
-      .get_audiosessionenumerator()
-      .map_err(|error| format!("failed to get audio session enumerator: {error}"))?;
 
-    let session_count = session_enumerator
-      .get_count()
-      .map_err(|error| format!("failed to get session count: {error}"))?;
-
-    let mut pids = HashSet::new();
-    for index in 0..session_count {
-      let session = match session_enumerator.get_session(index) {
-        Ok(session) => session,
-        Err(_) => continue,
-      };
-
-      let state = match session.get_state() {
-        Ok(state) => state,
-        Err(_) => continue,
-      };
-      if state != SessionState::Active {
-        continue;
+    // Iterate over all capture devices instead of just the default one
+    let mut devices = Vec::new();
+    if let Ok(collection) = enumerator.get_device_collection(&Direction::Capture) {
+      if let Ok(count) = collection.get_nbr_devices() {
+        for i in 0..count {
+          if let Ok(device) = collection.get_device_at_index(i) {
+            devices.push(device);
+          }
+        }
       }
-
-      let pid = match session.get_process_id() {
-        Ok(pid) if pid > 0 => pid,
-        _ => continue,
-      };
-
-      pids.insert(pid);
     }
 
-    let mut system = System::new();
-    let pid_refs: Vec<Pid> = pids.iter().copied().map(Pid::from_u32).collect();
-    system.refresh_processes(ProcessesToUpdate::Some(&pid_refs), true);
+    if devices.is_empty() {
+      if let Ok(default_device) = enumerator.get_default_device(&Direction::Capture) {
+        devices.push(default_device);
+      }
+    }
 
-    let window_titles = list_top_window_titles();
+    let mut pids = HashSet::new();
+
+    for device in devices {
+      let session_manager = match device.get_iaudiosessionmanager() {
+        Ok(manager) => manager,
+        Err(_) => continue,
+      };
+      let session_enumerator = match session_manager.get_audiosessionenumerator() {
+        Ok(enumerator) => enumerator,
+        Err(_) => continue,
+      };
+      let session_count = match session_enumerator.get_count() {
+        Ok(count) => count,
+        Err(_) => continue,
+      };
+
+      for index in 0..session_count {
+        let session = match session_enumerator.get_session(index) {
+          Ok(session) => session,
+          Err(_) => continue,
+        };
+
+        let state = match session.get_state() {
+          Ok(state) => state,
+          Err(_) => continue,
+        };
+
+        if state != SessionState::Active {
+          continue;
+        }
+
+        let pid = match session.get_process_id() {
+          Ok(pid) if pid > 0 => pid,
+          _ => continue,
+        };
+
+        pids.insert(pid);
+      }
+    }
+
+    let window_titles = list_all_window_titles();
+
+    // Refresh process info for both audio-capturing PIDs and window-owning PIDs
+    // so we can resolve process names for sibling window lookups.
+    let all_pids_to_resolve: Vec<Pid> = pids
+      .iter()
+      .copied()
+      .chain(window_titles.keys().copied())
+      .collect::<HashSet<u32>>()
+      .into_iter()
+      .map(Pid::from_u32)
+      .collect();
+
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::Some(&all_pids_to_resolve), true);
+
+    // Collect ALL window titles from every sibling process that shares the
+    // same executable name.  Electron-based apps (Slack, Teams, Discord)
+    // spawn many child processes; the one that captures audio often has no
+    // visible window, while a sibling owns the UI window with the relevant
+    // title.  We pass all titles through so the TypeScript layer can pick
+    // the most meaningful one.
+    let mut all_titles_by_name: HashMap<String, Vec<String>> = HashMap::new();
+    for (title_pid, titles) in &window_titles {
+      if let Some(name) = process_name_for_pid(&system, *title_pid) {
+        let normalized = normalize_process_name(&name);
+        if !TARGET_PROCESS_NAMES.contains(&normalized.as_str()) {
+          continue;
+        }
+        all_titles_by_name
+          .entry(normalized)
+          .or_default()
+          .extend(titles.iter().cloned());
+      }
+    }
+
+    // Keywords that indicate an active meeting/call window.
+    const CALL_HINTS: &[&str] = &[
+      "meeting",
+      "call",
+      "huddle",
+      "voice",
+      "stage",
+      "google meet",
+      "meet.google.com",
+    ];
+
+    fn pick_best_title(titles: &[String]) -> Option<String> {
+      // Prefer a title that contains a call-related keyword.
+      let hint_match = titles.iter().find(|t| {
+        let lower = t.to_lowercase();
+        CALL_HINTS.iter().any(|hint| lower.contains(hint))
+      });
+      if let Some(title) = hint_match {
+        return Some(title.clone());
+      }
+      // Fall back to the longest title.
+      titles.iter().max_by_key(|t| t.len()).cloned()
+    }
+
     let mut rows = Vec::new();
 
     for pid in pids {
@@ -152,10 +224,21 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
         continue;
       }
 
+      // Prefer the window title from the exact PID; fall back to the best
+      // title from any sibling process with the same executable name.
+      let own_titles = window_titles.get(&pid);
+      let window_title = own_titles
+        .and_then(|titles| pick_best_title(titles))
+        .or_else(|| {
+          all_titles_by_name
+            .get(&normalized_name)
+            .and_then(|titles| pick_best_title(titles))
+        });
+
       rows.push(WindowsMeetingRow {
         pid,
         process_name,
-        window_title: window_titles.get(&pid).cloned(),
+        window_title,
       });
     }
 
