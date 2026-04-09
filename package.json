@@ -9,6 +9,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev --filter=@stitch/web --filter=@stitch/desktop",
+    "audio-native:build": "node scripts/build-audio-native.mjs",
     "format": "oxfmt write .",
     "format:check": "oxfmt check .",
     "typecheck": "turbo typecheck",

@@ -1,4 +1,15 @@
+import { existsSync } from 'node:fs';
 import type { Configuration } from 'electron-builder';
+
+const audioCaptureBinaryFilter = process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
+
+const audioCaptureResource = {
+  from: '../../packages/audio-native/target/release',
+  to: 'audio-capture',
+  filter: audioCaptureBinaryFilter,
+};
+
+const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
 
 const config: Configuration = {
   appId: 'com.stitch.desktop',
@@ -50,6 +61,7 @@ const config: Configuration = {
         'llm/prompt/base-system-prompt.txt',
       ],
     },
+    ...(hasAudioCaptureResource ? [audioCaptureResource] : []),
   ],
   icon: 'resources/icon.png',
   nsis: {

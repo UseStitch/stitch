@@ -126,13 +126,20 @@ jobs:
         include:
           - runner: windows-2022
             os: windows
+            arch: x64
+            rust_target: x86_64-pc-windows-msvc
+            native_binary: stitch-audio-capture.exe
           - runner: macos-14
             os: macos
             arch: arm64
+            rust_target: aarch64-apple-darwin
+            native_binary: stitch-audio-capture
             package_script: package
           - runner: macos-14
             os: macos
             arch: x64
+            rust_target: x86_64-apple-darwin
+            native_binary: stitch-audio-capture
             package_script: package:x64
     steps:
       - name: Checkout release commit
@@ -142,6 +149,17 @@ jobs:
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/audio-native
+          shared-key: release-${{ matrix.rust_target }}
 
       - name: Cache Turbo artifacts
         uses: actions/cache@v5
@@ -164,6 +182,23 @@ jobs:
           key: ${{ runner.os }}-electron-${{ hashFiles('apps/desktop/package.json', 'apps/desktop/electron-builder.config.ts', '**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-electron-
+
+      - name: Build native audio sidecar
+        run: cargo build --release --target ${{ matrix.rust_target }} --manifest-path packages/audio-native/Cargo.toml
+
+      - name: Stage native sidecar for packaging (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          New-Item -ItemType Directory -Force -Path packages/audio-native/target/release | Out-Null
+          Copy-Item "packages/audio-native/target/${{ matrix.rust_target }}/release/${{ matrix.native_binary }}" "packages/audio-native/target/release/${{ matrix.native_binary }}" -Force
+
+      - name: Stage native sidecar for packaging (macOS)
+        if: matrix.os == 'macos'
+        shell: bash
+        run: |
+          mkdir -p packages/audio-native/target/release
+          cp "packages/audio-native/target/${{ matrix.rust_target }}/release/${{ matrix.native_binary }}" "packages/audio-native/target/release/${{ matrix.native_binary }}"
+          chmod +x "packages/audio-native/target/release/${{ matrix.native_binary }}"
 
       - name: Build desktop package
         working-directory: apps/desktop
