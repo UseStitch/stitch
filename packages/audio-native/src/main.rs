@@ -6,12 +6,13 @@ mod capture;
 mod error;
 mod output;
 mod protocol;
+mod resample;
 mod session;
 mod speaker;
 
 use output::emit;
-use protocol::{Command, Event, parse_start_command};
-use session::{ActiveSession, start_session, stop_session};
+use protocol::{parse_start_command, Command, Event};
+use session::{start_session, stop_session, ActiveSession};
 
 fn list_microphone_devices() -> Vec<String> {
   let host = cpal::default_host();

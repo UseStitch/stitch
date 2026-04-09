@@ -15,6 +15,7 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { recordings } from '@/db/schema.js';
+import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -28,6 +29,7 @@ type ActiveRecording = {
 
 const capture = createAudioCaptureHandle();
 let activeRecording: ActiveRecording | null = null;
+const log = Log.create({ service: 'recordings' });
 
 function defaultTitle(): string {
   const now = new Date();
@@ -91,8 +93,15 @@ export async function startRecording(
   });
 
   try {
-    await capture.start({ outputPath: filePath });
+    await capture.start({
+      outputPath: filePath,
+      mode: 'dual',
+      sampleRateHz: 48_000,
+      channels: 1,
+      enableAec: false,
+    });
     activeRecording = { id, filePath };
+    log.info({ recordingId: id, filePath, mode: 'dual', sampleRateHz: 48_000, enableAec: false }, 'recording started');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start recording';
 
@@ -142,6 +151,16 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
         updatedAt: Date.now(),
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
+
+    log.info(
+      {
+        recordingId: current.id,
+        filePath: current.filePath,
+        stopped: stop,
+        fileSizeBytes: stat?.size ?? null,
+      },
+      'recording stopped',
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to stop recording';
     await db

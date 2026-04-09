@@ -8,6 +8,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::error::NativeError;
+use crate::resample::StreamResampler;
 
 #[cfg(target_os = "macos")]
 use ca::aggregate_device_keys as agg_keys;
@@ -38,6 +39,8 @@ fn write_samples_as_i16(
 struct MacSpeakerCtx {
   tx: SyncSender<Vec<f32>>,
   channels: usize,
+  resampler: StreamResampler,
+  dropped_chunks: u64,
   common_format: av::audio::CommonFormat,
 }
 
@@ -64,7 +67,13 @@ fn read_samples<T: Copy>(buffer: &cat::AudioBuf) -> Option<&[T]> {
 #[cfg(target_os = "macos")]
 fn send_mono_chunk_f32(ctx: &mut MacSpeakerCtx, samples: &[f32]) {
   if ctx.channels <= 1 {
-    let _ = ctx.tx.try_send(samples.to_vec());
+    if let Ok(chunk) = ctx.resampler.process(samples)
+      && !chunk.is_empty()
+    {
+      if let Err(TrySendError::Full(_)) = ctx.tx.try_send(chunk) {
+        ctx.dropped_chunks = ctx.dropped_chunks.saturating_add(1);
+      }
+    }
     return;
   }
 
@@ -79,12 +88,19 @@ fn send_mono_chunk_f32(ctx: &mut MacSpeakerCtx, samples: &[f32]) {
     mono.push(acc / ctx.channels as f32);
   }
 
-  let _ = ctx.tx.try_send(mono);
+  if let Ok(chunk) = ctx.resampler.process(&mono)
+    && !chunk.is_empty()
+  {
+    if let Err(TrySendError::Full(_)) = ctx.tx.try_send(chunk) {
+      ctx.dropped_chunks = ctx.dropped_chunks.saturating_add(1);
+    }
+  }
 }
 
 #[cfg(target_os = "macos")]
 fn spawn_macos_speaker_source(
   speaker_device_id: Option<String>,
+  target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<
   (
@@ -192,6 +208,8 @@ fn spawn_macos_speaker_source(
       let mut ctx = Box::new(MacSpeakerCtx {
         tx,
         channels: asbd.channels_per_frame as usize,
+        resampler: StreamResampler::new(asbd.sample_rate.round() as u32, target_sample_rate_hz)?,
+        dropped_chunks: 0,
         common_format: format.common_format(),
       });
 
@@ -207,6 +225,9 @@ fn spawn_macos_speaker_source(
       }
 
       let mut warnings = vec!["macos_coreaudio_process_tap_enabled".to_string()];
+      if ctx.dropped_chunks > 0 {
+        warnings.push(format!("speaker_source_backpressure_dropped_chunks_{}", ctx.dropped_chunks));
+      }
       if speaker_device_id.is_some() {
         warnings.push("speaker_device_id_ignored_with_coreaudio_tap".to_string());
       }
@@ -286,6 +307,7 @@ fn decode_speaker_frames(
 
 #[cfg(target_os = "windows")]
 fn spawn_windows_speaker_source(
+  target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<
   (
@@ -336,6 +358,8 @@ fn spawn_windows_speaker_source(
         .unwrap_or(desired_format);
 
       let channels = accepted_format.get_nchannels() as usize;
+      let source_sample_rate_hz = accepted_format.get_samplespersec() as u32;
+      let mut resampler = StreamResampler::new(source_sample_rate_hz, target_sample_rate_hz)?;
       let sample_type = accepted_format.get_subformat().map_err(|error| {
         NativeError::StreamFailed(format!("unsupported WASAPI sample type: {error}"))
       })?;
@@ -369,6 +393,7 @@ fn spawn_windows_speaker_source(
       })?;
 
       let mut queue = VecDeque::new();
+      let mut dropped_chunks = 0u64;
 
       while !stop_flag.load(Ordering::Acquire) {
         if event.wait_for_event(250).is_err() {
@@ -393,10 +418,16 @@ fn spawn_windows_speaker_source(
           sample_type,
           bits_per_sample,
         )?;
+        let resampled = resampler.process(&samples)?;
+        if resampled.is_empty() {
+          continue;
+        }
 
-        match tx.try_send(samples) {
+        match tx.try_send(resampled) {
           Ok(()) => {}
-          Err(TrySendError::Full(_)) => {}
+          Err(TrySendError::Full(_)) => {
+            dropped_chunks = dropped_chunks.saturating_add(1);
+          }
           Err(TrySendError::Disconnected(_)) => break,
         }
       }
@@ -404,7 +435,12 @@ fn spawn_windows_speaker_source(
       thread::sleep(Duration::from_millis(50));
       let _ = audio_client.stop_stream();
 
-      Ok(Vec::new())
+      let mut warnings = Vec::new();
+      if dropped_chunks > 0 {
+        warnings.push(format!("speaker_source_backpressure_dropped_chunks_{dropped_chunks}"));
+      }
+
+      Ok(warnings)
     })
     .map_err(|error| {
       NativeError::Internal(format!("failed to spawn speaker capture thread: {error}"))
@@ -415,6 +451,7 @@ fn spawn_windows_speaker_source(
 
 pub(crate) fn spawn_speaker_source(
   speaker_device_id: Option<String>,
+  target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<
   (
@@ -425,18 +462,19 @@ pub(crate) fn spawn_speaker_source(
 > {
   #[cfg(target_os = "macos")]
   {
-    return spawn_macos_speaker_source(speaker_device_id, stop_flag);
+    return spawn_macos_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag);
   }
 
   #[cfg(target_os = "windows")]
   {
     let _ = speaker_device_id;
-    return spawn_windows_speaker_source(stop_flag);
+    return spawn_windows_speaker_source(target_sample_rate_hz, stop_flag);
   }
 
   #[cfg(not(any(target_os = "windows", target_os = "macos")))]
   {
     let _ = speaker_device_id;
+    let _ = target_sample_rate_hz;
     let _ = stop_flag;
     Err(NativeError::StreamFailed(
       "speaker capture is currently supported on Windows and macOS only".to_string(),
@@ -447,16 +485,18 @@ pub(crate) fn spawn_speaker_source(
 pub(crate) fn spawn_speaker_capture(
   output_path: String,
   speaker_device_id: Option<String>,
+  target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let (rx, source_worker) = spawn_speaker_source(speaker_device_id, stop_flag.clone())?;
+  let (rx, source_worker) =
+    spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
 
   let builder = thread::Builder::new().name("stitch-audio-speaker-capture".to_string());
   builder
     .spawn(move || {
       let wav_spec = hound::WavSpec {
         channels: 1,
-        sample_rate: 16_000,
+        sample_rate: target_sample_rate_hz,
         bits_per_sample: 16,
         sample_format: hound::SampleFormat::Int,
       };
@@ -483,7 +523,7 @@ pub(crate) fn spawn_speaker_capture(
       let mut warnings = source_worker
         .join()
         .map_err(|_| NativeError::Internal("speaker source thread panicked".to_string()))??;
-      warnings.push("speaker_capture_sample_rate_assumed_16000".to_string());
+      warnings.push(format!("speaker_capture_sample_rate_{target_sample_rate_hz}"));
 
       Ok(warnings)
     })
@@ -505,6 +545,8 @@ mod tests {
     let mut ctx = MacSpeakerCtx {
       tx,
       channels: 1,
+      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
+      dropped_chunks: 0,
       common_format: av::audio::CommonFormat::PcmF32,
     };
 
@@ -524,6 +566,8 @@ mod tests {
     let mut ctx = MacSpeakerCtx {
       tx,
       channels: 2,
+      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
+      dropped_chunks: 0,
       common_format: av::audio::CommonFormat::PcmF32,
     };
 
