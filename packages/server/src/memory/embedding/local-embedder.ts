@@ -1,10 +1,14 @@
 import path from 'node:path';
 
+import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 
 const MODEL_NAME = 'Xenova/all-MiniLM-L6-v2';
 const DIMENSIONS = 384;
+const HF_CACHE_DIR = path.join(PATHS.cacheDir, 'hf-models');
+
+const log = Log.create({ service: 'local-embedder' });
 
 type Pipeline = (
   texts: string[],
@@ -17,15 +21,12 @@ let pipelineLoadPromise: Promise<Pipeline> | null = null;
 async function getPipeline(): Promise<Pipeline> {
   if (pipelineInstance) return pipelineInstance;
 
-  // Ensure concurrent callers share a single load promise rather than racing
-  // to download and initialize the model simultaneously.
   if (pipelineLoadPromise) return pipelineLoadPromise;
 
   pipelineLoadPromise = (async () => {
     const { pipeline, env } = await import('@huggingface/transformers');
-    // Store model files under the app's cache directory so they persist across
-    // runs and are accessible in packaged (asar) builds where ./.cache is read-only.
-    env.cacheDir = path.join(PATHS.cacheDir, 'hf-models');
+    env.cacheDir = HF_CACHE_DIR;
+    env.allowLocalModels = false;
 
     const instance = (await pipeline('feature-extraction', MODEL_NAME, {
       dtype: 'fp32',
@@ -36,6 +37,12 @@ async function getPipeline(): Promise<Pipeline> {
   })();
 
   return pipelineLoadPromise;
+}
+
+export async function initLocalEmbedder(): Promise<void> {
+  log.info({ model: MODEL_NAME, cacheDir: HF_CACHE_DIR }, 'downloading embedding model');
+  await getPipeline();
+  log.info({ model: MODEL_NAME }, 'embedding model ready');
 }
 
 export function resetPipeline(): void {
