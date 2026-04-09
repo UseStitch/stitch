@@ -17,6 +17,7 @@
     "./providers/model-visibility": "./src/providers/model-visibility.ts",
     "./providers/types": "./src/providers/types.ts",
     "./questions/types": "./src/questions/types.ts",
+    "./recordings/types": "./src/recordings/types.ts",
     "./settings/types": "./src/settings/types.ts",
     "./shortcuts/types": "./src/shortcuts/types.ts",
     "./tools/bash-families": "./src/tools/bash-families.ts",

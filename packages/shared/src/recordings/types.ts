@@ -1,0 +1,37 @@
+import type { PrefixedString } from '../id/index.js';
+
+export type RecordingStatus = 'recording' | 'completed' | 'failed';
+
+export type Recording = {
+  id: PrefixedString<'rec'>;
+  title: string;
+  source: string;
+  status: RecordingStatus;
+  platform: string;
+  mimeType: string;
+  filePath: string;
+  fileSizeBytes: number | null;
+  durationMs: number | null;
+  startedAt: number;
+  endedAt: number | null;
+  error: string | null;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type StartRecordingInput = {
+  title?: string;
+};
+
+export type StartRecordingResponse = {
+  recording: Recording;
+};
+
+export type StopRecordingResponse = {
+  recording: Recording;
+};
+
+export type ListRecordingsResponse = {
+  recordings: Recording[];
+  activeRecordingId: PrefixedString<'rec'> | null;
+};

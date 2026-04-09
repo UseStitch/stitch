@@ -78,6 +78,13 @@
       "when": 1775423603592,
       "tag": "0010_adorable_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1775692758807,
+      "tag": "0011_military_gorilla_man",
+      "breakpoints": true
     }
   ]
 }
