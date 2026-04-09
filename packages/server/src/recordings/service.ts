@@ -76,10 +76,10 @@ export async function startRecording(
   const id = createRecordingId();
   const now = Date.now();
   const title = input.title?.trim() || defaultTitle();
-  const outputFile = `${id}.wav`;
-  const filePath = path.join(PATHS.dirPaths.recordings, outputFile);
+  const outputDir = path.join(PATHS.dirPaths.recordings, id);
+  const filePath = path.join(outputDir, 'raw_audio.wav');
 
-  await fs.mkdir(PATHS.dirPaths.recordings, { recursive: true });
+  await fs.mkdir(outputDir, { recursive: true });
 
   await db.insert(recordings).values({
     id,
@@ -124,6 +124,24 @@ export async function startRecording(
   }
 
   return ok({ recording: toRecording(row) });
+}
+
+export async function getRecordingAudioFile(
+  recordingId: Recording['id'],
+): Promise<ServiceResult<{ filePath: string; mimeType: string }>> {
+  const db = getDb();
+  const [row] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
+
+  if (!row) {
+    return err('Recording not found', 404);
+  }
+
+  const stat = await fs.stat(row.filePath).catch(() => null);
+  if (!stat?.isFile()) {
+    return err('Recording file not found', 404);
+  }
+
+  return ok({ filePath: row.filePath, mimeType: row.mimeType });
 }
 
 export async function stopRecording(): Promise<ServiceResult<StopRecordingResponse>> {
