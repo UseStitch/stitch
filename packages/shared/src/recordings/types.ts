@@ -2,6 +2,10 @@ import type { PrefixedString } from '../id/index.js';
 
 export type RecordingStatus = 'recording' | 'completed' | 'failed';
 
+export type MeetingPlatform = 'zoom' | 'teams' | 'slack' | 'discord' | 'google-meet';
+
+export type MeetingKind = 'desktop' | 'browser';
+
 export type Recording = {
   id: PrefixedString<'rec'>;
   title: string;

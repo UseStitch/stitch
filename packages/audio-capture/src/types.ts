@@ -6,6 +6,51 @@ export type CaptureFormat = 'wav';
 
 export type CaptureMode = 'mic' | 'speaker' | 'dual';
 
+export type MeetingPlatform = 'zoom' | 'teams' | 'slack' | 'discord' | 'google-meet';
+
+export type MeetingKind = 'desktop' | 'browser';
+
+export type MeetingDetection = {
+  key: string;
+  platform: MeetingPlatform;
+  kind: MeetingKind;
+  displayName: string;
+  processNames: string[];
+  windowTitle: string | null;
+  firstSeenAt: number;
+  lastSeenAt: number;
+};
+
+export type MeetingDetectedEvent = {
+  type: 'detected';
+  detection: MeetingDetection;
+  detectedAt: number;
+};
+
+export type MeetingEndedEvent = {
+  type: 'ended';
+  key: string;
+  endedAt: number;
+};
+
+export type MeetingDetectionEvent = MeetingDetectedEvent | MeetingEndedEvent;
+
+export type MeetingDetectionListener = (event: MeetingDetectionEvent) => void;
+
+export type MeetingDetectionOptions = {
+  pollIntervalMs?: number;
+  activationThresholdMs?: number;
+  cooldownMs?: number;
+  commandTimeoutMs?: number;
+};
+
+export type MeetingDetector = {
+  start: () => void;
+  stop: () => void;
+  subscribe: (listener: MeetingDetectionListener) => () => void;
+  getActive: () => MeetingDetection | null;
+};
+
 export type NativeCaptureStartCommand = {
   type: 'start';
   outputPath: string;

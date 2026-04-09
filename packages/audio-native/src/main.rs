@@ -4,15 +4,71 @@ use cpal::traits::{DeviceTrait, HostTrait};
 
 mod capture;
 mod error;
+mod macos_meeting_scan;
+mod mic_usage;
 mod output;
 mod protocol;
 mod resample;
 mod session;
 mod speaker;
+mod windows_meeting_scan;
 
+use macos_meeting_scan::list_macos_meeting_rows;
 use output::emit;
+use mic_usage::list_mic_using_processes;
 use protocol::{parse_start_command, Command, Event};
 use session::{start_session, stop_session, ActiveSession};
+use windows_meeting_scan::list_windows_meeting_rows;
+
+fn handle_list_mic_usage_flag() -> io::Result<bool> {
+  if !std::env::args().skip(1).any(|arg| arg == "--list-mic-usage") {
+    return Ok(false);
+  }
+
+  let apps = list_mic_using_processes().unwrap_or_default();
+  println!(
+    "{}",
+    serde_json::to_string(&apps)
+      .map_err(|error| io::Error::new(io::ErrorKind::Other, format!("serialize failed: {error}")))?
+  );
+  Ok(true)
+}
+
+fn handle_list_windows_meeting_usage_flag() -> io::Result<bool> {
+  if !std::env::args()
+    .skip(1)
+    .any(|arg| arg == "--list-windows-meeting-usage")
+  {
+    return Ok(false);
+  }
+
+  let rows = list_windows_meeting_rows().unwrap_or_default();
+  println!(
+    "{}",
+    serde_json::to_string(&rows)
+      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
+  );
+
+  Ok(true)
+}
+
+fn handle_list_macos_meeting_usage_flag() -> io::Result<bool> {
+  if !std::env::args()
+    .skip(1)
+    .any(|arg| arg == "--list-macos-meeting-usage")
+  {
+    return Ok(false);
+  }
+
+  let rows = list_macos_meeting_rows().unwrap_or_default();
+  println!(
+    "{}",
+    serde_json::to_string(&rows)
+      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
+  );
+
+  Ok(true)
+}
 
 fn list_microphone_devices() -> Vec<String> {
   let host = cpal::default_host();
@@ -48,6 +104,18 @@ fn list_speaker_devices() -> Vec<String> {
 }
 
 fn main() -> io::Result<()> {
+  if handle_list_mic_usage_flag()? {
+    return Ok(());
+  }
+
+  if handle_list_windows_meeting_usage_flag()? {
+    return Ok(());
+  }
+
+  if handle_list_macos_meeting_usage_flag()? {
+    return Ok(());
+  }
+
   let stdin = io::stdin();
   let mut active: Option<ActiveSession> = None;
 

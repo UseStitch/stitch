@@ -1,4 +1,5 @@
 import type { PrefixedString } from '../id/index.js';
+import type { MeetingKind, MeetingPlatform } from '../recordings/types.js';
 import type { PermissionResponse } from '../permissions/types.js';
 import type { QuestionRequest } from '../questions/types.js';
 import type { StreamErrorDetails } from './errors.js';
@@ -133,6 +134,21 @@ export type PermissionResponseResolvedPayload = {
   sessionId: PrefixedString<'ses'>;
 };
 
+export type MeetingCallDetectedPayload = {
+  key: string;
+  platform: MeetingPlatform;
+  kind: MeetingKind;
+  displayName: string;
+  processNames: string[];
+  windowTitle: string | null;
+  detectedAt: number;
+};
+
+export type MeetingCallEndedPayload = {
+  key: string;
+  endedAt: number;
+};
+
 export const SSE_EVENT_NAMES = [
   'heartbeat',
   'connected',
@@ -153,6 +169,8 @@ export const SSE_EVENT_NAMES = [
   'question-rejected',
   'permission-response-requested',
   'permission-response-resolved',
+  'meeting-call-detected',
+  'meeting-call-ended',
 ] as const;
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
@@ -177,6 +195,8 @@ export type SseEventPayloadMap = {
   'question-rejected': QuestionRejectedPayload;
   'permission-response-requested': PermissionResponseRequestedPayload;
   'permission-response-resolved': PermissionResponseResolvedPayload;
+  'meeting-call-detected': MeetingCallDetectedPayload;
+  'meeting-call-ended': MeetingCallEndedPayload;
 };
 
 export type SseEvent = {

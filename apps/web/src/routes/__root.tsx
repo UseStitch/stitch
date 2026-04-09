@@ -8,6 +8,7 @@ import { ActivityBar } from '@/components/navigation/activity-bar';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { CommandPalette } from '@/components/navigation/command-palette';
 import { RightClickMenu } from '@/components/navigation/right-click-menu';
+import { MeetingRecordingBanner } from '@/components/recordings/meeting-recording-banner';
 import { OnboardingDialog } from '@/components/onboarding/onboarding-dialog';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { SettingsDialog } from '@/components/settings-dialog';
@@ -81,6 +82,7 @@ function RootLayout() {
                 <NotificationSound />
                 <UnreadSync />
                 <UpdaterSync />
+                <MeetingRecordingBanner />
                 <Outlet />
               </SidebarInset>
             </div>
