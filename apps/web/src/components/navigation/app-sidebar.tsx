@@ -119,20 +119,22 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' | 'usage' {
+function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' | 'usage' | 'recordings' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
   if (path.startsWith('/memories')) return 'memories';
   if (path.startsWith('/usage')) return 'usage';
+  if (path.startsWith('/recordings')) return 'recordings';
+
   return 'chat';
 }
 
 export function AppSidebar() {
   const context = useActiveContext();
 
-  if (context === 'connectors' || context === 'memories' || context === 'usage') {
+  if (context === 'connectors' || context === 'memories' || context === 'usage' || context==='recordings') {
     return null;
   }
 
