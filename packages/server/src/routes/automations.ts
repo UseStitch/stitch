@@ -88,12 +88,7 @@ automationsRouter.delete('/:id', async (c) => {
     return c.json({ error: result.error }, result.status);
   }
 
-  try {
-    await unregisterAutomationSchedule(id);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to unschedule automation';
-    return c.json({ error: message }, 500);
-  }
+  await unregisterAutomationSchedule(id).catch(() => {});
 
   return c.body(null, 204);
 });

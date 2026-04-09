@@ -115,9 +115,7 @@ export async function registerSchedulerJob(input: {
 }
 
 export async function unregisterSchedulerJob(key: string): Promise<void> {
-  if (!scheduler) {
-    throw new Error('Scheduler is not started');
-  }
+  if (!scheduler) return;
 
   await scheduler.unregisterJob(key);
 }
