@@ -25,7 +25,7 @@ import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questio
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
-import type { RecordingStatus } from '@stitch/shared/recordings/types';
+import type { RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -338,7 +338,7 @@ export const recordings = sqliteTable(
     title: text('title').notNull(),
     source: text('source').notNull().default('manual'),
     status: text('status').$type<RecordingStatus>().notNull().default('recording'),
-    platform: text('platform').notNull(),
+    platform: text('platform').$type<RecordingPlatform>().notNull().default('manual'),
     mimeType: text('mime_type').notNull().default('audio/wav'),
     filePath: text('file_path').notNull(),
     fileSizeBytes: integer('file_size_bytes'),

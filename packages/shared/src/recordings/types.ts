@@ -4,6 +4,8 @@ export type RecordingStatus = 'recording' | 'completed' | 'failed';
 
 export type MeetingPlatform = 'zoom' | 'teams' | 'slack' | 'discord' | 'google-meet';
 
+export type RecordingPlatform = MeetingPlatform | 'manual';
+
 export type MeetingKind = 'desktop' | 'browser';
 
 export type Recording = {
@@ -11,7 +13,7 @@ export type Recording = {
   title: string;
   source: string;
   status: RecordingStatus;
-  platform: string;
+  platform: RecordingPlatform;
   mimeType: string;
   filePath: string;
   fileSizeBytes: number | null;
@@ -25,6 +27,7 @@ export type Recording = {
 
 export type StartRecordingInput = {
   title?: string;
+  platform?: RecordingPlatform;
 };
 
 export type StartRecordingResponse = {

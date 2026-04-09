@@ -1,4 +1,4 @@
-import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon } from 'lucide-react';
+import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -13,10 +13,11 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
-import type { Recording } from '@stitch/shared/recordings/types';
+import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SimpleIcon } from '@/components/ui/simple-icon';
 import {
   Pagination,
   PaginationContent,
@@ -33,6 +34,34 @@ import {
   useStartRecording,
   useStopRecording,
 } from '@/lib/queries/recordings';
+
+const PLATFORM_CONFIG: Record<RecordingPlatform, { label: string; slug: string | null }> = {
+  manual: { label: 'Manual', slug: null },
+  zoom: { label: 'Zoom', slug: 'zoom' },
+  teams: { label: 'Teams', slug: 'microsoftteams' },
+  slack: { label: 'Slack', slug: 'slack' },
+  discord: { label: 'Discord', slug: 'discord' },
+  'google-meet': { label: 'Google Meet', slug: 'googlemeet' },
+};
+
+function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
+  const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      {config.slug ? (
+        <SimpleIcon
+          slug={config.slug}
+          className="size-3.5"
+          fallback={<VideoIcon className="size-3.5" />}
+        />
+      ) : (
+        <VideoIcon className="size-3.5" />
+      )}
+      <span>{config.label}</span>
+    </span>
+  );
+}
 
 function formatDate(ts: number): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -209,6 +238,10 @@ export function RecordingsPage() {
       columnHelper.accessor('title', {
         header: 'Title',
         cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
+      }),
+      columnHelper.accessor('platform', {
+        header: 'Platform',
+        cell: ({ getValue }) => <PlatformBadge platform={getValue()} />,
       }),
       columnHelper.accessor('status', {
         header: 'Status',

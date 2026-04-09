@@ -86,7 +86,7 @@ export async function startRecording(
     title,
     source: 'manual',
     status: 'recording',
-    platform: process.platform,
+    platform: input.platform ?? 'manual',
     mimeType: 'audio/wav',
     filePath,
     startedAt: now,

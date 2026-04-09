@@ -18,6 +18,9 @@ import {
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
+  platform: z
+    .enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet'])
+    .optional(),
 });
 
 export const recordingsRouter = new Hono();

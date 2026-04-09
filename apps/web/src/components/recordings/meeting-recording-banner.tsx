@@ -85,7 +85,7 @@ export function MeetingRecordingBanner() {
             type="button"
             size="sm"
             onClick={() => {
-              void startRecording.mutateAsync({}).then(
+              void startRecording.mutateAsync({ platform: detection.platform }).then(
                 () => {
                   setDetection(null);
                   toast.success('Recording started');
