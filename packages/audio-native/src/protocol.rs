@@ -3,7 +3,11 @@ use serde::{Deserialize, Serialize};
 use crate::error::NativeError;
 
 #[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+  tag = "type",
+  rename_all = "camelCase",
+  rename_all_fields = "camelCase"
+)]
 pub(crate) enum Command {
   Start {
     output_path: String,
@@ -22,7 +26,11 @@ pub(crate) enum Command {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+  tag = "type",
+  rename_all = "camelCase",
+  rename_all_fields = "camelCase"
+)]
 pub(crate) enum Event {
   Started {
     started_at: u64,
@@ -240,6 +248,26 @@ mod tests {
     let serialized = serde_json::to_string(&event).expect("event should serialize");
     let value: serde_json::Value = serde_json::from_str(&serialized).expect("valid json");
     assert_eq!(value["type"], "capabilities");
-    assert!(value.get("supportsAec").is_some() || value.get("supports_aec").is_some());
+    assert!(value.get("supportsAec").is_some());
+  }
+
+  #[test]
+  fn command_deserializes_start_payload_with_camel_case_fields() {
+    let command: Command = serde_json::from_str(
+      r#"{"type":"start","outputPath":"tmp/audio.wav","format":"wav","mode":"mic","sampleRateHz":16000,"channels":1,"enableAec":false,"micDeviceId":null,"speakerDeviceId":null}"#,
+    )
+    .expect("must parse start command with camelCase fields");
+
+    match command {
+      Command::Start {
+        output_path,
+        sample_rate_hz,
+        ..
+      } => {
+        assert_eq!(output_path, "tmp/audio.wav");
+        assert_eq!(sample_rate_hz, 16_000);
+      }
+      _ => panic!("expected start command variant"),
+    }
   }
 }
