@@ -6,6 +6,7 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getServerUrl } from '@/lib/api';
 import {
   recordingsQueryOptions,
   useStartRecording,
@@ -45,11 +46,25 @@ export function RecordingsPage() {
   const stopRecording = useStopRecording();
   const [title, setTitle] = React.useState('');
   const [tick, setTick] = React.useState(Date.now());
+  const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
 
   useQuery({
     ...recordingsQueryOptions,
     refetchInterval: data.activeRecordingId ? 1_000 : 2_000,
   });
+
+  React.useEffect(() => {
+    let active = true;
+    void getServerUrl().then((url) => {
+      if (active) {
+        setBaseUrl(url);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!data.activeRecordingId) {
@@ -144,20 +159,21 @@ export function RecordingsPage() {
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Started</th>
-                <th className="px-3 py-2">Duration</th>
-                <th className="px-3 py-2">Size</th>
-                <th className="px-3 py-2">Path</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recordings.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                    No recordings yet.
-                  </td>
-                </tr>
-              ) : (
-                data.recordings.map((recording) => (
+                    <th className="px-3 py-2">Duration</th>
+                    <th className="px-3 py-2">Size</th>
+                    <th className="px-3 py-2">Path</th>
+                    <th className="px-3 py-2">Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recordings.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                        No recordings yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    data.recordings.map((recording) => (
                   <tr key={recording.id} className="border-t border-border/60">
                     <td className="px-3 py-2 font-medium">{recording.title}</td>
                     <td className="px-3 py-2">{recording.status}</td>
@@ -169,6 +185,13 @@ export function RecordingsPage() {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{formatBytes(recording.fileSizeBytes)}</td>
                     <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{recording.filePath}</td>
+                    <td className="px-3 py-2">
+                      {baseUrl && recording.status === 'completed' ? (
+                        <audio controls preload="none" src={`${baseUrl}/recordings/${recording.id}/audio`} />
+                      ) : (
+                        <span className="text-muted-foreground">--</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
