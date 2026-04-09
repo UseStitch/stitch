@@ -233,9 +233,16 @@ export async function updateAutomation(
 
 export async function deleteAutomation(automationId: string): Promise<ServiceResult<null>> {
   const db = getDb();
+  const typedId = automationId as PrefixedString<'auto'>;
+
+  await db
+    .update(sessions)
+    .set({ automationId: null })
+    .where(eq(sessions.automationId, typedId));
+
   const deleted = await db
     .delete(automations)
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+    .where(eq(automations.id, typedId))
     .returning({ id: automations.id });
 
   if (deleted.length === 0) {
