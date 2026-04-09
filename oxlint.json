@@ -7,7 +7,6 @@
   "rules": {
     "unicorn/no-useless-fallback-in-spread": "error",
     "no-unused-vars": "error",
-    "no-unused-imports": "error",
     "eqeqeq": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-floating-promises": "error",
@@ -22,9 +21,7 @@
     "react/no-danger-with-children": "error",
     "react/jsx-no-duplicate-props": "error",
     "react/jsx-no-target-blank": "error",
-    "react/no-deprecated": "error",
     "react/react-in-jsx-scope": "off",
-    "react/hooks-extra/no-direct-set-state-in-use-effect": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error"
   },
