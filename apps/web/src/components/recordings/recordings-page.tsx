@@ -1,11 +1,32 @@
-import { MicIcon, SquareIcon } from 'lucide-react';
+import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
+
+import type { Recording } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { Progress } from '@/components/ui/progress';
 import { getServerUrl } from '@/lib/api';
 import {
   recordingsQueryOptions,
@@ -14,7 +35,10 @@ import {
 } from '@/lib/queries/recordings';
 
 function formatDate(ts: number): string {
-  return new Date(ts).toLocaleString();
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(ts));
 }
 
 function formatDuration(durationMs: number | null): string {
@@ -32,18 +56,116 @@ function formatDuration(durationMs: number | null): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function formatBytes(value: number | null): string {
-  if (value === null) return '--';
-  return new Intl.NumberFormat(undefined, {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
+const columnHelper = createColumnHelper<Recording>();
+
+function RecordingPreview({ src }: { src: string | null }) {
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!src) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      return;
+    }
+
+    const audio = new Audio(src);
+    const handleLoadedMetadata = () => {
+      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+    };
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(audio.duration || 0);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('play', handlePlay);
+
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('play', handlePlay);
+    };
+  }, [src]);
+
+  const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const start = React.useCallback(() => {
+    if (!audioRef.current) return;
+    void audioRef.current.play().catch(() => {
+      toast.error('Could not start preview playback');
+    });
+  }, []);
+
+  const stop = React.useCallback(() => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+  }, []);
+
+  const reset = React.useCallback(() => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    setCurrentTime(0);
+  }, []);
+
+  if (!src) {
+    return <span className="text-muted-foreground">--</span>;
+  }
+
+  return (
+    <div className="min-w-56 space-y-2">
+      <div className="flex flex-wrap items-center gap-1">
+        <Button type="button" size="sm" variant="outline" onClick={start} disabled={isPlaying}>
+          Start
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={stop} disabled={!isPlaying}>
+          Stop
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={reset}
+          disabled={currentTime === 0 && !isPlaying}
+        >
+          <RotateCcwIcon className="size-4" />
+          Reset
+        </Button>
+      </div>
+      <Progress value={progressValue} aria-label="Preview playback progress" />
+    </div>
+  );
 }
 
 export function RecordingsPage() {
   const { data } = useSuspenseQuery(recordingsQueryOptions);
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [title, setTitle] = React.useState('');
   const [tick, setTick] = React.useState(Date.now());
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
@@ -82,9 +204,102 @@ export function RecordingsPage() {
 
   const activeDuration = activeRecording ? tick - activeRecording.startedAt : null;
 
+  const columns = React.useMemo(
+    () => [
+      columnHelper.accessor('title', {
+        header: 'Title',
+        cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        cell: ({ getValue }) => <span className="capitalize text-muted-foreground">{getValue()}</span>,
+      }),
+      columnHelper.accessor('startedAt', {
+        header: 'Date',
+        cell: ({ getValue }) => <span className="text-muted-foreground">{formatDate(getValue())}</span>,
+      }),
+      columnHelper.display({
+        id: 'duration',
+        header: 'Duration',
+        cell: ({ row }) => {
+          const recording = row.original;
+          if (recording.id === data.activeRecordingId) {
+            return <span className="text-muted-foreground">{formatDuration(activeDuration)}</span>;
+          }
+          return <span className="text-muted-foreground">{formatDuration(recording.durationMs)}</span>;
+        },
+      }),
+      columnHelper.display({
+        id: 'preview',
+        header: 'Preview',
+        cell: ({ row }) => (
+          <RecordingPreview
+            src={
+              baseUrl && row.original.status === 'completed'
+                ? `${baseUrl}/recordings/${row.original.id}/audio`
+                : null
+            }
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              void navigator.clipboard.writeText(row.original.filePath).then(
+                () => toast.success('File path copied'),
+                () => toast.error('Failed to copy file path'),
+              );
+            }}
+          >
+            <CopyIcon className="size-4" />
+            Copy path
+          </Button>
+        ),
+      }),
+    ],
+    [activeDuration, baseUrl, data.activeRecordingId],
+  );
+
+  const table = useReactTable({
+    data: data.recordings,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  const pageCount = table.getPageCount();
+  const currentPage = table.getState().pagination.pageIndex;
+  const pageNumbers = React.useMemo(() => {
+    if (pageCount <= 1) {
+      return [] as number[];
+    }
+
+    const firstPage = 0;
+    const lastPage = pageCount - 1;
+    const start = Math.max(firstPage, currentPage - 1);
+    const end = Math.min(lastPage, currentPage + 1);
+
+    const pages = new Set<number>([firstPage, lastPage]);
+    for (let index = start; index <= end; index += 1) {
+      pages.add(index);
+    }
+
+    return [...pages].sort((a, b) => a - b);
+  }, [currentPage, pageCount]);
+
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -152,51 +367,101 @@ export function RecordingsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-card/70">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2">Title</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Started</th>
-                    <th className="px-3 py-2">Duration</th>
-                    <th className="px-3 py-2">Size</th>
-                    <th className="px-3 py-2">Path</th>
-                    <th className="px-3 py-2">Preview</th>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/60 bg-card/70">
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="px-3 py-2">
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {data.recordings.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
-                        No recordings yet.
-                      </td>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length} className="px-3 py-6 text-center text-muted-foreground">
+                      No recordings yet.
+                    </td>
+                  </tr>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="border-t border-border/60 align-top">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-3 py-3">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
                     </tr>
-                  ) : (
-                    data.recordings.map((recording) => (
-                  <tr key={recording.id} className="border-t border-border/60">
-                    <td className="px-3 py-2 font-medium">{recording.title}</td>
-                    <td className="px-3 py-2">{recording.status}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{formatDate(recording.startedAt)}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {recording.id === data.activeRecordingId
-                        ? formatDuration(activeDuration)
-                        : formatDuration(recording.durationMs)}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{formatBytes(recording.fileSizeBytes)}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{recording.filePath}</td>
-                    <td className="px-3 py-2">
-                      {baseUrl && recording.status === 'completed' ? (
-                        <audio controls preload="none" src={`${baseUrl}/recordings/${recording.id}/audio`} />
-                      ) : (
-                        <span className="text-muted-foreground">--</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {pageCount > 1 ? (
+            <div className="border-t border-border/60 px-3 py-3">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (table.getCanPreviousPage()) {
+                          table.previousPage();
+                        }
+                      }}
+                      className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-50' : undefined}
+                    />
+                  </PaginationItem>
+
+                  {pageNumbers.map((page, index) => {
+                    const previousPage = pageNumbers[index - 1];
+                    const showGap = previousPage !== undefined && page - previousPage > 1;
+                    return (
+                      <React.Fragment key={`page-${page}`}>
+                        {showGap ? (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : null}
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            isActive={page === currentPage}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              table.setPageIndex(page);
+                            }}
+                          >
+                            {page + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (table.getCanNextPage()) {
+                          table.nextPage();
+                        }
+                      }}
+                      className={!table.getCanNextPage() ? 'pointer-events-none opacity-50' : undefined}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
