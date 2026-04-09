@@ -7,7 +7,7 @@ const log = Log.create({ service: 'meeting-detection' });
 
 const detector = createMeetingDetector(process.platform, {
   pollIntervalMs: 2_000,
-  activationThresholdMs: 15_000,
+  activationThresholdMs: 5_000,
   cooldownMs: 10 * 60_000,
   commandTimeoutMs: 3_000,
 });
