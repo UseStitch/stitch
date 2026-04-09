@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -10,6 +11,14 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
@@ -58,16 +67,22 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     enabled: selectedAutomation !== null,
   });
 
-  const handleDelete = async (automation: Automation) => {
-    const confirmed = window.confirm(`Delete automation "${automation.title}"?`);
-    if (!confirmed) return;
+  const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
+
+  const handleDelete = (automation: Automation) => {
+    setAutomationToDelete(automation);
+  };
+
+  const confirmDelete = async () => {
+    if (!automationToDelete) return;
 
     try {
-      await deleteAutomation.mutateAsync(automation.id);
-      if (automationId === automation.id) {
+      await deleteAutomation.mutateAsync(automationToDelete.id);
+      if (automationId === automationToDelete.id) {
         void navigate({ to: '/automations' });
       }
       toast.success('Automation deleted');
+      setAutomationToDelete(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete automation');
     }
@@ -171,7 +186,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => void handleDelete(selectedAutomation)}
+                    onClick={() =>  handleDelete(selectedAutomation)}
                     disabled={deleteAutomation.isPending}
                   >
                     <Trash2Icon data-icon="inline-start" className="size-4 text-destructive" />
@@ -205,7 +220,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             deletePending={deleteAutomation.isPending}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
-            onDelete={(automation) => void handleDelete(automation)}
+            onDelete={(automation) =>  handleDelete(automation)}
           />
         )}
       </div>
@@ -254,6 +269,25 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           }
         }}
       />
+
+      <Dialog open={automationToDelete !== null} onOpenChange={(open) => !open && setAutomationToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Automation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the automation "{automationToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutomationToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleteAutomation.isPending}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
