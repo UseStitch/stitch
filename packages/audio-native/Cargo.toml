@@ -22,4 +22,5 @@ wasapi = "0.23"
 windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cidre = { version = "0.14", features = ["av"] }
+cidre = { version = "0.14", features = ["av", "sc", "blocks", "async"] }
+tokio = { version = "1", features = ["rt", "macros"] }

@@ -1,8 +1,5 @@
-use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(target_os = "macos")]
-use std::sync::mpsc::SyncSender;
-use std::sync::mpsc::{self, Receiver, TrySendError};
+use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -12,57 +9,120 @@ use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 
 #[cfg(target_os = "macos")]
-use ca::aggregate_device_keys as agg_keys;
+use cidre::{av, cat, cf, cm, core_audio as ca, define_obj_type, dispatch, ns, objc, os, sc, sc::StreamOutput};
 #[cfg(target_os = "macos")]
-use cidre::{arc, av, cat, cf, core_audio as ca, ns, os};
+use ca::aggregate_device_keys as agg_keys;
 
+#[cfg(target_os = "windows")]
+use std::collections::VecDeque;
 #[cfg(target_os = "windows")]
 use wasapi::{
   initialize_mta, DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat,
 };
 
 #[cfg(target_os = "macos")]
-struct MacSpeakerCtx {
+define_obj_type!(
+  SckAudioOutput + sc::StreamOutputImpl,
+  SckAudioOutputInner,
+  SCK_AUDIO_OUTPUT_CLS
+);
+
+#[cfg(target_os = "macos")]
+struct SckAudioOutputInner {
+  tx: SyncSender<Vec<f32>>,
+}
+
+#[cfg(target_os = "macos")]
+impl sc::StreamOutput for SckAudioOutput {}
+
+#[cfg(target_os = "macos")]
+#[objc::add_methods]
+impl sc::StreamOutputImpl for SckAudioOutput {
+  extern "C" fn impl_stream_did_output_sample_buf(
+    &mut self,
+    _sel: Option<&objc::Sel>,
+    _stream: &sc::Stream,
+    sample_buf: &mut cm::SampleBuf,
+    kind: sc::OutputType,
+  ) {
+    if !matches!(kind, sc::OutputType::Audio) {
+      return;
+    }
+
+    let num_samples = sample_buf.num_samples();
+    if num_samples <= 0 {
+      return;
+    }
+
+    let Ok(abl) = sample_buf.audio_buf_list::<1>() else {
+      return;
+    };
+
+    let buf = &abl.list().buffers[0];
+    if buf.data.is_null() || buf.data_bytes_size == 0 {
+      return;
+    }
+
+    let byte_count = buf.data_bytes_size as usize;
+    let float_count = byte_count / std::mem::size_of::<f32>();
+    if float_count == 0 {
+      return;
+    }
+
+    let samples =
+      unsafe { std::slice::from_raw_parts(buf.data as *const f32, float_count) };
+
+    let channels = buf.number_channels as usize;
+    let mono = if channels <= 1 {
+      samples.to_vec()
+    } else {
+      let frames = float_count / channels;
+      let mut out = Vec::with_capacity(frames);
+      for frame in 0..frames {
+        let start = frame * channels;
+        let mut acc = 0.0f32;
+        for ch in 0..channels {
+          if let Some(&s) = samples.get(start + ch) {
+            acc += s;
+          }
+        }
+        out.push(acc / channels as f32);
+      }
+      out
+    };
+
+    let tx = &self.inner().tx;
+    for chunk in mono.chunks(960) {
+      let _ = tx.try_send(chunk.to_vec());
+    }
+  }
+}
+
+#[cfg(target_os = "macos")]
+struct TapCtx {
   tx: SyncSender<Vec<f32>>,
   channels: usize,
   resampler: StreamResampler,
-  dropped_chunks: u64,
   common_format: av::audio::CommonFormat,
 }
 
 #[cfg(target_os = "macos")]
-fn read_samples<T: Copy>(buffer: &cat::AudioBuf) -> Option<&[T]> {
-  let byte_count = buffer.data_bytes_size as usize;
-  if byte_count == 0 || buffer.data.is_null() {
-    return None;
+fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
+  let mono = if ctx.channels <= 1 {
+    samples
+  } else {
+    // downmix inline — borrow-friendly
+    return tap_send_downmixed(ctx, samples);
+  };
+  if let Ok(chunk) = ctx.resampler.process(mono) {
+    for c in chunk.chunks(960) {
+      let _ = ctx.tx.try_send(c.to_vec());
+    }
   }
-
-  let ptr = buffer.data as *const T;
-  if !(ptr as usize).is_multiple_of(std::mem::align_of::<T>()) {
-    return None;
-  }
-
-  let count = byte_count / std::mem::size_of::<T>();
-  if count == 0 {
-    return None;
-  }
-
-  Some(unsafe { std::slice::from_raw_parts(ptr, count) })
 }
 
 #[cfg(target_os = "macos")]
-fn send_mono_chunk_f32(ctx: &mut MacSpeakerCtx, samples: &[f32]) {
-  if ctx.channels <= 1 {
-    if let Ok(chunk) = ctx.resampler.process(samples)
-      && !chunk.is_empty()
-    {
-      if let Err(TrySendError::Full(_)) = ctx.tx.try_send(chunk) {
-        ctx.dropped_chunks = ctx.dropped_chunks.saturating_add(1);
-      }
-    }
-    return;
-  }
-
+fn tap_send_downmixed(ctx: &mut TapCtx, samples: &[f32]) {
   let frames = samples.len() / ctx.channels;
   let mut mono = Vec::with_capacity(frames);
   for frame in 0..frames {
@@ -73,19 +133,125 @@ fn send_mono_chunk_f32(ctx: &mut MacSpeakerCtx, samples: &[f32]) {
     }
     mono.push(acc / ctx.channels as f32);
   }
-
-  if let Ok(chunk) = ctx.resampler.process(&mono)
-    && !chunk.is_empty()
-  {
-    if let Err(TrySendError::Full(_)) = ctx.tx.try_send(chunk) {
-      ctx.dropped_chunks = ctx.dropped_chunks.saturating_add(1);
+  if let Ok(chunk) = ctx.resampler.process(&mono) {
+    for c in chunk.chunks(960) {
+      let _ = ctx.tx.try_send(c.to_vec());
     }
   }
 }
 
 #[cfg(target_os = "macos")]
+fn tap_read_samples<T: Copy>(buffer: &cat::AudioBuf) -> Option<&[T]> {
+  let byte_count = buffer.data_bytes_size as usize;
+  if byte_count == 0 || buffer.data.is_null() {
+    return None;
+  }
+  let ptr = buffer.data as *const T;
+  if !(ptr as usize).is_multiple_of(std::mem::align_of::<T>()) {
+    return None;
+  }
+  let count = byte_count / std::mem::size_of::<T>();
+  if count == 0 {
+    return None;
+  }
+  Some(unsafe { std::slice::from_raw_parts(ptr, count) })
+}
+
+#[cfg(target_os = "macos")]
+fn start_process_tap(
+  tx: SyncSender<Vec<f32>>,
+  target_sample_rate_hz: u32,
+) -> Option<Box<TapCtx>> {
+  let tap_desc = ca::TapDesc::with_mono_global_tap_excluding_processes(&ns::Array::new());
+  let tap = tap_desc.create_process_tap().ok()?;
+  let asbd = tap.asbd().ok()?;
+  let format = av::AudioFormat::with_asbd(&asbd)?;
+
+  let sub_tap = cf::DictionaryOf::with_keys_values(
+    &[ca::sub_device_keys::uid()],
+    &[tap.uid().unwrap().as_type_ref()],
+  );
+  let agg_desc = cf::DictionaryOf::with_keys_values(
+    &[
+      agg_keys::is_private(),
+      agg_keys::tap_auto_start(),
+      agg_keys::name(),
+      agg_keys::uid(),
+      agg_keys::tap_list(),
+    ],
+    &[
+      cf::Boolean::value_true().as_type_ref(),
+      cf::Boolean::value_true().as_type_ref(),
+      cf::String::from_str("stitch-audio-tap").as_ref(),
+      &cf::Uuid::new().to_cf_string(),
+      &cf::ArrayOf::from_slice(&[sub_tap.as_ref()]),
+    ],
+  );
+
+  let agg_device = ca::AggregateDevice::with_desc(&agg_desc).ok()?;
+  let resampler = StreamResampler::new(asbd.sample_rate.round() as u32, target_sample_rate_hz).ok()?;
+
+  let mut ctx = Box::new(TapCtx {
+    tx,
+    channels: asbd.channels_per_frame as usize,
+    resampler,
+    common_format: format.common_format(),
+  });
+
+  extern "C" fn io_proc(
+    _device: ca::Device,
+    _now: &cat::AudioTimeStamp,
+    input_data: &cat::AudioBufList<1>,
+    _input_time: &cat::AudioTimeStamp,
+    _output_data: &mut cat::AudioBufList<1>,
+    _output_time: &cat::AudioTimeStamp,
+    ctx: Option<&mut TapCtx>,
+  ) -> os::Status {
+    let Some(ctx) = ctx else {
+      return os::Status::NO_ERR;
+    };
+    let first = &input_data.buffers[0];
+    if first.data_bytes_size == 0 || first.data.is_null() {
+      return os::Status::NO_ERR;
+    }
+    match ctx.common_format {
+      av::audio::CommonFormat::PcmF32 => {
+        if let Some(samples) = tap_read_samples::<f32>(first) {
+          tap_send_mono(ctx, samples);
+        }
+      }
+      av::audio::CommonFormat::PcmF64 => {
+        if let Some(samples) = tap_read_samples::<f64>(first) {
+          let converted: Vec<f32> = samples.iter().map(|s| *s as f32).collect();
+          tap_send_mono(ctx, &converted);
+        }
+      }
+      av::audio::CommonFormat::PcmI32 => {
+        if let Some(samples) = tap_read_samples::<i32>(first) {
+          let converted: Vec<f32> = samples.iter().map(|s| *s as f32 / i32::MAX as f32).collect();
+          tap_send_mono(ctx, &converted);
+        }
+      }
+      av::audio::CommonFormat::PcmI16 => {
+        if let Some(samples) = tap_read_samples::<i16>(first) {
+          let converted: Vec<f32> = samples.iter().map(|s| *s as f32 / i16::MAX as f32).collect();
+          tap_send_mono(ctx, &converted);
+        }
+      }
+      _ => {}
+    }
+    os::Status::NO_ERR
+  }
+
+  let proc_id = agg_device.create_io_proc_id(io_proc, Some(&mut ctx)).ok()?;
+  ca::device_start(agg_device, Some(proc_id)).ok()?;
+
+  Some(ctx)
+}
+
+#[cfg(target_os = "macos")]
 fn spawn_macos_speaker_source(
-  speaker_device_id: Option<String>,
+  _speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<
@@ -100,125 +266,85 @@ fn spawn_macos_speaker_source(
 
   let worker = builder
     .spawn(move || {
-      extern "C" fn proc(
-        _device: ca::Device,
-        _now: &cat::AudioTimeStamp,
-        input_data: &cat::AudioBufList<1>,
-        _input_time: &cat::AudioTimeStamp,
-        _output_data: &mut cat::AudioBufList<1>,
-        _output_time: &cat::AudioTimeStamp,
-        ctx: Option<&mut MacSpeakerCtx>,
-      ) -> os::Status {
-        let Some(ctx) = ctx else {
-          return os::Status::NO_ERR;
-        };
+      let (tap_tx, tap_rx) = mpsc::sync_channel::<Vec<f32>>(128);
+      let (sck_tx, sck_rx) = mpsc::sync_channel::<Vec<f32>>(128);
 
-        let first = &input_data.buffers[0];
-        if first.data_bytes_size == 0 || first.data.is_null() {
-          return os::Status::NO_ERR;
+      let _tap_ctx = start_process_tap(tap_tx, target_sample_rate_hz);
+
+      let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| NativeError::Internal(format!("failed to create tokio runtime: {e}")))?;
+
+      rt.block_on(async {
+        let sck_ok = async {
+          let content = sc::ShareableContent::current().await.ok()?;
+          let displays = content.displays();
+          let display = displays.first()?;
+
+          let mut cfg = sc::StreamCfg::new();
+          cfg.set_captures_audio(true);
+          cfg.set_excludes_current_process_audio(true);
+          cfg.set_sample_rate(target_sample_rate_hz as i64);
+          cfg.set_channel_count(1);
+          cfg.set_width(2);
+          cfg.set_height(2);
+          cfg.set_minimum_frame_interval(cm::Time::new(1, 1));
+
+          let windows = ns::Array::new();
+          let filter = sc::ContentFilter::with_display_excluding_windows(display, &windows);
+          let stream = sc::Stream::new(&filter, &cfg);
+
+          let q = dispatch::Queue::serial_with_ar_pool();
+          let handler = SckAudioOutput::with(SckAudioOutputInner { tx: sck_tx });
+          stream
+            .add_stream_output(handler.as_ref(), sc::OutputType::Audio, Some(&q))
+            .ok()?;
+          stream.start().await.ok()?;
+          Some(())
+        }
+        .await;
+
+        let use_tap = std::sync::atomic::AtomicBool::new(true);
+        let decided = std::sync::atomic::AtomicBool::new(false);
+
+        while !stop_flag.load(Ordering::Relaxed) {
+          tokio::time::sleep(Duration::from_millis(10)).await;
+
+          let mut got_tap = false;
+          while let Ok(chunk) = tap_rx.try_recv() {
+            got_tap = true;
+            if use_tap.load(Ordering::Relaxed) {
+              for c in chunk.chunks(960) {
+                let _ = tx.try_send(c.to_vec());
+              }
+            }
+          }
+
+          while let Ok(chunk) = sck_rx.try_recv() {
+            if !use_tap.load(Ordering::Relaxed) {
+              let _ = tx.try_send(chunk);
+            }
+          }
+
+          if !decided.load(Ordering::Relaxed) && sck_ok.is_some() {
+            if got_tap {
+              use_tap.store(true, Ordering::Relaxed);
+              decided.store(true, Ordering::Relaxed);
+            } else {
+              use_tap.store(false, Ordering::Relaxed);
+            }
+          }
         }
 
-        match ctx.common_format {
-          av::audio::CommonFormat::PcmF32 => {
-            if let Some(samples) = read_samples::<f32>(first) {
-              send_mono_chunk_f32(ctx, samples);
-            }
-          }
-          av::audio::CommonFormat::PcmF64 => {
-            if let Some(samples) = read_samples::<f64>(first) {
-              let converted: Vec<f32> = samples.iter().map(|s| *s as f32).collect();
-              send_mono_chunk_f32(ctx, &converted);
-            }
-          }
-          av::audio::CommonFormat::PcmI32 => {
-            if let Some(samples) = read_samples::<i32>(first) {
-              let converted: Vec<f32> = samples
-                .iter()
-                .map(|s| *s as f32 / i32::MAX as f32)
-                .collect();
-              send_mono_chunk_f32(ctx, &converted);
-            }
-          }
-          av::audio::CommonFormat::PcmI16 => {
-            if let Some(samples) = read_samples::<i16>(first) {
-              let converted: Vec<f32> = samples
-                .iter()
-                .map(|s| *s as f32 / i16::MAX as f32)
-                .collect();
-              send_mono_chunk_f32(ctx, &converted);
-            }
-          }
-          _ => {}
-        }
-
-        os::Status::NO_ERR
-      }
-
-      let tap_desc = ca::TapDesc::with_mono_global_tap_excluding_processes(&ns::Array::new());
-      let tap = tap_desc.create_process_tap().map_err(|error| {
-        NativeError::StreamFailed(format!("failed to create CoreAudio process tap: {error}"))
-      })?;
-
-      let asbd = tap.asbd().map_err(|error| {
-        NativeError::StreamFailed(format!("failed to read tap format: {error}"))
-      })?;
-      let format = av::AudioFormat::with_asbd(&asbd).map_err(|error| {
-        NativeError::StreamFailed(format!("failed to build audio format from tap: {error}"))
-      })?;
-
-      let sub_tap = cf::DictionaryOf::with_keys_values(
-        &[ca::sub_device_keys::uid()],
-        &[tap.uid().unwrap().as_type_ref()],
-      );
-      let agg_desc = cf::DictionaryOf::with_keys_values(
-        &[
-          agg_keys::is_private(),
-          agg_keys::tap_auto_start(),
-          agg_keys::name(),
-          agg_keys::uid(),
-          agg_keys::tap_list(),
-        ],
-        &[
-          cf::Boolean::value_true().as_type_ref(),
-          cf::Boolean::value_false(),
-          cf::String::from_str("stitch-audio-tap").as_ref(),
-          &cf::Uuid::new().to_cf_string(),
-          &cf::ArrayOf::from_slice(&[sub_tap.as_ref()]),
-        ],
-      );
-
-      let agg_device = ca::AggregateDevice::with_desc(&agg_desc).map_err(|error| {
-        NativeError::PermissionDenied(format!("failed to create aggregate device: {error}"))
-      })?;
-
-      let mut ctx = Box::new(MacSpeakerCtx {
-        tx,
-        channels: asbd.channels_per_frame as usize,
-        resampler: StreamResampler::new(asbd.sample_rate.round() as u32, target_sample_rate_hz)?,
-        dropped_chunks: 0,
-        common_format: format.common_format(),
-      });
-
-      let proc_id = agg_device
-        .create_io_proc_id(proc, Some(&mut ctx))
-        .map_err(|error| NativeError::StreamFailed(format!("failed to create io proc: {error}")))?;
-      let _started = ca::device_start(agg_device, Some(proc_id)).map_err(|error| {
-        NativeError::PermissionDenied(format!("failed to start CoreAudio tap device: {error}"))
-      })?;
-
-      while !stop_flag.load(Ordering::Relaxed) {
-        thread::sleep(Duration::from_millis(50));
-      }
-
-      let mut warnings = vec!["macos_coreaudio_process_tap_enabled".to_string()];
-      if ctx.dropped_chunks > 0 {
-        warnings.push(format!("speaker_source_backpressure_dropped_chunks_{}", ctx.dropped_chunks));
-      }
-      if speaker_device_id.is_some() {
-        warnings.push("speaker_device_id_ignored_with_coreaudio_tap".to_string());
-      }
-
-      Ok(warnings)
+        Ok(vec![
+          if use_tap.load(Ordering::Relaxed) {
+            "speaker_source_process_tap".to_string()
+          } else {
+            "speaker_source_screencapturekit".to_string()
+          },
+        ])
+      })
     })
     .map_err(|error| {
       NativeError::Internal(format!(
@@ -508,50 +634,6 @@ pub(crate) fn spawn_speaker_capture(
 
 #[cfg(test)]
 mod tests {
-  #[cfg(target_os = "macos")]
-  #[test]
-  fn send_mono_chunk_passes_through_single_channel() {
-    use super::{send_mono_chunk_f32, MacSpeakerCtx};
-    use cidre::av;
-    use std::sync::mpsc;
-
-    let (tx, rx) = mpsc::sync_channel(1);
-    let mut ctx = MacSpeakerCtx {
-      tx,
-      channels: 1,
-      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
-      dropped_chunks: 0,
-      common_format: av::audio::CommonFormat::PcmF32,
-    };
-
-    send_mono_chunk_f32(&mut ctx, &[0.1, 0.2, 0.3]);
-    let chunk = rx.recv().expect("chunk should be sent");
-    assert_eq!(chunk, vec![0.1, 0.2, 0.3]);
-  }
-
-  #[cfg(target_os = "macos")]
-  #[test]
-  fn send_mono_chunk_downmixes_multichannel() {
-    use super::{send_mono_chunk_f32, MacSpeakerCtx};
-    use cidre::av;
-    use std::sync::mpsc;
-
-    let (tx, rx) = mpsc::sync_channel(1);
-    let mut ctx = MacSpeakerCtx {
-      tx,
-      channels: 2,
-      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
-      dropped_chunks: 0,
-      common_format: av::audio::CommonFormat::PcmF32,
-    };
-
-    send_mono_chunk_f32(&mut ctx, &[0.2, 0.4, -0.2, 0.2]);
-    let chunk = rx.recv().expect("chunk should be sent");
-    assert_eq!(chunk.len(), 2);
-    assert!((chunk[0] - 0.3).abs() < 0.0001);
-    assert!((chunk[1] - 0.0).abs() < 0.0001);
-  }
-
   #[cfg(target_os = "windows")]
   #[test]
   fn decode_wasapi_float32_frames_to_mono() {
