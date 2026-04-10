@@ -22,7 +22,11 @@ type AutomationRunsTableProps = {
 const columnHelper = createColumnHelper<Session>();
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTableProps) {
@@ -36,11 +40,11 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
       }),
       columnHelper.accessor('createdAt', {
         header: 'Started',
-        cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
-        cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
       }),
       columnHelper.display({
         id: 'actions',
@@ -68,23 +72,23 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
   });
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80">
+    <div className="overflow-hidden rounded-xl border border-border bg-background">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left">
-          <thead className="border-b border-border/60 bg-muted/30">
+        <table className="w-full min-w-[720px] text-left text-sm">
+          <thead className="border-b border-border bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th key={header.id} className="px-4 py-2 text-xs font-medium text-muted-foreground">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-b-0">
+              <tr key={row.id} className="group transition-colors hover:bg-muted/40">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

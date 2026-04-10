@@ -59,7 +59,7 @@ export function MemoriesPage() {
   const [searchInput, setSearchInput] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
-  const pageSize = 20;
+  const pageSize = 12;
   const [filterSource, setFilterSource] = React.useState<FilterSource>('all');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('all');
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -291,7 +291,7 @@ export function MemoriesPage() {
           )}
 
           {totalPages > 1 ? (
-            <div className="border-t border-border/60 px-3 py-3">
+            <div className="border-t border-border px-3 py-3">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>

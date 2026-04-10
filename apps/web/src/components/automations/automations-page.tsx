@@ -41,7 +41,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: automations } = useSuspenseQuery(automationsQueryOptions);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 15;
   const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);

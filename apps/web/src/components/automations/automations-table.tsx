@@ -43,7 +43,11 @@ type AutomationsTableProps = {
 const columnHelper = createColumnHelper<Automation>();
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export function AutomationsTable({
@@ -111,7 +115,7 @@ export function AutomationsTable({
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
-        cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
       }),
       columnHelper.display({
         id: 'actions',
@@ -180,23 +184,23 @@ export function AutomationsTable({
   }, [currentPage, totalPages]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80">
+    <div className="overflow-hidden rounded-xl border border-border bg-background">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-225 text-left">
-          <thead className="border-b border-border/60 bg-muted/30">
+        <table className="w-full min-w-225 text-left text-sm">
+          <thead className="border-b border-border bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th key={header.id} className="px-4 py-2 text-xs font-medium text-muted-foreground">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-b-0">
+              <tr key={row.id} className="group transition-colors hover:bg-muted/40">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -209,7 +213,7 @@ export function AutomationsTable({
       </div>
 
       {totalPages > 1 ? (
-        <div className="border-t border-border/60 px-3 py-3">
+        <div className="border-t border-border px-3 py-3">
           <Pagination>
             <PaginationContent>
               <PaginationItem>

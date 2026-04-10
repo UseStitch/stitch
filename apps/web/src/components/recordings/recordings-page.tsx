@@ -1,4 +1,4 @@
-import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon } from 'lucide-react';
+import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -47,7 +47,7 @@ function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
       {config.slug ? (
         <SimpleIcon
           slug={config.slug}
@@ -63,10 +63,11 @@ function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
 }
 
 function formatDate(ts: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(ts));
+  return new Date(ts).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function formatDuration(durationMs: number | null): string {
@@ -164,33 +165,42 @@ function RecordingPreview({ src }: { src: string | null }) {
   }
 
   return (
-    <div className="min-w-56 space-y-2">
-      <div className="flex flex-wrap items-center gap-1">
-        <Button type="button" size="sm" variant="outline" onClick={start} disabled={isPlaying}>
-          Start
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={stop} disabled={!isPlaying}>
-          Stop
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={reset}
-          disabled={currentTime === 0 && !isPlaying}
-        >
-          <RotateCcwIcon className="size-4" />
-          Reset
-        </Button>
+    <div className="flex w-48 items-center gap-2">
+      <Button
+        type="button"
+        size="icon-sm"
+        variant="ghost"
+        onClick={isPlaying ? stop : start}
+        aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
+        className="shrink-0"
+      >
+        {isPlaying ? <PauseIcon className="size-4" /> : <PlayIcon className="size-4" />}
+      </Button>
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+        <Progress value={progressValue} className="h-1.5" aria-label="Preview playback progress" />
+        <div className="flex items-center justify-between text-[10px] tabular-nums leading-none text-muted-foreground">
+          <span>{formatDuration(currentTime * 1000)}</span>
+          <span>{formatDuration(duration * 1000)}</span>
+        </div>
       </div>
-      <Progress value={progressValue} aria-label="Preview playback progress" />
+      <Button
+        type="button"
+        size="icon-sm"
+        variant="ghost"
+        onClick={reset}
+        disabled={currentTime === 0 && !isPlaying}
+        aria-label="Reset preview"
+        className="shrink-0"
+      >
+        <RotateCcwIcon className="size-3.5" />
+      </Button>
     </div>
   );
 }
 
 export function RecordingsPage() {
   const [page, setPage] = React.useState(1);
-  const pageSize = 10;
+  const pageSize = 12;
   const { data } = useSuspenseQuery(recordingsQueryOptions({ page, pageSize }));
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
@@ -237,7 +247,7 @@ export function RecordingsPage() {
     () => [
       columnHelper.accessor('title', {
         header: 'Title',
-        cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
+        cell: ({ row }) => <span className="text-sm font-medium">{row.original.title}</span>,
       }),
       columnHelper.accessor('platform', {
         header: 'Platform',
@@ -245,11 +255,11 @@ export function RecordingsPage() {
       }),
       columnHelper.accessor('status', {
         header: 'Status',
-        cell: ({ getValue }) => <span className="capitalize text-muted-foreground">{getValue()}</span>,
+        cell: ({ getValue }) => <span className="text-xs capitalize text-muted-foreground">{getValue()}</span>,
       }),
       columnHelper.accessor('startedAt', {
         header: 'Date',
-        cell: ({ getValue }) => <span className="text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
       }),
       columnHelper.display({
         id: 'duration',
@@ -257,9 +267,9 @@ export function RecordingsPage() {
         cell: ({ row }) => {
           const recording = row.original;
           if (recording.id === data.activeRecordingId) {
-            return <span className="text-muted-foreground">{formatDuration(activeDuration)}</span>;
+            return <span className="text-xs text-muted-foreground">{formatDuration(activeDuration)}</span>;
           }
-          return <span className="text-muted-foreground">{formatDuration(recording.durationMs)}</span>;
+          return <span className="text-xs text-muted-foreground">{formatDuration(recording.durationMs)}</span>;
         },
       }),
       columnHelper.display({
@@ -398,32 +408,32 @@ export function RecordingsPage() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/60 bg-card/70">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background">
           <div className="flex-1 overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 z-10 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-3 py-2">
+                      <th key={header.id} className="px-4 py-2 font-medium">
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
                   </tr>
                 ))}
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {table.getRowModel().rows.length === 0 ? (
                   <tr>
-                    <td colSpan={columns.length} className="px-3 py-6 text-center text-muted-foreground">
+                    <td colSpan={columns.length} className="px-4 py-6 text-center text-muted-foreground">
                       No recordings yet.
                     </td>
                   </tr>
                 ) : (
                   table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-t border-border/60 align-top">
+                    <tr key={row.id} className="group align-middle transition-colors hover:bg-muted/40">
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-3 py-3">
+                        <td key={cell.id} className="px-4 py-3">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
@@ -435,7 +445,7 @@ export function RecordingsPage() {
           </div>
 
           {pageCount > 1 ? (
-            <div className="border-t border-border/60 px-3 py-3">
+            <div className="border-t border-border px-3 py-3">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
