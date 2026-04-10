@@ -14,7 +14,7 @@ CREATE TABLE `__new_recordings` (
 	`error` text,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	CONSTRAINT "recordings_status_check" CHECK("__new_recordings"."status" in ('recording', 'completed', 'failed'))
+	CONSTRAINT "recordings_status_check" CHECK("status" in ('recording', 'completed', 'failed'))
 );
 --> statement-breakpoint
 INSERT INTO `__new_recordings`("id", "title", "source", "status", "platform", "mime_type", "file_path", "file_size_bytes", "duration_ms", "started_at", "ended_at", "error", "created_at", "updated_at") SELECT "id", "title", "source", "status", "platform", "mime_type", "file_path", "file_size_bytes", "duration_ms", "started_at", "ended_at", "error", "created_at", "updated_at" FROM `recordings`;--> statement-breakpoint

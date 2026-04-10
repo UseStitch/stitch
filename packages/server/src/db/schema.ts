@@ -299,7 +299,7 @@ export const scheduledJobs = sqliteTable(
   (table) => [
     uniqueIndex('scheduled_jobs_key_uidx').on(table.key),
     index('scheduled_jobs_next_run_at_idx').on(table.nextRunAt),
-    check('scheduled_jobs_catchup_check', sql`${table.catchup} in ('none', 'one', 'all')`),
+    check('scheduled_jobs_catchup_check', sql`"catchup" in ('none', 'one', 'all')`),
   ],
 );
 
@@ -356,7 +356,7 @@ export const recordings = sqliteTable(
   (table) => [
     index('recordings_created_at_idx').on(table.createdAt),
     index('recordings_status_idx').on(table.status),
-    check('recordings_status_check', sql`${table.status} in ('recording', 'completed', 'failed')`),
+    check('recordings_status_check', sql`"status" in ('recording', 'completed', 'failed')`),
   ],
 );
 
