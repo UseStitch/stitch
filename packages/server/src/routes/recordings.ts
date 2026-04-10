@@ -10,6 +10,7 @@ import type { StartRecordingInput } from '@stitch/shared/recordings/types';
 
 import { isServiceError } from '@/lib/service-result.js';
 import {
+  deleteRecording,
   getRecordingAudioFile,
   listRecordings,
   startRecording,
@@ -59,6 +60,16 @@ recordingsRouter.post('/stop', async (c) => {
     return c.json({ error: result.error }, result.status);
   }
   return c.json(result.data);
+});
+
+recordingsRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id') as `rec_${string}`;
+  const result = await deleteRecording(id);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.body(null, 204);
 });
 
 recordingsRouter.get('/:id/audio', async (c) => {

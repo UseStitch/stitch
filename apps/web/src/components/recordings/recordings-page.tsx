@@ -1,4 +1,4 @@
-import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon, CheckIcon, ChevronRightIcon } from 'lucide-react';
+import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon, CheckIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -15,6 +15,21 @@ import {
 import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { SimpleIcon } from '@/components/ui/simple-icon';
 import {
@@ -30,6 +45,7 @@ import { Progress } from '@/components/ui/progress';
 import { getServerUrl } from '@/lib/api';
 import {
   recordingsQueryOptions,
+  useDeleteRecording,
   useStartRecording,
   useStopRecording,
 } from '@/lib/queries/recordings';
@@ -240,10 +256,12 @@ export function RecordingsPage() {
   const { data } = useSuspenseQuery(recordingsQueryOptions({ page, pageSize }));
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
+  const deleteRecording = useDeleteRecording();
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
   const [tick, setTick] = React.useState(Date.now());
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
+  const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
 
   useQuery({
     ...recordingsQueryOptions({ page, pageSize }),
@@ -334,11 +352,13 @@ export function RecordingsPage() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={() => {}}
-              title="View details"
-              aria-label="View details"
+              onClick={() => setRecordingToDelete(row.original)}
+              title="Delete recording"
+              aria-label="Delete recording"
+              disabled={row.original.id === data.activeRecordingId}
+              className="text-destructive hover:text-destructive"
             >
-              <ChevronRightIcon className="size-4" />
+              <Trash2Icon className="size-4" />
             </Button>
           </div>
         ),
@@ -470,8 +490,18 @@ export function RecordingsPage() {
               <tbody className="divide-y divide-border">
                 {table.getRowModel().rows.length === 0 ? (
                   <tr>
-                    <td colSpan={columns.length} className="px-4 py-6 text-center text-muted-foreground">
-                      No recordings yet.
+                    <td colSpan={columns.length} className="px-4 py-10 align-middle">
+                      <Empty className="mx-auto w-full max-w-md rounded-none border-0 p-0">
+                        <EmptyHeader>
+                          <EmptyMedia variant="icon">
+                            <MicIcon className="size-4" />
+                          </EmptyMedia>
+                          <EmptyTitle>No recordings yet</EmptyTitle>
+                          <EmptyDescription>
+                            Start recording to capture your first meeting audio.
+                          </EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
                     </td>
                   </tr>
                 ) : (
@@ -555,6 +585,43 @@ export function RecordingsPage() {
           ) : null}
         </div>
       </div>
+
+      <Dialog open={recordingToDelete !== null} onOpenChange={(open) => !open && setRecordingToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete recording?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes "{recordingToDelete?.title}" and its local audio file.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecordingToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!recordingToDelete) {
+                  return;
+                }
+
+                void deleteRecording.mutateAsync(recordingToDelete.id).then(
+                  () => {
+                    setRecordingToDelete(null);
+                    toast.success('Recording deleted');
+                  },
+                  (error: unknown) => {
+                    toast.error(error instanceof Error ? error.message : 'Failed to delete recording');
+                  },
+                );
+              }}
+              disabled={deleteRecording.isPending}
+            >
+              {deleteRecording.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

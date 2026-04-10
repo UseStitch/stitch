@@ -71,3 +71,20 @@ export function useStopRecording() {
     },
   });
 }
+
+export function useDeleteRecording() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (recordingId: string): Promise<void> => {
+      const res = await serverFetch(`/recordings/${recordingId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to delete recording');
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
+    },
+  });
+}

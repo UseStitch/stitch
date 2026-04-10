@@ -220,3 +220,33 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
 
   return ok({ recording: toRecording(row) });
 }
+
+export async function deleteRecording(recordingId: Recording['id']): Promise<ServiceResult<null>> {
+  if (activeRecording?.id === recordingId) {
+    return err('Cannot delete an active recording', 400);
+  }
+
+  const db = getDb();
+  const [row] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
+
+  if (!row) {
+    return err('Recording not found', 404);
+  }
+
+  const recordingDir = path.dirname(row.filePath);
+  const relativeRecordingDir = path.relative(PATHS.dirPaths.recordings, recordingDir);
+  if (relativeRecordingDir.startsWith('..') || path.isAbsolute(relativeRecordingDir)) {
+    return err('Recording path is outside recordings directory', 400);
+  }
+
+  try {
+    await fs.rm(recordingDir, { recursive: true, force: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete recording files';
+    return err(message, 400);
+  }
+
+  await db.delete(recordings).where(eq(recordings.id, recordingId));
+
+  return ok(null);
+}
