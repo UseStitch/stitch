@@ -634,6 +634,48 @@ pub(crate) fn spawn_speaker_capture(
 
 #[cfg(test)]
 mod tests {
+  #[cfg(target_os = "macos")]
+  #[test]
+  fn tap_send_mono_passes_through_single_channel() {
+    use super::{tap_send_mono, TapCtx};
+    use cidre::av;
+    use std::sync::mpsc;
+
+    let (tx, rx) = mpsc::sync_channel(1);
+    let mut ctx = TapCtx {
+      tx,
+      channels: 1,
+      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
+      common_format: av::audio::CommonFormat::PcmF32,
+    };
+
+    tap_send_mono(&mut ctx, &[0.1, 0.2, 0.3]);
+    let chunk = rx.recv().expect("chunk should be sent");
+    assert_eq!(chunk, vec![0.1, 0.2, 0.3]);
+  }
+
+  #[cfg(target_os = "macos")]
+  #[test]
+  fn tap_send_mono_downmixes_multichannel() {
+    use super::{tap_send_mono, TapCtx};
+    use cidre::av;
+    use std::sync::mpsc;
+
+    let (tx, rx) = mpsc::sync_channel(1);
+    let mut ctx = TapCtx {
+      tx,
+      channels: 2,
+      resampler: super::StreamResampler::new(16_000, 16_000).expect("resampler init"),
+      common_format: av::audio::CommonFormat::PcmF32,
+    };
+
+    tap_send_mono(&mut ctx, &[0.2, 0.4, -0.2, 0.2]);
+    let chunk = rx.recv().expect("chunk should be sent");
+    assert_eq!(chunk.len(), 2);
+    assert!((chunk[0] - 0.3).abs() < 0.0001);
+    assert!((chunk[1] - 0.0).abs() < 0.0001);
+  }
+
   #[cfg(target_os = "windows")]
   #[test]
   fn decode_wasapi_float32_frames_to_mono() {
