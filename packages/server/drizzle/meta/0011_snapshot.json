@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d99d32b9-d3e6-4677-9750-90cd484113a2",
+  "id": "ffcbef38-49c5-4d67-a26d-03e8ca353311",
   "prevId": "ad33a0b9-ba21-454e-bdd3-039f5602ac4c",
   "tables": {
     "automations": {
@@ -1094,7 +1094,8 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "'manual'"
         },
         "mime_type": {
           "name": "mime_type",
@@ -1102,7 +1103,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'audio/wav'"
+          "default": "'audio/ogg'"
         },
         "file_path": {
           "name": "file_path",
