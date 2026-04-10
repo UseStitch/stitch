@@ -25,6 +25,7 @@ import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questio
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
+import type { RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -327,6 +328,35 @@ export const scheduledJobRuns = sqliteTable(
       'scheduled_job_runs_status_check',
       sql`${table.status} in ('running', 'succeeded', 'failed')`,
     ),
+  ],
+);
+
+export const recordings = sqliteTable(
+  'recordings',
+  {
+    id: text('id').$type<PrefixedString<'rec'>>().primaryKey(),
+    title: text('title').notNull(),
+    source: text('source').notNull().default('manual'),
+    status: text('status').$type<RecordingStatus>().notNull().default('recording'),
+    platform: text('platform').$type<RecordingPlatform>().notNull().default('manual'),
+    mimeType: text('mime_type').notNull().default('audio/ogg'),
+    filePath: text('file_path').notNull(),
+    fileSizeBytes: integer('file_size_bytes'),
+    durationMs: integer('duration_ms'),
+    startedAt: integer('started_at', { mode: 'number' }).notNull(),
+    endedAt: integer('ended_at', { mode: 'number' }),
+    error: text('error'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('recordings_created_at_idx').on(table.createdAt),
+    index('recordings_status_idx').on(table.status),
+    check('recordings_status_check', sql`${table.status} in ('recording', 'completed', 'failed')`),
   ],
 );
 
