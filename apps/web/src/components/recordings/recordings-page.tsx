@@ -1,4 +1,4 @@
-import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon } from 'lucide-react';
+import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon, CheckIcon, ChevronRightIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -87,11 +87,11 @@ function formatDuration(durationMs: number | null): string {
 
 const columnHelper = createColumnHelper<Recording>();
 
-function RecordingPreview({ src }: { src: string | null }) {
+function RecordingPreview({ src, durationMs }: { src: string | null; durationMs: number | null }) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
-  const [duration, setDuration] = React.useState(0);
+  const actualDuration = durationMs ? durationMs / 1000 : 0;
 
   React.useEffect(() => {
     if (!src) {
@@ -99,20 +99,16 @@ function RecordingPreview({ src }: { src: string | null }) {
       audioRef.current = null;
       setIsPlaying(false);
       setCurrentTime(0);
-      setDuration(0);
       return;
     }
 
     const audio = new Audio(src);
-    const handleLoadedMetadata = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-    };
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
     };
     const handleEnded = () => {
       setIsPlaying(false);
-      setCurrentTime(audio.duration || 0);
+      setCurrentTime(actualDuration);
     };
     const handlePause = () => {
       setIsPlaying(false);
@@ -121,7 +117,6 @@ function RecordingPreview({ src }: { src: string | null }) {
       setIsPlaying(true);
     };
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('pause', handlePause);
@@ -131,15 +126,14 @@ function RecordingPreview({ src }: { src: string | null }) {
 
     return () => {
       audio.pause();
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('play', handlePlay);
     };
-  }, [src]);
+  }, [src, actualDuration]);
 
-  const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progressValue = actualDuration > 0 ? Math.min((currentTime / actualDuration) * 100, 100) : 0;
 
   const start = React.useCallback(() => {
     if (!audioRef.current) return;
@@ -165,7 +159,7 @@ function RecordingPreview({ src }: { src: string | null }) {
   }
 
   return (
-    <div className="flex w-48 items-center gap-2">
+    <div className="flex w-48 items-center gap-1">
       <Button
         type="button"
         size="icon-sm"
@@ -180,7 +174,7 @@ function RecordingPreview({ src }: { src: string | null }) {
         <Progress value={progressValue} className="h-1.5" aria-label="Preview playback progress" />
         <div className="flex items-center justify-between text-[10px] tabular-nums leading-none text-muted-foreground">
           <span>{formatDuration(currentTime * 1000)}</span>
-          <span>{formatDuration(duration * 1000)}</span>
+          <span>{formatDuration(actualDuration * 1000)}</span>
         </div>
       </div>
       <Button
@@ -195,6 +189,48 @@ function RecordingPreview({ src }: { src: string | null }) {
         <RotateCcwIcon className="size-3.5" />
       </Button>
     </div>
+  );
+}
+
+function RecordingCopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!copied) return;
+    const timeoutId = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeoutId);
+  }, [copied]);
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      onClick={() => {
+        void navigator.clipboard.writeText(value).then(
+          () => {
+            setCopied(true);
+            toast.success('File path copied');
+          },
+          () => toast.error('Failed to copy file path'),
+        );
+      }}
+      title="Copy path"
+      aria-label="Copy path"
+    >
+      <span className="relative inline-flex size-4">
+        <CopyIcon
+          className={`absolute inset-0 size-4 transition-all duration-200 ${
+            copied ? 'scale-75 opacity-0' : 'scale-100 opacity-100'
+          }`}
+        />
+        <CheckIcon
+          className={`text-success absolute inset-0 size-4 transition-all duration-200 ${
+            copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
+          }`}
+        />
+      </span>
+    </Button>
   );
 }
 
@@ -276,33 +312,35 @@ export function RecordingsPage() {
         id: 'preview',
         header: 'Preview',
         cell: ({ row }) => (
-          <RecordingPreview
-            src={
-              baseUrl && row.original.status === 'completed'
-                ? `${baseUrl}/recordings/${row.original.id}/audio`
-                : null
-            }
-          />
+          <div className="-ml-2">
+            <RecordingPreview
+              src={
+                baseUrl && row.original.status === 'completed'
+                  ? `${baseUrl}/recordings/${row.original.id}/audio`
+                  : null
+              }
+              durationMs={row.original.durationMs}
+            />
+          </div>
         ),
       }),
       columnHelper.display({
         id: 'actions',
-        header: 'Actions',
+        header: () => <div className="text-right pr-1">Actions</div>,
         cell: ({ row }) => (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              void navigator.clipboard.writeText(row.original.filePath).then(
-                () => toast.success('File path copied'),
-                () => toast.error('Failed to copy file path'),
-              );
-            }}
-          >
-            <CopyIcon className="size-4" />
-            Copy path
-          </Button>
+          <div className="flex items-center justify-end gap-1 -mr-1.5">
+            <RecordingCopyButton value={row.original.filePath} />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => {}}
+              title="View details"
+              aria-label="View details"
+            >
+              <ChevronRightIcon className="size-4" />
+            </Button>
+          </div>
         ),
       }),
     ],
@@ -415,7 +453,14 @@ export function RecordingsPage() {
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-4 py-2 font-medium">
+                      <th
+                        key={header.id}
+                        className={
+                          header.column.id === 'title'
+                            ? 'w-full min-w-62.5 px-4 py-2 font-medium'
+                            : 'whitespace-nowrap px-4 py-2 font-medium'
+                        }
+                      >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
@@ -433,7 +478,12 @@ export function RecordingsPage() {
                   table.getRowModel().rows.map((row) => (
                     <tr key={row.id} className="group align-middle transition-colors hover:bg-muted/40">
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-3">
+                        <td
+                          key={cell.id}
+                          className={
+                            cell.column.id === 'title' ? 'w-full min-w-62.5 px-4 py-3' : 'whitespace-nowrap px-4 py-3'
+                          }
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}

@@ -94,7 +94,7 @@ recordingsRouter.get('/:id/audio', async (c) => {
       headers: {
         'accept-ranges': 'bytes',
         'cache-control': 'no-store',
-        'content-disposition': `inline; filename="${id}.wav"`,
+        'content-disposition': `inline; filename="${id}.ogg"`,
         'content-length': String(chunkSize),
         'content-range': `bytes ${start}-${boundedEnd}/${stat.size}`,
         'content-type': result.data.mimeType,
@@ -108,7 +108,7 @@ recordingsRouter.get('/:id/audio', async (c) => {
     headers: {
       'accept-ranges': 'bytes',
       'cache-control': 'no-store',
-      'content-disposition': `inline; filename="${id}.wav"`,
+      'content-disposition': `inline; filename="${id}.ogg"`,
       'content-length': String(stat.size),
       'content-type': result.data.mimeType,
     },

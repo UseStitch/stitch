@@ -111,7 +111,7 @@ pub(crate) fn parse_start_command(command: Command) -> Result<CaptureStart, Nati
       mic_device_id,
       speaker_device_id,
     } => {
-      if format != "wav" {
+      if format != "opus" {
         return Err(NativeError::InvalidCommand(format!(
           "unsupported format: {format}"
         )));
@@ -152,8 +152,8 @@ mod tests {
   #[test]
   fn parse_start_command_accepts_valid_payload() {
     let command = Command::Start {
-      output_path: "tmp/audio.wav".to_string(),
-      format: "wav".to_string(),
+      output_path: "tmp/audio.ogg".to_string(),
+      format: "opus".to_string(),
       mode: "dual".to_string(),
       sample_rate_hz: 16_000,
       channels: 1,
@@ -163,7 +163,7 @@ mod tests {
     };
 
     let parsed = parse_start_command(command).expect("start command should parse");
-    assert_eq!(parsed.output_path, "tmp/audio.wav");
+    assert_eq!(parsed.output_path, "tmp/audio.ogg");
     assert!(matches!(parsed.mode, CaptureMode::Dual));
     assert_eq!(parsed.sample_rate_hz, 16_000);
     assert_eq!(parsed.channels, 1);
@@ -175,8 +175,8 @@ mod tests {
   #[test]
   fn parse_start_command_rejects_invalid_format() {
     let command = Command::Start {
-      output_path: "tmp/audio.mp3".to_string(),
-      format: "mp3".to_string(),
+      output_path: "tmp/audio.wav".to_string(),
+      format: "wav".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
       channels: 1,
@@ -192,8 +192,8 @@ mod tests {
   #[test]
   fn parse_start_command_rejects_zero_values() {
     let zero_rate = Command::Start {
-      output_path: "tmp/audio.wav".to_string(),
-      format: "wav".to_string(),
+      output_path: "tmp/audio.ogg".to_string(),
+      format: "opus".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 0,
       channels: 1,
@@ -202,8 +202,8 @@ mod tests {
       speaker_device_id: None,
     };
     let zero_channels = Command::Start {
-      output_path: "tmp/audio.wav".to_string(),
-      format: "wav".to_string(),
+      output_path: "tmp/audio.ogg".to_string(),
+      format: "opus".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
       channels: 0,
@@ -254,7 +254,7 @@ mod tests {
   #[test]
   fn command_deserializes_start_payload_with_camel_case_fields() {
     let command: Command = serde_json::from_str(
-      r#"{"type":"start","outputPath":"tmp/audio.wav","format":"wav","mode":"mic","sampleRateHz":16000,"channels":1,"enableAec":false,"micDeviceId":null,"speakerDeviceId":null}"#,
+      r#"{"type":"start","outputPath":"tmp/audio.ogg","format":"opus","mode":"mic","sampleRateHz":16000,"channels":1,"enableAec":false,"micDeviceId":null,"speakerDeviceId":null}"#,
     )
     .expect("must parse start command with camelCase fields");
 
@@ -264,7 +264,7 @@ mod tests {
         sample_rate_hz,
         ..
       } => {
-        assert_eq!(output_path, "tmp/audio.wav");
+        assert_eq!(output_path, "tmp/audio.ogg");
         assert_eq!(sample_rate_hz, 16_000);
       }
       _ => panic!("expected start command variant"),

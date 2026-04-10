@@ -96,7 +96,7 @@ export async function startRecording(
   const now = Date.now();
   const title = input.title?.trim() || defaultTitle();
   const outputDir = path.join(PATHS.dirPaths.recordings, id);
-  const filePath = path.join(outputDir, 'raw_audio.wav');
+  const filePath = path.join(outputDir, 'raw_audio.ogg');
 
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -106,7 +106,7 @@ export async function startRecording(
     source: 'manual',
     status: 'recording',
     platform: input.platform ?? 'manual',
-    mimeType: 'audio/wav',
+    mimeType: 'audio/ogg',
     filePath,
     startedAt: now,
   });
@@ -115,12 +115,12 @@ export async function startRecording(
     await capture.start({
       outputPath: filePath,
       mode: 'dual',
-      sampleRateHz: 48_000,
+      sampleRateHz: 16_000,
       channels: 1,
       enableAec: false,
     });
     activeRecording = { id, filePath };
-    log.info({ recordingId: id, filePath, mode: 'dual', sampleRateHz: 48_000, enableAec: false }, 'recording started');
+    log.info({ recordingId: id, filePath, mode: 'dual', sampleRateHz: 16_000, enableAec: false }, 'recording started');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start recording';
 

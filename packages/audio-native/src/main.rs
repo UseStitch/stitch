@@ -6,6 +6,7 @@ mod capture;
 mod error;
 mod macos_meeting_scan;
 mod mic_usage;
+mod opus_writer;
 mod output;
 mod protocol;
 mod resample;

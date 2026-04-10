@@ -9,6 +9,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
 use crate::error::NativeError;
+use crate::opus_writer::{OggOpusWriter, SAMPLE_RATE as OPUS_SAMPLE_RATE};
 use crate::output::{emit, now_ms};
 use crate::protocol::{CaptureMode, CaptureStart, Event};
 use crate::resample::StreamResampler;
@@ -142,41 +143,14 @@ where
     })
 }
 
-fn write_samples_as_i16(
-  writer: &mut hound::WavWriter<std::io::BufWriter<std::fs::File>>,
-  samples: &[f32],
-) -> Result<(), NativeError> {
-  for sample in samples {
-    let pcm = float_to_pcm_i16(*sample);
-    writer
-      .write_sample(pcm)
-      .map_err(|error| NativeError::Internal(format!("failed to write wav sample: {error}")))?;
-  }
-  Ok(())
+fn write_samples(writer: &mut OggOpusWriter, samples: &[f32]) -> Result<(), NativeError> {
+  writer.write_samples(samples)
 }
 
-fn write_pcm_i16(
-  writer: &mut hound::WavWriter<std::io::BufWriter<std::fs::File>>,
-  samples: &[i16],
-) -> Result<(), NativeError> {
-  for sample in samples {
-    writer
-      .write_sample(*sample)
-      .map_err(|error| NativeError::Internal(format!("failed to write wav sample: {error}")))?;
-  }
-
-  Ok(())
-}
-
-fn float_to_pcm_i16(sample: f32) -> i16 {
-  let clamped = sample.clamp(-1.0, 1.0);
-  (clamped * i16::MAX as f32) as i16
-}
-
-fn weighted_pcm_chunk(chunk: &[f32], weight: f32) -> Vec<i16> {
+fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
   chunk
     .iter()
-    .map(|sample| float_to_pcm_i16(sample * weight))
+    .map(|s| (s * weight).clamp(-1.0, 1.0))
     .collect()
 }
 
@@ -188,7 +162,7 @@ fn maybe_take_unpaired_pcm(
   warning_code: &'static str,
   warned: &mut bool,
   warnings: &mut Vec<String>,
-) -> Option<Vec<i16>> {
+) -> Option<Vec<f32>> {
   if *wait_ticks < UNPAIRED_FLUSH_TICKS && !stop_requested {
     return None;
   }
@@ -200,7 +174,7 @@ fn maybe_take_unpaired_pcm(
   }
 
   *wait_ticks = 0;
-  Some(weighted_pcm_chunk(&chunk, weight))
+  Some(weighted_f32_chunk(&chunk, weight))
 }
 
 fn mix_dual_chunks(
@@ -209,7 +183,7 @@ fn mix_dual_chunks(
   sample_rate_hz: u32,
   enable_aec: bool,
   aec_gain: &mut f32,
-) -> (Vec<i16>, isize) {
+) -> (Vec<f32>, isize) {
   let lag = if enable_aec {
     estimate_lag_samples(mic_chunk, speaker_chunk, sample_rate_hz)
   } else {
@@ -249,7 +223,7 @@ fn mix_dual_chunks(
       DUAL_SPEAKER_GAIN
     };
     let mixed = ((cleaned_mic * DUAL_MIC_GAIN) + (speaker_value * speaker_gain)).clamp(-1.0, 1.0);
-    out.push(float_to_pcm_i16(mixed));
+    out.push(mixed);
   }
 
   (out, lag)
@@ -326,7 +300,6 @@ fn spawn_mic_capture(
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   let output_path = start.output_path.clone();
-  let desired_rate = start.sample_rate_hz;
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
 
@@ -340,80 +313,101 @@ fn spawn_mic_capture(
       })?;
 
       let mut warnings = Vec::new();
-      if default_config.sample_rate() != desired_rate {
-        warnings.push(format!(
-          "requested_sample_rate_{desired_rate}_unavailable_using_{}",
-          default_config.sample_rate()
-        ));
-      }
 
       if requested_channels != 1 {
         warnings.push("channels_forced_to_mono".to_string());
       }
 
       let stream_config = default_config.config();
-      let file_spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: stream_config.sample_rate,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-      };
 
-      let mut writer = hound::WavWriter::create(&output_path, file_spec)
-        .map_err(|error| NativeError::Internal(format!("failed to create wav file: {error}")))?;
+      let mut writer = OggOpusWriter::create(&output_path)?;
 
       let (tx, rx): (SyncSender<Vec<f32>>, Receiver<Vec<f32>>) =
         mpsc::sync_channel(INPUT_QUEUE_CAPACITY);
 
+      let opus_rate = Some(OPUS_SAMPLE_RATE as u32);
+
       let stream = match default_config.sample_format() {
-        SampleFormat::I8 => {
-          build_input_stream::<i8>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            s as f32 / i8::MAX as f32
-          })?
-        }
-        SampleFormat::I16 => {
-          build_input_stream::<i16>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            s as f32 / i16::MAX as f32
-          })?
-        }
-        SampleFormat::I32 => {
-          build_input_stream::<i32>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            s as f32 / i32::MAX as f32
-          })?
-        }
-        SampleFormat::I64 => {
-          build_input_stream::<i64>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            s as f32 / i64::MAX as f32
-          })?
-        }
-        SampleFormat::U8 => {
-          build_input_stream::<u8>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            (s as f32 / u8::MAX as f32) * 2.0 - 1.0
-          })?
-        }
-        SampleFormat::U16 => {
-          build_input_stream::<u16>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            (s as f32 / u16::MAX as f32) * 2.0 - 1.0
-          })?
-        }
-        SampleFormat::U32 => {
-          build_input_stream::<u32>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            (s as f32 / u32::MAX as f32) * 2.0 - 1.0
-          })?
-        }
-        SampleFormat::U64 => {
-          build_input_stream::<u64>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            (s as f32 / u64::MAX as f32) * 2.0 - 1.0
-          })?
-        }
-        SampleFormat::F32 => {
-          build_input_stream::<f32>(&device, &stream_config, tx, stop_flag.clone(), None, |s| s)?
-        }
-        SampleFormat::F64 => {
-          build_input_stream::<f64>(&device, &stream_config, tx, stop_flag.clone(), None, |s| {
-            s as f32
-          })?
-        }
+        SampleFormat::I8 => build_input_stream::<i8>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s as f32 / i8::MAX as f32,
+        )?,
+        SampleFormat::I16 => build_input_stream::<i16>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s as f32 / i16::MAX as f32,
+        )?,
+        SampleFormat::I32 => build_input_stream::<i32>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s as f32 / i32::MAX as f32,
+        )?,
+        SampleFormat::I64 => build_input_stream::<i64>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s as f32 / i64::MAX as f32,
+        )?,
+        SampleFormat::U8 => build_input_stream::<u8>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
+        )?,
+        SampleFormat::U16 => build_input_stream::<u16>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
+        )?,
+        SampleFormat::U32 => build_input_stream::<u32>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
+        )?,
+        SampleFormat::U64 => build_input_stream::<u64>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
+        )?,
+        SampleFormat::F32 => build_input_stream::<f32>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s,
+        )?,
+        SampleFormat::F64 => build_input_stream::<f64>(
+          &device,
+          &stream_config,
+          tx,
+          stop_flag.clone(),
+          opus_rate,
+          |s| s as f32,
+        )?,
         other => {
           return Err(NativeError::StreamFailed(format!(
             "unsupported microphone sample format: {other:?}"
@@ -427,22 +421,17 @@ fn spawn_mic_capture(
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
-          write_samples_as_i16(&mut writer, &samples)?;
+          write_samples(&mut writer, &samples)?;
         }
       }
 
       while let Ok(samples) = rx.try_recv() {
-        write_samples_as_i16(&mut writer, &samples)?;
+        write_samples(&mut writer, &samples)?;
       }
 
       drop(stream);
 
-      writer
-        .flush()
-        .map_err(|error| NativeError::Internal(format!("failed to flush wav file: {error}")))?;
-      writer
-        .finalize()
-        .map_err(|error| NativeError::Internal(format!("failed to finalize wav file: {error}")))?;
+      writer.finalize()?;
 
       Ok(warnings)
     })
@@ -617,14 +606,7 @@ fn write_dual_realtime_output(
   let builder = thread::Builder::new().name("stitch-audio-dual-mixer".to_string());
   builder
     .spawn(move || {
-      let spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: target_sample_rate_hz,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-      };
-      let mut writer = hound::WavWriter::create(output_path, spec)
-        .map_err(|error| NativeError::Internal(format!("failed to create wav file: {error}")))?;
+      let mut writer = OggOpusWriter::create(&output_path)?;
 
       let mut mic_queue: VecDeque<Vec<f32>> = VecDeque::new();
       let mut speaker_queue: VecDeque<Vec<f32>> = VecDeque::new();
@@ -636,29 +618,33 @@ fn write_dual_realtime_output(
       let mut warned_speaker_only_fallback = false;
 
       loop {
-        if let Ok(chunk) = mic_rx.recv_timeout(Duration::from_millis(20)) {
-          mic_queue.push_back(chunk);
+        use std::sync::mpsc::RecvTimeoutError;
+        match mic_rx.recv_timeout(Duration::from_millis(20)) {
+          Ok(chunk) => {
+            mic_queue.push_back(chunk);
+          }
+          Err(RecvTimeoutError::Disconnected) => {
+            // Mic source thread exited — drain any remaining queued data then stop
+            if !stop_flag.load(Ordering::Relaxed) {
+              warnings.push("mic_source_disconnected_early".to_string());
+            }
+            stop_flag.store(true, Ordering::Relaxed);
+          }
+          Err(RecvTimeoutError::Timeout) => {}
         }
         while let Ok(chunk) = speaker_rx.try_recv() {
           speaker_queue.push_back(chunk);
         }
 
-        if !mic_queue.is_empty() && speaker_queue.is_empty() {
-          mic_wait_ticks = mic_wait_ticks.saturating_add(1);
-        } else {
+        // Mix paired chunks when both sources have data.
+        // Process them one at a time to avoid starvation — re-check queues each tick.
+        if !mic_queue.is_empty() && !speaker_queue.is_empty() {
+          // safe unwraps — we just checked both are non-empty
+          let mic_chunk = mic_queue.pop_front().unwrap();
+          let speaker_chunk = speaker_queue.pop_front().unwrap();
           mic_wait_ticks = 0;
-        }
-
-        if !speaker_queue.is_empty() && mic_queue.is_empty() {
-          speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
-        } else {
           speaker_wait_ticks = 0;
-        }
-
-        while let (Some(mic_chunk), Some(speaker_chunk)) =
-          (mic_queue.pop_front(), speaker_queue.pop_front())
-        {
-          let (pcm, lag) = mix_dual_chunks(
+          let (mixed, lag) = mix_dual_chunks(
             &mic_chunk,
             &speaker_chunk,
             target_sample_rate_hz,
@@ -668,12 +654,23 @@ fn write_dual_realtime_output(
           if lag != 0 {
             warnings.push(format!("realtime_sync_lag_samples_{lag}"));
           }
-          write_pcm_i16(&mut writer, &pcm)?;
+          write_samples(&mut writer, &mixed)?;
+        } else {
+          if !mic_queue.is_empty() {
+            mic_wait_ticks = mic_wait_ticks.saturating_add(1);
+          } else {
+            mic_wait_ticks = 0;
+          }
+          if !speaker_queue.is_empty() {
+            speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
+          } else {
+            speaker_wait_ticks = 0;
+          }
         }
 
         let stop_requested = stop_flag.load(Ordering::Relaxed);
 
-        if let Some(pcm) = maybe_take_unpaired_pcm(
+        if let Some(samples) = maybe_take_unpaired_pcm(
           &mut mic_queue,
           &mut mic_wait_ticks,
           stop_requested,
@@ -682,10 +679,10 @@ fn write_dual_realtime_output(
           &mut warned_mic_only_fallback,
           &mut warnings,
         ) {
-          write_pcm_i16(&mut writer, &pcm)?;
+          write_samples(&mut writer, &samples)?;
         }
 
-        if let Some(pcm) = maybe_take_unpaired_pcm(
+        if let Some(samples) = maybe_take_unpaired_pcm(
           &mut speaker_queue,
           &mut speaker_wait_ticks,
           stop_requested,
@@ -694,7 +691,7 @@ fn write_dual_realtime_output(
           &mut warned_speaker_only_fallback,
           &mut warnings,
         ) {
-          write_pcm_i16(&mut writer, &pcm)?;
+          write_samples(&mut writer, &samples)?;
         }
 
         if stop_requested {
@@ -704,12 +701,7 @@ fn write_dual_realtime_output(
         }
       }
 
-      writer
-        .flush()
-        .map_err(|error| NativeError::Internal(format!("failed to flush wav file: {error}")))?;
-      writer
-        .finalize()
-        .map_err(|error| NativeError::Internal(format!("failed to finalize wav file: {error}")))?;
+      writer.finalize()?;
 
       let mic_warnings = mic_worker
         .join()
@@ -775,7 +767,7 @@ mod tests {
 
   use super::{
     aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm, mix_dual_chunks,
-    weighted_pcm_chunk, UNPAIRED_FLUSH_TICKS,
+    weighted_f32_chunk, UNPAIRED_FLUSH_TICKS,
   };
 
   #[test]
@@ -811,10 +803,10 @@ mod tests {
   }
 
   #[test]
-  fn weighted_pcm_chunk_keeps_signal_for_unpaired_streams() {
-    let pcm = weighted_pcm_chunk(&[0.5, -0.5, 0.25], 0.6);
-    assert_eq!(pcm.len(), 3);
-    assert!(pcm.iter().any(|sample| *sample != 0));
+  fn weighted_f32_chunk_keeps_signal_for_unpaired_streams() {
+    let samples = weighted_f32_chunk(&[0.5, -0.5, 0.25], 0.6);
+    assert_eq!(samples.len(), 3);
+    assert!(samples.iter().any(|s| *s != 0.0));
   }
 
   #[test]
@@ -824,7 +816,7 @@ mod tests {
     let mut warnings = Vec::new();
     let mut warned = false;
 
-    let pcm = maybe_take_unpaired_pcm(
+    let samples = maybe_take_unpaired_pcm(
       &mut queue,
       &mut wait_ticks,
       false,
@@ -834,7 +826,7 @@ mod tests {
       &mut warnings,
     );
 
-    assert!(pcm.is_some());
+    assert!(samples.is_some());
     assert!(queue.is_empty());
     assert_eq!(warnings, vec!["dual_fallback_mic_only_chunks"]);
     assert!(warned);
@@ -847,7 +839,7 @@ mod tests {
     let mut warnings = Vec::new();
     let mut warned = false;
 
-    let pcm = maybe_take_unpaired_pcm(
+    let samples = maybe_take_unpaired_pcm(
       &mut queue,
       &mut wait_ticks,
       true,
@@ -857,16 +849,16 @@ mod tests {
       &mut warnings,
     );
 
-    assert!(pcm.is_some());
+    assert!(samples.is_some());
     assert!(queue.is_empty());
   }
 
   #[test]
   fn mix_dual_chunks_writes_audio_when_speaker_is_missing() {
     let mut aec_gain = 0.0;
-    let (pcm, lag) = mix_dual_chunks(&[0.3, -0.2, 0.1], &[], 16_000, true, &mut aec_gain);
+    let (samples, lag) = mix_dual_chunks(&[0.3, -0.2, 0.1], &[], 16_000, true, &mut aec_gain);
     assert_eq!(lag, 0);
-    assert_eq!(pcm.len(), 3);
-    assert!(pcm.iter().any(|sample| *sample != 0));
+    assert_eq!(samples.len(), 3);
+    assert!(samples.iter().any(|s| *s != 0.0));
   }
 }

@@ -102,7 +102,7 @@ mod tests {
   #[test]
   fn ensure_parent_dir_creates_nested_directories() {
     let base = temp_path("ensure-parent");
-    let output = base.join("nested").join("audio.wav");
+    let output = base.join("nested").join("audio.ogg");
     let output_str = output
       .to_str()
       .expect("temp test path should be valid utf8")
@@ -116,7 +116,7 @@ mod tests {
 
   #[test]
   fn ensure_parent_dir_handles_relative_filename() {
-    let result = ensure_parent_dir("audio.wav");
+    let result = ensure_parent_dir("audio.ogg");
     assert!(result.is_ok());
   }
 }

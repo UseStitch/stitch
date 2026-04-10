@@ -124,7 +124,7 @@ function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, {
   return {
     type: 'start',
     outputPath: input.outputPath,
-    format: input.format ?? 'wav',
+    format: input.format ?? 'opus',
     mode: input.mode ?? 'dual',
     sampleRateHz: input.sampleRateHz ?? 16_000,
     channels: input.channels ?? 1,

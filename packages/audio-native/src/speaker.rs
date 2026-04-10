@@ -8,6 +8,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::error::NativeError;
+use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 
 #[cfg(target_os = "macos")]
@@ -19,21 +20,6 @@ use cidre::{arc, av, cat, cf, core_audio as ca, ns, os};
 use wasapi::{
   initialize_mta, DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat,
 };
-
-fn write_samples_as_i16(
-  writer: &mut hound::WavWriter<std::io::BufWriter<std::fs::File>>,
-  samples: &[f32],
-) -> Result<(), NativeError> {
-  for sample in samples {
-    let clamped = sample.clamp(-1.0, 1.0);
-    let pcm = (clamped * i16::MAX as f32) as i16;
-    writer
-      .write_sample(pcm)
-      .map_err(|error| NativeError::Internal(format!("failed to write wav sample: {error}")))?;
-  }
-
-  Ok(())
-}
 
 #[cfg(target_os = "macos")]
 struct MacSpeakerCtx {
@@ -494,31 +480,19 @@ pub(crate) fn spawn_speaker_capture(
   let builder = thread::Builder::new().name("stitch-audio-speaker-capture".to_string());
   builder
     .spawn(move || {
-      let wav_spec = hound::WavSpec {
-        channels: 1,
-        sample_rate: target_sample_rate_hz,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-      };
-      let mut writer = hound::WavWriter::create(output_path, wav_spec)
-        .map_err(|error| NativeError::Internal(format!("failed to create wav file: {error}")))?;
+      let mut writer = OggOpusWriter::create(&output_path)?;
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
-          write_samples_as_i16(&mut writer, &samples)?;
+          writer.write_samples(&samples)?;
         }
       }
 
       while let Ok(samples) = rx.try_recv() {
-        write_samples_as_i16(&mut writer, &samples)?;
+        writer.write_samples(&samples)?;
       }
 
-      writer
-        .flush()
-        .map_err(|error| NativeError::Internal(format!("failed to flush wav file: {error}")))?;
-      writer
-        .finalize()
-        .map_err(|error| NativeError::Internal(format!("failed to finalize wav file: {error}")))?;
+      writer.finalize()?;
 
       let mut warnings = source_worker
         .join()

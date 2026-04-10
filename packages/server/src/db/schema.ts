@@ -339,7 +339,7 @@ export const recordings = sqliteTable(
     source: text('source').notNull().default('manual'),
     status: text('status').$type<RecordingStatus>().notNull().default('recording'),
     platform: text('platform').$type<RecordingPlatform>().notNull().default('manual'),
-    mimeType: text('mime_type').notNull().default('audio/wav'),
+    mimeType: text('mime_type').notNull().default('audio/ogg'),
     filePath: text('file_path').notNull(),
     fileSizeBytes: integer('file_size_bytes'),
     durationMs: integer('duration_ms'),

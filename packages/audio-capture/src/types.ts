@@ -2,7 +2,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 
 export type CapturePlatform = 'darwin' | 'win32';
 
-export type CaptureFormat = 'wav';
+export type CaptureFormat = 'opus';
 
 export type CaptureMode = 'mic' | 'speaker' | 'dual';
 
