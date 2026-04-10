@@ -26,7 +26,6 @@ import {
 import {
   Empty,
   EmptyDescription,
-  EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
@@ -397,8 +396,8 @@ export function RecordingsPage() {
   }, [currentPage, pageCount]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
+    <div className="flex h-full flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -466,10 +465,10 @@ export function RecordingsPage() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-background">
-          <div className="flex-1 overflow-auto">
+        <div className="overflow-hidden rounded-xl border border-border bg-background">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
+              <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -490,17 +489,15 @@ export function RecordingsPage() {
               <tbody className="divide-y divide-border">
                 {table.getRowModel().rows.length === 0 ? (
                   <tr>
-                    <td colSpan={columns.length} className="px-4 py-10 align-middle">
-                      <Empty className="mx-auto w-full max-w-md rounded-none border-0 p-0">
-                        <EmptyHeader>
-                          <EmptyMedia variant="icon">
-                            <MicIcon className="size-4" />
-                          </EmptyMedia>
-                          <EmptyTitle>No recordings yet</EmptyTitle>
-                          <EmptyDescription>
-                            Start recording to capture your first meeting audio.
-                          </EmptyDescription>
-                        </EmptyHeader>
+                    <td colSpan={columns.length}>
+                      <Empty>
+                        <EmptyMedia>
+                          <MicIcon className="size-10 text-muted-foreground/30" />
+                        </EmptyMedia>
+                        <EmptyTitle>No recordings yet</EmptyTitle>
+                        <EmptyDescription>
+                          Start recording to capture your first meeting audio.
+                        </EmptyDescription>
                       </Empty>
                     </td>
                   </tr>

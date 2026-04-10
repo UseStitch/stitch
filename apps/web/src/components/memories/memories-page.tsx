@@ -1,4 +1,6 @@
 import { BrainIcon, SearchIcon, Trash2Icon } from 'lucide-react';
+
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -264,18 +266,20 @@ export function MemoriesPage() {
               ))}
             </div>
           ) : memories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-              <BrainIcon className="size-10 text-muted-foreground/30" />
-              <p className="text-sm font-medium text-muted-foreground">
+            <Empty>
+              <EmptyMedia>
+                <BrainIcon className="size-10 text-muted-foreground/30" />
+              </EmptyMedia>
+              <EmptyTitle>
                 {isSearching ? 'No memories match your search' : 'No memories yet'}
-              </p>
+              </EmptyTitle>
               {!isSearching && (
-                <p className="max-w-xs text-xs text-muted-foreground/70">
+                <EmptyDescription>
                   Memories are automatically extracted from your conversations when memory is
                   enabled in settings.
-                </p>
+                </EmptyDescription>
               )}
-            </div>
+            </Empty>
           ) : (
             <div className="flex flex-col divide-y divide-border">
               {memories.map((memory) => (

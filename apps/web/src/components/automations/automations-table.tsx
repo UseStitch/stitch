@@ -1,4 +1,4 @@
-import { PlayIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import { PlayIcon, PencilIcon, Trash2Icon, BotIcon } from 'lucide-react';
 import * as React from 'react';
 
 import {
@@ -15,6 +15,12 @@ import type { Automation } from '@stitch/shared/automations/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import {
   Pagination,
   PaginationContent,
@@ -199,7 +205,22 @@ export function AutomationsTable({
             ))}
           </thead>
           <tbody className="divide-y divide-border">
-            {table.getRowModel().rows.map((row) => (
+            {table.getRowModel().rows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length}>
+                  <Empty>
+                    <EmptyMedia>
+                      <BotIcon className="size-10 text-muted-foreground/30" />
+                    </EmptyMedia>
+                    <EmptyTitle>No automations yet</EmptyTitle>
+                    <EmptyDescription>
+                      Create your first automation to speed up recurring workflows.
+                    </EmptyDescription>
+                  </Empty>
+                </td>
+              </tr>
+            ) : (
+              table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="group transition-colors hover:bg-muted/40">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3 align-middle">
@@ -207,7 +228,7 @@ export function AutomationsTable({
                   </td>
                 ))}
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

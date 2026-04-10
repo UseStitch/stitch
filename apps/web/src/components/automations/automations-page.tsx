@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
+
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -151,12 +153,18 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         </div>
 
         {automationsPage.total === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
-            <p className="text-sm font-medium">No automations yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Create your first automation to speed up recurring workflows.
-            </p>
-          </div>
+          <AutomationsTable
+            automations={[]}
+            providerModels={providerModels}
+            page={1}
+            totalPages={0}
+            runPending={runAutomation.isPending}
+            deletePending={deleteAutomation.isPending}
+            onPageChange={setPage}
+            onRun={(automation) => void handleRun(automation)}
+            onEdit={openEditDialog}
+            onDelete={(automation) => handleDelete(automation)}
+          />
         ) : selectedAutomation ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border/60 bg-card/70 p-4">
@@ -211,12 +219,12 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             </div>
 
             {automationSessions.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
-                <p className="text-sm font-medium">No runs yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+              <Empty>
+                <EmptyTitle>No runs yet</EmptyTitle>
+                <EmptyDescription>
                   Trigger this automation to create the first run session.
-                </p>
-              </div>
+                </EmptyDescription>
+              </Empty>
             ) : (
               <AutomationRunsTable
                 sessions={automationSessions}
