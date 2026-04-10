@@ -14,11 +14,12 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordings } from '@/db/schema.js';
+import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
 
@@ -37,10 +38,11 @@ function defaultTitle(): string {
   return `Meeting recording ${date}`;
 }
 
-function toRecording(row: RecordingRow): Recording {
+function toRecording(row: RecordingRow, analysisTitle: string | null = null): Recording {
   return {
     id: row.id,
     title: row.title,
+    analysisTitle,
     source: row.source,
     status: row.status,
     platform: row.platform,
@@ -64,8 +66,9 @@ export async function listRecordings(input: {
   const offset = (input.page - 1) * input.pageSize;
   const [rows, countRows] = await Promise.all([
     db
-      .select()
+      .select({ recording: recordings, analysisTitle: recordingAnalyses.title })
       .from(recordings)
+      .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
       .orderBy(desc(recordings.createdAt))
       .limit(input.pageSize)
       .offset(offset),
@@ -75,7 +78,7 @@ export async function listRecordings(input: {
   const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
 
   return {
-    recordings: rows.map(toRecording),
+    recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null)),
     activeRecordingId: activeRecording?.id ?? null,
     page: input.page,
     pageSize: input.pageSize,
@@ -198,6 +201,19 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       },
       'recording stopped',
     );
+
+    const [autoAnalyzeSetting] = await db
+      .select({ value: userSettings.value })
+      .from(userSettings)
+      .where(eq(userSettings.key, 'recordings.autoAnalyze'));
+
+    if (autoAnalyzeSetting?.value === 'true') {
+      void startRecordingAnalysis(current.id).then((result) => {
+        if ('error' in result) {
+          log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');
+        }
+      });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to stop recording';
     await db

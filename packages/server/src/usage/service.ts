@@ -285,6 +285,10 @@ function normalizeEventSource(
     return 'memory_extraction';
   }
 
+  if (source === 'recording_analysis') {
+    return 'recording_analysis';
+  }
+
   if (source.startsWith('transcription')) {
     return 'transcription';
   }

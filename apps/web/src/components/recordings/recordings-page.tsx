@@ -1,8 +1,20 @@
-import { CopyIcon, MicIcon, RotateCcwIcon, SquareIcon, VideoIcon, PlayIcon, PauseIcon, CheckIcon, Trash2Icon } from 'lucide-react';
+import {
+  CheckIcon,
+  CopyIcon,
+  FileTextIcon,
+  MicIcon,
+  PauseIcon,
+  PlayIcon,
+  RotateCcwIcon,
+  SquareIcon,
+  Trash2Icon,
+  VideoIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import {
   createColumnHelper,
   flexRender,
@@ -14,7 +26,7 @@ import {
 
 import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -300,7 +312,14 @@ export function RecordingsPage() {
     () => [
       columnHelper.accessor('title', {
         header: 'Title',
-        cell: ({ row }) => <span className="text-sm font-medium">{row.original.title}</span>,
+        cell: ({ row }) => {
+          const displayTitle = row.original.analysisTitle || row.original.title;
+          return (
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium">{displayTitle}</span>
+            </div>
+          );
+        },
       }),
       columnHelper.accessor('platform', {
         header: 'Platform',
@@ -347,6 +366,15 @@ export function RecordingsPage() {
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1 -mr-1.5">
             <RecordingCopyButton value={row.original.filePath} />
+            <Link
+              to="/recordings/$id"
+              params={{ id: row.original.id }}
+              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+              title="View analysis"
+              aria-label="View analysis"
+            >
+              <FileTextIcon className="size-4" />
+            </Link>
             <Button
               type="button"
               variant="ghost"

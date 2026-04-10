@@ -15,6 +15,7 @@ export const ID_PREFIXES = {
   scheduledJob: 'schjob',
   scheduledJobRun: 'schrun',
   recording: 'rec',
+  recordingAnalysis: 'recan',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -74,6 +75,7 @@ export const createAutomationId = createIdFactory(ID_PREFIXES.automation);
 export const createScheduledJobId = createIdFactory(ID_PREFIXES.scheduledJob);
 export const createScheduledJobRunId = createIdFactory(ID_PREFIXES.scheduledJobRun);
 export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
+export const createRecordingAnalysisId = createIdFactory(ID_PREFIXES.recordingAnalysis);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

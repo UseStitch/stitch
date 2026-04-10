@@ -45,6 +45,7 @@ const SOURCE_LABELS: Record<string, string> = {
   title_generation: 'Title Generation',
   transcription: 'Transcription',
   memory_extraction: 'Memory',
+  recording_analysis: 'Recording Analysis',
 };
 
 const TOKEN_TYPE_KEYS = [

@@ -25,6 +25,11 @@ export const SETTINGS_KEYS = [
   'memory.autoExtract',
   'memory.embedding.providerId',
   'memory.embedding.modelId',
+  'recordings.autoAnalyze',
+  'recordings.transcription.providerId',
+  'recordings.transcription.modelId',
+  'recordings.analysis.providerId',
+  'recordings.analysis.modelId',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -54,6 +59,11 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'memory.autoExtract': z.coerce.boolean(),
   'memory.embedding.providerId': z.string(),
   'memory.embedding.modelId': z.string(),
+  'recordings.autoAnalyze': z.coerce.boolean(),
+  'recordings.transcription.providerId': z.string(),
+  'recordings.transcription.modelId': z.string(),
+  'recordings.analysis.providerId': z.string(),
+  'recordings.analysis.modelId': z.string(),
 } as const;
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
@@ -191,5 +201,31 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Embedding model ID from the selected provider. Empty uses the local all-MiniLM-L6-v2 model.',
+  },
+  {
+    key: 'recordings.autoAnalyze',
+    value: 'false',
+    description:
+      'Automatically run transcription and LLM analysis when a recording is completed.',
+  },
+  {
+    key: 'recordings.transcription.providerId',
+    value: '',
+    description: 'Preferred provider ID used for recording transcription.',
+  },
+  {
+    key: 'recordings.transcription.modelId',
+    value: '',
+    description: 'Preferred model ID used for recording transcription.',
+  },
+  {
+    key: 'recordings.analysis.providerId',
+    value: '',
+    description: 'Preferred provider ID used for recording analysis and summaries.',
+  },
+  {
+    key: 'recordings.analysis.modelId',
+    value: '',
+    description: 'Preferred model ID used for recording analysis and summaries.',
   },
 ];

@@ -2,6 +2,8 @@ import type { PrefixedString } from '../id/index.js';
 
 export type RecordingStatus = 'recording' | 'completed' | 'failed';
 
+export type RecordingAnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
 export type MeetingPlatform = 'zoom' | 'teams' | 'slack' | 'discord' | 'google-meet';
 
 export type RecordingPlatform = MeetingPlatform | 'manual';
@@ -11,6 +13,7 @@ export type MeetingKind = 'desktop' | 'browser';
 export type Recording = {
   id: PrefixedString<'rec'>;
   title: string;
+  analysisTitle: string | null;
   source: string;
   status: RecordingStatus;
   platform: RecordingPlatform;
@@ -45,4 +48,72 @@ export type ListRecordingsResponse = {
   pageSize: number;
   total: number;
   totalPages: number;
+};
+
+export type RecordingTranscriptEntry = {
+  speaker: string;
+  content: string;
+};
+
+export type RecordingAnalysisTopic = {
+  name: string;
+  startTurn: number;
+  endTurn: number;
+};
+
+export type RecordingActionItem = {
+  task: string;
+  assignee: string | null;
+  dueDate: string | null;
+  status: 'todo' | 'in_progress' | 'done' | 'unknown';
+  topicName: string | null;
+};
+
+export type RecordingBlocker = {
+  description: string;
+  assignee: string | null;
+  impact: string | null;
+  topicName: string | null;
+};
+
+export type RecordingAnalysisTopicSection = {
+  name: string;
+  startTurn: number;
+  endTurn: number;
+  analysis: string;
+  decisions: string[];
+  actionItems: RecordingActionItem[];
+  blockers: RecordingBlocker[];
+  openQuestions: string[];
+  nextSteps: string[];
+};
+
+export type RecordingAnalysis = {
+  recordingId: PrefixedString<'rec'>;
+  status: RecordingAnalysisStatus;
+  transcript: RecordingTranscriptEntry[];
+  topics: RecordingAnalysisTopic[];
+  topicSections: RecordingAnalysisTopicSection[];
+  summary: string;
+  title: string;
+  actionItems: RecordingActionItem[];
+  blockers: RecordingBlocker[];
+  error: string | null;
+  transcriptionProviderId: string | null;
+  transcriptionModelId: string | null;
+  analysisProviderId: string | null;
+  analysisModelId: string | null;
+  createdAt: number;
+  updatedAt: number;
+  startedAt: number | null;
+  endedAt: number | null;
+  durationMs: number | null;
+};
+
+export type RecordingAnalysisResponse = {
+  analysis: RecordingAnalysis | null;
+};
+
+export type StartRecordingAnalysisResponse = {
+  analysis: RecordingAnalysis;
 };

@@ -25,7 +25,16 @@ import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questio
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
-import type { RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
+import type {
+  RecordingActionItem,
+  RecordingAnalysisTopicSection,
+  RecordingAnalysisStatus,
+  RecordingBlocker,
+  RecordingPlatform,
+  RecordingStatus,
+  RecordingTranscriptEntry,
+  RecordingAnalysisTopic,
+} from '@stitch/shared/recordings/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -357,6 +366,49 @@ export const recordings = sqliteTable(
     index('recordings_created_at_idx').on(table.createdAt),
     index('recordings_status_idx').on(table.status),
     check('recordings_status_check', sql`${table.status} in ('recording', 'completed', 'failed')`),
+  ],
+);
+
+export const recordingAnalyses = sqliteTable(
+  'recording_analyses',
+  {
+    id: text('id').$type<PrefixedString<'recan'>>().primaryKey(),
+    recordingId: text('recording_id')
+      .$type<PrefixedString<'rec'>>()
+      .notNull()
+      .references(() => recordings.id, { onDelete: 'cascade' }),
+    status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
+    transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
+    topics: blob('topics', { mode: 'json' }).$type<RecordingAnalysisTopic[]>(),
+    topicSections: blob('topic_sections', { mode: 'json' }).$type<RecordingAnalysisTopicSection[]>(),
+    summary: text('summary').notNull().default(''),
+    title: text('title').notNull().default(''),
+    actionItems: blob('action_items', { mode: 'json' }).$type<RecordingActionItem[]>(),
+    blockers: blob('blockers', { mode: 'json' }).$type<RecordingBlocker[]>(),
+    error: text('error'),
+    transcriptionProviderId: text('transcription_provider_id'),
+    transcriptionModelId: text('transcription_model_id'),
+    analysisProviderId: text('analysis_provider_id'),
+    analysisModelId: text('analysis_model_id'),
+    usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
+    costUsd: real('cost_usd').notNull().default(0),
+    startedAt: integer('started_at', { mode: 'number' }),
+    endedAt: integer('ended_at', { mode: 'number' }),
+    durationMs: integer('duration_ms'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('recording_analyses_recording_id_uidx').on(table.recordingId),
+    index('recording_analyses_status_idx').on(table.status),
+    check(
+      'recording_analyses_status_check',
+      sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
+    ),
   ],
 );
 

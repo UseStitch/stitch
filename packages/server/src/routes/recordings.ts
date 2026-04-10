@@ -16,6 +16,11 @@ import {
   startRecording,
   stopRecording,
 } from '@/recordings/service.js';
+import {
+  cancelRecordingAnalysis,
+  getRecordingAnalysis,
+  startRecordingAnalysis,
+} from '@/recordings/analysis-service.js';
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -124,4 +129,36 @@ recordingsRouter.get('/:id/audio', async (c) => {
       'content-type': result.data.mimeType,
     },
   });
+});
+
+recordingsRouter.post('/:id/analyze', async (c) => {
+  const id = c.req.param('id') as `rec_${string}`;
+  const forceRaw = c.req.query('force');
+  const force = forceRaw === '1' || forceRaw === 'true';
+  const result = await startRecordingAnalysis(id, { force });
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data, 202);
+});
+
+recordingsRouter.get('/:id/analysis', async (c) => {
+  const id = c.req.param('id') as `rec_${string}`;
+  const result = await getRecordingAnalysis(id);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.json(result.data);
+});
+
+recordingsRouter.post('/:id/analysis/cancel', async (c) => {
+  const id = c.req.param('id') as `rec_${string}`;
+  const result = await cancelRecordingAnalysis(id);
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  return c.body(null, 204);
 });

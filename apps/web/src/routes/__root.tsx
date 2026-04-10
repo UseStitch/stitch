@@ -16,6 +16,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
 import { NotificationSound } from '@/hooks/sse/use-notification-sound';
+import { RecordingAnalysisSync } from '@/hooks/sse/use-recording-analysis-sync';
 import { StreamSync } from '@/hooks/sse/use-stream-sync';
 import { UnreadSync } from '@/hooks/sse/use-unread-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
@@ -81,6 +82,7 @@ function RootLayout() {
                 <StreamSync />
                 <NotificationSound />
                 <UnreadSync />
+                <RecordingAnalysisSync />
                 <UpdaterSync />
                 <MeetingRecordingBanner />
                 <Outlet />
