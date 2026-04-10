@@ -63,9 +63,6 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     to: '/memories',
     matchPrefix: '/memories',
   },
-];
-
-const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
   {
     id: 'recordings',
     icon: <MicIcon className="size-5" />,
@@ -73,6 +70,9 @@ const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
     to: '/recordings',
     matchPrefix: '/recordings',
   },
+];
+
+const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
   {
     id: 'usage',
     icon: <BarChart3Icon className="size-5" />,
