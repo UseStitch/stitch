@@ -167,7 +167,7 @@ fn build_opus_tags() -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-  use super::{build_opus_head, build_opus_tags, BITRATE_BPS, FRAME_SAMPLES, SAMPLE_RATE};
+  use super::{BITRATE_BPS, FRAME_SAMPLES, SAMPLE_RATE, build_opus_head, build_opus_tags};
 
   #[test]
   fn opus_head_has_correct_magic_and_fields() {
@@ -234,7 +234,7 @@ mod tests {
   // buffer until finalize(), causing decoders to see a truncated stream.
   #[test]
   fn write_samples_flushes_page_every_50_frames() {
-    use super::{OggOpusWriter, FRAMES_PER_PAGE, SAMPLE_RATE};
+    use super::{FRAMES_PER_PAGE, OggOpusWriter, SAMPLE_RATE};
     use std::fs;
 
     let path = std::env::temp_dir().join("stitch-audio-native-test-opus-page-flush.ogg");
@@ -270,7 +270,7 @@ mod tests {
   // rather than silently dropped.
   #[test]
   fn finalize_encodes_partial_frame_remainder() {
-    use super::{OggOpusWriter, FRAME_SAMPLES};
+    use super::{FRAME_SAMPLES, OggOpusWriter};
     use std::fs;
 
     let path_full = std::env::temp_dir().join("stitch-audio-native-test-opus-partial-full.ogg");

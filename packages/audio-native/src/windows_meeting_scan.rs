@@ -13,12 +13,12 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
   use std::collections::{HashMap, HashSet};
 
   use sysinfo::{Pid, ProcessesToUpdate, System};
-  use wasapi::{deinitialize, initialize_mta, DeviceEnumerator, Direction, SessionState};
-  use windows::core::BOOL;
+  use wasapi::{DeviceEnumerator, Direction, SessionState, deinitialize, initialize_mta};
   use windows::Win32::Foundation::{HWND, LPARAM};
   use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible,
   };
+  use windows::core::BOOL;
 
   const TARGET_PROCESS_NAMES: &[&str] = &[
     "zoom", "ms-teams", "teams", "slack", "discord", "chrome", "msedge",

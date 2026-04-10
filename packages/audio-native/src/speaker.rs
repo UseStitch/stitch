@@ -1,23 +1,28 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, Receiver, TrySendError};
 use std::thread;
 use std::time::Duration;
+
+#[cfg(target_os = "macos")]
+use std::sync::mpsc::SyncSender;
 
 use crate::error::NativeError;
 use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 
 #[cfg(target_os = "macos")]
-use cidre::{av, cat, cf, cm, core_audio as ca, define_obj_type, dispatch, ns, objc, os, sc, sc::StreamOutput};
-#[cfg(target_os = "macos")]
 use ca::aggregate_device_keys as agg_keys;
+#[cfg(target_os = "macos")]
+use cidre::{
+  av, cat, cf, cm, core_audio as ca, define_obj_type, dispatch, ns, objc, os, sc, sc::StreamOutput,
+};
 
 #[cfg(target_os = "windows")]
 use std::collections::VecDeque;
 #[cfg(target_os = "windows")]
 use wasapi::{
-  initialize_mta, DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat,
+  DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat, initialize_mta,
 };
 
 #[cfg(target_os = "macos")]
@@ -69,8 +74,7 @@ impl sc::StreamOutputImpl for SckAudioOutput {
       return;
     }
 
-    let samples =
-      unsafe { std::slice::from_raw_parts(buf.data as *const f32, float_count) };
+    let samples = unsafe { std::slice::from_raw_parts(buf.data as *const f32, float_count) };
 
     let channels = buf.number_channels as usize;
     let mono = if channels <= 1 {
@@ -158,10 +162,7 @@ fn tap_read_samples<T: Copy>(buffer: &cat::AudioBuf) -> Option<&[T]> {
 }
 
 #[cfg(target_os = "macos")]
-fn start_process_tap(
-  tx: SyncSender<Vec<f32>>,
-  target_sample_rate_hz: u32,
-) -> Option<Box<TapCtx>> {
+fn start_process_tap(tx: SyncSender<Vec<f32>>, target_sample_rate_hz: u32) -> Option<Box<TapCtx>> {
   let tap_desc = ca::TapDesc::with_mono_global_tap_excluding_processes(&ns::Array::new());
   let tap = tap_desc.create_process_tap().ok()?;
   let asbd = tap.asbd().ok()?;
@@ -189,7 +190,8 @@ fn start_process_tap(
   );
 
   let agg_device = ca::AggregateDevice::with_desc(&agg_desc).ok()?;
-  let resampler = StreamResampler::new(asbd.sample_rate.round() as u32, target_sample_rate_hz).ok()?;
+  let resampler =
+    StreamResampler::new(asbd.sample_rate.round() as u32, target_sample_rate_hz).ok()?;
 
   let mut ctx = Box::new(TapCtx {
     tx,
@@ -228,13 +230,19 @@ fn start_process_tap(
       }
       av::audio::CommonFormat::PcmI32 => {
         if let Some(samples) = tap_read_samples::<i32>(first) {
-          let converted: Vec<f32> = samples.iter().map(|s| *s as f32 / i32::MAX as f32).collect();
+          let converted: Vec<f32> = samples
+            .iter()
+            .map(|s| *s as f32 / i32::MAX as f32)
+            .collect();
           tap_send_mono(ctx, &converted);
         }
       }
       av::audio::CommonFormat::PcmI16 => {
         if let Some(samples) = tap_read_samples::<i16>(first) {
-          let converted: Vec<f32> = samples.iter().map(|s| *s as f32 / i16::MAX as f32).collect();
+          let converted: Vec<f32> = samples
+            .iter()
+            .map(|s| *s as f32 / i16::MAX as f32)
+            .collect();
           tap_send_mono(ctx, &converted);
         }
       }
@@ -337,13 +345,11 @@ fn spawn_macos_speaker_source(
           }
         }
 
-        Ok(vec![
-          if use_tap.load(Ordering::Relaxed) {
-            "speaker_source_process_tap".to_string()
-          } else {
-            "speaker_source_screencapturekit".to_string()
-          },
-        ])
+        Ok(vec![if use_tap.load(Ordering::Relaxed) {
+          "speaker_source_process_tap".to_string()
+        } else {
+          "speaker_source_screencapturekit".to_string()
+        }])
       })
     })
     .map_err(|error| {
@@ -549,7 +555,9 @@ fn spawn_windows_speaker_source(
 
       let mut warnings = Vec::new();
       if dropped_chunks > 0 {
-        warnings.push(format!("speaker_source_backpressure_dropped_chunks_{dropped_chunks}"));
+        warnings.push(format!(
+          "speaker_source_backpressure_dropped_chunks_{dropped_chunks}"
+        ));
       }
 
       Ok(warnings)
@@ -623,7 +631,9 @@ pub(crate) fn spawn_speaker_capture(
       let mut warnings = source_worker
         .join()
         .map_err(|_| NativeError::Internal("speaker source thread panicked".to_string()))??;
-      warnings.push(format!("speaker_capture_sample_rate_{target_sample_rate_hz}"));
+      warnings.push(format!(
+        "speaker_capture_sample_rate_{target_sample_rate_hz}"
+      ));
 
       Ok(warnings)
     })
@@ -637,7 +647,7 @@ mod tests {
   #[cfg(target_os = "macos")]
   #[test]
   fn tap_send_mono_passes_through_single_channel() {
-    use super::{tap_send_mono, TapCtx};
+    use super::{TapCtx, tap_send_mono};
     use cidre::av;
     use std::sync::mpsc;
 
@@ -657,7 +667,7 @@ mod tests {
   #[cfg(target_os = "macos")]
   #[test]
   fn tap_send_mono_downmixes_multichannel() {
-    use super::{tap_send_mono, TapCtx};
+    use super::{TapCtx, tap_send_mono};
     use cidre::av;
     use std::sync::mpsc;
 

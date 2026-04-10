@@ -147,7 +147,7 @@ pub(crate) fn parse_start_command(command: Command) -> Result<CaptureStart, Nati
 
 #[cfg(test)]
 mod tests {
-  use super::{parse_start_command, CaptureMode, Command, Event};
+  use super::{CaptureMode, Command, Event, parse_start_command};
 
   #[test]
   fn parse_start_command_accepts_valid_payload() {

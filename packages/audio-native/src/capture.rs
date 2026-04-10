@@ -1,7 +1,8 @@
+#[cfg(test)]
 use std::collections::VecDeque;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -145,6 +146,7 @@ fn write_samples(writer: &mut OggOpusWriter, samples: &[f32]) -> Result<(), Nati
   writer.write_samples(samples)
 }
 
+#[cfg(test)]
 fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
   chunk
     .iter()
@@ -152,6 +154,7 @@ fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
     .collect()
 }
 
+#[cfg(test)]
 fn maybe_take_unpaired_pcm(
   queue: &mut VecDeque<Vec<f32>>,
   wait_ticks: &mut u32,
@@ -175,6 +178,7 @@ fn maybe_take_unpaired_pcm(
   Some(weighted_f32_chunk(&chunk, weight))
 }
 
+#[cfg(test)]
 fn mix_dual_chunks(
   mic_chunk: &[f32],
   speaker_chunk: &[f32],
@@ -223,6 +227,7 @@ fn mix_dual_chunks(
   (out, lag)
 }
 
+#[cfg(test)]
 fn estimate_lag_samples(mic: &[f32], speaker: &[f32], sample_rate: u32) -> isize {
   if mic.is_empty() || speaker.is_empty() {
     return 0;
@@ -576,6 +581,7 @@ fn spawn_mic_source(
   Ok((rx, worker))
 }
 
+#[cfg(test)]
 fn aligned_sample(buffer: &[f32], idx: usize, lag: isize) -> f32 {
   let mapped = idx as isize - lag;
   if mapped < 0 {
@@ -602,8 +608,7 @@ fn write_dual_realtime_output(
     .spawn(move || {
       let mut writer = OggOpusWriter::create(&output_path)?;
 
-      let mut aec_gain = 0.0f32;
-      let _ = aec_gain;
+      let aec_gain = 0.0f32;
       let mut warnings = vec!["dual_realtime_mixer_enabled".to_string()];
       let mut mic_buf: Vec<f32> = Vec::new();
       let mut speaker_buf: Vec<f32> = Vec::new();
@@ -748,8 +753,8 @@ mod tests {
   use std::collections::VecDeque;
 
   use super::{
-    aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm, mix_dual_chunks,
-    weighted_f32_chunk, UNPAIRED_FLUSH_TICKS,
+    UNPAIRED_FLUSH_TICKS, aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm,
+    mix_dual_chunks, weighted_f32_chunk,
   };
 
   #[test]
