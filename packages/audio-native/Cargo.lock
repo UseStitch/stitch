@@ -832,6 +832,7 @@ dependencies = [
  "serde_json",
  "sysinfo",
  "thiserror 2.0.18",
+ "tokio",
  "wasapi",
  "windows 0.61.3",
 ]

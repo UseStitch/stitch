@@ -15,22 +15,27 @@ mod speaker;
 mod windows_meeting_scan;
 
 use macos_meeting_scan::list_macos_meeting_rows;
-use output::emit;
 use mic_usage::list_mic_using_processes;
-use protocol::{parse_start_command, Command, Event};
-use session::{start_session, stop_session, ActiveSession};
+use output::emit;
+use protocol::{Command, Event, parse_start_command};
+use session::{ActiveSession, start_session, stop_session};
 use windows_meeting_scan::list_windows_meeting_rows;
 
 fn handle_list_mic_usage_flag() -> io::Result<bool> {
-  if !std::env::args().skip(1).any(|arg| arg == "--list-mic-usage") {
+  if !std::env::args()
+    .skip(1)
+    .any(|arg| arg == "--list-mic-usage")
+  {
     return Ok(false);
   }
 
   let apps = list_mic_using_processes().unwrap_or_default();
   println!(
     "{}",
-    serde_json::to_string(&apps)
-      .map_err(|error| io::Error::new(io::ErrorKind::Other, format!("serialize failed: {error}")))?
+    serde_json::to_string(&apps).map_err(|error| io::Error::new(
+      io::ErrorKind::Other,
+      format!("serialize failed: {error}")
+    ))?
   );
   Ok(true)
 }

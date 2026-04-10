@@ -1,5 +1,5 @@
-use rubato::audioadapter_buffers::direct::InterleavedSlice;
 use rubato::Resampler;
+use rubato::audioadapter_buffers::direct::InterleavedSlice;
 
 use crate::error::NativeError;
 
