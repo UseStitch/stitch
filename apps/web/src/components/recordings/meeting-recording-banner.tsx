@@ -23,7 +23,7 @@ export function MeetingRecordingBanner() {
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
 
   const startRecording = useStartRecording();
-  const { data } = useQuery(recordingsQueryOptions);
+  const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 10 }));
 
   useSSE({
     'meeting-call-detected': (payload) => {

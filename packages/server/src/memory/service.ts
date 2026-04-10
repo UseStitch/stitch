@@ -5,14 +5,17 @@ import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { createEmbedder } from '@/memory/embedding/factory.js';
 import { getSemanticTable } from '@/memory/store/tables.js';
 import type {
+  ListSemanticMemoriesResponse,
+  SearchSemanticMemoriesResponse,
+  MemoryCategory,
   SemanticMemory,
-  MemorySearchResult,
   MemorySource,
   ExtractedFact,
 } from '@/memory/types.js';
 import type { VectorQuery } from '@lancedb/lancedb';
 
 const log = Log.create({ service: 'memory-service' });
+const MAX_SEARCH_RESULTS = 1000;
 
 function now(): string {
   return new Date().toISOString();
@@ -145,64 +148,121 @@ export async function deleteSemanticMemories(ids: string[]): Promise<void> {
 }
 
 export async function searchSemanticMemories(
-  query: string,
-  limit = 10,
-  sourceFilter?: MemorySource,
-): Promise<MemorySearchResult[]> {
+  input: {
+    query: string;
+    page: number;
+    pageSize: number;
+    sourceFilter?: MemorySource;
+    categoryFilter?: MemoryCategory;
+  },
+): Promise<SearchSemanticMemoriesResponse> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  const [count, vector] = await Promise.all([table.countRows(), embedder.embed(query)]);
-  if (count === 0) return [];
+  const [count, vector] = await Promise.all([table.countRows(), embedder.embed(input.query)]);
+  if (count === 0) {
+    return {
+      memories: [],
+      page: input.page,
+      pageSize: input.pageSize,
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
-  let search = (table.search(vector) as VectorQuery).distanceType('cosine').limit(limit);
+  let search = (table.search(vector) as VectorQuery)
+    .distanceType('cosine')
+    .limit(MAX_SEARCH_RESULTS);
 
-  if (sourceFilter) {
-    search = search.where(`source = '${escapeSql(sourceFilter)}'`);
+  const filters: string[] = [];
+  if (input.sourceFilter) {
+    filters.push(`source = '${escapeSql(input.sourceFilter)}'`);
+  }
+  if (input.categoryFilter) {
+    filters.push(`category = '${escapeSql(input.categoryFilter)}'`);
+  }
+
+  if (filters.length > 0) {
+    search = search.where(filters.join(' AND '));
   }
 
   const results = await search.toArray();
+  const start = (input.page - 1) * input.pageSize;
+  const end = start + input.pageSize;
+  const pageRows = results.slice(start, end);
+  const total = results.length;
+  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
 
-  return results.map((r: Record<string, unknown>) => ({
-    id: r.id as string,
-    content: r.content as string,
-    category: r.category as SemanticMemory['category'],
-    confidence: r.confidence as SemanticMemory['confidence'],
-    source: r.source as SemanticMemory['source'],
-    sourceId: r.sourceId as string,
-    createdAt: r.createdAt as string,
-    updatedAt: r.updatedAt as string,
-    accessCount: r.accessCount as number,
-    lastAccessedAt: r.lastAccessedAt as string,
-    score: 1 - (r._distance as number),
-  }));
+  return {
+    memories: pageRows.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      content: r.content as string,
+      category: r.category as SemanticMemory['category'],
+      confidence: r.confidence as SemanticMemory['confidence'],
+      source: r.source as SemanticMemory['source'],
+      sourceId: r.sourceId as string,
+      createdAt: r.createdAt as string,
+      updatedAt: r.updatedAt as string,
+      accessCount: r.accessCount as number,
+      lastAccessedAt: r.lastAccessedAt as string,
+      score: 1 - (r._distance as number),
+    })),
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    totalPages,
+  };
 }
 
 export async function getAllSemanticMemories(
-  sourceFilter?: MemorySource,
-): Promise<SemanticMemory[]> {
+  input: {
+    page: number;
+    pageSize: number;
+    sourceFilter?: MemorySource;
+    categoryFilter?: MemoryCategory;
+  },
+): Promise<ListSemanticMemoriesResponse> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
   let query = table.query();
-  if (sourceFilter) {
-    query = query.where(`source = '${escapeSql(sourceFilter)}'`);
+  const filters: string[] = [];
+  if (input.sourceFilter) {
+    filters.push(`source = '${escapeSql(input.sourceFilter)}'`);
+  }
+  if (input.categoryFilter) {
+    filters.push(`category = '${escapeSql(input.categoryFilter)}'`);
+  }
+
+  if (filters.length > 0) {
+    query = query.where(filters.join(' AND '));
   }
 
   const rows = await query.toArray();
+  const start = (input.page - 1) * input.pageSize;
+  const end = start + input.pageSize;
+  const pageRows = rows.slice(start, end);
+  const total = rows.length;
+  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
 
-  return rows.map((r) => ({
-    id: r.id as string,
-    content: r.content as string,
-    category: r.category as SemanticMemory['category'],
-    confidence: r.confidence as SemanticMemory['confidence'],
-    source: r.source as SemanticMemory['source'],
-    sourceId: r.sourceId as string,
-    createdAt: r.createdAt as string,
-    updatedAt: r.updatedAt as string,
-    accessCount: r.accessCount as number,
-    lastAccessedAt: r.lastAccessedAt as string,
-  }));
+  return {
+    memories: pageRows.map((r) => ({
+      id: r.id as string,
+      content: r.content as string,
+      category: r.category as SemanticMemory['category'],
+      confidence: r.confidence as SemanticMemory['confidence'],
+      source: r.source as SemanticMemory['source'],
+      sourceId: r.sourceId as string,
+      createdAt: r.createdAt as string,
+      updatedAt: r.updatedAt as string,
+      accessCount: r.accessCount as number,
+      lastAccessedAt: r.lastAccessedAt as string,
+    })),
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    totalPages,
+  };
 }
 
 export async function touchSemanticMemories(ids: string[]): Promise<void> {

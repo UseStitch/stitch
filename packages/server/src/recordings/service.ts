@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
 import { createRecordingId } from '@stitch/shared/id';
@@ -56,12 +56,31 @@ function toRecording(row: RecordingRow): Recording {
   };
 }
 
-export async function listRecordings(): Promise<ListRecordingsResponse> {
+export async function listRecordings(input: {
+  page: number;
+  pageSize: number;
+}): Promise<ListRecordingsResponse> {
   const db = getDb();
-  const rows = await db.select().from(recordings).orderBy(desc(recordings.createdAt));
+  const offset = (input.page - 1) * input.pageSize;
+  const [rows, countRows] = await Promise.all([
+    db
+      .select()
+      .from(recordings)
+      .orderBy(desc(recordings.createdAt))
+      .limit(input.pageSize)
+      .offset(offset),
+    db.select({ total: sql<number>`count(*)` }).from(recordings),
+  ]);
+  const total = Number(countRows[0]?.total ?? 0);
+  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+
   return {
     recordings: rows.map(toRecording),
     activeRecordingId: activeRecording?.id ?? null,
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    totalPages,
   };
 }
 

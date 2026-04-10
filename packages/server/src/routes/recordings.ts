@@ -25,8 +25,22 @@ const startRecordingSchema = z.object({
 
 export const recordingsRouter = new Hono();
 
+function parsePagination(query: Record<string, string | undefined>) {
+  const pageRaw = Number.parseInt(query.page ?? '1', 10);
+  const pageSizeRaw = Number.parseInt(query.pageSize ?? '10', 10);
+
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 10;
+
+  return { page, pageSize };
+}
+
 recordingsRouter.get('/', async (c) => {
-  const result = await listRecordings();
+  const { page, pageSize } = parsePagination({
+    page: c.req.query('page'),
+    pageSize: c.req.query('pageSize'),
+  });
+  const result = await listRecordings({ page, pageSize });
   return c.json(result);
 });
 

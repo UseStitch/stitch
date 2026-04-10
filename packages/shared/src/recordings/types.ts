@@ -41,4 +41,8 @@ export type StopRecordingResponse = {
 export type ListRecordingsResponse = {
   recordings: Recording[];
   activeRecordingId: PrefixedString<'rec'> | null;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 };

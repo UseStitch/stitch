@@ -4,6 +4,7 @@ import type { Session } from '@stitch/shared/chat/messages';
 import { createAutomationId, createMessageId } from '@stitch/shared/id';
 import type {
   Automation,
+  ListAutomationsResponse,
   AutomationSchedule,
   AutomationScheduleBlob,
   CreateAutomationInput,
@@ -132,10 +133,32 @@ function toAutomationRow(row: AutomationDbRow): AutomationRow {
   };
 }
 
-export async function listAutomations(): Promise<AutomationRow[]> {
+export async function listAutomations(input: {
+  page: number;
+  pageSize: number;
+}): Promise<ListAutomationsResponse> {
   const db = getDb();
-  const rows = await db.select().from(automations).orderBy(asc(automations.createdAt));
-  return rows.map(toAutomationRow);
+  const offset = (input.page - 1) * input.pageSize;
+  const [rows, countRows] = await Promise.all([
+    db
+      .select()
+      .from(automations)
+      .orderBy(asc(automations.createdAt))
+      .limit(input.pageSize)
+      .offset(offset),
+    db.select({ total: sql<number>`count(*)` }).from(automations),
+  ]);
+
+  const total = Number(countRows[0]?.total ?? 0);
+  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+
+  return {
+    automations: rows.map(toAutomationRow),
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    totalPages,
+  };
 }
 
 export async function createAutomation(input: CreateAutomationInput): Promise<ServiceResult<AutomationRow>> {

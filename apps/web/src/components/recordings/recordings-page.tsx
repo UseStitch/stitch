@@ -7,7 +7,6 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
@@ -190,17 +189,18 @@ function RecordingPreview({ src }: { src: string | null }) {
 }
 
 export function RecordingsPage() {
-  const { data } = useSuspenseQuery(recordingsQueryOptions);
+  const [page, setPage] = React.useState(1);
+  const pageSize = 10;
+  const { data } = useSuspenseQuery(recordingsQueryOptions({ page, pageSize }));
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [title, setTitle] = React.useState('');
   const [tick, setTick] = React.useState(Date.now());
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
 
   useQuery({
-    ...recordingsQueryOptions,
+    ...recordingsQueryOptions({ page, pageSize }),
     refetchInterval: data.activeRecordingId ? 1_000 : 2_000,
   });
 
@@ -302,16 +302,14 @@ export function RecordingsPage() {
   const table = useReactTable({
     data: data.recordings,
     columns,
-    state: { sorting, pagination },
+    state: { sorting },
     onSortingChange: setSorting,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const pageCount = table.getPageCount();
-  const currentPage = table.getState().pagination.pageIndex;
+  const pageCount = data.totalPages;
+  const currentPage = page - 1;
   const pageNumbers = React.useMemo(() => {
     if (pageCount <= 1) {
       return [] as number[];
@@ -445,11 +443,11 @@ export function RecordingsPage() {
                       href="#"
                       onClick={(event) => {
                         event.preventDefault();
-                        if (table.getCanPreviousPage()) {
-                          table.previousPage();
+                        if (page > 1) {
+                          setPage((current) => current - 1);
                         }
                       }}
-                      className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-50' : undefined}
+                      className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
                     />
                   </PaginationItem>
 
@@ -469,7 +467,7 @@ export function RecordingsPage() {
                             isActive={page === currentPage}
                             onClick={(event) => {
                               event.preventDefault();
-                              table.setPageIndex(page);
+                              setPage(page + 1);
                             }}
                           >
                             {page + 1}
@@ -484,11 +482,11 @@ export function RecordingsPage() {
                       href="#"
                       onClick={(event) => {
                         event.preventDefault();
-                        if (table.getCanNextPage()) {
-                          table.nextPage();
+                        if (page < pageCount) {
+                          setPage((current) => current + 1);
                         }
                       }}
-                      className={!table.getCanNextPage() ? 'pointer-events-none opacity-50' : undefined}
+                      className={page >= pageCount ? 'pointer-events-none opacity-50' : undefined}
                     />
                   </PaginationItem>
                 </PaginationContent>

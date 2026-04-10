@@ -21,6 +21,15 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -49,6 +58,8 @@ export function MemoriesPage() {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
+  const [page, setPage] = React.useState(1);
+  const pageSize = 20;
   const [filterSource, setFilterSource] = React.useState<FilterSource>('all');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('all');
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -64,15 +75,29 @@ export function MemoriesPage() {
   const isSearching = debouncedSearch.length > 0;
 
   const listQuery = useQuery(
-    semanticMemoriesQueryOptions(filterSource === 'all' ? undefined : filterSource),
+    semanticMemoriesQueryOptions({
+      page,
+      pageSize,
+      source: filterSource === 'all' ? undefined : filterSource,
+      category: filterCategory === 'all' ? undefined : filterCategory,
+    }),
   );
-  const searchQuery = useQuery(semanticMemorySearchQueryOptions(debouncedSearch));
+  const searchQuery = useQuery(
+    semanticMemorySearchQueryOptions({
+      q: debouncedSearch,
+      page,
+      pageSize,
+      source: filterSource === 'all' ? undefined : filterSource,
+      category: filterCategory === 'all' ? undefined : filterCategory,
+    }),
+  );
 
-  const memories = React.useMemo(() => {
-    const source = isSearching ? (searchQuery.data ?? []) : (listQuery.data ?? []);
-    if (filterCategory === 'all') return source;
-    return source.filter((m) => m.category === filterCategory);
-  }, [isSearching, searchQuery.data, listQuery.data, filterCategory]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filterSource, filterCategory]);
+
+  const pageData = isSearching ? searchQuery.data : listQuery.data;
+  const memories = pageData?.memories ?? [];
 
   const bulkDeleteMutation = useMutation(bulkDeleteMemoriesMutationOptions(queryClient));
 
@@ -107,7 +132,31 @@ export function MemoriesPage() {
     });
   }
 
+  React.useEffect(() => {
+    setSelectedIds(new Set());
+  }, [pageData?.page, pageData?.total, debouncedSearch, filterSource, filterCategory]);
+
   const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
+  const totalPages = pageData?.totalPages ?? 0;
+  const currentPage = (pageData?.page ?? page) - 1;
+  const pageNumbers = React.useMemo(() => {
+    if (totalPages <= 1) {
+      return [] as number[];
+    }
+
+    const firstPage = 0;
+    const lastPage = totalPages - 1;
+    const start = Math.max(firstPage, currentPage - 1);
+    const end = Math.min(lastPage, currentPage + 1);
+
+    const pages = new Set<number>([firstPage, lastPage]);
+    for (let index = start; index <= end; index += 1) {
+      pages.add(index);
+    }
+
+    return [...pages].sort((a, b) => a - b);
+  }, [currentPage, totalPages]);
+
   const allSelected = memories.length > 0 && selectedIds.size === memories.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < memories.length;
 
@@ -240,6 +289,66 @@ export function MemoriesPage() {
               ))}
             </div>
           )}
+
+          {totalPages > 1 ? (
+            <div className="border-t border-border/60 px-3 py-3">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (page > 1) {
+                          setPage((current) => current - 1);
+                        }
+                      }}
+                      className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
+                    />
+                  </PaginationItem>
+
+                  {pageNumbers.map((pageNumber, index) => {
+                    const previousPage = pageNumbers[index - 1];
+                    const showGap = previousPage !== undefined && pageNumber - previousPage > 1;
+                    return (
+                      <React.Fragment key={`page-${pageNumber}`}>
+                        {showGap ? (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : null}
+                        <PaginationItem>
+                          <PaginationLink
+                            href="#"
+                            isActive={pageNumber === currentPage}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              setPage(pageNumber + 1);
+                            }}
+                          >
+                            {pageNumber + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </React.Fragment>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (page < totalPages) {
+                          setPage((current) => current + 1);
+                        }
+                      }}
+                      className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          ) : null}
         </div>
       </div>
 

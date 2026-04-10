@@ -11,18 +11,24 @@ import { serverFetch } from '@/lib/api';
 
 const recordingsKeys = {
   all: ['recordings'] as const,
-  list: () => [...recordingsKeys.all, 'list'] as const,
+  list: (page: number, pageSize: number) => [...recordingsKeys.all, 'list', page, pageSize] as const,
 };
 
-export const recordingsQueryOptions = queryOptions({
-  queryKey: recordingsKeys.list(),
-  queryFn: async (): Promise<ListRecordingsResponse> => {
-    const res = await serverFetch('/recordings');
-    if (!res.ok) throw new Error('Failed to fetch recordings');
-    return res.json() as Promise<ListRecordingsResponse>;
-  },
-  refetchInterval: 2_000,
-});
+export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
+  return queryOptions({
+    queryKey: recordingsKeys.list(input.page, input.pageSize),
+    queryFn: async (): Promise<ListRecordingsResponse> => {
+      const params = new URLSearchParams({
+        page: String(input.page),
+        pageSize: String(input.pageSize),
+      });
+      const res = await serverFetch(`/recordings?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch recordings');
+      return res.json() as Promise<ListRecordingsResponse>;
+    },
+    refetchInterval: 2_000,
+  });
+}
 
 export function useStartRecording() {
   const queryClient = useQueryClient();

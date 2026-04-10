@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,6 +22,7 @@ import {
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
+  automationsPageQueryOptions,
   automationsQueryOptions,
   useCreateAutomation,
   useDeleteAutomation,
@@ -39,6 +40,9 @@ type AutomationsPageProps = {
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: automations } = useSuspenseQuery(automationsQueryOptions);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
 
@@ -68,6 +72,16 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   });
 
   const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
+
+  useEffect(() => {
+    if (automationsPage.totalPages === 0 && page !== 1) {
+      setPage(1);
+      return;
+    }
+    if (automationsPage.totalPages > 0 && page > automationsPage.totalPages) {
+      setPage(automationsPage.totalPages);
+    }
+  }, [automationsPage.totalPages, page]);
 
   const handleDelete = (automation: Automation) => {
     setAutomationToDelete(automation);
@@ -136,7 +150,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           </Button>
         </div>
 
-        {automations.length === 0 ? (
+        {automationsPage.total === 0 ? (
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
             <p className="text-sm font-medium">No automations yet</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -214,10 +228,13 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           </div>
         ) : (
           <AutomationsTable
-            automations={automations}
+            automations={automationsPage.automations}
             providerModels={providerModels}
+            page={automationsPage.page}
+            totalPages={automationsPage.totalPages}
             runPending={runAutomation.isPending}
             deletePending={deleteAutomation.isPending}
+            onPageChange={setPage}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
             onDelete={(automation) =>  handleDelete(automation)}
