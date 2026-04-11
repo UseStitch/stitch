@@ -72,7 +72,8 @@ function envPaths(name: string, { suffix = 'nodejs' } = {}): EnvPaths {
 
 const envAppName = process.env['STITCH_APP_NAME']?.trim();
 const isDev = process.env.NODE_ENV === 'development';
-const APP_NAME = envAppName && isSafeFilename(envAppName) ? envAppName : isDev ? 'stitch-dev' : 'stitch';
+const APP_NAME =
+  envAppName && isSafeFilename(envAppName) ? envAppName : isDev ? 'stitch-dev' : 'stitch';
 const paths = envPaths(APP_NAME, { suffix: '' });
 
 export const PATHS = {
@@ -91,7 +92,9 @@ export const PATHS = {
     providerLogos: path.join(paths.cache, 'provider-logos'),
     mcpIcons: path.join(paths.cache, 'mcp-icons'),
     connectorIcons: path.join(paths.cache, 'connector-icons'),
+    simpleIcons: path.join(paths.cache, 'simple-icons'),
     browsers: path.join(paths.data, 'browsers'),
+    recordings: path.join(paths.data, 'recordings'),
   },
 } as const;
 

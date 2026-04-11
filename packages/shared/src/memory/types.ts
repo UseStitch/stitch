@@ -29,3 +29,19 @@ export type ExtractedFact = {
 export type MemorySearchResult = SemanticMemory & {
   score: number;
 };
+
+export type ListSemanticMemoriesResponse = {
+  memories: SemanticMemory[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type SearchSemanticMemoriesResponse = {
+  memories: MemorySearchResult[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};

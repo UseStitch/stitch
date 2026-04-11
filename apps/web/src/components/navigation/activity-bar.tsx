@@ -3,6 +3,7 @@ import {
   BotIcon,
   BrainIcon,
   MessageSquareIcon,
+  MicIcon,
   PlugIcon,
   SettingsIcon,
 } from 'lucide-react';
@@ -61,6 +62,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Memories',
     to: '/memories',
     matchPrefix: '/memories',
+  },
+  {
+    id: 'recordings',
+    icon: <MicIcon className="size-5" />,
+    label: 'Recordings',
+    to: '/recordings',
+    matchPrefix: '/recordings',
   },
 ];
 

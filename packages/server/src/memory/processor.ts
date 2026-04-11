@@ -132,7 +132,13 @@ export async function processMemories(input: {
     );
 
     const existingMemoriesPerFact = await Promise.all(
-      facts.map((fact) => searchSemanticMemories(fact.content, 5)),
+      facts.map((fact) =>
+        searchSemanticMemories({
+          query: fact.content,
+          page: 1,
+          pageSize: 5,
+        }).then((result) => result.memories),
+      ),
     );
 
     for (let i = 0; i < facts.length; i++) {

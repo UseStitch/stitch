@@ -1,9 +1,9 @@
 import type { JobSchedule } from '@stitch/scheduler';
 import type { Automation, AutomationSchedule } from '@stitch/shared/automations/types';
 
-import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
-
 import { listAutomations, runAutomation } from './service.js';
+
+import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 
 const AUTOMATION_JOB_KEY_PREFIX = 'automation:';
 
@@ -50,6 +50,20 @@ export async function unregisterAutomationSchedule(automationId: string): Promis
 }
 
 export async function syncAllAutomationSchedules(): Promise<void> {
-  const rows = await listAutomations();
-  await Promise.all(rows.map((automation) => syncAutomationSchedule(automation)));
+  const pageSize = 100;
+  const automations: Automation[] = [];
+  let page = 1;
+
+  while (true) {
+    const result = await listAutomations({ page, pageSize });
+    automations.push(...result.automations);
+
+    if (result.totalPages === 0 || page >= result.totalPages) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  await Promise.all(automations.map((automation) => syncAutomationSchedule(automation)));
 }

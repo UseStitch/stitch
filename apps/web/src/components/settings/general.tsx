@@ -1,9 +1,9 @@
-import * as React from 'react';
-
 import { LoaderIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { Button } from '@/components/ui/button';
 import {
   Combobox,
   ComboboxCollection,
@@ -16,10 +16,10 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  audioProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
@@ -59,6 +59,21 @@ const MODEL_PREFERENCES = [
     modelIdKey: 'model.title.modelId',
     label: 'Title Generation Model',
     description: 'Used for generating conversation titles',
+  },
+] as const;
+
+const RECORDING_MODEL_PREFERENCES = [
+  {
+    providerIdKey: 'recordings.transcription.providerId',
+    modelIdKey: 'recordings.transcription.modelId',
+    label: 'Recording Transcription Model',
+    description: 'Used to transcribe recordings with speaker attribution',
+  },
+  {
+    providerIdKey: 'recordings.analysis.providerId',
+    modelIdKey: 'recordings.analysis.modelId',
+    label: 'Recording Analysis Model',
+    description: 'Used for summaries, topics, and action item extraction',
   },
 ] as const;
 
@@ -159,37 +174,87 @@ function ModelSelect({
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
+  const queryClient = useQueryClient();
+  const saveAutoAnalyzeMutation = useMutation(
+    saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
+  );
 
-  if (providerModels.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No providers are connected. Configure a provider first to select preferred models.
-      </p>
-    );
-  }
+  const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
 
   return (
     <div className="flex flex-col">
-      {MODEL_PREFERENCES.map((pref, index) => (
-        <div
-          key={pref.providerIdKey}
-          className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-        >
+      {providerModels.length === 0 ? (
+        <p className="py-3 text-sm text-muted-foreground">
+          No providers are connected. Configure a provider first to select preferred models.
+        </p>
+      ) : (
+        MODEL_PREFERENCES.map((pref, index) => (
+          <div
+            key={pref.providerIdKey}
+            className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
+          >
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <Label className="text-sm font-medium">{pref.label}</Label>
+              <p className="text-xs text-muted-foreground">{pref.description}</p>
+            </div>
+            <div className="w-52 shrink-0">
+              <ModelSelect
+                providerIdKey={pref.providerIdKey}
+                modelIdKey={pref.modelIdKey}
+                currentProviderId={settings[pref.providerIdKey]}
+                currentModelId={settings[pref.modelIdKey]}
+                providerModels={providerModels}
+              />
+            </div>
+          </div>
+        ))
+      )}
+
+      <div className="border-t border-border/50 py-3">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">{pref.label}</Label>
-            <p className="text-xs text-muted-foreground">{pref.description}</p>
+            <Label className="text-sm font-medium">Auto analyze recordings</Label>
+            <p className="text-xs text-muted-foreground">
+              Automatically run transcription and analysis after a recording ends.
+            </p>
           </div>
-          <div className="w-52 shrink-0">
-            <ModelSelect
-              providerIdKey={pref.providerIdKey}
-              modelIdKey={pref.modelIdKey}
-              currentProviderId={settings[pref.providerIdKey]}
-              currentModelId={settings[pref.modelIdKey]}
-              providerModels={providerModels}
-            />
-          </div>
+          <Switch
+            checked={autoAnalyzeEnabled}
+            onCheckedChange={(checked) =>
+              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
+            }
+            disabled={saveAutoAnalyzeMutation.isPending}
+          />
         </div>
-      ))}
+      </div>
+
+      {audioProviderModels.length === 0 ? (
+        <p className="py-3 text-sm text-muted-foreground">
+          No audio-capable models are available for recording transcription.
+        </p>
+      ) : (
+        RECORDING_MODEL_PREFERENCES.map((pref, index) => (
+          <div
+            key={pref.providerIdKey}
+            className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
+          >
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <Label className="text-sm font-medium">{pref.label}</Label>
+              <p className="text-xs text-muted-foreground">{pref.description}</p>
+            </div>
+            <div className="w-52 shrink-0">
+              <ModelSelect
+                providerIdKey={pref.providerIdKey}
+                modelIdKey={pref.modelIdKey}
+                currentProviderId={settings[pref.providerIdKey]}
+                currentModelId={settings[pref.modelIdKey]}
+                providerModels={audioProviderModels}
+              />
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -224,7 +289,8 @@ export function GeneralSettings() {
 function updaterStatusLabel(status: string, progress?: number): string {
   if (status === 'checking') return 'Checking for updates...';
   if (status === 'available') return 'Update available. Downloading in background...';
-  if (status === 'downloading') return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
+  if (status === 'downloading')
+    return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
   if (status === 'downloaded') return 'Update ready. Restart Stitch to install.';
   if (status === 'no-update') return 'You are up to date.';
   if (status === 'error') return 'Could not check for updates.';
@@ -271,7 +337,8 @@ function AutoUpdatesContent() {
 
   const statusText = updaterStatusLabel(updater.status, updater.progress);
   const actionPending = checkPending || installPending;
-  const canCheck = updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
+  const canCheck =
+    updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
   const canInstall = updater.status === 'downloaded' && !actionPending;
 
   function handleCheckUpdates() {
@@ -287,11 +354,9 @@ function AutoUpdatesContent() {
   function handleInstallUpdate() {
     setInstallPending(true);
     setInstalling();
-    void window.api?.updater
-      ?.install()
-      .finally(() => {
-        setInstallPending(false);
-      });
+    void window.api?.updater?.install().finally(() => {
+      setInstallPending(false);
+    });
   }
 
   return (
@@ -302,7 +367,13 @@ function AutoUpdatesContent() {
         {updater.error ? <p className="text-xs text-destructive">{updater.error}</p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={!canCheck}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleCheckUpdates}
+          disabled={!canCheck}
+        >
           {checkPending ? (
             <>
               <LoaderIcon className="size-3.5 animate-spin" />

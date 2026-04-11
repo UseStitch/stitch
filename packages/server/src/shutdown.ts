@@ -1,5 +1,6 @@
 import { shutdownConnectorRuntime } from '@/connectors/runtime.js';
 import * as Log from '@/lib/log.js';
+import { stopMeetingDetection } from '@/recordings/meeting-detection.js';
 import { stopScheduler } from '@/scheduler/runtime.js';
 
 const log = Log.create({ service: 'shutdown' });
@@ -7,6 +8,7 @@ const log = Log.create({ service: 'shutdown' });
 async function shutdown(signal: string) {
   log.info({ signal }, 'shutting down');
   await stopScheduler();
+  stopMeetingDetection();
   await shutdownConnectorRuntime();
   process.exit(0);
 }

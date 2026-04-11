@@ -2,7 +2,6 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import * as ConnectorIcons from '@/connectors/icons.js';
 import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/registry.js';
 import {
   listConnectorInstances,
@@ -20,17 +19,6 @@ import { isServiceError } from '@/lib/service-result.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
-
-// Serve connector icon SVGs from Simple Icons CDN with local cache.
-connectorsRouter.get('/icons/simple-icons/:slug', async (c) => {
-  const slug = c.req.param('slug');
-  const svg = await ConnectorIcons.get({ type: 'simpleIcons', slug });
-  if (!svg) return c.json({ error: 'Icon not found' }, 404);
-
-  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=86400');
-  return c.body(svg, 200);
-});
 
 // List all available connector definitions
 connectorsRouter.get('/definitions', (c) => {
@@ -61,14 +49,13 @@ connectorsRouter.get('/instances/:id', async (c) => {
 });
 
 // Create an OAuth connector instance
-const createOAuthSchema = z
-  .object({
-    connectorId: z.string().min(1),
-    label: z.string().min(1),
-    clientId: z.string().min(1),
-    clientSecret: z.string().min(1),
-    scopes: z.array(z.string()).min(1),
-  });
+const createOAuthSchema = z.object({
+  connectorId: z.string().min(1),
+  label: z.string().min(1),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  scopes: z.array(z.string()).min(1),
+});
 
 connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
   const body = c.req.valid('json');

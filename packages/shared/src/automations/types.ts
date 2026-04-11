@@ -50,3 +50,11 @@ export type GeneratedAutomationDraft = {
   providerId: string;
   modelId: string;
 };
+
+export type ListAutomationsResponse = {
+  automations: Automation[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};

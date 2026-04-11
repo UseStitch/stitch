@@ -7,6 +7,9 @@ describe('settings type helpers', () => {
     expect(SETTINGS_KEYS).toContain('profile.name');
     expect(SETTINGS_KEYS).toContain('profile.timezone');
     expect(SETTINGS_KEYS).toContain('onboarding.version');
+    expect(SETTINGS_KEYS).toContain('recordings.autoAnalyze');
+    expect(SETTINGS_KEYS).toContain('recordings.transcription.providerId');
+    expect(SETTINGS_KEYS).toContain('recordings.transcription.modelId');
   });
 
   test('accepts Mod+single character leader keys', () => {

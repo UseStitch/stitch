@@ -73,17 +73,22 @@ function createMemoryTool(context: ToolContext) {
             return { output: 'Please provide a search query.' };
           }
 
-          const results = await searchSemanticMemories(input.content, 10, 'chat');
-          if (results.length === 0) {
+          const result = await searchSemanticMemories({
+            query: input.content,
+            page: 1,
+            pageSize: 10,
+            sourceFilter: 'chat',
+          });
+          if (result.memories.length === 0) {
             return { output: 'No relevant memories found.' };
           }
 
-          const lines = results.map(
+          const lines = result.memories.map(
             (m) =>
               `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence}, score: ${m.score.toFixed(2)})`,
           );
 
-          return { output: `Found ${results.length} memories:\n${lines.join('\n')}` };
+          return { output: `Found ${result.total} memories:\n${lines.join('\n')}` };
         }
 
         case 'forget': {
@@ -96,16 +101,20 @@ function createMemoryTool(context: ToolContext) {
         }
 
         case 'list': {
-          const all = await getAllSemanticMemories('chat');
-          if (all.length === 0) {
+          const all = await getAllSemanticMemories({
+            page: 1,
+            pageSize: 1000,
+            sourceFilter: 'chat',
+          });
+          if (all.memories.length === 0) {
             return { output: 'No memories stored yet.' };
           }
 
-          const lines = all.map(
+          const lines = all.memories.map(
             (m) => `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence})`,
           );
 
-          return { output: `${all.length} memories:\n${lines.join('\n')}` };
+          return { output: `${all.total} memories:\n${lines.join('\n')}` };
         }
       }
     },

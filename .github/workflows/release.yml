@@ -126,13 +126,17 @@ jobs:
         include:
           - runner: windows-2022
             os: windows
+            arch: x64
+            rust_target: x86_64-pc-windows-msvc
           - runner: macos-14
             os: macos
             arch: arm64
+            rust_target: aarch64-apple-darwin
             package_script: package
           - runner: macos-14
             os: macos
             arch: x64
+            rust_target: x86_64-apple-darwin
             package_script: package:x64
     steps:
       - name: Checkout release commit
@@ -142,6 +146,17 @@ jobs:
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/audio-native
+          shared-key: release-${{ matrix.rust_target }}
 
       - name: Cache Turbo artifacts
         uses: actions/cache@v5

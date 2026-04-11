@@ -24,8 +24,13 @@ export async function retrieveMemoryContext(
   const config = await getMemoryConfig();
   if (!config.enabled) return null;
 
-  const semantic = await searchSemanticMemories(query, SEMANTIC_LIMIT, sourceFilter);
-  const relevant = semantic.filter((m) => m.score >= MIN_RELEVANCE_SCORE);
+  const semantic = await searchSemanticMemories({
+    query,
+    page: 1,
+    pageSize: SEMANTIC_LIMIT,
+    sourceFilter,
+  });
+  const relevant = semantic.memories.filter((m) => m.score >= MIN_RELEVANCE_SCORE);
 
   if (relevant.length === 0) return null;
 

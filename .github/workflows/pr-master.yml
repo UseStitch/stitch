@@ -51,6 +51,17 @@ jobs:
         if: needs.filter.outputs.run-ci == 'true'
         uses: ./.github/actions/setup-bun
 
+      - name: Setup Rust toolchain
+        if: needs.filter.outputs.run-ci == 'true'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        if: needs.filter.outputs.run-ci == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/audio-native
+          shared-key: pr-master-${{ runner.os }}
+
       - name: Cache Turbo artifacts
         if: needs.filter.outputs.run-ci == 'true'
         uses: actions/cache@v5
@@ -63,6 +74,10 @@ jobs:
       - name: Run tests
         if: needs.filter.outputs.run-ci == 'true'
         run: bun run test
+
+      - name: Run Rust tests
+        if: needs.filter.outputs.run-ci == 'true'
+        run: cargo test --manifest-path packages/audio-native/Cargo.toml
 
       - name: Run typecheck
         if: needs.filter.outputs.run-ci == 'true'

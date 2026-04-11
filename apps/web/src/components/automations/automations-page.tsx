@@ -1,4 +1,5 @@
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
@@ -10,9 +11,19 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
+  automationsPageQueryOptions,
   automationsQueryOptions,
   useCreateAutomation,
   useDeleteAutomation,
@@ -30,6 +41,11 @@ type AutomationsPageProps = {
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: automations } = useSuspenseQuery(automationsQueryOptions);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const { data: automationsPage } = useSuspenseQuery(
+    automationsPageQueryOptions({ page, pageSize }),
+  );
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
 
@@ -58,16 +74,32 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     enabled: selectedAutomation !== null,
   });
 
-  const handleDelete = async (automation: Automation) => {
-    const confirmed = window.confirm(`Delete automation "${automation.title}"?`);
-    if (!confirmed) return;
+  const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
+
+  useEffect(() => {
+    if (automationsPage.totalPages === 0 && page !== 1) {
+      setPage(1);
+      return;
+    }
+    if (automationsPage.totalPages > 0 && page > automationsPage.totalPages) {
+      setPage(automationsPage.totalPages);
+    }
+  }, [automationsPage.totalPages, page]);
+
+  const handleDelete = (automation: Automation) => {
+    setAutomationToDelete(automation);
+  };
+
+  const confirmDelete = async () => {
+    if (!automationToDelete) return;
 
     try {
-      await deleteAutomation.mutateAsync(automation.id);
-      if (automationId === automation.id) {
+      await deleteAutomation.mutateAsync(automationToDelete.id);
+      if (automationId === automationToDelete.id) {
         void navigate({ to: '/automations' });
       }
       toast.success('Automation deleted');
+      setAutomationToDelete(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to delete automation');
     }
@@ -77,7 +109,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     try {
       const result = await runAutomation.mutateAsync(automation.id);
       toast.success(`Started ${automation.title}`);
-      void navigate({ to: '/automations/sessions/$id', params: { id: result.sessionId }, viewTransition: true });
+      void navigate({
+        to: '/automations/sessions/$id',
+        params: { id: result.sessionId },
+        viewTransition: true,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to run automation');
     }
@@ -86,7 +122,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const modelLabelByKey = new Map<string, string>();
   for (const provider of providerModels) {
     for (const model of provider.models) {
-      modelLabelByKey.set(`${provider.providerId}:${model.id}`, `${provider.providerName} / ${model.name}`);
+      modelLabelByKey.set(
+        `${provider.providerId}:${model.id}`,
+        `${provider.providerName} / ${model.name}`,
+      );
     }
   }
 
@@ -94,7 +133,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
-  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const timezone =
+    settings?.['profile.timezone']?.trim() ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'UTC';
   const selectedScheduleLabel = selectedAutomation
     ? getAutomationScheduleLabel(selectedAutomation.schedule)
     : 'Manual';
@@ -121,13 +163,19 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           </Button>
         </div>
 
-        {automations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
-            <p className="text-sm font-medium">No automations yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Create your first automation to speed up recurring workflows.
-            </p>
-          </div>
+        {automationsPage.total === 0 ? (
+          <AutomationsTable
+            automations={[]}
+            providerModels={providerModels}
+            page={1}
+            totalPages={0}
+            runPending={runAutomation.isPending}
+            deletePending={deleteAutomation.isPending}
+            onPageChange={setPage}
+            onRun={(automation) => void handleRun(automation)}
+            onEdit={openEditDialog}
+            onDelete={(automation) => handleDelete(automation)}
+          />
         ) : selectedAutomation ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-border/60 bg-card/70 p-4">
@@ -135,12 +183,17 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                 <div className="space-y-1">
                   <p className="text-base font-semibold">{selectedAutomation.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    {modelLabelByKey.get(`${selectedAutomation.providerId}:${selectedAutomation.modelId}`) ??
-                      selectedAutomation.modelId}
+                    {modelLabelByKey.get(
+                      `${selectedAutomation.providerId}:${selectedAutomation.modelId}`,
+                    ) ?? selectedAutomation.modelId}
                   </p>
-                  <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedAutomation.runCount} total runs
+                  </p>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Schedule: {selectedScheduleLabel}
+                    </span>
                     {upcomingRuns.length > 0 && (
                       <span className="text-xs text-muted-foreground">· Next runs:</span>
                     )}
@@ -164,14 +217,18 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     <PlayIcon data-icon="inline-start" className="size-4" />
                     Run
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEditDialog(selectedAutomation.id)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditDialog(selectedAutomation.id)}
+                  >
                     <PencilIcon data-icon="inline-start" className="size-4" />
                     Edit
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => void handleDelete(selectedAutomation)}
+                    onClick={() => handleDelete(selectedAutomation)}
                     disabled={deleteAutomation.isPending}
                   >
                     <Trash2Icon data-icon="inline-start" className="size-4 text-destructive" />
@@ -182,30 +239,37 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             </div>
 
             {automationSessions.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
-                <p className="text-sm font-medium">No runs yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+              <Empty>
+                <EmptyTitle>No runs yet</EmptyTitle>
+                <EmptyDescription>
                   Trigger this automation to create the first run session.
-                </p>
-              </div>
+                </EmptyDescription>
+              </Empty>
             ) : (
               <AutomationRunsTable
                 sessions={automationSessions}
                 onOpen={(sessionId) =>
-                  void navigate({ to: '/automations/sessions/$id', params: { id: sessionId }, viewTransition: true })
+                  void navigate({
+                    to: '/automations/sessions/$id',
+                    params: { id: sessionId },
+                    viewTransition: true,
+                  })
                 }
               />
             )}
           </div>
         ) : (
           <AutomationsTable
-            automations={automations}
+            automations={automationsPage.automations}
             providerModels={providerModels}
+            page={automationsPage.page}
+            totalPages={automationsPage.totalPages}
             runPending={runAutomation.isPending}
             deletePending={deleteAutomation.isPending}
+            onPageChange={setPage}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
-            onDelete={(automation) => void handleDelete(automation)}
+            onDelete={(automation) => handleDelete(automation)}
           />
         )}
       </div>
@@ -225,7 +289,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             closeCreateDialog();
             toast.success('Automation created');
             if (action === 'create-view') {
-              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
+              void navigate({
+                to: '/automations/$automationId',
+                params: { automationId: created.id },
+              });
             }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation');
@@ -254,6 +321,33 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           }
         }}
       />
+
+      <Dialog
+        open={automationToDelete !== null}
+        onOpenChange={(open) => !open && setAutomationToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Automation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the automation "{automationToDelete?.title}"? This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutomationToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void confirmDelete()}
+              disabled={deleteAutomation.isPending}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

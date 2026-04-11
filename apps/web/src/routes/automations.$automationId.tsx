@@ -1,13 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { AutomationsPage } from '@/components/automations/automations-page';
-import { automationSessionsQueryOptions, automationsQueryOptions } from '@/lib/queries/automations';
+import {
+  automationSessionsQueryOptions,
+  automationsPageQueryOptions,
+  automationsQueryOptions,
+} from '@/lib/queries/automations';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 
 export const Route = createFileRoute('/automations/$automationId')({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(automationsQueryOptions),
+      context.queryClient.ensureQueryData(automationsPageQueryOptions({ page: 1, pageSize: 10 })),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(automationSessionsQueryOptions(params.automationId)),
     ]),

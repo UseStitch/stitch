@@ -19,6 +19,7 @@
     "@ai-sdk/mcp": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
     "@aws-sdk/credential-providers": "^3.1008.0",
+    "@stitch/audio-capture": "workspace:*",
     "@hono/node-server": "^1.19.11",
     "@hono/zod-validator": "^0.7.6",
     "@huggingface/transformers": "^4.0.1",

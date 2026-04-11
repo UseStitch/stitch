@@ -25,20 +25,42 @@ const bulkDeleteSchema = z.object({
 
 export const memoryRouter = new Hono();
 
+function parsePagination(query: Record<string, string | undefined>) {
+  const pageRaw = Number.parseInt(query.page ?? '1', 10);
+  const pageSizeRaw = Number.parseInt(query.pageSize ?? '20', 10);
+
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 20;
+
+  return { page, pageSize };
+}
+
 memoryRouter.get('/semantic', async (c) => {
   const source = c.req.query('source');
+  const category = c.req.query('category');
   const q = c.req.query('q');
+  const { page, pageSize } = parsePagination({
+    page: c.req.query('page'),
+    pageSize: c.req.query('pageSize'),
+  });
 
   if (q) {
-    const results = await searchSemanticMemories(
-      q,
-      50,
-      source as 'chat' | 'automation' | undefined,
-    );
+    const results = await searchSemanticMemories({
+      query: q,
+      page,
+      pageSize,
+      sourceFilter: source as 'chat' | 'automation' | undefined,
+      categoryFilter: category as (typeof MEMORY_CATEGORIES)[number] | undefined,
+    });
     return c.json(results);
   }
 
-  const memories = await getAllSemanticMemories(source as 'chat' | 'automation' | undefined);
+  const memories = await getAllSemanticMemories({
+    page,
+    pageSize,
+    sourceFilter: source as 'chat' | 'automation' | undefined,
+    categoryFilter: category as (typeof MEMORY_CATEGORIES)[number] | undefined,
+  });
   return c.json(memories);
 });
 

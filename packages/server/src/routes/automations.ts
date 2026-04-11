@@ -2,8 +2,12 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { CreateAutomationInput, UpdateAutomationInput } from '@stitch/shared/automations/types';
+import type {
+  CreateAutomationInput,
+  UpdateAutomationInput,
+} from '@stitch/shared/automations/types';
 
+import { syncAutomationSchedule, unregisterAutomationSchedule } from '@/automations/scheduler.js';
 import {
   createAutomation,
   deleteAutomation,
@@ -12,10 +16,6 @@ import {
   runAutomation,
   updateAutomation,
 } from '@/automations/service.js';
-import {
-  syncAutomationSchedule,
-  unregisterAutomationSchedule,
-} from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
 
 const scheduleSchema = z
@@ -41,8 +41,22 @@ const updateAutomationSchema = createAutomationSchema
 
 export const automationsRouter = new Hono();
 
+function parsePagination(query: Record<string, string | undefined>) {
+  const pageRaw = Number.parseInt(query.page ?? '1', 10);
+  const pageSizeRaw = Number.parseInt(query.pageSize ?? '10', 10);
+
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 10;
+
+  return { page, pageSize };
+}
+
 automationsRouter.get('/', async (c) => {
-  const result = await listAutomations();
+  const { page, pageSize } = parsePagination({
+    page: c.req.query('page'),
+    pageSize: c.req.query('pageSize'),
+  });
+  const result = await listAutomations({ page, pageSize });
   return c.json(result);
 });
 

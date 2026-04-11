@@ -6,6 +6,7 @@ import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
+import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
   Sidebar,
   SidebarContent,
@@ -119,13 +120,21 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' | 'usage' {
+function useActiveContext():
+  | 'chat'
+  | 'connectors'
+  | 'automations'
+  | 'memories'
+  | 'usage'
+  | 'recordings' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
   if (path.startsWith('/memories')) return 'memories';
   if (path.startsWith('/usage')) return 'usage';
+  if (path.startsWith('/recordings')) return 'recordings';
+
   return 'chat';
 }
 
@@ -136,9 +145,18 @@ export function AppSidebar() {
     return null;
   }
 
+  const content =
+    context === 'automations' ? (
+      <AutomationsSidebarContent />
+    ) : context === 'recordings' ? (
+      <RecordingsSidebarContent />
+    ) : (
+      <ChatSidebarContent />
+    );
+
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
-      {context === 'automations' ? <AutomationsSidebarContent /> : <ChatSidebarContent />}
+      {content}
     </Sidebar>
   );
 }
