@@ -1,7 +1,7 @@
 import { BoxIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { getServerUrl } from '@/lib/api';
+import { getServerUrl, getServerUrlSync } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 type SimpleIconProps = {
@@ -10,12 +10,21 @@ type SimpleIconProps = {
   fallback?: React.ReactNode;
 };
 
+const resolvedCache = new Map<string, string | null>();
+
 export function SimpleIcon({ slug, className, fallback }: SimpleIconProps) {
-  const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
-  const [loaded, setLoaded] = React.useState(false);
-  const [failed, setFailed] = React.useState(false);
+  const initialBaseUrl = getServerUrlSync();
+  const initialCacheKey = initialBaseUrl ? `${initialBaseUrl}:${slug}` : null;
+  const initialCached = initialCacheKey ? resolvedCache.get(initialCacheKey) : undefined;
+
+  const [baseUrl, setBaseUrl] = React.useState<string | null>(initialBaseUrl);
+  const [resolvedUrl, setResolvedUrl] = React.useState<string | null>(
+    initialCached !== undefined ? initialCached : null,
+  );
+  const [failed, setFailed] = React.useState(initialCached === null);
 
   React.useEffect(() => {
+    if (baseUrl) return;
     let active = true;
     void getServerUrl().then((url) => {
       if (active) setBaseUrl(url);
@@ -23,31 +32,34 @@ export function SimpleIcon({ slug, className, fallback }: SimpleIconProps) {
     return () => {
       active = false;
     };
-  }, []);
-
-  const logoUrl = React.useMemo(() => {
-    if (!baseUrl) return null;
-    return `${baseUrl}/icons/simple-icons/${slug}`;
-  }, [baseUrl, slug]);
+  }, [baseUrl]);
 
   React.useEffect(() => {
-    if (!logoUrl) {
-      setLoaded(false);
-      setFailed(false);
+    if (!baseUrl) return;
+
+    const cacheKey = `${baseUrl}:${slug}`;
+    const logoUrl = `${baseUrl}/icons/simple-icons/${slug}`;
+
+    if (resolvedCache.has(cacheKey)) {
+      const cached = resolvedCache.get(cacheKey);
+      setResolvedUrl(cached ?? null);
+      setFailed(cached === null);
       return;
     }
 
     let active = true;
-    setLoaded(false);
-    setFailed(false);
 
     const image = new Image();
     image.onload = () => {
       if (!active) return;
-      setLoaded(true);
+      resolvedCache.set(cacheKey, logoUrl);
+      setResolvedUrl(logoUrl);
+      setFailed(false);
     };
     image.onerror = () => {
       if (!active) return;
+      resolvedCache.set(cacheKey, null);
+      setResolvedUrl(null);
       setFailed(true);
     };
     image.src = logoUrl;
@@ -55,17 +67,17 @@ export function SimpleIcon({ slug, className, fallback }: SimpleIconProps) {
     return () => {
       active = false;
     };
-  }, [logoUrl]);
+  }, [baseUrl, slug]);
 
-  if (logoUrl && loaded && !failed) {
+  if (resolvedUrl && !failed) {
     return (
       <div
         role="img"
         aria-label={slug}
         className={cn('bg-foreground', className)}
         style={{
-          WebkitMask: `url(${logoUrl}) no-repeat center / contain`,
-          mask: `url(${logoUrl}) no-repeat center / contain`,
+          WebkitMask: `url(${resolvedUrl}) no-repeat center / contain`,
+          mask: `url(${resolvedUrl}) no-repeat center / contain`,
         }}
       />
     );

@@ -25,8 +25,15 @@ export function MeetingRecordingBanner() {
   const startRecording = useStartRecording();
   const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 10 }));
 
+  const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
+  activeRecordingIdRef.current = data?.activeRecordingId ?? null;
+
   useSSE({
     'meeting-call-detected': (payload) => {
+      if (activeRecordingIdRef.current) {
+        return;
+      }
+
       setDetection((current) => {
         if (dismissedKeys.has(payload.key)) {
           return current;
@@ -61,7 +68,7 @@ export function MeetingRecordingBanner() {
     }
   }, [data?.activeRecordingId]);
 
-  if (!detection || data?.activeRecordingId) {
+  if (data === undefined || !detection || data.activeRecordingId) {
     return null;
   }
 

@@ -70,7 +70,7 @@ const PLATFORM_CONFIG: Record<RecordingPlatform, { label: string; slug: string |
   'google-meet': { label: 'Google Meet', slug: 'googlemeet' },
 };
 
-function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
+const PlatformBadge = React.memo(function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (
@@ -87,6 +87,30 @@ function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
       <span>{config.label}</span>
     </span>
   );
+});
+
+function LiveDuration({ startedAt }: { startedAt: number }) {
+  const [tick, setTick] = React.useState(Date.now());
+
+  React.useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <span className="text-xs text-muted-foreground">{formatDuration(tick - startedAt)}</span>
+  );
+}
+
+function LiveDurationText({ startedAt }: { startedAt: number }) {
+  const [tick, setTick] = React.useState(Date.now());
+
+  React.useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return <>{formatDuration(tick - startedAt)}</>;
 }
 
 function formatDate(ts: number): string {
@@ -271,7 +295,6 @@ export function RecordingsPage() {
   const deleteRecording = useDeleteRecording();
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
-  const [tick, setTick] = React.useState(Date.now());
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
   const navigate = useNavigate();
@@ -342,7 +365,7 @@ export function RecordingsPage() {
         cell: ({ row }) => {
           const recording = row.original;
           if (recording.id === data.activeRecordingId) {
-            return <span className="text-xs text-muted-foreground">{formatDuration(activeDuration)}</span>;
+            return <LiveDuration startedAt={recording.startedAt} />;
           }
           return <span className="text-xs text-muted-foreground">{formatDuration(recording.durationMs)}</span>;
         },
@@ -396,7 +419,7 @@ export function RecordingsPage() {
         ),
       }),
     ],
-    [activeDuration, baseUrl, data.activeRecordingId],
+    [baseUrl, data.activeRecordingId],
   );
 
   const table = useReactTable({
@@ -474,7 +497,7 @@ export function RecordingsPage() {
                 variant="destructive"
               >
                 <SquareIcon data-icon="inline-start" className="size-4" />
-                Stop recording ({formatDuration(activeDuration)})
+                Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
               </Button>
             ) : (
               <Button
