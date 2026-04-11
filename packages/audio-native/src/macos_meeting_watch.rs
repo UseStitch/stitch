@@ -1,10 +1,11 @@
 #[cfg(target_os = "macos")]
 pub(crate) fn run_macos_meeting_watcher() {
-  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
+  use crate::watch_output::{emit_snapshot, emit_watch_error, WatchRow};
   use std::process::Command;
   use std::sync::{Arc, Mutex};
 
   use cidre::core_audio as ca;
+  use cidre::os;
 
   const BROWSER_WINDOW_SCAN_SCRIPT: &str = r#"(() => {
   const output = { chrome: [], edge: [] };
@@ -115,12 +116,12 @@ pub(crate) fn run_macos_meeting_watcher() {
     _number_addresses: u32,
     _addresses: *const ca::PropAddr,
     client_data: *mut (),
-  ) -> ca::os::Status {
+  ) -> os::Status {
     let flag = unsafe { &*(client_data as *const Mutex<bool>) };
     if let Ok(mut guard) = flag.lock() {
       *guard = true;
     }
-    ca::os::Status::NO_ERR
+    os::Status::NO_ERR
   }
 
   extern "C-unwind" fn system_listener(
@@ -128,13 +129,13 @@ pub(crate) fn run_macos_meeting_watcher() {
     _number_addresses: u32,
     _addresses: *const ca::PropAddr,
     client_data: *mut (),
-  ) -> ca::os::Status {
+  ) -> os::Status {
     // Default input device changed; re-register device listener and mark dirty.
     let flag = unsafe { &*(client_data as *const Mutex<bool>) };
     if let Ok(mut guard) = flag.lock() {
       *guard = true;
     }
-    ca::os::Status::NO_ERR
+    os::Status::NO_ERR
   }
 
   const DEVICE_IS_RUNNING_SOMEWHERE: ca::PropAddr = ca::PropAddr {

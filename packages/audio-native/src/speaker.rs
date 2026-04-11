@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Receiver, TrySendError};
+use std::sync::mpsc::{self, Receiver};
+#[cfg(target_os = "windows")]
+use std::sync::mpsc::TrySendError;
 use std::thread;
 use std::time::Duration;
 
