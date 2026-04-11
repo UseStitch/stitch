@@ -8,7 +8,6 @@ import { getServerUrl } from '@/lib/api';
 
 import type { RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
-import { statusClassName, statusLabel } from './utils';
 
 function formatDuration(durationMs: number | null): string {
   if (durationMs === null) return '--';

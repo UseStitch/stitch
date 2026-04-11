@@ -1,4 +1,4 @@
-export function statusLabel(status: string | null | undefined): string {
+function statusLabel(status: string | null | undefined): string {
   if (!status) return 'Not started';
   if (status === 'pending') return 'Pending';
   if (status === 'processing') return 'Processing';
@@ -7,7 +7,7 @@ export function statusLabel(status: string | null | undefined): string {
   return status;
 }
 
-export function statusClassName(status: string | null | undefined): string {
+function statusClassName(status: string | null | undefined): string {
   if (status === 'completed') return 'bg-success/15 text-success';
   if (status === 'failed') return 'bg-destructive/15 text-destructive';
   if (status === 'processing' || status === 'pending') return 'bg-warning/15 text-warning';
