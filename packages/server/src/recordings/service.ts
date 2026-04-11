@@ -34,8 +34,15 @@ const log = Log.create({ service: 'recordings' });
 
 function defaultTitle(): string {
   const now = new Date();
-  const date = now.toISOString().slice(0, 19).replace('T', ' ');
-  return `Meeting recording ${date}`;
+  const month = now.toLocaleDateString(undefined, { month: 'short' });
+  const day = now.getDate();
+  const year = now.getFullYear();
+  const timePart = now.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+  return `${month} ${day} ${year} ${timePart}`;
 }
 
 function toRecording(row: RecordingRow, analysisTitle: string | null = null): Recording {

@@ -18,7 +18,7 @@ export function TopicCard({ section }: { section: RecordingAnalysisTopicSection 
         <h3 className="text-lg font-semibold tracking-tight text-foreground">{section.name}</h3>
         <p className="mt-1 flex items-center text-xs text-muted-foreground">
           <ClockIcon className="mr-1.5 size-3" />
-          Turns {section.startTurn}–{section.endTurn}
+          Turns {section.startTurn + 1}–{section.endTurn + 1}
         </p>
       </div>
 
