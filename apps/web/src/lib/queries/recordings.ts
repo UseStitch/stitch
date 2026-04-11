@@ -13,7 +13,8 @@ import { serverFetch } from '@/lib/api';
 
 const recordingsKeys = {
   all: ['recordings'] as const,
-  list: (page: number, pageSize: number) => [...recordingsKeys.all, 'list', page, pageSize] as const,
+  list: (page: number, pageSize: number) =>
+    [...recordingsKeys.all, 'list', page, pageSize] as const,
   analysis: (recordingId: string) => [...recordingsKeys.all, 'analysis', recordingId] as const,
 };
 
@@ -131,7 +132,9 @@ export function useStartRecordingAnalysis() {
       return res.json() as Promise<StartRecordingAnalysisResponse>;
     },
     onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.analysis(variables.recordingId) });
+      void queryClient.invalidateQueries({
+        queryKey: recordingsKeys.analysis(variables.recordingId),
+      });
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
     },
   });

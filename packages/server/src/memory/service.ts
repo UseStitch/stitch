@@ -147,15 +147,13 @@ export async function deleteSemanticMemories(ids: string[]): Promise<void> {
   log.info({ count: ids.length }, 'bulk deleted semantic memories');
 }
 
-export async function searchSemanticMemories(
-  input: {
-    query: string;
-    page: number;
-    pageSize: number;
-    sourceFilter?: MemorySource;
-    categoryFilter?: MemoryCategory;
-  },
-): Promise<SearchSemanticMemoriesResponse> {
+export async function searchSemanticMemories(input: {
+  query: string;
+  page: number;
+  pageSize: number;
+  sourceFilter?: MemorySource;
+  categoryFilter?: MemoryCategory;
+}): Promise<SearchSemanticMemoriesResponse> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
@@ -214,14 +212,12 @@ export async function searchSemanticMemories(
   };
 }
 
-export async function getAllSemanticMemories(
-  input: {
-    page: number;
-    pageSize: number;
-    sourceFilter?: MemorySource;
-    categoryFilter?: MemoryCategory;
-  },
-): Promise<ListSemanticMemoriesResponse> {
+export async function getAllSemanticMemories(input: {
+  page: number;
+  pageSize: number;
+  sourceFilter?: MemorySource;
+  categoryFilter?: MemoryCategory;
+}): Promise<ListSemanticMemoriesResponse> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 

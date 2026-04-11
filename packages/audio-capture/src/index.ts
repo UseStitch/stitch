@@ -1,9 +1,15 @@
-import type { ActiveCapture, AudioCaptureDriver, StartCaptureInput, StopCaptureResult } from './types.js';
+import { macosDriver } from './macos.js';
 import { createMacosMeetingDetector } from './meeting-detection/macos.js';
 import { createNoopMeetingDetector } from './meeting-detection/noop.js';
 import { createWindowsMeetingDetector } from './meeting-detection/windows.js';
-import { macosDriver } from './macos.js';
 import { windowsDriver } from './windows.js';
+
+import type {
+  ActiveCapture,
+  AudioCaptureDriver,
+  StartCaptureInput,
+  StopCaptureResult,
+} from './types.js';
 import type { MeetingDetectionOptions, MeetingDetector } from './types.js';
 
 const DRIVERS: Record<NodeJS.Platform, AudioCaptureDriver | undefined> = {
@@ -26,7 +32,9 @@ export type AudioCaptureHandle = {
   getActive: () => ActiveCapture | null;
 };
 
-export function createAudioCaptureHandle(platform: NodeJS.Platform = process.platform): AudioCaptureHandle {
+export function createAudioCaptureHandle(
+  platform: NodeJS.Platform = process.platform,
+): AudioCaptureHandle {
   const driver = DRIVERS[platform];
   if (!driver) {
     throw new Error(`Audio capture is not supported on ${platform}`);

@@ -1,9 +1,9 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 
 import { resolveNativeBinaryPath } from '../native-binary.js';
-import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-
 import { createMeetingDetectionEngine } from './engine.js';
+
+import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 
 /** Raw row shape emitted by the native watcher on stdout. */
@@ -14,17 +14,13 @@ export type WatchRow = {
 };
 
 /** Discriminated union of native watcher events. */
-type WatchEvent =
-  | { type: 'snapshot'; rows: WatchRow[] }
-  | { type: 'error'; message: string };
+type WatchEvent = { type: 'snapshot'; rows: WatchRow[] } | { type: 'error'; message: string };
 
 /** Platform-specific flag passed to the native binary. */
 type WatchPlatform = 'macos' | 'windows';
 
 function watchFlag(platform: WatchPlatform): string {
-  return platform === 'macos'
-    ? '--watch-macos-meeting-usage'
-    : '--watch-windows-meeting-usage';
+  return platform === 'macos' ? '--watch-macos-meeting-usage' : '--watch-windows-meeting-usage';
 }
 
 /** Minimal re-use of per-platform row classification from the scanner files. */

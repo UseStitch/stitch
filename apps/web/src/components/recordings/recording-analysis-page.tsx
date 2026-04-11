@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { toast } from 'sonner';
+
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+
+import { AnalysisHeader } from './analysis/analysis-header';
+import { SummarySection } from './analysis/summary-section';
+import { TopicList } from './analysis/topic-list';
+import { TranscriptSidebar } from './analysis/transcript-sidebar';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,15 +27,10 @@ import {
   useStartRecordingAnalysis,
 } from '@/lib/queries/recordings';
 
-import { AnalysisHeader } from './analysis/analysis-header';
-import { SummarySection } from './analysis/summary-section';
-import { TopicList } from './analysis/topic-list';
-import { TranscriptSidebar } from './analysis/transcript-sidebar';
-
 export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) {
   const { data: analysisResponse } = useSuspenseQuery(recordingAnalysisQueryOptions(recordingId));
   const { data: recordings } = useSuspenseQuery(recordingsQueryOptions({ page: 1, pageSize: 100 }));
-  
+
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();
   const deleteRecording = useDeleteRecording();
@@ -44,14 +45,16 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const handleStartAnalysis = () => {
     void startAnalysis.mutateAsync({ recordingId, force: true }).then(
       () => toast.success('Analysis started'),
-      (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to start recording analysis')
+      (error: unknown) =>
+        toast.error(error instanceof Error ? error.message : 'Failed to start recording analysis'),
     );
   };
 
   const handleCancelAnalysis = () => {
     void cancelAnalysis.mutateAsync(recordingId).then(
       () => toast.success('Analysis cancelled'),
-      (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to cancel recording analysis')
+      (error: unknown) =>
+        toast.error(error instanceof Error ? error.message : 'Failed to cancel recording analysis'),
     );
   };
 
@@ -68,13 +71,18 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         onStartAnalysis={handleStartAnalysis}
         onCancelAnalysis={handleCancelAnalysis}
         onDelete={() => {
-          if (recording?.durationMs !== null && recording?.durationMs !== undefined && recording.durationMs <= 30_000) {
+          if (
+            recording?.durationMs !== null &&
+            recording?.durationMs !== undefined &&
+            recording.durationMs <= 30_000
+          ) {
             void deleteRecording.mutateAsync(recordingId).then(
               () => {
                 toast.success('Recording deleted');
                 void navigate({ to: '/recordings' });
               },
-              (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+              (error: unknown) =>
+                toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
             );
           } else {
             setShowDeleteConfirm(true);
@@ -90,11 +98,10 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
 
       {/* Main Layout Grid */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-        
         {/* Left Column - Summary & Topics (Scrollable) */}
         <div className="flex min-h-0 flex-col lg:col-span-8 xl:col-span-8 2xl:col-span-9">
           <ScrollArea className="flex-1 rounded-xl" style={{ height: 0 }}>
-            <div className="space-y-8 pb-12 pr-2">
+            <div className="space-y-8 pr-2 pb-12">
               <SummarySection analysis={analysis} isRunning={isRunning} />
               <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
             </div>
@@ -105,10 +112,12 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         <div className="min-h-0 lg:col-span-4 xl:col-span-4 2xl:col-span-3">
           <TranscriptSidebar analysis={analysis} isRunning={isRunning} />
         </div>
-        
       </div>
 
-      <Dialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
+      <Dialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => !open && setShowDeleteConfirm(false)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete recording?</DialogTitle>
@@ -129,7 +138,10 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
                     toast.success('Recording deleted');
                     void navigate({ to: '/recordings' });
                   },
-                  (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+                  (error: unknown) =>
+                    toast.error(
+                      error instanceof Error ? error.message : 'Failed to delete recording',
+                    ),
                 );
               }}
               disabled={deleteRecording.isPending}

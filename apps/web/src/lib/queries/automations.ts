@@ -13,7 +13,8 @@ import { serverFetch } from '@/lib/api';
 
 const automationKeys = {
   all: ['automations'] as const,
-  list: (page: number, pageSize: number) => [...automationKeys.all, 'list', page, pageSize] as const,
+  list: (page: number, pageSize: number) =>
+    [...automationKeys.all, 'list', page, pageSize] as const,
   sessions: (automationId: string) => [...automationKeys.all, 'sessions', automationId] as const,
 };
 

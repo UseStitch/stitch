@@ -62,9 +62,7 @@ export function RecordingsSidebarContent() {
       <SidebarHeader className="pb-0">
         <SidebarMenuButton
           isActive={isOnIndex}
-          render={
-            <Link to="/recordings" className="flex items-center gap-2 font-medium" />
-          }
+          render={<Link to="/recordings" className="flex items-center gap-2 font-medium" />}
         >
           <LibraryIcon className="size-4" />
           All Recordings

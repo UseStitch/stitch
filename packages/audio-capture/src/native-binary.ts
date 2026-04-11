@@ -23,7 +23,10 @@ function getPackagedCandidatePaths(): string[] {
     return [];
   }
 
-  return [path.join(resourcesPath, binaryName), path.join(resourcesPath, 'audio-capture', binaryName)];
+  return [
+    path.join(resourcesPath, binaryName),
+    path.join(resourcesPath, 'audio-capture', binaryName),
+  ];
 }
 
 export function resolveNativeBinaryPath(): string {

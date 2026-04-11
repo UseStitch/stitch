@@ -1,8 +1,7 @@
-import fs from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
-
 import { Output, generateText } from 'ai';
 import { and, eq, inArray } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
+import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { createRecordingAnalysisId, type PrefixedString } from '@stitch/shared/id';
@@ -19,10 +18,10 @@ import type {
 import { getDb } from '@/db/client.js';
 import { providerConfig, recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { listEnabledProviderAudioModels } from '@/llm/provider/service.js';
@@ -134,7 +133,10 @@ function normalizeNullableText(value: string | null): string | null {
   return normalized;
 }
 
-function normalizeActionItem(item: RecordingActionItem, topicName: string | null): RecordingActionItem {
+function normalizeActionItem(
+  item: RecordingActionItem,
+  topicName: string | null,
+): RecordingActionItem {
   const task = item.task.trim();
   const status = item.status;
 
@@ -156,7 +158,9 @@ function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): 
   };
 }
 
-function normalizeTopicSections(sections: RecordingAnalysisTopicSection[]): RecordingAnalysisTopicSection[] {
+function normalizeTopicSections(
+  sections: RecordingAnalysisTopicSection[],
+): RecordingAnalysisTopicSection[] {
   return sections
     .map((section) => {
       const normalizedTopicName = section.name.trim();
@@ -288,15 +292,20 @@ async function resolveAnalysisModel(fallback: {
       .select({ key: userSettings.key, value: userSettings.value })
       .from(userSettings)
       .where(
-        inArray(userSettings.key, ['recordings.analysis.providerId', 'recordings.analysis.modelId']),
+        inArray(userSettings.key, [
+          'recordings.analysis.providerId',
+          'recordings.analysis.modelId',
+        ]),
       ),
     db.select().from(providerConfig),
   ]);
 
-  const configuredProviderId = settingsRows.find((row) => row.key === 'recordings.analysis.providerId')
-    ?.value;
-  const configuredModelId = settingsRows.find((row) => row.key === 'recordings.analysis.modelId')
-    ?.value;
+  const configuredProviderId = settingsRows.find(
+    (row) => row.key === 'recordings.analysis.providerId',
+  )?.value;
+  const configuredModelId = settingsRows.find(
+    (row) => row.key === 'recordings.analysis.modelId',
+  )?.value;
   if (configuredProviderId && configuredModelId) {
     const config = configs.find((row) => row.providerId === configuredProviderId);
     if (!config) {
@@ -354,10 +363,7 @@ export async function startRecordingAnalysis(
 ): Promise<ServiceResult<StartRecordingAnalysisResponse>> {
   const db = getDb();
 
-  const [recording] = await db
-    .select()
-    .from(recordings)
-    .where(eq(recordings.id, recordingId));
+  const [recording] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
   if (!recording) {
     return err('Recording not found', 404);
   }
@@ -461,10 +467,7 @@ export async function startRecordingAnalysis(
     analysisCredentials: analysisModel.data.credentials,
   });
 
-  const [created] = await db
-    .select()
-    .from(recordingAnalyses)
-    .where(eq(recordingAnalyses.id, id));
+  const [created] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id));
   if (!created) {
     return err('Failed to create recording analysis', 400);
   }
@@ -555,7 +558,12 @@ async function runRecordingAnalysis(
         durationMs: null,
         updatedAt: Date.now(),
       })
-      .where(and(eq(recordingAnalyses.id, analysisId), eq(recordingAnalyses.recordingId, input.recordingId)));
+      .where(
+        and(
+          eq(recordingAnalyses.id, analysisId),
+          eq(recordingAnalyses.recordingId, input.recordingId),
+        ),
+      );
 
     await broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
@@ -574,7 +582,9 @@ async function runRecordingAnalysis(
 
     const localUserLabel = profileRow?.value.trim() || 'Local User';
 
-    const transcriptionModel = createProvider(input.transcriptionCredentials)(input.transcriptionModelId);
+    const transcriptionModel = createProvider(input.transcriptionCredentials)(
+      input.transcriptionModelId,
+    );
     const transcriptionRunId = `${analysisId}:transcription`;
     const transcriptionStart = Date.now();
     const transcriptionResult = await generateText({
@@ -737,7 +747,10 @@ async function runRecordingAnalysis(
       title: null,
     });
 
-    log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis failed');
+    log.error(
+      { analysisId, recordingId: input.recordingId, error: message },
+      'recording analysis failed',
+    );
   } finally {
     if (activeRuns.get(analysisId) === abortController) {
       activeRuns.delete(analysisId);

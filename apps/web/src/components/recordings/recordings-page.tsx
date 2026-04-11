@@ -1,11 +1,4 @@
-import {
-  CheckIcon,
-  CopyIcon,
-  MicIcon,
-  SquareIcon,
-  Trash2Icon,
-  VideoIcon,
-} from 'lucide-react';
+import { CheckIcon, CopyIcon, MicIcon, SquareIcon, Trash2Icon, VideoIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -31,14 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { SimpleIcon } from '@/components/ui/simple-icon';
 import {
   Pagination,
   PaginationContent,
@@ -48,6 +35,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { SimpleIcon } from '@/components/ui/simple-icon';
 import {
   recordingsQueryOptions,
   useDeleteRecording,
@@ -64,7 +52,11 @@ const PLATFORM_CONFIG: Record<RecordingPlatform, { label: string; slug: string |
   'google-meet': { label: 'Google Meet', slug: 'googlemeet' },
 };
 
-const PlatformBadge = React.memo(function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
+const PlatformBadge = React.memo(function PlatformBadge({
+  platform,
+}: {
+  platform: RecordingPlatform;
+}) {
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (
@@ -91,9 +83,7 @@ function LiveDuration({ startedAt }: { startedAt: number }) {
     return () => clearInterval(id);
   }, []);
 
-  return (
-    <span className="text-xs text-muted-foreground">{formatDuration(tick - startedAt)}</span>
-  );
+  return <span className="text-xs text-muted-foreground">{formatDuration(tick - startedAt)}</span>;
 }
 
 function LiveDurationText({ startedAt }: { startedAt: number }) {
@@ -166,7 +156,7 @@ function RecordingCopyButton({ value }: { value: string }) {
           }`}
         />
         <CheckIcon
-          className={`text-success absolute inset-0 size-4 transition-all duration-200 ${
+          className={`absolute inset-0 size-4 text-success transition-all duration-200 ${
             copied ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
           }`}
         />
@@ -192,7 +182,9 @@ export function RecordingsPage() {
     refetchInterval: data.activeRecordingId ? 1_000 : 2_000,
   });
 
-  const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
+  const activeRecording = data.recordings.find(
+    (recording) => recording.id === data.activeRecordingId,
+  );
 
   const columns = React.useMemo(
     () => [
@@ -213,11 +205,15 @@ export function RecordingsPage() {
       }),
       columnHelper.accessor('status', {
         header: 'Capturing',
-        cell: ({ getValue }) => <span className="text-xs capitalize text-muted-foreground">{getValue()}</span>,
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground capitalize">{getValue()}</span>
+        ),
       }),
       columnHelper.accessor('startedAt', {
         header: 'Date',
-        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>
+        ),
       }),
       columnHelper.display({
         id: 'duration',
@@ -227,14 +223,18 @@ export function RecordingsPage() {
           if (recording.id === data.activeRecordingId) {
             return <LiveDuration startedAt={recording.startedAt} />;
           }
-          return <span className="text-xs text-muted-foreground">{formatDuration(recording.durationMs)}</span>;
+          return (
+            <span className="text-xs text-muted-foreground">
+              {formatDuration(recording.durationMs)}
+            </span>
+          );
         },
       }),
       columnHelper.display({
         id: 'actions',
-        header: () => <div className="text-right pr-1">Actions</div>,
+        header: () => <div className="pr-1 text-right">Actions</div>,
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1 -mr-1.5">
+          <div className="-mr-1.5 flex items-center justify-end gap-1">
             <RecordingCopyButton value={row.original.filePath} />
             <Button
               type="button"
@@ -246,7 +246,10 @@ export function RecordingsPage() {
                 if (rec.durationMs !== null && rec.durationMs <= 30_000) {
                   void deleteRecording.mutateAsync(rec.id).then(
                     () => toast.success('Recording deleted'),
-                    (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+                    (error: unknown) =>
+                      toast.error(
+                        error instanceof Error ? error.message : 'Failed to delete recording',
+                      ),
                   );
                 } else {
                   setRecordingToDelete(rec);
@@ -334,7 +337,9 @@ export function RecordingsPage() {
                   void stopRecording.mutateAsync().then(
                     () => toast.success('Recording stopped'),
                     (error: unknown) => {
-                      toast.error(error instanceof Error ? error.message : 'Failed to stop recording');
+                      toast.error(
+                        error instanceof Error ? error.message : 'Failed to stop recording',
+                      );
                     },
                   );
                 }}
@@ -353,7 +358,9 @@ export function RecordingsPage() {
                       toast.success('Recording started');
                     },
                     (error: unknown) => {
-                      toast.error(error instanceof Error ? error.message : 'Failed to start recording');
+                      toast.error(
+                        error instanceof Error ? error.message : 'Failed to start recording',
+                      );
                     },
                   );
                 }}
@@ -378,10 +385,12 @@ export function RecordingsPage() {
                         className={
                           header.column.id === 'title'
                             ? 'w-full min-w-62.5 px-4 py-2 font-medium'
-                            : 'whitespace-nowrap px-4 py-2 font-medium'
+                            : 'px-4 py-2 font-medium whitespace-nowrap'
                         }
                       >
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </th>
                     ))}
                   </tr>
@@ -407,13 +416,17 @@ export function RecordingsPage() {
                     <tr
                       key={row.id}
                       className="group cursor-pointer align-middle transition-colors hover:bg-muted/40"
-                      onClick={() => void navigate({ to: '/recordings/$id', params: { id: row.original.id } })}
+                      onClick={() =>
+                        void navigate({ to: '/recordings/$id', params: { id: row.original.id } })
+                      }
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
                           className={
-                            cell.column.id === 'title' ? 'w-full min-w-62.5 px-4 py-3' : 'whitespace-nowrap px-4 py-3'
+                            cell.column.id === 'title'
+                              ? 'w-full min-w-62.5 px-4 py-3'
+                              : 'px-4 py-3 whitespace-nowrap'
                           }
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -488,7 +501,10 @@ export function RecordingsPage() {
         </div>
       </div>
 
-      <Dialog open={recordingToDelete !== null} onOpenChange={(open) => !open && setRecordingToDelete(null)}>
+      <Dialog
+        open={recordingToDelete !== null}
+        onOpenChange={(open) => !open && setRecordingToDelete(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete recording?</DialogTitle>
@@ -513,7 +529,9 @@ export function RecordingsPage() {
                     toast.success('Recording deleted');
                   },
                   (error: unknown) => {
-                    toast.error(error instanceof Error ? error.message : 'Failed to delete recording');
+                    toast.error(
+                      error instanceof Error ? error.message : 'Failed to delete recording',
+                    );
                   },
                 );
               }}

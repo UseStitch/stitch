@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
 
+import { resolveNativeBinaryPath } from './native-binary.js';
+
 import type {
   ActiveCapture,
   AudioCaptureDriver,
@@ -12,7 +14,6 @@ import type {
   StartCaptureInput,
   StopCaptureResult,
 } from './types.js';
-import { resolveNativeBinaryPath } from './native-binary.js';
 
 const START_TIMEOUT_MS = 10_000;
 const STOP_TIMEOUT_MS = 10_000;
@@ -85,7 +86,9 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
   processHandle.once('exit', (code, exitSignal) => {
     const suffix = stderrBuffer.trim() ? `: ${stderrBuffer.trim()}` : '';
     rejectAll(
-      new Error(`Native audio capture exited unexpectedly (code=${code}, signal=${exitSignal})${suffix}`),
+      new Error(
+        `Native audio capture exited unexpectedly (code=${code}, signal=${exitSignal})${suffix}`,
+      ),
     );
   });
 

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { createPollingMeetingDetector } from './shared.js';
+
 import type { MeetingDetectionEvent } from '../types.js';
 
 function waitForAsyncTick(): Promise<void> {

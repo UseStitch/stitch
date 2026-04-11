@@ -43,7 +43,8 @@ const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = [
 ];
 
 function compareObservations(a: MeetingObservation, b: MeetingObservation): number {
-  const platformScore = PLATFORM_PRIORITY.indexOf(a.platform) - PLATFORM_PRIORITY.indexOf(b.platform);
+  const platformScore =
+    PLATFORM_PRIORITY.indexOf(a.platform) - PLATFORM_PRIORITY.indexOf(b.platform);
   if (platformScore !== 0) {
     return platformScore;
   }
@@ -71,14 +72,17 @@ function toDetection(candidate: Candidate): MeetingDetection {
  * the same logic is shared by the polling adapter and the new event-driven
  * watcher path.
  */
-export function createMeetingDetectionEngine(
-  options: MeetingEngineOptions = {},
-): Pick<MeetingDetector, 'subscribe' | 'getActive'> & {
+export function createMeetingDetectionEngine(options: MeetingEngineOptions = {}): Pick<
+  MeetingDetector,
+  'subscribe' | 'getActive'
+> & {
   ingest: (observations: MeetingObservation[], now?: number) => void;
 } {
-  const activationThresholdMs = options.activationThresholdMs ?? DEFAULT_ENGINE_OPTIONS.activationThresholdMs;
+  const activationThresholdMs =
+    options.activationThresholdMs ?? DEFAULT_ENGINE_OPTIONS.activationThresholdMs;
   const cooldownMs = options.cooldownMs ?? DEFAULT_ENGINE_OPTIONS.cooldownMs;
-  const staleCandidateThresholdMs = options.staleCandidateThresholdMs ?? DEFAULT_ENGINE_OPTIONS.staleCandidateThresholdMs;
+  const staleCandidateThresholdMs =
+    options.staleCandidateThresholdMs ?? DEFAULT_ENGINE_OPTIONS.staleCandidateThresholdMs;
 
   const listeners = new Set<MeetingDetectionListener>();
   const candidates = new Map<string, Candidate>();

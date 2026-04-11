@@ -36,15 +36,21 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
     () => [
       columnHelper.accessor('title', {
         header: 'Run',
-        cell: ({ row }) => <span className="truncate font-medium">{row.original.title ?? 'Untitled run'}</span>,
+        cell: ({ row }) => (
+          <span className="truncate font-medium">{row.original.title ?? 'Untitled run'}</span>
+        ),
       }),
       columnHelper.accessor('createdAt', {
         header: 'Started',
-        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>
+        ),
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
-        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>
+        ),
       }),
       columnHelper.display({
         id: 'actions',
@@ -79,8 +85,13 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-2 text-xs font-medium text-muted-foreground">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  <th
+                    key={header.id}
+                    className="px-4 py-2 text-xs font-medium text-muted-foreground"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>

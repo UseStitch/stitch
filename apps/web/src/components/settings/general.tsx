@@ -1,9 +1,9 @@
-import * as React from 'react';
-
 import { LoaderIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { Button } from '@/components/ui/button';
 import {
   Combobox,
   ComboboxCollection,
@@ -16,7 +16,6 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -222,7 +221,9 @@ function ModelsContent() {
           </div>
           <Switch
             checked={autoAnalyzeEnabled}
-            onCheckedChange={(checked) => saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')}
+            onCheckedChange={(checked) =>
+              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
+            }
             disabled={saveAutoAnalyzeMutation.isPending}
           />
         </div>
@@ -234,24 +235,24 @@ function ModelsContent() {
         </p>
       ) : (
         RECORDING_MODEL_PREFERENCES.map((pref, index) => (
-        <div
-          key={pref.providerIdKey}
-          className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-        >
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">{pref.label}</Label>
-            <p className="text-xs text-muted-foreground">{pref.description}</p>
+          <div
+            key={pref.providerIdKey}
+            className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
+          >
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <Label className="text-sm font-medium">{pref.label}</Label>
+              <p className="text-xs text-muted-foreground">{pref.description}</p>
+            </div>
+            <div className="w-52 shrink-0">
+              <ModelSelect
+                providerIdKey={pref.providerIdKey}
+                modelIdKey={pref.modelIdKey}
+                currentProviderId={settings[pref.providerIdKey]}
+                currentModelId={settings[pref.modelIdKey]}
+                providerModels={audioProviderModels}
+              />
+            </div>
           </div>
-          <div className="w-52 shrink-0">
-            <ModelSelect
-              providerIdKey={pref.providerIdKey}
-              modelIdKey={pref.modelIdKey}
-              currentProviderId={settings[pref.providerIdKey]}
-              currentModelId={settings[pref.modelIdKey]}
-              providerModels={audioProviderModels}
-            />
-          </div>
-        </div>
         ))
       )}
     </div>
@@ -288,7 +289,8 @@ export function GeneralSettings() {
 function updaterStatusLabel(status: string, progress?: number): string {
   if (status === 'checking') return 'Checking for updates...';
   if (status === 'available') return 'Update available. Downloading in background...';
-  if (status === 'downloading') return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
+  if (status === 'downloading')
+    return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
   if (status === 'downloaded') return 'Update ready. Restart Stitch to install.';
   if (status === 'no-update') return 'You are up to date.';
   if (status === 'error') return 'Could not check for updates.';
@@ -335,7 +337,8 @@ function AutoUpdatesContent() {
 
   const statusText = updaterStatusLabel(updater.status, updater.progress);
   const actionPending = checkPending || installPending;
-  const canCheck = updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
+  const canCheck =
+    updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
   const canInstall = updater.status === 'downloaded' && !actionPending;
 
   function handleCheckUpdates() {
@@ -351,11 +354,9 @@ function AutoUpdatesContent() {
   function handleInstallUpdate() {
     setInstallPending(true);
     setInstalling();
-    void window.api?.updater
-      ?.install()
-      .finally(() => {
-        setInstallPending(false);
-      });
+    void window.api?.updater?.install().finally(() => {
+      setInstallPending(false);
+    });
   }
 
   return (
@@ -366,7 +367,13 @@ function AutoUpdatesContent() {
         {updater.error ? <p className="text-xs text-destructive">{updater.error}</p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={!canCheck}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleCheckUpdates}
+          disabled={!canCheck}
+        >
           {checkPending ? (
             <>
               <LoaderIcon className="size-3.5 animate-spin" />

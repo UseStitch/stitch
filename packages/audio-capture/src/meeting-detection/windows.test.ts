@@ -6,7 +6,9 @@ const describeWindows = process.platform === 'win32' ? describe : describe.skip;
 
 describeWindows('windows meeting detector parser', () => {
   test('parses json rows', () => {
-    const rows = internal.parseRows('[{"pid":100,"processName":"msedge","windowTitle":"Google Meet"}]');
+    const rows = internal.parseRows(
+      '[{"pid":100,"processName":"msedge","windowTitle":"Google Meet"}]',
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ pid: 100, processName: 'msedge', windowTitle: 'Google Meet' });
   });

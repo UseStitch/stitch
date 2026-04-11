@@ -1,9 +1,9 @@
 import type { JobSchedule } from '@stitch/scheduler';
 import type { Automation, AutomationSchedule } from '@stitch/shared/automations/types';
 
-import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
-
 import { listAutomations, runAutomation } from './service.js';
+
+import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 
 const AUTOMATION_JOB_KEY_PREFIX = 'automation:';
 

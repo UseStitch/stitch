@@ -1,7 +1,6 @@
+import { and, desc, eq, sql } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
-import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
 import { createRecordingId } from '@stitch/shared/id';
@@ -130,7 +129,10 @@ export async function startRecording(
       enableAec: false,
     });
     activeRecording = { id, filePath };
-    log.info({ recordingId: id, filePath, mode: 'dual', sampleRateHz: 16_000, enableAec: false }, 'recording started');
+    log.info(
+      { recordingId: id, filePath, mode: 'dual', sampleRateHz: 16_000, enableAec: false },
+      'recording started',
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start recording';
 

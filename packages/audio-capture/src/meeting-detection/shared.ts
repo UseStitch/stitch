@@ -1,6 +1,6 @@
-import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-
 import { createMeetingDetectionEngine } from './engine.js';
+
+import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 
 export type { MeetingObservation };

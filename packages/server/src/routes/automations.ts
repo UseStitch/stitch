@@ -2,8 +2,12 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { CreateAutomationInput, UpdateAutomationInput } from '@stitch/shared/automations/types';
+import type {
+  CreateAutomationInput,
+  UpdateAutomationInput,
+} from '@stitch/shared/automations/types';
 
+import { syncAutomationSchedule, unregisterAutomationSchedule } from '@/automations/scheduler.js';
 import {
   createAutomation,
   deleteAutomation,
@@ -12,10 +16,6 @@ import {
   runAutomation,
   updateAutomation,
 } from '@/automations/service.js';
-import {
-  syncAutomationSchedule,
-  unregisterAutomationSchedule,
-} from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
 
 const scheduleSchema = z

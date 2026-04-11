@@ -120,7 +120,13 @@ function ChatSidebarContent() {
   );
 }
 
-function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' | 'usage' | 'recordings' {
+function useActiveContext():
+  | 'chat'
+  | 'connectors'
+  | 'automations'
+  | 'memories'
+  | 'usage'
+  | 'recordings' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/connectors')) return 'connectors';

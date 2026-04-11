@@ -1,7 +1,7 @@
 import type { PrefixedString } from '../id/index.js';
-import type { MeetingKind, MeetingPlatform, RecordingAnalysisStatus } from '../recordings/types.js';
 import type { PermissionResponse } from '../permissions/types.js';
 import type { QuestionRequest } from '../questions/types.js';
+import type { MeetingKind, MeetingPlatform, RecordingAnalysisStatus } from '../recordings/types.js';
 import type { StreamErrorDetails } from './errors.js';
 import type {
   FileStreamPart,

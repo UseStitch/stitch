@@ -205,8 +205,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'recordings.autoAnalyze',
     value: 'false',
-    description:
-      'Automatically run transcription and LLM analysis when a recording is completed.',
+    description: 'Automatically run transcription and LLM analysis when a recording is completed.',
   },
   {
     key: 'recordings.transcription.providerId',

@@ -1,6 +1,8 @@
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquareIcon } from 'lucide-react';
+
 import type { RecordingAnalysis } from '@stitch/shared/recordings/types';
+
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface TranscriptSidebarProps {
   analysis: RecordingAnalysis | null | undefined;
@@ -23,12 +25,14 @@ export function TranscriptSidebar({ analysis, isRunning }: TranscriptSidebarProp
         <div className="space-y-4 p-5">
           {analysis?.transcript?.length ? (
             analysis.transcript.map((entry, index) => (
-              <div 
-                key={`${index}-${entry.speaker}`} 
+              <div
+                key={`${index}-${entry.speaker}`}
                 className="group rounded-xl border border-border/40 bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border/80"
               >
                 <div className="mb-1.5 flex items-center justify-between">
-                   <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">{entry.speaker}</p>
+                  <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">
+                    {entry.speaker}
+                  </p>
                 </div>
                 <p className="text-sm leading-relaxed text-foreground/90">{entry.content}</p>
               </div>

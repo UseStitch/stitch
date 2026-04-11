@@ -49,14 +49,13 @@ connectorsRouter.get('/instances/:id', async (c) => {
 });
 
 // Create an OAuth connector instance
-const createOAuthSchema = z
-  .object({
-    connectorId: z.string().min(1),
-    label: z.string().min(1),
-    clientId: z.string().min(1),
-    clientSecret: z.string().min(1),
-    scopes: z.array(z.string()).min(1),
-  });
+const createOAuthSchema = z.object({
+  connectorId: z.string().min(1),
+  label: z.string().min(1),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+  scopes: z.array(z.string()).min(1),
+});
 
 connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
   const body = c.req.valid('json');

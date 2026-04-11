@@ -1,13 +1,16 @@
-import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-
-import type { MeetingObservation } from './shared.js';
 import { createNativeWatcherMeetingDetector } from './watcher.js';
+
+import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
+import type { MeetingObservation } from './shared.js';
 import type { WatchRow } from './watcher.js';
 
 type WindowsProcessRow = WatchRow;
 
 function normalizeProcessName(input: string): string {
-  return input.trim().toLowerCase().replace(/\.exe$/, '');
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\.exe$/, '');
 }
 
 function parseRows(stdout: string): WindowsProcessRow[] {
@@ -63,7 +66,10 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
     });
   }
 
-  if ((processName === 'teams' || processName === 'ms-teams') && hasCallHint('teams', windowTitle)) {
+  if (
+    (processName === 'teams' || processName === 'ms-teams') &&
+    hasCallHint('teams', windowTitle)
+  ) {
     observations.push({
       key: 'desktop:teams',
       platform: 'teams',
@@ -96,7 +102,10 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
     });
   }
 
-  if ((processName === 'chrome' || processName === 'msedge') && /google meet|meet\.google\.com|^meet\s+-\s+/.test(windowTitle.toLowerCase())) {
+  if (
+    (processName === 'chrome' || processName === 'msedge') &&
+    /google meet|meet\.google\.com|^meet\s+-\s+/.test(windowTitle.toLowerCase())
+  ) {
     observations.push({
       key: `browser:google-meet:${processName}`,
       platform: 'google-meet',
@@ -136,7 +145,9 @@ function classifyWindowsRows(rows: WindowsProcessRow[]): MeetingObservation[] {
   return mergeObservations(observations);
 }
 
-export function createWindowsMeetingDetector(options: MeetingDetectionOptions = {}): MeetingDetector {
+export function createWindowsMeetingDetector(
+  options: MeetingDetectionOptions = {},
+): MeetingDetector {
   return createNativeWatcherMeetingDetector('windows', classifyWindowsRows, options);
 }
 

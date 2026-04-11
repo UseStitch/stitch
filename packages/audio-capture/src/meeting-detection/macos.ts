@@ -1,7 +1,7 @@
-import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-
-import type { MeetingObservation } from './shared.js';
 import { createNativeWatcherMeetingDetector } from './watcher.js';
+
+import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
+import type { MeetingObservation } from './shared.js';
 import type { WatchRow } from './watcher.js';
 
 type MacosMeetingRow = WatchRow;

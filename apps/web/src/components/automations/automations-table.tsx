@@ -1,6 +1,7 @@
 import { PlayIcon, PencilIcon, Trash2Icon, BotIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Link } from '@tanstack/react-router';
 import {
   createColumnHelper,
   flexRender,
@@ -9,18 +10,12 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { Link } from '@tanstack/react-router';
 
 import type { Automation } from '@stitch/shared/automations/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
   Pagination,
   PaginationContent,
@@ -100,7 +95,8 @@ export function AutomationsTable({
         cell: ({ row }) => {
           const automation = row.original;
           const label =
-            modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
+            modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ??
+            automation.modelId;
           return (
             <Badge variant="secondary" className="text-[11px]">
               {label}
@@ -116,12 +112,16 @@ export function AutomationsTable({
         id: 'schedule',
         header: 'Schedule',
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">{getAutomationScheduleLabel(row.original.schedule)}</span>
+          <span className="text-sm text-muted-foreground">
+            {getAutomationScheduleLabel(row.original.schedule)}
+          </span>
         ),
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
-        cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>,
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>
+        ),
       }),
       columnHelper.display({
         id: 'actions',
@@ -197,8 +197,13 @@ export function AutomationsTable({
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-2 text-xs font-medium text-muted-foreground">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  <th
+                    key={header.id}
+                    className="px-4 py-2 text-xs font-medium text-muted-foreground"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
               </tr>
@@ -221,14 +226,15 @@ export function AutomationsTable({
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="group transition-colors hover:bg-muted/40">
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 align-middle">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            )))}
+                <tr key={row.id} className="group transition-colors hover:bg-muted/40">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-4 py-3 align-middle">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

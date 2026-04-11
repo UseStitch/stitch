@@ -1,14 +1,18 @@
+import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import { Readable } from 'node:stream';
-
-import { zValidator } from '@hono/zod-validator';
-import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { StartRecordingInput } from '@stitch/shared/recordings/types';
 
 import { isServiceError } from '@/lib/service-result.js';
+import {
+  cancelRecordingAnalysis,
+  getRecordingAnalysis,
+  startRecordingAnalysis,
+} from '@/recordings/analysis-service.js';
 import {
   deleteRecording,
   getRecordingAudioFile,
@@ -16,17 +20,10 @@ import {
   startRecording,
   stopRecording,
 } from '@/recordings/service.js';
-import {
-  cancelRecordingAnalysis,
-  getRecordingAnalysis,
-  startRecordingAnalysis,
-} from '@/recordings/analysis-service.js';
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
-  platform: z
-    .enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet'])
-    .optional(),
+  platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
 });
 
 export const recordingsRouter = new Hono();
@@ -92,7 +89,13 @@ recordingsRouter.get('/:id/audio', async (c) => {
     const start = startToken ? Number.parseInt(startToken, 10) : 0;
     const end = endToken ? Number.parseInt(endToken, 10) : stat.size - 1;
 
-    if (Number.isNaN(start) || Number.isNaN(end) || start < 0 || end < start || start >= stat.size) {
+    if (
+      Number.isNaN(start) ||
+      Number.isNaN(end) ||
+      start < 0 ||
+      end < start ||
+      start >= stat.size
+    ) {
       return new Response(null, {
         status: 416,
         headers: {

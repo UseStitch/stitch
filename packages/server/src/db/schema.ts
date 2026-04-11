@@ -10,21 +10,19 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
+import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
+import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { ConnectorStatus } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
-import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
 import type {
   ToolPermissionValue,
   PermissionResponseStatus,
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
-import type { SettingsKey } from '@stitch/shared/settings/types';
-import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
-import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type {
   RecordingActionItem,
   RecordingAnalysisTopicSection,
@@ -35,6 +33,8 @@ import type {
   RecordingTranscriptEntry,
   RecordingAnalysisTopic,
 } from '@stitch/shared/recordings/types';
+import type { SettingsKey } from '@stitch/shared/settings/types';
+import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -95,7 +95,9 @@ export const providerConfig = sqliteTable('provider_config', {
 export const sessions = sqliteTable('sessions', {
   id: text('id').$type<PrefixedString<'ses'>>().primaryKey(),
   title: text('title'),
-  type: text('type', { enum: ['chat', 'automation'] }).notNull().default('chat'),
+  type: text('type', { enum: ['chat', 'automation'] })
+    .notNull()
+    .default('chat'),
   automationId: text('automation_id')
     .$type<PrefixedString<'auto'> | null>()
     .references(() => automations.id, { onDelete: 'set null' }),
@@ -380,7 +382,9 @@ export const recordingAnalyses = sqliteTable(
     status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
     transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
     topics: blob('topics', { mode: 'json' }).$type<RecordingAnalysisTopic[]>(),
-    topicSections: blob('topic_sections', { mode: 'json' }).$type<RecordingAnalysisTopicSection[]>(),
+    topicSections: blob('topic_sections', { mode: 'json' }).$type<
+      RecordingAnalysisTopicSection[]
+    >(),
     summary: text('summary').notNull().default(''),
     title: text('title').notNull().default(''),
     actionItems: blob('action_items', { mode: 'json' }).$type<RecordingActionItem[]>(),

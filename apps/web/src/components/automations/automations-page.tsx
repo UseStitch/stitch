@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
-import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -21,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
@@ -44,7 +43,9 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const { data: automations } = useSuspenseQuery(automationsQueryOptions);
   const [page, setPage] = useState(1);
   const pageSize = 15;
-  const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
+  const { data: automationsPage } = useSuspenseQuery(
+    automationsPageQueryOptions({ page, pageSize }),
+  );
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
 
@@ -108,7 +109,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     try {
       const result = await runAutomation.mutateAsync(automation.id);
       toast.success(`Started ${automation.title}`);
-      void navigate({ to: '/automations/sessions/$id', params: { id: result.sessionId }, viewTransition: true });
+      void navigate({
+        to: '/automations/sessions/$id',
+        params: { id: result.sessionId },
+        viewTransition: true,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to run automation');
     }
@@ -117,7 +122,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const modelLabelByKey = new Map<string, string>();
   for (const provider of providerModels) {
     for (const model of provider.models) {
-      modelLabelByKey.set(`${provider.providerId}:${model.id}`, `${provider.providerName} / ${model.name}`);
+      modelLabelByKey.set(
+        `${provider.providerId}:${model.id}`,
+        `${provider.providerName} / ${model.name}`,
+      );
     }
   }
 
@@ -125,7 +133,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
-  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const timezone =
+    settings?.['profile.timezone']?.trim() ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'UTC';
   const selectedScheduleLabel = selectedAutomation
     ? getAutomationScheduleLabel(selectedAutomation.schedule)
     : 'Manual';
@@ -172,12 +183,17 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                 <div className="space-y-1">
                   <p className="text-base font-semibold">{selectedAutomation.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    {modelLabelByKey.get(`${selectedAutomation.providerId}:${selectedAutomation.modelId}`) ??
-                      selectedAutomation.modelId}
+                    {modelLabelByKey.get(
+                      `${selectedAutomation.providerId}:${selectedAutomation.modelId}`,
+                    ) ?? selectedAutomation.modelId}
                   </p>
-                  <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedAutomation.runCount} total runs
+                  </p>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Schedule: {selectedScheduleLabel}
+                    </span>
                     {upcomingRuns.length > 0 && (
                       <span className="text-xs text-muted-foreground">· Next runs:</span>
                     )}
@@ -201,14 +217,18 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     <PlayIcon data-icon="inline-start" className="size-4" />
                     Run
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEditDialog(selectedAutomation.id)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditDialog(selectedAutomation.id)}
+                  >
                     <PencilIcon data-icon="inline-start" className="size-4" />
                     Edit
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() =>  handleDelete(selectedAutomation)}
+                    onClick={() => handleDelete(selectedAutomation)}
                     disabled={deleteAutomation.isPending}
                   >
                     <Trash2Icon data-icon="inline-start" className="size-4 text-destructive" />
@@ -229,7 +249,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
               <AutomationRunsTable
                 sessions={automationSessions}
                 onOpen={(sessionId) =>
-                  void navigate({ to: '/automations/sessions/$id', params: { id: sessionId }, viewTransition: true })
+                  void navigate({
+                    to: '/automations/sessions/$id',
+                    params: { id: sessionId },
+                    viewTransition: true,
+                  })
                 }
               />
             )}
@@ -245,7 +269,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             onPageChange={setPage}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
-            onDelete={(automation) =>  handleDelete(automation)}
+            onDelete={(automation) => handleDelete(automation)}
           />
         )}
       </div>
@@ -265,7 +289,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             closeCreateDialog();
             toast.success('Automation created');
             if (action === 'create-view') {
-              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
+              void navigate({
+                to: '/automations/$automationId',
+                params: { automationId: created.id },
+              });
             }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation');
@@ -295,19 +322,27 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         }}
       />
 
-      <Dialog open={automationToDelete !== null} onOpenChange={(open) => !open && setAutomationToDelete(null)}>
+      <Dialog
+        open={automationToDelete !== null}
+        onOpenChange={(open) => !open && setAutomationToDelete(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Automation</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the automation "{automationToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to delete the automation "{automationToDelete?.title}"? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAutomationToDelete(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleteAutomation.isPending}>
+            <Button
+              variant="destructive"
+              onClick={() => void confirmDelete()}
+              disabled={deleteAutomation.isPending}
+            >
               Delete
             </Button>
           </DialogFooter>

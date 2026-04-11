@@ -1,13 +1,20 @@
-import { FileTextIcon, Loader2Icon, PauseIcon, PlayIcon, RotateCcwIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
+import {
+  FileTextIcon,
+  Loader2Icon,
+  PauseIcon,
+  PlayIcon,
+  RotateCcwIcon,
+  SparklesIcon,
+  Trash2Icon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
+
+import type { RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { getServerUrl } from '@/lib/api';
-
-import type { RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
-
 
 function formatDuration(durationMs: number | null): string {
   if (durationMs === null) return '--';
@@ -24,7 +31,13 @@ function formatDuration(durationMs: number | null): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function AudioPlayer({ recordingId, durationMs }: { recordingId: string; durationMs: number | null }) {
+function AudioPlayer({
+  recordingId,
+  durationMs,
+}: {
+  recordingId: string;
+  durationMs: number | null;
+}) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
@@ -83,7 +96,8 @@ function AudioPlayer({ recordingId, durationMs }: { recordingId: string; duratio
     };
   }, [src, actualDuration]);
 
-  const progressValue = actualDuration > 0 ? Math.min((currentTime / actualDuration) * 100, 100) : 0;
+  const progressValue =
+    actualDuration > 0 ? Math.min((currentTime / actualDuration) * 100, 100) : 0;
 
   const start = React.useCallback(() => {
     if (!audioRef.current) return;
@@ -120,7 +134,7 @@ function AudioPlayer({ recordingId, durationMs }: { recordingId: string; duratio
       </Button>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
         <Progress value={progressValue} className="mt-0.5 h-1.5" aria-label="Playback progress" />
-        <div className="flex items-center justify-between text-[10px] tabular-nums leading-none text-muted-foreground">
+        <div className="flex items-center justify-between text-[10px] leading-none text-muted-foreground tabular-nums">
           <span>{formatDuration(currentTime * 1000)}</span>
           <span>{formatDuration(actualDuration * 1000)}</span>
         </div>
@@ -200,7 +214,7 @@ export function AnalysisHeader({
           onClick={onDelete}
           disabled={isDeleting || isRunning}
           aria-label="Delete recording"
-          className="shadow-sm text-destructive hover:text-destructive"
+          className="text-destructive shadow-sm hover:text-destructive"
         >
           {isDeleting ? (
             <Loader2Icon className="size-4 animate-spin" />
