@@ -133,11 +133,6 @@ jobs:
             arch: arm64
             rust_target: aarch64-apple-darwin
             package_script: package
-          - runner: macos-14
-            os: macos
-            arch: x64
-            rust_target: x86_64-apple-darwin
-            package_script: package:x64
     steps:
       - name: Checkout release commit
         uses: actions/checkout@v5
