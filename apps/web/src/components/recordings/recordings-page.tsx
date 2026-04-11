@@ -1,7 +1,6 @@
 import {
   CheckIcon,
   CopyIcon,
-  FileTextIcon,
   MicIcon,
   PauseIcon,
   PlayIcon,
@@ -14,7 +13,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   flexRender,
@@ -26,7 +25,7 @@ import {
 
 import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -297,6 +296,7 @@ export function RecordingsPage() {
   const [title, setTitle] = React.useState('');
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
+  const [tick, setTick] = React.useState(Date.now());
   const navigate = useNavigate();
 
   useQuery({
@@ -332,7 +332,7 @@ export function RecordingsPage() {
 
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
-  const activeDuration = activeRecording ? Math.max(0, tick - activeRecording.startedAt) : null;
+  const _activeDuration = activeRecording ? Math.max(0, tick - activeRecording.startedAt) : null;
 
   const columns = React.useMemo(
     () => [
@@ -419,7 +419,7 @@ export function RecordingsPage() {
         ),
       }),
     ],
-    [baseUrl, data.activeRecordingId],
+    [baseUrl, data.activeRecordingId, deleteRecording],
   );
 
   const table = useReactTable({

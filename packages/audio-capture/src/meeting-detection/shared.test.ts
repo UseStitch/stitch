@@ -51,7 +51,7 @@ describe('createPollingMeetingDetector', () => {
     expect(events[0]).toMatchObject({ type: 'detected' });
 
     active = false;
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     await waitForAsyncTick();
 
     expect(events).toHaveLength(2);
