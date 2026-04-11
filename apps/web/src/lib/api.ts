@@ -73,6 +73,10 @@ const DEV_FALLBACK_URL = 'http://localhost:3000';
 
 let cachedUrl: string | null = null;
 
+export function getServerUrlSync(): string | null {
+  return cachedUrl;
+}
+
 export async function getServerUrl(): Promise<string> {
   if (cachedUrl) return cachedUrl;
 
