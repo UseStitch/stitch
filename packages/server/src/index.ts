@@ -23,6 +23,7 @@ import { recordingsRouter } from '@/routes/recordings.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
 import { usageRouter } from '@/routes/usage.js';
+import { agendaRouter } from '@/routes/agenda.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {
@@ -68,6 +69,7 @@ app.route('/recordings', recordingsRouter);
 app.route('/shortcuts', shortcutsRouter);
 app.route('/usage', usageRouter);
 app.route('/connectors', connectorsRouter);
+app.route('/agenda', agendaRouter);
 
 registerShutdownHandlers();
 await init();
