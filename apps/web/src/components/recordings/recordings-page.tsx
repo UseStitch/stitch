@@ -1,7 +1,6 @@
 import {
   CheckIcon,
   CopyIcon,
-  FileTextIcon,
   MicIcon,
   PauseIcon,
   PlayIcon,
@@ -14,7 +13,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   flexRender,
@@ -26,7 +25,7 @@ import {
 
 import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -317,22 +316,7 @@ export function RecordingsPage() {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (!data.activeRecordingId) {
-      return;
-    }
-
-    setTick(Date.now());
-    const id = setInterval(() => {
-      setTick(Date.now());
-    }, 1_000);
-
-    return () => clearInterval(id);
-  }, [data.activeRecordingId]);
-
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
-
-  const activeDuration = activeRecording ? Math.max(0, tick - activeRecording.startedAt) : null;
 
   const columns = React.useMemo(
     () => [
