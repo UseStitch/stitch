@@ -1,11 +1,23 @@
+import * as React from 'react';
 import { toast } from 'sonner';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   recordingAnalysisQueryOptions,
   recordingsQueryOptions,
   useCancelRecordingAnalysis,
+  useDeleteRecording,
   useStartRecordingAnalysis,
 } from '@/lib/queries/recordings';
 
@@ -20,6 +32,9 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();
+  const deleteRecording = useDeleteRecording();
+  const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const analysis = analysisResponse.analysis;
   const recording = recordings.recordings.find((item) => item.id === recordingId);
@@ -49,8 +64,22 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         isRunning={isRunning}
         isStarting={startAnalysis.isPending}
         isCancelling={cancelAnalysis.isPending}
+        isDeleting={deleteRecording.isPending}
         onStartAnalysis={handleStartAnalysis}
         onCancelAnalysis={handleCancelAnalysis}
+        onDelete={() => {
+          if (recording?.durationMs !== null && recording?.durationMs !== undefined && recording.durationMs <= 30_000) {
+            void deleteRecording.mutateAsync(recordingId).then(
+              () => {
+                toast.success('Recording deleted');
+                void navigate({ to: '/recordings' });
+              },
+              (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+            );
+          } else {
+            setShowDeleteConfirm(true);
+          }
+        }}
       />
 
       {analysis?.error && analysis.error !== 'Analysis cancelled by user' ? (
@@ -65,7 +94,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         {/* Left Column - Summary & Topics (Scrollable) */}
         <div className="flex min-h-0 flex-col lg:col-span-8 xl:col-span-8 2xl:col-span-9">
           <ScrollArea className="flex-1 rounded-xl" style={{ height: 0 }}>
-            <div className="space-y-8 pb-12 pr-4">
+            <div className="space-y-8 pb-12 pr-2">
               <SummarySection analysis={analysis} isRunning={isRunning} />
               <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
             </div>
@@ -78,6 +107,38 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         </div>
         
       </div>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete recording?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes &quot;{recording?.title}&quot; and its local audio file.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                void deleteRecording.mutateAsync(recordingId).then(
+                  () => {
+                    setShowDeleteConfirm(false);
+                    toast.success('Recording deleted');
+                    void navigate({ to: '/recordings' });
+                  },
+                  (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+                );
+              }}
+              disabled={deleteRecording.isPending}
+            >
+              {deleteRecording.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
