@@ -14,7 +14,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   createColumnHelper,
   flexRender,
@@ -186,7 +186,7 @@ function RecordingPreview({ src, durationMs }: { src: string | null; durationMs:
   }
 
   return (
-    <div className="flex w-48 items-center gap-1">
+    <div className="flex w-48 items-center gap-1" onClick={(e) => e.stopPropagation()}>
       <Button
         type="button"
         size="icon-sm"
@@ -233,7 +233,8 @@ function RecordingCopyButton({ value }: { value: string }) {
       type="button"
       variant="ghost"
       size="icon-sm"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         void navigator.clipboard.writeText(value).then(
           () => {
             setCopied(true);
@@ -273,6 +274,7 @@ export function RecordingsPage() {
   const [tick, setTick] = React.useState(Date.now());
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
+  const navigate = useNavigate();
 
   useQuery({
     ...recordingsQueryOptions({ page, pageSize }),
@@ -297,6 +299,7 @@ export function RecordingsPage() {
       return;
     }
 
+    setTick(Date.now());
     const id = setInterval(() => {
       setTick(Date.now());
     }, 1_000);
@@ -306,7 +309,7 @@ export function RecordingsPage() {
 
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
-  const activeDuration = activeRecording ? tick - activeRecording.startedAt : null;
+  const activeDuration = activeRecording ? Math.max(0, tick - activeRecording.startedAt) : null;
 
   const columns = React.useMemo(
     () => [
@@ -326,7 +329,7 @@ export function RecordingsPage() {
         cell: ({ getValue }) => <PlatformBadge platform={getValue()} />,
       }),
       columnHelper.accessor('status', {
-        header: 'Status',
+        header: 'Capturing',
         cell: ({ getValue }) => <span className="text-xs capitalize text-muted-foreground">{getValue()}</span>,
       }),
       columnHelper.accessor('startedAt', {
@@ -366,20 +369,22 @@ export function RecordingsPage() {
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1 -mr-1.5">
             <RecordingCopyButton value={row.original.filePath} />
-            <Link
-              to="/recordings/$id"
-              params={{ id: row.original.id }}
-              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-              title="View analysis"
-              aria-label="View analysis"
-            >
-              <FileTextIcon className="size-4" />
-            </Link>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              onClick={() => setRecordingToDelete(row.original)}
+              onClick={(e) => {
+                e.stopPropagation();
+                const rec = row.original;
+                if (rec.durationMs !== null && rec.durationMs <= 30_000) {
+                  void deleteRecording.mutateAsync(rec.id).then(
+                    () => toast.success('Recording deleted'),
+                    (error: unknown) => toast.error(error instanceof Error ? error.message : 'Failed to delete recording'),
+                  );
+                } else {
+                  setRecordingToDelete(rec);
+                }
+              }}
               title="Delete recording"
               aria-label="Delete recording"
               disabled={row.original.id === data.activeRecordingId}
@@ -441,16 +446,16 @@ export function RecordingsPage() {
         </div>
 
         <div className="rounded-xl border border-border/60 bg-card/70 p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-72 flex-1 space-y-2">
-              <label htmlFor="recording-title" className="text-xs font-medium text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-72 flex-1">
+              <label htmlFor="recording-title" className="sr-only">
                 Recording title
               </label>
               <Input
                 id="recording-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Weekly Product Sync"
+                placeholder="Recording title e.g. Weekly Product Sync"
                 disabled={Boolean(activeRecording)}
               />
             </div>
@@ -531,7 +536,11 @@ export function RecordingsPage() {
                   </tr>
                 ) : (
                   table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="group align-middle transition-colors hover:bg-muted/40">
+                    <tr
+                      key={row.id}
+                      className="group cursor-pointer align-middle transition-colors hover:bg-muted/40"
+                      onClick={() => void navigate({ to: '/recordings/$id', params: { id: row.original.id } })}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
