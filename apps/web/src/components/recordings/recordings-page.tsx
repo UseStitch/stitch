@@ -403,7 +403,7 @@ export function RecordingsPage() {
         ),
       }),
     ],
-    [baseUrl, data.activeRecordingId],
+    [baseUrl, data.activeRecordingId, deleteRecording],
   );
 
   const table = useReactTable({

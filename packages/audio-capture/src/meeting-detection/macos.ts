@@ -1,16 +1,10 @@
-import { execFile } from 'node:child_process';
-
-import { resolveNativeBinaryPath } from '../native-binary.js';
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 
-import { createPollingMeetingDetector } from './shared.js';
 import type { MeetingObservation } from './shared.js';
+import { createNativeWatcherMeetingDetector } from './watcher.js';
+import type { WatchRow } from './watcher.js';
 
-type MacosMeetingRow = {
-  pid?: number;
-  processName?: string;
-  windowTitle?: string;
-};
+type MacosMeetingRow = WatchRow;
 
 function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase();
@@ -152,39 +146,13 @@ function mergeObservations(observations: MeetingObservation[]): MeetingObservati
   return [...merged.values()];
 }
 
-function runNativeProcessScan(commandTimeoutMs: number): Promise<MacosMeetingRow[]> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      resolveNativeBinaryPath(),
-      ['--list-macos-meeting-usage'],
-      {
-        timeout: commandTimeoutMs,
-        maxBuffer: 1024 * 1024,
-      },
-      (error, stdout) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        try {
-          resolve(parseRows(stdout));
-        } catch (parseError) {
-          reject(parseError);
-        }
-      },
-    );
-  });
+function classifyMacosRows(rows: MacosMeetingRow[]): MeetingObservation[] {
+  const observations = rows.flatMap(classifyRow);
+  return mergeObservations(observations);
 }
 
 export function createMacosMeetingDetector(options: MeetingDetectionOptions = {}): MeetingDetector {
-  const commandTimeoutMs = options.commandTimeoutMs ?? 3_000;
-
-  return createPollingMeetingDetector(async () => {
-    const rows = await runNativeProcessScan(commandTimeoutMs);
-    const observations = rows.flatMap(classifyRow);
-    return mergeObservations(observations);
-  }, options);
+  return createNativeWatcherMeetingDetector('macos', classifyMacosRows, options);
 }
 
 export const internal = {

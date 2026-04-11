@@ -5,6 +5,7 @@ use cpal::traits::{DeviceTrait, HostTrait};
 mod capture;
 mod error;
 mod macos_meeting_scan;
+mod macos_meeting_watch;
 mod mic_usage;
 mod opus_writer;
 mod output;
@@ -12,14 +13,42 @@ mod protocol;
 mod resample;
 mod session;
 mod speaker;
+mod watch_output;
 mod windows_meeting_scan;
+mod windows_meeting_watch;
 
 use macos_meeting_scan::list_macos_meeting_rows;
+use macos_meeting_watch::run_macos_meeting_watcher;
 use mic_usage::list_mic_using_processes;
 use output::emit;
 use protocol::{Command, Event, parse_start_command};
 use session::{ActiveSession, start_session, stop_session};
 use windows_meeting_scan::list_windows_meeting_rows;
+use windows_meeting_watch::run_windows_meeting_watcher;
+
+fn handle_watch_macos_meeting_usage_flag() -> io::Result<bool> {
+  if !std::env::args()
+    .skip(1)
+    .any(|arg| arg == "--watch-macos-meeting-usage")
+  {
+    return Ok(false);
+  }
+
+  run_macos_meeting_watcher();
+  Ok(true)
+}
+
+fn handle_watch_windows_meeting_usage_flag() -> io::Result<bool> {
+  if !std::env::args()
+    .skip(1)
+    .any(|arg| arg == "--watch-windows-meeting-usage")
+  {
+    return Ok(false);
+  }
+
+  run_windows_meeting_watcher();
+  Ok(true)
+}
 
 fn handle_list_mic_usage_flag() -> io::Result<bool> {
   if !std::env::args()
@@ -110,6 +139,14 @@ fn list_speaker_devices() -> Vec<String> {
 }
 
 fn main() -> io::Result<()> {
+  if handle_watch_macos_meeting_usage_flag()? {
+    return Ok(());
+  }
+
+  if handle_watch_windows_meeting_usage_flag()? {
+    return Ok(());
+  }
+
   if handle_list_mic_usage_flag()? {
     return Ok(());
   }

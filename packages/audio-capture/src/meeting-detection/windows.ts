@@ -1,16 +1,10 @@
-import { execFile } from 'node:child_process';
-
-import { resolveNativeBinaryPath } from '../native-binary.js';
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 
-import { createPollingMeetingDetector } from './shared.js';
 import type { MeetingObservation } from './shared.js';
+import { createNativeWatcherMeetingDetector } from './watcher.js';
+import type { WatchRow } from './watcher.js';
 
-type WindowsProcessRow = {
-  pid?: number;
-  processName?: string;
-  windowTitle?: string;
-};
+type WindowsProcessRow = WatchRow;
 
 function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase().replace(/\.exe$/, '');
@@ -137,40 +131,13 @@ function mergeObservations(observations: MeetingObservation[]): MeetingObservati
   return [...merged.values()];
 }
 
-function runProcessScan(commandTimeoutMs: number): Promise<WindowsProcessRow[]> {
-  return new Promise((resolve, reject) => {
-    execFile(
-      resolveNativeBinaryPath(),
-      ['--list-windows-meeting-usage'],
-      {
-        windowsHide: true,
-        timeout: commandTimeoutMs,
-        maxBuffer: 1024 * 1024,
-      },
-      (error, stdout) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        try {
-          resolve(parseRows(stdout));
-        } catch (parseError) {
-          reject(parseError);
-        }
-      },
-    );
-  });
+function classifyWindowsRows(rows: WindowsProcessRow[]): MeetingObservation[] {
+  const observations = rows.flatMap(classifyRow);
+  return mergeObservations(observations);
 }
 
 export function createWindowsMeetingDetector(options: MeetingDetectionOptions = {}): MeetingDetector {
-  const commandTimeoutMs = options.commandTimeoutMs ?? 3_000;
-
-  return createPollingMeetingDetector(async () => {
-    const rows = await runProcessScan(commandTimeoutMs);
-    const observations = rows.flatMap(classifyRow);
-    return mergeObservations(observations);
-  }, options);
+  return createNativeWatcherMeetingDetector('windows', classifyWindowsRows, options);
 }
 
 export const internal = {
