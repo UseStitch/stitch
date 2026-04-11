@@ -2,9 +2,6 @@ import {
   CheckIcon,
   CopyIcon,
   MicIcon,
-  PauseIcon,
-  PlayIcon,
-  RotateCcwIcon,
   SquareIcon,
   Trash2Icon,
   VideoIcon,
@@ -51,8 +48,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Progress } from '@/components/ui/progress';
-import { getServerUrl } from '@/lib/api';
 import {
   recordingsQueryOptions,
   useDeleteRecording,
@@ -137,111 +132,6 @@ function formatDuration(durationMs: number | null): string {
 
 const columnHelper = createColumnHelper<Recording>();
 
-function RecordingPreview({ src, durationMs }: { src: string | null; durationMs: number | null }) {
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState(0);
-  const actualDuration = durationMs ? durationMs / 1000 : 0;
-
-  React.useEffect(() => {
-    if (!src) {
-      audioRef.current?.pause();
-      audioRef.current = null;
-      setIsPlaying(false);
-      setCurrentTime(0);
-      return;
-    }
-
-    const audio = new Audio(src);
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(actualDuration);
-    };
-    const handlePause = () => {
-      setIsPlaying(false);
-    };
-    const handlePlay = () => {
-      setIsPlaying(true);
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('play', handlePlay);
-
-    audioRef.current = audio;
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('play', handlePlay);
-    };
-  }, [src, actualDuration]);
-
-  const progressValue = actualDuration > 0 ? Math.min((currentTime / actualDuration) * 100, 100) : 0;
-
-  const start = React.useCallback(() => {
-    if (!audioRef.current) return;
-    void audioRef.current.play().catch(() => {
-      toast.error('Could not start preview playback');
-    });
-  }, []);
-
-  const stop = React.useCallback(() => {
-    if (!audioRef.current) return;
-    audioRef.current.pause();
-  }, []);
-
-  const reset = React.useCallback(() => {
-    if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
-    setCurrentTime(0);
-  }, []);
-
-  if (!src) {
-    return <span className="text-muted-foreground">--</span>;
-  }
-
-  return (
-    <div className="flex w-48 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        onClick={isPlaying ? stop : start}
-        aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
-        className="shrink-0"
-      >
-        {isPlaying ? <PauseIcon className="size-4" /> : <PlayIcon className="size-4" />}
-      </Button>
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-        <Progress value={progressValue} className="h-1.5" aria-label="Preview playback progress" />
-        <div className="flex items-center justify-between text-[10px] tabular-nums leading-none text-muted-foreground">
-          <span>{formatDuration(currentTime * 1000)}</span>
-          <span>{formatDuration(actualDuration * 1000)}</span>
-        </div>
-      </div>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        onClick={reset}
-        disabled={currentTime === 0 && !isPlaying}
-        aria-label="Reset preview"
-        className="shrink-0"
-      >
-        <RotateCcwIcon className="size-3.5" />
-      </Button>
-    </div>
-  );
-}
-
 function RecordingCopyButton({ value }: { value: string }) {
   const [copied, setCopied] = React.useState(false);
 
@@ -294,7 +184,6 @@ export function RecordingsPage() {
   const deleteRecording = useDeleteRecording();
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
-  const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
   const navigate = useNavigate();
 
@@ -302,19 +191,6 @@ export function RecordingsPage() {
     ...recordingsQueryOptions({ page, pageSize }),
     refetchInterval: data.activeRecordingId ? 1_000 : 2_000,
   });
-
-  React.useEffect(() => {
-    let active = true;
-    void getServerUrl().then((url) => {
-      if (active) {
-        setBaseUrl(url);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
@@ -355,22 +231,6 @@ export function RecordingsPage() {
         },
       }),
       columnHelper.display({
-        id: 'preview',
-        header: 'Preview',
-        cell: ({ row }) => (
-          <div className="-ml-2">
-            <RecordingPreview
-              src={
-                baseUrl && row.original.status === 'completed'
-                  ? `${baseUrl}/recordings/${row.original.id}/audio`
-                  : null
-              }
-              durationMs={row.original.durationMs}
-            />
-          </div>
-        ),
-      }),
-      columnHelper.display({
         id: 'actions',
         header: () => <div className="text-right pr-1">Actions</div>,
         cell: ({ row }) => (
@@ -403,12 +263,13 @@ export function RecordingsPage() {
         ),
       }),
     ],
-    [baseUrl, data.activeRecordingId, deleteRecording],
+    [data.activeRecordingId, deleteRecording],
   );
 
   const table = useReactTable({
     data: data.recordings,
     columns,
+    getRowId: (row) => row.id,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
