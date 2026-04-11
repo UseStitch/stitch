@@ -296,7 +296,6 @@ export function RecordingsPage() {
   const [title, setTitle] = React.useState('');
   const [baseUrl, setBaseUrl] = React.useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
-  const [tick, setTick] = React.useState(Date.now());
   const navigate = useNavigate();
 
   useQuery({
@@ -317,22 +316,7 @@ export function RecordingsPage() {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (!data.activeRecordingId) {
-      return;
-    }
-
-    setTick(Date.now());
-    const id = setInterval(() => {
-      setTick(Date.now());
-    }, 1_000);
-
-    return () => clearInterval(id);
-  }, [data.activeRecordingId]);
-
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
-
-  const _activeDuration = activeRecording ? Math.max(0, tick - activeRecording.startedAt) : null;
 
   const columns = React.useMemo(
     () => [
