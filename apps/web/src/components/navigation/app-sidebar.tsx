@@ -6,6 +6,7 @@ import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
+import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
   Sidebar,
   SidebarContent,
@@ -134,13 +135,22 @@ function useActiveContext(): 'chat' | 'connectors' | 'automations' | 'memories' 
 export function AppSidebar() {
   const context = useActiveContext();
 
-  if (context === 'connectors' || context === 'memories' || context === 'usage' || context==='recordings') {
+  if (context === 'connectors' || context === 'memories' || context === 'usage') {
     return null;
   }
 
+  const content =
+    context === 'automations' ? (
+      <AutomationsSidebarContent />
+    ) : context === 'recordings' ? (
+      <RecordingsSidebarContent />
+    ) : (
+      <ChatSidebarContent />
+    );
+
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">
-      {context === 'automations' ? <AutomationsSidebarContent /> : <ChatSidebarContent />}
+      {content}
     </Sidebar>
   );
 }
