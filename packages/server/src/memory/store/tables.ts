@@ -22,6 +22,7 @@ function semanticSchema(dimensions: number): Schema {
     new Field('updatedAt', new Utf8(), false),
     new Field('accessCount', new Int32(), false),
     new Field('lastAccessedAt', new Utf8(), false),
+    new Field('pinned', new Int32(), false),
     new Field('vector', new FixedSizeList(dimensions, new Field('item', new Float32())), false),
   ]);
 }
