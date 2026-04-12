@@ -5,6 +5,8 @@ import type { IsolateContext, IsolateDriver, IsolateExecuteResult, IsolateOption
 const DEFAULT_MEMORY_LIMIT_MB = 128;
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_STACK_SIZE = 1024 * 1024;
+// Cap per-tool-result JSON at 512 KB before it enters the WASM heap
+const MAX_RESULT_BYTES = 512 * 1024;
 
 function wrapWithPausableTimeout(
   execute: (input: unknown) => Promise<unknown>,
@@ -92,7 +94,11 @@ export function createQuickJSDriver(): IsolateDriver {
           }
 
           try {
-            return vm.newString(JSON.stringify(result ?? null));
+            let serialized = JSON.stringify(result ?? null);
+            if (serialized.length > MAX_RESULT_BYTES) {
+              serialized = serialized.slice(0, MAX_RESULT_BYTES) + '…[truncated]"';
+            }
+            return vm.newString(serialized);
           } catch {
             return vm.newString(JSON.stringify({ __error: 'Result could not be serialized' }));
           }
