@@ -55,6 +55,20 @@ function formatDate(iso: string): string {
 type FilterSource = MemorySource | 'all';
 type FilterCategory = MemoryCategory | 'all';
 
+const SOURCE_FILTER_LABELS: Record<FilterSource, string> = {
+  all: 'All sources',
+  chat: 'Chat',
+  automation: 'Automation',
+};
+
+const CATEGORY_FILTER_LABELS: Record<FilterCategory, string> = {
+  all: 'All categories',
+  preference: CATEGORY_LABELS.preference,
+  fact: CATEGORY_LABELS.fact,
+  workflow: CATEGORY_LABELS.workflow,
+  constraint: CATEGORY_LABELS.constraint,
+};
+
 export function MemoriesPage() {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = React.useState('');
@@ -160,6 +174,8 @@ export function MemoriesPage() {
 
   const allSelected = memories.length > 0 && selectedIds.size === memories.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < memories.length;
+  const selectedSourceLabel = SOURCE_FILTER_LABELS[filterSource];
+  const selectedCategoryLabel = CATEGORY_FILTER_LABELS[filterCategory];
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -193,7 +209,7 @@ export function MemoriesPage() {
 
           <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
             <SelectTrigger className="w-36 bg-background">
-              <SelectValue />
+              <SelectValue>{selectedSourceLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All sources</SelectItem>
@@ -207,7 +223,7 @@ export function MemoriesPage() {
             onValueChange={(v) => setFilterCategory(v as FilterCategory)}
           >
             <SelectTrigger className="w-40 bg-background">
-              <SelectValue />
+              <SelectValue>{selectedCategoryLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
