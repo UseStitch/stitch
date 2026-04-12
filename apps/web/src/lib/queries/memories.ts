@@ -21,7 +21,28 @@ const memoriesKeys = {
   all: ['memories'] as const,
   semantic: () => [...memoriesKeys.all, 'semantic'] as const,
   semanticSearch: (q: string) => [...memoriesKeys.semantic(), 'search', q] as const,
+  stats: () => [...memoriesKeys.all, 'stats'] as const,
 };
+
+type MemoryHealthStats = {
+  total: number;
+  pinned: number;
+  stale: number;
+  byCategory: Record<string, number>;
+  byConfidence: Record<string, number>;
+  avgAccessCount: number;
+  oldestCreatedAt: string | null;
+  newestCreatedAt: string | null;
+};
+
+export const memoryStatsQueryOptions = queryOptions({
+  queryKey: memoriesKeys.stats(),
+  queryFn: async (): Promise<MemoryHealthStats> => {
+    const res = await serverFetch(`/memory/stats`);
+    if (!res.ok) throw new Error('Failed to fetch memory stats');
+    return res.json() as Promise<MemoryHealthStats>;
+  },
+});
 
 export const semanticMemoriesQueryOptions = (input: {
   page: number;
@@ -107,6 +128,41 @@ export function updateMemoryMutationOptions(
   };
 }
 
+export function pinMemoryMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<void, Error, { id: string; pinned: boolean }> {
+  return {
+    mutationFn: async ({ id, pinned }) => {
+      const res = await serverFetch(`/memory/semantic/${id}/pin`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinned }),
+      });
+      if (!res.ok) throw new Error('Failed to pin memory');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
+    },
+    onError: (err) => toast.error(err.message),
+  };
+}
+
+export function pruneMemoriesMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<void, Error, void> {
+  return {
+    mutationFn: async () => {
+      const res = await serverFetch('/memory/prune', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to prune memories');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
+      toast.success('Stale memories pruned');
+    },
+    onError: (err) => toast.error(err.message),
+  };
+}
+
 export function deleteMemoryMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, string> {
@@ -138,6 +194,32 @@ export function bulkDeleteMemoriesMutationOptions(
     onSuccess: (_, ids) => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`);
+    },
+    onError: (err) => toast.error(err.message),
+  };
+}
+
+type MaintenanceResult = {
+  pruned: number;
+  deduplicated: number;
+  stats: MemoryHealthStats | null;
+};
+
+export function runMaintenanceMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<MaintenanceResult, Error, void> {
+  return {
+    mutationFn: async () => {
+      const res = await serverFetch('/memory/maintenance', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to run memory maintenance');
+      return res.json() as Promise<MaintenanceResult>;
+    },
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
+      const parts: string[] = [];
+      if (result.pruned > 0) parts.push(`${result.pruned} pruned`);
+      if (result.deduplicated > 0) parts.push(`${result.deduplicated} deduplicated`);
+      toast.success(parts.length > 0 ? `Maintenance complete: ${parts.join(', ')}` : 'Maintenance complete — nothing to clean up');
     },
     onError: (err) => toast.error(err.message),
   };

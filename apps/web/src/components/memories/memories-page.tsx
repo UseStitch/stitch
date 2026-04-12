@@ -40,9 +40,15 @@ import {
 import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
 import {
   bulkDeleteMemoriesMutationOptions,
+  memoryStatsQueryOptions,
   semanticMemoriesQueryOptions,
   semanticMemorySearchQueryOptions,
+  pinMemoryMutationOptions,
+  pruneMemoriesMutationOptions,
+  runMaintenanceMutationOptions,
 } from '@/lib/queries/memories';
+import { PinIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -67,6 +73,10 @@ export function MemoriesPage() {
   const [sheetMemory, setSheetMemory] = React.useState<SemanticMemory | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+
+  const { data: stats } = useQuery(memoryStatsQueryOptions);
+  const pruneMutation = useMutation(pruneMemoriesMutationOptions(queryClient));
+  const maintenanceMutation = useMutation(runMaintenanceMutationOptions(queryClient));
 
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
@@ -165,18 +175,33 @@ export function MemoriesPage() {
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-6 py-8">
         {/* Page header */}
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <BrainIcon className="size-5" />
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <BrainIcon className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Memories</h1>
+              <p className="text-sm text-muted-foreground">
+                {isLoading
+                  ? 'Loading…'
+                  : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold">Memories</h1>
-            <p className="text-sm text-muted-foreground">
-              {isLoading
-                ? 'Loading…'
-                : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
-            </p>
-          </div>
+          {stats && !isSearching && (
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span><strong>{stats.pinned}</strong> pinned</span>
+              <span><strong>{stats.stale}</strong> stale</span>
+              <span><strong>{stats.avgAccessCount.toFixed(1)}</strong> avg accesses</span>
+              <Button variant="outline" size="sm" onClick={() => pruneMutation.mutate()} disabled={pruneMutation.isPending || maintenanceMutation.isPending} className="h-7 text-xs px-2">
+                Prune Stale
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => maintenanceMutation.mutate()} disabled={maintenanceMutation.isPending || pruneMutation.isPending} className="h-7 text-xs px-2">
+                {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Toolbar */}
@@ -242,6 +267,9 @@ export function MemoriesPage() {
                 onCheckedChange={toggleSelectAll}
                 aria-label="Select all"
               />
+            </div>
+            <div className="flex w-6 items-center justify-center">
+              <PinIcon className="size-3" />
             </div>
             <span className="flex-1">Content</span>
             <span className="w-28 text-center">Category</span>
@@ -395,9 +423,12 @@ type MemoryRowProps = {
 };
 
 function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps) {
+  const queryClient = useQueryClient();
+  const pinMutation = useMutation(pinMemoryMutationOptions(queryClient));
+
   return (
     <div
-      className="group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+      className={cn("group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40", selected && "bg-muted/40")}
       onClick={onClick}
     >
       <div
@@ -408,6 +439,16 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
         }}
       >
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
+      </div>
+
+      <div
+        className="flex w-6 items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
+        }}
+      >
+        {memory.pinned ? <PinIcon className="h-4 w-4 fill-foreground text-foreground" /> : <PinIcon className="h-4 w-4 opacity-30 hover:opacity-100" />}
       </div>
 
       <p className="flex-1 truncate text-sm">{memory.content}</p>
