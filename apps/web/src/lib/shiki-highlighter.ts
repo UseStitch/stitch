@@ -51,9 +51,8 @@ async function getSharedHighlighter(themes: string[], langs: string[]): Promise<
 
 export function getHighlighterPromise(
   language: string,
-  theme: 'light' | 'dark',
 ): Promise<Highlighter> {
-  const themes = theme === 'dark' ? ['github-dark'] : ['github-light'];
+  const themes = ['github-light', 'github-dark'];
   const langs = [language];
 
   const cacheKey = `${themes.join(',')}-${langs.join(',')}`;
