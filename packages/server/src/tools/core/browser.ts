@@ -39,6 +39,7 @@ const browserInputSchema = z.object({
         format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format.'),
         quality: z.number().optional().describe('Screenshot quality for jpeg/webp (0-100).'),
         fullPage: z.boolean().optional().describe('Take a full-page screenshot.'),
+        timeoutMs: z.number().optional().describe('Action timeout in milliseconds.'),
         dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Dialog action to take.'),
         promptText: z.string().optional().describe('Prompt text for accepted dialog prompts.'),
         pattern: z.string().optional().describe('Text pattern to search for.'),
@@ -118,6 +119,7 @@ const browserInputSchema = z.object({
     .optional()
     .describe('Screenshot quality 0-100 for jpeg/webp. For screenshot action.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot. For screenshot action.'),
+  timeoutMs: z.number().optional().describe('Action timeout in milliseconds.'),
   dialogAction: z
     .enum(['accept', 'dismiss'])
     .optional()
@@ -210,13 +212,18 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
 
     case 'navigate': {
       if (!input.url) throw new Error('Missing required field: url');
-      const result = await browser.navigate(input.url, signal);
+      const result = await browser.navigate(input.url, signal, input.timeoutMs);
       return { output: result };
     }
 
     case 'search': {
       if (!input.query) throw new Error('Missing required field: query');
-      const result = await browser.search(input.query, input.engine ?? 'google', signal);
+      const result = await browser.search(
+        input.query,
+        input.engine ?? 'google',
+        signal,
+        input.timeoutMs,
+      );
       return { output: result };
     }
 
@@ -236,6 +243,7 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
         button: input.button,
         modifiers: input.modifiers,
         signal,
+        timeoutMs: input.timeoutMs,
       });
       return { output: result };
     }
@@ -254,7 +262,7 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
 
     case 'press': {
       if (!input.key) throw new Error('Missing required field: key');
-      const result = await browser.press(input.key, signal);
+      const result = await browser.press(input.key, signal, input.timeoutMs);
       return { output: result };
     }
 
@@ -293,17 +301,17 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
     }
 
     case 'go_back': {
-      const result = await browser.goBack(signal);
+      const result = await browser.goBack(signal, input.timeoutMs);
       return { output: result };
     }
 
     case 'go_forward': {
-      const result = await browser.goForward(signal);
+      const result = await browser.goForward(signal, input.timeoutMs);
       return { output: result };
     }
 
     case 'tab_new': {
-      const tab = await browser.newTab(input.url, signal);
+      const tab = await browser.newTab(input.url, { signal, timeoutMs: input.timeoutMs });
       return { output: `Opened new tab: ${tab.id} (${tab.url})` };
     }
 
@@ -318,7 +326,7 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
 
     case 'tab_focus': {
       if (!input.tabId) throw new Error('Missing required field: tabId');
-      await browser.focusTab(input.tabId, signal);
+      await browser.focusTab(input.tabId, { signal, timeoutMs: input.timeoutMs });
       return { output: `Focused tab: ${input.tabId}` };
     }
 
@@ -336,7 +344,7 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
     }
 
     case 'wait': {
-      const result = await browser.wait(input.timeMs, input.selector, signal);
+      const result = await browser.wait(input.timeMs ?? input.timeoutMs, input.selector, signal);
       return { output: result };
     }
 

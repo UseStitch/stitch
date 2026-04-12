@@ -28,6 +28,7 @@ const DEFAULT_WIDTH = 1280;
 const DEFAULT_HEIGHT = 720;
 const SETTLE_MS = 500;
 const LOAD_TIMEOUT_MS = 10_000;
+const NAVIGATION_DETECT_WINDOW_MS = 150;
 const SNAPSHOT_MAX_NODES = 5000;
 const SNAPSHOT_MAX_CHARS = 50_000;
 const SNAPSHOT_MAX_DEPTH = 30;
@@ -571,7 +572,11 @@ class BrowserManager {
     return (await response.json()) as BrowserTab[];
   }
 
-  async newTab(url?: string, signal?: AbortSignal): Promise<BrowserTab> {
+  async newTab(
+    url?: string,
+    options?: { signal?: AbortSignal; timeoutMs?: number },
+  ): Promise<BrowserTab> {
+    const signal = options?.signal;
     this.throwIfAborted(signal);
     this.ensureConnected();
     const result = await this.client!.send(
@@ -584,18 +589,27 @@ class BrowserManager {
     const targetId = result.targetId as string;
     this.activeTargetId = targetId;
     this.refMap.clear();
-    await this.ensurePageSession();
+    const session = await this.ensurePageSession();
+
+    await this.waitForLoad(session, signal, options?.timeoutMs);
+    await this.settle(undefined, signal);
 
     return { id: targetId, title: '', url: url ?? 'about:blank', type: 'page' };
   }
 
-  async focusTab(targetId: string, signal?: AbortSignal): Promise<void> {
+  async focusTab(
+    targetId: string,
+    options?: { signal?: AbortSignal; timeoutMs?: number },
+  ): Promise<void> {
+    const signal = options?.signal;
     this.throwIfAborted(signal);
     this.ensureConnected();
     await this.client!.send('Target.activateTarget', { targetId }, signal);
     this.activeTargetId = targetId;
     this.refMap.clear();
-    await this.ensurePageSession();
+    const session = await this.ensurePageSession();
+    await this.waitForLoad(session, signal, options?.timeoutMs);
+    await this.settle(undefined, signal);
   }
 
   async closeTab(targetId?: string, signal?: AbortSignal): Promise<void> {
@@ -625,13 +639,13 @@ class BrowserManager {
 
   // ── Navigation ──────────────────────────────────────────────
 
-  async navigate(url: string, signal?: AbortSignal): Promise<string> {
+  async navigate(url: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     this.refMap.clear();
 
     await session.send('Page.navigate', { url }, signal);
-    await this.waitForLoad(session, signal);
+    await this.waitForLoad(session, signal, timeoutMs);
     await this.settle(undefined, signal);
 
     const [title, pageUrl] = await Promise.all([
@@ -642,7 +656,7 @@ class BrowserManager {
     return `Navigated to ${pageUrl} — "${title}"`;
   }
 
-  async goBack(signal?: AbortSignal): Promise<string> {
+  async goBack(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const entry = await this.getHistoryEntry(session, -1);
@@ -650,12 +664,12 @@ class BrowserManager {
 
     this.refMap.clear();
     await session.send('Page.navigateToHistoryEntry', { entryId: entry.id }, signal);
-    await this.waitForLoad(session, signal);
+    await this.waitForLoad(session, signal, timeoutMs);
     await this.settle(undefined, signal);
     return `Navigated back to ${entry.url} — "${entry.title}"`;
   }
 
-  async goForward(signal?: AbortSignal): Promise<string> {
+  async goForward(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const entry = await this.getHistoryEntry(session, 1);
@@ -663,7 +677,7 @@ class BrowserManager {
 
     this.refMap.clear();
     await session.send('Page.navigateToHistoryEntry', { entryId: entry.id }, signal);
-    await this.waitForLoad(session, signal);
+    await this.waitForLoad(session, signal, timeoutMs);
     await this.settle(undefined, signal);
     return `Navigated forward to ${entry.url} — "${entry.title}"`;
   }
@@ -677,6 +691,7 @@ class BrowserManager {
       button?: string;
       modifiers?: string[];
       signal?: AbortSignal;
+      timeoutMs?: number;
     },
   ): Promise<string> {
     const signal = options?.signal;
@@ -689,47 +704,36 @@ class BrowserManager {
     const clickCount = options?.doubleClick ? 2 : 1;
     const modifiers = resolveModifiers(options?.modifiers);
 
-    // Navigate-aware click: listen for frameNavigated during the click
-    let navigated = false;
-    const navHandler = () => {
-      navigated = true;
-    };
-    session.on('Page.frameNavigated', navHandler);
-
-    await session.send(
-      'Input.dispatchMouseEvent',
-      {
-        type: 'mousePressed',
-        x: resolved.x,
-        y: resolved.y,
-        button,
-        clickCount,
-        modifiers,
+    await this.runActionWithPotentialNavigation(
+      session,
+      async () => {
+        await session.send(
+          'Input.dispatchMouseEvent',
+          {
+            type: 'mousePressed',
+            x: resolved.x,
+            y: resolved.y,
+            button,
+            clickCount,
+            modifiers,
+          },
+          signal,
+        );
+        await session.send(
+          'Input.dispatchMouseEvent',
+          {
+            type: 'mouseReleased',
+            x: resolved.x,
+            y: resolved.y,
+            button,
+            clickCount,
+            modifiers,
+          },
+          signal,
+        );
       },
-      signal,
+      { signal, timeoutMs: options?.timeoutMs },
     );
-    await session.send(
-      'Input.dispatchMouseEvent',
-      {
-        type: 'mouseReleased',
-        x: resolved.x,
-        y: resolved.y,
-        button,
-        clickCount,
-        modifiers,
-      },
-      signal,
-    );
-
-    await this.settle(undefined, signal);
-
-    if (navigated) {
-      this.refMap.clear();
-      await this.waitForLoad(session, signal);
-      await this.settle(undefined, signal);
-    }
-
-    session.off('Page.frameNavigated', navHandler);
     return `Clicked ${ref} at (${resolved.x}, ${resolved.y})`;
   }
 
@@ -802,33 +806,23 @@ class BrowserManager {
     return `Typed "${text}" into ${ref}${options?.clear ? ' (cleared first)' : ''}${options?.submit ? ' and submitted' : ''}`;
   }
 
-  async press(key: string, signal?: AbortSignal): Promise<string> {
+  async press(key: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
     const keyDef = resolveKey(key);
 
-    let navigated = false;
-    const navHandler = () => {
-      navigated = true;
-    };
-
-    // Enter might trigger navigation
-    if (key === 'Enter') {
-      session.on('Page.frameNavigated', navHandler);
-    }
-
-    await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef }, signal);
-    await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef }, signal);
-
-    if (key === 'Enter') {
-      await this.settle(undefined, signal);
-      if (navigated) {
-        this.refMap.clear();
-        await this.waitForLoad(session, signal);
-        await this.settle(undefined, signal);
-      }
-      session.off('Page.frameNavigated', navHandler);
-    }
+    await this.runActionWithPotentialNavigation(
+      session,
+      async () => {
+        await session.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDef }, signal);
+        await session.send('Input.dispatchKeyEvent', { type: 'keyUp', ...keyDef }, signal);
+      },
+      {
+        signal,
+        timeoutMs,
+        detectNavigation: key === 'Enter',
+      },
+    );
 
     return `Pressed "${key}"`;
   }
@@ -1152,7 +1146,12 @@ class BrowserManager {
 
   // ── Web search ──────────────────────────────────────────────
 
-  async search(query: string, engine: string = 'google', signal?: AbortSignal): Promise<string> {
+  async search(
+    query: string,
+    engine: string = 'google',
+    signal?: AbortSignal,
+    timeoutMs?: number,
+  ): Promise<string> {
     this.throwIfAborted(signal);
     const encodedQuery = encodeURIComponent(query);
     const searchUrls: Record<string, string> = {
@@ -1164,7 +1163,7 @@ class BrowserManager {
     if (!url)
       throw new Error(`Unsupported search engine: ${engine}. Use: google, duckduckgo, bing`);
 
-    return this.navigate(url, signal);
+    return this.navigate(url, signal, timeoutMs);
   }
 
   // ── Page content extraction (for extract tool) ─────────────
@@ -1324,7 +1323,11 @@ class BrowserManager {
     this.port = 0;
   }
 
-  private async waitForLoad(session: CDPClient, signal?: AbortSignal): Promise<void> {
+  private async waitForLoad(
+    session: CDPClient,
+    signal?: AbortSignal,
+    timeoutMs?: number,
+  ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (signal?.aborted) {
         reject(new DOMException('Browser action aborted', 'AbortError'));
@@ -1405,7 +1408,7 @@ class BrowserManager {
         }
       };
 
-      const hardTimeout = setTimeout(finish, LOAD_TIMEOUT_MS);
+      const hardTimeout = setTimeout(finish, timeoutMs ?? LOAD_TIMEOUT_MS);
 
       signal?.addEventListener('abort', onAbort, { once: true });
       session.on('Page.domContentEventFired', onDomContentLoaded);
@@ -1418,6 +1421,59 @@ class BrowserManager {
 
   private async settle(ms?: number, signal?: AbortSignal): Promise<void> {
     await this.abortableSleep(ms ?? SETTLE_MS, signal);
+  }
+
+  private async runActionWithPotentialNavigation(
+    session: CDPClient,
+    action: () => Promise<void>,
+    options?: {
+      signal?: AbortSignal;
+      timeoutMs?: number;
+      detectNavigation?: boolean;
+      navigationDetectWindowMs?: number;
+    },
+  ): Promise<void> {
+    const signal = options?.signal;
+    this.throwIfAborted(signal);
+
+    const shouldDetectNavigation = options?.detectNavigation ?? true;
+    if (!shouldDetectNavigation) {
+      await action();
+      await this.settle(undefined, signal);
+      return;
+    }
+
+    let sawNavigation = false;
+    const onFrameNavigated = () => {
+      sawNavigation = true;
+    };
+    const onNavigatedWithinDocument = () => {
+      sawNavigation = true;
+    };
+
+    session.on('Page.frameNavigated', onFrameNavigated);
+    session.on('Page.navigatedWithinDocument', onNavigatedWithinDocument);
+
+    try {
+      await action();
+      await this.settle(undefined, signal);
+
+      if (!sawNavigation) {
+        await this.abortableSleep(
+          options?.navigationDetectWindowMs ?? NAVIGATION_DETECT_WINDOW_MS,
+          signal,
+        );
+      }
+
+      if (sawNavigation) {
+        this.refMap.clear();
+        await this.waitForLoad(session, signal, options?.timeoutMs);
+        await this.settle(undefined, signal);
+      }
+    } finally {
+      session.off('Page.frameNavigated', onFrameNavigated);
+      session.off('Page.navigatedWithinDocument', onNavigatedWithinDocument);
+    }
   }
 
   private async getPageTitle(session: CDPClient): Promise<string> {
