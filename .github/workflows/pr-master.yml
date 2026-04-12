@@ -49,6 +49,10 @@ jobs:
         if: needs.filter.outputs.run-ci == 'true'
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux Rust test dependencies
+        if: needs.filter.outputs.run-ci == 'true' && runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
+
       - name: Cache Rust dependencies
         if: needs.filter.outputs.run-ci == 'true'
         uses: Swatinem/rust-cache@v2
