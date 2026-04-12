@@ -41,6 +41,10 @@ export function useGlobalHotkeys(actions: Action[]) {
   const openSettings = shortcuts.get('open-settings');
   const newSession = shortcuts.get('new-session');
   const openChat = shortcuts.get('open-chat');
+  const openMemories = shortcuts.get('open-memories');
+  const openRecordings = shortcuts.get('open-recordings');
+  const openAutomations = shortcuts.get('open-automations');
+  const openUsage = shortcuts.get('open-usage');
 
   useHotkey(commandPalette?.hotkey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
     preventDefault: true,
@@ -57,14 +61,50 @@ export function useGlobalHotkeys(actions: Action[]) {
 
   // Leader key sequences
   const defaultChatHotkey = getDefaultShortcutHotkey('open-chat');
+  const defaultMemoriesHotkey = getDefaultShortcutHotkey('open-memories');
+  const defaultRecordingsHotkey = getDefaultShortcutHotkey('open-recordings');
+  const defaultAutomationsHotkey = getDefaultShortcutHotkey('open-automations');
+  const defaultUsageHotkey = getDefaultShortcutHotkey('open-usage');
 
   const chatResolved =
     resolveLeaderHotkey(openChat?.hotkey ?? defaultChatHotkey ?? '', leaderKey) ??
     (defaultChatHotkey ? resolveLeaderHotkey(defaultChatHotkey, leaderKey) : null);
+  const memoriesResolved =
+    resolveLeaderHotkey(openMemories?.hotkey ?? defaultMemoriesHotkey ?? '', leaderKey) ??
+    (defaultMemoriesHotkey ? resolveLeaderHotkey(defaultMemoriesHotkey, leaderKey) : null);
+  const recordingsResolved =
+    resolveLeaderHotkey(openRecordings?.hotkey ?? defaultRecordingsHotkey ?? '', leaderKey) ??
+    (defaultRecordingsHotkey ? resolveLeaderHotkey(defaultRecordingsHotkey, leaderKey) : null);
+  const automationsResolved =
+    resolveLeaderHotkey(openAutomations?.hotkey ?? defaultAutomationsHotkey ?? '', leaderKey) ??
+    (defaultAutomationsHotkey ? resolveLeaderHotkey(defaultAutomationsHotkey, leaderKey) : null);
+  const usageResolved =
+    resolveLeaderHotkey(openUsage?.hotkey ?? defaultUsageHotkey ?? '', leaderKey) ??
+    (defaultUsageHotkey ? resolveLeaderHotkey(defaultUsageHotkey, leaderKey) : null);
 
   useHotkeySequence(
     chatResolved ? [chatResolved.leader, chatResolved.suffix] : ['Mod+X', 'C'],
     () => actionMap.get('open-chat')?.run(),
     { enabled: !!chatResolved, timeout: 1000 },
+  );
+  useHotkeySequence(
+    memoriesResolved ? [memoriesResolved.leader, memoriesResolved.suffix] : ['Mod+X', 'M'],
+    () => actionMap.get('open-memories')?.run(),
+    { enabled: !!memoriesResolved, timeout: 1000 },
+  );
+  useHotkeySequence(
+    recordingsResolved ? [recordingsResolved.leader, recordingsResolved.suffix] : ['Mod+X', 'R'],
+    () => actionMap.get('open-recordings')?.run(),
+    { enabled: !!recordingsResolved, timeout: 1000 },
+  );
+  useHotkeySequence(
+    automationsResolved ? [automationsResolved.leader, automationsResolved.suffix] : ['Mod+X', 'A'],
+    () => actionMap.get('open-automations')?.run(),
+    { enabled: !!automationsResolved, timeout: 1000 },
+  );
+  useHotkeySequence(
+    usageResolved ? [usageResolved.leader, usageResolved.suffix] : ['Mod+X', 'U'],
+    () => actionMap.get('open-usage')?.run(),
+    { enabled: !!usageResolved, timeout: 1000 },
   );
 }
