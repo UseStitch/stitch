@@ -39,7 +39,7 @@ export type BrowserVersionInfo = {
 
 export type ScreenshotResult = {
   data: string;
-  format: 'png' | 'jpeg';
+  format: 'png' | 'jpeg' | 'webp';
 };
 
 export type LaunchOptions = {
@@ -121,4 +121,5 @@ export const BROWSER_ACTIONS = [
   'find_elements',
   'search',
   'extract',
+  'handle_dialog',
 ] as const;

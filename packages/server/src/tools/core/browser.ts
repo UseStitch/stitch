@@ -36,6 +36,11 @@ const browserInputSchema = z.object({
         tabId: z.string().optional().describe('Tab ID.'),
         timeMs: z.number().optional().describe('Wait time in ms.'),
         selector: z.string().optional().describe('CSS selector.'),
+        format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format.'),
+        quality: z.number().optional().describe('Screenshot quality for jpeg/webp (0-100).'),
+        fullPage: z.boolean().optional().describe('Take a full-page screenshot.'),
+        dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Dialog action to take.'),
+        promptText: z.string().optional().describe('Prompt text for accepted dialog prompts.'),
         pattern: z.string().optional().describe('Text pattern to search for.'),
         regex: z.boolean().optional().describe('Treat pattern as regex.'),
         caseSensitive: z.boolean().optional().describe('Case-sensitive search.'),
@@ -104,6 +109,23 @@ const browserInputSchema = z.object({
     .describe(
       'CSS selector. For wait, find_elements, or extract (scopes extraction to element) actions.',
     ),
+  format: z
+    .enum(['png', 'jpeg', 'webp'])
+    .optional()
+    .describe('Screenshot format. For screenshot action. Default png.'),
+  quality: z
+    .number()
+    .optional()
+    .describe('Screenshot quality 0-100 for jpeg/webp. For screenshot action.'),
+  fullPage: z.boolean().optional().describe('Capture full page screenshot. For screenshot action.'),
+  dialogAction: z
+    .enum(['accept', 'dismiss'])
+    .optional()
+    .describe('Whether to accept or dismiss a dialog. For handle_dialog action.'),
+  promptText: z
+    .string()
+    .optional()
+    .describe('Optional prompt text for accepted prompt dialogs. For handle_dialog action.'),
   pattern: z.string().optional().describe('Text pattern to search for. For search_page action.'),
   regex: z.boolean().optional().describe('Treat pattern as regex. For search_page action.'),
   caseSensitive: z.boolean().optional().describe('Case-sensitive search. For search_page action.'),
@@ -171,18 +193,8 @@ Note: The top-level \`action\` field is ignored when \`actions\` is provided.
 - **find_elements**: Query DOM by CSS selector (set \`selector\`). Zero cost, instant.
 - **evaluate**: Run JavaScript in the page (set \`fn\`). Last resort.
 - **wait**: Wait for time or selector
-- **resize**: Resize viewport`;
-
-// Page-changing actions that should stop multi-action batching if they trigger navigation
-const PAGE_CHANGING_ACTIONS = new Set([
-  'navigate',
-  'search',
-  'go_back',
-  'go_forward',
-  'tab_new',
-  'tab_focus',
-  'evaluate',
-]);
+- **resize**: Resize viewport
+- **handle_dialog**: Accept or dismiss an open browser dialog`;
 
 async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
@@ -266,7 +278,13 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
     }
 
     case 'screenshot': {
-      const result = await browser.screenshot(signal);
+      const result = await browser.screenshot({
+        signal,
+        format: input.format,
+        quality: input.quality,
+        fullPage: input.fullPage,
+        ref: input.ref,
+      });
       return {
         output: `Screenshot taken (${result.format})`,
         data: result.data,
@@ -326,6 +344,12 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
       if (!input.width) throw new Error('Missing required field: width');
       if (!input.height) throw new Error('Missing required field: height');
       const result = await browser.resize(input.width, input.height, signal);
+      return { output: result };
+    }
+
+    case 'handle_dialog': {
+      if (!input.dialogAction) throw new Error('Missing required field: dialogAction');
+      const result = await browser.handleDialog(input.dialogAction, input.promptText, signal);
       return { output: result };
     }
 
@@ -390,10 +414,18 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
 async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   // Multi-action batching: if `actions` array is provided, execute sequentially
   if (input.actions && input.actions.length > 0) {
+    const browser = getBrowserManager();
     const results: { action: string; result: unknown }[] = [];
 
     for (let i = 0; i < input.actions.length; i++) {
       const actionInput = input.actions[i] as BrowserInput;
+      let beforeState: string | null = null;
+
+      try {
+        beforeState = await browser.getExecutionState(signal);
+      } catch {
+        // Ignore state probing failures and continue.
+      }
 
       try {
         const result = await executeSingleAction(actionInput, signal);
@@ -413,8 +445,14 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
         break;
       }
 
-      // Stop after page-changing actions (navigation already happened)
-      if (PAGE_CHANGING_ACTIONS.has(actionInput.action) && i < input.actions.length - 1) {
+      let afterState: string | null = null;
+      try {
+        afterState = await browser.getExecutionState(signal);
+      } catch {
+        // Ignore state probing failures and continue.
+      }
+
+      if (beforeState && afterState && beforeState !== afterState && i < input.actions.length - 1) {
         results.push({
           action: 'skipped',
           result: {
@@ -442,6 +480,26 @@ async function executeBrowserAction(input: BrowserInput, signal?: AbortSignal): 
 }
 
 const log = Log.create({ service: 'tools.browser' });
+
+let queueTail: Promise<void> = Promise.resolve();
+
+async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = queueTail.catch(() => {});
+  let release: () => void = () => {};
+  queueTail = previous.then(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+  );
+
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release();
+  }
+}
 
 let hasPromptedImport = false;
 
@@ -556,16 +614,18 @@ export function createRegisteredTool(context: ToolContext) {
 
   const originalExecute = baseTool.execute!;
   const wrappedExecute: typeof originalExecute = async (input, execContext) => {
-    try {
-      await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
-    } catch (error) {
-      // If the prompt was aborted or rejected, log and continue with a clean browser
-      log.info(
-        { error: error instanceof Error ? error.message : String(error) },
-        'Profile import prompt skipped',
-      );
-    }
-    return originalExecute(input, execContext);
+    return runSerialized(async () => {
+      try {
+        await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
+      } catch (error) {
+        // If the prompt was aborted or rejected, log and continue with a clean browser
+        log.info(
+          { error: error instanceof Error ? error.message : String(error) },
+          'Profile import prompt skipped',
+        );
+      }
+      return originalExecute(input, execContext);
+    });
   };
 
   const toolWithImport = { ...baseTool, execute: wrappedExecute };

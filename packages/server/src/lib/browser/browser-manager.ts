@@ -245,8 +245,17 @@ const SNAPSHOT_SCRIPT = `
 
     let ref = null;
     if (assignRef) {
-      refCounter++;
-      ref = 'e' + refCounter;
+      const existingRef = el.getAttribute('data-stitch-ref');
+      if (existingRef && /^e\\d+$/.test(existingRef)) {
+        ref = existingRef;
+        const numericRef = Number(existingRef.slice(1));
+        if (Number.isFinite(numericRef) && numericRef > refCounter) {
+          refCounter = numericRef;
+        }
+      } else {
+        refCounter++;
+        ref = 'e' + refCounter;
+      }
       refMap[ref] = { backendNodeId: null, role, name };
       el.setAttribute('data-stitch-ref', ref);
       newRefs.add(ref);
@@ -327,6 +336,10 @@ function buildRefResolveScript(ref: string): string {
       if (!el) return null;
       const rect = el.getBoundingClientRect();
       return {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.max(1, Math.round(rect.width)),
+        height: Math.max(1, Math.round(rect.height)),
         x: Math.round(rect.x + rect.width / 2),
         y: Math.round(rect.y + rect.height / 2),
         tag: el.tagName.toLowerCase(),
@@ -516,6 +529,29 @@ class BrowserManager {
 
   getCompletedDownloads() {
     return this.downloadWatchdog.getCompletedDownloads();
+  }
+
+  async handleDialog(
+    action: 'accept' | 'dismiss',
+    promptText?: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
+    this.throwIfAborted(signal);
+    await this.getPageSession();
+    this.popupWatchdog.setAutoDismiss(false);
+    try {
+      await this.popupWatchdog.handleDialog({ action, promptText });
+    } finally {
+      this.popupWatchdog.setAutoDismiss(true);
+    }
+    return action === 'accept' ? 'Dialog accepted' : 'Dialog dismissed';
+  }
+
+  async getExecutionState(signal?: AbortSignal): Promise<string> {
+    this.throwIfAborted(signal);
+    const session = await this.getPageSession();
+    const url = await this.getPageUrl(session);
+    return `${this.activeTargetId ?? ''}|${url}`;
   }
 
   /** Expose storage state management */
@@ -939,19 +975,55 @@ class BrowserManager {
     return lines.join('\n') + truncNote;
   }
 
-  async screenshot(signal?: AbortSignal): Promise<ScreenshotResult> {
+  async screenshot(options?: {
+    signal?: AbortSignal;
+    format?: 'png' | 'jpeg' | 'webp';
+    quality?: number;
+    fullPage?: boolean;
+    ref?: string;
+  }): Promise<ScreenshotResult> {
+    const signal = options?.signal;
     this.throwIfAborted(signal);
     const session = await this.getPageSession();
-    const result = await session.send(
-      'Page.captureScreenshot',
-      {
-        format: 'png',
-        quality: 80,
-      },
-      signal,
-    );
 
-    return { data: result.data as string, format: 'png' };
+    const format = options?.format ?? 'png';
+    const quality =
+      format === 'png'
+        ? undefined
+        : Math.max(0, Math.min(100, Math.round(options?.quality ?? 80)));
+
+    const params: Record<string, unknown> = {
+      format,
+      ...(quality !== undefined ? { quality } : {}),
+    };
+
+    if (options?.ref) {
+      const rect = await this.resolveRef(session, options.ref);
+      if (!rect) throw new Error(`Ref "${options.ref}" not found. Take a new snapshot first.`);
+      params.clip = {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        scale: 1,
+      };
+      params.captureBeyondViewport = true;
+    } else if (options?.fullPage) {
+      const metrics = await session.send('Page.getLayoutMetrics', {}, signal);
+      const contentSize = metrics.contentSize as Record<string, number>;
+      params.clip = {
+        x: 0,
+        y: 0,
+        width: Math.max(1, Math.round(contentSize?.width ?? DEFAULT_WIDTH)),
+        height: Math.max(1, Math.round(contentSize?.height ?? DEFAULT_HEIGHT)),
+        scale: 1,
+      };
+      params.captureBeyondViewport = true;
+    }
+
+    const result = await session.send('Page.captureScreenshot', params, signal);
+
+    return { data: result.data as string, format };
   }
 
   async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
@@ -1376,11 +1448,27 @@ class BrowserManager {
   private async resolveRef(
     session: CDPClient,
     ref: string,
-  ): Promise<{ x: number; y: number } | null> {
+  ): Promise<{ x: number; y: number; left: number; top: number; width: number; height: number } | null> {
     const result = await this.evalInPage(session, buildRefResolveScript(ref));
     if (!result || typeof result !== 'object') return null;
-    const data = result as { x: number; y: number };
-    if (typeof data.x !== 'number' || typeof data.y !== 'number') return null;
+    const data = result as {
+      x: number;
+      y: number;
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+    };
+    if (
+      typeof data.x !== 'number' ||
+      typeof data.y !== 'number' ||
+      typeof data.left !== 'number' ||
+      typeof data.top !== 'number' ||
+      typeof data.width !== 'number' ||
+      typeof data.height !== 'number'
+    ) {
+      return null;
+    }
     return data;
   }
 
