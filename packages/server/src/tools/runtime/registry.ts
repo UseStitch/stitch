@@ -22,10 +22,6 @@ import {
   DISPLAY_NAME as MEMORY_DISPLAY_NAME,
 } from '@/tools/core/memory.js';
 import {
-  createRegisteredTool as createAgendaRegisteredTool,
-  DISPLAY_NAME as AGENDA_DISPLAY_NAME,
-} from '@/tools/core/agenda.js';
-import {
   createRegisteredTool as createQuestionRegisteredTool,
   DISPLAY_NAME as QUESTION_DISPLAY_NAME,
 } from '@/tools/core/question.js';
@@ -85,10 +81,6 @@ const STITCH_TOOL_MODULES = {
   memory: {
     displayName: MEMORY_DISPLAY_NAME,
     createRegisteredTool: createMemoryRegisteredTool,
-  },
-  agenda: {
-    displayName: AGENDA_DISPLAY_NAME,
-    createRegisteredTool: createAgendaRegisteredTool,
   },
 } as const;
 
