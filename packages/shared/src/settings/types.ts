@@ -181,7 +181,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   },
   {
     key: 'memory.enabled',
-    value: 'true',
+    value: 'false',
     description:
       'Enable persistent memory system that learns user preferences and facts across sessions.',
   },
@@ -193,14 +193,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'memory.embedding.providerId',
     value: '',
-    description:
-      'Provider ID for the embedding model. Empty uses the local all-MiniLM-L6-v2 model.',
+    description: 'Provider ID for the embedding model used by the memory system.',
   },
   {
     key: 'memory.embedding.modelId',
     value: '',
-    description:
-      'Embedding model ID from the selected provider. Empty uses the local all-MiniLM-L6-v2 model.',
+    description: 'Embedding model ID from the selected provider used by the memory system.',
   },
   {
     key: 'recordings.autoAnalyze',

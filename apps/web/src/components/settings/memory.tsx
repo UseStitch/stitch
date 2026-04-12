@@ -27,11 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-  settingsQueryOptions,
-} from '@/lib/queries/settings';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
 type ModelOption = {
   label: string;
@@ -80,24 +76,23 @@ function EmbeddingModelSelect({
   const saveModelMutation = useMutation(
     saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
   );
-  const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
-  );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
-  );
   const resetMutation = useMutation(resetMemoriesMutationOptions(queryClient));
 
   function isActualChange(value: ModelOption | null): boolean {
-    if (!value) return !!(currentProviderId || currentModelId);
+    if (!value) return false;
     return value.providerId !== currentProviderId || value.modelId !== currentModelId;
   }
 
   function handleValueChange(value: ModelOption | null) {
     if (!isActualChange(value)) return;
+    if (!value) return;
 
-    // Only prompt if there are existing memories (i.e. a model was already set or local was used).
-    // We always show the dialog whenever a real change happens — the user may have local memories.
+    if (!currentProviderId && !currentModelId) {
+      saveProviderMutation.mutate(value.providerId);
+      saveModelMutation.mutate(value.modelId);
+      return;
+    }
+
     setPendingValue(value);
   }
 
@@ -105,13 +100,10 @@ function EmbeddingModelSelect({
     const value = pendingValue;
     setPendingValue(undefined);
 
+    if (!value) return;
+
     await resetMutation.mutateAsync();
 
-    if (!value) {
-      if (currentProviderId) deleteProviderMutation.mutate();
-      if (currentModelId) deleteModelMutation.mutate();
-      return;
-    }
     saveProviderMutation.mutate(value.providerId);
     saveModelMutation.mutate(value.modelId);
   }
@@ -137,10 +129,7 @@ function EmbeddingModelSelect({
         isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
         items={groups}
       >
-        <ComboboxInput
-          placeholder="Local (all-MiniLM-L6-v2)"
-          showClear={!!(currentProviderId && currentModelId)}
-        />
+        <ComboboxInput placeholder="Select embedding model" showClear={false} />
         <ComboboxContent side="bottom" sideOffset={4} align="start">
           <ComboboxEmpty>No models found</ComboboxEmpty>
           <ComboboxList>
@@ -191,9 +180,19 @@ function EmbeddingModelSelect({
 function MemoryToggles() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
 
   const memoryEnabled = settings['memory.enabled'] !== 'false';
   const autoExtract = settings['memory.autoExtract'] !== 'false';
+  const hasEmbeddingSelection =
+    settings['memory.embedding.providerId']?.trim().length > 0 &&
+    settings['memory.embedding.modelId']?.trim().length > 0;
+  const selectedModelAvailable = providerModels.some(
+    (provider) =>
+      provider.providerId === settings['memory.embedding.providerId'] &&
+      provider.models.some((model) => model.id === settings['memory.embedding.modelId']),
+  );
+  const canEnableMemory = hasEmbeddingSelection && selectedModelAvailable;
 
   const saveEnabledMutation = useMutation(
     saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }),
@@ -216,9 +215,13 @@ function MemoryToggles() {
         <Switch
           id="memory-enabled-toggle"
           checked={memoryEnabled}
+          disabled={!memoryEnabled && !canEnableMemory}
           onCheckedChange={(checked) => saveEnabledMutation.mutate(checked ? 'true' : 'false')}
         />
       </div>
+      {!memoryEnabled && !canEnableMemory && (
+        <p className="text-xs text-muted-foreground">Select an embedding model to enable memory.</p>
+      )}
       <div className="flex items-center justify-between gap-4 border-t border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label htmlFor="auto-extract-toggle" className="text-sm font-medium">
@@ -243,13 +246,10 @@ function EmbeddingModelContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
 
-  const memoryEnabled = settings['memory.enabled'] !== 'false';
-
   if (providerModels.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No providers configured. The local embedding model (all-MiniLM-L6-v2) will be used
-        automatically.
+        No embedding models in providers configured. Please add another provider that has one
       </p>
     );
   }
@@ -259,13 +259,13 @@ function EmbeddingModelContent() {
       <div className="flex min-w-0 flex-col gap-0.5">
         <Label className="text-sm font-medium">Embedding Model</Label>
         <p className="text-xs text-muted-foreground">
-          Model used for memory search. Leave empty to use the local model.
+          Model used for memory search. Required to enable memory.
         </p>
       </div>
       <div className="w-52 shrink-0">
         <EmbeddingModelSelect
-          currentProviderId={memoryEnabled ? settings['memory.embedding.providerId'] : undefined}
-          currentModelId={memoryEnabled ? settings['memory.embedding.modelId'] : undefined}
+          currentProviderId={settings['memory.embedding.providerId']}
+          currentModelId={settings['memory.embedding.modelId']}
           providerModels={providerModels}
         />
       </div>

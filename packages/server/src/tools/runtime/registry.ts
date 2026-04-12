@@ -1,6 +1,9 @@
 import type { PrefixedString } from '@stitch/shared/id';
 import type { ToolType } from '@stitch/shared/tools/types';
 
+import { isDbInitialized } from '@/db/client.js';
+import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
+import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import {
   createRegisteredTool as createBashRegisteredTool,
   DISPLAY_NAME as BASH_DISPLAY_NAME,
@@ -93,17 +96,30 @@ export const STITCH_KNOWN_TOOLS: KnownTool[] = Object.entries(STITCH_TOOL_MODULE
   }),
 );
 
-export function createTools(context: {
+export async function createTools(context: {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
 }) {
+  let shouldEnableMemoryTool = false;
+  if (isDbInitialized()) {
+    const memoryConfig = await getMemoryConfig();
+    if (hasConfiguredEmbeddingModel(memoryConfig)) {
+      const embeddingProviders = await listEnabledProviderEmbeddingModels();
+      shouldEnableMemoryTool = embeddingProviders.some(
+        (provider) =>
+          provider.providerId === memoryConfig.embeddingProviderId &&
+          provider.models.some((model) => model.id === memoryConfig.embeddingModelId),
+      );
+    }
+  }
+
+  const toolEntries = Object.entries(STITCH_TOOL_MODULES).filter(([name]) => {
+    if (name !== 'memory') return true;
+    return shouldEnableMemoryTool;
+  });
+
   return withToolResultHandlingRecord(
-    Object.fromEntries(
-      Object.entries(STITCH_TOOL_MODULES).map(([name, mod]) => [
-        name,
-        mod.createRegisteredTool(context),
-      ]),
-    ),
+    Object.fromEntries(toolEntries.map(([name, mod]) => [name, mod.createRegisteredTool(context)])),
   );
 }
