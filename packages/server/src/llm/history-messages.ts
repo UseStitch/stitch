@@ -69,6 +69,7 @@ export function buildHistoryMessages(
     userName?: string | null;
     userTimezone?: string | null;
     memoryContext?: string | null;
+    codeModePrompt?: string | null;
   },
 ): ModelMessage[] {
   if (msgs.length === 0) {
@@ -275,6 +276,7 @@ export function buildHistoryMessages(
         userName: promptConfig?.userName ?? null,
         userTimezone: promptConfig?.userTimezone ?? null,
         memoryContext: promptConfig?.memoryContext ?? null,
+        codeModePrompt: promptConfig?.codeModePrompt ?? null,
       }),
     });
   }

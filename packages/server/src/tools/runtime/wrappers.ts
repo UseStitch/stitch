@@ -36,6 +36,11 @@ export function withTruncation<T extends Tool>(
   if (!originalExecute) return t;
 
   const wrappedExecute = async (...args: Parameters<typeof originalExecute>) => {
+    const execOptions = args[1] as unknown as Record<string, unknown> | undefined;
+    if (execOptions?.['skipTruncation'] === true) {
+      return originalExecute(...args);
+    }
+
     const result = await originalExecute(...args);
     const text =
       typeof result === 'string'
