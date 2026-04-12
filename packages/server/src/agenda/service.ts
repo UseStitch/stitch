@@ -12,7 +12,6 @@ import type {
   AgendaItemEvent,
   AgendaItemPriority,
   AgendaItemStatus,
-  AgendaItemType,
   AgendaList,
   AgendaListWithCounts,
   CreateAgendaItemInput,
@@ -49,7 +48,6 @@ function toAgendaItem(row: AgendaItemRow, listName?: string): AgendaItem {
     listName,
     title: row.title,
     description: row.description,
-    type: row.type,
     status: row.status,
     priority: row.priority,
     dueAt: row.dueAt,
@@ -204,7 +202,6 @@ export async function getAgendaItems(input: {
   listId?: PrefixedString<'alist'>;
   status?: AgendaItemStatus;
   priority?: AgendaItemPriority;
-  type?: AgendaItemType;
   page: number;
   pageSize: number;
 }): Promise<ListAgendaItemsResponse> {
@@ -215,7 +212,6 @@ export async function getAgendaItems(input: {
   if (input.listId) conditions.push(eq(agendaItems.listId, input.listId));
   if (input.status) conditions.push(eq(agendaItems.status, input.status));
   if (input.priority) conditions.push(eq(agendaItems.priority, input.priority));
-  if (input.type) conditions.push(eq(agendaItems.type, input.type));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -308,7 +304,7 @@ export async function createAgendaItem(input: CreateAgendaItemInput): Promise<Ag
       listId,
       title: input.title,
       description: input.description ?? '',
-      type: input.type ?? 'todo',
+      type: 'todo',
       status: input.status ?? 'open',
       priority: input.priority ?? 'medium',
       dueAt: input.dueAt ?? null,
@@ -356,7 +352,6 @@ export async function updateAgendaItem(
   const updates: Record<string, unknown> = { updatedAt: now };
   if (input.title !== undefined) updates.title = input.title;
   if (input.description !== undefined) updates.description = input.description;
-  if (input.type !== undefined) updates.type = input.type;
   if (input.priority !== undefined) updates.priority = input.priority;
   if (input.dueAt !== undefined) updates.dueAt = input.dueAt;
   if (input.listId !== undefined) updates.listId = input.listId;

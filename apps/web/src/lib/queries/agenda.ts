@@ -3,10 +3,8 @@ import { toast } from 'sonner';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type {
-  AgendaItemDetail,
   AgendaItemPriority,
   AgendaItemStatus,
-  AgendaItemType,
   AgendaListWithCounts,
   ListAgendaItemsResponse,
 } from '@stitch/shared/agenda/types';
@@ -41,7 +39,6 @@ export function agendaItemsQueryOptions(input: {
   listId?: string;
   status?: AgendaItemStatus;
   priority?: AgendaItemPriority;
-  type?: AgendaItemType;
 }) {
   return queryOptions({
     queryKey: [
@@ -49,7 +46,6 @@ export function agendaItemsQueryOptions(input: {
       input.listId ?? 'all',
       input.status ?? 'all',
       input.priority ?? 'all',
-      input.type ?? 'all',
       input.page,
       input.pageSize,
     ],
@@ -61,21 +57,9 @@ export function agendaItemsQueryOptions(input: {
       if (input.listId) params.set('listId', input.listId);
       if (input.status) params.set('status', input.status);
       if (input.priority) params.set('priority', input.priority);
-      if (input.type) params.set('type', input.type);
       const res = await serverFetch(`/agenda/items?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch agenda items');
       return res.json() as Promise<ListAgendaItemsResponse>;
-    },
-  });
-}
-
-export function agendaItemDetailQueryOptions(id: string) {
-  return queryOptions({
-    queryKey: agendaKeys.itemDetail(id),
-    queryFn: async (): Promise<{ item: AgendaItemDetail }> => {
-      const res = await serverFetch(`/agenda/items/${id}`);
-      if (!res.ok) throw new Error('Failed to fetch agenda item');
-      return res.json() as Promise<{ item: AgendaItemDetail }>;
     },
   });
 }
@@ -157,7 +141,6 @@ export function useCreateAgendaItem() {
     mutationFn: async (input: {
       title: string;
       description?: string;
-      type?: AgendaItemType;
       status?: AgendaItemStatus;
       priority?: AgendaItemPriority;
       dueAt?: number | null;
@@ -192,7 +175,6 @@ export function useUpdateAgendaItem() {
       updates: {
         title?: string;
         description?: string;
-        type?: AgendaItemType;
         status?: AgendaItemStatus;
         priority?: AgendaItemPriority;
         dueAt?: number | null;
@@ -232,32 +214,6 @@ export function useDeleteAgendaItem() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('Item deleted');
-    },
-    onError: (err) => toast.error(err.message),
-  });
-}
-
-export function useAddAgendaItemComment() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: { itemId: string; content: string }) => {
-      const res = await serverFetch(`/agenda/items/${input.itemId}/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: input.content }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to add comment');
-      }
-      return res.json();
-    },
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({
-        queryKey: agendaKeys.itemDetail(variables.itemId),
-      });
-      toast.success('Comment added');
     },
     onError: (err) => toast.error(err.message),
   });

@@ -1,8 +1,5 @@
 import type { PrefixedString } from '../id/index.js';
 
-export const AGENDA_ITEM_TYPES = ['todo', 'reminder', 'checkup'] as const;
-export type AgendaItemType = (typeof AGENDA_ITEM_TYPES)[number];
-
 export const AGENDA_ITEM_STATUSES = ['open', 'in_progress', 'done', 'cancelled'] as const;
 export type AgendaItemStatus = (typeof AGENDA_ITEM_STATUSES)[number];
 
@@ -29,7 +26,6 @@ export type AgendaItem = {
   listName?: string;
   title: string;
   description: string;
-  type: AgendaItemType;
   status: AgendaItemStatus;
   priority: AgendaItemPriority;
   dueAt: number | null;
@@ -70,7 +66,6 @@ export type CreateAgendaItemInput = {
   listName?: string;
   title: string;
   description?: string;
-  type?: AgendaItemType;
   status?: AgendaItemStatus;
   priority?: AgendaItemPriority;
   dueAt?: number | null;
@@ -81,7 +76,6 @@ export type CreateAgendaItemInput = {
 export type UpdateAgendaItemInput = {
   title?: string;
   description?: string;
-  type?: AgendaItemType;
   status?: AgendaItemStatus;
   priority?: AgendaItemPriority;
   dueAt?: number | null;

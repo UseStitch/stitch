@@ -1,8 +1,6 @@
 import type {
-  AgendaEventType,
   AgendaItemPriority,
   AgendaItemStatus,
-  AgendaItemType,
 } from '@stitch/shared/agenda/types';
 
 export const STATUS_LABELS: Record<AgendaItemStatus, string> = {
@@ -37,26 +35,4 @@ export const PRIORITY_VARIANTS: Record<
   medium: 'secondary',
   high: 'default',
   urgent: 'destructive',
-};
-
-export const TYPE_LABELS: Record<AgendaItemType, string> = {
-  todo: 'Todo',
-  reminder: 'Reminder',
-  checkup: 'Checkup',
-};
-
-export const TYPE_VARIANTS: Record<
-  AgendaItemType,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-  todo: 'default',
-  reminder: 'secondary',
-  checkup: 'outline',
-};
-
-export const EVENT_TYPE_LABELS: Record<AgendaEventType, string> = {
-  created: 'Created',
-  status_change: 'Status Change',
-  updated: 'Updated',
-  comment: 'Comment',
 };

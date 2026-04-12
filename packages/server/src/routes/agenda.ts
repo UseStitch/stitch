@@ -5,7 +5,6 @@ import { z } from 'zod';
 import {
   AGENDA_ITEM_PRIORITIES,
   AGENDA_ITEM_STATUSES,
-  AGENDA_ITEM_TYPES,
 } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -44,7 +43,6 @@ const createItemSchema = z.object({
   listName: z.string().optional(),
   title: z.string().trim().min(1).max(500),
   description: z.string().max(5000).optional(),
-  type: z.enum(AGENDA_ITEM_TYPES).optional(),
   status: z.enum(AGENDA_ITEM_STATUSES).optional(),
   priority: z.enum(AGENDA_ITEM_PRIORITIES).optional(),
   dueAt: z.number().nullable().optional(),
@@ -55,7 +53,6 @@ const createItemSchema = z.object({
 const updateItemSchema = z.object({
   title: z.string().trim().min(1).max(500).optional(),
   description: z.string().max(5000).optional(),
-  type: z.enum(AGENDA_ITEM_TYPES).optional(),
   status: z.enum(AGENDA_ITEM_STATUSES).optional(),
   priority: z.enum(AGENDA_ITEM_PRIORITIES).optional(),
   dueAt: z.number().nullable().optional(),
@@ -151,9 +148,8 @@ agendaRouter.get('/items', async (c) => {
   const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
   const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
   const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
-  const type = c.req.query('type') as (typeof AGENDA_ITEM_TYPES)[number] | undefined;
 
-  const result = await getAgendaItems({ listId, status, priority, type, page, pageSize });
+  const result = await getAgendaItems({ listId, status, priority, page, pageSize });
   return c.json(result);
 });
 

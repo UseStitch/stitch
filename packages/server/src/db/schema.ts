@@ -27,8 +27,10 @@ import type {
   AgendaEventType,
   AgendaItemPriority,
   AgendaItemStatus,
-  AgendaItemType,
 } from '@stitch/shared/agenda/types';
+
+/** @deprecated Type field is no longer used but kept for DB compatibility */
+type AgendaItemType = 'todo' | 'reminder' | 'checkup';
 import type {
   RecordingActionItem,
   RecordingAnalysisTopicSection,
