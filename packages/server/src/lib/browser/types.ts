@@ -122,4 +122,5 @@ export const BROWSER_ACTIONS = [
   'search',
   'extract',
   'handle_dialog',
+  'dialog_state',
 ] as const;

@@ -196,7 +196,8 @@ Note: The top-level \`action\` field is ignored when \`actions\` is provided.
 - **evaluate**: Run JavaScript in the page (set \`fn\`). Last resort.
 - **wait**: Wait for time or selector
 - **resize**: Resize viewport
-- **handle_dialog**: Accept or dismiss an open browser dialog`;
+- **handle_dialog**: Accept or dismiss an open browser dialog
+- **dialog_state**: Check whether a browser dialog is currently open`;
 
 async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
@@ -359,6 +360,15 @@ async function executeSingleAction(input: BrowserInput, signal?: AbortSignal): P
       if (!input.dialogAction) throw new Error('Missing required field: dialogAction');
       const result = await browser.handleDialog(input.dialogAction, input.promptText, signal);
       return { output: result };
+    }
+
+    case 'dialog_state': {
+      const state = await browser.getDialogState(signal);
+      if (!state.open) {
+        return { output: 'No open dialog found.' };
+      }
+      const message = state.message ? `\nMessage: ${state.message}` : '';
+      return { output: `Dialog is open (${state.type ?? 'unknown'})${message}` };
     }
 
     case 'search_page': {

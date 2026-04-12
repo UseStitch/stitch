@@ -66,9 +66,12 @@ type NavigationEntry = {
 const SNAPSHOT_SCRIPT = `
 (() => {
   const prevRefs = window.__stitch_prev_refs || new Set();
+  const prevKeyToRef = window.__stitch_prev_key_to_ref || {};
   let refCounter = window.__stitch_ref_counter || 0;
   const refMap = {};
   const newRefs = new Set();
+  const usedRefs = new Set();
+  const keyToRef = {};
   let nodeCount = 0;
   let charCount = 0;
   const MAX_NODES = ${SNAPSHOT_MAX_NODES};
@@ -196,6 +199,35 @@ const SNAPSHOT_SCRIPT = `
     return attrs;
   }
 
+  function normalizeText(value) {
+    if (!value) return '';
+    return String(value).trim().replace(/s+/g, ' ').slice(0, 120);
+  }
+
+  function makeStableRefKey(el, role, name, depth) {
+    const tag = el.tagName.toLowerCase();
+    const parent = el.parentElement;
+    let siblingIndex = 0;
+    if (parent) {
+      const sameTag = Array.from(parent.children).filter((child) => child.tagName === el.tagName);
+      siblingIndex = sameTag.indexOf(el);
+    }
+    const bits = [
+      tag,
+      role || '',
+      normalizeText(name),
+      normalizeText(el.getAttribute('id')),
+      normalizeText(el.getAttribute('name')),
+      normalizeText(el.getAttribute('type')),
+      normalizeText(el.getAttribute('placeholder')),
+      normalizeText(el.getAttribute('aria-label')),
+      normalizeText(el.getAttribute('href')),
+      String(depth),
+      String(Math.max(0, siblingIndex)),
+    ];
+    return bits.join('|');
+  }
+
   // Compress <select> elements: show selected value + option count instead of full tree
   function compressSelect(el, depth, ref) {
     const indent = '  '.repeat(depth);
@@ -243,19 +275,36 @@ const SNAPSHOT_SCRIPT = `
     const shouldShow = role !== 'generic' || name;
     const interact = isInteractable(el);
     const assignRef = shouldShow && interact;
+    const stableKey = assignRef ? makeStableRefKey(el, role, name, depth) : null;
 
     let ref = null;
     if (assignRef) {
       const existingRef = el.getAttribute('data-stitch-ref');
-      if (existingRef && /^e\\d+$/.test(existingRef)) {
+      if (existingRef && /^e\\d+$/.test(existingRef) && !usedRefs.has(existingRef)) {
         ref = existingRef;
         const numericRef = Number(existingRef.slice(1));
+        if (Number.isFinite(numericRef) && numericRef > refCounter) {
+          refCounter = numericRef;
+        }
+      } else if (
+        stableKey &&
+        typeof prevKeyToRef[stableKey] === 'string' &&
+        /^e\\d+$/.test(prevKeyToRef[stableKey]) &&
+        !usedRefs.has(prevKeyToRef[stableKey])
+      ) {
+        ref = prevKeyToRef[stableKey];
+        const numericRef = Number(ref.slice(1));
         if (Number.isFinite(numericRef) && numericRef > refCounter) {
           refCounter = numericRef;
         }
       } else {
         refCounter++;
         ref = 'e' + refCounter;
+      }
+
+      usedRefs.add(ref);
+      if (stableKey) {
+        keyToRef[stableKey] = ref;
       }
       refMap[ref] = { backendNodeId: null, role, name };
       el.setAttribute('data-stitch-ref', ref);
@@ -311,6 +360,7 @@ const SNAPSHOT_SCRIPT = `
   window.__stitch_ref_counter = refCounter;
   window.__stitch_ref_map = refMap;
   window.__stitch_prev_refs = newRefs;
+  window.__stitch_prev_key_to_ref = keyToRef;
 
   // Scroll info
   const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
@@ -546,6 +596,18 @@ class BrowserManager {
       this.popupWatchdog.setAutoDismiss(true);
     }
     return action === 'accept' ? 'Dialog accepted' : 'Dialog dismissed';
+  }
+
+  async getDialogState(signal?: AbortSignal): Promise<{ open: boolean; type?: string; message?: string }> {
+    this.throwIfAborted(signal);
+    await this.getPageSession();
+    const pending = this.popupWatchdog.getPendingDialog();
+    if (!pending) return { open: false };
+    return {
+      open: true,
+      type: pending.type,
+      message: pending.message,
+    };
   }
 
   async getExecutionState(signal?: AbortSignal): Promise<string> {
@@ -911,6 +973,12 @@ class BrowserManager {
     lines.push(`### Page`);
     lines.push(`- URL: ${url}`);
     lines.push(`- Title: ${title}`);
+
+    const dialogState = this.popupWatchdog.getPendingDialog();
+    if (dialogState) {
+      const messagePreview = dialogState.message ? `: ${dialogState.message.slice(0, 120)}` : '';
+      lines.push(`- Dialog: open (${dialogState.type})${messagePreview}`);
+    }
 
     // Tabs
     try {

@@ -44,6 +44,11 @@ export class PopupWatchdog {
     return this.pendingDialog !== null;
   }
 
+  getPendingDialog(): { type: string; message?: string } | null {
+    if (!this.pendingDialog) return null;
+    return { ...this.pendingDialog };
+  }
+
   async handleDialog(options: { action: 'accept' | 'dismiss'; promptText?: string }): Promise<void> {
     if (!this.pendingDialog) {
       throw new Error('No open dialog found');
