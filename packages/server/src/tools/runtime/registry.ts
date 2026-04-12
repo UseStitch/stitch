@@ -37,6 +37,7 @@ import {
   createRegisteredTool as createWriteRegisteredTool,
   DISPLAY_NAME as WRITE_DISPLAY_NAME,
 } from '@/tools/core/write.js';
+import { withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 
 export const MAX_STEPS = 25;
 
@@ -97,10 +98,12 @@ export function createTools(context: {
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
 }) {
-  return Object.fromEntries(
-    Object.entries(STITCH_TOOL_MODULES).map(([name, mod]) => [
-      name,
-      mod.createRegisteredTool(context),
-    ]),
+  return withToolResultHandlingRecord(
+    Object.fromEntries(
+      Object.entries(STITCH_TOOL_MODULES).map(([name, mod]) => [
+        name,
+        mod.createRegisteredTool(context),
+      ]),
+    ),
   );
 }

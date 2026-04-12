@@ -204,6 +204,26 @@ describe('StreamAccumulator', () => {
       expect(toolStateCalls[1][1]).toMatchObject({ status: 'completed' });
     });
 
+    test('broadcasts error status when a tool-result contains an error payload', async () => {
+      const acc = createAccumulator();
+
+      await acc.handlePart({
+        type: 'tool-result',
+        toolCallId: 'call_1',
+        toolName: 'browser',
+        input: { action: 'snapshot' },
+        output: { error: 'Navigation failed' },
+      });
+
+      const toolStateCalls = getBroadcastCalls('stream-tool-state');
+      expect(toolStateCalls).toHaveLength(1);
+      expect(toolStateCalls[0][1]).toMatchObject({
+        status: 'error',
+        toolName: 'browser',
+        error: 'Navigation failed',
+      });
+    });
+
     test('broadcasts stream-tool-state pending for tool-input-start', async () => {
       const acc = createAccumulator();
 

@@ -1,5 +1,6 @@
 import type { PrefixedString } from '@stitch/shared/id';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
+import { isToolDataResult, isToolErrorResult } from '@stitch/shared/tools/types';
 
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
@@ -138,4 +139,31 @@ export function withPermissionGate<T extends Tool>(
   };
 
   return { ...t, execute: wrappedExecute } as T;
+}
+
+export function withToolResultHandling<T extends Tool>(t: T): T {
+  const originalExecute = t.execute;
+  if (!originalExecute) return t;
+
+  const wrappedExecute = async (...args: Parameters<typeof originalExecute>) => {
+    const result = await originalExecute(...args);
+
+    if (isToolErrorResult(result)) {
+      throw new Error(result.error);
+    }
+
+    if (isToolDataResult(result)) {
+      return result.data;
+    }
+
+    return result;
+  };
+
+  return { ...t, execute: wrappedExecute } as T;
+}
+
+export function withToolResultHandlingRecord<T extends Record<string, Tool>>(tools: T): T {
+  return Object.fromEntries(
+    Object.entries(tools).map(([name, tool]) => [name, withToolResultHandling(tool)]),
+  ) as T;
 }

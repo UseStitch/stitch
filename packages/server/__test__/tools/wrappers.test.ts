@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { z } from 'zod';
 
 import { PATHS } from '@/lib/paths.js';
-import { withTruncation } from '@/tools/runtime/wrappers.js';
+import { withToolResultHandling, withTruncation } from '@/tools/runtime/wrappers.js';
 
 describe('withTruncation', () => {
   test('returns compact result when truncation is triggered', async () => {
@@ -49,5 +49,59 @@ describe('withTruncation', () => {
     const result = await wrapped.execute?.({}, {} as never);
 
     expect(result).toEqual({ output: 'small output' });
+  });
+});
+
+describe('withToolResultHandling', () => {
+  test('throws when tool returns an error-shaped result', async () => {
+    const wrapped = withToolResultHandling(
+      tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ error: 'boom' }),
+      }),
+    );
+
+    await expect(wrapped.execute?.({}, {} as never)).rejects.toThrow('boom');
+  });
+
+  test('unwraps data result payloads', async () => {
+    const wrapped = withToolResultHandling(
+      tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ data: { ok: true } }),
+      }),
+    );
+
+    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ ok: true });
+  });
+
+  test('preserves plain legacy results', async () => {
+    const wrapped = withToolResultHandling(
+      tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ output: 'hello' }),
+      }),
+    );
+
+    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ output: 'hello' });
+  });
+
+  test('does not treat generic objects containing error as tool failures', async () => {
+    const wrapped = withToolResultHandling(
+      tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ error: 'non-fatal', matches: [], total: 0 }),
+      }),
+    );
+
+    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({
+      error: 'non-fatal',
+      matches: [],
+      total: 0,
+    });
   });
 });
