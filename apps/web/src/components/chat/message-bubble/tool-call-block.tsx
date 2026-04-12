@@ -81,7 +81,6 @@ export function ToolCallBlock({
   if (toolName === 'execute_typescript' && hasArgs) {
     return (
       <ExecuteTypescriptToolBlock
-        toolName={toolName}
         status={status}
         args={args}
         onAbort={onAbort}

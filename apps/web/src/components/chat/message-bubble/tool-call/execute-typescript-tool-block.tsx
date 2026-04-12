@@ -69,14 +69,12 @@ function FallbackCode({ code }: { code: string }) {
 }
 
 type ExecuteTypescriptToolBlockProps = {
-  toolName: string;
   status: ToolCallStatus;
   args: unknown;
   onAbort?: () => void;
 };
 
 export function ExecuteTypescriptToolBlock({
-  toolName,
   status,
   args,
   onAbort,
@@ -96,7 +94,7 @@ export function ExecuteTypescriptToolBlock({
         >
           <ToolCard.StatusIndicator status={status} />
           <span className="min-w-0 flex-1 text-left">
-            <ToolCard.Title>{toolName}</ToolCard.Title>
+            <ToolCard.Title>Codemode</ToolCard.Title>
             {description ? (
               <ToolCard.TitleContent truncate className="mt-1 block">
                 {description}
