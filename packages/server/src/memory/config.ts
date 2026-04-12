@@ -10,6 +10,16 @@ type MemoryConfig = {
   embeddingModelId: string;
 };
 
+export function hasConfiguredEmbeddingModel(
+  config: Pick<MemoryConfig, 'embeddingProviderId' | 'embeddingModelId'>,
+): boolean {
+  return config.embeddingProviderId.trim().length > 0 && config.embeddingModelId.trim().length > 0;
+}
+
+export function isMemoryActive(config: MemoryConfig): boolean {
+  return config.enabled && hasConfiguredEmbeddingModel(config);
+}
+
 const MEMORY_SETTING_KEYS = [
   'memory.enabled',
   'memory.autoExtract',

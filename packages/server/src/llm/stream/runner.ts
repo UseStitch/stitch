@@ -1269,7 +1269,7 @@ export async function runStream(opts: {
   }
 
   // Build always-active core tools
-  const coreStitchTools = createTools(toolContext);
+  const coreStitchTools = await createTools(toolContext);
 
   // Build meta-tools (bound to this session's toolset manager)
   const toolsetMetaTools = withToolResultHandlingRecord(createToolsetTools(toolsetManager));

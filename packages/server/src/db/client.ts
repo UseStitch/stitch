@@ -65,6 +65,10 @@ export function getDb(): Db {
   return _db;
 }
 
+export function isDbInitialized(): boolean {
+  return _db !== undefined;
+}
+
 export async function initDb(): Promise<void> {
   const dbPath = getDatabasePath();
   const migrationsDir = getMigrationsDir();

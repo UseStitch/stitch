@@ -1,6 +1,6 @@
 /**
  * Abstract interface for generating text embeddings.
- * Implementations can use local models or remote API providers.
+ * Implementations use remote API providers.
  */
 export interface MemoryEmbedder {
   /** Generate an embedding vector for a single text. */

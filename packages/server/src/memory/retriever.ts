@@ -1,5 +1,5 @@
 import * as Log from '@/lib/log.js';
-import { getMemoryConfig } from '@/memory/config.js';
+import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
 
@@ -22,7 +22,7 @@ export async function retrieveMemoryContext(
   sourceFilter?: MemorySource,
 ): Promise<string | null> {
   const config = await getMemoryConfig();
-  if (!config.enabled) return null;
+  if (!isMemoryActive(config)) return null;
 
   const semantic = await searchSemanticMemories({
     query,

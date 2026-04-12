@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';
 import {
   getAllSemanticMemories,
@@ -12,6 +13,7 @@ import {
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@/memory/types.js';
+import type { Context } from 'hono';
 
 const patchSchema = z.object({
   content: z.string().min(1).optional(),
@@ -24,6 +26,21 @@ const bulkDeleteSchema = z.object({
 });
 
 export const memoryRouter = new Hono();
+
+async function ensureMemoryActive(c: Context): Promise<Response | null> {
+  const config = await getMemoryConfig();
+  if (isMemoryActive(config)) {
+    return null;
+  }
+
+  return c.json(
+    {
+      error:
+        'Memory is unavailable. Enable memory and configure an embedding provider/model first.',
+    },
+    409,
+  );
+}
 
 function parsePagination(query: Record<string, string | undefined>) {
   const pageRaw = Number.parseInt(query.page ?? '1', 10);
@@ -43,6 +60,11 @@ memoryRouter.get('/semantic', async (c) => {
     page: c.req.query('page'),
     pageSize: c.req.query('pageSize'),
   });
+
+  const config = await getMemoryConfig();
+  if (!isMemoryActive(config)) {
+    return c.json({ memories: [], page, pageSize, total: 0, totalPages: 0 });
+  }
 
   if (q) {
     const results = await searchSemanticMemories({
@@ -65,6 +87,9 @@ memoryRouter.get('/semantic', async (c) => {
 });
 
 memoryRouter.patch('/semantic/:id', zValidator('json', patchSchema), async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
   const id = c.req.param('id');
   const updates = c.req.valid('json');
 
@@ -77,18 +102,27 @@ memoryRouter.patch('/semantic/:id', zValidator('json', patchSchema), async (c) =
 });
 
 memoryRouter.delete('/semantic/:id', async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
   const id = c.req.param('id');
   await deleteSemanticMemory(id);
   return c.body(null, 204);
 });
 
 memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
   const { ids } = c.req.valid('json');
   await deleteSemanticMemories(ids);
   return c.body(null, 204);
 });
 
 memoryRouter.post('/reset', async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
   await dropSemanticTable();
   resetEmbedder();
   return c.body(null, 204);

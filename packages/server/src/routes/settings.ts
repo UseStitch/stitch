@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
+import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';
 import { deleteSetting, listSettings, saveSetting } from '@/settings/service.js';
 
@@ -19,6 +21,37 @@ settingsRouter.get('/', async (c) => {
 settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) => {
   const key = c.req.param('key');
   const { value } = c.req.valid('json');
+
+  if (key === 'memory.enabled' && value === 'true') {
+    const memoryConfig = await getMemoryConfig();
+    const canEnableMemory = hasConfiguredEmbeddingModel(memoryConfig);
+    if (!canEnableMemory) {
+      return c.json(
+        {
+          error:
+            'Cannot enable memory without an embedding model. Configure memory.embedding.providerId and memory.embedding.modelId first.',
+        },
+        400,
+      );
+    }
+
+    const providerModels = await listEnabledProviderEmbeddingModels();
+    const hasConfiguredModel = providerModels.some(
+      (provider) =>
+        provider.providerId === memoryConfig.embeddingProviderId &&
+        provider.models.some((model) => model.id === memoryConfig.embeddingModelId),
+    );
+    if (!hasConfiguredModel) {
+      return c.json(
+        {
+          error:
+            'Cannot enable memory without a configured embedding model from an enabled provider.',
+        },
+        400,
+      );
+    }
+  }
+
   const result = await saveSetting(key, value);
   if (isServiceError(result)) {
     return c.json({ error: result.error }, result.status);
