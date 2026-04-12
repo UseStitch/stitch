@@ -161,7 +161,7 @@ export function ChatInputInner({
         className={cn(
           'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
           'placeholder:text-muted-foreground/60',
-          'max-h-48 overflow-y-auto',
+          'max-h-48 overflow-y-auto thin-scrollbar',
           'field-sizing-content',
           disabled && 'cursor-not-allowed',
         )}
