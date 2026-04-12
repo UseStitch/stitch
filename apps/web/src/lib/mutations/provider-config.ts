@@ -28,6 +28,8 @@ async function invalidateProviderQueries(queryClient: QueryClient): Promise<void
     queryClient.invalidateQueries({ queryKey: providerKeys.list() }),
     queryClient.invalidateQueries({ queryKey: providerKeys.enabledModels() }),
     queryClient.invalidateQueries({ queryKey: providerKeys.visibleModels() }),
+    queryClient.invalidateQueries({ queryKey: providerKeys.embeddingModels() }),
+    queryClient.invalidateQueries({ queryKey: providerKeys.audioModels() }),
   ]);
 }
 
