@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 // Test the abort rethrow logic in isolation — we want to confirm that the
 // execute handler rethrows DOMException AbortErrors and converts other errors
-// to { error } objects.
+// to thrown Error objects.
 //
 // We test this by calling the inner logic directly rather than using
 // module mocking, which avoids ESM cache invalidation issues in tests.
@@ -13,7 +13,7 @@ async function executeWithAbort(action: () => Promise<unknown>): Promise<unknown
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     const message = error instanceof Error ? error.message : String(error);
-    return { error: message };
+    throw new Error(message);
   }
 }
 
@@ -25,9 +25,10 @@ describe('browser tool abort contract', () => {
     );
   });
 
-  test('converts non-abort errors to { error } objects', async () => {
-    const result = await executeWithAbort(() => Promise.reject(new Error('CDP connection failed')));
-    expect(result).toMatchObject({ error: 'CDP connection failed' });
+  test('converts non-abort errors to thrown Error', async () => {
+    await expect(executeWithAbort(() => Promise.reject(new Error('CDP connection failed')))).rejects.toThrow(
+      'CDP connection failed',
+    );
   });
 
   test('returns result when action succeeds', async () => {

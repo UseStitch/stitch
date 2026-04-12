@@ -97,4 +97,22 @@ describe('toolset management tools', () => {
       prompts: [{ name: 'demo', description: 'Demo prompt' }],
     });
   });
+
+  test('list_toolsets throws when unknown toolsetId is requested', async () => {
+    const manager = createManager();
+    const tools = createToolsetTools(manager);
+
+    await expect(
+      tools.list_toolsets.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
+    ).rejects.toThrow('Unknown toolset');
+  });
+
+  test('activate_toolset throws when unknown toolsetId is requested', async () => {
+    const manager = createManager();
+    const tools = createToolsetTools(manager);
+
+    await expect(
+      tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
+    ).rejects.toThrow('Unknown toolset');
+  });
 });

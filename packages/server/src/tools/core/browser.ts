@@ -544,7 +544,7 @@ function createBrowserTool() {
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') throw error;
         const message = error instanceof Error ? error.message : String(error);
-        return { error: message };
+        throw new Error(message);
       }
     },
   });
