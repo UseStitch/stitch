@@ -4,6 +4,7 @@ import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import { BashToolBlock } from '@/components/chat/message-bubble/tool-call/bash-tool-block';
 import { BrowserToolBlock } from '@/components/chat/message-bubble/tool-call/browser-tool-block';
 import { ChildSessionToolBlock } from '@/components/chat/message-bubble/tool-call/child-session-tool-block';
+import { ExecuteTypescriptToolBlock } from '@/components/chat/message-bubble/tool-call/execute-typescript-tool-block';
 import { FileToolBlock } from '@/components/chat/message-bubble/tool-call/file-tool-block';
 import { GenericToolBlock } from '@/components/chat/message-bubble/tool-call/generic-tool-block';
 import { McpToolBlock } from '@/components/chat/message-bubble/tool-call/mcp-tool-block';
@@ -75,6 +76,17 @@ export function ToolCallBlock({
 
   if (toolName === 'bash' && hasArgs) {
     return <BashToolBlock toolName={toolName} status={status} args={args} onAbort={onAbort} />;
+  }
+
+  if (toolName === 'execute_typescript' && hasArgs) {
+    return (
+      <ExecuteTypescriptToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        onAbort={onAbort}
+      />
+    );
   }
 
   if (SEARCH_TOOLS.has(toolName) && hasArgs) {
