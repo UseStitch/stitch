@@ -3,8 +3,8 @@ import { newQuickJSAsyncWASMModule } from 'quickjs-emscripten';
 import type { IsolateContext, IsolateDriver, IsolateExecuteResult, IsolateOptions, ToolBinding } from '@/code-mode/isolate/types.js';
 
 const DEFAULT_MEMORY_LIMIT_MB = 128;
-const DEFAULT_TIMEOUT_MS = 120_000;
-const MAX_STACK_SIZE = 1024 * 1024;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const MAX_STACK_SIZE = 512 * 1024;
 // Cap per-tool-result JSON at 512 KB before it enters the WASM heap
 const MAX_RESULT_BYTES = 512 * 1024;
 
