@@ -21,6 +21,7 @@ import {
   updateSemanticMemory,
   deleteSemanticMemory,
   searchSemanticMemories,
+  pruneStaleMemories,
 } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
@@ -81,6 +82,11 @@ export async function processMemories(input: {
       return;
     }
 
+    if (input.userMessage.trim().length < config.minMessageLength) {
+      log.debug({ sessionId: input.sessionId, len: input.userMessage.length }, 'skipping extraction for short message');
+      return;
+    }
+
     const [resolved, memorySource] = await Promise.all([
       resolveCheapModel({
         providerIdKey: 'model.title.providerId',
@@ -120,9 +126,28 @@ export async function processMemories(input: {
       });
     }
 
-    const facts = extractionResult.output?.facts ?? [];
+    let facts = extractionResult.output?.facts ?? [];
     if (facts.length === 0) {
       log.debug({ sessionId: input.sessionId }, 'no facts extracted from turn');
+      return;
+    }
+
+    // Filter by confidence
+    if (config.confidenceFilter !== 'all') {
+      facts = facts.filter((fact) => {
+        if (config.confidenceFilter === 'stated') return fact.confidence === 'stated';
+        if (config.confidenceFilter === 'stated+confirmed') return fact.confidence === 'stated' || fact.confidence === 'confirmed';
+        return true;
+      });
+    }
+
+    // Apply per-turn cap
+    if (facts.length > config.maxFactsPerTurn) {
+      facts = facts.slice(0, config.maxFactsPerTurn);
+    }
+
+    if (facts.length === 0) {
+      log.debug({ sessionId: input.sessionId }, 'all facts filtered out');
       return;
     }
 
@@ -141,9 +166,23 @@ export async function processMemories(input: {
       ),
     );
 
+    let addCount = 0;
+    let updateCount = 0;
+    let deleteCount = 0;
+    let noneCount = 0;
+    let skipCount = 0;
+
     for (let i = 0; i < facts.length; i++) {
       const fact = facts[i];
       const existing = existingMemoriesPerFact[i];
+
+      // Similarity Pre-check
+      const topMatch = existing[0];
+      if (topMatch && topMatch.score >= 0.85) {
+        log.info({ factContent: fact.content, score: topMatch.score }, 'skipping dedup due to high similarity pre-check');
+        skipCount++;
+        continue;
+      }
 
       const dedupPrompt = buildDeduplicationPrompt(fact, existing);
       const dedupStart = Date.now();
@@ -167,7 +206,10 @@ export async function processMemories(input: {
       }
 
       const decision = dedupResult.output;
-      if (!decision || decision.action === 'NONE') continue;
+      if (!decision || decision.action === 'NONE') {
+        noneCount++;
+        continue;
+      }
 
       log.info(
         {
@@ -181,6 +223,7 @@ export async function processMemories(input: {
       switch (decision.action) {
         case 'ADD': {
           await addSemanticMemory(fact, memorySource, input.sessionId);
+          addCount++;
           break;
         }
         case 'UPDATE': {
@@ -188,19 +231,32 @@ export async function processMemories(input: {
             await updateSemanticMemory(decision.existingMemoryId, {
               content: decision.updatedContent,
             });
+            updateCount++;
           }
           break;
         }
         case 'DELETE': {
           if (decision.existingMemoryId) {
             await deleteSemanticMemory(decision.existingMemoryId);
+            deleteCount++;
           }
           break;
         }
       }
     }
 
-    log.info({ sessionId: input.sessionId }, 'memory processing complete');
+    log.info({ 
+      sessionId: input.sessionId, 
+      extracted: facts.length,
+      decisions: { ADD: addCount, UPDATE: updateCount, DELETE: deleteCount, NONE: noneCount, SKIPPED_HIGH_SIMILARITY: skipCount }
+    }, 'memory processing complete');
+
+    if (config.autoprune && (addCount > 0 || updateCount > 0)) {
+      await pruneStaleMemories({
+        maxMemories: config.maxMemories,
+        staleDays: config.staleDays,
+      }).catch((err) => log.warn({ error: err }, 'failed to auto-prune stale memories'));
+    }
   } catch (error) {
     log.error({ error, sessionId: input.sessionId }, 'memory processing failed');
   }

@@ -18,6 +18,7 @@ export type SemanticMemory = {
   updatedAt: string;
   accessCount: number;
   lastAccessedAt: string;
+  pinned: boolean;
 };
 
 export type ExtractedFact = {
