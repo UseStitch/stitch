@@ -4,6 +4,7 @@ import {
   Chart as ChartJS,
   Legend,
   LinearScale,
+  type ScriptableContext,
   Tooltip,
   type TooltipItem,
 } from 'chart.js';
@@ -42,6 +43,7 @@ const RANGE_LABELS: Record<UsageDateRange, string> = {
 const SOURCE_LABELS: Record<string, string> = {
   chat: 'Chat',
   automation: 'Automation',
+  automation_generation: 'Automation Generation',
   title_generation: 'Title Generation',
   transcription: 'Transcription',
   memory_extraction: 'Memory',
@@ -64,10 +66,31 @@ const TOKEN_TYPE_LABELS: Record<TokenTypeKey, string> = {
   cacheWriteTokens: 'Cache Write',
 };
 
-const TOKEN_TYPE_CHART_VARS = ['--chart-1', '--chart-3', '--chart-4', '--chart-2'] as const;
-
 const FALLBACK_SOURCE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
 const FALLBACK_TOKEN_TYPE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#14b8a6'];
+
+const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> = {
+  chat: { cssVar: '--chart-1', fallback: '#f97316' },
+  automation: { cssVar: '--chart-2', fallback: '#10b981' },
+  automation_generation: { cssVar: '--chart-5', fallback: '#8b5cf6' },
+  title_generation: { cssVar: '--chart-3', fallback: '#3b82f6' },
+  transcription: { cssVar: '--chart-4', fallback: '#f59e0b' },
+  memory_extraction: { cssVar: '--chart-4', fallback: '#ec4899' },
+  recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
+};
+
+const TOKEN_TYPE_COLOR_CONFIG: Record<TokenTypeKey, { cssVar: string; fallback: string }> = {
+  inputTokens: { cssVar: '--chart-1', fallback: FALLBACK_TOKEN_TYPE_COLORS[0] ?? '#3b82f6' },
+  outputTokens: { cssVar: '--chart-2', fallback: FALLBACK_TOKEN_TYPE_COLORS[1] ?? '#22c55e' },
+  cacheReadTokens: {
+    cssVar: '--chart-3',
+    fallback: FALLBACK_TOKEN_TYPE_COLORS[2] ?? '#f59e0b',
+  },
+  cacheWriteTokens: {
+    cssVar: '--chart-4',
+    fallback: FALLBACK_TOKEN_TYPE_COLORS[3] ?? '#14b8a6',
+  },
+};
 
 function getSourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.replaceAll('_', ' ');
@@ -103,24 +126,60 @@ function resolveCssVar(varName: string, fallback: string): string {
   return value.length > 0 ? value : fallback;
 }
 
-function getSourceColors(count: number): string[] {
-  if (typeof window === 'undefined') return FALLBACK_SOURCE_COLORS.slice(0, count);
-  const vars = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'];
-  const resolved = vars
-    .map((v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim())
-    .filter((v) => v.length > 0);
-  const palette = [...resolved, ...FALLBACK_SOURCE_COLORS];
-  return Array.from({ length: count }, (_, i) => palette[i % palette.length] ?? '#6b7280');
+function hashSource(source: string): number {
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function getSourceColor(source: string): string {
+  const configured = SOURCE_COLOR_CONFIG[source];
+  if (configured) {
+    return resolveCssVar(configured.cssVar, configured.fallback);
+  }
+
+  const fallback = FALLBACK_SOURCE_COLORS[hashSource(source) % FALLBACK_SOURCE_COLORS.length];
+  return fallback ?? '#6b7280';
 }
 
 function getTokenTypeColors(): Record<TokenTypeKey, string> {
-  const keys = TOKEN_TYPE_KEYS;
   return Object.fromEntries(
-    keys.map((key, i) => [
+    TOKEN_TYPE_KEYS.map((key) => [
       key,
-      resolveCssVar(TOKEN_TYPE_CHART_VARS[i] ?? '', FALLBACK_TOKEN_TYPE_COLORS[i] ?? '#6b7280'),
+      resolveCssVar(TOKEN_TYPE_COLOR_CONFIG[key].cssVar, TOKEN_TYPE_COLOR_CONFIG[key].fallback),
     ]),
   ) as Record<TokenTypeKey, string>;
+}
+
+function getNumericValue(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function getStackSegmentRadius(ctx: ScriptableContext<'bar'>, radius = 5) {
+  const datasetIndex = ctx.datasetIndex;
+  const dataIndex = ctx.dataIndex;
+  const datasets = ctx.chart.data.datasets;
+
+  const hasAbove = datasets
+    .slice(datasetIndex + 1)
+    .some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
+  const hasBelow = datasets
+    .slice(0, datasetIndex)
+    .some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
+
+  return {
+    topLeft: hasAbove ? 0 : radius,
+    topRight: hasAbove ? 0 : radius,
+    bottomLeft: hasBelow ? 0 : radius,
+    bottomRight: hasBelow ? 0 : radius,
+  };
 }
 
 function useSourceOrder(sources: string[]): string[] {
@@ -262,7 +321,10 @@ export function UsageDashboardPage() {
   });
 
   const sources = useSourceOrder(usageData?.sources ?? []);
-  const sourceColors = React.useMemo(() => getSourceColors(sources.length), [sources.length]);
+  const sourceColors = React.useMemo(
+    () => Object.fromEntries(sources.map((source) => [source, getSourceColor(source)])),
+    [sources],
+  );
   const tokenTypeColors = React.useMemo(() => getTokenTypeColors(), []);
   const { tickColor, gridColor } = useChartTheme();
 
@@ -278,13 +340,13 @@ export function UsageDashboardPage() {
   const costChartData = React.useMemo(
     () => ({
       labels: usageData?.buckets.map((b) => b.label) ?? [],
-      datasets: sources.map((source, i) => ({
+      datasets: sources.map((source) => ({
         label: getSourceLabel(source),
         data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
-        backgroundColor:
-          sourceColors[i] ?? FALLBACK_SOURCE_COLORS[i % FALLBACK_SOURCE_COLORS.length],
-        borderRadius: 5,
+        backgroundColor: sourceColors[source] ?? '#6b7280',
+        borderRadius: (ctx: ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
         borderSkipped: false,
+        inflateAmount: 0,
       })),
     }),
     [sourceColors, sources, usageData],
@@ -298,8 +360,9 @@ export function UsageDashboardPage() {
           label: TOKEN_TYPE_LABELS[key],
           data: usageData?.buckets.map((b) => b.tokenMetricsBySource[source]?.[key] ?? 0) ?? [],
           backgroundColor: tokenTypeColors[key],
-          borderRadius: 5,
+          borderRadius: (ctx: ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
           borderSkipped: false,
+          inflateAmount: 0,
         }));
         return [source, { labels, datasets }];
       }),

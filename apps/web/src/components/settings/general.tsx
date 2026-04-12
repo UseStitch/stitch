@@ -19,7 +19,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  audioProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
@@ -59,21 +58,6 @@ const MODEL_PREFERENCES = [
     modelIdKey: 'model.title.modelId',
     label: 'Title Generation Model',
     description: 'Used for generating conversation titles',
-  },
-] as const;
-
-const RECORDING_MODEL_PREFERENCES = [
-  {
-    providerIdKey: 'recordings.transcription.providerId',
-    modelIdKey: 'recordings.transcription.modelId',
-    label: 'Recording Transcription Model',
-    description: 'Used to transcribe recordings with speaker attribution',
-  },
-  {
-    providerIdKey: 'recordings.analysis.providerId',
-    modelIdKey: 'recordings.analysis.modelId',
-    label: 'Recording Analysis Model',
-    description: 'Used for summaries, topics, and action item extraction',
   },
 ] as const;
 
@@ -174,13 +158,6 @@ function ModelSelect({
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
-  const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
-  const queryClient = useQueryClient();
-  const saveAutoAnalyzeMutation = useMutation(
-    saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
-  );
-
-  const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
 
   return (
     <div className="flex flex-col">
@@ -205,51 +182,6 @@ function ModelsContent() {
                 currentProviderId={settings[pref.providerIdKey]}
                 currentModelId={settings[pref.modelIdKey]}
                 providerModels={providerModels}
-              />
-            </div>
-          </div>
-        ))
-      )}
-
-      <div className="border-t border-border/50 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">Auto analyze recordings</Label>
-            <p className="text-xs text-muted-foreground">
-              Automatically run transcription and analysis after a recording ends.
-            </p>
-          </div>
-          <Switch
-            checked={autoAnalyzeEnabled}
-            onCheckedChange={(checked) =>
-              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
-            }
-            disabled={saveAutoAnalyzeMutation.isPending}
-          />
-        </div>
-      </div>
-
-      {audioProviderModels.length === 0 ? (
-        <p className="py-3 text-sm text-muted-foreground">
-          No audio-capable models are available for recording transcription.
-        </p>
-      ) : (
-        RECORDING_MODEL_PREFERENCES.map((pref, index) => (
-          <div
-            key={pref.providerIdKey}
-            className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-          >
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Label className="text-sm font-medium">{pref.label}</Label>
-              <p className="text-xs text-muted-foreground">{pref.description}</p>
-            </div>
-            <div className="w-52 shrink-0">
-              <ModelSelect
-                providerIdKey={pref.providerIdKey}
-                modelIdKey={pref.modelIdKey}
-                currentProviderId={settings[pref.providerIdKey]}
-                currentModelId={settings[pref.modelIdKey]}
-                providerModels={audioProviderModels}
               />
             </div>
           </div>
