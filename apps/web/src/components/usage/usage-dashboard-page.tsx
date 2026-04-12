@@ -43,6 +43,7 @@ const RANGE_LABELS: Record<UsageDateRange, string> = {
 const SOURCE_LABELS: Record<string, string> = {
   chat: 'Chat',
   automation: 'Automation',
+  automation_generation: 'Automation Generation',
   title_generation: 'Title Generation',
   transcription: 'Transcription',
   memory_extraction: 'Memory',
@@ -65,8 +66,6 @@ const TOKEN_TYPE_LABELS: Record<TokenTypeKey, string> = {
   cacheWriteTokens: 'Cache Write',
 };
 
-const TOKEN_TYPE_CHART_VARS = ['--chart-1', '--chart-3', '--chart-4', '--chart-2'] as const;
-
 const FALLBACK_SOURCE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
 const FALLBACK_TOKEN_TYPE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#14b8a6'];
 
@@ -78,6 +77,19 @@ const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> 
   transcription: { cssVar: '--chart-4', fallback: '#f59e0b' },
   memory_extraction: { cssVar: '--chart-4', fallback: '#ec4899' },
   recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
+};
+
+const TOKEN_TYPE_COLOR_CONFIG: Record<TokenTypeKey, { cssVar: string; fallback: string }> = {
+  inputTokens: { cssVar: '--chart-1', fallback: FALLBACK_TOKEN_TYPE_COLORS[0] ?? '#3b82f6' },
+  outputTokens: { cssVar: '--chart-2', fallback: FALLBACK_TOKEN_TYPE_COLORS[1] ?? '#22c55e' },
+  cacheReadTokens: {
+    cssVar: '--chart-3',
+    fallback: FALLBACK_TOKEN_TYPE_COLORS[2] ?? '#f59e0b',
+  },
+  cacheWriteTokens: {
+    cssVar: '--chart-4',
+    fallback: FALLBACK_TOKEN_TYPE_COLORS[3] ?? '#14b8a6',
+  },
 };
 
 function getSourceLabel(source: string): string {
@@ -133,11 +145,10 @@ function getSourceColor(source: string): string {
 }
 
 function getTokenTypeColors(): Record<TokenTypeKey, string> {
-  const keys = TOKEN_TYPE_KEYS;
   return Object.fromEntries(
-    keys.map((key, i) => [
+    TOKEN_TYPE_KEYS.map((key) => [
       key,
-      resolveCssVar(TOKEN_TYPE_CHART_VARS[i] ?? '', FALLBACK_TOKEN_TYPE_COLORS[i] ?? '#6b7280'),
+      resolveCssVar(TOKEN_TYPE_COLOR_CONFIG[key].cssVar, TOKEN_TYPE_COLOR_CONFIG[key].fallback),
     ]),
   ) as Record<TokenTypeKey, string>;
 }
