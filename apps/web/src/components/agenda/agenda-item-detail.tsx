@@ -1,9 +1,7 @@
 import {
   CalendarIcon,
-  ClockIcon,
-  MessageSquareIcon,
-  SendIcon,
   Trash2Icon,
+  XIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -11,14 +9,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import {
-  EVENT_TYPE_LABELS,
   PRIORITY_LABELS,
   STATUS_LABELS,
-  STATUS_VARIANTS,
-  TYPE_LABELS,
 } from '@/components/agenda/constants';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -29,26 +24,28 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgendaItem, AgendaItemPriority, AgendaItemStatus, AgendaItemType } from '@stitch/shared/agenda/types';
+import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import {
   AGENDA_ITEM_PRIORITIES,
   AGENDA_ITEM_STATUSES,
-  AGENDA_ITEM_TYPES,
 } from '@stitch/shared/agenda/types';
 import {
-  agendaItemDetailQueryOptions,
-  useAddAgendaItemComment,
   useDeleteAgendaItem,
   useUpdateAgendaItem,
 } from '@/lib/queries/agenda';
+import { cn } from '@/lib/utils';
 
 type Props = {
   item: AgendaItem | null;
@@ -61,17 +58,6 @@ function useUserTimezone(): string {
   return settings?.['profile.timezone'] || Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-function formatDateTimeInTz(ts: number, timeZone: string): string {
-  return new Date(ts).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone,
-  });
-}
-
 function formatDateInTz(ts: number, timeZone: string): string {
   return new Date(ts).toLocaleDateString('en-US', {
     month: 'short',
@@ -81,68 +67,15 @@ function formatDateInTz(ts: number, timeZone: string): string {
   });
 }
 
-function tsToDateInputValue(ts: number, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone,
-  }).formatToParts(new Date(ts));
-  const y = parts.find((p) => p.type === 'year')?.value ?? '';
-  const m = parts.find((p) => p.type === 'month')?.value ?? '';
-  const d = parts.find((p) => p.type === 'day')?.value ?? '';
-  return `${y}-${m}-${d}`;
-}
-
-function dateInputValueToTs(dateStr: string, timeZone: string): number {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const utcNoon = Date.UTC(year, month - 1, day, 12, 0, 0);
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    day: '2-digit',
-    hour12: false,
-  });
-  const utcFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'UTC',
-    hour: '2-digit',
-    day: '2-digit',
-    hour12: false,
-  });
-
-  const probe = new Date(utcNoon);
-  const tzParts = formatter.formatToParts(probe);
-  const utcParts = utcFormatter.formatToParts(probe);
-
-  const tzHour = Number(tzParts.find((p) => p.type === 'hour')?.value ?? 0);
-  const utcHour = Number(utcParts.find((p) => p.type === 'hour')?.value ?? 0);
-  const tzDay = Number(tzParts.find((p) => p.type === 'day')?.value ?? 0);
-  const utcDay = Number(utcParts.find((p) => p.type === 'day')?.value ?? 0);
-
-  let offsetHours = utcHour - tzHour;
-  if (utcDay > tzDay) offsetHours += 24;
-  else if (utcDay < tzDay) offsetHours -= 24;
-
-  return Date.UTC(year, month - 1, day, 12 + offsetHours, 0, 0);
-}
-
 export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const timeZone = useUserTimezone();
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [status, setStatus] = React.useState<AgendaItemStatus>('open');
   const [priority, setPriority] = React.useState<AgendaItemPriority>('medium');
-  const [type, setType] = React.useState<AgendaItemType>('todo');
-  const [dueAt, setDueAt] = React.useState('');
-  const [commentText, setCommentText] = React.useState('');
+  const [dueDate, setDueDate] = React.useState<Date | undefined>(undefined);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
-
-  const { data: detailData } = useQuery({
-    ...agendaItemDetailQueryOptions(item?.id ?? ''),
-    enabled: !!item,
-  });
-
-  const events = detailData?.item?.events ?? [];
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (item) {
@@ -150,19 +83,23 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
       setDescription(item.description);
       setStatus(item.status);
       setPriority(item.priority);
-      setType(item.type);
-      setDueAt(item.dueAt ? tsToDateInputValue(item.dueAt, timeZone) : '');
+      setDueDate(item.dueAt ? new Date(item.dueAt) : undefined);
     }
   }, [item, timeZone]);
 
   const updateMutation = useUpdateAgendaItem();
   const deleteMutation = useDeleteAgendaItem();
-  const commentMutation = useAddAgendaItemComment();
+
+  function dateToMs(date: Date): number {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    return new Date(y, m, d, 12, 0, 0).getTime();
+  }
 
   function handleSave() {
     if (!item) return;
-    const dueAtMs = dueAt ? dateInputValueToTs(dueAt, timeZone) : null;
-    const prevDueAtStr = item.dueAt ? tsToDateInputValue(item.dueAt, timeZone) : '';
+    const newDueMs = dueDate ? dateToMs(dueDate) : null;
     updateMutation.mutate(
       {
         id: item.id,
@@ -171,8 +108,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
           description: description !== item.description ? description : undefined,
           status: status !== item.status ? status : undefined,
           priority: priority !== item.priority ? priority : undefined,
-          type: type !== item.type ? type : undefined,
-          dueAt: dueAt !== prevDueAtStr ? dueAtMs : undefined,
+          dueAt: newDueMs !== item.dueAt ? newDueMs : undefined,
         },
       },
       { onSuccess: () => onOpenChange(false) },
@@ -189,22 +125,13 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     });
   }
 
-  function handleAddComment() {
-    if (!item || !commentText.trim()) return;
-    commentMutation.mutate(
-      { itemId: item.id, content: commentText.trim() },
-      { onSuccess: () => setCommentText('') },
-    );
-  }
-
   const isDirty =
     item &&
     (title !== item.title ||
       description !== item.description ||
       status !== item.status ||
       priority !== item.priority ||
-      type !== item.type ||
-      dueAt !== (item.dueAt ? tsToDateInputValue(item.dueAt, timeZone) : ''));
+      (dueDate ? dateToMs(dueDate) : null) !== item.dueAt);
 
   if (!item) return null;
 
@@ -217,6 +144,19 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
           </SheetHeader>
 
           <div className="flex flex-1 flex-col gap-5 px-4">
+            {/* List + Created info */}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>{item.listName ?? 'Unknown'}</span>
+              <span>·</span>
+              <span>Created {formatDateInTz(item.createdAt, timeZone)}</span>
+              {item.completedAt && (
+                <>
+                  <span>·</span>
+                  <span>Completed {formatDateInTz(item.completedAt, timeZone)}</span>
+                </>
+              )}
+            </div>
+
             {/* Title */}
             <div className="flex flex-col gap-1.5">
               <Label>Title</Label>
@@ -244,7 +184,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                 <Label>Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as AgendaItemStatus)}>
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    {STATUS_LABELS[status]}
                   </SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_STATUSES.map((s) => (
@@ -263,7 +203,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                   onValueChange={(v) => setPriority(v as AgendaItemPriority)}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    {PRIORITY_LABELS[priority]}
                   </SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_PRIORITIES.map((p) => (
@@ -276,123 +216,44 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               </div>
             </div>
 
-            {/* Type + Due date row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label>Type</Label>
-                <Select value={type} onValueChange={(v) => setType(v as AgendaItemType)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AGENDA_ITEM_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {TYPE_LABELS[t]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label>Due Date</Label>
-                <Input
-                  type="date"
-                  value={dueAt}
-                  onChange={(e) => setDueAt(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Metadata */}
-            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">List</span>
-                <span className="text-foreground">{item.listName ?? 'Unknown'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-foreground">{formatDateInTz(item.createdAt, timeZone)}</span>
-              </div>
-              {item.completedAt && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Completed</span>
-                  <span className="text-foreground">{formatDateInTz(item.completedAt, timeZone)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Timeline */}
-            {events.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <Label>Timeline</Label>
-                <div className="flex flex-col gap-1.5">
-                  {events.map((event) => (
-                    <div
-                      key={event.id}
-                      className="flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2 text-xs"
-                    >
-                      <div className="mt-0.5 shrink-0">
-                        {event.type === 'comment' ? (
-                          <MessageSquareIcon className="size-3 text-muted-foreground" />
-                        ) : event.type === 'status_change' ? (
-                          <ClockIcon className="size-3 text-muted-foreground" />
-                        ) : (
-                          <CalendarIcon className="size-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium">{EVENT_TYPE_LABELS[event.type]}</span>
-                          {event.fromStatus && event.toStatus && (
-                            <span className="text-muted-foreground">
-                              <Badge variant={STATUS_VARIANTS[event.fromStatus]} className="text-[10px] px-1 py-0">
-                                {STATUS_LABELS[event.fromStatus]}
-                              </Badge>
-                              {' → '}
-                              <Badge variant={STATUS_VARIANTS[event.toStatus]} className="text-[10px] px-1 py-0">
-                                {STATUS_LABELS[event.toStatus]}
-                              </Badge>
-                            </span>
-                          )}
-                        </div>
-                        {event.content && event.type === 'comment' && (
-                          <p className="mt-0.5 text-muted-foreground">{event.content}</p>
-                        )}
-                        <span className="text-muted-foreground/70">
-                          {formatDateTimeInTz(event.createdAt, timeZone)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Add comment */}
+            {/* Due date */}
             <div className="flex flex-col gap-1.5">
-              <Label>Add Comment</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add a note..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleAddComment();
-                    }
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={handleAddComment}
-                  disabled={!commentText.trim() || commentMutation.isPending}
-                >
-                  <SendIcon className="size-4" />
-                </Button>
-              </div>
+              <Label>Due Date</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <div className="flex items-center gap-1.5">
+                  <PopoverTrigger
+                    className={cn(
+                      'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
+                      !dueDate && 'text-muted-foreground',
+                    )}
+                  >
+                    <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    {dueDate ? formatDateInTz(dateToMs(dueDate), timeZone) : 'Pick a date'}
+                  </PopoverTrigger>
+                  {dueDate && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => setDueDate(undefined)}
+                    >
+                      <XIcon className="size-3" />
+                    </Button>
+                  )}
+                </div>
+                <PopoverContent align="start" className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setDatePickerOpen(false);
+                    }}
+                    defaultMonth={dueDate}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
@@ -428,7 +289,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             <DialogTitle>Delete item?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This agenda item and its history will be permanently removed.
+            This agenda item will be permanently removed.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>

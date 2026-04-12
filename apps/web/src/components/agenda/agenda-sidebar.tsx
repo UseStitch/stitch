@@ -11,7 +11,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useRouterState } from '@tanstack/react-router';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   SidebarContent,
   SidebarGroup,
@@ -22,6 +31,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { Textarea } from '@/components/ui/textarea';
 import {
   agendaListsQueryOptions,
   useCreateAgendaList,
@@ -160,9 +170,9 @@ export function AgendaSidebarContent() {
   const moveMutation = useMoveAgendaItem();
   const reorderMutation = useReorderAgendaLists();
 
-  const [creating, setCreating] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
   const [newListName, setNewListName] = React.useState('');
-  const createInputRef = React.useRef<HTMLInputElement>(null);
+  const [newListDescription, setNewListDescription] = React.useState('');
 
   const [dragListId, setDragListId] = React.useState<string | null>(null);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
@@ -177,12 +187,6 @@ export function AgendaSidebarContent() {
     document.addEventListener('dragend', clearDrag);
     return () => document.removeEventListener('dragend', clearDrag);
   }, []);
-
-  React.useEffect(() => {
-    if (creating) {
-      requestAnimationFrame(() => createInputRef.current?.focus());
-    }
-  }, [creating]);
 
   function handleListDragOver(e: React.DragEvent, index: number) {
     const dragType = getDragType(e);
@@ -251,16 +255,14 @@ export function AgendaSidebarContent() {
 
   function handleCreateList() {
     const trimmed = newListName.trim();
-    if (!trimmed) {
-      setCreating(false);
-      return;
-    }
+    if (!trimmed) return;
     createListMutation.mutate(
-      { name: trimmed },
+      { name: trimmed, description: newListDescription.trim() || undefined },
       {
         onSuccess: () => {
           setNewListName('');
-          setCreating(false);
+          setNewListDescription('');
+          setCreateOpen(false);
         },
       },
     );
@@ -286,8 +288,9 @@ export function AgendaSidebarContent() {
               type="button"
               className="mr-2 flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => {
-                setCreating(true);
                 setNewListName('');
+                setNewListDescription('');
+                setCreateOpen(true);
               }}
             >
               <PlusIcon className="size-3.5" />
@@ -300,29 +303,6 @@ export function AgendaSidebarContent() {
                 if (getDragType(e)) e.preventDefault();
               }}
             >
-              {creating && (
-                <SidebarMenuItem>
-                  <div className="flex items-center gap-2 px-2 py-1">
-                    <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <Input
-                      ref={createInputRef}
-                      value={newListName}
-                      onChange={(e) => setNewListName(e.target.value)}
-                      onBlur={handleCreateList}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCreateList();
-                        if (e.key === 'Escape') {
-                          setCreating(false);
-                          setNewListName('');
-                        }
-                      }}
-                      placeholder="List name..."
-                      className="h-6 border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
-                      disabled={createListMutation.isPending}
-                    />
-                  </div>
-                </SidebarMenuItem>
-              )}
               {lists.map((list, index) => {
                 const showDropBefore =
                   dropIndex === index && dragListId && dragListId !== list.id;
@@ -352,7 +332,7 @@ export function AgendaSidebarContent() {
               {dropIndex === lists.length && dragListId && (
                 <div className="mx-2 h-0.5 rounded bg-primary" />
               )}
-              {!creating && lists.length === 0 && (
+              {lists.length === 0 && (
                 <div className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center">
                   <ListTodoIcon className="size-8 text-muted-foreground/40" />
                   <div className="space-y-1">
@@ -367,6 +347,48 @@ export function AgendaSidebarContent() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New List</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Name</Label>
+              <Input
+                placeholder="List name..."
+                value={newListName}
+                onChange={(e) => setNewListName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newListName.trim()) handleCreateList();
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea
+                placeholder="What is this list for?"
+                value={newListDescription}
+                onChange={(e) => setNewListDescription(e.target.value)}
+                className="min-h-16 resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateList}
+              disabled={!newListName.trim() || createListMutation.isPending}
+            >
+              {createListMutation.isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

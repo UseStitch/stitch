@@ -18,8 +18,6 @@ import {
   PRIORITY_VARIANTS,
   STATUS_LABELS,
   STATUS_VARIANTS,
-  TYPE_LABELS,
-  TYPE_VARIANTS,
 } from '@/components/agenda/constants';
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
 import { Badge } from '@/components/ui/badge';
@@ -54,18 +52,15 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import type {
   AgendaItem,
   AgendaItemPriority,
   AgendaItemStatus,
-  AgendaItemType,
 } from '@stitch/shared/agenda/types';
 import {
   AGENDA_ITEM_PRIORITIES,
   AGENDA_ITEM_STATUSES,
-  AGENDA_ITEM_TYPES,
 } from '@stitch/shared/agenda/types';
 import {
   agendaItemsQueryOptions,
@@ -95,7 +90,6 @@ function formatDateInTz(ts: number, timeZone: string): string {
 
 type FilterStatus = AgendaItemStatus | 'all';
 type FilterPriority = AgendaItemPriority | 'all';
-type FilterType = AgendaItemType | 'all';
 
 export function AgendaPage({ listId }: { listId?: string }) {
   const navigate = useNavigate();
@@ -104,7 +98,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const pageSize = 20;
   const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('all');
   const [filterPriority, setFilterPriority] = React.useState<FilterPriority>('all');
-  const [filterType, setFilterType] = React.useState<FilterType>('all');
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [sheetItem, setSheetItem] = React.useState<AgendaItem | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
@@ -112,8 +105,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const [deleteListOpen, setDeleteListOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
-  const [newType, setNewType] = React.useState<AgendaItemType>('todo');
-  const [newPriority, setNewPriority] = React.useState<AgendaItemPriority>('medium');
 
   const { data: listsData } = useQuery(agendaListsQueryOptions());
   const lists = listsData?.lists ?? [];
@@ -127,7 +118,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
       listId,
       status: filterStatus === 'all' ? undefined : filterStatus,
       priority: filterPriority === 'all' ? undefined : filterPriority,
-      type: filterType === 'all' ? undefined : filterType,
     }),
   );
 
@@ -142,11 +132,11 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
   React.useEffect(() => {
     setPage(1);
-  }, [filterStatus, filterPriority, filterType, listId]);
+  }, [filterStatus, filterPriority, listId]);
 
   React.useEffect(() => {
     setSelectedIds(new Set());
-  }, [itemsData?.page, itemsData?.total, filterStatus, filterPriority, filterType]);
+  }, [itemsData?.page, itemsData?.total, filterStatus, filterPriority]);
 
   const createMutation = useCreateAgendaItem();
   const deleteMutation = useDeleteAgendaItem();
@@ -276,15 +266,11 @@ export function AgendaPage({ listId }: { listId?: string }) {
     createMutation.mutate(
       {
         title: newTitle.trim(),
-        type: newType,
-        priority: newPriority,
         listId,
       },
       {
         onSuccess: () => {
           setNewTitle('');
-          setNewType('todo');
-          setNewPriority('medium');
           setCreateOpen(false);
         },
       },
@@ -334,7 +320,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const allSelected = items.length > 0 && selectedIds.size === items.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < items.length;
 
-  // Summary stats from lists
   const totalOpen = lists.reduce((sum, l) => sum + l.itemCounts.open, 0);
   const totalInProgress = lists.reduce((sum, l) => sum + l.itemCounts.in_progress, 0);
   const totalOverdue = lists.reduce((sum, l) => sum + l.itemCounts.overdue, 0);
@@ -466,26 +451,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </SelectContent>
           </Select>
 
-          <Select
-            value={filterType}
-            onValueChange={(v) => setFilterType(v as FilterType)}
-          >
-            <SelectTrigger className="w-36 bg-background">
-              <span className="truncate">
-                <span className="text-muted-foreground">Type: </span>
-                {filterType === 'all' ? 'All' : TYPE_LABELS[filterType]}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {AGENDA_ITEM_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {TYPE_LABELS[t]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {selectedIds.size > 0 && (
             <div className="ml-auto flex items-center gap-2">
               <Button
@@ -522,7 +487,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
               />
             </div>
             <span className="flex-1">Title</span>
-            <span className="w-20 text-center">Type</span>
             <span className="w-24 text-center">Status</span>
             <span className="w-20 text-center">Priority</span>
             {!listId && <span className="w-24 text-center">List</span>}
@@ -536,10 +500,8 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 <div key={i} className="flex items-center gap-3 px-4 py-3">
                   <div className="w-6" />
                   <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
                   <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
                   <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                   <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                 </div>
               ))}
@@ -657,45 +619,15 @@ export function AgendaPage({ listId }: { listId?: string }) {
           <DialogHeader>
             <DialogTitle>New Agenda Item</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <Input
-              placeholder="What needs to be done?"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreate();
-              }}
-            />
-            <div className="flex gap-3">
-              <Select value={newType} onValueChange={(v) => setNewType(v as AgendaItemType)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGENDA_ITEM_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {TYPE_LABELS[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={newPriority}
-                onValueChange={(v) => setNewPriority(v as AgendaItemPriority)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGENDA_ITEM_PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PRIORITY_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <Input
+            placeholder="What needs to be done?"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCreate();
+            }}
+            autoFocus
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
@@ -716,7 +648,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            These items and their history will be permanently removed.
+            These items will be permanently removed.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
@@ -833,12 +765,6 @@ function AgendaItemRow({ item, selected, showListColumn, isDragging, timeZone, o
         {item.description && (
           <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>{item.description}</p>
         )}
-      </div>
-
-      <div className="flex w-20 justify-center">
-        <Badge variant={TYPE_VARIANTS[item.type]} className="text-[10px]">
-          {TYPE_LABELS[item.type]}
-        </Badge>
       </div>
 
       <div className="flex w-24 justify-center">
