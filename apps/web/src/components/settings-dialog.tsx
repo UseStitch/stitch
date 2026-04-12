@@ -81,7 +81,7 @@ export function SettingsDialog() {
         <DialogTitle>Settings</DialogTitle>
       </DialogHeader>
       <DialogContent
-        className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0"
+        className="flex h-160 max-w-4xl! flex-col gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         <div className="flex flex-1 overflow-hidden">
