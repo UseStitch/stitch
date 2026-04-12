@@ -37,6 +37,7 @@ const settingsSearchSchema = z.object({
       'general',
       'appearance',
       'browser',
+      'recordings',
       'shortcuts',
       'key-locations',
       'providers',
