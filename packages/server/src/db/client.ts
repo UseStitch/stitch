@@ -21,12 +21,17 @@ function getDatabasePath(): string {
 }
 
 function getMigrationsDir(): string {
-  const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
-  if (fs.existsSync(sourceMigrationsDir)) {
-    return sourceMigrationsDir;
+  if (process.env.NODE_ENV === 'development') {
+    const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
+    if (fs.existsSync(sourceMigrationsDir)) {
+      log.info({ migrationsDir: sourceMigrationsDir, execPath: process.execPath }, 'migrations dir resolved (dev)');
+      return sourceMigrationsDir;
+    }
   }
 
-  return path.join(path.dirname(process.execPath), 'drizzle');
+  const migrationsDir = path.join(path.dirname(process.execPath), 'drizzle');
+  log.info({ migrationsDir, execPath: process.execPath }, 'migrations dir resolved');
+  return migrationsDir;
 }
 
 function seedShortcuts(db: Db): void {
