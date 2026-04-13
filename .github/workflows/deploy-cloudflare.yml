@@ -1,4 +1,4 @@
-name: deploy-mcp-registry
+name: deploy-cloudflare
 
 on:
   workflow_dispatch:
