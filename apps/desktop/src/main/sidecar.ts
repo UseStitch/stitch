@@ -77,14 +77,22 @@ export async function spawnServer(port: number): Promise<string> {
 
   console.log(`[sidecar] spawning: ${cmd} ${args.join(' ')}`);
 
+  const sidecarEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    NODE_ENV: app.isPackaged ? 'production' : 'development',
+    STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
+  };
+
+  if (app.isPackaged) {
+    const suffix = process.platform === 'win32' ? '.exe' : '';
+    const audioCaptureBin = join(process.resourcesPath, 'audio-capture', `stitch-audio-capture${suffix}`);
+    sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = audioCaptureBin;
+  }
+
   serverProcess = spawn(cmd, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
-    env: {
-      ...process.env,
-      NODE_ENV: app.isPackaged ? 'production' : 'development',
-      STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
-    },
+    env: sidecarEnv,
     ...(cwd && { cwd }),
   });
 

@@ -99,6 +99,13 @@
       "when": 1775860830198,
       "tag": "0013_neat_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1775970433811,
+      "tag": "0014_tiny_junta",
+      "breakpoints": true
     }
   ]
 }

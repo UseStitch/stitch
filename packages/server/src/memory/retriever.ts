@@ -5,8 +5,18 @@ import type { MemorySource } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-retriever' });
 
-const SEMANTIC_LIMIT = 10;
-const MIN_RELEVANCE_SCORE = 0.3;
+function getRecencyFactor(dateStr: string): number {
+  const ms = Date.parse(dateStr);
+  if (!Number.isFinite(ms)) return 0;
+  const days = (Date.now() - ms) / (1000 * 60 * 60 * 24);
+  return Math.pow(0.5, days / 30); // 30 day half-life
+}
+
+function getConfidenceFactor(confidence: string): number {
+  if (confidence === 'confirmed') return 0.9;
+  if (confidence === 'stated') return 1.0;
+  return 0.6; // inferred
+}
 
 /**
  * Retrieve relevant memories for the current conversation context.
@@ -27,10 +37,24 @@ export async function retrieveMemoryContext(
   const semantic = await searchSemanticMemories({
     query,
     page: 1,
-    pageSize: SEMANTIC_LIMIT,
+    pageSize: config.retrievalMaxResults * 2, // Fetch more for blended scoring
     sourceFilter,
   });
-  const relevant = semantic.memories.filter((m) => m.score >= MIN_RELEVANCE_SCORE);
+
+  // Apply base threshold filter first
+  let candidates = semantic.memories.filter((m) => m.score >= config.retrievalMinScore);
+
+  if (config.retrievalRecencyBoost) {
+    const scoredCandidates = candidates.map(m => {
+      const blendedScore = (m.score * 0.7) + (getRecencyFactor(m.lastAccessedAt) * 0.2) + (getConfidenceFactor(m.confidence) * 0.1);
+      return { ...m, blendedScore };
+    });
+    
+    scoredCandidates.sort((a, b) => b.blendedScore - a.blendedScore);
+    candidates = scoredCandidates;
+  }
+
+  const relevant = candidates.slice(0, config.retrievalMaxResults);
 
   if (relevant.length === 0) return null;
 

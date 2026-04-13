@@ -157,7 +157,6 @@ export function ProviderConfig({ provider, onBack }: Props) {
             providerId={provider.id}
             values={extraFields}
             onChange={handleExtraFieldChange}
-            enableBedrockRegionSelect
           />
         )}
 
@@ -184,7 +183,6 @@ export function ProviderConfig({ provider, onBack }: Props) {
                         [m.method]: { ...prev[m.method], [key]: value },
                       }))
                     }
-                    enableBedrockRegionSelect
                   />
                 ) : (
                   <NoFieldsNote method={m.method} />
@@ -200,7 +198,6 @@ export function ProviderConfig({ provider, onBack }: Props) {
               providerId={provider.id}
               values={currentMethodFields}
               onChange={handleMethodFieldChange}
-              enableBedrockRegionSelect
             />
           ) : (
             <NoFieldsNote method={activeMethodDef.method} />

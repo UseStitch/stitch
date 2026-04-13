@@ -280,6 +280,12 @@ export const queuedMessages = sqliteTable('queued_messages', {
     .$defaultFn(() => Date.now()),
 });
 
+export const lanceMigrations = sqliteTable('lance_migrations', {
+  version: integer('version').primaryKey(),
+  name: text('name').notNull(),
+  appliedAt: integer('applied_at', { mode: 'number' }).notNull(),
+});
+
 export const scheduledJobs = sqliteTable(
   'scheduled_jobs',
   {

@@ -596,7 +596,10 @@ async function runRecordingAnalysis(
           role: 'user',
           content: [
             { type: 'file', data: audioData, mediaType: 'audio/ogg' },
-            { type: 'text', text: 'Please transcribe this recording.' },
+            {
+              type: 'text',
+              text: 'Please transcribe this recording. If there is no intelligible speech, return an empty transcript array.',
+            },
           ],
         },
       ],
@@ -605,7 +608,7 @@ async function runRecordingAnalysis(
 
     const transcript = normalizeTranscript(transcriptionResult.output?.transcript ?? []);
     if (transcript.length === 0) {
-      throw new Error('Transcription returned no speaker turns');
+      throw new Error('No intelligible speech detected in recording');
     }
 
     const transcriptionUsage = transcriptionResult.usage ?? ZERO_USAGE;

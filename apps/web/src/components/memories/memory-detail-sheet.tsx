@@ -83,6 +83,8 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
     (content !== memory.content ||
       category !== memory.category ||
       confidence !== memory.confidence);
+  const selectedCategoryLabel = CATEGORY_LABELS[category];
+  const selectedConfidenceLabel = CONFIDENCE_LABELS[confidence];
 
   if (!memory) return null;
 
@@ -111,7 +113,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               <Label>Category</Label>
               <Select value={category} onValueChange={(v) => setCategory(v as MemoryCategory)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{selectedCategoryLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(CATEGORY_LABELS) as MemoryCategory[]).map((cat) => (
@@ -131,7 +133,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
                 onValueChange={(v) => setConfidence(v as MemoryConfidence)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{selectedConfidenceLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(CONFIDENCE_LABELS) as MemoryConfidence[]).map((conf) => (
