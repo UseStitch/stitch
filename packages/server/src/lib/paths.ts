@@ -85,6 +85,7 @@ export const PATHS = {
   filePaths: {
     db: path.join(paths.data, `${APP_NAME}.db`),
     models: path.join(paths.cache, 'models.json'),
+    mcpRegistry: path.join(paths.cache, 'mcp-registry.json'),
   },
 
   dirPaths: {

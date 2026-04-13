@@ -6,6 +6,7 @@ import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
+import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
 import { evictMcpClient, refreshMcpToolsets } from '@/mcp/tool-executor.js';
 
@@ -48,6 +49,22 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
   }
   await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
   return c.json(result.data, 201);
+});
+
+mcpRouter.get('/registry', async (c) => {
+  const result = await listMcpRegistryServers();
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.json(result.data);
+});
+
+mcpRouter.post('/registry/refresh', async (c) => {
+  const result = await refreshMcpRegistryCache({ force: true });
+  if (isServiceError(result)) {
+    return c.json({ error: result.error }, result.status);
+  }
+  return c.body(null, 204);
 });
 
 mcpRouter.get('/:id/tools', async (c) => {

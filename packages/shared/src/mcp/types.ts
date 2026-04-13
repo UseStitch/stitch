@@ -12,6 +12,31 @@ export type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
 
 export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth;
 
+export type McpRegistryServerInstall = {
+  name: string;
+  transport: McpTransport;
+  url: string;
+  authConfig: McpAuthConfig;
+  optionalAuthConfigs?: McpAuthConfig[];
+};
+
+export type McpRegistryServer = {
+  $schema?: string;
+  id: string;
+  name: string;
+  description: string;
+  homepageUrl?: string;
+  docsUrl: string;
+  tags: string[];
+  install: McpRegistryServerInstall;
+};
+
+export type McpRegistryPayload = {
+  version: number;
+  generatedAt: string;
+  servers: McpRegistryServer[];
+};
+
 export type McpServer = {
   id: PrefixedString<'mcp'>;
   name: string;

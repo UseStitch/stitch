@@ -1,6 +1,12 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { McpAuthConfig, McpServer, McpTool, McpTransport } from '@stitch/shared/mcp/types';
+import type {
+  McpAuthConfig,
+  McpRegistryServer,
+  McpServer,
+  McpTool,
+  McpTransport,
+} from '@stitch/shared/mcp/types';
 
 import { serverFetch } from '@/lib/api';
 import { toolKeys } from '@/lib/queries/tools';
@@ -8,6 +14,7 @@ import { toolKeys } from '@/lib/queries/tools';
 const mcpKeys = {
   all: ['mcp'] as const,
   list: () => [...mcpKeys.all, 'list'] as const,
+  registry: () => [...mcpKeys.all, 'registry'] as const,
   tools: (id: string) => [...mcpKeys.all, 'tools', id] as const,
 };
 
@@ -35,6 +42,19 @@ export const mcpToolsQueryOptions = (id: string) =>
       return res.json() as Promise<McpTool[]>;
     },
   });
+
+export const mcpRegistryQueryOptions = queryOptions({
+  queryKey: mcpKeys.registry(),
+  staleTime: 5 * 60 * 1000,
+  queryFn: async (): Promise<McpRegistryServer[]> => {
+    const res = await serverFetch('/mcp/registry');
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(err.error ?? 'Failed to fetch MCP registry');
+    }
+    return res.json() as Promise<McpRegistryServer[]>;
+  },
+});
 
 export function useAddMcpServer() {
   const queryClient = useQueryClient();
@@ -93,6 +113,22 @@ export function useRefreshMcpServers() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
       void queryClient.invalidateQueries({ queryKey: toolKeys.all });
+    },
+  });
+}
+
+export function useRefreshMcpRegistry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await serverFetch('/mcp/registry/refresh', { method: 'POST' });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to refresh MCP registry');
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mcpKeys.registry() });
     },
   });
 }
