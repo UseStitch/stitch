@@ -26,6 +26,7 @@ jobs:
             ci:
               - '**'
               - '!apps/website/**'
+              - '!registries/**'
               - '!**/*.md'
               - '!LICENSE'
               - '!.opencode/**'

@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "title": "Stitch MCP Marketplace Server",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "description",
+    "docsUrl",
+    "tags",
+    "install"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor tooling"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-_]*$",
+      "description": "Stable marketplace identifier"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name shown in the marketplace"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "homepageUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "docsUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "install": {
+      "$ref": "#/$defs/mcpInstallConfig"
+    }
+  },
+  "$defs": {
+    "mcpInstallConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "transport",
+        "url",
+        "authConfig"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Default name prefilled in Stitch"
+        },
+        "transport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "http"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "authConfig": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "none"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "apiKey"
+              ],
+              "properties": {
+                "type": {
+                  "const": "api_key"
+                },
+                "apiKey": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "headers"
+              ],
+              "properties": {
+                "type": {
+                  "const": "headers"
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "optionalAuthConfigs": {
+          "type": "array",
+          "description": "Additional auth presets a user may choose instead of the default authConfig",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "none"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "apiKey"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "api_key"
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "headers"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "headers"
+                  },
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

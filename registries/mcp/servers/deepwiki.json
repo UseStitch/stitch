@@ -1,0 +1,21 @@
+{
+  "$schema": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "id": "deepwiki",
+  "name": "DeepWiki",
+  "description": "Read DeepWiki docs and ask repository-grounded questions.",
+  "homepageUrl": "https://docs.devin.ai/work-with-devin/deepwiki",
+  "docsUrl": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+  "tags": [
+    "documentation",
+    "repositories",
+    "research"
+  ],
+  "install": {
+    "name": "DeepWiki",
+    "transport": "http",
+    "url": "https://mcp.deepwiki.com/mcp",
+    "authConfig": {
+      "type": "none"
+    }
+  }
+}
