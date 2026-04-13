@@ -26,5 +26,7 @@ Stitch is currently in **alpha**. Things will break, behavior may change quickly
 
 ## Development
 
+- Install Bun (required): https://bun.sh/
 - Install dependencies: `bun install`
+- Start the app in development mode: `bun run dev`
 - Run project checks: `bun run check`
