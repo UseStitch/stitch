@@ -26,6 +26,7 @@ export function buildSystemPrompt(input: {
   userName?: string | null;
   userTimezone?: string | null;
   memoryContext?: string | null;
+  codeModePrompt?: string | null;
 }): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
   const userName = input.userName?.trim() || null;
@@ -40,6 +41,10 @@ export function buildSystemPrompt(input: {
   }
 
   let result = `${identity(userName)}\n\n${buildPromptEnvironment({ userTimezone })}\n\n${promptBody}`;
+
+  if (input.codeModePrompt?.trim()) {
+    result = `${result}\n\n${input.codeModePrompt.trim()}`;
+  }
 
   if (input.memoryContext) {
     result = `${result}\n\n<memory>\n${input.memoryContext}\n</memory>`;

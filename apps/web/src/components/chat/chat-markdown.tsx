@@ -17,7 +17,6 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { useTheme } from '@/hooks/ui/use-theme';
 import {
   getHighlighterPromise,
   type SupportedLanguage,
@@ -112,18 +111,16 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
 interface SuspenseShikiCodeBlockProps {
   className: string | undefined;
   code: string;
-  theme: 'light' | 'dark';
   isStreaming: boolean;
 }
 
 function SuspenseShikiCodeBlock({
   className,
   code,
-  theme,
   isStreaming,
 }: SuspenseShikiCodeBlockProps) {
   const language = extractFenceLanguage(className);
-  const cacheKey = createHighlightCacheKey(code, language, theme);
+  const cacheKey = createHighlightCacheKey(code, language, 'dual');
   const cachedHighlightedHtml = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
 
   if (cachedHighlightedHtml !== null) {
@@ -135,13 +132,16 @@ function SuspenseShikiCodeBlock({
     );
   }
 
-  const highlighter = use(getHighlighterPromise(language, theme));
+  const highlighter = use(getHighlighterPromise(language));
 
   let highlightedHtml: string;
   try {
     highlightedHtml = highlighter.codeToHtml(code, {
       lang: language as SupportedLanguage,
-      theme: theme === 'dark' ? 'github-dark' : 'github-light',
+      themes: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
     });
   } catch (error) {
     console.warn(
@@ -150,7 +150,10 @@ function SuspenseShikiCodeBlock({
     );
     highlightedHtml = highlighter.codeToHtml(code, {
       lang: 'text',
-      theme: theme === 'dark' ? 'github-dark' : 'github-light',
+      themes: {
+        light: 'github-light',
+        dark: 'github-dark',
+      },
     });
   }
 
@@ -249,10 +252,6 @@ function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
 }
 
 function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
-  const { mode } = useTheme();
-
-  const effectiveTheme = mode === 'dark' ? 'dark' : 'light';
-
   const markdownComponents = useMemo<Components>(() => {
     return {
       img: MarkdownImage,
@@ -279,7 +278,6 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
                 <SuspenseShikiCodeBlock
                   className={codeBlock.className}
                   code={codeBlock.code}
-                  theme={effectiveTheme}
                   isStreaming={false}
                 />
               </Suspense>
@@ -288,7 +286,7 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
         );
       },
     };
-  }, [effectiveTheme, isStreaming]);
+  }, [isStreaming]);
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
   const remarkPlugins = useMemo(

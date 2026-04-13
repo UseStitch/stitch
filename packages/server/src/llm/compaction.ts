@@ -504,6 +504,7 @@ export async function buildCompactedHistory(
     systemPrompt: string | null;
     userName?: string | null;
     userTimezone?: string | null;
+    codeModePrompt?: string | null;
   },
 ): Promise<ModelMessage[]> {
   const db = getDb();
@@ -555,6 +556,7 @@ export async function buildCompactedHistory(
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,
+    codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
 }
 
