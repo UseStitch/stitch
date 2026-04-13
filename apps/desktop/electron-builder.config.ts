@@ -16,6 +16,7 @@ const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
 const config: Configuration = {
   appId: 'com.stitch.desktop',
   productName: 'Stitch',
+  electronLanguages: ['en-US'],
   publish: [
     {
       provider: 'github',

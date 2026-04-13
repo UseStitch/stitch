@@ -28,6 +28,7 @@ import {
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { processMemories } from '@/memory/processor.js';
+import { createCodeModeTool } from '@/code-mode/tool.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
@@ -1286,15 +1287,37 @@ export async function runStream(opts: {
     }),
   );
 
+  // Build code mode tool with a lazy getter for always-current active tools.
+  // The getter merges core tools + dynamic toolset tools at call time so
+  // newly activated toolsets are available inside the sandbox.
+  const codeModeResult = createCodeModeTool({
+    getTools: () => {
+      const dynamic = toolsetManager.getActiveTools();
+      return { ...coreStitchTools, ...toolsetMetaTools, task: taskTool, ...dynamic };
+    },
+  });
+
   // Combine all always-active tools
   const coreTools: Record<string, Tool> = {
     ...coreStitchTools,
     ...toolsetMetaTools,
     task: taskTool,
+    execute_typescript: codeModeResult.tool,
   };
 
+  const messages = opts.llmMessages;
+  const codeModePrompt = codeModeResult.getSystemPrompt();
+  if (messages.length > 0 && messages[0]?.role === 'system') {
+    const sysMsg = messages[0];
+    const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+    messages[0] = {
+      role: 'system',
+      content: `${existingContent}\n\n${codeModePrompt}`,
+    };
+  }
+
   const transformedMessages = await transformAttachmentsForModel(
-    opts.llmMessages,
+    messages,
     opts.credentials.providerId,
     opts.modelId,
   );

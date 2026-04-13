@@ -48,6 +48,10 @@ export function buildExtractionPrompt(userMessage: string, assistantMessage: str
 
 Rules:
 - Only extract information about the USER, not the assistant.
+- Extract at most 3 facts per turn. Focus on the most important ones.
+- Strongly prefer "stated" confidence. Only use "inferred" when the implication is very strong and specific.
+- Skip trivial or ephemeral information: greetings, acknowledgments, task-specific file paths, temporary variable names.
+- Skip information that is only relevant to the current task and has no lasting value across sessions.
 - Each fact must be a single, self-contained statement.
 - Do NOT extract trivial greetings, filler, or task-specific instructions that have no lasting value.
 - Do NOT extract information the assistant said unless the user confirmed it.
@@ -96,6 +100,7 @@ Important rules:
 - The assistant RECITING a memory back to the user is NOT a contradiction — do not DELETE in this case.
 - Prefer NONE over DELETE. Only DELETE when the existing memory is clearly and factually wrong.
 - Prefer NONE over UPDATE for minor wording differences.
+- If the new fact is very similar to an existing memory (just reworded), prefer NONE. Only use ADD for genuinely new information.
 
 <new_fact>
 content: ${fact.content}

@@ -18,10 +18,13 @@ Do not invent content that is not present in the audio.
 - Return `transcript` as an array of objects, each with:
   - `speaker`: speaker label (see Speaker Identification below).
   - `content`: the spoken utterance text for that turn.
+- If the recording has no intelligible human speech (only silence, static, hum, keyboard sounds, music, room noise, or heavily distorted audio), return `transcript: []`.
+- Prefer an empty transcript over guessed words when confidence is low.
 - Keep speaker labels consistent throughout the full transcript.
 - Preserve meaning and important wording while using clean punctuation and sentence boundaries.
 - Do not merge different speakers into one transcript item.
 - If audio is unclear, use `[inaudible]` or `[unclear]` instead of guessing.
+- Do not convert non-speech sounds into words (for example, do not transcribe coughs, clicks, laughter-only segments, or background TV/music as dialogue).
 - Keep specialized terms, acronyms, product names, and technical language as spoken.
 - Do not include narrative commentary outside transcript utterances.
 
@@ -40,3 +43,4 @@ Do not invent content that is not present in the audio.
 
 - Output must conform to the schema field exactly: `transcript`.
 - Never fabricate speakers or content.
+- If there is insufficient speech evidence to produce a faithful transcript, output `transcript: []`.

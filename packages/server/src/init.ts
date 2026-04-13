@@ -1,7 +1,8 @@
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { initConnectorRuntime } from '@/connectors/runtime.js';
-import { initDb } from '@/db/client.js';
+import { getDb, initDb } from '@/db/client.js';
+import { runPendingMigrations } from '@/db/lance-migrations.js';
 import * as Log from '@/lib/log.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { startMeetingDetection } from '@/recordings/meeting-detection.js';
@@ -16,6 +17,7 @@ export async function init() {
   await Log.init({ print: false });
 
   await initDb();
+  await runPendingMigrations(getDb());
 
   // Register all toolsets (built-in providers + MCP servers + agenda)
   registerProviderToolsets();

@@ -7,8 +7,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile dist/stitch-server",
-    "build:x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/stitch-server",
+    "build": "bun build src/index.ts --compile --minify --outfile dist/stitch-server",
+    "build:x64": "bun build src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/stitch-server",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -33,6 +33,7 @@
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "hono": "^4.12.7",
+    "quickjs-emscripten": "^0.32.0",
     "turndown": "^7.2.2",
     "zod": "catalog:"
   },
