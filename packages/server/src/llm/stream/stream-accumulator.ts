@@ -1,6 +1,7 @@
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
+import { isToolErrorResult } from '@stitch/shared/tools/types';
 
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
@@ -250,15 +251,16 @@ export class StreamAccumulator {
         const partId = createPartId();
         const truncationMeta = this.getToolTruncationMeta(part.output);
         const sanitizedOutput = this.stripToolTruncationMeta(part.output);
+        const fallbackError = isToolErrorResult(sanitizedOutput) ? sanitizedOutput.error : undefined;
 
         await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          status: 'completed',
+          status: fallbackError ? 'error' : 'completed',
           input: part.input,
-          output: sanitizedOutput,
+          ...(fallbackError ? { error: fallbackError } : { output: sanitizedOutput }),
         });
 
         this.accumulatedParts.push({

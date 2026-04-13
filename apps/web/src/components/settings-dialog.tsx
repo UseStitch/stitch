@@ -8,6 +8,7 @@ import {
   FolderOpenIcon,
   MonitorIcon,
   CpuIcon,
+  MicIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -20,6 +21,7 @@ import { MemorySettings } from '@/components/settings/memory';
 import { ModelsSettings } from '@/components/settings/models';
 import { PermissionsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
+import { RecordingsSettings } from '@/components/settings/recordings';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,14 +46,15 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
-      { id: 'browser', label: 'Browser', icon: <GlobeIcon className="size-4" /> },
+      { id: 'key-locations', label: 'Key Locations', icon: <FolderOpenIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
     ],
   },
   {
-    label: 'Server',
+    label: 'Apps',
     items: [
-      { id: 'key-locations', label: 'Key Locations', icon: <FolderOpenIcon className="size-4" /> },
+      { id: 'browser', label: 'Browser', icon: <GlobeIcon className="size-4" /> },
+      { id: 'recordings', label: 'Recordings', icon: <MicIcon className="size-4" /> },
     ],
   },
   {
@@ -78,7 +81,7 @@ export function SettingsDialog() {
         <DialogTitle>Settings</DialogTitle>
       </DialogHeader>
       <DialogContent
-        className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0"
+        className="flex h-160 max-w-4xl! flex-col gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         <div className="flex flex-1 overflow-hidden">
@@ -125,6 +128,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <AppearanceSettings />;
     case 'browser':
       return <BrowserSettings />;
+    case 'recordings':
+      return <RecordingsSettings />;
     case 'shortcuts':
       return <ShortcutsSettings />;
     case 'key-locations':

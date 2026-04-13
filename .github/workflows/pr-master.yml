@@ -33,15 +33,9 @@ jobs:
               - '!.github/CODEOWNERS'
 
   check:
-    name: check (${{ matrix.os }})
+    name: check (linux)
     needs: filter
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - windows-latest
-          - macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         if: needs.filter.outputs.run-ci == 'true'
@@ -54,6 +48,10 @@ jobs:
       - name: Setup Rust toolchain
         if: needs.filter.outputs.run-ci == 'true'
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux Rust test dependencies
+        if: needs.filter.outputs.run-ci == 'true' && runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
 
       - name: Cache Rust dependencies
         if: needs.filter.outputs.run-ci == 'true'
@@ -71,6 +69,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-turbo-
 
+      - name: Run typecheck
+        if: needs.filter.outputs.run-ci == 'true'
+        run: bun run typecheck
+
       - name: Run tests
         if: needs.filter.outputs.run-ci == 'true'
         run: bun run test
@@ -78,7 +80,3 @@ jobs:
       - name: Run Rust tests
         if: needs.filter.outputs.run-ci == 'true'
         run: cargo test --manifest-path packages/audio-native/Cargo.toml
-
-      - name: Run typecheck
-        if: needs.filter.outputs.run-ci == 'true'
-        run: bun run typecheck

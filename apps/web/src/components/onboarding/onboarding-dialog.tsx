@@ -28,16 +28,17 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import {
+  embeddingProviderModelsQueryOptions,
   providerConfigQueryOptions,
   providersQueryOptions,
   type ProviderSummary,
 } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type OnboardingStep = 'welcome' | 'profile' | 'provider' | 'success';
+type OnboardingStep = 'welcome' | 'profile' | 'provider' | 'memory' | 'success';
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
-const CURRENT_ONBOARDING_VERSION = '3';
+const CURRENT_ONBOARDING_VERSION = '4';
 
 function getDetectedTimezone(): string {
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -333,6 +334,7 @@ function OnboardingProviderStep({ onConnected }: { onConnected: () => void }) {
   const selectableProviders = React.useMemo(() => {
     if (!providers) return [];
     return providers.filter((provider) => {
+      if (provider.enabled) return false;
       if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;
       const meta = PROVIDER_META[provider.id as ProviderId];
       return meta.authMethods.some((method) => method.enabled);
@@ -363,31 +365,171 @@ function OnboardingProviderStep({ onConnected }: { onConnected: () => void }) {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-border/60">
-        {selectableProviders.map((provider) => {
-          const meta = PROVIDER_META[provider.id as ProviderId];
-          return (
-            <div
-              key={provider.id}
-              className="flex items-center justify-between border-b border-border/50 px-4 py-3 last:border-0"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="shrink-0 text-muted-foreground">
-                  <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
+        {selectableProviders.length === 0 ? (
+          <div className="px-4 py-3 text-sm text-muted-foreground">
+            All available providers are already connected.
+          </div>
+        ) : (
+          selectableProviders.map((provider) => {
+            const meta = PROVIDER_META[provider.id as ProviderId];
+            return (
+              <div
+                key={provider.id}
+                className="flex items-center justify-between border-b border-border/50 px-4 py-3 last:border-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="shrink-0 text-muted-foreground">
+                    <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{meta.displayName}</p>
+                    {meta.description && (
+                      <p className="truncate text-xs text-muted-foreground">{meta.description}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{meta.displayName}</p>
-                  {meta.description && (
-                    <p className="truncate text-xs text-muted-foreground">{meta.description}</p>
-                  )}
-                </div>
+                <Button size="sm" variant="outline" onClick={() => setSelected(provider)}>
+                  <PlusIcon className="mr-1 size-3.5" />
+                  Connect
+                </Button>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setSelected(provider)}>
-                <PlusIcon className="mr-1 size-3.5" />
-                Connect
-              </Button>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OnboardingMemoryStep({
+  onComplete,
+  onBackToProviders,
+}: {
+  onComplete: () => void;
+  onBackToProviders: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { data: settings } = useQuery(settingsQueryOptions);
+  const { data: providerModels } = useQuery(embeddingProviderModelsQueryOptions);
+
+  const saveEnabled = useMutation(
+    saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }),
+  );
+  const saveProvider = useMutation(
+    saveSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
+  );
+  const saveModel = useMutation(
+    saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
+  );
+
+  const modelOptions = React.useMemo(() => {
+    if (!providerModels)
+      return [] as Array<{ value: string; label: string; providerId: string; modelId: string }>;
+
+    const options: Array<{ value: string; label: string; providerId: string; modelId: string }> =
+      [];
+    for (const provider of providerModels) {
+      for (const model of provider.models) {
+        options.push({
+          value: `${provider.providerId}:${model.id}`,
+          label: `${provider.providerName} - ${model.name}`,
+          providerId: provider.providerId,
+          modelId: model.id,
+        });
+      }
+    }
+    return options;
+  }, [providerModels]);
+
+  const [selectedValue, setSelectedValue] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!settings || modelOptions.length === 0) return;
+
+    const existingValue = `${settings['memory.embedding.providerId']}:${settings['memory.embedding.modelId']}`;
+    const hasExisting = modelOptions.some((option) => option.value === existingValue);
+    if (hasExisting) {
+      setSelectedValue(existingValue);
+      return;
+    }
+
+    if (!selectedValue) {
+      setSelectedValue(modelOptions[0].value);
+    }
+  }, [modelOptions, selectedValue, settings]);
+
+  if (!settings || !providerModels) {
+    return <div className="text-sm text-muted-foreground">Loading memory settings...</div>;
+  }
+
+  const hasModels = modelOptions.length > 0;
+  const selectedOption = modelOptions.find((option) => option.value === selectedValue);
+  const isSaving = saveEnabled.isPending || saveProvider.isPending || saveModel.isPending;
+
+  function handleDisableMemories() {
+    void saveEnabled
+      .mutateAsync('false')
+      .then(onComplete)
+      .catch(() => undefined);
+  }
+
+  function handleEnableMemories() {
+    if (!selectedOption) return;
+
+    void Promise.all([
+      saveProvider.mutateAsync(selectedOption.providerId),
+      saveModel.mutateAsync(selectedOption.modelId),
+      saveEnabled.mutateAsync('true'),
+    ])
+      .then(onComplete)
+      .catch(() => undefined);
+  }
+
+  return (
+    <div className="mx-auto flex h-full w-full max-w-lg flex-col justify-center gap-6">
+      <div className="space-y-2 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight">Enable memories?</h2>
+        <p className="text-sm text-muted-foreground">
+          Memories help Stitch remember preferences and recurring context across sessions.
+        </p>
+      </div>
+
+      {hasModels ? (
+        <div className="space-y-2">
+          <Label htmlFor="onboarding-memory-model">Embedding model</Label>
+          <Select value={selectedValue} onValueChange={(value) => setSelectedValue(value ?? '')}>
+            <SelectTrigger id="onboarding-memory-model" className="w-full">
+              <SelectValue placeholder="Select an embedding model">
+                {selectedOption?.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="max-h-80">
+              {modelOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          No embedding models in providers configured. Please add another provider that has one
+        </p>
+      )}
+
+      <div className="flex items-center justify-center gap-2">
+        {!hasModels && (
+          <Button variant="outline" onClick={onBackToProviders} disabled={isSaving}>
+            Add provider
+          </Button>
+        )}
+        <Button variant="outline" onClick={handleDisableMemories} disabled={isSaving}>
+          Not now
+        </Button>
+        <Button onClick={handleEnableMemories} disabled={isSaving || !hasModels || !selectedOption}>
+          {isSaving ? 'Saving...' : 'Enable memories'}
+        </Button>
       </div>
     </div>
   );
@@ -400,7 +542,6 @@ export function OnboardingDialog() {
 
   const [step, setStep] = React.useState<OnboardingStep>('welcome');
   const [dismissed, setDismissed] = React.useState(false);
-  const didAutofinishRef = React.useRef(false);
 
   const saveOnboardingStatus = useMutation(
     saveSettingMutationOptions('onboarding.status', queryClient, { silent: true }),
@@ -422,6 +563,11 @@ export function OnboardingDialog() {
   const hasProfileName = profileName.length > 0;
   const hasProfileTimezone = profileTimezone.length > 0;
   const hasEnabledProvider = (providers ?? []).some((provider) => provider.enabled);
+  const memoryEnabled = settings?.['memory.enabled'] === 'true';
+  const hasMemoryModelConfigured =
+    (settings?.['memory.embedding.providerId']?.trim().length ?? 0) > 0 &&
+    (settings?.['memory.embedding.modelId']?.trim().length ?? 0) > 0;
+  const hasMemoryPreference = !memoryEnabled || hasMemoryModelConfigured;
   const isOnboarded = onboardingStatus === 'completed';
   const isLatestOnboardingVersion = onboardingVersion === CURRENT_ONBOARDING_VERSION;
   const isOnboardingComplete =
@@ -429,45 +575,13 @@ export function OnboardingDialog() {
     isLatestOnboardingVersion &&
     hasProfileName &&
     hasProfileTimezone &&
-    hasEnabledProvider;
+    hasEnabledProvider &&
+    hasMemoryPreference;
 
   const completeOnboarding = React.useCallback(async () => {
     await saveOnboardingStatus.mutateAsync('completed');
     await saveOnboardingVersion.mutateAsync(CURRENT_ONBOARDING_VERSION);
   }, [saveOnboardingStatus, saveOnboardingVersion]);
-
-  React.useEffect(() => {
-    if (
-      isSettingsPending ||
-      isProvidersPending ||
-      !hasEnabledProvider ||
-      !hasProfileName ||
-      !hasProfileTimezone ||
-      isOnboardingComplete
-    ) {
-      return;
-    }
-    if (
-      didAutofinishRef.current ||
-      saveOnboardingStatus.isPending ||
-      saveOnboardingVersion.isPending
-    ) {
-      return;
-    }
-
-    didAutofinishRef.current = true;
-    void completeOnboarding().catch(() => undefined);
-  }, [
-    completeOnboarding,
-    hasProfileName,
-    hasProfileTimezone,
-    hasEnabledProvider,
-    isOnboardingComplete,
-    isProvidersPending,
-    isSettingsPending,
-    saveOnboardingStatus.isPending,
-    saveOnboardingVersion.isPending,
-  ]);
 
   React.useEffect(() => {
     if (step !== 'success') return;
@@ -533,9 +647,8 @@ export function OnboardingDialog() {
                 ])
                   .then(() => {
                     if (hasEnabledProvider) {
-                      return completeOnboarding().then(() => {
-                        setStep('success');
-                      });
+                      setStep('memory');
+                      return undefined;
                     }
                     setStep('provider');
                     return undefined;
@@ -548,11 +661,22 @@ export function OnboardingDialog() {
           {step === 'provider' && (
             <OnboardingProviderStep
               onConnected={() => {
+                setStep('memory');
+              }}
+            />
+          )}
+
+          {step === 'memory' && (
+            <OnboardingMemoryStep
+              onComplete={() => {
                 void completeOnboarding()
                   .then(() => {
                     setStep('success');
                   })
                   .catch(() => undefined);
+              }}
+              onBackToProviders={() => {
+                setStep('provider');
               }}
             />
           )}
@@ -565,7 +689,7 @@ export function OnboardingDialog() {
               <div className="space-y-1">
                 <h2 className="text-xl font-semibold">You&apos;re all set</h2>
                 <p className="text-sm text-muted-foreground">
-                  Provider connected. Launching your workspace...
+                  Setup complete. Launching your workspace...
                 </p>
               </div>
             </div>

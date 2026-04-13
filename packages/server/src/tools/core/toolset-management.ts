@@ -33,9 +33,9 @@ export function createToolsetTools(manager: ToolsetManager) {
 
       const toolset = getToolset(toolsetId);
       if (!toolset) {
-        return {
-          error: `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
-        };
+        throw new Error(
+          `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
+        );
       }
 
       const tools = toolset.tools();
@@ -83,9 +83,9 @@ export function createToolsetTools(manager: ToolsetManager) {
 
       const toolNames = await manager.activate(toolsetId);
       if (toolNames === null) {
-        return {
-          error: `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
-        };
+        throw new Error(
+          `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
+        );
       }
 
       const toolset = getToolset(toolsetId);

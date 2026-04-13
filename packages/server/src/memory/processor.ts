@@ -9,7 +9,7 @@ import { sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { getMemoryConfig } from '@/memory/config.js';
+import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import {
   buildExtractionPrompt,
   buildDeduplicationPrompt,
@@ -77,7 +77,7 @@ export async function processMemories(input: {
 }): Promise<void> {
   try {
     const config = await getMemoryConfig();
-    if (!config.enabled || !config.autoExtract) {
+    if (!isMemoryActive(config) || !config.autoExtract) {
       return;
     }
 

@@ -21,12 +21,17 @@ function getDatabasePath(): string {
 }
 
 function getMigrationsDir(): string {
-  const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
-  if (fs.existsSync(sourceMigrationsDir)) {
-    return sourceMigrationsDir;
+  if (process.env.NODE_ENV === 'development') {
+    const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
+    if (fs.existsSync(sourceMigrationsDir)) {
+      log.info({ migrationsDir: sourceMigrationsDir, execPath: process.execPath }, 'migrations dir resolved (dev)');
+      return sourceMigrationsDir;
+    }
   }
 
-  return path.join(path.dirname(process.execPath), 'drizzle');
+  const migrationsDir = path.join(path.dirname(process.execPath), 'drizzle');
+  log.info({ migrationsDir, execPath: process.execPath }, 'migrations dir resolved');
+  return migrationsDir;
 }
 
 function seedShortcuts(db: Db): void {
@@ -63,6 +68,10 @@ function seedSettings(db: Db): void {
 export function getDb(): Db {
   if (!_db) throw new Error('Database not initialized - call initDb() first');
   return _db;
+}
+
+export function isDbInitialized(): boolean {
+  return _db !== undefined;
 }
 
 export async function initDb(): Promise<void> {

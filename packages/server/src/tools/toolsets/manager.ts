@@ -1,4 +1,5 @@
 import * as Log from '@/lib/log.js';
+import { withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
@@ -39,7 +40,7 @@ export class ToolsetManager {
       return null;
     }
 
-    const tools = await toolset.activate(this.context);
+    const tools = withToolResultHandlingRecord(await toolset.activate(this.context));
     this.activeIds.add(toolsetId);
     this.activeToolCache.set(toolsetId, tools);
 

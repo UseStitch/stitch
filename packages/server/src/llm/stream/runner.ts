@@ -31,6 +31,7 @@ import { processMemories } from '@/memory/processor.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
+import { withToolResultHandling, withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -1268,20 +1269,22 @@ export async function runStream(opts: {
   }
 
   // Build always-active core tools
-  const coreStitchTools = createTools(toolContext);
+  const coreStitchTools = await createTools(toolContext);
 
   // Build meta-tools (bound to this session's toolset manager)
-  const toolsetMetaTools = createToolsetTools(toolsetManager);
+  const toolsetMetaTools = withToolResultHandlingRecord(createToolsetTools(toolsetManager));
 
   // Build task tool (bound to this session's context)
-  const taskTool = createTaskTool(toolContext, {
-    parentSessionId: opts.sessionId,
-    parentAbortSignal: opts.abortSignal,
-    credentials: opts.credentials,
-    modelId: opts.modelId,
-    providerId: opts.credentials.providerId,
-    toolsetManager,
-  });
+  const taskTool = withToolResultHandling(
+    createTaskTool(toolContext, {
+      parentSessionId: opts.sessionId,
+      parentAbortSignal: opts.abortSignal,
+      credentials: opts.credentials,
+      modelId: opts.modelId,
+      providerId: opts.credentials.providerId,
+      toolsetManager,
+    }),
+  );
 
   // Combine all always-active tools
   const coreTools: Record<string, Tool> = {
