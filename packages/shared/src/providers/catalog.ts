@@ -1,3 +1,4 @@
+import { AWS_BEDROCK_REGIONS } from './types.js';
 import type { ProviderId, ProviderMeta } from './types.js';
 
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
@@ -121,6 +122,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         placeholder: 'Select a region',
         required: true,
         secret: false,
+        type: 'select',
+        options: AWS_BEDROCK_REGIONS.map((r) => ({ value: r.value, label: `${r.label} (${r.value})` })),
       },
     ],
     authMethods: [

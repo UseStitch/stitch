@@ -39,6 +39,18 @@ export function useActions(): Action[] {
       run: () => setSettingsTab(settingsTab ? undefined : 'general'),
     },
     { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
+    { id: 'open-memories', label: 'Memories', run: () => void navigate({ to: '/memories' }) },
+    {
+      id: 'open-recordings',
+      label: 'Recordings',
+      run: () => void navigate({ to: '/recordings' }),
+    },
+    {
+      id: 'open-automations',
+      label: 'Automations',
+      run: () => void navigate({ to: '/automations' }),
+    },
+    { id: 'open-usage', label: 'Usage', run: () => void navigate({ to: '/usage' }) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
     {
       id: 'rename-session',
