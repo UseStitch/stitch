@@ -4,6 +4,7 @@ import type { JobSchedule, RegisteredJob } from '@stitch/scheduler';
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
+import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import * as ModelsDev from '@/llm/provider/models.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
@@ -17,6 +18,7 @@ const MEMORY_MAINTENANCE_INTERVAL_MS = 24 * HOUR_MS;
 const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 const MCP_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+const MCP_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const TOKEN_REFRESH_INTERVAL_MS = 60 * 1000;
 
 let scheduler: ReturnType<typeof createScheduler> | null = null;
@@ -76,6 +78,18 @@ export async function startScheduler(): Promise<void> {
     key: 'mcp-refresh',
     schedule: { type: 'interval', everyMs: MCP_REFRESH_INTERVAL_MS },
     callback: () => refreshMcpToolsets({ refreshTools: true }),
+    maxConcurrency: 1,
+    queueEnabled: true,
+    catchup: 'one',
+  });
+
+  await scheduler.registerJob({
+    key: 'mcp-registry-refresh',
+    schedule: { type: 'interval', everyMs: MCP_REGISTRY_REFRESH_INTERVAL_MS },
+    callback: async () => {
+      await refreshMcpRegistryCache({ force: true });
+    },
+    immediate: true,
     maxConcurrency: 1,
     queueEnabled: true,
     catchup: 'one',
