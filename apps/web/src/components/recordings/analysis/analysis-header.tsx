@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import type { RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
 import { Progress } from '@/components/ui/progress';
 import { getServerUrl } from '@/lib/api';
 
@@ -156,6 +157,7 @@ function AudioPlayer({
 
 interface AnalysisHeaderProps {
   analysis: RecordingAnalysis | null | undefined;
+  analysisMarkdown: string | null;
   recording: Recording | undefined;
   isRunning: boolean;
   isStarting: boolean;
@@ -168,6 +170,7 @@ interface AnalysisHeaderProps {
 
 export function AnalysisHeader({
   analysis,
+  analysisMarkdown,
   recording,
   isRunning,
   isStarting,
@@ -194,6 +197,14 @@ export function AnalysisHeader({
       <div className="flex items-center gap-3">
         {showPlayer ? (
           <AudioPlayer recordingId={recording.id} durationMs={recording.durationMs} />
+        ) : null}
+        {analysisMarkdown ? (
+          <CopyButton
+            value={analysisMarkdown}
+            copyLabel="Copy analysis markdown"
+            copiedLabel="Copied analysis"
+            className="shadow-sm"
+          />
         ) : null}
         <Button
           onClick={onStartAnalysis}
