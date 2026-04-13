@@ -1,0 +1,39 @@
+name: deploy-mcp-registry
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure workflow is dispatched from master
+        run: |
+          if [ "${{ github.ref_name }}" != "master" ]; then
+            echo "This workflow must be run from the master branch."
+            exit 1
+          fi
+
+  deploy:
+    needs: guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build MCP registry artifact
+        run: node scripts/build-mcp-registry.mjs
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/website/dist --project-name=stitch --branch=master
