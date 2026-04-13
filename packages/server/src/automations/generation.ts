@@ -126,6 +126,8 @@ function buildAutomationPrompt(input: {
   return [
     'Review the conversation and create an automation draft.',
     'Focus on the user goal and their feedback/corrections so instructions are precise and actionable.',
+    'Treat explicit user corrections, dislikes, and "do not" guidance as hard constraints.',
+    'When guidance conflicts, prioritize the latest explicit user instruction.',
     'The prompt field must be markdown formatted for readability.',
     '',
     `Known toolsets: ${availableToolsets}`,
@@ -137,6 +139,8 @@ function buildAutomationPrompt(input: {
     '- toolsets: only include toolset IDs that are actually relevant.',
     '- steps: 3-10 concise, ordered steps.',
     '- prompt: clear reusable automation instructions that reflect user feedback and use markdown formatting.',
+    '- prompt: include both positive goals (what to do) and explicit exclusions (what to avoid) from user guidance.',
+    '- prompt: do not reintroduce approaches the user rejected unless they later reversed that decision.',
   ].join('\n');
 }
 
