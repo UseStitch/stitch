@@ -1,0 +1,29 @@
+{
+  "$schema": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "id": "exa",
+  "name": "Exa",
+  "description": "Web and code search tools from Exa via remote MCP.",
+  "homepageUrl": "https://exa.ai",
+  "docsUrl": "https://exa.ai/docs/reference/exa-mcp",
+  "tags": [
+    "search",
+    "web",
+    "research"
+  ],
+  "install": {
+    "name": "Exa",
+    "transport": "http",
+    "url": "https://mcp.exa.ai/mcp",
+    "authConfig": {
+      "type": "none"
+    },
+    "optionalAuthConfigs": [
+      {
+        "type": "headers",
+        "headers": {
+          "x-api-key": "YOUR_EXA_API_KEY"
+        }
+      }
+    ]
+  }
+}

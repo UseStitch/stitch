@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/*",
+    "registries/*",
     "packages/*",
     "connectors/*"
   ],
@@ -15,7 +16,8 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "knip": "knip",
-    "check": "bun run scripts/check.ts"
+    "check": "bun run scripts/check.ts",
+    "website:build": "bun run --cwd apps/website build"
   },
   "devDependencies": {
     "knip": "latest",
