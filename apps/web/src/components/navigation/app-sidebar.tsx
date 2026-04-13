@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import { AnimatedTitle } from '@/components/animated-title';
+import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
@@ -126,7 +127,8 @@ function useActiveContext():
   | 'automations'
   | 'memories'
   | 'usage'
-  | 'recordings' {
+  | 'recordings'
+  | 'agenda' {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
   if (path.startsWith('/connectors')) return 'connectors';
@@ -134,6 +136,7 @@ function useActiveContext():
   if (path.startsWith('/memories')) return 'memories';
   if (path.startsWith('/usage')) return 'usage';
   if (path.startsWith('/recordings')) return 'recordings';
+  if (path.startsWith('/agenda')) return 'agenda';
 
   return 'chat';
 }
@@ -150,6 +153,8 @@ export function AppSidebar() {
       <AutomationsSidebarContent />
     ) : context === 'recordings' ? (
       <RecordingsSidebarContent />
+    ) : context === 'agenda' ? (
+      <AgendaSidebarContent />
     ) : (
       <ChatSidebarContent />
     );

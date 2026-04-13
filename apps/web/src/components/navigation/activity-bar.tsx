@@ -2,6 +2,7 @@ import {
   BarChart3Icon,
   BotIcon,
   BrainIcon,
+  ListTodoIcon,
   MessageSquareIcon,
   MicIcon,
   PlugIcon,
@@ -69,6 +70,13 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     label: 'Recordings',
     to: '/recordings',
     matchPrefix: '/recordings',
+  },
+  {
+    id: 'agenda',
+    icon: <ListTodoIcon className="size-5" />,
+    label: 'Agenda',
+    to: '/agenda',
+    matchPrefix: '/agenda',
   },
 ];
 

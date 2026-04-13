@@ -25,7 +25,8 @@
     "./tools/types": "./src/tools/types.ts",
     "./usage/types": "./src/usage/types.ts",
     "./connectors/types": "./src/connectors/types.ts",
-    "./memory/types": "./src/memory/types.ts"
+    "./memory/types": "./src/memory/types.ts",
+    "./agenda/types": "./src/agenda/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

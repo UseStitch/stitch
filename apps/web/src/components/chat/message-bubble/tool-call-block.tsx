@@ -1,6 +1,7 @@
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
+import { AgendaToolBlock } from '@/components/chat/message-bubble/tool-call/agenda-tool-block';
 import { BashToolBlock } from '@/components/chat/message-bubble/tool-call/bash-tool-block';
 import { BrowserToolBlock } from '@/components/chat/message-bubble/tool-call/browser-tool-block';
 import { ChildSessionToolBlock } from '@/components/chat/message-bubble/tool-call/child-session-tool-block';
@@ -15,6 +16,14 @@ import { WebfetchToolBlock } from '@/components/chat/message-bubble/tool-call/we
 
 const TOOLSET_TOOLS = new Set(['list_toolsets', 'activate_toolset', 'deactivate_toolset']);
 const SEARCH_TOOLS = new Set(['gmail_search', 'drive_search']);
+const AGENDA_TOOLS = new Set([
+  'agenda_add_item',
+  'agenda_update_item',
+  'agenda_list_items',
+  'agenda_get_item',
+  'agenda_create_list',
+  'agenda_list_lists',
+]);
 
 type ToolCallBlockProps = {
   toolName: string;
@@ -37,6 +46,7 @@ export function ToolCallBlock({
   const isMcp = parseMcpToolName(toolName) !== null;
   const isChildSession = toolName === 'task';
   const isToolsetTool = TOOLSET_TOOLS.has(toolName);
+  const isAgendaTool = AGENDA_TOOLS.has(toolName);
 
   if (isChildSession) {
     return <ChildSessionToolBlock status={status} args={args} result={result} error={error} />;
@@ -107,6 +117,18 @@ export function ToolCallBlock({
   if (toolName === 'browser' && hasArgs) {
     return (
       <BrowserToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        error={error}
+      />
+    );
+  }
+
+  if (isAgendaTool) {
+    return (
+      <AgendaToolBlock
         toolName={toolName}
         status={status}
         args={args}

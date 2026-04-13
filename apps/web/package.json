@@ -27,6 +27,7 @@
     "lucide-react": "^0.577.0",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
+    "react-day-picker": "^9",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.7.3",
