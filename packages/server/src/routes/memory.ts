@@ -4,12 +4,16 @@ import { z } from 'zod';
 
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';
+import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import {
   getAllSemanticMemories,
   searchSemanticMemories,
   updateSemanticMemory,
   deleteSemanticMemory,
   deleteSemanticMemories,
+  getMemoryStats,
+  pinSemanticMemory,
+  pruneStaleMemories,
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@/memory/types.js';
@@ -23,6 +27,10 @@ const patchSchema = z.object({
 
 const bulkDeleteSchema = z.object({
   ids: z.array(z.string()).min(1),
+});
+
+const pinSchema = z.object({
+  pinned: z.boolean(),
 });
 
 export const memoryRouter = new Hono();
@@ -86,6 +94,38 @@ memoryRouter.get('/semantic', async (c) => {
   return c.json(memories);
 });
 
+memoryRouter.get('/stats', async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+  
+  const stats = await getMemoryStats();
+  return c.json(stats);
+});
+
+memoryRouter.post('/prune', async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+  
+  const config = await getMemoryConfig();
+  await pruneStaleMemories({
+    maxMemories: config.maxMemories,
+    staleDays: config.staleDays,
+  });
+  
+  return c.body(null, 204);
+});
+
+memoryRouter.patch('/semantic/:id/pin', zValidator('json', pinSchema), async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
+  const id = c.req.param('id');
+  const { pinned } = c.req.valid('json');
+
+  await pinSemanticMemory(id, pinned);
+  return c.body(null, 204);
+});
+
 memoryRouter.patch('/semantic/:id', zValidator('json', patchSchema), async (c) => {
   const inactiveResponse = await ensureMemoryActive(c);
   if (inactiveResponse) return inactiveResponse;
@@ -117,6 +157,14 @@ memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c)
   const { ids } = c.req.valid('json');
   await deleteSemanticMemories(ids);
   return c.body(null, 204);
+});
+
+memoryRouter.post('/maintenance', async (c) => {
+  const inactiveResponse = await ensureMemoryActive(c);
+  if (inactiveResponse) return inactiveResponse;
+
+  const result = await runMemoryMaintenance();
+  return c.json(result);
 });
 
 memoryRouter.post('/reset', async (c) => {

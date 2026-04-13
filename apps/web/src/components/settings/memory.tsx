@@ -25,6 +25,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
@@ -242,6 +250,167 @@ function MemoryToggles() {
   );
 }
 
+function ExtractionSettings() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  
+  const saveMaxFacts = useMutation(saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }));
+  const saveMinMessageLength = useMutation(saveSettingMutationOptions('memory.extraction.minMessageLength', queryClient, { silent: true }));
+  const saveConfidenceFilter = useMutation(saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }));
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Max Facts Per Turn</Label>
+          <p className="text-xs text-muted-foreground">Maximum number of memories extracted in a single response.</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" min="1" max="10"
+            defaultValue={settings['memory.extraction.maxFactsPerTurn']}
+            onBlur={(e) => saveMaxFacts.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Min Message Length</Label>
+          <p className="text-xs text-muted-foreground">Skip extraction if user message is shorter than this (characters).</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" min="0" max="500"
+            defaultValue={settings['memory.extraction.minMessageLength']}
+            onBlur={(e) => saveMinMessageLength.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Confidence Filter</Label>
+          <p className="text-xs text-muted-foreground">Which types of extracted facts to store.</p>
+        </div>
+        <div className="w-52">
+          <Select 
+            value={settings['memory.extraction.confidenceFilter']}
+            onValueChange={(val) => { if (val) saveConfidenceFilter.mutate(val); }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="stated">Stated only (Strict)</SelectItem>
+              <SelectItem value="stated+confirmed">Stated + Confirmed</SelectItem>
+              <SelectItem value="all">All (Includes Inferred)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RetentionSettings() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  
+  const saveMaxMemories = useMutation(saveSettingMutationOptions('memory.retention.maxMemories', queryClient, { silent: true }));
+  const saveStaleDays = useMutation(saveSettingMutationOptions('memory.retention.staleDays', queryClient, { silent: true }));
+  const saveAutoPrune = useMutation(saveSettingMutationOptions('memory.retention.autoprune', queryClient, { silent: true }));
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Max Memories</Label>
+          <p className="text-xs text-muted-foreground">Hard cap on total stored memories. Oldest low-value memories are pruned first.</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" min="10" max="5000"
+            defaultValue={settings['memory.retention.maxMemories']}
+            onBlur={(e) => saveMaxMemories.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Stale Days</Label>
+          <p className="text-xs text-muted-foreground">Memories not accessed in this many days are candidates for pruning.</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" min="1" max="365"
+            defaultValue={settings['memory.retention.staleDays']}
+            onBlur={(e) => saveStaleDays.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Auto-prune</Label>
+          <p className="text-xs text-muted-foreground">Run automatic pruning after extraction to stay within limits.</p>
+        </div>
+        <Switch
+          checked={settings['memory.retention.autoprune'] === 'true'}
+          onCheckedChange={(checked) => saveAutoPrune.mutate(checked ? 'true' : 'false')}
+        />
+      </div>
+    </div>
+  );
+}
+
+function RetrievalSettings() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  
+  const saveMaxResults = useMutation(saveSettingMutationOptions('memory.retrieval.maxResults', queryClient, { silent: true }));
+  const saveMinScore = useMutation(saveSettingMutationOptions('memory.retrieval.minScore', queryClient, { silent: true }));
+  const saveRecencyBoost = useMutation(saveSettingMutationOptions('memory.retrieval.recencyBoost', queryClient, { silent: true }));
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Max Context Results</Label>
+          <p className="text-xs text-muted-foreground">Maximum memories injected into context per turn.</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" min="1" max="20"
+            defaultValue={settings['memory.retrieval.maxResults']}
+            onBlur={(e) => saveMaxResults.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Min Relevance Score</Label>
+          <p className="text-xs text-muted-foreground">Minimum score (0.0 to 1.0) to include a memory.</p>
+        </div>
+        <div className="w-32">
+          <Input 
+            type="number" step="0.05" min="0" max="1"
+            defaultValue={settings['memory.retrieval.minScore']}
+            onBlur={(e) => saveMinScore.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Recency Boost</Label>
+          <p className="text-xs text-muted-foreground">Boost recently-accessed memories in ranking.</p>
+        </div>
+        <Switch
+          checked={settings['memory.retrieval.recencyBoost'] === 'true'}
+          onCheckedChange={(checked) => saveRecencyBoost.mutate(checked ? 'true' : 'false')}
+        />
+      </div>
+    </div>
+  );
+}
+
 function EmbeddingModelContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
@@ -292,6 +461,24 @@ export function MemorySettings() {
         <h3 className="text-sm font-medium">Embedding</h3>
         <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
           <EmbeddingModelContent />
+        </React.Suspense>
+      </section>
+      <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-medium">Extraction</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <ExtractionSettings />
+        </React.Suspense>
+      </section>
+      <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-medium">Retention</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <RetentionSettings />
+        </React.Suspense>
+      </section>
+      <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-medium">Retrieval</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <RetrievalSettings />
         </React.Suspense>
       </section>
     </div>
