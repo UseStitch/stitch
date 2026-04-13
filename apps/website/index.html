@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stitch</title>
-    <meta name="description" content="Stitch is a local-first AI desktop app. Connect your tools, automate your work, and keep your data on your machine." />
+    <meta name="description" content="Stitch is a local-first AI desktop app. Record meetings, manage todos, automate daily workflows, and let AI remember what matters — all running privately on your machine." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='256' height='256' viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232196f3;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%2300e5ff;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='55' fill='%231c1e2e'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='50' cy='200' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='200' r='15' fill='%232d314d'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='M50 200 200 50'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='m50 50 150 150'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -506,6 +506,18 @@
         line-height: 1.7;
       }
 
+      .section-desc a {
+        color: var(--color-note-link);
+        text-decoration: none;
+        border-bottom: 1px solid var(--color-border-strong);
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .section-desc a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+      }
+
       /* ── Feature Grid ── */
       .feature-grid {
         display: grid;
@@ -513,6 +525,10 @@
         gap: 1px;
         background: var(--color-border);
         border: 1px solid var(--color-border);
+      }
+
+      .feature-card:last-child {
+        grid-column: span 1;
       }
 
       .feature-card {
@@ -552,6 +568,18 @@
         font-size: 0.82rem;
         color: var(--color-text-muted);
         line-height: 1.6;
+      }
+
+      .feature-card-soon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .feature-card-soon p {
+        font-size: 0.85rem;
+        color: var(--color-text-ghost);
+        font-weight: 500;
       }
 
       /* ── Steps / How It Works ── */
@@ -772,6 +800,127 @@
         color: var(--color-footer-hover);
       }
 
+      /* ── Installation Grid ── */
+      .install-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--color-border);
+        border: 1px solid var(--color-border);
+      }
+
+      .install-card {
+        background: var(--color-bg);
+        padding: 36px 32px;
+      }
+
+      .install-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .install-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-bg-muted);
+        border: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+
+      .install-icon svg {
+        width: 20px;
+        height: 20px;
+        fill: var(--color-icon-stroke);
+      }
+
+      .install-card h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .install-steps ol {
+        list-style: none;
+        counter-reset: install-step;
+        padding: 0;
+      }
+
+      .install-steps li {
+        counter-increment: install-step;
+        position: relative;
+        padding-left: 28px;
+        margin-bottom: 12px;
+        font-size: 0.85rem;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      .install-steps li::before {
+        content: counter(install-step);
+        position: absolute;
+        left: 0;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--color-text-faint);
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border-mid);
+        margin-top: 2px;
+      }
+
+      .install-steps li strong {
+        color: var(--color-text);
+        font-weight: 600;
+      }
+
+      .install-note {
+        margin-top: 16px;
+        font-size: 0.8rem;
+        color: var(--color-text-faint);
+        line-height: 1.6;
+        padding-top: 16px;
+        border-top: 1px solid var(--color-border);
+      }
+
+      .install-note a {
+        color: var(--color-note-link);
+        text-decoration: none;
+        border-bottom: 1px solid var(--color-border-strong);
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .install-note a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+      }
+
+      .install-shared-note {
+        margin-top: 24px;
+        font-size: 0.8rem;
+        color: var(--color-text-faint);
+        line-height: 1.6;
+      }
+
+      .install-shared-note a {
+        color: var(--color-note-link);
+        text-decoration: none;
+        border-bottom: 1px solid var(--color-border-strong);
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .install-shared-note a:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+      }
+
       /* ── Responsive ── */
       @media (max-width: 768px) {
         .hero {
@@ -808,6 +957,10 @@
         }
 
         .privacy-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .install-grid {
           grid-template-columns: 1fr;
         }
 
@@ -868,8 +1021,8 @@
         </a>
         <div class="nav-links">
           <a href="#features" class="hide-mobile">Features</a>
+          <a href="#installation" class="hide-mobile">Install</a>
           <a href="#privacy" class="hide-mobile">Privacy</a>
-          <a href="#how-it-works" class="hide-mobile">How it works</a>
           <a href="https://github.com/UseStitch/stitch" class="hide-mobile">GitHub</a>
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
             <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -885,15 +1038,15 @@
       <div class="container">
         <h1>Stitch. AI that works locally.</h1>
         <p class="subtitle">
-          Stitch is a free, open-source desktop app that works out of the box.
-          It runs on your machine by default &mdash; no cloud required, no
-          account needed, no tracking.
+          A free, open-source desktop app that manages your emails, records
+          meetings, tracks your todos, automates daily workflows, and
+          remembers what matters. Runs on your machine, no cloud required.
         </p>
         <div class="hero-ctas" id="download">
           <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
             Windows
           </a>
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
+          <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
             macOS
           </a>
         </div>
@@ -910,15 +1063,15 @@
             <span class="terminal-dot"></span>
           </div>
           <div class="terminal-body">
-            <div><span class="prompt">stitch</span> <span class="cmd">Summarize my unread emails and draft replies to anything urgent</span></div>
+            <div><span class="prompt">stitch</span> <span class="cmd">Summarize my meeting recording from this morning</span></div>
             <div class="output">&nbsp;</div>
-            <div class="output">Reading 12 unread emails from Gmail...</div>
-            <div class="output">3 flagged as urgent</div>
-            <div class="success">Drafted 3 replies, saved to Drafts folder</div>
+            <div class="output">Transcribing 47 min recording from Zoom...</div>
+            <div class="output">Identified 4 speakers, 12 action items</div>
+            <div class="success">Summary saved &middot; 3 tasks added to your agenda</div>
             <div class="output">&nbsp;</div>
-            <div><span class="prompt">stitch</span> <span class="cmd">Find all invoices on my desktop and organize them by month</span></div>
-            <div class="output">Found 23 PDF invoices...</div>
-            <div class="success">Moved to ~/Documents/Invoices/2026-01 through 2026-04</div>
+            <div><span class="prompt">stitch</span> <span class="cmd">Every morning, email me a summary of my day ahead</span></div>
+            <div class="output">Creating daily automation...</div>
+            <div class="success">Scheduled: runs every weekday at 7:30 AM</div>
             <div class="output">&nbsp;</div>
             <div><span class="prompt">stitch</span> <span class="terminal-cursor"></span></div>
           </div>
@@ -930,21 +1083,60 @@
     <section id="features">
       <div class="container">
         <p class="section-label">Capabilities</p>
-        <h2 class="section-heading">One app that handles it all</h2>
+        <h2 class="section-heading">Everything you need, built in</h2>
         <p class="section-desc">
-          Stitch connects to the tools you already use and automates the work
-          you do every day &mdash; right from your desktop.
+          Stitch comes packed with tools to handle your daily work, from
+          managing your inbox to recording meetings and automating repetitive
+          tasks.
         </p>
 
         <div class="feature-grid">
           <div class="feature-card">
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+              <!-- Brain icon for Memory -->
+              <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 3 2 5.5 5 6.5V22h4v-6.5c3-1 5-3.5 5-6.5a7 7 0 0 0-7-7z"></path><path d="M12 2v4"></path><path d="M8 6l2 2"></path><path d="M16 6l-2 2"></path></svg>
             </div>
-            <h3>File management</h3>
+            <h3>Memory</h3>
             <p>
-              Organize, rename, move, and search through files and folders.
-              Stitch works with your local documents, spreadsheets, PDFs, and more.
+              Stitch remembers your preferences, workflows, and key facts across
+              conversations. It learns what matters to you and applies that context
+              automatically, no repetition needed.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <!-- Mic icon for Meeting Recordings -->
+              <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </div>
+            <h3>Meeting recordings</h3>
+            <p>
+              Record meetings from Zoom, Google Meet, Teams, Slack, or Discord.
+              Stitch captures audio locally, transcribes it, and generates
+              summaries with action items, all on your machine.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <!-- ListTodo icon for Agenda & Todos -->
+              <svg viewBox="0 0 24 24"><path d="M3 6h2"></path><path d="M3 12h2"></path><path d="M3 18h2"></path><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path></svg>
+            </div>
+            <h3>Agenda &amp; todos</h3>
+            <p>
+              A built-in task manager with priorities, due dates, and multiple
+              lists. Stitch can create tasks from your conversations and meetings,
+              so nothing slips through the cracks.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <!-- Bot/Automation icon -->
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <h3>Daily automations</h3>
+            <p>
+              Turn any chat into a recurring workflow. "Summarize my emails every
+              morning" or "clean up my downloads every Friday." Stitch
+              runs it on schedule without being asked.
             </p>
           </div>
           <div class="feature-card">
@@ -964,17 +1156,17 @@
             <h3>Web browsing</h3>
             <p>
               Research topics, look up information, fill out forms, and pull data
-              from websites &mdash; Stitch drives a real browser on your behalf.
+              from websites. Stitch drives a real browser on your behalf.
             </p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
             </div>
-            <h3>Scheduled automations</h3>
+            <h3>File management</h3>
             <p>
-              Set tasks to run on a schedule. Daily email summaries, weekly file
-              cleanups, monthly report generation &mdash; automate the repetitive stuff.
+              Organize, rename, move, and search through files and folders.
+              Stitch works with your local documents, spreadsheets, PDFs, and more.
             </p>
           </div>
           <div class="feature-card">
@@ -987,15 +1179,8 @@
               everyday language and it figures out how to get it done.
             </p>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </div>
-            <h3>Works out of the box</h3>
-            <p>
-              Download, open, and start working. No lengthy onboarding,
-              no configuration wizards. Connect an AI provider and you're ready.
-            </p>
+          <div class="feature-card feature-card-soon">
+            <p>More coming soon.</p>
           </div>
         </div>
       </div>
@@ -1016,8 +1201,8 @@
             <div class="step-number">1</div>
             <h3>Install &amp; connect a provider</h3>
             <p>
-              Download Stitch and connect your AI provider &mdash; OpenAI,
-              Anthropic, Google, or run local models. Bring your own API keys.
+              Download Stitch and connect your AI provider (OpenAI,
+              Anthropic, Google, or a local model). Bring your own API keys.
             </p>
           </div>
           <div class="step">
@@ -1025,8 +1210,8 @@
             <h3>Describe your task</h3>
             <p>
               Tell Stitch what you need in plain language. Organize files,
-              draft an email, research a topic, clean up your schedule &mdash;
-              anything you'd do yourself at a computer.
+              draft an email, research a topic, clean up your schedule.
+              Anything you'd do yourself at a computer.
             </p>
           </div>
           <div class="step">
@@ -1041,90 +1226,60 @@
       </div>
     </section>
 
-    <!-- Use Cases -->
-    <section id="use-cases">
+    <!-- Installation Guide -->
+    <section id="installation">
       <div class="container">
-        <p class="section-label">Use cases</p>
-        <h2 class="section-heading">Automate the work you shouldn't be doing manually</h2>
+        <p class="section-label">Installation</p>
+        <h2 class="section-heading">Getting started on your platform</h2>
         <p class="section-desc">
-          Stitch handles the repetitive, time-consuming tasks that eat into
-          your day &mdash; so you can focus on what actually matters.
+          Stitch is available for macOS and Windows. Your operating system may
+          show a warning the first time you open it. Here's how to get past it.
         </p>
 
-        <div class="use-cases">
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22 6 12 13 2 6"></polyline></svg>
+        <div class="install-grid">
+          <div class="install-card">
+            <div class="install-header">
+              <div class="install-icon">
+                <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"></path></svg>
+              </div>
+              <h3>macOS</h3>
             </div>
-            <div>
-              <h3>Email &amp; inbox management</h3>
-              <p>
-                Summarize unread emails, draft replies, triage your inbox by priority,
-                and send follow-ups &mdash; all without opening your email client.
-              </p>
-            </div>
-          </div>
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            </div>
-            <div>
-              <h3>Scheduling &amp; calendar</h3>
-              <p>
-                Check your availability, create events, reschedule meetings,
-                and get a daily briefing of what's ahead &mdash; hands-free.
-              </p>
+            <div class="install-steps">
+              <ol>
+                <li>Download the <strong>.dmg</strong> file and open it</li>
+                <li>Drag Stitch into your <strong>Applications</strong> folder</li>
+                <li>Double-click to open. macOS will block it the first time</li>
+                <li>Go to <strong>System Settings &rarr; Privacy &amp; Security</strong></li>
+                <li>Scroll down and click <strong>"Open Anyway"</strong> next to the Stitch message</li>
+                <li>Click <strong>Open</strong> in the confirmation dialog</li>
+              </ol>
             </div>
           </div>
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+
+          <div class="install-card">
+            <div class="install-header">
+              <div class="install-icon">
+                <svg viewBox="0 0 24 24"><path d="M3 5.548l7.206-0.994v6.953H3V5.548zm0 12.904l7.206 0.994v-6.953H3v5.959zm8.006 1.104L21 20.952v-8.459H11.006v6.063zM11.006 4.048L21 3.048v8.459H11.006V4.048z"></path></svg>
+              </div>
+              <h3>Windows</h3>
             </div>
-            <div>
-              <h3>File &amp; document organization</h3>
-              <p>
-                Sort invoices by month, rename scattered files, clean up your desktop,
-                convert between formats, and keep your documents tidy on autopilot.
-              </p>
-            </div>
-          </div>
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </div>
-            <div>
-              <h3>Research &amp; report writing</h3>
-              <p>
-                Search the web, read through documents, compile findings into
-                summaries, and generate formatted reports you can share.
-              </p>
-            </div>
-          </div>
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </div>
-            <div>
-              <h3>Recurring admin tasks</h3>
-              <p>
-                Set up scheduled automations for things you do every day or week &mdash;
-                expense tracking, status reports, data entry, log reviews.
-              </p>
-            </div>
-          </div>
-          <div class="use-case">
-            <div class="use-case-icon">
-              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-            </div>
-            <div>
-              <h3>Back-office operations</h3>
-              <p>
-                Automate bookkeeping prep, generate client communications,
-                process form submissions, and handle the busywork that piles up.
-              </p>
+            <div class="install-steps">
+              <ol>
+                <li>Download the <strong>.exe</strong> installer and run it</li>
+                <li>Windows SmartScreen may show a <strong>"Windows protected your PC"</strong> warning</li>
+                <li>Click <strong>"More info"</strong></li>
+                <li>Click <strong>"Run anyway"</strong></li>
+                <li>Follow the installer prompts to finish the setup</li>
+              </ol>
             </div>
           </div>
         </div>
+
+        <p class="install-shared-note">
+          The warning appears because the app isn't code-signed yet.
+          Stitch is fully open source. You can inspect the code or build from source on
+          <a href="https://github.com/UseStitch/stitch">GitHub</a>.
+        </p>
       </div>
     </section>
 
@@ -1158,20 +1313,21 @@
     <section id="privacy">
       <div class="container">
         <p class="section-label">Privacy &amp; trust</p>
-        <h2 class="section-heading">Your data never leaves your machine</h2>
+        <h2 class="section-heading">No middleman between you and your data</h2>
         <p class="section-desc">
-          Most AI tools send your files, emails, and documents to the cloud.
-          Stitch doesn't. Everything runs locally on your computer, and the
-          entire codebase is open for anyone to inspect.
+          Stitch runs entirely on your computer. There are no Stitch
+          servers, no accounts, and no tracking. When you use a cloud AI
+          provider, your prompts are sent directly to that provider's API.
+          For fully offline use, connect a local model instead.
         </p>
 
         <div class="privacy-grid">
           <div class="privacy-item">
-            <h3>100% local processing</h3>
+            <h3>Runs on your machine</h3>
             <p>
-              Stitch runs on your computer, not in the cloud. Your files, emails,
-              and documents are processed locally and never uploaded to our servers.
-              There are no servers.
+              Stitch itself is a desktop app with no backend. Your files,
+              recordings, memories, and todos are stored locally. Nothing is
+              ever uploaded to Stitch servers. There are none.
             </p>
           </div>
           <div class="privacy-item">
@@ -1180,6 +1336,23 @@
               No sign-ups, no telemetry, no analytics. Download the app and start
               using it immediately. Stitch doesn't know who you are and doesn't
               want to.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>Direct-to-provider AI</h3>
+            <p>
+              When you use OpenAI, Anthropic, or Google, your prompts go
+              straight from your machine to their API, not through us.
+              Review each provider's data policies to understand how they
+              handle your requests.
+            </p>
+          </div>
+          <div class="privacy-item">
+            <h3>Fully offline option</h3>
+            <p>
+              Connect a local model and nothing leaves your computer at all.
+              No internet connection needed, no data shared with anyone.
+              Complete privacy for sensitive work.
             </p>
           </div>
           <div class="privacy-item">
@@ -1198,22 +1371,6 @@
               in the loop.
             </p>
           </div>
-          <div class="privacy-item">
-            <h3>Bring your own AI provider</h3>
-            <p>
-              Connect your own API key from OpenAI, Anthropic, or Google &mdash;
-              or run a local model for fully offline use. Your API key talks
-              directly to the provider, not through us.
-            </p>
-          </div>
-          <div class="privacy-item">
-            <h3>Permission controls</h3>
-            <p>
-              Define rules for what the AI can and can't do. Restrict access to
-              specific folders, block destructive commands, or require approval
-              for every action.
-            </p>
-          </div>
         </div>
       </div>
     </section>
@@ -1221,16 +1378,16 @@
     <!-- CTA -->
     <section class="cta-section">
       <div class="container">
-        <h2>Try Stitch &mdash; it's free and private</h2>
+        <h2>Try Stitch. It's free and private.</h2>
         <p>
+          Manage meetings, automate tasks, and let AI remember the details.
           Open source, runs locally, no account required.
-          Download and start automating your work in minutes.
         </p>
         <div class="hero-ctas">
           <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe">
             Windows
           </a>
-          <a class="btn" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
+          <a class="btn btn-primary" href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg">
             macOS
           </a>
           <a class="btn" href="https://github.com/UseStitch/stitch">GitHub</a>
