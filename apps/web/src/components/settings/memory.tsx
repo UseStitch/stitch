@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
@@ -47,6 +48,12 @@ type ModelGroup = {
   value: string;
   items: ModelOption[];
 };
+
+const CONFIDENCE_FILTER_OPTIONS = [
+  { value: 'stated', label: 'Stated only (Strict)' },
+  { value: 'stated+confirmed', label: 'Stated + Confirmed' },
+  { value: 'all', label: 'All (Includes Inferred)' },
+] as const;
 
 function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
@@ -253,6 +260,10 @@ function MemoryToggles() {
 function ExtractionSettings() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const confidenceFilter = settings['memory.extraction.confidenceFilter'];
+  const selectedConfidenceLabel =
+    CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ??
+    'Select confidence filter';
   
   const saveMaxFacts = useMutation(saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }));
   const saveMinMessageLength = useMutation(saveSettingMutationOptions('memory.extraction.minMessageLength', queryClient, { silent: true }));
@@ -293,16 +304,18 @@ function ExtractionSettings() {
         </div>
         <div className="w-52">
           <Select 
-            value={settings['memory.extraction.confidenceFilter']}
+            value={confidenceFilter}
             onValueChange={(val) => { if (val) saveConfidenceFilter.mutate(val); }}
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger className="w-full">
+              <SelectValue>{selectedConfidenceLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="stated">Stated only (Strict)</SelectItem>
-              <SelectItem value="stated+confirmed">Stated + Confirmed</SelectItem>
-              <SelectItem value="all">All (Includes Inferred)</SelectItem>
+              {CONFIDENCE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -364,6 +377,15 @@ function RetentionSettings() {
 function RetrievalSettings() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const initialMinScore = Math.max(
+    0,
+    Math.min(1, Number.parseFloat(settings['memory.retrieval.minScore'] ?? '0')),
+  );
+  const [minScoreValue, setMinScoreValue] = React.useState(initialMinScore);
+
+  React.useEffect(() => {
+    setMinScoreValue(initialMinScore);
+  }, [initialMinScore]);
   
   const saveMaxResults = useMutation(saveSettingMutationOptions('memory.retrieval.maxResults', queryClient, { silent: true }));
   const saveMinScore = useMutation(saveSettingMutationOptions('memory.retrieval.minScore', queryClient, { silent: true }));
@@ -389,12 +411,24 @@ function RetrievalSettings() {
           <Label className="text-sm font-medium">Min Relevance Score</Label>
           <p className="text-xs text-muted-foreground">Minimum score (0.0 to 1.0) to include a memory.</p>
         </div>
-        <div className="w-32">
-          <Input 
-            type="number" step="0.05" min="0" max="1"
-            defaultValue={settings['memory.retrieval.minScore']}
-            onBlur={(e) => saveMinScore.mutate(e.target.value)}
-          />
+        <div className="w-52 shrink-0">
+          <div className="flex items-center gap-3">
+            <Slider
+              value={[minScoreValue]}
+              min={0}
+              max={1}
+              step={0.05}
+              onValueChange={(value) => {
+                const rawValue = Array.isArray(value) ? value[0] : value;
+                const nextValue = Math.max(0, Math.min(1, rawValue ?? 0));
+                setMinScoreValue(nextValue);
+                saveMinScore.mutate(nextValue.toFixed(2));
+              }}
+            />
+            <span className="w-10 text-right text-xs font-medium text-muted-foreground tabular-nums">
+              {minScoreValue.toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
