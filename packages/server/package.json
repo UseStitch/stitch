@@ -9,7 +9,8 @@
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile --minify --outfile dist/stitch-server",
     "build:x64": "bun build src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/stitch-server",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lance:migration:new": "bun scripts/new-lance-migration.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "catalog:ai",
