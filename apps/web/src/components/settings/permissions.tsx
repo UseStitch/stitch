@@ -11,6 +11,7 @@ import { PermissionSelect } from './permission-select';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   knownMcpToolsQueryOptions,
   knownToolsQueryOptions,
@@ -25,7 +26,9 @@ function PermissionsContent() {
   const upsertPermission = useUpsertToolPermission();
 
   const [search, setSearch] = React.useState('');
+  const [scope, setScope] = React.useState('all');
   const [editingTool, setEditingTool] = React.useState<string | null>(null);
+  const mcpServerNames = Array.from(new Set(knownMcpTools.map((tool) => tool.serverName))).sort();
 
   const mcpServerNameByTool = React.useMemo(() => {
     return new Map(knownMcpTools.map((tool) => [tool.name, tool.serverName]));
@@ -72,7 +75,7 @@ function PermissionsContent() {
   }
 
   const query = search.trim().toLowerCase();
-  const filteredTools = knownTools.filter((tool) => {
+  const searchFilteredTools = knownTools.filter((tool) => {
     if (query === '') return true;
     const serverName = mcpServerNameByTool.get(tool.toolName)?.toLowerCase() ?? '';
     return (
@@ -80,6 +83,17 @@ function PermissionsContent() {
       tool.toolName.toLowerCase().includes(query) ||
       serverName.includes(query)
     );
+  });
+
+  const selectedServerName = scope.startsWith('mcp:') ? scope.slice(4) : null;
+  const filteredTools = searchFilteredTools.filter((tool) => {
+    if (scope === 'all') return true;
+    if (scope === 'stitch') return tool.toolType === 'stitch';
+    if (scope === 'providers') return tool.toolType === 'plugin';
+    if (selectedServerName) {
+      return tool.toolType === 'mcp' && mcpServerNameByTool.get(tool.toolName) === selectedServerName;
+    }
+    return true;
   });
 
   const stitchTools = filteredTools.filter((tool) => tool.toolType === 'stitch');
@@ -105,14 +119,63 @@ function PermissionsContent() {
         </p>
       </div>
 
-      <div className="relative">
-        <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-8"
-          placeholder="Search tools..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Search tools..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+        <Select value={scope} onValueChange={(value) => setScope(value ?? 'all')}>
+          <SelectTrigger className="w-full sm:w-64">
+            <SelectValue>
+              {scope === 'all' ? (
+                'All'
+              ) : scope === 'stitch' ? (
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span>Stitch tools</span>
+                  <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
+                    Stitch
+                  </span>
+                </span>
+              ) : scope === 'providers' ? (
+                'Provider tools'
+              ) : (
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span className="truncate">{selectedServerName ?? 'MCP server'}</span>
+                  <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
+                    MCP
+                  </span>
+                </span>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="stitch">
+              <span className="flex w-full items-center justify-between gap-2">
+                <span>Stitch tools</span>
+                <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
+                  Stitch
+                </span>
+              </span>
+            </SelectItem>
+            <SelectItem value="providers">Provider tools</SelectItem>
+            {mcpServerNames.map((serverName) => (
+              <SelectItem key={serverName} value={`mcp:${serverName}`}>
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span className="truncate">{serverName}</span>
+                  <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[10px] leading-none font-medium text-muted-foreground">
+                    MCP
+                  </span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {stitchTools.length > 0 && (
@@ -129,14 +192,8 @@ function PermissionsContent() {
                   className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
                 >
                   <p className="flex-1 text-sm">{tool.displayName}</p>
-                  <PermissionSelect
-                    value={permission}
-                    onChange={(value) => handlePermissionChange(tool.toolName, value)}
-                    includeDeny
-                    disabled={isMutating}
-                  />
-                  <div className="flex size-7 items-center justify-center">
-                    {hasPatternEditor && (
+                  {hasPatternEditor ? (
+                    <div className="flex size-7 items-center justify-center">
                       <Button
                         size="icon-sm"
                         variant="ghost"
@@ -146,8 +203,16 @@ function PermissionsContent() {
                       >
                         <Settings2Icon className="size-3.5" />
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="size-7" />
+                  )}
+                  <PermissionSelect
+                    value={permission}
+                    onChange={(value) => handlePermissionChange(tool.toolName, value)}
+                    includeDeny
+                    disabled={isMutating}
+                  />
                 </div>
               );
             })}
