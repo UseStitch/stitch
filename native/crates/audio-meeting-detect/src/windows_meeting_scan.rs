@@ -2,14 +2,14 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct WindowsMeetingRow {
-  pub(crate) pid: u32,
-  pub(crate) process_name: String,
-  pub(crate) window_title: Option<String>,
+pub struct WindowsMeetingRow {
+  pub pid: u32,
+  pub process_name: String,
+  pub window_title: Option<String>,
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, String> {
+pub fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, String> {
   use std::collections::{HashMap, HashSet};
 
   use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -263,7 +263,7 @@ pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, Stri
 }
 
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, String> {
+pub fn list_windows_meeting_rows() -> Result<Vec<WindowsMeetingRow>, String> {
   Ok(Vec::new())
 }
 

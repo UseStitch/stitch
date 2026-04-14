@@ -8,7 +8,7 @@ use crate::error::NativeError;
   rename_all = "camelCase",
   rename_all_fields = "camelCase"
 )]
-pub(crate) enum Command {
+pub enum Command {
   Start {
     output_path: String,
     format: String,
@@ -33,7 +33,7 @@ pub(crate) enum Command {
   rename_all = "camelCase",
   rename_all_fields = "camelCase"
 )]
-pub(crate) enum Event {
+pub enum Event {
   Started {
     started_at: u64,
     output_path: String,
@@ -81,22 +81,22 @@ pub(crate) enum Event {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum CaptureMode {
+pub enum CaptureMode {
   Mic,
   Speaker,
   Dual,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CaptureStart {
-  pub(crate) output_path: String,
-  pub(crate) mode: CaptureMode,
-  pub(crate) sample_rate_hz: u32,
-  pub(crate) channels: u16,
-  pub(crate) mic_device_id: Option<String>,
-  pub(crate) speaker_device_id: Option<String>,
-  pub(crate) enable_aec: bool,
-  pub(crate) speaker_gain: f32,
+pub struct CaptureStart {
+  pub output_path: String,
+  pub mode: CaptureMode,
+  pub sample_rate_hz: u32,
+  pub channels: u16,
+  pub mic_device_id: Option<String>,
+  pub speaker_device_id: Option<String>,
+  pub enable_aec: bool,
+  pub speaker_gain: f32,
 }
 
 fn parse_mode(raw: &str) -> Result<CaptureMode, NativeError> {
@@ -110,7 +110,7 @@ fn parse_mode(raw: &str) -> Result<CaptureMode, NativeError> {
   }
 }
 
-pub(crate) fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError> {
+pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError> {
   match command {
     Command::Start {
       output_path,

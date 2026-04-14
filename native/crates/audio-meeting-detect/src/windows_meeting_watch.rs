@@ -1,5 +1,5 @@
 #[cfg(target_os = "windows")]
-pub(crate) fn run_windows_meeting_watcher() {
+pub fn run_windows_meeting_watcher() {
   use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
   use std::collections::{HashMap, HashSet};
   use std::sync::{Arc, Mutex};
@@ -348,6 +348,6 @@ pub(crate) fn run_windows_meeting_watcher() {
 }
 
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn run_windows_meeting_watcher() {
+pub fn run_windows_meeting_watcher() {
   // No-op on non-Windows platforms; flag handler returns false on these targets.
 }

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
-const crateManifestPath = join(repoRoot, 'packages/audio-native/Cargo.toml');
-const stageDir = join(repoRoot, 'packages/audio-native/target/release');
+const crateManifestPath = join(repoRoot, 'native/Cargo.toml');
+const stageDir = join(repoRoot, 'native/target/release');
 
 function resolveDefaultTarget() {
   if (process.platform === 'darwin' && process.arch === 'arm64') {
@@ -42,7 +42,16 @@ const binaryName = resolveBinaryName(target);
 
 const build = spawnSync(
   'cargo',
-  ['build', '--release', '--target', target, '--manifest-path', crateManifestPath],
+  [
+    'build',
+    '--release',
+    '--target',
+    target,
+    '--manifest-path',
+    crateManifestPath,
+    '-p',
+    'stitch-audio-capture',
+  ],
   {
     cwd: repoRoot,
     stdio: 'inherit',
@@ -54,7 +63,7 @@ if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
 
-const builtBinary = join(repoRoot, `packages/audio-native/target/${target}/release/${binaryName}`);
+const builtBinary = join(repoRoot, `native/target/${target}/release/${binaryName}`);
 if (!existsSync(builtBinary)) {
   throw new Error(`Native audio binary was not found at ${builtBinary}`);
 }

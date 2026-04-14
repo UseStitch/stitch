@@ -9,9 +9,9 @@ use std::time::Duration;
 #[cfg(target_os = "macos")]
 use std::sync::mpsc::SyncSender;
 
-use crate::error::NativeError;
 use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
+use audio_core::error::NativeError;
 
 #[cfg(target_os = "macos")]
 use ca::aggregate_device_keys as agg_keys;

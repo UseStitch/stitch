@@ -5,14 +5,14 @@ use crate::mic_usage::list_mic_using_processes;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct MacosMeetingRow {
-  pub(crate) pid: i32,
-  pub(crate) process_name: String,
-  pub(crate) window_title: Option<String>,
+pub struct MacosMeetingRow {
+  pub pid: i32,
+  pub process_name: String,
+  pub window_title: Option<String>,
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn list_macos_meeting_rows() -> Result<Vec<MacosMeetingRow>, String> {
+pub fn list_macos_meeting_rows() -> Result<Vec<MacosMeetingRow>, String> {
   use std::collections::HashMap;
   use std::process::Command;
 
@@ -149,6 +149,6 @@ pub(crate) fn list_macos_meeting_rows() -> Result<Vec<MacosMeetingRow>, String> 
 }
 
 #[cfg(not(target_os = "macos"))]
-pub(crate) fn list_macos_meeting_rows() -> Result<Vec<MacosMeetingRow>, String> {
+pub fn list_macos_meeting_rows() -> Result<Vec<MacosMeetingRow>, String> {
   Ok(Vec::new())
 }

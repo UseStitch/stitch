@@ -5,7 +5,7 @@ use std::path::Path;
 use ogg::writing::PacketWriter;
 use opus_rs::{Application, OpusEncoder};
 
-use crate::error::NativeError;
+use audio_core::error::NativeError;
 
 // Opus supports 8, 12, 16, 24, 48 kHz.
 // At 16 kHz, 20 ms = 320 samples — standard speech frame size.

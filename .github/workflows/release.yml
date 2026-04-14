@@ -142,7 +142,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: packages/audio-native
+          workspaces: native
           shared-key: release-check-${{ runner.os }}
 
       - name: Cache Turbo artifacts
@@ -160,7 +160,7 @@ jobs:
         run: bun run test
 
       - name: Run Rust tests
-        run: cargo test --manifest-path packages/audio-native/Cargo.toml
+        run: cargo test --manifest-path native/Cargo.toml --workspace
 
   build:
     needs:
@@ -197,7 +197,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: packages/audio-native
+          workspaces: native
           shared-key: release-${{ matrix.rust_target }}
 
       - name: Cache Turbo artifacts

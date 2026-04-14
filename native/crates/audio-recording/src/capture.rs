@@ -9,10 +9,11 @@ use std::time::Duration;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
-use crate::error::NativeError;
+use audio_core::error::NativeError;
+use audio_core::output::{emit, now_ms};
+use audio_core::protocol::{CaptureMode, CaptureStart, Event};
+
 use crate::opus_writer::OggOpusWriter;
-use crate::output::{emit, now_ms};
-use crate::protocol::{CaptureMode, CaptureStart, Event};
 use crate::resample::StreamResampler;
 use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 

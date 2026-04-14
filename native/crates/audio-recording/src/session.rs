@@ -4,17 +4,18 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 
+use audio_core::error::NativeError;
+use audio_core::output::now_ms;
+use audio_core::protocol::{CaptureStart, Event};
+
 use crate::capture::{spawn_capture_worker, start_progress_emitter};
-use crate::error::NativeError;
-use crate::output::now_ms;
-use crate::protocol::{CaptureStart, Event};
 
 #[derive(Debug)]
-pub(crate) struct ActiveSession {
-  pub(crate) started_at: u64,
-  pub(crate) output_path: String,
-  pub(crate) sample_rate_hz: u32,
-  pub(crate) channels: u16,
+pub struct ActiveSession {
+  pub started_at: u64,
+  pub output_path: String,
+  pub sample_rate_hz: u32,
+  pub channels: u16,
   stop_flag: Arc<AtomicBool>,
   worker: thread::JoinHandle<Result<Vec<String>, NativeError>>,
   progress_stop: Arc<AtomicBool>,
@@ -31,7 +32,7 @@ fn ensure_parent_dir(output_path: &str) -> Result<(), NativeError> {
     .map_err(|error| NativeError::Internal(format!("failed to create output directory: {error}")))
 }
 
-pub(crate) fn start_session(start: CaptureStart) -> Result<ActiveSession, NativeError> {
+pub fn start_session(start: CaptureStart) -> Result<ActiveSession, NativeError> {
   ensure_parent_dir(&start.output_path)?;
 
   let started_at = now_ms();
@@ -53,7 +54,7 @@ pub(crate) fn start_session(start: CaptureStart) -> Result<ActiveSession, Native
   })
 }
 
-pub(crate) fn stop_session(active: ActiveSession) -> Result<Event, NativeError> {
+pub fn stop_session(active: ActiveSession) -> Result<Event, NativeError> {
   active.stop_flag.store(true, Ordering::Relaxed);
 
   let mut warnings = active

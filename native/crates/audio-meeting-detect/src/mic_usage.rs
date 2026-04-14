@@ -5,9 +5,9 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct MicUsingProcess {
-  pub(crate) pid: i32,
-  pub(crate) process_name: String,
+pub struct MicUsingProcess {
+  pub pid: i32,
+  pub process_name: String,
 }
 
 #[cfg(target_os = "macos")]
@@ -26,7 +26,7 @@ fn process_name_for_pid(pid: i32) -> Option<String> {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
+pub fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
   use cidre::core_audio as ca;
 
   let processes = ca::System::processes()
@@ -56,6 +56,6 @@ pub(crate) fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String>
 }
 
 #[cfg(not(target_os = "macos"))]
-pub(crate) fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
+pub fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
   Ok(Vec::new())
 }

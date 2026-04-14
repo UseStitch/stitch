@@ -1,7 +1,7 @@
 use rubato::Resampler;
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 
-use crate::error::NativeError;
+use audio_core::error::NativeError;
 
 const RESAMPLE_CHUNK_SIZE: usize = 256;
 

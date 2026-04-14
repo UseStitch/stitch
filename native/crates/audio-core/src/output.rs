@@ -3,14 +3,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::protocol::Event;
 
-pub(crate) fn now_ms() -> u64 {
+pub fn now_ms() -> u64 {
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
     .unwrap_or_default()
     .as_millis() as u64
 }
 
-pub(crate) fn emit(event: Event) -> io::Result<()> {
+pub fn emit(event: Event) -> io::Result<()> {
   let stdout = io::stdout();
   let mut handle = stdout.lock();
   let payload = serde_json::to_string(&event)

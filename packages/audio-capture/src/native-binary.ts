@@ -11,8 +11,8 @@ function getRepoCandidatePaths(): string[] {
   const sourceDir = path.dirname(filePath);
   const binaryName = getBinaryName();
   return [
-    path.join(sourceDir, '../../audio-native/target/release', binaryName),
-    path.join(sourceDir, '../../audio-native/target/debug', binaryName),
+    path.join(sourceDir, '../../../native/target/release', binaryName),
+    path.join(sourceDir, '../../../native/target/debug', binaryName),
   ];
 }
 

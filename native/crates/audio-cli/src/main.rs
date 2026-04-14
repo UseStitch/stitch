@@ -4,31 +4,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
+use audio_core::output::emit;
+use audio_core::protocol::{Command, Event, parse_start_command};
+use audio_meeting_detect::{
+  list_macos_meeting_rows, list_mic_using_processes, list_windows_meeting_rows,
+  run_macos_meeting_watcher, run_windows_meeting_watcher,
+};
+use audio_recording::{ActiveSession, start_session, stop_session};
 use cpal::traits::{DeviceTrait, HostTrait};
-
-mod capture;
-mod error;
-mod macos_meeting_scan;
-mod macos_meeting_watch;
-mod mic_usage;
-mod opus_writer;
-mod output;
-mod protocol;
-mod resample;
-mod session;
-mod speaker;
-mod watch_output;
-mod windows_meeting_scan;
-mod windows_meeting_watch;
-
-use macos_meeting_scan::list_macos_meeting_rows;
-use macos_meeting_watch::run_macos_meeting_watcher;
-use mic_usage::list_mic_using_processes;
-use output::emit;
-use protocol::{Command, Event, parse_start_command};
-use session::{ActiveSession, start_session, stop_session};
-use windows_meeting_scan::list_windows_meeting_rows;
-use windows_meeting_watch::run_windows_meeting_watcher;
 
 fn handle_watch_macos_meeting_usage_flag() -> io::Result<bool> {
   if !std::env::args()

@@ -1,5 +1,5 @@
 #[cfg(target_os = "macos")]
-pub(crate) fn run_macos_meeting_watcher() {
+pub fn run_macos_meeting_watcher() {
   use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
   use std::process::Command;
   use std::sync::{Arc, Mutex};
@@ -198,6 +198,6 @@ pub(crate) fn run_macos_meeting_watcher() {
 }
 
 #[cfg(not(target_os = "macos"))]
-pub(crate) fn run_macos_meeting_watcher() {
+pub fn run_macos_meeting_watcher() {
   // No-op on non-macOS platforms; flag handler returns false on these targets.
 }

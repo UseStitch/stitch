@@ -6,7 +6,7 @@ const audioCaptureBinaryFilter =
   process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
 
 const audioCaptureResource = {
-  from: '../../packages/audio-native/target/release',
+  from: '../../native/target/release',
   to: 'audio-capture',
   filter: audioCaptureBinaryFilter,
 };

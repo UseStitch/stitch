@@ -26,9 +26,45 @@ dependencies = [
 
 [[package]]
 name = "audio-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "audio-core"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93ebbf82d06013f4c41fe71303feb980cddd78496d904d06be627972de51a24"
+
+[[package]]
+name = "audio-meeting-detect"
+version = "0.1.0"
+dependencies = [
+ "cidre",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "wasapi",
+ "windows 0.61.3",
+]
+
+[[package]]
+name = "audio-recording"
+version = "0.1.0"
+dependencies = [
+ "audio-core 0.1.0",
+ "cidre",
+ "cpal",
+ "ogg",
+ "opus-rs",
+ "rubato",
+ "tokio",
+ "wasapi",
+ "windows 0.61.3",
+]
 
 [[package]]
 name = "audioadapter"
@@ -36,7 +72,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91f87b70b051c5866680ad79f6743a42ccab264c009d1a71f4d33a3872ae60c8"
 dependencies = [
- "audio-core",
+ "audio-core 0.2.1",
  "num-traits",
 ]
 
@@ -57,7 +93,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34ab94f2bc04a14e1f49ee5f222f66460e8a1b51627bdfedf34eed394d747938"
 dependencies = [
- "audio-core",
+ "audio-core 0.2.1",
  "num-traits",
 ]
 
@@ -823,18 +859,11 @@ dependencies = [
 name = "stitch-audio-capture"
 version = "0.1.0"
 dependencies = [
- "cidre",
+ "audio-core 0.1.0",
+ "audio-meeting-detect",
+ "audio-recording",
  "cpal",
- "ogg",
- "opus-rs",
- "rubato",
- "serde",
  "serde_json",
- "sysinfo",
- "thiserror 2.0.18",
- "tokio",
- "wasapi",
- "windows 0.61.3",
 ]
 
 [[package]]
