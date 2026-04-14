@@ -41,7 +41,7 @@ configRouter.get('/mcp-tools', async (c) => {
   const mcpServersWithTools = await getMcpServersWithCachedTools();
   const tools = mcpServersWithTools.flatMap((server) => {
     const presentation = getMcpServerPresentation(server.id);
-    const serverName = presentation?.title ?? presentation?.name ?? server.name;
+    const serverName = server.name;
 
     return (server.tools ?? []).map((tool) => {
       const toolPresentation = presentation?.tools[tool.name];
