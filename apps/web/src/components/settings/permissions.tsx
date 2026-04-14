@@ -6,8 +6,11 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
 
-import { PATTERN_POLICY_TOOLS, PermissionPolicyEditor } from './permission-policy-editor';
-import { PermissionSelect } from './permission-select';
+import {
+  PATTERN_POLICY_TOOLS,
+  PermissionPolicyEditor,
+} from './permissions/permission-policy-editor';
+import { PermissionSelect } from './permissions/permission-select';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
