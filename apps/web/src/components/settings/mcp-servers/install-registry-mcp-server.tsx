@@ -44,14 +44,14 @@ export function InstallRegistryMcpServer({
     for (const config of configs) {
       uniqueByKey.set(JSON.stringify(config), config);
     }
-    return [...uniqueByKey.entries()].map(([key, config], index) => ({
-      key,
+    return [...uniqueByKey.values()].map((config, index) => ({
+      id: String(index),
       config,
       label: index === 0 ? `Default (${describeAuthConfig(config)})` : describeAuthConfig(config),
     }));
   }, [server.install.authConfig, server.install.optionalAuthConfigs]);
 
-  const [selectedAuthKey, setSelectedAuthKey] = React.useState(authOptions[0]?.key ?? '');
+  const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions[0]?.id ?? '0');
   const [form, setForm] = React.useState<AddFormState>(() =>
     applyAuthConfigToForm(
       {
@@ -70,10 +70,12 @@ export function InstallRegistryMcpServer({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleAuthPresetChange = (key: string | null) => {
-    if (!key) return;
-    const option = authOptions.find((entry) => entry.key === key);
-    setSelectedAuthKey(key);
+  const selectedAuthOption = authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
+
+  const handleAuthPresetChange = (id: string | null) => {
+    if (!id) return;
+    const option = authOptions.find((entry) => entry.id === id);
+    setSelectedAuthId(id);
     if (!option) return;
     setForm((prev) => applyAuthConfigToForm(prev, option.config));
   };
@@ -145,13 +147,13 @@ export function InstallRegistryMcpServer({
         {authOptions.length > 1 && (
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
-            <Select value={selectedAuthKey} onValueChange={handleAuthPresetChange}>
+            <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{selectedAuthOption?.label ?? 'Select auth preset'}</SelectValue>
               </SelectTrigger>
               <SelectContent className="w-72" alignItemWithTrigger={false}>
                 {authOptions.map((option) => (
-                  <SelectItem key={option.key} value={option.key}>
+                  <SelectItem key={option.id} value={option.id}>
                     {option.label}
                   </SelectItem>
                 ))}

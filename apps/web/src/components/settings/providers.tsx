@@ -5,8 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
-import { ProviderConfig } from '@/components/settings/provider-config';
-import { ProviderRow } from '@/components/settings/provider-row';
+import { ProviderConfig } from '@/components/settings/providers/provider-config';
+import { ProviderRow } from '@/components/settings/providers/provider-row';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {

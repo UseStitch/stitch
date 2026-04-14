@@ -6,6 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import {
   modelVisibilityQueryOptions,
@@ -37,6 +38,7 @@ function ModelsListContent() {
   const resetVisibility = useResetModelVisibility();
 
   const [search, setSearch] = React.useState('');
+  const [selectedProviderId, setSelectedProviderId] = React.useState('all');
 
   const overridesMap = React.useMemo(
     () => new Map(overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility])),
@@ -58,10 +60,20 @@ function ModelsListContent() {
     [allProviderModels],
   );
 
+  const selectedProviderModels = React.useMemo(() => {
+    if (selectedProviderId === 'all') return allProviderModels;
+    return allProviderModels.filter((provider) => provider.providerId === selectedProviderId);
+  }, [allProviderModels, selectedProviderId]);
+
+  const selectedProvider = React.useMemo(
+    () => allProviderModels.find((provider) => provider.providerId === selectedProviderId),
+    [allProviderModels, selectedProviderId],
+  );
+
   const filtered = React.useMemo(() => {
-    if (!search.trim()) return allProviderModels;
+    if (!search.trim()) return selectedProviderModels;
     const q = search.toLowerCase();
-    return allProviderModels
+    return selectedProviderModels
       .map((provider) => ({
         ...provider,
         models: provider.models.filter(
@@ -70,7 +82,7 @@ function ModelsListContent() {
         ),
       }))
       .filter((p) => p.models.length > 0);
-  }, [allProviderModels, search]);
+  }, [search, selectedProviderModels]);
 
   async function handleToggle(provider: ProviderModels, modelId: string, checked: boolean) {
     const key = `${provider.providerId}:${modelId}`;
@@ -103,13 +115,36 @@ function ModelsListContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Search */}
-      <Input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search models..."
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Select
+          value={selectedProviderId}
+          onValueChange={(value) => setSelectedProviderId(value ?? 'all')}
+        >
+          <SelectTrigger className="w-full sm:w-56">
+            <SelectValue>
+              {selectedProviderId === 'all'
+                ? 'All'
+                : (selectedProvider?.providerName ?? 'Select provider')}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent align="start">
+            <SelectItem value="all">All</SelectItem>
+            {allProviderModels.map((provider) => (
+              <SelectItem key={provider.providerId} value={provider.providerId}>
+                {provider.providerName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search models..."
+          className="w-full"
+        />
+      </div>
 
       {filtered.length === 0 && (
         <p className="py-4 text-center text-sm text-muted-foreground">

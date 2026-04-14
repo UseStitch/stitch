@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
-import { ProviderLogo } from '@/components/settings/provider-logo';
+import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
 import { serverFetch } from '@/lib/api';
 import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
@@ -42,14 +42,6 @@ export function ProviderRow({ provider, onSelect }: Props) {
     deleteMutation.mutate();
   };
 
-  // Determine badge text. The image shows "Custom" for Bedrock and "API key" for Google.
-  let badgeText = '';
-  if (provider.enabled && enabledAuthMethods.length > 0) {
-    if (provider.id === 'amazon-bedrock')
-      badgeText = 'Custom'; // matching screenshot specifically
-    else badgeText = enabledAuthMethods[0]?.label || '';
-  }
-
   return (
     <div className="group -mx-2 flex items-center justify-between border-b border-border/50 px-2 py-3 last:border-0">
       <div className="flex min-w-0 items-center gap-4">
@@ -57,14 +49,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
         </div>
         <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-foreground">{meta.displayName}</span>
-            {provider.enabled && badgeText && (
-              <span className="rounded border border-border/60 bg-muted/20 px-1.5 py-0.75 text-[10px] leading-none font-medium text-muted-foreground">
-                {badgeText}
-              </span>
-            )}
-          </div>
+          <span className="text-[13px] font-semibold text-foreground">{meta.displayName}</span>
           {!provider.enabled && meta.description && (
             <span className="truncate text-[12px] text-muted-foreground">{meta.description}</span>
           )}
@@ -73,9 +58,9 @@ export function ProviderRow({ provider, onSelect }: Props) {
       <div className="ml-4 flex shrink-0 items-center">
         {provider.enabled ? (
           <Button
-            variant="ghost"
+            variant="destructive"
             size="sm"
-            className="h-7 px-3 text-[13px] font-semibold text-foreground opacity-90 transition-colors hover:bg-transparent hover:text-destructive hover:opacity-100"
+            className="h-7 px-3 text-[13px] font-semibold"
             onClick={handleDisconnect}
             disabled={deleteMutation.isPending}
           >

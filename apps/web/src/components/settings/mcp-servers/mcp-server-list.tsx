@@ -1,4 +1,4 @@
-import { EyeIcon, PlusIcon, RefreshCwIcon } from 'lucide-react';
+import { EyeIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -6,13 +6,10 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { McpServer } from '@stitch/shared/mcp/types';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { mcpServersQueryOptions, useDeleteMcpServer, useRefreshMcpServers } from '@/lib/queries/mcp';
 import { knownMcpToolsQueryOptions } from '@/lib/queries/tools';
-
-import { AUTH_TYPE_LABELS } from './shared';
 
 export function McpServerList({
   onAdd,
@@ -73,7 +70,7 @@ export function McpServerList({
           >
             <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
           </Button>
-          <Button size="sm" onClick={onAdd} aria-label="Add MCP server">
+          <Button size="sm" variant="outline" onClick={onAdd} aria-label="Add MCP server">
             <PlusIcon className="size-4" />
             Add custom
           </Button>
@@ -101,32 +98,29 @@ export function McpServerList({
                   />
                 ) : null}
                 <p className="truncate text-sm font-medium">{server.name}</p>
-                <Badge variant="secondary" className="shrink-0 text-[11px]">
-                  {AUTH_TYPE_LABELS[server.authConfig.type].label}
-                </Badge>
               </div>
               <p className="truncate text-xs text-muted-foreground">{server.url}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <ButtonGroup>
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={() => onPreview(server)}
-                  aria-label={`Preview tools for ${server.name}`}
-                >
-                  <EyeIcon className="size-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => void handleDelete(server)}
-                  disabled={deleteServer.isPending}
-                >
-                  Delete
-                </Button>
-              </ButtonGroup>
-            </div>
+            <ButtonGroup className="shrink-0">
+              <Button
+                size="icon-sm"
+                variant="outline"
+                className="text-foreground"
+                onClick={() => onPreview(server)}
+                aria-label={`Preview tools for ${server.name}`}
+              >
+                <EyeIcon className="size-3.5" />
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="destructive"
+                onClick={() => void handleDelete(server)}
+                disabled={deleteServer.isPending}
+                aria-label={`Delete ${server.name}`}
+              >
+                <Trash2Icon className="size-3.5" />
+              </Button>
+            </ButtonGroup>
           </div>
         ))}
       </div>
