@@ -8,13 +8,13 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from './provider-logo';
 
-import { FieldGroup, NoFieldsNote } from '@/components/provider-config/field-group';
+import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
 import {
   buildProviderConfigBody,
   hydrateProviderConfigState,
   resolveDefaultAuthMethod,
   type FieldValues,
-} from '@/components/provider-config/utils';
+} from '@/components/settings/providers/utils';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {

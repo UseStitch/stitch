@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
-import { ProviderLogo } from '@/components/settings/provider-logo';
+import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
 import { serverFetch } from '@/lib/api';
 import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
