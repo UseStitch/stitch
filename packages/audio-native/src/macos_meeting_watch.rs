@@ -1,6 +1,6 @@
 #[cfg(target_os = "macos")]
 pub(crate) fn run_macos_meeting_watcher() {
-  use crate::watch_output::{emit_snapshot, emit_watch_error, WatchRow};
+  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
   use std::process::Command;
   use std::sync::{Arc, Mutex};
 
