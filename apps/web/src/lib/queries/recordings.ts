@@ -16,6 +16,7 @@ const recordingsKeys = {
   list: (page: number, pageSize: number) =>
     [...recordingsKeys.all, 'list', page, pageSize] as const,
   analysis: (recordingId: string) => [...recordingsKeys.all, 'analysis', recordingId] as const,
+  devices: () => [...recordingsKeys.all, 'devices'] as const,
 };
 
 export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
@@ -34,11 +35,71 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
   });
 }
 
+type AudioDeviceList = {
+  microphoneDevices: string[];
+  speakerDevices: string[];
+};
+
+type PermissionState = 'granted' | 'denied' | 'unknown';
+
+type AudioPermissionsStatus = {
+  microphone: PermissionState;
+  screenCapture: PermissionState;
+};
+
+export const audioDevicesQueryOptions = queryOptions({
+  queryKey: recordingsKeys.devices(),
+  queryFn: async (): Promise<AudioDeviceList> => {
+    const res = await serverFetch('/recordings/devices');
+    if (!res.ok) throw new Error('Failed to fetch audio devices');
+    return res.json() as Promise<AudioDeviceList>;
+  },
+  refetchInterval: 5_000,
+  staleTime: 2_000,
+});
+
+export const audioPermissionsQueryOptions = queryOptions({
+  queryKey: ['recordings', 'permissions'] as const,
+  queryFn: async (): Promise<AudioPermissionsStatus> => {
+    const res = await serverFetch('/recordings/permissions');
+    if (!res.ok) throw new Error('Failed to check audio permissions');
+    return res.json() as Promise<AudioPermissionsStatus>;
+  },
+  staleTime: 10_000,
+});
+
+async function preflightPermissionCheck(): Promise<void> {
+  try {
+    const res = await serverFetch('/recordings/permissions');
+    if (!res.ok) return;
+
+    const permissions = (await res.json()) as AudioPermissionsStatus;
+    const issues: string[] = [];
+
+    if (permissions.microphone === 'denied') {
+      issues.push('Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.');
+    }
+    if (permissions.screenCapture === 'denied') {
+      issues.push('Screen recording access is denied. Grant screen recording permission in System Settings > Privacy & Security > Screen & System Audio Recording.');
+    }
+
+    if (issues.length > 0) {
+      throw new Error(issues.join('\n'));
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('access is denied')) {
+      throw error;
+    }
+  }
+}
+
 export function useStartRecording() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: StartRecordingInput): Promise<StartRecordingResponse> => {
+      await preflightPermissionCheck();
+
       const res = await serverFetch('/recordings/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

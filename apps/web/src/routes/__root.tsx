@@ -9,7 +9,7 @@ import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { CommandPalette } from '@/components/navigation/command-palette';
 import { RightClickMenu } from '@/components/navigation/right-click-menu';
 import { OnboardingDialog } from '@/components/onboarding/onboarding-dialog';
-import { MeetingRecordingBanner } from '@/components/recordings/meeting-recording-banner';
+import { MeetingRecordingBanner, RecordingEventListener } from '@/components/recordings/meeting-recording-banner';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -84,6 +84,7 @@ function RootLayout() {
                 <NotificationSound />
                 <UnreadSync />
                 <RecordingAnalysisSync />
+                <RecordingEventListener />
                 <UpdaterSync />
                 <MeetingRecordingBanner />
                 <Outlet />

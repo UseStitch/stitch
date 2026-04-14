@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import {
   Combobox,
@@ -15,11 +15,19 @@ import {
   ComboboxSeparator,
 } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import {
   audioProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
+import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -51,6 +59,14 @@ const RECORDING_MODEL_PREFERENCES = [
     description: 'Used for summaries, topics, and action item extraction',
   },
 ] as const;
+
+const CAPTURE_MODE_OPTIONS = [
+  { value: 'dual', label: 'Microphone + System Audio' },
+  { value: 'mic', label: 'Microphone Only' },
+  { value: 'speaker', label: 'System Audio Only' },
+] as const;
+
+const SYSTEM_DEFAULT_VALUE = '__system_default__';
 
 function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
@@ -147,6 +163,249 @@ function ModelSelect({
   );
 }
 
+function PermissionStatus() {
+  const { data: permissions } = useQuery(audioPermissionsQueryOptions);
+
+  if (!permissions) return null;
+
+  const micDenied = permissions.microphone === 'denied';
+  const screenDenied = permissions.screenCapture === 'denied';
+
+  if (!micDenied && !screenDenied) return null;
+
+  return (
+    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+      <p className="text-sm font-medium text-warning">Missing Permissions</p>
+      <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+        {micDenied ? (
+          <li>
+            Microphone access is denied. Go to <strong>System Settings &gt; Privacy &amp;
+            Security &gt; Microphone</strong> and grant access.
+          </li>
+        ) : null}
+        {screenDenied ? (
+          <li>
+            Screen recording access is denied. Go to <strong>System Settings &gt; Privacy &amp;
+            Security &gt; Screen &amp; System Audio Recording</strong> and grant access.
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
+
+function AudioDeviceSettings() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: devices } = useQuery(audioDevicesQueryOptions);
+
+  const saveModeMutation = useMutation(
+    saveSettingMutationOptions('recordings.mode', queryClient, { silent: true }),
+  );
+  const saveInputDeviceMutation = useMutation(
+    saveSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
+  );
+  const saveOutputDeviceMutation = useMutation(
+    saveSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
+  );
+  const saveAecMutation = useMutation(
+    saveSettingMutationOptions('recordings.enableAec', queryClient, { silent: true }),
+  );
+  const saveSpeakerGainMutation = useMutation(
+    saveSettingMutationOptions('recordings.speakerGain', queryClient, { silent: true }),
+  );
+  const saveQualityMutation = useMutation(
+    saveSettingMutationOptions('recordings.quality', queryClient, { silent: true }),
+  );
+  const deleteInputDeviceMutation = useMutation(
+    deleteSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
+  );
+  const deleteOutputDeviceMutation = useMutation(
+    deleteSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
+  );
+
+  const currentMode = settings['recordings.mode'] ?? 'dual';
+  const currentInputDevice = settings['recordings.inputDeviceId'] ?? '';
+  const currentOutputDevice = settings['recordings.outputDeviceId'] ?? '';
+  const aecEnabled = settings['recordings.enableAec'] === 'true';
+  const currentQuality = settings['recordings.quality'] ?? 'speech';
+  const currentSpeakerGain = Number.parseFloat(settings['recordings.speakerGain'] ?? '10') || 10;
+
+  const selectedModeLabel = CAPTURE_MODE_OPTIONS.find((o) => o.value === currentMode)?.label ?? 'Microphone + System Audio';
+  const showMicSelect = currentMode === 'mic' || currentMode === 'dual';
+  const showSpeakerSelect = currentMode === 'speaker' || currentMode === 'dual';
+  const showAecToggle = currentMode === 'dual';
+
+  function handleInputDeviceChange(value: string | null) {
+    if (!value || value === SYSTEM_DEFAULT_VALUE) {
+      deleteInputDeviceMutation.mutate();
+    } else {
+      saveInputDeviceMutation.mutate(value);
+    }
+  }
+
+  function handleOutputDeviceChange(value: string | null) {
+    if (!value || value === SYSTEM_DEFAULT_VALUE) {
+      deleteOutputDeviceMutation.mutate();
+    } else {
+      saveOutputDeviceMutation.mutate(value);
+    }
+  }
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Recording Mode</Label>
+          <p className="text-xs text-muted-foreground">
+            Choose which audio sources to capture during recording.
+          </p>
+        </div>
+        <div className="w-64 shrink-0">
+          <Select
+            value={currentMode}
+            onValueChange={(val) => { if (val) saveModeMutation.mutate(val); }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>{selectedModeLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {CAPTURE_MODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {showMicSelect ? (
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <Label className="text-sm font-medium">Input Device</Label>
+            <p className="text-xs text-muted-foreground">
+              Microphone used for recording.
+            </p>
+          </div>
+          <div className="w-64 shrink-0">
+            <Select
+              value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
+              onValueChange={handleInputDeviceChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {currentInputDevice || 'System Default'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
+                {devices?.microphoneDevices.map((device) => (
+                  <SelectItem key={device} value={device}>
+                    {device}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : null}
+
+      {showSpeakerSelect ? (
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <Label className="text-sm font-medium">Output Device</Label>
+            <p className="text-xs text-muted-foreground">
+              Speaker or system audio source for recording.
+            </p>
+          </div>
+          <div className="w-64 shrink-0">
+            <Select
+              value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
+              onValueChange={handleOutputDeviceChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {currentOutputDevice || 'System Default'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
+                {devices?.speakerDevices.map((device) => (
+                  <SelectItem key={device} value={device}>
+                    {device}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : null}
+
+      {showAecToggle ? (
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <Label className="text-sm font-medium">Echo Cancellation</Label>
+            <p className="text-xs text-muted-foreground">
+              Reduce echo when recording both microphone and system audio.
+            </p>
+          </div>
+          <Switch
+            checked={aecEnabled}
+            onCheckedChange={(checked) => saveAecMutation.mutate(checked ? 'true' : 'false')}
+          />
+        </div>
+      ) : null}
+
+      {showSpeakerSelect ? (
+        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <Label className="text-sm font-medium">Speaker Volume</Label>
+            <p className="text-xs text-muted-foreground">
+              Gain multiplier for system audio in the mix. Default is 10.
+            </p>
+          </div>
+          <div className="flex w-40 shrink-0 items-center gap-2">
+            <span className="text-xs text-muted-foreground tabular-nums">{currentSpeakerGain}</span>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value={currentSpeakerGain}
+              onChange={(e) => saveSpeakerGainMutation.mutate(e.target.value)}
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-4 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Audio Quality</Label>
+          <p className="text-xs text-muted-foreground">
+            Speech is optimized for voice (16 kHz). High uses 48 kHz for better fidelity.
+          </p>
+        </div>
+        <div className="w-40 shrink-0">
+          <Select
+            value={currentQuality}
+            onValueChange={(val) => { if (val) saveQualityMutation.mutate(val); }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>{currentQuality === 'high' ? 'High (48 kHz)' : 'Speech (16 kHz)'}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="speech">Speech (16 kHz)</SelectItem>
+              <SelectItem value="high">High (48 kHz)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecordingsContent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
@@ -222,11 +481,18 @@ export function RecordingsSettings() {
       <div className="mb-6">
         <h2 className="text-base font-bold">Recordings</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure transcription and analysis behavior for recordings
+          Configure audio devices, capture settings, and analysis behavior for recordings.
         </p>
       </div>
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">General</h3>
+      <PermissionStatus />
+      <section className="mt-4 space-y-3">
+        <h3 className="text-sm font-medium">Audio Devices</h3>
+        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+          <AudioDeviceSettings />
+        </React.Suspense>
+      </section>
+      <section className="mt-6 space-y-3">
+        <h3 className="text-sm font-medium">Analysis</h3>
         <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
           <RecordingsContent />
         </React.Suspense>
