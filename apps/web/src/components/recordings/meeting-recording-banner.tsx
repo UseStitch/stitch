@@ -10,6 +10,27 @@ import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/sse/sse-context';
 import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
+const WARNING_LABELS: Record<string, string> = {
+  input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
+  stream_callback_error: 'Audio stream encountered an error.',
+  resample_failed: 'Audio resampling failed.',
+};
+
+export function RecordingEventListener() {
+  useSSE({
+    'recording-warning': (payload) => {
+      const label = WARNING_LABELS[payload.code] ?? payload.message;
+      toast.warning(label);
+    },
+    'recording-device-changed': (payload) => {
+      const deviceLabel = payload.deviceName ?? 'unknown device';
+      toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`);
+    },
+  });
+
+  return null;
+}
+
 function platformLabel(platform: MeetingCallDetectedPayload['platform']): string {
   if (platform === 'google-meet') return 'Google Meet';
   if (platform === 'teams') return 'Microsoft Teams';

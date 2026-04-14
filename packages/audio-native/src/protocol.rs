@@ -18,11 +18,13 @@ pub(crate) enum Command {
     enable_aec: bool,
     mic_device_id: Option<String>,
     speaker_device_id: Option<String>,
+    speaker_gain: Option<f32>,
   },
   Stop,
   Status,
   ListDevices,
   Capabilities,
+  CheckPermissions,
 }
 
 #[derive(Debug, Serialize)]
@@ -68,6 +70,14 @@ pub(crate) enum Event {
     supports_aec: bool,
     supports_realtime_dual: bool,
   },
+  PermissionsStatus {
+    microphone: &'static str,
+    screen_capture: &'static str,
+  },
+  DeviceChanged {
+    kind: &'static str,
+    device_name: Option<String>,
+  },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -86,6 +96,7 @@ pub(crate) struct CaptureStart {
   pub(crate) mic_device_id: Option<String>,
   pub(crate) speaker_device_id: Option<String>,
   pub(crate) enable_aec: bool,
+  pub(crate) speaker_gain: f32,
 }
 
 fn parse_mode(raw: &str) -> Result<CaptureMode, NativeError> {
@@ -110,6 +121,7 @@ pub(crate) fn parse_start_command(command: Command) -> Result<CaptureStart, Nati
       enable_aec,
       mic_device_id,
       speaker_device_id,
+      speaker_gain,
     } => {
       if format != "opus" {
         return Err(NativeError::InvalidCommand(format!(
@@ -137,6 +149,7 @@ pub(crate) fn parse_start_command(command: Command) -> Result<CaptureStart, Nati
         mic_device_id,
         speaker_device_id,
         enable_aec,
+        speaker_gain: speaker_gain.unwrap_or(10.0).clamp(0.1, 50.0),
       })
     }
     _ => Err(NativeError::InvalidCommand(
@@ -160,6 +173,7 @@ mod tests {
       enable_aec: true,
       mic_device_id: Some("mic-1".to_string()),
       speaker_device_id: Some("speaker-1".to_string()),
+      speaker_gain: None,
     };
 
     let parsed = parse_start_command(command).expect("start command should parse");
@@ -170,6 +184,7 @@ mod tests {
     assert!(parsed.enable_aec);
     assert_eq!(parsed.mic_device_id.as_deref(), Some("mic-1"));
     assert_eq!(parsed.speaker_device_id.as_deref(), Some("speaker-1"));
+    assert!((parsed.speaker_gain - 10.0).abs() < 0.01);
   }
 
   #[test]
@@ -183,6 +198,7 @@ mod tests {
       enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
+      speaker_gain: None,
     };
 
     let error = parse_start_command(command).expect_err("invalid format must fail");
@@ -200,6 +216,7 @@ mod tests {
       enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
+      speaker_gain: None,
     };
     let zero_channels = Command::Start {
       output_path: "tmp/audio.ogg".to_string(),
@@ -210,6 +227,7 @@ mod tests {
       enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
+      speaker_gain: None,
     };
 
     assert_eq!(
@@ -232,9 +250,12 @@ mod tests {
       serde_json::from_str(r#"{"type":"listDevices"}"#).expect("must parse listDevices");
     let caps: Command =
       serde_json::from_str(r#"{"type":"capabilities"}"#).expect("must parse capabilities");
+    let perms: Command =
+      serde_json::from_str(r#"{"type":"checkPermissions"}"#).expect("must parse checkPermissions");
 
     assert!(matches!(list, Command::ListDevices));
     assert!(matches!(caps, Command::Capabilities));
+    assert!(matches!(perms, Command::CheckPermissions));
   }
 
   #[test]

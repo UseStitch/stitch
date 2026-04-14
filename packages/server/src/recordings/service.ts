@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
+import type { AudioDeviceList, AudioPermissionsStatus, CaptureMode } from '@stitch/audio-capture';
 import { createRecordingId } from '@stitch/shared/id';
 import type {
   ListRecordingsResponse,
@@ -18,6 +19,7 @@ import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { broadcast } from '@/lib/sse.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
@@ -30,6 +32,46 @@ type ActiveRecording = {
 const capture = createAudioCaptureHandle();
 let activeRecording: ActiveRecording | null = null;
 const log = Log.create({ service: 'recordings' });
+
+const VALID_CAPTURE_MODES = new Set<CaptureMode>(['mic', 'speaker', 'dual']);
+
+type RecordingCaptureSettings = {
+  mode: CaptureMode;
+  inputDeviceId: string | null;
+  outputDeviceId: string | null;
+  enableAec: boolean;
+  speakerGain: number;
+  sampleRateHz: number;
+};
+
+async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
+  const db = getDb();
+  const rows = await db
+    .select({ key: userSettings.key, value: userSettings.value })
+    .from(userSettings)
+    .where(
+      sql`${userSettings.key} IN ('recordings.mode', 'recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.enableAec', 'recordings.speakerGain', 'recordings.quality')`,
+    );
+
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const rawMode = map.get('recordings.mode') ?? 'dual';
+  const mode: CaptureMode = VALID_CAPTURE_MODES.has(rawMode as CaptureMode)
+    ? (rawMode as CaptureMode)
+    : 'dual';
+
+  const inputDeviceId = map.get('recordings.inputDeviceId') || null;
+  const outputDeviceId = map.get('recordings.outputDeviceId') || null;
+  const enableAec = map.get('recordings.enableAec') === 'true';
+
+  const rawGain = Number.parseFloat(map.get('recordings.speakerGain') ?? '10');
+  const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
+
+  const quality = map.get('recordings.quality') ?? 'speech';
+  const sampleRateHz = quality === 'high' ? 48_000 : 16_000;
+
+  return { mode, inputDeviceId, outputDeviceId, enableAec, speakerGain, sampleRateHz };
+}
 
 function defaultTitle(): string {
   const now = new Date();
@@ -121,16 +163,41 @@ export async function startRecording(
   });
 
   try {
+    const settings = await readCaptureSettings();
     await capture.start({
       outputPath: filePath,
-      mode: 'dual',
-      sampleRateHz: 16_000,
+      mode: settings.mode,
+      sampleRateHz: settings.sampleRateHz,
       channels: 1,
-      enableAec: false,
+      enableAec: settings.enableAec,
+      micDeviceId: settings.inputDeviceId,
+      speakerDeviceId: settings.outputDeviceId,
+      speakerGain: settings.speakerGain,
     });
+
+    capture.onEvent((event) => {
+      if (event.type === 'warning') {
+        void broadcast('recording-warning', { code: event.code, message: event.message });
+      } else if (event.type === 'deviceChanged') {
+        void broadcast('recording-device-changed', {
+          kind: event.kind,
+          deviceName: event.deviceName,
+        });
+      }
+    });
+
     activeRecording = { id, filePath };
     log.info(
-      { recordingId: id, filePath, mode: 'dual', sampleRateHz: 16_000, enableAec: false },
+      {
+        recordingId: id,
+        filePath,
+        mode: settings.mode,
+        sampleRateHz: settings.sampleRateHz,
+        enableAec: settings.enableAec,
+        speakerGain: settings.speakerGain,
+        micDeviceId: settings.inputDeviceId,
+        speakerDeviceId: settings.outputDeviceId,
+      },
       'recording started',
     );
   } catch (error) {
@@ -274,4 +341,26 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   await db.delete(recordings).where(eq(recordings.id, recordingId));
 
   return ok(null);
+}
+
+export async function listAudioDevices(): Promise<ServiceResult<AudioDeviceList>> {
+  try {
+    const devices = await capture.listDevices();
+    return ok(devices);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to list audio devices';
+    log.warn({ error: message }, 'failed to list audio devices');
+    return err(message, 500);
+  }
+}
+
+export async function checkAudioPermissions(): Promise<ServiceResult<AudioPermissionsStatus>> {
+  try {
+    const permissions = await capture.checkPermissions();
+    return ok(permissions);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to check audio permissions';
+    log.warn({ error: message }, 'failed to check audio permissions');
+    return err(message, 500);
+  }
 }

@@ -155,6 +155,16 @@ export type RecordingAnalysisUpdatedPayload = {
   title: string | null;
 };
 
+export type RecordingWarningPayload = {
+  code: string;
+  message: string;
+};
+
+export type RecordingDeviceChangedPayload = {
+  kind: 'input' | 'output' | 'list';
+  deviceName: string | null;
+};
+
 export const SSE_EVENT_NAMES = [
   'heartbeat',
   'connected',
@@ -178,6 +188,8 @@ export const SSE_EVENT_NAMES = [
   'meeting-call-detected',
   'meeting-call-ended',
   'recording-analysis-updated',
+  'recording-warning',
+  'recording-device-changed',
 ] as const;
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
@@ -205,6 +217,8 @@ export type SseEventPayloadMap = {
   'meeting-call-detected': MeetingCallDetectedPayload;
   'meeting-call-ended': MeetingCallEndedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
+  'recording-warning': RecordingWarningPayload;
+  'recording-device-changed': RecordingDeviceChangedPayload;
 };
 
 export type SseEvent = {

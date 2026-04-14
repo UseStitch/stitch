@@ -5,11 +5,16 @@ import { resolveNativeBinaryPath } from './native-binary.js';
 import type {
   ActiveCapture,
   AudioCaptureDriver,
+  AudioDeviceList,
+  AudioPermissionsStatus,
   CapturePlatform,
   NativeCaptureCommand,
   NativeCaptureController,
+  NativeCaptureDeviceListEvent,
   NativeCaptureErrorEvent,
   NativeCaptureEvent,
+  NativeCaptureEventListener,
+  NativeCapturePermissionsStatusEvent,
   NativeCaptureStoppedEvent,
   StartCaptureInput,
   StopCaptureResult,
@@ -17,6 +22,8 @@ import type {
 
 const START_TIMEOUT_MS = 10_000;
 const STOP_TIMEOUT_MS = 10_000;
+const LIST_DEVICES_TIMEOUT_MS = 5_000;
+const CHECK_PERMISSIONS_TIMEOUT_MS = 5_000;
 
 function createController(processHandle: ActiveCapture['process']): NativeCaptureController {
   const pending = new Map<
@@ -28,9 +35,15 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
     }>
   >();
 
+  let eventListener: NativeCaptureEventListener | null = null;
+
   const signal = (event: NativeCaptureEvent): void => {
     if (event.type === 'progress') {
       return;
+    }
+
+    if (event.type === 'warning' || event.type === 'deviceChanged') {
+      eventListener?.(event);
     }
 
     const listeners = pending.get(event.type);
@@ -118,7 +131,12 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
     },
 
     close(): void {
+      eventListener = null;
       rejectAll(new Error('Native audio capture controller closed'));
+    },
+
+    onEvent(listener: NativeCaptureEventListener): void {
+      eventListener = listener;
     },
   };
 }
@@ -131,9 +149,10 @@ function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, {
     mode: input.mode ?? 'dual',
     sampleRateHz: input.sampleRateHz ?? 16_000,
     channels: input.channels ?? 1,
-    enableAec: input.enableAec ?? true,
+    enableAec: input.enableAec ?? false,
     micDeviceId: input.micDeviceId ?? null,
     speakerDeviceId: input.speakerDeviceId ?? null,
+    speakerGain: input.speakerGain ?? null,
   };
 }
 
@@ -145,6 +164,20 @@ function toStopResult(event: NativeCaptureStoppedEvent): StopCaptureResult {
     sampleRateHz: event.sampleRateHz,
     channels: event.channels,
     warnings: event.warnings,
+  };
+}
+
+function toDeviceList(event: NativeCaptureDeviceListEvent): AudioDeviceList {
+  return {
+    microphoneDevices: event.microphoneDevices,
+    speakerDevices: event.speakerDevices,
+  };
+}
+
+function toPermissionsStatus(event: NativeCapturePermissionsStatusEvent): AudioPermissionsStatus {
+  return {
+    microphone: event.microphone,
+    screenCapture: event.screenCapture,
   };
 }
 
@@ -231,6 +264,64 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
       }
 
       return toStopResult(stoppedOrError);
+    },
+
+    async listDevices(): Promise<AudioDeviceList> {
+      const binaryPath = resolveNativeBinaryPath();
+      const processHandle = spawn(binaryPath, [], {
+        stdio: 'pipe',
+        windowsHide: true,
+      });
+
+      const controller = createController(processHandle);
+
+      try {
+        controller.send({ type: 'listDevices' });
+        const deviceListOrError = await Promise.race([
+          controller.waitFor('deviceList', LIST_DEVICES_TIMEOUT_MS),
+          controller.waitFor('error', LIST_DEVICES_TIMEOUT_MS),
+        ]);
+
+        if (deviceListOrError.type === 'error') {
+          throw toStartError(deviceListOrError);
+        }
+
+        return toDeviceList(deviceListOrError);
+      } catch (error) {
+        throw toSpawnError(error);
+      } finally {
+        controller.close();
+        processHandle.kill('SIGTERM');
+      }
+    },
+
+    async checkPermissions(): Promise<AudioPermissionsStatus> {
+      const binaryPath = resolveNativeBinaryPath();
+      const processHandle = spawn(binaryPath, [], {
+        stdio: 'pipe',
+        windowsHide: true,
+      });
+
+      const controller = createController(processHandle);
+
+      try {
+        controller.send({ type: 'checkPermissions' });
+        const permissionsOrError = await Promise.race([
+          controller.waitFor('permissionsStatus', CHECK_PERMISSIONS_TIMEOUT_MS),
+          controller.waitFor('error', CHECK_PERMISSIONS_TIMEOUT_MS),
+        ]);
+
+        if (permissionsOrError.type === 'error') {
+          throw toStartError(permissionsOrError);
+        }
+
+        return toPermissionsStatus(permissionsOrError);
+      } catch (error) {
+        throw toSpawnError(error);
+      } finally {
+        controller.close();
+        processHandle.kill('SIGTERM');
+      }
     },
   };
 }

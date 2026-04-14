@@ -10,7 +10,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
 use crate::error::NativeError;
-use crate::opus_writer::{OggOpusWriter, SAMPLE_RATE as OPUS_SAMPLE_RATE};
+use crate::opus_writer::OggOpusWriter;
 use crate::output::{emit, now_ms};
 use crate::protocol::{CaptureMode, CaptureStart, Event};
 use crate::resample::StreamResampler;
@@ -19,36 +19,59 @@ use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 const INPUT_QUEUE_CAPACITY: usize = 128;
 const UNPAIRED_FLUSH_TICKS: u32 = 5;
 const DUAL_MIC_GAIN: f32 = 1.0;
-const DUAL_SPEAKER_GAIN: f32 = 10.0;
+#[cfg(test)]
+const DEFAULT_SPEAKER_GAIN: f32 = 10.0;
+const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
+const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
+
+const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
+
+fn is_tap_device(name: &str) -> bool {
+  name.contains(TAP_DEVICE_NAME)
+}
+
+fn device_name(device: &cpal::Device) -> Option<String> {
+  device.description().map(|d| d.name().to_string()).ok()
+}
 
 fn choose_input_device(
   host: &cpal::Host,
   preferred: Option<&str>,
 ) -> Result<cpal::Device, NativeError> {
   if let Some(name) = preferred {
+    // Try the exact requested device first
     let mut devices = host.input_devices().map_err(|error| {
       NativeError::StreamFailed(format!("failed to enumerate input devices: {error}"))
     })?;
 
-    if let Some(device) = devices.find(|device| {
-      device
-        .description()
-        .map(|description| description.name().to_string())
-        .ok()
-        .as_deref()
-        == Some(name)
-    }) {
+    if let Some(device) =
+      devices.find(|d| device_name(d).as_deref() == Some(name) && !is_tap_device(name))
+    {
       return Ok(device);
     }
 
-    return Err(NativeError::DeviceNotFound(format!(
-      "microphone device not found: {name}"
-    )));
+    // Preferred device not found — fall back to default, then first available
+    let _ = emit(Event::Warning {
+      code: "preferred_device_unavailable".to_string(),
+      message: format!("preferred microphone '{name}' not found, falling back to default"),
+    });
   }
 
-  host
-    .default_input_device()
-    .ok_or_else(|| NativeError::DeviceNotFound("no default input device available".to_string()))
+  // Try the default input device (if it's not our tap)
+  if let Some(device) = host.default_input_device() {
+    if !device_name(&device).map_or(false, |n| is_tap_device(&n)) {
+      return Ok(device);
+    }
+  }
+
+  // Last resort: first non-tap input device
+  let mut devices = host.input_devices().map_err(|error| {
+    NativeError::StreamFailed(format!("failed to enumerate input devices: {error}"))
+  })?;
+
+  devices
+    .find(|d| !device_name(d).map_or(false, |n| is_tap_device(&n)))
+    .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
 }
 
 fn downmix_to_mono_f32<T>(data: &[T], channels: usize, convert: impl Fn(T) -> f32) -> Vec<f32>
@@ -78,6 +101,7 @@ fn build_input_stream<T>(
   tx: SyncSender<Vec<f32>>,
   stop_flag: Arc<AtomicBool>,
   output_sample_rate_hz: Option<u32>,
+  stream_error_flag: Arc<AtomicBool>,
   convert: impl Fn(T) -> f32 + Send + 'static + Copy,
 ) -> Result<cpal::Stream, NativeError>
 where
@@ -90,6 +114,7 @@ where
     None => None,
   };
   let err_handler = move |error: cpal::StreamError| {
+    stream_error_flag.store(true, Ordering::Relaxed);
     let _ = emit(Event::Warning {
       code: "stream_callback_error".to_string(),
       message: error.to_string(),
@@ -144,6 +169,132 @@ where
 
 fn write_samples(writer: &mut OggOpusWriter, samples: &[f32]) -> Result<(), NativeError> {
   writer.write_samples(samples)
+}
+
+fn open_mic_stream(
+  device: &cpal::Device,
+  tx: SyncSender<Vec<f32>>,
+  stop_flag: Arc<AtomicBool>,
+  target_sample_rate_hz: u32,
+  stream_error_flag: Arc<AtomicBool>,
+) -> Result<(cpal::Stream, Vec<String>), NativeError> {
+  let default_config = device.default_input_config().map_err(|error| {
+    NativeError::StreamFailed(format!("failed to read default microphone config: {error}"))
+  })?;
+
+  let mut warnings = Vec::new();
+  if default_config.sample_rate() != target_sample_rate_hz {
+    warnings.push(format!(
+      "requested_sample_rate_{target_sample_rate_hz}_unavailable_using_{}",
+      default_config.sample_rate()
+    ));
+  }
+
+  let stream_config = default_config.config();
+  let rate = Some(target_sample_rate_hz);
+  let stream = match default_config.sample_format() {
+    SampleFormat::I8 => build_input_stream::<i8>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s as f32 / i8::MAX as f32,
+    )?,
+    SampleFormat::I16 => build_input_stream::<i16>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s as f32 / i16::MAX as f32,
+    )?,
+    SampleFormat::I32 => build_input_stream::<i32>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s as f32 / i32::MAX as f32,
+    )?,
+    SampleFormat::I64 => build_input_stream::<i64>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s as f32 / i64::MAX as f32,
+    )?,
+    SampleFormat::U8 => build_input_stream::<u8>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
+    )?,
+    SampleFormat::U16 => build_input_stream::<u16>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
+    )?,
+    SampleFormat::U32 => build_input_stream::<u32>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
+    )?,
+    SampleFormat::U64 => build_input_stream::<u64>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
+    )?,
+    SampleFormat::F32 => build_input_stream::<f32>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s,
+    )?,
+    SampleFormat::F64 => build_input_stream::<f64>(
+      &device,
+      &stream_config,
+      tx,
+      stop_flag,
+      rate,
+      stream_error_flag,
+      |s| s as f32,
+    )?,
+    other => {
+      return Err(NativeError::StreamFailed(format!(
+        "unsupported microphone sample format: {other:?}"
+      )));
+    }
+  };
+
+  stream.play().map_err(|error| {
+    NativeError::PermissionDenied(format!("failed to start microphone stream: {error}"))
+  })?;
+
+  Ok((stream, warnings))
 }
 
 #[cfg(test)]
@@ -220,7 +371,7 @@ fn mix_dual_chunks(
       mic_value
     };
     let mixed =
-      ((cleaned_mic * DUAL_MIC_GAIN) + (speaker_value * DUAL_SPEAKER_GAIN)).clamp(-1.0, 1.0);
+      ((cleaned_mic * DUAL_MIC_GAIN) + (speaker_value * DEFAULT_SPEAKER_GAIN)).clamp(-1.0, 1.0);
     out.push(mixed);
   }
 
@@ -301,126 +452,101 @@ fn spawn_mic_capture(
   let output_path = start.output_path.clone();
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
+  let sample_rate_hz = start.sample_rate_hz;
 
   let builder = thread::Builder::new().name("stitch-audio-mic-capture".to_string());
   builder
     .spawn(move || {
       let host = cpal::default_host();
-      let device = choose_input_device(&host, mic_device_id.as_deref())?;
-      let default_config = device.default_input_config().map_err(|error| {
-        NativeError::StreamFailed(format!("failed to read default microphone config: {error}"))
-      })?;
-
       let mut warnings = Vec::new();
 
       if requested_channels != 1 {
         warnings.push("channels_forced_to_mono".to_string());
       }
 
-      let stream_config = default_config.config();
-
       let mut writer = OggOpusWriter::create(&output_path)?;
 
       let (tx, rx): (SyncSender<Vec<f32>>, Receiver<Vec<f32>>) =
         mpsc::sync_channel(INPUT_QUEUE_CAPACITY);
 
-      let opus_rate = Some(OPUS_SAMPLE_RATE as u32);
+      let stream_error_flag = Arc::new(AtomicBool::new(false));
 
-      let stream = match default_config.sample_format() {
-        SampleFormat::I8 => build_input_stream::<i8>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s as f32 / i8::MAX as f32,
-        )?,
-        SampleFormat::I16 => build_input_stream::<i16>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s as f32 / i16::MAX as f32,
-        )?,
-        SampleFormat::I32 => build_input_stream::<i32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s as f32 / i32::MAX as f32,
-        )?,
-        SampleFormat::I64 => build_input_stream::<i64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s as f32 / i64::MAX as f32,
-        )?,
-        SampleFormat::U8 => build_input_stream::<u8>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U16 => build_input_stream::<u16>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U32 => build_input_stream::<u32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U64 => build_input_stream::<u64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::F32 => build_input_stream::<f32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s,
-        )?,
-        SampleFormat::F64 => build_input_stream::<f64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          opus_rate,
-          |s| s as f32,
-        )?,
-        other => {
-          return Err(NativeError::StreamFailed(format!(
-            "unsupported microphone sample format: {other:?}"
-          )));
-        }
-      };
+      let device = choose_input_device(&host, mic_device_id.as_deref())?;
+      let (initial_stream, open_warnings) = open_mic_stream(
+        &device,
+        tx.clone(),
+        stop_flag.clone(),
+        sample_rate_hz,
+        stream_error_flag.clone(),
+      )?;
+      warnings.extend(open_warnings);
 
-      stream.play().map_err(|error| {
-        NativeError::PermissionDenied(format!("failed to start microphone stream: {error}"))
-      })?;
+      let mut active_stream: Option<cpal::Stream> = Some(initial_stream);
+      let mut reconnect_attempts = 0u32;
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
           write_samples(&mut writer, &samples)?;
+          reconnect_attempts = 0;
+          continue;
+        }
+
+        if !stream_error_flag.load(Ordering::Relaxed) {
+          continue;
+        }
+
+        // Stream errored — attempt reconnect
+        active_stream.take();
+        stream_error_flag.store(false, Ordering::Relaxed);
+
+        reconnect_attempts += 1;
+        if reconnect_attempts > MIC_MAX_RECONNECT_ATTEMPTS {
+          warnings.push("mic_reconnect_attempts_exhausted".to_string());
+          let _ = emit(Event::Warning {
+            code: "mic_reconnect_failed".to_string(),
+            message: "Microphone reconnection failed after maximum attempts".to_string(),
+          });
+          break;
+        }
+
+        let _ = emit(Event::Warning {
+          code: "mic_reconnecting".to_string(),
+          message: format!(
+            "Microphone stream error detected, reconnection attempt {reconnect_attempts}/{MIC_MAX_RECONNECT_ATTEMPTS}"
+          ),
+        });
+
+        thread::sleep(MIC_RECONNECT_DELAY);
+
+        if stop_flag.load(Ordering::Relaxed) {
+          break;
+        }
+
+        let new_device = match choose_input_device(&host, None) {
+          Ok(d) => d,
+          Err(_) => continue,
+        };
+
+        match open_mic_stream(
+          &new_device,
+          tx.clone(),
+          stop_flag.clone(),
+          sample_rate_hz,
+          stream_error_flag.clone(),
+        ) {
+          Ok((new_stream, new_warnings)) => {
+            active_stream = Some(new_stream);
+            warnings.extend(new_warnings);
+
+            let new_name = device_name(&new_device).unwrap_or_default();
+            warnings.push(format!("mic_reconnected_to_{new_name}"));
+
+            let _ = emit(Event::DeviceChanged {
+              kind: "input",
+              device_name: Some(new_name),
+            });
+          }
+          Err(_) => continue,
         }
       }
 
@@ -428,8 +554,7 @@ fn spawn_mic_capture(
         write_samples(&mut writer, &samples)?;
       }
 
-      drop(stream);
-
+      drop(active_stream);
       writer.finalize()?;
 
       Ok(warnings)
@@ -457,121 +582,92 @@ fn spawn_mic_source(
   let worker = builder
     .spawn(move || {
       let host = cpal::default_host();
-      let device = choose_input_device(&host, mic_device_id.as_deref())?;
-      let default_config = device.default_input_config().map_err(|error| {
-        NativeError::StreamFailed(format!("failed to read default microphone config: {error}"))
-      })?;
-
       let mut warnings = Vec::new();
-      if default_config.sample_rate() != desired_rate {
-        warnings.push(format!(
-          "requested_sample_rate_{desired_rate}_unavailable_using_{}",
-          default_config.sample_rate()
-        ));
-      }
 
       if requested_channels != 1 {
         warnings.push("channels_forced_to_mono".to_string());
       }
 
-      let stream_config = default_config.config();
-      let stream = match default_config.sample_format() {
-        SampleFormat::I8 => build_input_stream::<i8>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s as f32 / i8::MAX as f32,
-        )?,
-        SampleFormat::I16 => build_input_stream::<i16>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s as f32 / i16::MAX as f32,
-        )?,
-        SampleFormat::I32 => build_input_stream::<i32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s as f32 / i32::MAX as f32,
-        )?,
-        SampleFormat::I64 => build_input_stream::<i64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s as f32 / i64::MAX as f32,
-        )?,
-        SampleFormat::U8 => build_input_stream::<u8>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U16 => build_input_stream::<u16>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U32 => build_input_stream::<u32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::U64 => build_input_stream::<u64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
-        )?,
-        SampleFormat::F32 => build_input_stream::<f32>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s,
-        )?,
-        SampleFormat::F64 => build_input_stream::<f64>(
-          &device,
-          &stream_config,
-          tx,
-          stop_flag.clone(),
-          Some(desired_rate),
-          |s| s as f32,
-        )?,
-        other => {
-          return Err(NativeError::StreamFailed(format!(
-            "unsupported microphone sample format: {other:?}"
-          )));
-        }
-      };
+      let stream_error_flag = Arc::new(AtomicBool::new(false));
 
-      stream.play().map_err(|error| {
-        NativeError::PermissionDenied(format!("failed to start microphone stream: {error}"))
-      })?;
+      let device = choose_input_device(&host, mic_device_id.as_deref())?;
+      let (initial_stream, open_warnings) = open_mic_stream(
+        &device,
+        tx.clone(),
+        stop_flag.clone(),
+        desired_rate,
+        stream_error_flag.clone(),
+      )?;
+      warnings.extend(open_warnings);
+
+      let mut active_stream = Some(initial_stream);
+      let mut reconnect_attempts = 0u32;
 
       while !stop_flag.load(Ordering::Relaxed) {
         thread::sleep(Duration::from_millis(50));
+
+        if !stream_error_flag.load(Ordering::Relaxed) {
+          reconnect_attempts = 0;
+          continue;
+        }
+
+        // Stream errored — attempt reconnect
+        active_stream.take();
+        stream_error_flag.store(false, Ordering::Relaxed);
+
+        reconnect_attempts += 1;
+        if reconnect_attempts > MIC_MAX_RECONNECT_ATTEMPTS {
+          warnings.push("mic_reconnect_attempts_exhausted".to_string());
+          let _ = emit(Event::Warning {
+            code: "mic_reconnect_failed".to_string(),
+            message: "Microphone reconnection failed after maximum attempts".to_string(),
+          });
+          break;
+        }
+
+        let _ = emit(Event::Warning {
+          code: "mic_reconnecting".to_string(),
+          message: format!(
+            "Microphone stream error detected, reconnection attempt {reconnect_attempts}/{MIC_MAX_RECONNECT_ATTEMPTS}"
+          ),
+        });
+
+        thread::sleep(MIC_RECONNECT_DELAY);
+
+        if stop_flag.load(Ordering::Relaxed) {
+          break;
+        }
+
+        // Try to reconnect — fall back to system default
+        let new_device = match choose_input_device(&host, None) {
+          Ok(d) => d,
+          Err(_) => continue,
+        };
+
+        match open_mic_stream(
+          &new_device,
+          tx.clone(),
+          stop_flag.clone(),
+          desired_rate,
+          stream_error_flag.clone(),
+        ) {
+          Ok((new_stream, new_warnings)) => {
+            active_stream = Some(new_stream);
+            warnings.extend(new_warnings);
+
+            let new_name = device_name(&new_device).unwrap_or_default();
+            warnings.push(format!("mic_reconnected_to_{new_name}"));
+
+            let _ = emit(Event::DeviceChanged {
+              kind: "input",
+              device_name: Some(new_name),
+            });
+          }
+          Err(_) => continue,
+        }
       }
 
-      drop(stream);
+      drop(active_stream);
       Ok(warnings)
     })
     .map_err(|error| {
@@ -598,6 +694,7 @@ fn write_dual_realtime_output(
   let enable_aec = start.enable_aec;
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
+  let speaker_gain = start.speaker_gain;
 
   let (mic_rx, mic_worker) = spawn_mic_source(start, stop_flag.clone())?;
   let (speaker_rx, speaker_worker) =
@@ -666,7 +763,7 @@ fn write_dual_realtime_output(
           for i in 0..mix_len {
             let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
             let spk_val = speaker_buf.get(i).copied().unwrap_or(0.0);
-            let mixed = (mic_val * DUAL_MIC_GAIN + spk_val * DUAL_SPEAKER_GAIN).clamp(-1.0, 1.0);
+            let mixed = (mic_val * DUAL_MIC_GAIN + spk_val * speaker_gain).clamp(-1.0, 1.0);
             out.push(mixed);
           }
           write_samples(&mut writer, &out)?;

@@ -7,6 +7,9 @@ import { windowsDriver } from './windows.js';
 import type {
   ActiveCapture,
   AudioCaptureDriver,
+  AudioDeviceList,
+  AudioPermissionsStatus,
+  NativeCaptureEventListener,
   StartCaptureInput,
   StopCaptureResult,
 } from './types.js';
@@ -30,6 +33,9 @@ export type AudioCaptureHandle = {
   start: (input: StartCaptureInput) => Promise<void>;
   stop: () => Promise<StopCaptureResult | null>;
   getActive: () => ActiveCapture | null;
+  listDevices: () => Promise<AudioDeviceList>;
+  checkPermissions: () => Promise<AudioPermissionsStatus>;
+  onEvent: (listener: NativeCaptureEventListener) => void;
 };
 
 export function createAudioCaptureHandle(
@@ -63,6 +69,18 @@ export function createAudioCaptureHandle(
     getActive(): ActiveCapture | null {
       return active;
     },
+
+    async listDevices(): Promise<AudioDeviceList> {
+      return driver.listDevices();
+    },
+
+    async checkPermissions(): Promise<AudioPermissionsStatus> {
+      return driver.checkPermissions();
+    },
+
+    onEvent(listener: NativeCaptureEventListener): void {
+      active?.controller.onEvent(listener);
+    },
   };
 }
 
@@ -82,6 +100,11 @@ export function createMeetingDetector(
 }
 
 export type {
+  AudioDeviceList,
+  AudioPermissionsStatus,
+  CaptureMode,
+  NativeCaptureEventListener,
+  PermissionState,
   StartCaptureInput,
   StopCaptureResult,
   MeetingDetection,
