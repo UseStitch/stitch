@@ -6,91 +6,8 @@ use std::time::Duration;
 
 use audio_core::output::emit;
 use audio_core::protocol::{Command, Event, parse_start_command};
-use audio_meeting_detect::{
-  list_macos_meeting_rows, list_mic_using_processes, list_windows_meeting_rows,
-  run_macos_meeting_watcher, run_windows_meeting_watcher,
-};
 use audio_recording::{ActiveSession, start_session, stop_session};
 use cpal::traits::{DeviceTrait, HostTrait};
-
-fn handle_watch_macos_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--watch-macos-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  run_macos_meeting_watcher();
-  Ok(true)
-}
-
-fn handle_watch_windows_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--watch-windows-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  run_windows_meeting_watcher();
-  Ok(true)
-}
-
-fn handle_list_mic_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-mic-usage")
-  {
-    return Ok(false);
-  }
-
-  let apps = list_mic_using_processes().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&apps).map_err(|error| io::Error::new(
-      io::ErrorKind::Other,
-      format!("serialize failed: {error}")
-    ))?
-  );
-  Ok(true)
-}
-
-fn handle_list_windows_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-windows-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  let rows = list_windows_meeting_rows().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&rows)
-      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
-  );
-
-  Ok(true)
-}
-
-fn handle_list_macos_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-macos-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  let rows = list_macos_meeting_rows().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&rows)
-      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
-  );
-
-  Ok(true)
-}
 
 const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
 
@@ -205,26 +122,6 @@ fn spawn_device_monitor(stop: Arc<AtomicBool>) -> thread::JoinHandle<()> {
 }
 
 fn main() -> io::Result<()> {
-  if handle_watch_macos_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_watch_windows_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_mic_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_windows_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_macos_meeting_usage_flag()? {
-    return Ok(());
-  }
-
   let stdin = io::stdin();
   let mut active: Option<ActiveSession> = None;
   let mut device_monitor: Option<(Arc<AtomicBool>, thread::JoinHandle<()>)> = None;

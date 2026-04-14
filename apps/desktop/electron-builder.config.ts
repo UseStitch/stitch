@@ -3,7 +3,9 @@ import { existsSync } from 'node:fs';
 import type { Configuration } from 'electron-builder';
 
 const audioCaptureBinaryFilter =
-  process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
+  process.platform === 'win32'
+    ? ['stitch-audio-capture.exe', 'stitch-meeting-watch.exe']
+    : ['stitch-audio-capture', 'stitch-meeting-watch'];
 
 const audioCaptureResource = {
   from: '../../native/target/release',

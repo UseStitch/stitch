@@ -86,7 +86,9 @@ export async function spawnServer(port: number): Promise<string> {
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
     const audioCaptureBin = join(process.resourcesPath, 'audio-capture', `stitch-audio-capture${suffix}`);
+    const meetingWatchBin = join(process.resourcesPath, 'audio-capture', `stitch-meeting-watch${suffix}`);
     sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = audioCaptureBin;
+    sidecarEnv.STITCH_MEETING_WATCH_BIN = meetingWatchBin;
   }
 
   serverProcess = spawn(cmd, args, {
