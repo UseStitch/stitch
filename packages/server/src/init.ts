@@ -8,6 +8,8 @@ import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { startMeetingDetection } from '@/recordings/meeting-detection.js';
 import { startScheduler } from '@/scheduler/runtime.js';
 import { createAgendaToolset } from '@/tools/core/agenda.js';
+import { createRecordingsToolset } from '@/tools/core/recordings.js';
+import { createSessionHistoryToolset } from '@/tools/core/session-history.js';
 import { registerProviderToolsets } from '@/tools/providers/index.js';
 import { registerToolset } from '@/tools/toolsets/registry.js';
 
@@ -22,6 +24,8 @@ export async function init() {
   // Register all toolsets (built-in providers + MCP servers + agenda)
   registerProviderToolsets();
   registerToolset(createAgendaToolset());
+  registerToolset(createSessionHistoryToolset());
+  registerToolset(createRecordingsToolset());
   await refreshMcpToolsets();
 
   // Register connector definitions and start token refresh
