@@ -88,5 +88,13 @@ export function NoFieldsNote({ method }: { method: string }) {
     );
   }
 
+  if (method === 'none') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No authentication required. Ollama runs locally and does not need an API key.
+      </p>
+    );
+  }
+
   return null;
 }

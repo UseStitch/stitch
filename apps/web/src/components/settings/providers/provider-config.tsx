@@ -9,6 +9,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 import { ProviderLogo } from './provider-logo';
 
 import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
+import { OllamaModelsPanel } from '@/components/settings/providers/ollama-models-panel';
 import {
   buildProviderConfigBody,
   hydrateProviderConfigState,
@@ -219,6 +220,12 @@ export function ProviderConfig({ provider, onBack }: Props) {
             </Button>
           )}
         </div>
+
+        {provider.id === 'ollama_local' && (
+          <OllamaModelsPanel
+            baseURL={(extraFields['baseURL'] as string | undefined) || undefined}
+          />
+        )}
       </div>
     </div>
   );
