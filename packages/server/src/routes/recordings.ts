@@ -7,8 +7,6 @@ import { z } from 'zod';
 
 import type { StartRecordingInput } from '@stitch/shared/recordings/types';
 
-import { isServiceError } from '@/lib/service-result.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   cancelRecordingAnalysis,
   getRecordingAnalysis,
@@ -23,32 +21,37 @@ import {
   startRecording,
   stopRecording,
 } from '@/recordings/service.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
 });
 
+const paginationQuerySchema = z.object({
+  page: z.string().pipe(z.coerce.number().int().positive()).default('1'),
+  pageSize: z.string().pipe(z.coerce.number().int().min(1).max(100)).default('10'),
+});
+
+const recordingIdParamSchema = z.object({
+  id: z.string().startsWith('rec_'),
+});
+
+const analyzeQuerySchema = z.object({
+  force: z.enum(['1', 'true']).optional(),
+});
+
 export const recordingsRouter = new Hono();
 
-function parsePagination(query: Record<string, string | undefined>) {
-  const pageRaw = Number.parseInt(query.page ?? '1', 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize ?? '10', 10);
-
-  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 10;
-
-  return { page, pageSize };
-}
-
-recordingsRouter.get('/', async (c) => {
-  const { page, pageSize } = parsePagination({
-    page: c.req.query('page'),
-    pageSize: c.req.query('pageSize'),
-  });
-  const result = await listRecordings({ page, pageSize });
-  return c.json(result);
-});
+recordingsRouter.get(
+  '/',
+  zValidator('query', paginationQuerySchema),
+  async (c) => {
+    const { page, pageSize } = c.req.valid('query');
+    const result = await listRecordings({ page, pageSize });
+    return c.json(result);
+  },
+);
 
 recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async (c) => {
   const body = c.req.valid('json') as StartRecordingInput;
@@ -71,88 +74,102 @@ recordingsRouter.get('/permissions', async (c) => {
   return unwrapResult(c, result);
 });
 
-recordingsRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
+recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
   const result = await deleteRecording(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
-
   return unwrapResult(c, result, 204);
 });
 
-recordingsRouter.get('/:id/audio', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const result = await getRecordingAudioFile(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+recordingsRouter.get(
+  '/:id/audio',
+  zValidator('param', recordingIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await getRecordingAudioFile(id);
+    if (result.error) return unwrapResult(c, result);
 
-  const stat = await fs.stat(result.data.filePath);
-  const range = c.req.header('range');
+    const stat = await fs.stat(result.data.filePath);
+    const range = c.req.header('range');
 
-  if (range?.startsWith('bytes=')) {
-    const [startToken, endToken] = range.slice('bytes='.length).split('-');
-    const start = startToken ? Number.parseInt(startToken, 10) : 0;
-    const end = endToken ? Number.parseInt(endToken, 10) : stat.size - 1;
+    if (range?.startsWith('bytes=')) {
+      const [startToken, endToken] = range.slice('bytes='.length).split('-');
+      const start = startToken ? Number.parseInt(startToken, 10) : 0;
+      const end = endToken ? Number.parseInt(endToken, 10) : stat.size - 1;
 
-    if (
-      Number.isNaN(start) ||
-      Number.isNaN(end) ||
-      start < 0 ||
-      end < start ||
-      start >= stat.size
-    ) {
-      return new Response(null, {
-        status: 416,
+      if (
+        Number.isNaN(start) ||
+        Number.isNaN(end) ||
+        start < 0 ||
+        end < start ||
+        start >= stat.size
+      ) {
+        return new Response(null, {
+          status: 416,
+          headers: {
+            'content-range': `bytes */${stat.size}`,
+          },
+        });
+      }
+
+      const boundedEnd = Math.min(end, stat.size - 1);
+      const chunkSize = boundedEnd - start + 1;
+      const stream = createReadStream(result.data.filePath, { start, end: boundedEnd });
+
+      return new Response(Readable.toWeb(stream) as ReadableStream, {
+        status: 206,
         headers: {
-          'content-range': `bytes */${stat.size}`,
+          'accept-ranges': 'bytes',
+          'cache-control': 'no-store',
+          'content-disposition': `inline; filename="${id}.ogg"`,
+          'content-length': String(chunkSize),
+          'content-range': `bytes ${start}-${boundedEnd}/${stat.size}`,
+          'content-type': result.data.mimeType,
         },
       });
     }
 
-    const boundedEnd = Math.min(end, stat.size - 1);
-    const chunkSize = boundedEnd - start + 1;
-    const stream = createReadStream(result.data.filePath, { start, end: boundedEnd });
+    const stream = createReadStream(result.data.filePath);
 
     return new Response(Readable.toWeb(stream) as ReadableStream, {
-      status: 206,
       headers: {
         'accept-ranges': 'bytes',
         'cache-control': 'no-store',
         'content-disposition': `inline; filename="${id}.ogg"`,
-        'content-length': String(chunkSize),
-        'content-range': `bytes ${start}-${boundedEnd}/${stat.size}`,
+        'content-length': String(stat.size),
         'content-type': result.data.mimeType,
       },
     });
-  }
+  },
+);
 
-  const stream = createReadStream(result.data.filePath);
+recordingsRouter.post(
+  '/:id/analyze',
+  zValidator('param', recordingIdParamSchema),
+  zValidator('query', analyzeQuerySchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { force } = c.req.valid('query');
+    const result = await startRecordingAnalysis(id, { force: !!force });
+    return unwrapResult(c, result, 202);
+  },
+);
 
-  return new Response(Readable.toWeb(stream) as ReadableStream, {
-    headers: {
-      'accept-ranges': 'bytes',
-      'cache-control': 'no-store',
-      'content-disposition': `inline; filename="${id}.ogg"`,
-      'content-length': String(stat.size),
-      'content-type': result.data.mimeType,
-    },
-  });
-});
+recordingsRouter.get(
+  '/:id/analysis',
+  zValidator('param', recordingIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await getRecordingAnalysis(id);
+    return unwrapResult(c, result);
+  },
+);
 
-recordingsRouter.post('/:id/analyze', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const forceRaw = c.req.query('force');
-  const force = forceRaw === '1' || forceRaw === 'true';
-  const result = await startRecordingAnalysis(id, { force });
-  return unwrapResult(c, result, 202);
-});
-
-recordingsRouter.get('/:id/analysis', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const result = await getRecordingAnalysis(id);
-  return unwrapResult(c, result);
-});
-
-recordingsRouter.post('/:id/analysis/cancel', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const result = await cancelRecordingAnalysis(id);
-  return unwrapResult(c, result, 204);
-});
+recordingsRouter.post(
+  '/:id/analysis/cancel',
+  zValidator('param', recordingIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await cancelRecordingAnalysis(id);
+    return unwrapResult(c, result, 204);
+  },
+);
