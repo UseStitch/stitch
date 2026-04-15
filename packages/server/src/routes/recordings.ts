@@ -22,6 +22,7 @@ import {
   stopRecording,
 } from '@/recordings/service.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -29,12 +30,12 @@ const startRecordingSchema = z.object({
 });
 
 const paginationQuerySchema = z.object({
-  page: z.string().pipe(z.coerce.number().int().positive()).default('1'),
-  pageSize: z.string().pipe(z.coerce.number().int().min(1).max(100)).default('10'),
+  page: z.string().transform(Number).refine((n) => Number.isInteger(n) && n > 0).default(1),
+  pageSize: z.string().transform(Number).refine((n) => Number.isInteger(n) && n >= 1 && n <= 100).default(10),
 });
 
 const recordingIdParamSchema = z.object({
-  id: z.string().startsWith('rec_'),
+  id: z.templateLiteral([z.literal('rec'), z.string()]),
 });
 
 const analyzeQuerySchema = z.object({
@@ -86,7 +87,7 @@ recordingsRouter.get(
   async (c) => {
     const { id } = c.req.valid('param');
     const result = await getRecordingAudioFile(id);
-    if (result.error) return unwrapResult(c, result);
+    if (isServiceError(result)) return unwrapResult(c, result);
 
     const stat = await fs.stat(result.data.filePath);
     const range = c.req.header('range');
