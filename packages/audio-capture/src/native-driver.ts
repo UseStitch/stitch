@@ -149,7 +149,6 @@ function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, {
     mode: 'dual',
     sampleRateHz: 16_000,
     channels: input.channels ?? 1,
-    enableAec: input.enableAec ?? false,
     micDeviceId: input.micDeviceId ?? null,
     speakerDeviceId: input.speakerDeviceId ?? null,
     speakerGain: input.speakerGain ?? null,

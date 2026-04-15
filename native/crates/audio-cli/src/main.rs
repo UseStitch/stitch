@@ -222,7 +222,6 @@ fn main() -> io::Result<()> {
       Command::Capabilities => {
         emit(Event::Capabilities {
           supported_modes: vec!["mic", "speaker", "dual"],
-          supports_aec: true,
           supports_realtime_dual: true,
         })?;
       }

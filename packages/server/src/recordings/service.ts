@@ -36,7 +36,6 @@ const log = Log.create({ service: 'recordings' });
 type RecordingCaptureSettings = {
   inputDeviceId: string | null;
   outputDeviceId: string | null;
-  enableAec: boolean;
   speakerGain: number;
 };
 
@@ -46,19 +45,18 @@ async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
     .select({ key: userSettings.key, value: userSettings.value })
     .from(userSettings)
     .where(
-      sql`${userSettings.key} IN ('recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.enableAec', 'recordings.speakerGain')`,
+      sql`${userSettings.key} IN ('recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.speakerGain')`,
     );
 
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
   const inputDeviceId = map.get('recordings.inputDeviceId') || null;
   const outputDeviceId = map.get('recordings.outputDeviceId') || null;
-  const enableAec = map.get('recordings.enableAec') === 'true';
 
   const rawGain = Number.parseFloat(map.get('recordings.speakerGain') ?? '10');
   const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
 
-  return { inputDeviceId, outputDeviceId, enableAec, speakerGain };
+  return { inputDeviceId, outputDeviceId, speakerGain };
 }
 
 function defaultTitle(): string {
@@ -155,7 +153,6 @@ export async function startRecording(
     await capture.start({
       outputPath: filePath,
       channels: 1,
-      enableAec: settings.enableAec,
       micDeviceId: settings.inputDeviceId,
       speakerDeviceId: settings.outputDeviceId,
       speakerGain: settings.speakerGain,
@@ -177,7 +174,6 @@ export async function startRecording(
       {
         recordingId: id,
         filePath,
-        enableAec: settings.enableAec,
         speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,

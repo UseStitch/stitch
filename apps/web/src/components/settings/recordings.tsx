@@ -199,9 +199,6 @@ function AudioDeviceSettings() {
   const saveOutputDeviceMutation = useMutation(
     saveSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
   );
-  const saveAecMutation = useMutation(
-    saveSettingMutationOptions('recordings.enableAec', queryClient, { silent: true }),
-  );
   const saveSpeakerGainMutation = useMutation(
     saveSettingMutationOptions('recordings.speakerGain', queryClient, { silent: true }),
   );
@@ -214,7 +211,6 @@ function AudioDeviceSettings() {
 
   const currentInputDevice = settings['recordings.inputDeviceId'] ?? '';
   const currentOutputDevice = settings['recordings.outputDeviceId'] ?? '';
-  const aecEnabled = settings['recordings.enableAec'] === 'true';
   const currentSpeakerGain = Number.parseFloat(settings['recordings.speakerGain'] ?? '10') || 10;
 
   function handleInputDeviceChange(value: string | null) {
@@ -291,19 +287,6 @@ function AudioDeviceSettings() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Echo Cancellation</Label>
-          <p className="text-xs text-muted-foreground">
-            Reduce echo when recording both microphone and system audio.
-          </p>
-        </div>
-        <Switch
-          checked={aecEnabled}
-          onCheckedChange={(checked) => saveAecMutation.mutate(checked ? 'true' : 'false')}
-        />
       </div>
 
       <div className="flex items-center justify-between gap-4 py-3">

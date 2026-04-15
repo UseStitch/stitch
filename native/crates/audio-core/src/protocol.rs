@@ -15,7 +15,6 @@ pub enum Command {
     mode: String,
     sample_rate_hz: u32,
     channels: u16,
-    enable_aec: bool,
     mic_device_id: Option<String>,
     speaker_device_id: Option<String>,
     speaker_gain: Option<f32>,
@@ -67,7 +66,6 @@ pub enum Event {
   },
   Capabilities {
     supported_modes: Vec<&'static str>,
-    supports_aec: bool,
     supports_realtime_dual: bool,
   },
   PermissionsStatus {
@@ -95,7 +93,6 @@ pub struct CaptureStart {
   pub channels: u16,
   pub mic_device_id: Option<String>,
   pub speaker_device_id: Option<String>,
-  pub enable_aec: bool,
   pub speaker_gain: f32,
 }
 
@@ -118,7 +115,6 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
       mode,
       sample_rate_hz,
       channels,
-      enable_aec,
       mic_device_id,
       speaker_device_id,
       speaker_gain,
@@ -148,7 +144,6 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
         channels,
         mic_device_id,
         speaker_device_id,
-        enable_aec,
         speaker_gain: speaker_gain.unwrap_or(10.0).clamp(0.1, 50.0),
       })
     }
@@ -160,7 +155,7 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
 
 #[cfg(test)]
 mod tests {
-  use super::{CaptureMode, Command, Event, parse_start_command};
+  use super::{parse_start_command, CaptureMode, Command, Event};
 
   #[test]
   fn parse_start_command_accepts_valid_payload() {
@@ -170,7 +165,6 @@ mod tests {
       mode: "dual".to_string(),
       sample_rate_hz: 16_000,
       channels: 1,
-      enable_aec: true,
       mic_device_id: Some("mic-1".to_string()),
       speaker_device_id: Some("speaker-1".to_string()),
       speaker_gain: None,
@@ -181,7 +175,6 @@ mod tests {
     assert!(matches!(parsed.mode, CaptureMode::Dual));
     assert_eq!(parsed.sample_rate_hz, 16_000);
     assert_eq!(parsed.channels, 1);
-    assert!(parsed.enable_aec);
     assert_eq!(parsed.mic_device_id.as_deref(), Some("mic-1"));
     assert_eq!(parsed.speaker_device_id.as_deref(), Some("speaker-1"));
     assert!((parsed.speaker_gain - 10.0).abs() < 0.01);
@@ -195,7 +188,6 @@ mod tests {
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
       channels: 1,
-      enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
       speaker_gain: None,
@@ -213,7 +205,6 @@ mod tests {
       mode: "mic".to_string(),
       sample_rate_hz: 0,
       channels: 1,
-      enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
       speaker_gain: None,
@@ -224,7 +215,6 @@ mod tests {
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
       channels: 0,
-      enable_aec: false,
       mic_device_id: None,
       speaker_device_id: None,
       speaker_gain: None,
@@ -262,20 +252,19 @@ mod tests {
   fn event_serializes_capabilities_shape() {
     let event = Event::Capabilities {
       supported_modes: vec!["mic", "speaker", "dual"],
-      supports_aec: true,
       supports_realtime_dual: true,
     };
 
     let serialized = serde_json::to_string(&event).expect("event should serialize");
     let value: serde_json::Value = serde_json::from_str(&serialized).expect("valid json");
     assert_eq!(value["type"], "capabilities");
-    assert!(value.get("supportsAec").is_some());
+    assert!(value.get("supportsRealtimeDual").is_some());
   }
 
   #[test]
   fn command_deserializes_start_payload_with_camel_case_fields() {
     let command: Command = serde_json::from_str(
-      r#"{"type":"start","outputPath":"tmp/audio.ogg","format":"opus","mode":"mic","sampleRateHz":16000,"channels":1,"enableAec":false,"micDeviceId":null,"speakerDeviceId":null}"#,
+      r#"{"type":"start","outputPath":"tmp/audio.ogg","format":"opus","mode":"mic","sampleRateHz":16000,"channels":1,"micDeviceId":null,"speakerDeviceId":null}"#,
     )
     .expect("must parse start command with camelCase fields");
 

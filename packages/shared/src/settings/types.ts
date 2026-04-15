@@ -37,7 +37,6 @@ export const SETTINGS_KEYS = [
   'recordings.autoAnalyze',
   'recordings.inputDeviceId',
   'recordings.outputDeviceId',
-  'recordings.enableAec',
   'recordings.speakerGain',
   'recordings.transcription.providerId',
   'recordings.transcription.modelId',
@@ -84,7 +83,6 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'recordings.autoAnalyze': z.coerce.boolean(),
   'recordings.inputDeviceId': z.string(),
   'recordings.outputDeviceId': z.string(),
-  'recordings.enableAec': z.coerce.boolean(),
   'recordings.speakerGain': z.coerce.number().min(0.1).max(50),
   'recordings.transcription.providerId': z.string(),
   'recordings.transcription.modelId': z.string(),
@@ -285,11 +283,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'recordings.outputDeviceId',
     value: '',
     description: 'Preferred speaker device name for system audio capture. Empty string uses the system default.',
-  },
-  {
-    key: 'recordings.enableAec',
-    value: 'false',
-    description: 'Enable acoustic echo cancellation when recording in dual mode.',
   },
   {
     key: 'recordings.speakerGain',
