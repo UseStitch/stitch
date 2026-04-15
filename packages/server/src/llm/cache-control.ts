@@ -52,6 +52,8 @@ export function getCacheConfig(
     case 'google':
     // Vercel (AI Gateway): caching handled by gateway via getProviderOptions
     case 'vercel':
+    // Ollama: local inference, no cache control support
+    case 'ollama_local':
       return null;
   }
 }
