@@ -1,6 +1,6 @@
 # stitch-audio-capture
 
-Rust sidecar binary for native audio capture used by `@stitch/audio-capture`.
+Rust workspace for native audio services used by `@stitch/audio-capture`.
 
 ## Current status
 
@@ -18,13 +18,13 @@ Rust sidecar binary for native audio capture used by `@stitch/audio-capture`.
 ## Local build
 
 ```bash
-cargo build --release
+cargo build --release --manifest-path native/Cargo.toml -p stitch-audio-capture
 ```
 
-Expected output binary:
+Expected output binaries:
 
-- macOS/Linux: `target/release/stitch-audio-capture`
-- Windows: `target/release/stitch-audio-capture.exe`
+- macOS/Linux: `native/target/release/stitch-audio-capture`, `native/target/release/stitch-meeting-watch`
+- Windows: `native/target/release/stitch-audio-capture.exe`, `native/target/release/stitch-meeting-watch.exe`
 
 ## Monorepo helper build
 
@@ -36,8 +36,10 @@ bun run audio-native:build
 
 The script builds a platform-appropriate target and stages the result into:
 
-- `packages/audio-native/target/release/stitch-audio-capture`
-- `packages/audio-native/target/release/stitch-audio-capture.exe`
+- `native/target/release/stitch-audio-capture`
+- `native/target/release/stitch-audio-capture.exe`
+- `native/target/release/stitch-meeting-watch`
+- `native/target/release/stitch-meeting-watch.exe`
 
 ### Override target for cross-builds
 

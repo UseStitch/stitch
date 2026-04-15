@@ -58,7 +58,6 @@ export type NativeCaptureStartCommand = {
   mode: CaptureMode;
   sampleRateHz: number;
   channels: number;
-  enableAec: boolean;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
   speakerGain: number | null;
@@ -149,7 +148,6 @@ export type NativeCaptureDeviceListEvent = {
 export type NativeCaptureCapabilitiesEvent = {
   type: 'capabilities';
   supportedModes: CaptureMode[];
-  supportsAec: boolean;
   supportsRealtimeDual: boolean;
 };
 
@@ -199,10 +197,7 @@ export type NativeCaptureController = {
 export type StartCaptureInput = {
   outputPath: string;
   format?: CaptureFormat;
-  mode?: CaptureMode;
-  sampleRateHz?: number;
   channels?: number;
-  enableAec?: boolean;
   micDeviceId?: string | null;
   speakerDeviceId?: string | null;
   speakerGain?: number | null;

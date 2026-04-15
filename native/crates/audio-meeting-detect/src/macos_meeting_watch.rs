@@ -1,11 +1,56 @@
 #[cfg(target_os = "macos")]
-pub(crate) fn run_macos_meeting_watcher() {
-  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
+pub fn run_macos_meeting_watcher() {
+  use crate::watch_output::{emit_snapshot, emit_watch_error, WatchRow};
   use std::process::Command;
   use std::sync::{Arc, Mutex};
 
+  use cidre::core_audio as ca_inner;
+  use sysinfo::{Pid, ProcessesToUpdate, System};
+
+  struct MicUsingProcess {
+    pid: i32,
+    process_name: String,
+  }
+
+  fn process_name_for_pid(pid: i32) -> Option<String> {
+    let mut system = System::new();
+    let pid_ref = Pid::from_u32(pid as u32);
+    system.refresh_processes(ProcessesToUpdate::Some(&[pid_ref]), true);
+    let process = system.process(pid_ref)?;
+    let name = process.name().to_string_lossy().trim().to_string();
+    if name.is_empty() {
+      None
+    } else {
+      Some(name)
+    }
+  }
+
+  fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
+    let processes = ca_inner::System::processes()
+      .map_err(|error| format!("core audio process query failed: {error:?}"))?;
+
+    let mut result = Vec::new();
+    for process in processes {
+      let Ok(is_running_input) = process.is_running_input() else {
+        continue;
+      };
+      if !is_running_input {
+        continue;
+      }
+      let Ok(pid) = process.pid() else {
+        continue;
+      };
+      let process_name = process_name_for_pid(pid).unwrap_or_else(|| format!("pid:{pid}"));
+      result.push(MicUsingProcess { pid, process_name });
+    }
+
+    result.sort_by(|a, b| a.pid.cmp(&b.pid));
+    result.dedup_by(|a, b| a.pid == b.pid);
+    Ok(result)
+  }
+
   use cidre::core_audio as ca;
-  use cidre::os;
+  use cidre::os as cidre_os;
 
   const BROWSER_WINDOW_SCAN_SCRIPT: &str = r#"(() => {
   const output = { chrome: [], edge: [] };
@@ -40,7 +85,7 @@ pub(crate) fn run_macos_meeting_watcher() {
       }
     };
 
-    let processes = match crate::mic_usage::list_mic_using_processes() {
+    let processes = match list_mic_using_processes() {
       Ok(procs) => procs,
       Err(error) => {
         emit_watch_error(format!("mic process scan failed: {error}"));
@@ -116,12 +161,12 @@ pub(crate) fn run_macos_meeting_watcher() {
     _number_addresses: u32,
     _addresses: *const ca::PropAddr,
     client_data: *mut (),
-  ) -> os::Status {
+  ) -> cidre_os::Status {
     let flag = unsafe { &*(client_data as *const Mutex<bool>) };
     if let Ok(mut guard) = flag.lock() {
       *guard = true;
     }
-    os::Status::NO_ERR
+    cidre_os::Status::NO_ERR
   }
 
   extern "C-unwind" fn system_listener(
@@ -129,13 +174,13 @@ pub(crate) fn run_macos_meeting_watcher() {
     _number_addresses: u32,
     _addresses: *const ca::PropAddr,
     client_data: *mut (),
-  ) -> os::Status {
+  ) -> cidre_os::Status {
     // Default input device changed; re-register device listener and mark dirty.
     let flag = unsafe { &*(client_data as *const Mutex<bool>) };
     if let Ok(mut guard) = flag.lock() {
       *guard = true;
     }
-    os::Status::NO_ERR
+    cidre_os::Status::NO_ERR
   }
 
   const DEVICE_IS_RUNNING_SOMEWHERE: ca::PropAddr = ca::PropAddr {
@@ -198,6 +243,6 @@ pub(crate) fn run_macos_meeting_watcher() {
 }
 
 #[cfg(not(target_os = "macos"))]
-pub(crate) fn run_macos_meeting_watcher() {
+pub fn run_macos_meeting_watcher() {
   // No-op on non-macOS platforms; flag handler returns false on these targets.
 }

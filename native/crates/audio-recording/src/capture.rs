@@ -1,26 +1,23 @@
-#[cfg(test)]
-use std::collections::VecDeque;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
-use crate::error::NativeError;
+use audio_core::error::NativeError;
+use audio_core::output::{emit, now_ms};
+use audio_core::protocol::{CaptureMode, CaptureStart, Event};
+
 use crate::opus_writer::OggOpusWriter;
-use crate::output::{emit, now_ms};
-use crate::protocol::{CaptureMode, CaptureStart, Event};
 use crate::resample::StreamResampler;
 use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 
 const INPUT_QUEUE_CAPACITY: usize = 128;
 const UNPAIRED_FLUSH_TICKS: u32 = 5;
 const DUAL_MIC_GAIN: f32 = 1.0;
-#[cfg(test)]
-const DEFAULT_SPEAKER_GAIN: f32 = 10.0;
 const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
 const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
 
@@ -31,7 +28,7 @@ fn is_tap_device(name: &str) -> bool {
 }
 
 fn device_name(device: &cpal::Device) -> Option<String> {
-  device.description().map(|d| d.name().to_string()).ok()
+  crate::device::device_display_name(device)
 }
 
 fn choose_input_device(
@@ -297,136 +294,6 @@ fn open_mic_stream(
   Ok((stream, warnings))
 }
 
-#[cfg(test)]
-fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
-  chunk
-    .iter()
-    .map(|s| (s * weight).clamp(-1.0, 1.0))
-    .collect()
-}
-
-#[cfg(test)]
-fn maybe_take_unpaired_pcm(
-  queue: &mut VecDeque<Vec<f32>>,
-  wait_ticks: &mut u32,
-  stop_requested: bool,
-  weight: f32,
-  warning_code: &'static str,
-  warned: &mut bool,
-  warnings: &mut Vec<String>,
-) -> Option<Vec<f32>> {
-  if *wait_ticks < UNPAIRED_FLUSH_TICKS && !stop_requested {
-    return None;
-  }
-
-  let chunk = queue.pop_front()?;
-  if !*warned {
-    warnings.push(warning_code.to_string());
-    *warned = true;
-  }
-
-  *wait_ticks = 0;
-  Some(weighted_f32_chunk(&chunk, weight))
-}
-
-#[cfg(test)]
-fn mix_dual_chunks(
-  mic_chunk: &[f32],
-  speaker_chunk: &[f32],
-  sample_rate_hz: u32,
-  enable_aec: bool,
-  aec_gain: &mut f32,
-) -> (Vec<f32>, isize) {
-  let lag = if enable_aec {
-    estimate_lag_samples(mic_chunk, speaker_chunk, sample_rate_hz)
-  } else {
-    0
-  };
-  let overlap = mic_chunk.len().min(speaker_chunk.len());
-
-  if enable_aec && overlap > 0 {
-    let mut dot = 0.0f32;
-    let mut energy = 0.0f32;
-    for idx in 0..overlap {
-      let s = aligned_sample(speaker_chunk, idx, lag);
-      dot += mic_chunk[idx] * s;
-      energy += s * s;
-    }
-
-    if energy > 1e-6 {
-      let estimate = (dot / energy).clamp(0.0, 1.5);
-      *aec_gain = (*aec_gain * 0.85) + (estimate * 0.15);
-    }
-  }
-
-  let length = mic_chunk.len().max(speaker_chunk.len());
-  let mut out = Vec::with_capacity(length);
-
-  for idx in 0..length {
-    let mic_value = *mic_chunk.get(idx).unwrap_or(&0.0);
-    let speaker_value = aligned_sample(speaker_chunk, idx, lag);
-    let cleaned_mic = if enable_aec {
-      mic_value - (speaker_value * *aec_gain)
-    } else {
-      mic_value
-    };
-    let mixed =
-      ((cleaned_mic * DUAL_MIC_GAIN) + (speaker_value * DEFAULT_SPEAKER_GAIN)).clamp(-1.0, 1.0);
-    out.push(mixed);
-  }
-
-  (out, lag)
-}
-
-#[cfg(test)]
-fn estimate_lag_samples(mic: &[f32], speaker: &[f32], sample_rate: u32) -> isize {
-  if mic.is_empty() || speaker.is_empty() {
-    return 0;
-  }
-
-  let max_lag = (sample_rate as usize / 2).max(1);
-  let window = (sample_rate as usize * 5)
-    .min(mic.len())
-    .min(speaker.len())
-    .max(1);
-  let step = 8usize;
-
-  let mut best_lag = 0isize;
-  let mut best_score = f32::MIN;
-
-  for lag in -(max_lag as isize)..=(max_lag as isize) {
-    let mut dot = 0.0f32;
-    let mut energy_m = 0.0f32;
-    let mut energy_s = 0.0f32;
-    let mut idx = 0usize;
-
-    while idx < window {
-      let mic_idx = idx as isize;
-      let speaker_idx = mic_idx + lag;
-      if speaker_idx >= 0 && (speaker_idx as usize) < window {
-        let m = mic[mic_idx as usize];
-        let s = speaker[speaker_idx as usize];
-        dot += m * s;
-        energy_m += m * m;
-        energy_s += s * s;
-      }
-      idx += step;
-    }
-
-    if energy_m <= 1e-6 || energy_s <= 1e-6 {
-      continue;
-    }
-
-    let score = dot / (energy_m.sqrt() * energy_s.sqrt());
-    if score > best_score {
-      best_score = score;
-      best_lag = lag;
-    }
-  }
-
-  best_lag
-}
-
 pub(crate) fn start_progress_emitter(
   started_at: u64,
   stop: Arc<AtomicBool>,
@@ -677,21 +544,11 @@ fn spawn_mic_source(
   Ok((rx, worker))
 }
 
-#[cfg(test)]
-fn aligned_sample(buffer: &[f32], idx: usize, lag: isize) -> f32 {
-  let mapped = idx as isize - lag;
-  if mapped < 0 {
-    return 0.0;
-  }
-  *buffer.get(mapped as usize).unwrap_or(&0.0)
-}
-
 fn write_dual_realtime_output(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   let output_path = start.output_path.clone();
-  let enable_aec = start.enable_aec;
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;
@@ -705,7 +562,6 @@ fn write_dual_realtime_output(
     .spawn(move || {
       let mut writer = OggOpusWriter::create(&output_path)?;
 
-      let aec_gain = 0.0f32;
       let mut warnings = vec!["dual_realtime_mixer_enabled".to_string()];
       let mut mic_buf: Vec<f32> = Vec::new();
       let mut speaker_buf: Vec<f32> = Vec::new();
@@ -796,46 +652,51 @@ fn write_dual_realtime_output(
 
       warnings.extend(mic_warnings);
       warnings.extend(speaker_warnings);
-      if enable_aec {
-        warnings.push(format!("realtime_aec_final_gain_{:.3}", aec_gain));
-      }
 
       Ok(warnings)
     })
     .map_err(|error| NativeError::Internal(format!("failed to spawn dual mixer thread: {error}")))
 }
 
+#[cfg(test)]
+fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
+  chunk
+    .iter()
+    .map(|s| (s * weight).clamp(-1.0, 1.0))
+    .collect()
+}
+
+#[cfg(test)]
+fn maybe_take_unpaired_pcm(
+  queue: &mut std::collections::VecDeque<Vec<f32>>,
+  wait_ticks: &mut u32,
+  stop_requested: bool,
+  weight: f32,
+  warning_code: &'static str,
+  warned: &mut bool,
+  warnings: &mut Vec<String>,
+) -> Option<Vec<f32>> {
+  if *wait_ticks < UNPAIRED_FLUSH_TICKS && !stop_requested {
+    return None;
+  }
+
+  let chunk = queue.pop_front()?;
+  if !*warned {
+    warnings.push(warning_code.to_string());
+    *warned = true;
+  }
+
+  *wait_ticks = 0;
+  Some(weighted_f32_chunk(&chunk, weight))
+}
+
 pub(crate) fn spawn_capture_worker(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let mut warnings = Vec::new();
-  if start.enable_aec && !matches!(start.mode, CaptureMode::Dual) {
-    warnings.push("aec_requested_but_only_applied_in_dual_mode".to_string());
-  }
-
   match start.mode {
-    CaptureMode::Mic => {
-      let worker = spawn_mic_capture(start, stop_flag)?;
-      Ok(thread::spawn(move || {
-        let mut inner = worker
-          .join()
-          .map_err(|_| NativeError::Internal("microphone thread panicked".to_string()))??;
-        inner.extend(warnings);
-        Ok(inner)
-      }))
-    }
-    CaptureMode::Dual => {
-      let worker = write_dual_realtime_output(start, stop_flag)?;
-
-      Ok(thread::spawn(move || {
-        let mut inner = worker
-          .join()
-          .map_err(|_| NativeError::Internal("dual mixer thread panicked".to_string()))??;
-        inner.extend(warnings);
-        Ok(inner)
-      }))
-    }
+    CaptureMode::Mic => spawn_mic_capture(start, stop_flag),
+    CaptureMode::Dual => write_dual_realtime_output(start, stop_flag),
     CaptureMode::Speaker => spawn_speaker_capture(
       start.output_path.clone(),
       start.speaker_device_id.clone(),
@@ -849,42 +710,7 @@ pub(crate) fn spawn_capture_worker(
 mod tests {
   use std::collections::VecDeque;
 
-  use super::{
-    UNPAIRED_FLUSH_TICKS, aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm,
-    mix_dual_chunks, weighted_f32_chunk,
-  };
-
-  #[test]
-  fn estimate_lag_detects_positive_shift() {
-    let mic = vec![0.9, -0.2, 0.5, 0.1, -0.7, 0.3, -0.1, 0.8, -0.4, 0.2];
-    let speaker = vec![0.0, 0.0, 0.9, -0.2, 0.5, 0.1, -0.7, 0.3, -0.1, 0.8];
-
-    let lag = estimate_lag_samples(&mic, &speaker, 16_000);
-    assert!(lag != 0);
-  }
-
-  #[test]
-  fn aligned_sample_respects_lag_boundaries() {
-    let speaker = vec![0.1, 0.2, 0.3];
-
-    assert_eq!(aligned_sample(&speaker, 0, 1), 0.0);
-    assert_eq!(aligned_sample(&speaker, 1, 1), 0.1);
-    assert_eq!(aligned_sample(&speaker, 2, 1), 0.2);
-    assert_eq!(aligned_sample(&speaker, 2, -1), 0.0);
-  }
-
-  #[test]
-  fn estimate_lag_returns_zero_for_identical_streams() {
-    let signal = vec![0.0, 0.2, -0.1, 0.5, -0.4, 0.3, 0.0];
-    let lag = estimate_lag_samples(&signal, &signal, 16_000);
-    assert_eq!(lag, 0);
-  }
-
-  #[test]
-  fn estimate_lag_handles_empty_inputs() {
-    assert_eq!(estimate_lag_samples(&[], &[0.1, 0.2], 16_000), 0);
-    assert_eq!(estimate_lag_samples(&[0.1, 0.2], &[], 16_000), 0);
-  }
+  use super::{maybe_take_unpaired_pcm, weighted_f32_chunk, UNPAIRED_FLUSH_TICKS};
 
   #[test]
   fn weighted_f32_chunk_keeps_signal_for_unpaired_streams() {
@@ -935,14 +761,5 @@ mod tests {
 
     assert!(samples.is_some());
     assert!(queue.is_empty());
-  }
-
-  #[test]
-  fn mix_dual_chunks_writes_audio_when_speaker_is_missing() {
-    let mut aec_gain = 0.0;
-    let (samples, lag) = mix_dual_chunks(&[0.3, -0.2, 0.1], &[], 16_000, true, &mut aec_gain);
-    assert_eq!(lag, 0);
-    assert_eq!(samples.len(), 3);
-    assert!(samples.iter().any(|s| *s != 0.0));
   }
 }

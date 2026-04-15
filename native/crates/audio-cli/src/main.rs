@@ -1,113 +1,13 @@
 use std::io::{self, BufRead};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+use audio_core::output::emit;
+use audio_core::protocol::{parse_start_command, Command, Event};
+use audio_recording::{device_display_name, start_session, stop_session, ActiveSession};
 use cpal::traits::{DeviceTrait, HostTrait};
-
-mod capture;
-mod error;
-mod macos_meeting_scan;
-mod macos_meeting_watch;
-mod mic_usage;
-mod opus_writer;
-mod output;
-mod protocol;
-mod resample;
-mod session;
-mod speaker;
-mod watch_output;
-mod windows_meeting_scan;
-mod windows_meeting_watch;
-
-use macos_meeting_scan::list_macos_meeting_rows;
-use macos_meeting_watch::run_macos_meeting_watcher;
-use mic_usage::list_mic_using_processes;
-use output::emit;
-use protocol::{Command, Event, parse_start_command};
-use session::{ActiveSession, start_session, stop_session};
-use windows_meeting_scan::list_windows_meeting_rows;
-use windows_meeting_watch::run_windows_meeting_watcher;
-
-fn handle_watch_macos_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--watch-macos-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  run_macos_meeting_watcher();
-  Ok(true)
-}
-
-fn handle_watch_windows_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--watch-windows-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  run_windows_meeting_watcher();
-  Ok(true)
-}
-
-fn handle_list_mic_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-mic-usage")
-  {
-    return Ok(false);
-  }
-
-  let apps = list_mic_using_processes().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&apps).map_err(|error| io::Error::new(
-      io::ErrorKind::Other,
-      format!("serialize failed: {error}")
-    ))?
-  );
-  Ok(true)
-}
-
-fn handle_list_windows_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-windows-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  let rows = list_windows_meeting_rows().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&rows)
-      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
-  );
-
-  Ok(true)
-}
-
-fn handle_list_macos_meeting_usage_flag() -> io::Result<bool> {
-  if !std::env::args()
-    .skip(1)
-    .any(|arg| arg == "--list-macos-meeting-usage")
-  {
-    return Ok(false);
-  }
-
-  let rows = list_macos_meeting_rows().unwrap_or_default();
-  println!(
-    "{}",
-    serde_json::to_string(&rows)
-      .map_err(|error| io::Error::other(format!("serialize failed: {error}")))?
-  );
-
-  Ok(true)
-}
 
 const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
 
@@ -122,12 +22,7 @@ fn list_microphone_devices() -> Vec<String> {
   };
 
   devices
-    .filter_map(|device| {
-      device
-        .description()
-        .map(|description| description.name().to_string())
-        .ok()
-    })
+    .filter_map(|device| device_display_name(&device))
     .filter(|name| !is_tap_device(name))
     .collect()
 }
@@ -189,7 +84,7 @@ fn default_input_device_name() -> Option<String> {
   let host = cpal::default_host();
   let name = host
     .default_input_device()
-    .and_then(|d| d.description().map(|desc| desc.name().to_string()).ok())?;
+    .and_then(|d| device_display_name(&d))?;
   if is_tap_device(&name) {
     return None;
   }
@@ -222,26 +117,6 @@ fn spawn_device_monitor(stop: Arc<AtomicBool>) -> thread::JoinHandle<()> {
 }
 
 fn main() -> io::Result<()> {
-  if handle_watch_macos_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_watch_windows_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_mic_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_windows_meeting_usage_flag()? {
-    return Ok(());
-  }
-
-  if handle_list_macos_meeting_usage_flag()? {
-    return Ok(());
-  }
-
   let stdin = io::stdin();
   let mut active: Option<ActiveSession> = None;
   let mut device_monitor: Option<(Arc<AtomicBool>, thread::JoinHandle<()>)> = None;
@@ -347,7 +222,6 @@ fn main() -> io::Result<()> {
       Command::Capabilities => {
         emit(Event::Capabilities {
           supported_modes: vec!["mic", "speaker", "dual"],
-          supports_aec: true,
           supports_realtime_dual: true,
         })?;
       }

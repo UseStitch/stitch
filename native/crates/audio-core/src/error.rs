@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub(crate) enum NativeError {
+pub enum NativeError {
   #[error("invalid command: {0}")]
   InvalidCommand(String),
   #[error("permission denied: {0}")]
@@ -15,7 +15,7 @@ pub(crate) enum NativeError {
 }
 
 impl NativeError {
-  pub(crate) fn code(&self) -> &'static str {
+  pub fn code(&self) -> &'static str {
     match self {
       Self::InvalidCommand(_) => "invalid_command",
       Self::PermissionDenied(_) => "permission_denied",

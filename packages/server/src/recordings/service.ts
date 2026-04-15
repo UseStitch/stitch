@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
-import type { AudioDeviceList, AudioPermissionsStatus, CaptureMode } from '@stitch/audio-capture';
+import type { AudioDeviceList, AudioPermissionsStatus } from '@stitch/audio-capture';
 import { createRecordingId } from '@stitch/shared/id';
 import type {
   ListRecordingsResponse,
@@ -33,15 +33,10 @@ const capture = createAudioCaptureHandle();
 let activeRecording: ActiveRecording | null = null;
 const log = Log.create({ service: 'recordings' });
 
-const VALID_CAPTURE_MODES = new Set<CaptureMode>(['mic', 'speaker', 'dual']);
-
 type RecordingCaptureSettings = {
-  mode: CaptureMode;
   inputDeviceId: string | null;
   outputDeviceId: string | null;
-  enableAec: boolean;
   speakerGain: number;
-  sampleRateHz: number;
 };
 
 async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
@@ -50,27 +45,18 @@ async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
     .select({ key: userSettings.key, value: userSettings.value })
     .from(userSettings)
     .where(
-      sql`${userSettings.key} IN ('recordings.mode', 'recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.enableAec', 'recordings.speakerGain', 'recordings.quality')`,
+      sql`${userSettings.key} IN ('recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.speakerGain')`,
     );
 
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
-  const rawMode = map.get('recordings.mode') ?? 'dual';
-  const mode: CaptureMode = VALID_CAPTURE_MODES.has(rawMode as CaptureMode)
-    ? (rawMode as CaptureMode)
-    : 'dual';
-
   const inputDeviceId = map.get('recordings.inputDeviceId') || null;
   const outputDeviceId = map.get('recordings.outputDeviceId') || null;
-  const enableAec = map.get('recordings.enableAec') === 'true';
 
   const rawGain = Number.parseFloat(map.get('recordings.speakerGain') ?? '10');
   const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
 
-  const quality = map.get('recordings.quality') ?? 'speech';
-  const sampleRateHz = quality === 'high' ? 48_000 : 16_000;
-
-  return { mode, inputDeviceId, outputDeviceId, enableAec, speakerGain, sampleRateHz };
+  return { inputDeviceId, outputDeviceId, speakerGain };
 }
 
 function defaultTitle(): string {
@@ -166,10 +152,7 @@ export async function startRecording(
     const settings = await readCaptureSettings();
     await capture.start({
       outputPath: filePath,
-      mode: settings.mode,
-      sampleRateHz: settings.sampleRateHz,
       channels: 1,
-      enableAec: settings.enableAec,
       micDeviceId: settings.inputDeviceId,
       speakerDeviceId: settings.outputDeviceId,
       speakerGain: settings.speakerGain,
@@ -191,9 +174,6 @@ export async function startRecording(
       {
         recordingId: id,
         filePath,
-        mode: settings.mode,
-        sampleRateHz: settings.sampleRateHz,
-        enableAec: settings.enableAec,
         speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,

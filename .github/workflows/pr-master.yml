@@ -58,7 +58,7 @@ jobs:
         if: needs.filter.outputs.run-ci == 'true'
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: packages/audio-native
+          workspaces: native
           shared-key: pr-master-${{ runner.os }}
 
       - name: Cache Turbo artifacts
@@ -80,4 +80,4 @@ jobs:
 
       - name: Run Rust tests
         if: needs.filter.outputs.run-ci == 'true'
-        run: cargo test --manifest-path packages/audio-native/Cargo.toml
+        run: cargo test --manifest-path native/Cargo.toml --workspace
