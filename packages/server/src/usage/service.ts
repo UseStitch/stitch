@@ -11,6 +11,8 @@ import {
 
 import { getDb } from '@/db/client.js';
 import { llmUsageEvents, sessions } from '@/db/schema.js';
+import { ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';
 
 type GetUsageDashboardInput = {
@@ -302,7 +304,7 @@ function normalizeEventSource(
 
 export async function getUsageDashboard(
   input: GetUsageDashboardInput,
-): Promise<UsageDashboardResponse> {
+): Promise<ServiceResult<UsageDashboardResponse>> {
   const db = getDb();
   const window = await resolveWindow(input);
   const granularity = inferGranularity(window);
@@ -438,7 +440,7 @@ export async function getUsageDashboard(
     { costUsd: 0, tokenMetrics: cloneEmptyTokenMetrics() },
   );
 
-  return {
+  return ok({
     range: {
       from: window.from,
       to: window.to,
@@ -468,7 +470,7 @@ export async function getUsageDashboard(
       bySource: totalsBySource,
     },
     buckets,
-  };
+  });
 }
 
 export const usageServiceInternals = {

@@ -22,9 +22,3 @@ export const CONFIDENCE_LABELS: Record<MemoryConfidence, string> = {
   inferred: 'Inferred',
   confirmed: 'Confirmed',
 };
-
-export const CONFIDENCE_VARIANTS: Record<MemoryConfidence, 'default' | 'secondary' | 'outline'> = {
-  stated: 'default',
-  inferred: 'secondary',
-  confirmed: 'outline',
-};
