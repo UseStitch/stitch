@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import type { ServiceResult } from './service-result.js';
-import { isServiceError } from './service-result.js';
+export { isServiceError } from './service-result.js';
 
 type SuccessStatus = 200 | 201 | 202 | 204;
 

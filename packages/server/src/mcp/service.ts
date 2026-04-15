@@ -10,9 +10,12 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { withMcpClient } from '@/mcp/client.js';
 
-export async function listMcpServers() {
+type McpServerRow = typeof mcpServers.$inferSelect;
+
+export async function listMcpServers(): Promise<ServiceResult<McpServerRow[]>> {
   const db = getDb();
-  return db.select().from(mcpServers).orderBy(asc(mcpServers.createdAt));
+  const servers = await db.select().from(mcpServers).orderBy(asc(mcpServers.createdAt));
+  return ok(servers);
 }
 
 export async function createMcpServer(input: {

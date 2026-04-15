@@ -59,16 +59,16 @@ function toSafe(
   };
 }
 
-export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]> {
+export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
   const db = getDb();
   const rows = await db
     .select()
     .from(connectorInstances)
     .orderBy(asc(connectorInstances.createdAt));
-  return rows.map((r) => {
+  return ok(rows.map((r) => {
     const instance = r as ConnectorInstance;
     return toSafe(instance, getConnectorDefinition(instance.connectorId));
-  });
+  }));
 }
 
 export async function getConnectorInstance(
