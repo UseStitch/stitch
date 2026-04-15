@@ -81,6 +81,27 @@ function matchesCron(parts: CronParts, at: Date, timezone: CronSchedule['timezon
   );
 }
 
+/**
+ * Validates a 5-field cron expression without computing schedules.
+ * Returns a success/failure result with an error message on failure.
+ */
+export function validateCronExpression(
+  expression: string,
+): { valid: true } | { valid: false; error: string } {
+  const trimmed = expression.trim();
+  const fields = trimmed.split(/\s+/);
+  if (fields.length !== 5) {
+    return { valid: false, error: 'Cron expression must have 5 fields' };
+  }
+
+  try {
+    parseCron(trimmed);
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : 'Invalid cron expression' };
+  }
+}
+
 export function getNextCronRunMs(expression: string, afterMs: number, timezone: 'UTC' | 'local'): number {
   const parts = parseCron(expression);
   const cursor = new Date(afterMs);

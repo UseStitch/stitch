@@ -1,5 +1,7 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
+import { validateCronExpression } from '@stitch/scheduler';
+
 import type {
   Automation,
   ListAutomationsResponse,
@@ -58,57 +60,14 @@ function normalizeText(value: string): string {
   return value.trim();
 }
 
-function parseCronField(raw: string, min: number, max: number): boolean {
-  const parts = raw.split(',');
-  if (parts.length === 0) return false;
-
-  for (const part of parts) {
-    if (part === '*') continue;
-
-    if (part.startsWith('*/')) {
-      const step = Number(part.slice(2));
-      if (!Number.isInteger(step) || step <= 0) return false;
-      continue;
-    }
-
-    if (part.includes('-')) {
-      const [startRaw, endRaw] = part.split('-');
-      const start = Number(startRaw);
-      const end = Number(endRaw);
-      if (!Number.isInteger(start) || !Number.isInteger(end)) return false;
-      if (start < min || end > max || start > end) return false;
-      continue;
-    }
-
-    const value = Number(part);
-    if (!Number.isInteger(value) || value < min || value > max) return false;
-  }
-
-  return true;
-}
-
 function validateAutomationSchedule(
   schedule: AutomationSchedule | null,
 ): ServiceResult<AutomationSchedule | null> {
   if (schedule === null) return ok(null);
 
-  const expression = normalizeText(schedule.expression);
-  const fields = expression.split(/\s+/);
-  if (fields.length !== 5) {
-    return err('Cron expression must have 5 fields', 400);
-  }
-
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
-  const valid =
-    parseCronField(minute, 0, 59) &&
-    parseCronField(hour, 0, 23) &&
-    parseCronField(dayOfMonth, 1, 31) &&
-    parseCronField(month, 1, 12) &&
-    parseCronField(dayOfWeek, 0, 6);
-
-  if (!valid) {
-    return err('Invalid cron expression', 400);
-  }
+  const expression = schedule.expression.trim();
+  const result = validateCronExpression(expression);
+  if (!result.valid) return err(result.error, 400);
 
   return ok({
     type: 'cron',
