@@ -33,8 +33,8 @@ const createMcpServerSchema = z.object({
 export const mcpRouter = new Hono();
 
 mcpRouter.get('/', async (c) => {
-  const servers = await listMcpServers();
-  return c.json(servers);
+  const result = await listMcpServers();
+  return unwrapResult(c, result);
 });
 
 mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {

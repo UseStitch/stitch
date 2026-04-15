@@ -37,8 +37,8 @@ connectorsRouter.get('/definitions/:id', (c) => {
 
 // List all connector instances
 connectorsRouter.get('/instances', async (c) => {
-  const instances = await listConnectorInstances();
-  return c.json(instances);
+  const result = await listConnectorInstances();
+  return unwrapResult(c, result);
 });
 
 // Get a specific connector instance
