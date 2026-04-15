@@ -17,6 +17,7 @@ import {
   updateAutomation,
 } from '@/automations/service.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 
 const scheduleSchema = z
   .object({
@@ -63,9 +64,7 @@ automationsRouter.get('/', async (c) => {
 automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c) => {
   const body = c.req.valid('json') as CreateAutomationInput;
   const result = await createAutomation(body);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   try {
     await syncAutomationSchedule(result.data);
@@ -74,16 +73,14 @@ automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c
     return c.json({ error: message }, 500);
   }
 
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 automationsRouter.patch('/:id', zValidator('json', updateAutomationSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.req.valid('json') as UpdateAutomationInput;
   const result = await updateAutomation(id, body);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   try {
     await syncAutomationSchedule(result.data);
@@ -92,37 +89,27 @@ automationsRouter.patch('/:id', zValidator('json', updateAutomationSchema), asyn
     return c.json({ error: message }, 500);
   }
 
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 automationsRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteAutomation(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   await unregisterAutomationSchedule(id).catch(() => {});
 
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 automationsRouter.get('/:id/sessions', async (c) => {
   const id = c.req.param('id');
   const result = await listAutomationSessions(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 automationsRouter.post('/:id/run', async (c) => {
   const id = c.req.param('id');
   const result = await runAutomation(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import type { StartRecordingInput } from '@stitch/shared/recordings/types';
 
 import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   cancelRecordingAnalysis,
   getRecordingAnalysis,
@@ -52,52 +53,36 @@ recordingsRouter.get('/', async (c) => {
 recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async (c) => {
   const body = c.req.valid('json') as StartRecordingInput;
   const result = await startRecording(body);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 recordingsRouter.post('/stop', async (c) => {
   const result = await stopRecording();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.get('/devices', async (c) => {
   const result = await listAudioDevices();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.get('/permissions', async (c) => {
   const result = await checkAudioPermissions();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.delete('/:id', async (c) => {
   const id = c.req.param('id') as `rec_${string}`;
   const result = await deleteRecording(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 recordingsRouter.get('/:id/audio', async (c) => {
   const id = c.req.param('id') as `rec_${string}`;
   const result = await getRecordingAudioFile(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   const stat = await fs.stat(result.data.filePath);
   const range = c.req.header('range');
@@ -157,29 +142,17 @@ recordingsRouter.post('/:id/analyze', async (c) => {
   const forceRaw = c.req.query('force');
   const force = forceRaw === '1' || forceRaw === 'true';
   const result = await startRecordingAnalysis(id, { force });
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data, 202);
+  return unwrapResult(c, result, 202);
 });
 
 recordingsRouter.get('/:id/analysis', async (c) => {
   const id = c.req.param('id') as `rec_${string}`;
   const result = await getRecordingAnalysis(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.post('/:id/analysis/cancel', async (c) => {
   const id = c.req.param('id') as `rec_${string}`;
   const result = await cancelRecordingAnalysis(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });

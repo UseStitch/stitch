@@ -9,6 +9,7 @@ import {
   removeFromQueue,
   updateQueuedMessage,
 } from '@/queue/service.js';
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 
 export const queueRouter = new Hono();
 
@@ -50,14 +51,14 @@ queueRouter.patch('/sessions/:id/queue/:queueId', async (c) => {
     attachments: body.attachments,
   });
 
-  if (!row) return c.json({ error: 'Queued message not found' }, 404);
-  return c.json(row);
+  const result = requireFound(row, 'Queued message');
+  return unwrapResult(c, result);
 });
 
 queueRouter.delete('/sessions/:id/queue/:queueId', (c) => {
   const queueId = c.req.param('queueId') as PrefixedString<'qmsg'>;
 
   const row = removeFromQueue(queueId);
-  if (!row) return c.json({ error: 'Queued message not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(row, 'Queued message');
+  return unwrapResult(c, result, 204);
 });
