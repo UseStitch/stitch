@@ -3,6 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenAI } from '@ai-sdk/openai';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
@@ -71,6 +72,12 @@ const VercelCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
 });
 
+const OllamaCredentialsSchema = z.object({
+  providerId: z.literal('ollama_local'),
+  baseURL: z.string().optional(),
+  auth: z.object({ method: z.literal('none') }),
+});
+
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   BedrockCredentialsSchema,
   AnthropicCredentialsSchema,
@@ -79,6 +86,7 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   OpenAICredentialsSchema,
   OpenRouterCredentialsSchema,
   VercelCredentialsSchema,
+  OllamaCredentialsSchema,
 ]);
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
@@ -154,5 +162,11 @@ export const createProvider = (credentials: ProviderCredentials) => {
 
     case 'vercel':
       return createGateway({ apiKey: credentials.auth.apiKey });
+
+    case 'ollama_local':
+      return createOpenAICompatible({
+        name: 'ollama_local',
+        baseURL: (credentials.baseURL ?? 'http://localhost:11434') + '/v1',
+      });
   }
 };
