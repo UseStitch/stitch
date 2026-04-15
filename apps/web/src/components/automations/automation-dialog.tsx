@@ -262,19 +262,20 @@ export function AutomationDialog({
               >
                 Preview
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={editorView === 'schedule' ? 'default' : 'ghost'}
-                onClick={() => {
-                  if (!isScheduled) return;
-                  setEditorView('schedule');
-                }}
-                disabled={!isScheduled}
-                className={editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
-              >
-                Schedule
-              </Button>
+              {isScheduled && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={editorView === 'schedule' ? 'default' : 'ghost'}
+                  onClick={() => {
+                    if (!isScheduled) return;
+                    setEditorView('schedule');
+                  }}
+                  className={editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
+                >
+                  Schedule
+                </Button>
+              )}
             </div>
 
             {editorView === 'preview' ? (
