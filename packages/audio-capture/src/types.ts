@@ -199,8 +199,6 @@ export type NativeCaptureController = {
 export type StartCaptureInput = {
   outputPath: string;
   format?: CaptureFormat;
-  mode?: CaptureMode;
-  sampleRateHz?: number;
   channels?: number;
   enableAec?: boolean;
   micDeviceId?: string | null;

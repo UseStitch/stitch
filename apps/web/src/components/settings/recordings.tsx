@@ -60,12 +60,6 @@ const RECORDING_MODEL_PREFERENCES = [
   },
 ] as const;
 
-const CAPTURE_MODE_OPTIONS = [
-  { value: 'dual', label: 'Microphone + System Audio' },
-  { value: 'mic', label: 'Microphone Only' },
-  { value: 'speaker', label: 'System Audio Only' },
-] as const;
-
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
 
 function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
@@ -199,9 +193,6 @@ function AudioDeviceSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: devices } = useQuery(audioDevicesQueryOptions);
 
-  const saveModeMutation = useMutation(
-    saveSettingMutationOptions('recordings.mode', queryClient, { silent: true }),
-  );
   const saveInputDeviceMutation = useMutation(
     saveSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
   );
@@ -214,9 +205,6 @@ function AudioDeviceSettings() {
   const saveSpeakerGainMutation = useMutation(
     saveSettingMutationOptions('recordings.speakerGain', queryClient, { silent: true }),
   );
-  const saveQualityMutation = useMutation(
-    saveSettingMutationOptions('recordings.quality', queryClient, { silent: true }),
-  );
   const deleteInputDeviceMutation = useMutation(
     deleteSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
   );
@@ -224,17 +212,10 @@ function AudioDeviceSettings() {
     deleteSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
   );
 
-  const currentMode = settings['recordings.mode'] ?? 'dual';
   const currentInputDevice = settings['recordings.inputDeviceId'] ?? '';
   const currentOutputDevice = settings['recordings.outputDeviceId'] ?? '';
   const aecEnabled = settings['recordings.enableAec'] === 'true';
-  const currentQuality = settings['recordings.quality'] ?? 'speech';
   const currentSpeakerGain = Number.parseFloat(settings['recordings.speakerGain'] ?? '10') || 10;
-
-  const selectedModeLabel = CAPTURE_MODE_OPTIONS.find((o) => o.value === currentMode)?.label ?? 'Microphone + System Audio';
-  const showMicSelect = currentMode === 'mic' || currentMode === 'dual';
-  const showSpeakerSelect = currentMode === 'speaker' || currentMode === 'dual';
-  const showAecToggle = currentMode === 'dual';
 
   function handleInputDeviceChange(value: string | null) {
     if (!value || value === SYSTEM_DEFAULT_VALUE) {
@@ -256,23 +237,26 @@ function AudioDeviceSettings() {
     <div className="flex flex-col">
       <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Recording Mode</Label>
+          <Label className="text-sm font-medium">Input Device</Label>
           <p className="text-xs text-muted-foreground">
-            Choose which audio sources to capture during recording.
+            Microphone used for recording.
           </p>
         </div>
         <div className="w-64 shrink-0">
           <Select
-            value={currentMode}
-            onValueChange={(val) => { if (val) saveModeMutation.mutate(val); }}
+            value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
+            onValueChange={handleInputDeviceChange}
           >
             <SelectTrigger className="w-full">
-              <SelectValue>{selectedModeLabel}</SelectValue>
+              <SelectValue>
+                {currentInputDevice || 'System Default'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {CAPTURE_MODE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+              <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
+              {devices?.microphoneDevices.map((device) => (
+                <SelectItem key={device} value={device}>
+                  {device}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -280,126 +264,66 @@ function AudioDeviceSettings() {
         </div>
       </div>
 
-      {showMicSelect ? (
-        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">Input Device</Label>
-            <p className="text-xs text-muted-foreground">
-              Microphone used for recording.
-            </p>
-          </div>
-          <div className="w-64 shrink-0">
-            <Select
-              value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
-              onValueChange={handleInputDeviceChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {currentInputDevice || 'System Default'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
-                {devices?.microphoneDevices.map((device) => (
-                  <SelectItem key={device} value={device}>
-                    {device}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Output Device</Label>
+          <p className="text-xs text-muted-foreground">
+            Speaker or system audio source for recording.
+          </p>
         </div>
-      ) : null}
+        <div className="w-64 shrink-0">
+          <Select
+            value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
+            onValueChange={handleOutputDeviceChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {currentOutputDevice || 'System Default'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
+              {devices?.speakerDevices.map((device) => (
+                <SelectItem key={device} value={device}>
+                  {device}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      {showSpeakerSelect ? (
-        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">Output Device</Label>
-            <p className="text-xs text-muted-foreground">
-              Speaker or system audio source for recording.
-            </p>
-          </div>
-          <div className="w-64 shrink-0">
-            <Select
-              value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
-              onValueChange={handleOutputDeviceChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {currentOutputDevice || 'System Default'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
-                {devices?.speakerDevices.map((device) => (
-                  <SelectItem key={device} value={device}>
-                    {device}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Echo Cancellation</Label>
+          <p className="text-xs text-muted-foreground">
+            Reduce echo when recording both microphone and system audio.
+          </p>
         </div>
-      ) : null}
-
-      {showAecToggle ? (
-        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">Echo Cancellation</Label>
-            <p className="text-xs text-muted-foreground">
-              Reduce echo when recording both microphone and system audio.
-            </p>
-          </div>
-          <Switch
-            checked={aecEnabled}
-            onCheckedChange={(checked) => saveAecMutation.mutate(checked ? 'true' : 'false')}
-          />
-        </div>
-      ) : null}
-
-      {showSpeakerSelect ? (
-        <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <Label className="text-sm font-medium">Speaker Volume</Label>
-            <p className="text-xs text-muted-foreground">
-              Gain multiplier for system audio in the mix. Default is 10.
-            </p>
-          </div>
-          <div className="flex w-40 shrink-0 items-center gap-2">
-            <span className="text-xs text-muted-foreground tabular-nums">{currentSpeakerGain}</span>
-            <input
-              type="range"
-              min="1"
-              max="30"
-              step="1"
-              value={currentSpeakerGain}
-              onChange={(e) => saveSpeakerGainMutation.mutate(e.target.value)}
-              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-            />
-          </div>
-        </div>
-      ) : null}
+        <Switch
+          checked={aecEnabled}
+          onCheckedChange={(checked) => saveAecMutation.mutate(checked ? 'true' : 'false')}
+        />
+      </div>
 
       <div className="flex items-center justify-between gap-4 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Audio Quality</Label>
+          <Label className="text-sm font-medium">Speaker Volume</Label>
           <p className="text-xs text-muted-foreground">
-            Speech is optimized for voice (16 kHz). High uses 48 kHz for better fidelity.
+            Gain multiplier for system audio in the mix. Default is 10.
           </p>
         </div>
-        <div className="w-40 shrink-0">
-          <Select
-            value={currentQuality}
-            onValueChange={(val) => { if (val) saveQualityMutation.mutate(val); }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>{currentQuality === 'high' ? 'High (48 kHz)' : 'Speech (16 kHz)'}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="speech">Speech (16 kHz)</SelectItem>
-              <SelectItem value="high">High (48 kHz)</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex w-40 shrink-0 items-center gap-2">
+          <span className="text-xs text-muted-foreground tabular-nums">{currentSpeakerGain}</span>
+          <input
+            type="range"
+            min="1"
+            max="30"
+            step="1"
+            value={currentSpeakerGain}
+            onChange={(e) => saveSpeakerGainMutation.mutate(e.target.value)}
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+          />
         </div>
       </div>
     </div>
