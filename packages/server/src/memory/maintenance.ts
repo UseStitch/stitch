@@ -1,5 +1,7 @@
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { deduplicateMemories, getMemoryStats, pruneStaleMemories } from '@/memory/service.js';
+import type { MemoryStats } from '@/memory/service.js';
+import { isServiceError } from '@/lib/service-result.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'memory-maintenance' });
@@ -7,7 +9,7 @@ const log = Log.create({ service: 'memory-maintenance' });
 type MaintenanceResult = {
   pruned: number;
   deduplicated: number;
-  stats: Awaited<ReturnType<typeof getMemoryStats>>;
+  stats: MemoryStats | null;
 };
 
 export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
@@ -23,10 +25,12 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
   // Phase 1: Autoprune stale/low-value memories if enabled
   let pruned = 0;
   if (config.autoprune) {
-    const beforeStats = await getMemoryStats();
+    const beforeResult = await getMemoryStats();
     await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays });
-    const afterStats = await getMemoryStats();
-    pruned = Math.max(0, beforeStats.total - afterStats.total);
+    const afterResult = await getMemoryStats();
+    const beforeTotal = isServiceError(beforeResult) ? 0 : beforeResult.data.total;
+    const afterTotal = isServiceError(afterResult) ? 0 : afterResult.data.total;
+    pruned = Math.max(0, beforeTotal - afterTotal);
     log.info({ pruned }, 'memory maintenance: pruning complete');
   }
 
@@ -35,18 +39,21 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
   log.info({ deduplicated }, 'memory maintenance: dedup sweep complete');
 
   // Phase 3: Emit stats
-  const stats = await getMemoryStats();
-  log.info(
-    {
-      total: stats.total,
-      pinned: stats.pinned,
-      stale: stats.stale,
-      byCategory: stats.byCategory,
-      byConfidence: stats.byConfidence,
-      avgAccessCount: stats.avgAccessCount,
-    },
-    'memory maintenance: stats',
-  );
+  const statsResult = await getMemoryStats();
+  const stats = isServiceError(statsResult) ? null : statsResult.data;
+  if (stats) {
+    log.info(
+      {
+        total: stats.total,
+        pinned: stats.pinned,
+        stale: stats.stale,
+        byCategory: stats.byCategory,
+        byConfidence: stats.byConfidence,
+        avgAccessCount: stats.avgAccessCount,
+      },
+      'memory maintenance: stats',
+    );
+  }
 
   return { pruned, deduplicated, stats };
 }

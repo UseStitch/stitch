@@ -1,5 +1,6 @@
 import * as Log from '@/lib/log.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
 
@@ -34,12 +35,15 @@ export async function retrieveMemoryContext(
   const config = await getMemoryConfig();
   if (!isMemoryActive(config)) return null;
 
-  const semantic = await searchSemanticMemories({
+  const semanticResult = await searchSemanticMemories({
     query,
     page: 1,
     pageSize: config.retrievalMaxResults * 2, // Fetch more for blended scoring
     sourceFilter,
   });
+
+  if (isServiceError(semanticResult)) return null;
+  const semantic = semanticResult.data;
 
   // Apply base threshold filter first
   let candidates = semantic.memories.filter((m) => m.score >= config.retrievalMinScore);
