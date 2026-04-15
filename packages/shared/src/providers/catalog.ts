@@ -171,6 +171,27 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
       },
     ],
   },
+  ollama_local: {
+    displayName: 'Ollama',
+    description: 'Run models locally with Ollama',
+    extraFields: [
+      {
+        key: 'baseURL',
+        label: 'Base URL',
+        placeholder: 'http://localhost:11434',
+        required: false,
+        secret: false,
+      },
+    ],
+    authMethods: [
+      {
+        method: 'none',
+        label: 'No authentication',
+        enabled: true,
+        fields: [],
+      },
+    ],
+  },
   openrouter: {
     displayName: 'OpenRouter',
     description: 'Unified API for multiple LLM providers',
