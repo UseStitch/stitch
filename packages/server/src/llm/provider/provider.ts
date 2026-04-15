@@ -14,7 +14,7 @@ const AWS_REGION_VALUES = AWS_BEDROCK_REGIONS.map((r) => r.value) as [string, ..
 
 const BedrockCredentialsSchema = z.object({
   providerId: z.literal('amazon-bedrock'),
-  region: z.enum(AWS_REGION_VALUES).optional(),
+  region: z.enum(AWS_REGION_VALUES),
   auth: z.discriminatedUnion('method', [
     z.object({ method: z.literal('api-key'), apiKey: z.string() }),
     z.object({
