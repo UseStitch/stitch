@@ -24,6 +24,7 @@ import {
   updateAgendaItem,
   updateAgendaList,
 } from '@/agenda/service.js';
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 
 const createListSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -104,15 +105,15 @@ agendaRouter.patch('/lists/:id', zValidator('json', updateListSchema), async (c)
   const id = c.req.param('id') as PrefixedString<'alist'>;
   const body = c.req.valid('json');
   const list = await updateAgendaList(id, body);
-  if (!list) return c.json({ error: 'List not found' }, 404);
-  return c.json({ list });
+  const result = requireFound(list, 'List');
+  return unwrapResult(c, result);
 });
 
 agendaRouter.delete('/lists/:id', async (c) => {
   const id = c.req.param('id') as PrefixedString<'alist'>;
   const deleted = await deleteAgendaList(id);
-  if (!deleted) return c.json({ error: 'List not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(deleted, 'List');
+  return unwrapResult(c, result, 204);
 });
 
 const mergeListSchema = z.object({
@@ -123,8 +124,8 @@ agendaRouter.post('/lists/:id/merge', zValidator('json', mergeListSchema), async
   const targetId = c.req.param('id') as PrefixedString<'alist'>;
   const { sourceId } = c.req.valid('json');
   const list = await mergeAgendaLists(targetId, sourceId as PrefixedString<'alist'>);
-  if (!list) return c.json({ error: 'List not found' }, 404);
-  return c.json({ list });
+  const result = requireFound(list, 'List');
+  return unwrapResult(c, result);
 });
 
 // --- Items ---
@@ -167,8 +168,8 @@ agendaRouter.post('/items', zValidator('json', createItemSchema), async (c) => {
 agendaRouter.get('/items/:id', async (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const item = await getAgendaItem(id);
-  if (!item) return c.json({ error: 'Item not found' }, 404);
-  return c.json({ item });
+  const result = requireFound(item, 'Item');
+  return unwrapResult(c, result);
 });
 
 agendaRouter.patch('/items/:id', zValidator('json', updateItemSchema), async (c) => {
@@ -180,15 +181,15 @@ agendaRouter.patch('/items/:id', zValidator('json', updateItemSchema), async (c)
     { ...body, listId: body.listId as PrefixedString<'alist'> | undefined },
     sessionId,
   );
-  if (!item) return c.json({ error: 'Item not found' }, 404);
-  return c.json({ item });
+  const result = requireFound(item, 'Item');
+  return unwrapResult(c, result);
 });
 
 agendaRouter.delete('/items/:id', async (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const deleted = await deleteAgendaItem(id);
-  if (!deleted) return c.json({ error: 'Item not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(deleted, 'Item');
+  return unwrapResult(c, result, 204);
 });
 
 // --- Events ---
@@ -206,6 +207,6 @@ agendaRouter.post('/items/:id/events', zValidator('json', addEventSchema), async
     content: body.content,
     sessionId: body.sessionId as PrefixedString<'ses'> | null | undefined,
   });
-  if (!event) return c.json({ error: 'Item not found' }, 404);
-  return c.json({ event }, 201);
+  const result = requireFound(event, 'Item');
+  return unwrapResult(c, result, 201);
 });

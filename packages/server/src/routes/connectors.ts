@@ -16,6 +16,7 @@ import {
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
@@ -30,8 +31,8 @@ connectorsRouter.get('/definitions', (c) => {
 connectorsRouter.get('/definitions/:id', (c) => {
   const id = c.req.param('id');
   const definition = getConnectorDefinition(id);
-  if (!definition) return c.json({ error: 'Connector not found' }, 404);
-  return c.json(definition);
+  const result = requireFound(definition, 'Connector');
+  return unwrapResult(c, result);
 });
 
 // List all connector instances
@@ -44,8 +45,7 @@ connectorsRouter.get('/instances', async (c) => {
 connectorsRouter.get('/instances/:id', async (c) => {
   const id = c.req.param('id');
   const result = await getConnectorInstance(id);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 // Create an OAuth connector instance
@@ -60,8 +60,7 @@ const createOAuthSchema = z.object({
 connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
   const body = c.req.valid('json');
   const result = await createOAuthConnectorInstance(body);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 // Create an API key connector instance
@@ -74,17 +73,15 @@ const createApiKeySchema = z.object({
 connectorsRouter.post('/instances/api-key', zValidator('json', createApiKeySchema), async (c) => {
   const body = c.req.valid('json');
   const result = await createApiKeyConnectorInstance(body);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 // Start OAuth authorization flow for an instance
 connectorsRouter.post('/instances/:id/authorize', async (c) => {
   const id = c.req.param('id');
   const result = await authorizeOAuthInstance(id);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  if (isServiceError(result)) return unwrapResult(c, result);
 
-  // Start the token wait in the background - it resolves when the user completes the OAuth flow
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
@@ -111,23 +108,21 @@ connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async
   const id = c.req.param('id');
   const body = c.req.valid('json');
   const result = await updateConnectorInstance(id, body);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 // Delete a connector instance
 connectorsRouter.delete('/instances/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteConnectorInstance(id);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 // Test a connector instance connection
 connectorsRouter.post('/instances/:id/test', async (c) => {
   const id = c.req.param('id');
   const result = await testConnectorInstance(id);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
+  if (isServiceError(result)) return unwrapResult(c, result);
   return c.json({ success: true });
 });
 
@@ -136,6 +131,5 @@ connectorsRouter.post('/instances/:id/upgrade', zValidator('json', upgradeSchema
   const id = c.req.param('id');
   const body = c.req.valid('json');
   const result = await upgradeConnectorInstance(id, body);
-  if (isServiceError(result)) return c.json({ error: result.error }, result.status);
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });

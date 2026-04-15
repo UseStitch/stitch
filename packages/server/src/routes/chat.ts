@@ -20,7 +20,7 @@ import {
   sendMessage,
   splitSession,
 } from '@/chat/service.js';
-import { isServiceError } from '@/lib/service-result.js';
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import type { DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 
 export const chatRouter = new Hono();
@@ -41,21 +41,15 @@ chatRouter.get('/sessions', async (c) => {
 chatRouter.get('/sessions/:id', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
-  const session = await getSessionById(sessionId);
-  if (!session) return c.json({ error: 'Session not found' }, 404);
-
-  return c.json(session);
+  const result = requireFound(await getSessionById(sessionId), 'Session');
+  return unwrapResult(c, result);
 });
 
 chatRouter.get('/sessions/:id/stats', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const result = await getSessionStats(sessionId);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 chatRouter.get('/sessions/:id/messages', async (c) => {
@@ -74,8 +68,8 @@ chatRouter.delete('/sessions/:id', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const deleted = await deleteSession(sessionId);
-  if (!deleted) return c.json({ error: 'Session not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(deleted, 'Session');
+  return unwrapResult(c, result, 204);
 });
 
 chatRouter.patch('/sessions/:id', async (c) => {
@@ -87,15 +81,15 @@ chatRouter.patch('/sessions/:id', async (c) => {
   }
 
   const updated = await renameSession(sessionId, body.title);
-  if (!updated) return c.json({ error: 'Session not found' }, 404);
-  return c.json(updated);
+  const result = requireFound(updated, 'Session');
+  return unwrapResult(c, result);
 });
 
 chatRouter.patch('/sessions/:id/read', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
   const updated = await markSessionRead(sessionId);
-  if (!updated) return c.json({ error: 'Session not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(updated, 'Session');
+  return unwrapResult(c, result, 204);
 });
 
 chatRouter.post('/sessions/:id/messages', async (c) => {
@@ -127,11 +121,7 @@ chatRouter.post('/sessions/:id/messages', async (c) => {
     modelId: body.modelId,
     assistantMessageId: body.assistantMessageId,
   });
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data, 202);
+  return unwrapResult(c, result, 202);
 });
 
 chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
@@ -143,11 +133,7 @@ chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
   }
 
   const result = resolveDoomLoop(sessionId, body.response);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 chatRouter.post('/sessions/:id/abort', async (c) => {
@@ -161,31 +147,19 @@ chatRouter.post('/sessions/:id/split/:msgId', async (c) => {
   const msgId = c.req.param('msgId') as PrefixedString<'msg'>;
 
   const result = await splitSession(sessionId, msgId);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 chatRouter.post('/sessions/:id/compact', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const result = await requestCompaction(sessionId);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data, 202);
+  return unwrapResult(c, result, 202);
 });
 
 chatRouter.post('/sessions/:id/generate-automation', async (c) => {
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
   const result = await generateAutomationDraft(sessionId);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error, details: result.details }, result.status);
-  }
-
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });

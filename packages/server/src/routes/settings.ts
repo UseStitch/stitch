@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';
@@ -53,9 +54,7 @@ settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) =>
   }
 
   const result = await saveSetting(key, value);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   if (key === 'profile.timezone') {
     try {
@@ -76,9 +75,7 @@ settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) =>
 settingsRouter.delete('/:key', async (c) => {
   const key = c.req.param('key');
   const result = await deleteSetting(key);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   if (key === 'profile.timezone') {
     try {

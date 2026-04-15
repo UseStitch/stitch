@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { deleteVisibility, listVisibilityOverrides, upsertVisibility } from '@/llm/provider/model-visibility.js';
 
 export const modelsRouter = new Hono();
@@ -27,10 +28,8 @@ visibilityRouter.put(
     const { visibility } = c.req.valid('json');
 
     const result = await upsertVisibility(providerId, modelId, visibility);
-    if (isServiceError(result)) {
-      return c.json({ error: result.error }, result.status);
-    }
-    return c.body(null, 204);
+    if (isServiceError(result)) return unwrapResult(c, result);
+    return unwrapResult(c, result, 204);
   },
 );
 
@@ -39,10 +38,7 @@ visibilityRouter.delete('/:providerId/:modelId', async (c) => {
   const modelId = c.req.param('modelId');
 
   const result = await deleteVisibility(providerId, modelId);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 modelsRouter.route('/visibility', visibilityRouter);
