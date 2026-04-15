@@ -1,4 +1,5 @@
 export { createScheduler } from './scheduler.js';
+export { validateCronExpression } from './cron.js';
 export type {
   CatchupPolicy,
   CronSchedule,

@@ -81,6 +81,15 @@ function matchesCron(parts: CronParts, at: Date, timezone: CronSchedule['timezon
   );
 }
 
+export function validateCronExpression(expression: string): { valid: true } | { valid: false; error: string } {
+  try {
+    parseCron(expression);
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : 'Invalid cron expression' };
+  }
+}
+
 export function getNextCronRunMs(expression: string, afterMs: number, timezone: 'UTC' | 'local'): number {
   const parts = parseCron(expression);
   const cursor = new Date(afterMs);
