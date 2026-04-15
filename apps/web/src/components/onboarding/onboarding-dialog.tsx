@@ -178,6 +178,7 @@ function OnboardingProviderConfig({
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
   const [extraFields, setExtraFields] = React.useState<FieldValues>({});
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     if (!existingConfig || !meta) return;
@@ -220,14 +221,52 @@ function OnboardingProviderConfig({
       ...prev,
       [activeTab]: { ...prev[activeTab], [key]: value },
     }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   }
 
   function handleExtraFieldChange(key: string, value: string) {
     setExtraFields((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   }
 
   function handleSave() {
     if (!meta) return;
+
+    const errors: Record<string, string> = {};
+
+    for (const field of meta.extraFields) {
+      if (field.required && !extraFields[field.key]) {
+        errors[field.key] = `${field.label} is required`;
+      }
+    }
+
+    const methodDef = enabledAuthMethods.find((m) => m.method === activeTab);
+    if (methodDef) {
+      for (const field of methodDef.fields) {
+        if (field.required && !currentMethodFields[field.key]) {
+          errors[field.key] = `${field.label} is required`;
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
     const body = buildProviderConfigBody({
       activeTab,
       enabledAuthMethods,
@@ -270,6 +309,7 @@ function OnboardingProviderConfig({
             fields={meta.extraFields}
             providerId={provider.id}
             values={extraFields}
+            errors={fieldErrors}
             onChange={handleExtraFieldChange}
           />
         )}
@@ -290,6 +330,7 @@ function OnboardingProviderConfig({
                     fields={m.fields}
                     providerId={`${provider.id}-${m.method}`}
                     values={fieldsByMethod[m.method] ?? {}}
+                    errors={fieldErrors}
                     onChange={(key, value) =>
                       setFieldsByMethod((prev) => ({
                         ...prev,
@@ -310,6 +351,7 @@ function OnboardingProviderConfig({
               fields={activeMethodDef.fields}
               providerId={provider.id}
               values={currentMethodFields}
+              errors={fieldErrors}
               onChange={handleMethodFieldChange}
             />
           ) : (
