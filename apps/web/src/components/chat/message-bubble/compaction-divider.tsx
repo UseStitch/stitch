@@ -10,10 +10,17 @@ type CompactionDividerProps = {
   summaryParts?: StoredPart[];
 };
 
+function stripOuterCodeFence(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```(?:\w*\n)?([\s\S]*?)```$/);
+  return match ? (match[1]?.trim() ?? trimmed) : trimmed;
+}
+
 export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
   const [open, setOpen] = React.useState(false);
 
-  const summaryText = summaryParts ? extractTextFromParts(summaryParts) : '';
+  const raw = summaryParts ? extractTextFromParts(summaryParts) : '';
+  const summaryText = stripOuterCodeFence(raw);
   const hasSummary = !!summaryText;
 
   return (
@@ -39,7 +46,7 @@ export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
         <div className="h-px flex-1 bg-border/60" />
       </div>
       {open && hasSummary && (
-        <div className="mt-2 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
+        <div className="w-full">
           <ChatMarkdown text={summaryText} />
         </div>
       )}
