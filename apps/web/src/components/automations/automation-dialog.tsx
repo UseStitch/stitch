@@ -243,32 +243,35 @@ export function AutomationDialog({
           </div>
 
           <div className="flex min-h-0 flex-col px-6 py-5">
-            <div className="mb-3 inline-flex w-fit gap-1 rounded-lg border border-border/60 bg-muted/20 p-1">
+            <div className="mb-3 inline-flex w-fit gap-1 rounded-[min(var(--radius-md),10px)] border border-border/60 bg-muted/30 p-1">
               <Button
                 type="button"
                 size="sm"
-                variant={editorView === 'prompt' ? 'secondary' : 'ghost'}
+                variant={editorView === 'prompt' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('prompt')}
+                className={editorView === 'prompt' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
               >
                 Prompt
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant={editorView === 'preview' ? 'secondary' : 'ghost'}
+                variant={editorView === 'preview' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('preview')}
+                className={editorView === 'preview' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
               >
                 Preview
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant={editorView === 'schedule' ? 'secondary' : 'ghost'}
+                variant={editorView === 'schedule' ? 'default' : 'ghost'}
                 onClick={() => {
                   if (!isScheduled) return;
                   setEditorView('schedule');
                 }}
                 disabled={!isScheduled}
+                className={editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
               >
                 Schedule
               </Button>
