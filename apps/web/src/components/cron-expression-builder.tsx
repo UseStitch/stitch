@@ -248,7 +248,7 @@ export function CronExpressionBuilder({
           <ToggleGroupItem
             key={m}
             value={m.toString()}
-            className="h-8 w-9 p-0 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
           >
             {m.toString().padStart(2, '0')}
           </ToggleGroupItem>
@@ -275,7 +275,7 @@ export function CronExpressionBuilder({
           <ToggleGroupItem
             key={h}
             value={h.toString()}
-            className="h-8 w-9 p-0 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
           >
             {h.toString().padStart(2, '0')}
           </ToggleGroupItem>
@@ -302,7 +302,7 @@ export function CronExpressionBuilder({
           <ToggleGroupItem
             key={day.value}
             value={day.value}
-            className="h-8 min-w-12 px-2 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-8 min-w-12 px-2 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
           >
             {day.label}
           </ToggleGroupItem>
@@ -331,7 +331,7 @@ export function CronExpressionBuilder({
           <ToggleGroupItem
             key={d}
             value={d.toString()}
-            className="h-8 w-9 p-0 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
           >
             {d}
           </ToggleGroupItem>
@@ -358,7 +358,7 @@ export function CronExpressionBuilder({
           <ToggleGroupItem
             key={m}
             value={(i + 1).toString()}
-            className="h-8 w-10 p-0 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-8 w-10 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
           >
             {m}
           </ToggleGroupItem>
@@ -389,13 +389,13 @@ export function CronExpressionBuilder({
               }
             }
           }}
-          className="justify-start border rounded-md p-1 w-fit"
+          className="justify-start border bg-muted/30 rounded-md p-1 w-fit"
         >
           {FREQUENCIES.map((f) => (
             <ToggleGroupItem
               key={f.value}
               value={f.value}
-              className="h-8 px-3 text-xs data-[state=on]:bg-muted data-[state=on]:text-foreground"
+              className="h-8 px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm rounded-sm"
             >
               {f.label}
             </ToggleGroupItem>
