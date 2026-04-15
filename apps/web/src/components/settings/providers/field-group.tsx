@@ -70,6 +70,14 @@ export function FieldGroup({
 }
 
 export function NoFieldsNote({ method }: { method: string }) {
+  if (method === 'none') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        This provider runs on-device and requires no configuration. Click Save to enable it.
+      </p>
+    );
+  }
+
   if (method === 'adc') {
     return (
       <p className="text-sm text-muted-foreground">

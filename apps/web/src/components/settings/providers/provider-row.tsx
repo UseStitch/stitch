@@ -37,6 +37,8 @@ export function ProviderRow({ provider, onSelect }: Props) {
   const enabledAuthMethods = meta.authMethods.filter((method) => method.enabled);
   if (enabledAuthMethods.length === 0) return null;
 
+  const isNoAuth = enabledAuthMethods.length === 1 && enabledAuthMethods[0].method === 'none';
+
   const handleDisconnect = (e: React.MouseEvent) => {
     e.stopPropagation();
     deleteMutation.mutate();
@@ -77,7 +79,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
             }}
           >
             <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />
-            Connect
+            {isNoAuth ? 'Enable' : 'Connect'}
           </Button>
         )}
       </div>

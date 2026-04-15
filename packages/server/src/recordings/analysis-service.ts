@@ -582,7 +582,7 @@ async function runRecordingAnalysis(
 
     const localUserLabel = profileRow?.value.trim() || 'Local User';
 
-    const transcriptionModel = createProvider(input.transcriptionCredentials)(
+    const transcriptionModel = (await createProvider(input.transcriptionCredentials))(
       input.transcriptionModelId,
     );
     const transcriptionRunId = `${analysisId}:transcription`;
@@ -636,7 +636,7 @@ async function runRecordingAnalysis(
       durationMs: Date.now() - transcriptionStart,
     });
 
-    const analysisModel = createProvider(input.analysisCredentials)(input.analysisModelId);
+    const analysisModel = (await createProvider(input.analysisCredentials))(input.analysisModelId);
     const analysisRunId = `${analysisId}:analysis`;
     const analysisStart = Date.now();
     const analysisResult = await generateText({

@@ -212,7 +212,7 @@ export async function generateAutomationDraft(
 
   const generationMessageId = createMessageId();
   const start = Date.now();
-  const model = createProvider(resolved.credentials)(resolved.modelId);
+  const model = (await createProvider(resolved.credentials))(resolved.modelId);
 
   const result = await generateText({
     model,

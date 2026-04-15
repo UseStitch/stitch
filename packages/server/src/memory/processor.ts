@@ -102,7 +102,7 @@ export async function processMemories(input: {
       return;
     }
 
-    const model = createProvider(resolved.credentials)(resolved.modelId);
+    const model = (await createProvider(resolved.credentials))(resolved.modelId);
     const runId = randomUUID();
 
     const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);

@@ -58,6 +58,7 @@ export type ProviderMeta = {
 export const PROVIDER_IDS = [
   'amazon-bedrock',
   'anthropic',
+  'apple-fm',
   'google',
   'google-vertex',
   'openai',
@@ -66,3 +67,9 @@ export const PROVIDER_IDS = [
 ] as const;
 
 export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+export const PROVIDER_PLATFORM_REQUIREMENTS: Partial<
+  Record<ProviderId, { platform: string; arch?: string }>
+> = {
+  'apple-fm': { platform: 'darwin', arch: 'arm64' },
+};

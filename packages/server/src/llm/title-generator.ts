@@ -39,7 +39,7 @@ type TitleGeneratorDeps = {
     providerId: string;
     modelId: string;
     credentials: Parameters<typeof createProvider>[0];
-  }) => ReturnType<ReturnType<typeof createProvider>>;
+  }) => ReturnType<Awaited<ReturnType<typeof createProvider>>>;
 };
 
 export async function generateTitle(
@@ -60,7 +60,7 @@ export async function generateTitle(
   try {
     const model = deps?.getModel
       ? deps.getModel(resolved)
-      : createProvider(resolved.credentials)(resolved.modelId);
+      : (await createProvider(resolved.credentials))(resolved.modelId);
     const result = await generateText({
       model,
       messages: [

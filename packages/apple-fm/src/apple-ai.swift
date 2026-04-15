@@ -1,0 +1,1559 @@
+import Foundation
+import FoundationModels
+
+// MARK: - C-compatible data structures
+
+@available(macOS 26.0, *)
+
+@_cdecl("apple_ai_init")
+public func appleAIInit() -> Bool {
+    // Initialize and return success status
+    return true
+}
+
+@_cdecl("apple_ai_check_availability")
+public func appleAICheckAvailability() -> Int32 {
+    let model = SystemLanguageModel.default
+    let availability = model.availability
+
+    switch availability {
+    case .available:
+        return 1  // Available
+    case .unavailable(let reason):
+        switch reason {
+        case .deviceNotEligible:
+            return -1  // Device not eligible
+        case .appleIntelligenceNotEnabled:
+            return -2  // Apple Intelligence not enabled
+        case .modelNotReady:
+            return -3  // Model not ready
+        @unknown default:
+            return -99  // Unknown error
+        }
+    @unknown default:
+        return -99  // Unknown error
+    }
+}
+
+@_cdecl("apple_ai_get_availability_reason")
+public func appleAIGetAvailabilityReason() -> UnsafeMutablePointer<CChar>? {
+    let model = SystemLanguageModel.default
+    let availability = model.availability
+
+    switch availability {
+    case .available:
+        return strdup("Model is available")
+    case .unavailable(let reason):
+        let reasonString: String
+        switch reason {
+        case .deviceNotEligible:
+            reasonString =
+                "Device not eligible for Apple Intelligence. Supported devices: iPhone 15 Pro/Pro Max or newer, iPad with M1 chip or newer, Mac with Apple Silicon"
+        case .appleIntelligenceNotEnabled:
+            reasonString =
+                "Apple Intelligence not enabled. Enable it in Settings > Apple Intelligence & Siri"
+        case .modelNotReady:
+            reasonString =
+                "AI model not ready. Models are downloaded automatically based on network status, battery level, and system load. Please wait and try again later."
+        @unknown default:
+            reasonString = "Unknown availability issue"
+        }
+        return strdup(reasonString)
+    @unknown default:
+        return strdup("Unknown availability status")
+    }
+}
+
+@_cdecl("apple_ai_get_supported_languages_count")
+public func appleAIGetSupportedLanguagesCount() -> Int32 {
+    let model = SystemLanguageModel.default
+    return Int32(Array(model.supportedLanguages).count)
+}
+
+@_cdecl("apple_ai_get_supported_language")
+public func appleAIGetSupportedLanguage(index: Int32) -> UnsafeMutablePointer<CChar>? {
+    let model = SystemLanguageModel.default
+    let languagesArray = Array(model.supportedLanguages)
+
+    guard index >= 0 && index < Int32(languagesArray.count) else {
+        return nil
+    }
+
+    let language = languagesArray[Int(index)]
+    let locale = Locale(identifier: language.maximalIdentifier)
+
+    // Get the display name in the current locale
+    if let displayName = locale.localizedString(forIdentifier: language.maximalIdentifier) {
+        return strdup(displayName)
+    }
+
+    // Fallback to language code if display name is not available
+    if let languageCode = language.languageCode?.identifier {
+        return strdup(languageCode)
+    }
+
+    return strdup("Unknown")
+}
+
+@_cdecl("apple_ai_free_string")
+public func appleAIFreeString(ptr: UnsafeMutablePointer<CChar>?) {
+    if let ptr = ptr {
+        free(ptr)
+    }
+}
+
+// MARK: - Debug Logging
+
+// Set to `true` during development to emit verbose transcript and parsing logs.
+private let DEBUG_LOGS = ProcessInfo.processInfo.environment["APPLE_AI_SWIFT_DEBUG_LOGS"] != nil
+    || ProcessInfo.processInfo.environment["APPLE_FM_DEBUG"] != nil
+
+private func debugPrintTranscript(_ transcript: Transcript, prompt: String) {
+    guard DEBUG_LOGS else { return }
+
+    print("\n=== DEBUG: TRANSCRIPT SENT TO APPLE INTELLIGENCE ===")
+    print("Current Prompt: '\(prompt)'")
+    print("Transcript Entries (\(transcript.count)):")
+
+    for (index, entry) in transcript.enumerated() {
+        print("  [\(index)] \(describeTranscriptEntry(entry))")
+    }
+    print("=== END DEBUG TRANSCRIPT ===\n")
+}
+
+private func describeTranscriptEntry(_ entry: Transcript.Entry) -> String {
+    switch entry {
+    case .instructions(let instructions):
+        let toolNames = instructions.toolDefinitions.map { $0.name }.joined(separator: ", ")
+        let content = instructions.segments.compactMap { segment in
+            if case .text(let textSegment) = segment {
+                return textSegment.content
+            }
+            return nil
+        }.joined(separator: " ")
+        return "INSTRUCTIONS: '\(content)' | Tools: [\(toolNames)]"
+
+    case .prompt(let prompt):
+        let content = prompt.segments.compactMap { segment in
+            if case .text(let textSegment) = segment {
+                return textSegment.content
+            }
+            return nil
+        }.joined(separator: " ")
+        return "PROMPT: '\(content)'"
+
+    case .toolCalls(let toolCalls):
+        let callsSummary = toolCalls.map { call in
+            "\(call.toolName)(args)"
+        }.joined(separator: ", ")
+        return "TOOL_CALLS: [\(callsSummary)]"
+
+    case .response(let response):
+        let content = response.segments.compactMap { segment in
+            if case .text(let textSegment) = segment {
+                return textSegment.content
+            }
+            return nil
+        }.joined(separator: " ")
+        return "RESPONSE: '\(content)'"
+
+    case .toolOutput(let toolOutput):
+        let content = toolOutput.segments.compactMap { segment in
+            if case .text(let textSegment) = segment {
+                return textSegment.content
+            }
+            return nil
+        }.joined(separator: " ")
+        return "TOOL_OUTPUT [\(toolOutput.toolName)]: '\(content)'"
+
+    @unknown default:
+        return "UNKNOWN_ENTRY"
+    }
+}
+
+struct Guardrails {
+    static var developerProvided: SystemLanguageModel.Guardrails {
+        // Try to use permissive mode first (official API)
+        // This allows the model to reason about sensitive content
+        // without triggering guardrail violations
+        return .permissiveContentTransformations
+    }
+}
+
+// MARK: - Helper functions
+
+/// Centralized conversation preparation logic used by all message-based functions
+private struct ConversationContext {
+    let currentPrompt: String
+    let transcriptEntries: [Transcript.Entry]
+    let options: GenerationOptions
+}
+
+private enum ConversationError: Error {
+    case intelligenceUnavailable(String)
+    case invalidJSON(String)
+    case noMessages
+}
+
+private func prepareConversationContext(
+    messagesJsonString: String,
+    temperature: Double,
+    maxTokens: Int32
+) throws -> ConversationContext {
+    if DEBUG_LOGS {
+        print("\n=== DEBUG: PARSING MESSAGES ===")
+        print("Messages JSON: \(messagesJsonString)")
+    }
+
+    // Check availability first
+    let model = SystemLanguageModel.default
+    let availability = model.availability
+    guard case .available = availability else {
+        let reason: String
+        switch availability {
+        case .available:
+            reason = "Available"  // This case will never be reached due to guard
+        case .unavailable(let unavailableReason):
+            switch unavailableReason {
+            case .deviceNotEligible:
+                reason = "Device not eligible for Apple Intelligence"
+            case .appleIntelligenceNotEnabled:
+                reason = "Apple Intelligence not enabled"
+            case .modelNotReady:
+                reason = "AI model not ready"
+            @unknown default:
+                reason = "Unknown availability issue"
+            }
+        @unknown default:
+            reason = "Unknown availability status"
+        }
+        throw ConversationError.intelligenceUnavailable(reason)
+    }
+
+    // Parse messages from JSON
+    guard let messagesData = messagesJsonString.data(using: .utf8) else {
+        throw ConversationError.invalidJSON("Invalid JSON data")
+    }
+
+    let messages = try JSONDecoder().decode([ChatMessage].self, from: messagesData)
+    guard !messages.isEmpty else {
+        throw ConversationError.noMessages
+    }
+
+    if DEBUG_LOGS {
+        print("Parsed \(messages.count) messages:")
+        for (index, message) in messages.enumerated() {
+            let toolCallsInfo =
+                message.tool_calls?.isEmpty == false
+                ? " | tool_calls: \(message.tool_calls!.count)" : ""
+            print(
+                "  [\(index)] \(message.role): '\(message.content ?? "nil")' | name: \(message.name ?? "nil") | tool_call_id: \(message.tool_call_id ?? "nil")\(toolCallsInfo)"
+            )
+        }
+        print("=== END DEBUG PARSING ===\n")
+    }
+
+    // Log total content size for context window debugging
+    let totalChars = messages.reduce(0) { $0 + ($1.content?.count ?? 0) }
+    let estimatedTotalTokens = estimateTokens(messages.map { $0.content ?? "" }.joined(separator: " "))
+    print("[apple-fm][prepare] Messages: \(messages.count), total chars: \(totalChars), estimated tokens: \(estimatedTotalTokens)")
+
+    // Determine conversation context – separate the latest user/assistant message
+    let lastMessage = messages.last!
+    var currentPrompt: String = ""
+
+    currentPrompt = (lastMessage.role.lowercased() == "user") ? (lastMessage.content ?? "") : ""
+
+    // Truncate system prompt if it's very long (Apple FM has 4096 token limit)
+    // Reserve ~2000 tokens for system, ~1500 for prompt + response, ~500 for tools
+    var processedMessages = messages
+    let MAX_SYSTEM_CHARS = 4000  // ~1200 tokens
+    for (index, msg) in processedMessages.enumerated() {
+        if msg.role.lowercased() == "system" && (msg.content?.count ?? 0) > MAX_SYSTEM_CHARS {
+            let truncated = String(msg.content!.prefix(MAX_SYSTEM_CHARS)) + "\n[System prompt truncated to fit context window]"
+            print("[apple-fm][prepare] WARNING: Truncating system message from \(msg.content!.count) to \(truncated.count) chars")
+            processedMessages[index] = ChatMessage(
+                role: msg.role,
+                content: truncated,
+                name: msg.name,
+                tool_call_id: msg.tool_call_id,
+                tool_calls: msg.tool_calls
+            )
+        }
+    }
+
+    // Build transcript entries from the remaining messages
+    let transcriptEntries = convertMessagesToTranscript(processedMessages)
+
+    // Create generation options
+    var options = GenerationOptions()
+    if temperature > 0 {
+        options.temperature = temperature
+        if maxTokens > 0 {
+            options.maximumResponseTokens = Int(maxTokens)
+        }
+    } else if maxTokens > 0 {
+        options.maximumResponseTokens = Int(maxTokens)
+    }
+
+    return ConversationContext(
+        currentPrompt: currentPrompt,
+        transcriptEntries: transcriptEntries,
+        options: options
+    )
+}
+
+private struct ChatMessage: Codable {
+    let role: String
+    let content: String?  // Made optional to support OpenAI format with tool calls
+    let name: String?
+    let tool_call_id: String?  // OpenAI-compatible snake_case
+    let tool_calls: [[String: Any]]?  // OpenAI-compatible tool calls array
+
+    init(
+        role: String,
+        content: String? = nil,
+        name: String? = nil,
+        tool_call_id: String? = nil,
+        tool_calls: [[String: Any]]? = nil
+    ) {
+        self.role = role
+        self.content = content
+        self.name = name
+        self.tool_call_id = tool_call_id
+        self.tool_calls = tool_calls
+    }
+
+    // Custom encoding/decoding to handle the dynamic tool_calls array
+    enum CodingKeys: String, CodingKey {
+        case role, content, name, tool_call_id, tool_calls
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        role = try container.decode(String.self, forKey: .role)
+        content = try container.decodeIfPresent(String.self, forKey: .content)  // Made optional
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        tool_call_id = try container.decodeIfPresent(String.self, forKey: .tool_call_id)
+
+        // Properly decode tool_calls if present
+        if container.contains(.tool_calls) {
+            let toolCallsData = try container.decode(AnyCodable.self, forKey: .tool_calls)
+            tool_calls = toolCallsData.value as? [[String: Any]]
+        } else {
+            tool_calls = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(role, forKey: .role)
+        try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(tool_call_id, forKey: .tool_call_id)
+        // tool_calls encoding would need custom handling
+    }
+}
+
+private func convertMessagesToTranscript(_ messages: [ChatMessage]) -> [Transcript.Entry] {
+    var entries: [Transcript.Entry] = []
+
+    // Skip system messages - they will be handled separately with tools
+    let nonSystemMessages = messages.filter { $0.role.lowercased() != "system" }
+
+    // Debug: Log conversion start
+    if DEBUG_LOGS {
+        print("\n=== DEBUG: CONVERTING MESSAGES TO TRANSCRIPT ===")
+        print("Processing \(nonSystemMessages.count) non-system messages")
+    }
+
+    // Build a map of tool call IDs to their corresponding tool outputs
+    var toolOutputsById: [String: Transcript.ToolOutput] = [:]
+    var toolCallIds = Set<String>()  // Track all tool call IDs for validation
+
+    for message in nonSystemMessages {
+        if message.role.lowercased() == "tool" {
+            let toolOutputEntries = createToolOutputEntry(from: message)
+            for entry in toolOutputEntries {
+                if case .toolOutput(let output) = entry {
+                    toolOutputsById[output.id] = output
+                    if DEBUG_LOGS {
+                        print("  Found tool output: \(output.toolName) (id: \(output.id))")
+                    }
+                }
+            }
+        }
+    }
+
+    // Process messages in order, but handle tool calls specially
+    var processedToolOutputIds = Set<String>()
+
+    for message in nonSystemMessages {
+        switch message.role.lowercased() {
+        case "user":
+            entries.append(.prompt(createPrompt(from: message)))
+            if DEBUG_LOGS {
+                print("  Added PROMPT from user message")
+            }
+
+        case "assistant":
+            // For assistant messages, we need to handle the content and tool calls in the right order
+            let assistantEntries = createAssistantEntries(from: message)
+
+            // Separate response entries from tool call entries
+            var responseEntries: [Transcript.Entry] = []
+            var toolCallEntries: [Transcript.Entry] = []
+
+            for entry in assistantEntries {
+                switch entry {
+                case .response:
+                    responseEntries.append(entry)
+                case .toolCalls(let calls):
+                    toolCallEntries.append(entry)
+                    // Add tool calls entry once, before processing outputs
+                    entries.append(.toolCalls(calls))
+
+                    if DEBUG_LOGS {
+                        let callNames = calls.map { $0.toolName }.joined(separator: ", ")
+                        print("  Added TOOL_CALLS: [\(callNames)]")
+                    }
+
+                    // Track tool call IDs for validation
+                    for call in calls {
+                        toolCallIds.insert(call.id)
+                    }
+
+                    // After tool calls, add their corresponding outputs
+                    for call in calls {
+                        if let output = toolOutputsById[call.id] {
+                            entries.append(.toolOutput(output))
+                            processedToolOutputIds.insert(call.id)
+                            if DEBUG_LOGS {
+                                print("    → Added matching TOOL_OUTPUT for \(call.toolName)")
+                            }
+                        } else if DEBUG_LOGS {
+                            print(
+                                "    ⚠️  No matching output found for tool call: \(call.toolName) (id: \(call.id))"
+                            )
+                        }
+                    }
+                default:
+                    break
+                }
+            }
+
+            // Add response entries after tool calls and outputs
+            entries.append(contentsOf: responseEntries)
+            if DEBUG_LOGS && !responseEntries.isEmpty {
+                print("  Added RESPONSE from assistant")
+            }
+
+        // Note: Tool calls without outputs are already added above in the toolCalls case
+        // No need for additional logic here
+
+        case "tool":
+            // Skip tool messages as they've been processed above
+            continue
+
+        default:
+            entries.append(.prompt(createPrompt(from: message)))  // Fallback to user prompt
+        }
+    }
+
+    // Debug: Validate and report
+    if DEBUG_LOGS {
+        print("\n=== TRANSCRIPT VALIDATION ===")
+
+        // Check for orphaned tool outputs
+        let orphanedOutputs = Set(toolOutputsById.keys).subtracting(processedToolOutputIds)
+        if !orphanedOutputs.isEmpty {
+            print("⚠️  Warning: \(orphanedOutputs.count) tool outputs without matching tool calls")
+        }
+
+        // Validate ordering
+        var lastEntryType: String? = nil
+        var isValid = true
+        var expectedToolOutputCount = 0
+
+        for (index, entry) in entries.enumerated() {
+            switch entry {
+            case .toolCalls(let calls):
+                lastEntryType = "toolCalls"
+                expectedToolOutputCount = calls.count
+            case .toolOutput:
+                if lastEntryType != "toolCalls" && expectedToolOutputCount <= 0 {
+                    print("⚠️  Warning: Tool output at index \(index) not preceded by tool calls")
+                    isValid = false
+                } else {
+                    expectedToolOutputCount -= 1
+                    if expectedToolOutputCount == 0 {
+                        lastEntryType = "toolOutput"
+                    }
+                }
+            default:
+                lastEntryType = "other"
+                expectedToolOutputCount = 0
+            }
+        }
+
+        print("Transcript ordering: \(isValid ? "✓ Valid" : "✗ Invalid")")
+        print("Total entries: \(entries.count)")
+        print("=== END VALIDATION ===\n")
+    }
+
+    return entries
+}
+
+private func createInstructions(from message: ChatMessage) -> Transcript.Instructions {
+    let textSegment = Transcript.TextSegment(content: message.content ?? "")
+    return Transcript.Instructions(
+        segments: [.text(textSegment)],
+        toolDefinitions: []
+    )
+}
+
+private func createPrompt(from message: ChatMessage) -> Transcript.Prompt {
+    let textSegment = Transcript.TextSegment(content: message.content ?? "")
+    return Transcript.Prompt(segments: [.text(textSegment)])
+}
+
+private func createAssistantEntries(from message: ChatMessage) -> [Transcript.Entry] {
+    var entries: [Transcript.Entry] = []
+
+    // First, check if there's content to add as a response
+    if let content = message.content, !content.isEmpty {
+        // Only add response if it's not a JSON array (which would be legacy tool calls)
+        let isLegacyToolCall =
+            content.starts(with: "[")
+            && content.data(using: .utf8).flatMap({
+                try? JSONSerialization.jsonObject(with: $0) as? [[String: Any]]
+            }) != nil
+
+        if !isLegacyToolCall {
+            entries.append(.response(createResponse(from: message)))
+        }
+    }
+
+    // Then, check if there are tool calls to add
+    if let toolCalls = message.tool_calls,
+        !toolCalls.isEmpty,
+        toolCalls.allSatisfy({ call in
+            if let function = call["function"] as? [String: Any] {
+                return function["name"] != nil
+            }
+            return false
+        })
+    {
+        // Convert OpenAI tool calls to readable format
+        let toolCalls = convertOpenAIToolCalls(toolCalls)
+        entries.append(.toolCalls(toolCalls))
+    } else if let content = message.content,
+        let toolCallsData = content.data(using: .utf8),
+        let toolCalls = try? JSONSerialization.jsonObject(with: toolCallsData) as? [[String: Any]],
+        !toolCalls.isEmpty,
+        toolCalls.allSatisfy({ call in
+            if let function = call["function"] as? [String: Any] {
+                return function["name"] != nil
+            }
+            return false
+        })
+    {
+        // Legacy format: content is a JSON array of tool calls
+        // For legacy format, convert to tool calls entry
+        let toolCallsArray = toolCalls.compactMap { call -> [String: Any]? in
+            guard let function = call["function"] as? [String: Any] else { return nil }
+
+            // Convert to OpenAI format for reuse
+            var openAICall: [String: Any] = [:]
+            openAICall["id"] =
+                call["id"]
+                ?? "call_\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))"
+            openAICall["function"] = function
+            return openAICall
+        }
+
+        if !toolCallsArray.isEmpty {
+            let convertedCalls = convertOpenAIToolCalls(toolCallsArray)
+            entries.append(.toolCalls(convertedCalls))
+        }
+    }
+
+    // If no entries were created, create a response with empty content
+    if entries.isEmpty {
+        entries.append(.response(createResponse(from: message)))
+    }
+
+    return entries
+}
+
+// Helper to create GeneratedContent from dictionary
+@available(macOS 26.0, *)
+private func createGeneratedContentFromDictionary(_ dict: [String: Any]) -> GeneratedContent? {
+    // For tool arguments, we'll create a simple JSON string representation
+    // This is a workaround since KeyValuePairs cannot be created dynamically
+    guard let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []),
+        let jsonString = String(data: jsonData, encoding: .utf8)
+    else {
+        return nil
+    }
+
+    // Create GeneratedContent with the JSON string
+    // This works because GeneratedContent can hold a String value
+    return GeneratedContent(jsonString)
+}
+
+private func convertOpenAIToolCalls(_ toolCalls: [[String: Any]]) -> Transcript.ToolCalls {
+    let calls = toolCalls.compactMap { call -> FoundationModels.Transcript.ToolCall? in
+        guard let id = call["id"] as? String,
+            let function = call["function"] as? [String: Any],
+            let name = function["name"] as? String
+        else { return nil }
+
+        // Parse arguments
+        var arguments: [String: Any] = [:]
+        if let argsString = function["arguments"] as? String,
+            let argsData = argsString.data(using: .utf8),
+            let args = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
+        {
+            arguments = args
+        }
+
+        // Create GeneratedContent from arguments
+        guard let content = createGeneratedContentFromDictionary(arguments) else { return nil }
+
+        // Use the unsafe tool call creation function
+        return Transcript.ToolCall(
+            id: id, toolName: name, arguments: content)
+    }
+
+    return Transcript.ToolCalls(calls)
+}
+
+private func createResponse(from message: ChatMessage) -> Transcript.Response {
+    let textSegment = Transcript.TextSegment(content: message.content ?? "")
+    return Transcript.Response(
+        assetIDs: [],
+        segments: [.text(textSegment)]
+    )
+}
+
+private func createToolOutputEntry(from message: ChatMessage) -> [Transcript.Entry] {
+    // The message should have role "tool" and contain tool_calls array
+    guard message.role == "tool" else {
+        return []
+    }
+
+    // Parse the message content which should contain tool_calls array
+    guard let content = message.content,
+        let messageData = content.data(using: .utf8),
+        let messageObject = try? JSONSerialization.jsonObject(with: messageData) as? [String: Any],
+        let toolCalls = messageObject["tool_calls"] as? [[String: Any]]
+    else {
+        return []
+    }
+
+    var entries: [Transcript.Entry] = []
+
+    // Each tool call becomes its own transcript entry
+    for toolCall in toolCalls {
+        guard let id = toolCall["id"] as? String,
+            let toolName = toolCall["toolName"] as? String,
+            let segments = toolCall["segments"] as? [[String: Any]]
+        else {
+            continue
+        }
+
+        var transcriptSegments: [Transcript.Segment] = []
+        for segment in segments {
+            if let type = segment["type"] as? String,
+                type == "text",
+                let text = segment["text"] as? String
+            {
+                transcriptSegments.append(.text(Transcript.TextSegment(content: text)))
+            }
+        }
+
+        let toolOutput = Transcript.ToolOutput(
+            id: id,
+            toolName: toolName,
+            segments: transcriptSegments
+        )
+
+        entries.append(.toolOutput(toolOutput))
+    }
+
+    return entries
+}
+
+// Control-B (0x02) sentinel prefix marks an error string in streaming callbacks
+private let ERROR_SENTINEL: Character = "\u{0002}"
+
+@inline(__always)
+private func emitError(
+    _ message: String, to onChunk: (@convention(c) (UnsafePointer<CChar>?) -> Void)
+) {
+    let full = String(ERROR_SENTINEL) + message
+    full.withCString { cStr in
+        onChunk(strdup(cStr))
+    }
+}
+
+// MARK: - Error Classification
+
+/// Converts a GenerationError (or any error) into a structured, human-readable string
+/// for passing back through the FFI boundary.
+private func classifyGenerationError(_ error: Error) -> String {
+    if let genError = error as? LanguageModelSession.GenerationError {
+        switch genError {
+        case .exceededContextWindowSize(let context):
+            return "GenerationError.exceededContextWindowSize: Context window (4096 tokens) exceeded. Context: \(context)"
+        case .guardrailViolation(let context):
+            return "GenerationError.guardrailViolation: Content triggered safety guardrails. Context: \(context)"
+        case .assetsUnavailable(let context):
+            return "GenerationError.assetsUnavailable: Model assets not available. Context: \(context)"
+        case .rateLimited(let context):
+            return "GenerationError.rateLimited: Too many requests. Context: \(context)"
+        case .unsupportedGuide(let context):
+            return "GenerationError.unsupportedGuide: Unsupported generation guide. Context: \(context)"
+        case .unsupportedLanguageOrLocale(let context):
+            return "GenerationError.unsupportedLanguageOrLocale: Language/locale not supported. Context: \(context)"
+        case .decodingFailure(let context):
+            return "GenerationError.decodingFailure: Failed to decode model output. Context: \(context)"
+        case .refusal(let refusal, let context):
+            return "GenerationError.refusal: Model refused the request. Refusal: \(refusal), Context: \(context)"
+        case .concurrentRequests(let context):
+            return "GenerationError.concurrentRequests: Session is already responding. Context: \(context)"
+        @unknown default:
+            return "GenerationError.unknown: \(genError.localizedDescription) | errorDescription: \(genError.errorDescription ?? "nil") | failureReason: \(genError.failureReason ?? "nil") | recoverySuggestion: \(genError.recoverySuggestion ?? "nil")"
+        }
+    }
+
+    // Not a GenerationError - return full NSError info
+    let nsError = error as NSError
+    var info = "Error domain=\(nsError.domain) code=\(nsError.code)"
+    if let desc = nsError.localizedDescription as String? {
+        info += " description=\(desc)"
+    }
+    if let reason = nsError.localizedFailureReason {
+        info += " reason=\(reason)"
+    }
+    if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+        info += " underlying=[\(classifyGenerationError(underlying))]"
+    }
+    if let multipleErrors = nsError.userInfo["NSMultipleUnderlyingErrorsKey"] as? [Error] {
+        let details = multipleErrors.map { classifyGenerationError($0) }.joined(separator: "; ")
+        info += " multipleUnderlying=[\(details)]"
+    }
+    return info
+}
+
+/// Estimates the token count for a string (rough: ~1.3 tokens per word for English)
+private func estimateTokens(_ text: String) -> Int {
+    let words = text.split(separator: " ").count
+    return max(1, Int(Double(words) * 1.3))
+}
+
+// MARK: - JS Tool Callback Bridge
+
+// Simple async callback - Rust calls this, expects result via separate callback
+public typealias JSToolCallback =
+    @convention(c) (
+        _ toolID: UInt64, _ argsJson: UnsafePointer<CChar>
+    ) -> Void
+
+private var jsToolCallback: JSToolCallback?
+
+// Expose a C function so Rust can register the async callback
+@_cdecl("apple_ai_register_tool_callback")
+public func appleAIRegisterToolCallback(_ cb: JSToolCallback?) {
+    jsToolCallback = cb
+}
+
+// MARK: - Proxy Tool implementation bridging to JS
+
+@available(macOS 26.0, *)
+private struct JSArguments: ConvertibleFromGeneratedContent {
+    let raw: GeneratedContent
+    init(_ content: GeneratedContent) throws {
+        self.raw = content
+    }
+}
+
+@available(macOS 26.0, *)
+private struct JSProxyTool: Tool {
+    typealias Arguments = JSArguments
+
+    let toolID: UInt64
+    let name: String
+    let description: String
+    let parametersSchema: GenerationSchema
+
+    var parameters: GenerationSchema { parametersSchema }
+
+    func call(arguments: JSArguments) async throws -> String {
+        guard let cb = jsToolCallback else {
+            return "Tool system not available"
+        }
+
+        // Serialize arguments and forward to JavaScript for external execution
+        let jsonObj = generatedContentToJSON(arguments.raw)
+        guard let data = try? JSONSerialization.data(withJSONObject: jsonObj),
+            let jsonStr = String(data: data, encoding: .utf8)
+        else {
+            return "Unable to process tool arguments"
+        }
+
+        // Notify JavaScript side for collection and external execution
+        jsonStr.withCString { cb(toolID, $0) }
+
+        // Collect this tool call for post-processing
+        if let argsDict = jsonObj as? [String: Any] {
+            ToolCallCollector.shared.append(id: toolID, name: name, arguments: argsDict)
+        } else {
+            ToolCallCollector.shared.append(id: toolID, name: name, arguments: [:])
+        }
+
+        // Signal completion to streaming coordinator for early termination
+        await StreamingCoordinator.shared.toolCompleted()
+
+        // Return placeholder output to allow generation to continue naturally
+        return "Tool call executed"
+    }
+}
+
+// MARK: - Tool Definition Structure
+
+private struct ToolDefinition: Codable {
+    let name: String
+    let description: String?
+    let parameters: [String: Any]?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case description
+        case parameters
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+
+        // Decode parameters as generic JSON
+        if container.contains(.parameters) {
+            let parametersValue = try container.decode(AnyCodable.self, forKey: .parameters)
+            parameters = parametersValue.value as? [String: Any]
+        } else {
+            parameters = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(description, forKey: .description)
+
+        if let params = parameters {
+            try container.encode(AnyCodable(params), forKey: .parameters)
+        }
+    }
+}
+
+// Helper for decoding arbitrary JSON
+private struct AnyCodable: Codable {
+    let value: Any
+
+    init(_ value: Any) {
+        self.value = value
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else if let string = try? container.decode(String.self) {
+            value = string
+        } else if let array = try? container.decode([AnyCodable].self) {
+            value = array.map { $0.value }
+        } else if let dict = try? container.decode([String: AnyCodable].self) {
+            value = dict.mapValues { $0.value }
+        } else {
+            value = NSNull()
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch value {
+        case let bool as Bool:
+            try container.encode(bool)
+        case let int as Int:
+            try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            try container.encode(array.map { AnyCodable($0) })
+        case let dict as [String: Any]:
+            try container.encode(dict.mapValues { AnyCodable($0) })
+        default:
+            try container.encodeNil()
+        }
+    }
+}
+
+// MARK: - Structured Object Generation Support (Implementation)
+
+#if canImport(FoundationModels)
+    import FoundationModels
+#endif
+
+@available(macOS 26.0, *)
+private func convertJSONSchemaToDynamic(_ dict: [String: Any], name: String? = nil)
+    -> DynamicGenerationSchema
+{
+    // Handle references (not fully implemented)
+    if let ref = dict["$ref"] as? String {
+        return .init(referenceTo: ref)
+    }
+
+    if let anyOf = dict["anyOf"] as? [[String: Any]] {
+        // Detect simple string enum union
+        var stringChoices: [String] = []
+        var dynamicChoices: [DynamicGenerationSchema] = []
+        for choice in anyOf {
+            if let enums = choice["enum"] as? [String], enums.count == 1 {
+                stringChoices.append(enums[0])
+            } else {
+                dynamicChoices.append(convertJSONSchemaToDynamic(choice))
+            }
+        }
+        if !stringChoices.isEmpty && dynamicChoices.isEmpty {
+            return .init(
+                name: name ?? UUID().uuidString, description: dict["description"] as? String,
+                anyOf: stringChoices)
+        } else {
+            let choices =
+                dynamicChoices.isEmpty
+                ? anyOf.map { convertJSONSchemaToDynamic($0) } : dynamicChoices
+            return .init(
+                name: name ?? UUID().uuidString, description: dict["description"] as? String,
+                anyOf: choices)
+        }
+    }
+
+    // Enum handling
+    if let enums = dict["enum"] as? [String] {
+        return .init(
+            name: name ?? UUID().uuidString, description: dict["description"] as? String,
+            anyOf: enums)
+    }
+
+    guard let type = dict["type"] as? String else {
+        // Fallback to string
+        return .init(type: String.self)
+    }
+
+    switch type {
+    case "string":
+        return .init(type: String.self)
+    case "number":
+        return .init(type: Double.self)
+    case "integer":
+        return .init(type: Int.self)
+    case "boolean":
+        return .init(type: Bool.self)
+    case "array":
+        if let items = dict["items"] as? [String: Any] {
+            let itemSchema = convertJSONSchemaToDynamic(items)
+            let min = dict["minItems"] as? Int
+            let max = dict["maxItems"] as? Int
+            return .init(arrayOf: itemSchema, minimumElements: min, maximumElements: max)
+        } else {
+            // Unknown items, fallback
+            return .init(arrayOf: .init(type: String.self))
+        }
+    case "object":
+        let required = (dict["required"] as? [String]) ?? []
+        var props: [DynamicGenerationSchema.Property] = []
+        if let properties = dict["properties"] as? [String: Any] {
+            for (propName, subSchemaAny) in properties {
+                guard let subSchemaDict = subSchemaAny as? [String: Any] else { continue }
+                let subSchema = convertJSONSchemaToDynamic(subSchemaDict, name: propName)
+                let isOptional = !required.contains(propName)
+                let prop = DynamicGenerationSchema.Property(
+                    name: propName, description: subSchemaDict["description"] as? String,
+                    schema: subSchema, isOptional: isOptional)
+                props.append(prop)
+            }
+        }
+        return .init(
+            name: name ?? "Object", description: dict["description"] as? String, properties: props)
+    default:
+        return .init(type: String.self)
+    }
+}
+
+@available(macOS 26.0, *)
+private func generatedContentToJSON(_ content: GeneratedContent) -> Any {
+    switch content.kind {
+    case .structure(let properties, _):
+        var result: [String: Any] = [:]
+        for (key, value) in properties {
+            result[key] = generatedContentToJSON(value)
+        }
+        return result
+        
+    case .array(let elements):
+        return elements.map { generatedContentToJSON($0) }
+        
+    case .string(let stringValue):
+        return stringValue
+        
+    case .number(let numberValue):
+        return numberValue
+        
+    case .bool(let boolValue):
+        return boolValue
+        
+    case .null:
+        return NSNull()
+        
+    @unknown default:
+        return content.jsonString
+    }
+}
+
+@available(macOS 26.0, *)
+private func buildSchemasFromJson(_ json: [String: Any]) -> (
+    DynamicGenerationSchema, [DynamicGenerationSchema]
+) {
+    var dependencies: [DynamicGenerationSchema] = []
+    var rootNameFromRef: String? = nil
+    if let ref = json["$ref"] as? String, ref.hasPrefix("#/definitions/") {
+        rootNameFromRef = String(ref.dropFirst("#/definitions/".count))
+    }
+
+    if let defs = json["definitions"] as? [String: Any] {
+        for (name, subAny) in defs {
+            if let subDict = subAny as? [String: Any] {
+                if let rootNameFromRef, name == rootNameFromRef { continue }
+                let depSchema = convertJSONSchemaToDynamic(subDict, name: name)
+                dependencies.append(depSchema)
+            }
+        }
+    }
+
+    // Determine root schema
+    if let rootNameFromRef = rootNameFromRef {
+        let name = rootNameFromRef
+        if let defs = json["definitions"] as? [String: Any],
+            let rootDef = defs[name] as? [String: Any]
+        {
+            let rootSchema = convertJSONSchemaToDynamic(rootDef, name: name)
+            return (rootSchema, dependencies)
+        }
+    }
+
+    // Fallback
+    let root = convertJSONSchemaToDynamic(json, name: json["title"] as? String)
+    return (root, dependencies)
+}
+
+// MARK: - Tool Call Collection for Natural Completion
+
+@available(macOS 26.0, *)
+private class ToolCallCollector {
+    static let shared = ToolCallCollector()
+    private let queue = DispatchQueue(label: "tool.call.collector")
+    private var calls: [ToolCallRecord] = []
+
+    struct ToolCallRecord {
+        let id: UInt64
+        let name: String
+        let arguments: [String: Any]
+        let callId: String
+    }
+
+    func reset() {
+        queue.sync { calls.removeAll() }
+    }
+
+    func append(id: UInt64, name: String, arguments: [String: Any]) {
+        let callId = "call_\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12))"
+        let record = ToolCallRecord(id: id, name: name, arguments: arguments, callId: callId)
+        queue.sync { calls.append(record) }
+    }
+
+    func getAllCalls() -> [ToolCallRecord] {
+        queue.sync { calls }
+    }
+}
+
+// MARK: - Streaming Coordinator for Early Termination
+
+@available(macOS 26.0, *)
+private actor StreamingCoordinator {
+    static let shared = StreamingCoordinator()
+
+    private var expectedToolCount: Int = 0
+    private var completedToolCount: Int = 0
+    private var shouldStopAfterTools: Bool = false
+    private var allToolsCompleted: Bool = false
+
+    func reset(expectedTools: Int, stopAfterToolCalls: Bool) {
+        expectedToolCount = expectedTools
+        completedToolCount = 0
+        shouldStopAfterTools = stopAfterToolCalls
+        allToolsCompleted = false
+    }
+
+    func toolCompleted() {
+        completedToolCount += 1
+        // Mark completion on any tool call so we can stop immediately if configured
+        allToolsCompleted = true
+    }
+
+    func shouldTerminateStream() -> Bool {
+        // Stop streaming as soon as at least one tool has been invoked when requested
+        return shouldStopAfterTools && completedToolCount > 0
+    }
+
+    func hasToolsToExecute() -> Bool {
+        return expectedToolCount > 0
+    }
+}
+
+// C callback that receives tool results (for compatibility with JS side)
+@_cdecl("apple_ai_tool_result_callback")
+public func appleAIToolResultCallback(_ toolID: UInt64, _ resultJson: UnsafePointer<CChar>) {
+    // In natural completion mode, we don't need to resume anything
+    // This callback exists for JS compatibility but doesn't affect Swift execution
+    _ = String(cString: resultJson)
+}
+
+// MARK: - Unified Generation Function
+
+@available(macOS 26.0, *)
+@_cdecl("apple_ai_generate_unified")
+public func appleAIGenerateUnified(
+    messagesJson: UnsafePointer<CChar>,
+    toolsJson: UnsafePointer<CChar>?,
+    schemaJson: UnsafePointer<CChar>?,
+    temperature: Double,
+    maxTokens: Int32,
+    stream: Bool,
+    stopAfterToolCalls: Bool,  // New parameter - controls early termination behavior
+    onChunk: (@convention(c) (UnsafePointer<CChar>?) -> Void)?
+) -> UnsafeMutablePointer<CChar>? {
+    let messagesJsonString = String(cString: messagesJson)
+    let toolsJsonString = toolsJson.map { String(cString: $0) }
+    let schemaJsonString = schemaJson.map { String(cString: $0) }
+
+    print("[apple-fm][unified] === Generation Request ===")
+    print("[apple-fm][unified] stream=\(stream), stopAfterToolCalls=\(stopAfterToolCalls)")
+    print("[apple-fm][unified] messages JSON length: \(messagesJsonString.count) chars")
+    print("[apple-fm][unified] tools JSON: \(toolsJsonString != nil ? "\(toolsJsonString!.count) chars" : "nil")")
+    print("[apple-fm][unified] schema JSON: \(schemaJsonString != nil ? "\(schemaJsonString!.count) chars" : "nil")")
+    print("[apple-fm][unified] temperature=\(temperature), maxTokens=\(maxTokens)")
+
+    // Validate streaming parameters
+    if stream && onChunk == nil {
+        return strdup("Error: Streaming requested but no callback provided")
+    }
+
+    // For non-streaming mode, use a semaphore
+    if !stream {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: String = "Error: No response"
+
+        Task {
+            do {
+                // Parse messages and prepare context
+                let context = try prepareConversationContext(
+                    messagesJsonString: messagesJsonString,
+                    temperature: temperature,
+                    maxTokens: maxTokens
+                )
+
+                // Determine operation mode based on provided parameters
+                if let toolsStr = toolsJsonString, !toolsStr.isEmpty {
+                    // Tools mode - takes precedence over schema
+                    result = try await handleToolsMode(
+                        context: context,
+                        toolsJsonString: toolsStr,
+                        messagesJsonString: messagesJsonString,
+                        streaming: false,
+                        stopAfterToolCalls: stopAfterToolCalls,
+                        onChunk: nil
+                    )
+                } else if let schemaStr = schemaJsonString, !schemaStr.isEmpty {
+                    // Structured generation mode
+                    result = try await handleStructuredMode(
+                        context: context,
+                        schemaJsonString: schemaStr
+                    )
+                } else {
+                    // Basic generation mode
+                    result = try await handleBasicMode(context: context)
+                }
+            } catch let error as ConversationError {
+                switch error {
+                case .intelligenceUnavailable(let reason):
+                    result = "Error: Apple Intelligence not available - \(reason)"
+                case .invalidJSON(let reason):
+                    result = "Error: \(reason)"
+                case .noMessages:
+                    result = "Error: No messages provided"
+                }
+            } catch {
+                let classified = classifyGenerationError(error)
+                print("[apple-fm][ERROR] Non-streaming generation failed: \(classified)")
+                result = "Error: \(classified)"
+            }
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+        return strdup(result)
+    } else {
+        // Streaming mode
+        Task.detached {
+            do {
+                // Parse messages and prepare context
+                let context = try prepareConversationContext(
+                    messagesJsonString: messagesJsonString,
+                    temperature: temperature,
+                    maxTokens: maxTokens
+                )
+
+                // Determine operation mode and stream
+                if let toolsStr = toolsJsonString, !toolsStr.isEmpty {
+                    // Tools mode with streaming
+                    _ = try await handleToolsMode(
+                        context: context,
+                        toolsJsonString: toolsStr,
+                        messagesJsonString: messagesJsonString,
+                        streaming: true,
+                        stopAfterToolCalls: stopAfterToolCalls,
+                        onChunk: onChunk
+                    )
+                } else if let schemaStr = schemaJsonString, !schemaStr.isEmpty {
+                    // Structured generation doesn't support streaming
+                    emitError("Structured generation does not support streaming", to: onChunk!)
+                } else {
+                    // Basic generation with streaming
+                    try await handleBasicModeStream(
+                        context: context,
+                        onChunk: onChunk!
+                    )
+                }
+            } catch let error as ConversationError {
+                switch error {
+                case .intelligenceUnavailable(let reason):
+                    emitError("Apple Intelligence not available - \(reason)", to: onChunk!)
+                case .invalidJSON(let reason):
+                    emitError(reason, to: onChunk!)
+                case .noMessages:
+                    emitError("No messages", to: onChunk!)
+                }
+            } catch {
+                let classified = classifyGenerationError(error)
+                print("[apple-fm][ERROR] Streaming generation failed: \(classified)")
+                emitError(classified, to: onChunk!)
+            }
+        }
+        return nil  // Streaming returns immediately
+    }
+}
+
+// MARK: - Helper functions for unified generation
+
+@available(macOS 26.0, *)
+private func handleBasicMode(context: ConversationContext) async throws -> String {
+    let transcript = Transcript(entries: context.transcriptEntries)
+    debugPrintTranscript(transcript, prompt: context.currentPrompt)
+
+    // Log token estimates
+    let promptTokens = estimateTokens(context.currentPrompt)
+    let transcriptTokens = context.transcriptEntries.reduce(0) { total, entry in
+        total + estimateTokens(describeTranscriptEntry(entry))
+    }
+    print("[apple-fm][basic] Estimated tokens - prompt: \(promptTokens), transcript: \(transcriptTokens), total: \(promptTokens + transcriptTokens) (limit: 4096)")
+    print("[apple-fm][basic] Prompt: '\(context.currentPrompt.prefix(200))\(context.currentPrompt.count > 200 ? "..." : "")'")
+    print("[apple-fm][basic] Transcript entries: \(context.transcriptEntries.count)")
+
+    let model = SystemLanguageModel(guardrails: Guardrails.developerProvided)
+    let session = LanguageModelSession(
+        model: model, transcript: transcript)
+
+    print("[apple-fm][basic] Calling session.respond()...")
+    let response = try await session.respond(to: context.currentPrompt, options: context.options)
+    print("[apple-fm][basic] Response received: '\(response.content.prefix(200))\(response.content.count > 200 ? "..." : "")'")
+
+    // Return as JSON for consistency
+    let json: [String: Any] = ["text": response.content]
+    let jsonData = try JSONSerialization.data(withJSONObject: json, options: [])
+    return String(data: jsonData, encoding: .utf8) ?? "Error: Encoding failure"
+}
+
+@available(macOS 26.0, *)
+private func handleBasicModeStream(
+    context: ConversationContext,
+    onChunk: @convention(c) (UnsafePointer<CChar>?) -> Void
+) async throws {
+    let transcript = Transcript(entries: context.transcriptEntries)
+    debugPrintTranscript(transcript, prompt: context.currentPrompt)
+
+    // Log token estimates
+    let promptTokens = estimateTokens(context.currentPrompt)
+    let transcriptTokens = context.transcriptEntries.reduce(0) { total, entry in
+        total + estimateTokens(describeTranscriptEntry(entry))
+    }
+    print("[apple-fm][stream] Estimated tokens - prompt: \(promptTokens), transcript: \(transcriptTokens), total: \(promptTokens + transcriptTokens) (limit: 4096)")
+    print("[apple-fm][stream] Prompt: '\(context.currentPrompt.prefix(200))\(context.currentPrompt.count > 200 ? "..." : "")'")
+    print("[apple-fm][stream] Transcript entries: \(context.transcriptEntries.count)")
+
+    let model = SystemLanguageModel(guardrails: Guardrails.developerProvided)
+    let session = LanguageModelSession(
+        model: model, transcript: transcript)
+
+    print("[apple-fm][stream] Calling session.streamResponse()...")
+    var prev = ""
+    var chunkCount = 0
+    for try await cumulative in session.streamResponse(
+        to: context.currentPrompt, options: context.options)
+    {
+        let delta = String(cumulative.content.dropFirst(prev.count))
+        prev = cumulative.content
+        guard !delta.isEmpty else { continue }
+        chunkCount += 1
+
+        delta.withCString { cStr in
+            onChunk(strdup(cStr))
+        }
+    }
+    print("[apple-fm][stream] Stream complete. Total chunks: \(chunkCount), total chars: \(prev.count)")
+    onChunk(nil)  // Signal end of stream
+}
+
+@available(macOS 26.0, *)
+private func handleStructuredMode(
+    context: ConversationContext,
+    schemaJsonString: String
+) async throws -> String {
+    // Parse JSON Schema
+    guard let data = schemaJsonString.data(using: .utf8),
+        let jsonObj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+        throw ConversationError.invalidJSON("Invalid JSON Schema")
+    }
+
+    // Build schema from JSON
+    let (rootSchema, deps) = buildSchemasFromJson(jsonObj)
+    let generationSchema = try GenerationSchema(root: rootSchema, dependencies: deps)
+
+    // Create session without tools (structured generation doesn't use tools constructor)
+    let transcript = Transcript(entries: context.transcriptEntries)
+    debugPrintTranscript(transcript, prompt: context.currentPrompt)
+
+    let promptTokens = estimateTokens(context.currentPrompt)
+    let transcriptTokens = context.transcriptEntries.reduce(0) { total, entry in
+        total + estimateTokens(describeTranscriptEntry(entry))
+    }
+    print("[apple-fm][structured] Estimated tokens - prompt: \(promptTokens), transcript: \(transcriptTokens), total: \(promptTokens + transcriptTokens) (limit: 4096)")
+    print("[apple-fm][structured] Schema: \(schemaJsonString.prefix(200))")
+
+    let model = SystemLanguageModel(guardrails: Guardrails.developerProvided)
+    let session = LanguageModelSession(
+        model: model, transcript: transcript)
+
+    // Generate structured response
+    let response = try await session.respond(
+        to: context.currentPrompt,
+        schema: generationSchema,
+        includeSchemaInPrompt: true,
+        options: context.options
+    )
+
+    let generatedContent = response.content
+    let objectJson = generatedContentToJSON(generatedContent)
+    let textRepresentation = String(describing: generatedContent)
+
+    let json: [String: Any] = [
+        "text": textRepresentation,
+        "object": objectJson,
+    ]
+
+    let jsonData = try JSONSerialization.data(withJSONObject: json, options: [])
+    return String(data: jsonData, encoding: .utf8) ?? "Error: Encoding failure"
+}
+
+@available(macOS 26.0, *)
+private func handleToolsMode(
+    context: ConversationContext,
+    toolsJsonString: String,
+    messagesJsonString: String,  // Added to extract system message
+    streaming: Bool,
+    stopAfterToolCalls: Bool,  // New parameter
+    onChunk: (@convention(c) (UnsafePointer<CChar>?) -> Void)?
+) async throws -> String {
+    // Parse tools
+    guard let toolsData = toolsJsonString.data(using: .utf8),
+        let rawToolsArr = try JSONSerialization.jsonObject(with: toolsData) as? [[String: Any]]
+    else {
+        throw ConversationError.invalidJSON("Invalid tools JSON")
+    }
+
+    // Build tools
+    var tools: [any Tool] = []
+    for dict in rawToolsArr {
+        guard let idNum = dict["id"] as? UInt64,
+            let name = dict["name"] as? String
+        else { continue }
+        let description = dict["description"] as? String ?? ""
+        let paramsSchemaJson = dict["parameters"] as? [String: Any] ?? [:]
+        let (root, deps) = buildSchemasFromJson(paramsSchemaJson)
+        let genSchema = try GenerationSchema(root: root, dependencies: deps)
+        let proxy = JSProxyTool(
+            toolID: idNum, name: name, description: description, parametersSchema: genSchema
+        )
+        tools.append(proxy)
+    }
+
+    // Build transcript with tools and system message
+    var finalEntries = context.transcriptEntries
+
+    // Extract system message content from original messages
+    var systemContent = ""
+    if let messagesData = messagesJsonString.data(using: .utf8),
+        let messagesJson = try? JSONSerialization.jsonObject(with: messagesData) as? [[String: Any]]
+    {
+        // Find system message (may not be first)
+        for message in messagesJson {
+            if let role = message["role"] as? String,
+                role.lowercased() == "system",
+                let content = message["content"] as? String
+            {
+                systemContent = content
+                break
+            }
+        }
+    }
+
+    // Create instructions with both system message and tools
+    if !tools.isEmpty || !systemContent.isEmpty {
+        let textSegment =
+            systemContent.isEmpty
+            ? [] : [Transcript.Segment.text(Transcript.TextSegment(content: systemContent))]
+        let instructions = Transcript.Instructions(
+            segments: textSegment,
+            toolDefinitions: tools.map { tool in
+                Transcript.ToolDefinition(
+                    name: tool.name, description: tool.description,
+                    parameters: tool.parameters)
+            })
+        finalEntries.insert(.instructions(instructions), at: 0)
+    }
+
+    let transcript = Transcript(entries: finalEntries)
+    debugPrintTranscript(transcript, prompt: context.currentPrompt)
+
+    // Log token estimates for tools mode
+    let promptTokens = estimateTokens(context.currentPrompt)
+    let transcriptTokens = finalEntries.reduce(0) { total, entry in
+        total + estimateTokens(describeTranscriptEntry(entry))
+    }
+    let toolTokens = tools.reduce(0) { total, tool in
+        total + estimateTokens(tool.name + " " + tool.description)
+    }
+    print("[apple-fm][tools] Estimated tokens - prompt: \(promptTokens), transcript: \(transcriptTokens), tools: \(toolTokens), total: \(promptTokens + transcriptTokens + toolTokens) (limit: 4096)")
+    print("[apple-fm][tools] Tools count: \(tools.count), Transcript entries: \(finalEntries.count)")
+    print("[apple-fm][tools] System content length: \(systemContent.count) chars")
+    print("[apple-fm][tools] Prompt: '\(context.currentPrompt.prefix(200))\(context.currentPrompt.count > 200 ? "..." : "")'")
+
+    let model = SystemLanguageModel(guardrails: Guardrails.developerProvided)
+    let session = LanguageModelSession(
+        model: model, tools: tools, transcript: transcript)
+
+    // Reset tool call collection
+    ToolCallCollector.shared.reset()
+
+    if !streaming {
+        // Non-streaming with tools
+        let response = try await session.respond(
+            to: context.currentPrompt, options: context.options
+        )
+
+        let text = response.content
+        let toolCalls = ToolCallCollector.shared.getAllCalls()
+
+        var json: [String: Any] = [:]
+
+        if !toolCalls.isEmpty {
+            let formattedCalls = toolCalls.map { call in
+                [
+                    "id": call.callId,
+                    "type": "function",
+                    "function": [
+                        "name": call.name,
+                        "arguments":
+                            (try? String(
+                                data: JSONSerialization.data(withJSONObject: call.arguments),
+                                encoding: .utf8)) ?? "{}",
+                    ],
+                ]
+            }
+            json["text"] = ""  // awaiting tool execution
+            json["toolCalls"] = formattedCalls
+        } else {
+            json["text"] = text
+        }
+
+        let jsonData = try JSONSerialization.data(withJSONObject: json, options: [])
+        return String(data: jsonData, encoding: .utf8) ?? "Error: Encoding failure"
+    } else {
+        // Streaming with tools
+        guard let onChunk = onChunk else {
+            throw ConversationError.invalidJSON("No callback provided for streaming")
+        }
+
+        // Initialize coordination with configurable early termination
+        await StreamingCoordinator.shared.reset(
+            expectedTools: tools.count,
+            stopAfterToolCalls: stopAfterToolCalls  // Use the parameter
+        )
+
+        var prev = ""
+        for try await cumulative in session.streamResponse(
+            to: context.currentPrompt, options: context.options,
+        ) {
+            // Check for early termination only if enabled
+            if stopAfterToolCalls {
+                let shouldTerminate = await StreamingCoordinator.shared.shouldTerminateStream()
+                if shouldTerminate {
+                    break
+                }
+            }
+
+            let delta = String(cumulative.content.dropFirst(prev.count))
+            prev = cumulative.content
+            guard !delta.isEmpty else { continue }
+
+            delta.withCString { cStr in
+                onChunk(strdup(cStr))
+            }
+        }
+
+        // Signal completion
+        onChunk(nil)
+        return ""  // Not used in streaming mode
+    }
+}

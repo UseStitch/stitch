@@ -341,7 +341,7 @@ export async function compact(input: {
       userTimezone: promptUserContext.userTimezone,
     });
 
-    const provider = createProvider(resolved.credentials);
+    const provider = await createProvider(resolved.credentials);
     const model = provider(resolved.modelId);
 
     const llmMessages: ModelMessage[] = [

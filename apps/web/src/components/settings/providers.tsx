@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, PROVIDER_PLATFORM_REQUIREMENTS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
@@ -15,7 +15,15 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
   const providersWithEnabledAuth = providers.filter((provider) => {
     if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;
     const meta = PROVIDER_META[provider.id as ProviderId];
-    return meta.authMethods.some((method) => method.enabled);
+    if (!meta.authMethods.some((method) => method.enabled)) return false;
+
+    const req = PROVIDER_PLATFORM_REQUIREMENTS[provider.id as ProviderId];
+    if (req) {
+      const platform = window.electron?.platform;
+      if (platform && req.platform !== platform) return false;
+    }
+
+    return true;
   });
 
   const connected = providersWithEnabledAuth.filter((p) => p.enabled);

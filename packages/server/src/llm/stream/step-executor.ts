@@ -37,7 +37,7 @@ export type StepOptions = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   step: number;
-  model: ReturnType<ReturnType<typeof createProvider>>;
+  model: ReturnType<Awaited<ReturnType<typeof createProvider>>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
   providerId: string;

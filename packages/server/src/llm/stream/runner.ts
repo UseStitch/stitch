@@ -126,7 +126,7 @@ type RunStreamOptions = {
   /** Toolset IDs to pre-activate (e.g. inherited from parent session) */
   activeToolsetIds?: string[];
   streamRunId?: string;
-  model?: ReturnType<ReturnType<typeof createProvider>>;
+  model?: ReturnType<Awaited<ReturnType<typeof createProvider>>>;
 };
 
 type StreamRunnerDeps = {
@@ -149,7 +149,7 @@ type StreamRunnerContext = {
   abortSignal: AbortSignal;
   streamRunId: string;
   startedAt: number;
-  model: ReturnType<ReturnType<typeof createProvider>>;
+  model: ReturnType<Awaited<ReturnType<typeof createProvider>>>;
   /** Always-active tools (core + meta-tools + task) — never change during a run */
   coreTools: Record<string, Tool>;
   /** Manages dynamic toolset activation/deactivation */
@@ -205,7 +205,8 @@ class StreamRunner {
   private readonly deps: StreamRunnerDeps;
 
   constructor(opts: InternalRunStreamOptions, deps: Partial<StreamRunnerDeps> = {}) {
-    const model = opts.model ?? createProvider(opts.credentials)(opts.modelId);
+    const model = opts.model;
+    if (!model) throw new Error('model is required — resolve via createProvider before constructing StreamRunner');
     const startedAt = Date.now();
 
     this.ctx = {
@@ -1249,7 +1250,7 @@ export async function runStream(opts: {
   abortSignal: AbortSignal;
   /** Toolset IDs to pre-activate (e.g. inherited from parent task) */
   activeToolsetIds?: string[];
-  model?: ReturnType<ReturnType<typeof createProvider>>;
+  model?: ReturnType<Awaited<ReturnType<typeof createProvider>>>;
   deps?: Partial<StreamRunnerDeps>;
 }): Promise<void> {
   const streamRunId = randomUUID();
@@ -1322,6 +1323,8 @@ export async function runStream(opts: {
     opts.modelId,
   );
 
+  const resolvedModel = opts.model ?? (await createProvider(opts.credentials))(opts.modelId);
+
   const runner = new StreamRunner(
     {
       ...opts,
@@ -1329,6 +1332,7 @@ export async function runStream(opts: {
       coreTools,
       toolsetManager,
       streamRunId,
+      model: resolvedModel,
     },
     opts.deps,
   );

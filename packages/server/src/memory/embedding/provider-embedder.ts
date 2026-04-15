@@ -12,10 +12,22 @@ export class ProviderEmbedder implements MemoryEmbedder {
   readonly dimensions: number;
   private readonly model: EmbeddingModel;
 
-  constructor(credentials: ProviderCredentials, modelId: string, dimensions: number) {
-    const embeddingProvider = createProvider(credentials);
-    this.model = embeddingProvider.embeddingModel(modelId);
+  private constructor(model: EmbeddingModel, dimensions: number) {
+    this.model = model;
     this.dimensions = dimensions;
+  }
+
+  static async create(
+    credentials: ProviderCredentials,
+    modelId: string,
+    dimensions: number,
+  ): Promise<ProviderEmbedder> {
+    const provider = await createProvider(credentials);
+    if (!('embeddingModel' in provider)) {
+      throw new Error(`Provider '${credentials.providerId}' does not support embedding models`);
+    }
+    const model = (provider as { embeddingModel: (id: string) => EmbeddingModel }).embeddingModel(modelId);
+    return new ProviderEmbedder(model, dimensions);
   }
 
   async embed(text: string): Promise<number[]> {

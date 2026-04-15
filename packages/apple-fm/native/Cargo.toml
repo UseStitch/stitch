@@ -1,0 +1,20 @@
+[package]
+name = "apple_fm_napi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2", features = ["tokio_rt", "serde-json"] }
+napi-derive = "2"
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.0"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"

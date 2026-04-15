@@ -71,9 +71,15 @@ const VercelCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
 });
 
+const AppleFMCredentialsSchema = z.object({
+  providerId: z.literal('apple-fm'),
+  auth: z.object({ method: z.literal('none') }),
+});
+
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   BedrockCredentialsSchema,
   AnthropicCredentialsSchema,
+  AppleFMCredentialsSchema,
   GoogleCredentialsSchema,
   GoogleVertexCredentialsSchema,
   OpenAICredentialsSchema,
@@ -83,7 +89,7 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
 
-export const createProvider = (credentials: ProviderCredentials) => {
+export const createProvider = async (credentials: ProviderCredentials) => {
   switch (credentials.providerId) {
     case 'amazon-bedrock': {
       const base = { region: credentials.region };
@@ -154,5 +160,11 @@ export const createProvider = (credentials: ProviderCredentials) => {
 
     case 'vercel':
       return createGateway({ apiKey: credentials.auth.apiKey });
+
+    case 'apple-fm': {
+      // Dynamic import prevents native .node addon loading on non-macOS
+      const { createAppleFM } = await import('@stitch/apple-fm');
+      return createAppleFM();
+    }
   }
 };

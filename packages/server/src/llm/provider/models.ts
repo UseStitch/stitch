@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import z from 'zod';
 
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, PROVIDER_PLATFORM_REQUIREMENTS, type ProviderId } from '@stitch/shared/providers/types';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
@@ -114,17 +114,50 @@ function filterProviders(raw: Record<string, RawProvider>): Record<string, RawPr
   );
 }
 
+/** Static providers that are not fetched from models.dev (e.g., on-device models). */
+function getStaticProviders(): Record<string, RawProvider> {
+  const providers: Record<string, RawProvider> = {};
+
+  const appleFmReq = PROVIDER_PLATFORM_REQUIREMENTS['apple-fm'];
+  const platformMatches =
+    !appleFmReq || (process.platform === appleFmReq.platform && (!appleFmReq.arch || process.arch === appleFmReq.arch));
+
+  if (platformMatches) {
+    providers['apple-fm'] = {
+      id: 'apple-fm',
+      name: 'Apple Intelligence',
+      env: [],
+      models: {
+        default: {
+          id: 'default',
+          name: 'Apple Intelligence (On-Device)',
+          release_date: '2025-06-01',
+          attachment: false,
+          reasoning: false,
+          temperature: true,
+          tool_call: true,
+          limit: { context: 4096, output: 4096 },
+          modalities: { input: ['text'], output: ['text'] },
+          options: {},
+        },
+      },
+    };
+  }
+
+  return providers;
+}
+
 export async function get(): Promise<Record<string, RawProvider>> {
   if (data) return data;
   const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
 
   if (cached) {
-    data = filterProviders(JSON.parse(cached) as Record<string, RawProvider>);
+    data = { ...filterProviders(JSON.parse(cached) as Record<string, RawProvider>), ...getStaticProviders() };
     return data;
   }
 
   const json = await fetch(`${URL}/api.json`).then((x) => x.text());
-  data = filterProviders(JSON.parse(json) as Record<string, RawProvider>);
+  data = { ...filterProviders(JSON.parse(json) as Record<string, RawProvider>), ...getStaticProviders() };
 
   return data;
 }

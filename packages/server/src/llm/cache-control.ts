@@ -52,6 +52,8 @@ export function getCacheConfig(
     case 'google':
     // Vercel (AI Gateway): caching handled by gateway via getProviderOptions
     case 'vercel':
+    // Apple FM: on-device model, no caching API
+    case 'apple-fm':
       return null;
   }
 }
@@ -150,6 +152,8 @@ export function getProviderOptions(
     // Google, Google Vertex: implicit caching, no session key mechanism
     case 'google':
     case 'google-vertex':
+    // Apple FM: on-device model, no caching
+    case 'apple-fm':
       return undefined;
 
     // Vercel (AI Gateway): automatic caching based on underlying provider

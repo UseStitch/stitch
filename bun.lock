@@ -14,7 +14,7 @@
     },
     "apps/desktop": {
       "name": "@stitch/desktop",
-      "version": "0.2.6",
+      "version": "0.2.8",
       "dependencies": {
         "electron-updater": "^6.8.3",
         "tree-kill": "1.2.2",
@@ -29,7 +29,7 @@
     },
     "apps/web": {
       "name": "@stitch/web",
-      "version": "0.2.6",
+      "version": "0.2.8",
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@stitch/shared": "workspace:*",
@@ -110,6 +110,18 @@
         "vitest": "catalog:testing",
       },
     },
+    "packages/apple-fm": {
+      "name": "@stitch/apple-fm",
+      "version": "0.0.1",
+      "dependencies": {
+        "@ai-sdk/provider": "catalog:ai",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:testing",
+      },
+    },
     "packages/audio-capture": {
       "name": "@stitch/audio-capture",
       "version": "0.0.0",
@@ -145,6 +157,7 @@
         "@openrouter/ai-sdk-provider": "catalog:ai",
         "@stitch-connectors/google": "workspace:*",
         "@stitch-connectors/sdk": "workspace:*",
+        "@stitch/apple-fm": "workspace:*",
         "@stitch/audio-capture": "workspace:*",
         "@stitch/scheduler": "workspace:*",
         "@stitch/shared": "workspace:*",
@@ -888,6 +901,8 @@
     "@stitch-connectors/google": ["@stitch-connectors/google@workspace:connectors/google"],
 
     "@stitch-connectors/sdk": ["@stitch-connectors/sdk@workspace:connectors/sdk"],
+
+    "@stitch/apple-fm": ["@stitch/apple-fm@workspace:packages/apple-fm"],
 
     "@stitch/audio-capture": ["@stitch/audio-capture@workspace:packages/audio-capture"],
 

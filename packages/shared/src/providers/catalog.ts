@@ -31,6 +31,19 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
       },
     ],
   },
+  'apple-fm': {
+    displayName: 'Apple Intelligence',
+    description: 'On-device AI using Apple Foundation Models (macOS only)',
+    extraFields: [],
+    authMethods: [
+      {
+        method: 'none',
+        label: 'On-Device',
+        enabled: true,
+        fields: [],
+      },
+    ],
+  },
   openai: {
     displayName: 'OpenAI',
     description: 'Access to GPT-4 and other OpenAI models',

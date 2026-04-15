@@ -89,7 +89,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
     },
   });
 
-  if (!meta || enabledAuthMethods.length === 0) return null;
+  if (!meta) return null;
 
   const currentMethodFields = fieldsByMethod[activeTab] ?? {};
 
