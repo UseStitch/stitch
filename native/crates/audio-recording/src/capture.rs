@@ -1,8 +1,8 @@
 #[cfg(test)]
 use std::collections::VecDeque;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ fn is_tap_device(name: &str) -> bool {
 }
 
 fn device_name(device: &cpal::Device) -> Option<String> {
-  device.description().map(|d| d.name().to_string()).ok()
+  crate::device::device_display_name(device)
 }
 
 fn choose_input_device(
@@ -851,8 +851,8 @@ mod tests {
   use std::collections::VecDeque;
 
   use super::{
-    UNPAIRED_FLUSH_TICKS, aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm,
-    mix_dual_chunks, weighted_f32_chunk,
+    aligned_sample, estimate_lag_samples, maybe_take_unpaired_pcm, mix_dual_chunks,
+    weighted_f32_chunk, UNPAIRED_FLUSH_TICKS,
   };
 
   #[test]

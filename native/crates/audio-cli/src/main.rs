@@ -1,12 +1,12 @@
 use std::io::{self, BufRead};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use audio_core::output::emit;
-use audio_core::protocol::{Command, Event, parse_start_command};
-use audio_recording::{ActiveSession, start_session, stop_session};
+use audio_core::protocol::{parse_start_command, Command, Event};
+use audio_recording::{device_display_name, start_session, stop_session, ActiveSession};
 use cpal::traits::{DeviceTrait, HostTrait};
 
 const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
@@ -22,12 +22,7 @@ fn list_microphone_devices() -> Vec<String> {
   };
 
   devices
-    .filter_map(|device| {
-      device
-        .description()
-        .map(|description| description.name().to_string())
-        .ok()
-    })
+    .filter_map(|device| device_display_name(&device))
     .filter(|name| !is_tap_device(name))
     .collect()
 }
@@ -89,7 +84,7 @@ fn default_input_device_name() -> Option<String> {
   let host = cpal::default_host();
   let name = host
     .default_input_device()
-    .and_then(|d| d.description().map(|desc| desc.name().to_string()).ok())?;
+    .and_then(|d| device_display_name(&d))?;
   if is_tap_device(&name) {
     return None;
   }
