@@ -60,18 +60,18 @@ const PlatformBadge = React.memo(function PlatformBadge({
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
       {config.slug ? (
         <SimpleIcon
           slug={config.slug}
-          className="size-3.5"
-          fallback={<VideoIcon className="size-3.5" />}
+          className="size-3.5 shrink-0"
+          fallback={<VideoIcon className="size-3.5 shrink-0" />}
         />
       ) : (
-        <VideoIcon className="size-3.5" />
+        <VideoIcon className="size-3.5 shrink-0" />
       )}
       <span>{config.label}</span>
-    </span>
+    </div>
   );
 });
 
