@@ -9,6 +9,7 @@ import {
   getAllSemanticMemories,
 } from '@/memory/service.js';
 import { MEMORY_CATEGORIES } from '@/memory/types.js';
+import { isServiceError } from '@/lib/service-result.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 
 export const DISPLAY_NAME = 'Memory';
@@ -53,7 +54,7 @@ function createMemoryTool(context: ToolContext) {
             return { output: 'Please provide content to remember.' };
           }
 
-          const memory = await addSemanticMemory(
+          const result = await addSemanticMemory(
             {
               content: input.content,
               category: input.category ?? 'fact',
@@ -63,6 +64,11 @@ function createMemoryTool(context: ToolContext) {
             context.sessionId,
           );
 
+          if (isServiceError(result)) {
+            return { output: `Failed to remember: ${result.error}` };
+          }
+
+          const memory = result.data;
           return {
             output: `Remembered: "${memory.content}" (id: ${memory.id}, category: ${memory.category})`,
           };
@@ -79,16 +85,22 @@ function createMemoryTool(context: ToolContext) {
             pageSize: 10,
             sourceFilter: 'chat',
           });
-          if (result.memories.length === 0) {
+
+          if (isServiceError(result)) {
+            return { output: `Failed to recall: ${result.error}` };
+          }
+
+          const memories = result.data.memories;
+          if (memories.length === 0) {
             return { output: 'No relevant memories found.' };
           }
 
-          const lines = result.memories.map(
+          const lines = memories.map(
             (m) =>
               `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence}, score: ${m.score.toFixed(2)})`,
           );
 
-          return { output: `Found ${result.total} memories:\n${lines.join('\n')}` };
+          return { output: `Found ${result.data.total} memories:\n${lines.join('\n')}` };
         }
 
         case 'forget': {
@@ -96,25 +108,34 @@ function createMemoryTool(context: ToolContext) {
             return { output: 'Please provide the memoryId to forget.' };
           }
 
-          await deleteSemanticMemory(input.memoryId);
+          const result = await deleteSemanticMemory(input.memoryId);
+          if (isServiceError(result)) {
+            return { output: `Failed to forget: ${result.error}` };
+          }
           return { output: `Deleted memory ${input.memoryId}.` };
         }
 
         case 'list': {
-          const all = await getAllSemanticMemories({
+          const result = await getAllSemanticMemories({
             page: 1,
             pageSize: 1000,
             sourceFilter: 'chat',
           });
-          if (all.memories.length === 0) {
+
+          if (isServiceError(result)) {
+            return { output: `Failed to list memories: ${result.error}` };
+          }
+
+          const memories = result.data.memories;
+          if (memories.length === 0) {
             return { output: 'No memories stored yet.' };
           }
 
-          const lines = all.memories.map(
+          const lines = memories.map(
             (m) => `- [${m.category}] ${m.content} (id: ${m.id}, confidence: ${m.confidence})`,
           );
 
-          return { output: `${all.total} memories:\n${lines.join('\n')}` };
+          return { output: `${result.data.total} memories:\n${lines.join('\n')}` };
         }
       }
     },

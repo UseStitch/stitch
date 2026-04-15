@@ -17,6 +17,7 @@ import {
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@/memory/types.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import type { Context } from 'hono';
 
 const patchSchema = z.object({
@@ -31,6 +32,14 @@ const bulkDeleteSchema = z.object({
 
 const pinSchema = z.object({
   pinned: z.boolean(),
+});
+
+const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20),
+  source: z.enum(['chat', 'automation']).optional(),
+  category: z.enum(MEMORY_CATEGORIES).optional(),
+  q: z.string().optional(),
 });
 
 export const memoryRouter = new Hono();
@@ -50,24 +59,8 @@ async function ensureMemoryActive(c: Context): Promise<Response | null> {
   );
 }
 
-function parsePagination(query: Record<string, string | undefined>) {
-  const pageRaw = Number.parseInt(query.page ?? '1', 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize ?? '20', 10);
-
-  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 20;
-
-  return { page, pageSize };
-}
-
-memoryRouter.get('/semantic', async (c) => {
-  const source = c.req.query('source');
-  const category = c.req.query('category');
-  const q = c.req.query('q');
-  const { page, pageSize } = parsePagination({
-    page: c.req.query('page'),
-    pageSize: c.req.query('pageSize'),
-  });
+memoryRouter.get('/semantic', zValidator('query', paginationQuerySchema), async (c) => {
+  const { page, pageSize, source, category, q } = c.req.valid('query');
 
   const config = await getMemoryConfig();
   if (!isMemoryActive(config)) {
@@ -75,44 +68,43 @@ memoryRouter.get('/semantic', async (c) => {
   }
 
   if (q) {
-    const results = await searchSemanticMemories({
+    const result = await searchSemanticMemories({
       query: q,
       page,
       pageSize,
-      sourceFilter: source as 'chat' | 'automation' | undefined,
-      categoryFilter: category as (typeof MEMORY_CATEGORIES)[number] | undefined,
+      sourceFilter: source,
+      categoryFilter: category,
     });
-    return c.json(results);
+    return unwrapResult(c, result);
   }
 
-  const memories = await getAllSemanticMemories({
+  const result = await getAllSemanticMemories({
     page,
     pageSize,
-    sourceFilter: source as 'chat' | 'automation' | undefined,
-    categoryFilter: category as (typeof MEMORY_CATEGORIES)[number] | undefined,
+    sourceFilter: source,
+    categoryFilter: category,
   });
-  return c.json(memories);
+  return unwrapResult(c, result);
 });
 
 memoryRouter.get('/stats', async (c) => {
   const inactiveResponse = await ensureMemoryActive(c);
   if (inactiveResponse) return inactiveResponse;
-  
-  const stats = await getMemoryStats();
-  return c.json(stats);
+
+  const result = await getMemoryStats();
+  return unwrapResult(c, result);
 });
 
 memoryRouter.post('/prune', async (c) => {
   const inactiveResponse = await ensureMemoryActive(c);
   if (inactiveResponse) return inactiveResponse;
-  
+
   const config = await getMemoryConfig();
-  await pruneStaleMemories({
+  const result = await pruneStaleMemories({
     maxMemories: config.maxMemories,
     staleDays: config.staleDays,
   });
-  
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 memoryRouter.patch('/semantic/:id/pin', zValidator('json', pinSchema), async (c) => {
@@ -122,8 +114,8 @@ memoryRouter.patch('/semantic/:id/pin', zValidator('json', pinSchema), async (c)
   const id = c.req.param('id');
   const { pinned } = c.req.valid('json');
 
-  await pinSemanticMemory(id, pinned);
-  return c.body(null, 204);
+  const result = await pinSemanticMemory(id, pinned);
+  return unwrapResult(c, result, 204);
 });
 
 memoryRouter.patch('/semantic/:id', zValidator('json', patchSchema), async (c) => {
@@ -137,8 +129,8 @@ memoryRouter.patch('/semantic/:id', zValidator('json', patchSchema), async (c) =
     return c.json({ error: 'No updates provided' }, 400);
   }
 
-  await updateSemanticMemory(id, updates);
-  return c.body(null, 204);
+  const result = await updateSemanticMemory(id, updates);
+  return unwrapResult(c, result, 204);
 });
 
 memoryRouter.delete('/semantic/:id', async (c) => {
@@ -146,8 +138,8 @@ memoryRouter.delete('/semantic/:id', async (c) => {
   if (inactiveResponse) return inactiveResponse;
 
   const id = c.req.param('id');
-  await deleteSemanticMemory(id);
-  return c.body(null, 204);
+  const result = await deleteSemanticMemory(id);
+  return unwrapResult(c, result, 204);
 });
 
 memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c) => {
@@ -155,8 +147,8 @@ memoryRouter.delete('/semantic', zValidator('json', bulkDeleteSchema), async (c)
   if (inactiveResponse) return inactiveResponse;
 
   const { ids } = c.req.valid('json');
-  await deleteSemanticMemories(ids);
-  return c.body(null, 204);
+  const result = await deleteSemanticMemories(ids);
+  return unwrapResult(c, result, 204);
 });
 
 memoryRouter.post('/maintenance', async (c) => {
@@ -164,7 +156,7 @@ memoryRouter.post('/maintenance', async (c) => {
   if (inactiveResponse) return inactiveResponse;
 
   const result = await runMemoryMaintenance();
-  return c.json(result);
+  return unwrapResult(c, result);
 });
 
 memoryRouter.post('/reset', async (c) => {

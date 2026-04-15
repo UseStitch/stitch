@@ -1,7 +1,8 @@
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
-import type { MemorySource } from '@/memory/types.js';
+import type { MemorySource, SearchSemanticMemoriesResponse } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-retriever' });
 
@@ -34,36 +35,41 @@ export async function retrieveMemoryContext(
   const config = await getMemoryConfig();
   if (!isMemoryActive(config)) return null;
 
-  const semantic = await searchSemanticMemories({
+  const result = await searchSemanticMemories({
     query,
     page: 1,
-    pageSize: config.retrievalMaxResults * 2, // Fetch more for blended scoring
+    pageSize: config.retrievalMaxResults * 2,
     sourceFilter,
   });
 
-  // Apply base threshold filter first
-  let candidates = semantic.memories.filter((m) => m.score >= config.retrievalMinScore);
+  if (isServiceError(result)) {
+    log.warn({ error: result.error }, 'failed to retrieve memory context');
+    return null;
+  }
+
+  const semantic = result.data;
+  let candidates = semantic.memories.filter((m: SearchSemanticMemoriesResponse['memories'][number]) => m.score >= config.retrievalMinScore);
 
   if (config.retrievalRecencyBoost) {
-    const scoredCandidates = candidates.map(m => {
+    const scoredCandidates = candidates.map((m: SearchSemanticMemoriesResponse['memories'][number]) => {
       const blendedScore = (m.score * 0.7) + (getRecencyFactor(m.lastAccessedAt) * 0.2) + (getConfidenceFactor(m.confidence) * 0.1);
       return { ...m, blendedScore };
     });
-    
-    scoredCandidates.sort((a, b) => b.blendedScore - a.blendedScore);
-    candidates = scoredCandidates;
+
+    scoredCandidates.sort((a: { blendedScore: number }, b: { blendedScore: number }) => b.blendedScore - a.blendedScore);
+    candidates = scoredCandidates as typeof semantic.memories;
   }
 
   const relevant = candidates.slice(0, config.retrievalMaxResults);
 
   if (relevant.length === 0) return null;
 
-  touchSemanticMemories(relevant.map((m) => m.id)).catch((err) =>
+  touchSemanticMemories(relevant.map((m: SearchSemanticMemoriesResponse['memories'][number]) => m.id)).catch((err: unknown) =>
     log.warn({ error: err }, 'failed to touch semantic memories'),
   );
 
   const entries = relevant.map(
-    (m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`,
+    (m: SearchSemanticMemoriesResponse['memories'][number]) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`,
   );
 
   log.debug({ semanticCount: relevant.length }, 'retrieved memory context');
