@@ -15,6 +15,7 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 
 export const connectorsRouter = new Hono();
@@ -79,8 +80,7 @@ connectorsRouter.post('/instances/api-key', zValidator('json', createApiKeySchem
 connectorsRouter.post('/instances/:id/authorize', async (c) => {
   const id = c.req.param('id');
   const result = await authorizeOAuthInstance(id);
-  const unwrapped = unwrapResult(c, result);
-  if (unwrapped.status !== 200) return unwrapped;
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
@@ -122,8 +122,7 @@ connectorsRouter.delete('/instances/:id', async (c) => {
 connectorsRouter.post('/instances/:id/test', async (c) => {
   const id = c.req.param('id');
   const result = await testConnectorInstance(id);
-  const unwrapped = unwrapResult(c, result);
-  if (unwrapped.status !== 200) return unwrapped;
+  if (isServiceError(result)) return unwrapResult(c, result);
   return c.json({ success: true });
 });
 

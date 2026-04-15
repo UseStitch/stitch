@@ -4,7 +4,8 @@ import { z } from 'zod';
 
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
-import { isServiceError, unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
 import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
@@ -44,6 +45,7 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
     url: body.url,
     authConfig: body.authConfig,
   });
+  if (isServiceError(result)) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
   return unwrapResult(c, result, 201);
 });
@@ -61,6 +63,7 @@ mcpRouter.post('/registry/refresh', async (c) => {
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
+  if (isServiceError(result)) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return unwrapResult(c, result);
 });
@@ -91,6 +94,7 @@ mcpRouter.get('/icons/:key', async (c) => {
 mcpRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteMcpServer(id);
+  if (isServiceError(result)) return unwrapResult(c, result);
   evictMcpClient(id);
   await refreshMcpToolsets({ refreshTools: false });
   return unwrapResult(c, result, 204);
