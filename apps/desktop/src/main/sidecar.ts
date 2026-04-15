@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { execSync, spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import treeKill from 'tree-kill';
@@ -71,7 +71,45 @@ async function waitForHealthy(url: string): Promise<void> {
   throw new Error(`Server failed to become healthy within ${HEALTH_TIMEOUT_MS}ms`);
 }
 
+function killStaleServers(): Promise<void> {
+  try {
+    const cmd =
+      process.platform === 'win32'
+        ? 'tasklist /FI "IMAGENAME eq stitch-server.exe" /FO CSV /NH'
+        : 'pgrep -f stitch-server';
+
+    const output = execSync(cmd, { encoding: 'utf8', timeout: 3_000 }).trim();
+    if (!output) return Promise.resolve();
+
+    const pids =
+      process.platform === 'win32'
+        ? output
+            .split('\n')
+            .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
+            .filter(Number.isFinite)
+        : output.split('\n').map((s) => parseInt(s, 10)).filter(Number.isFinite);
+
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGTERM');
+      } catch {
+        // already dead or not owned
+      }
+    }
+
+    if (pids.length > 0) {
+      console.log(`[sidecar] killed ${pids.length} stale stitch-server process(es)`);
+    }
+  } catch {
+    // pgrep returns exit code 1 when no matches — ignore
+  }
+
+  return Promise.resolve();
+}
+
 export async function spawnServer(port: number): Promise<string> {
+  await killStaleServers();
+
   const { cmd, args, cwd } = getSidecarCommand(port);
   const url = `http://${HOSTNAME}:${port}`;
 
@@ -120,8 +158,39 @@ export async function spawnServer(port: number): Promise<string> {
   return url;
 }
 
-export function killServer(): void {
-  if (!serverProcess?.pid) return;
-  treeKill(serverProcess.pid);
+const KILL_TIMEOUT_MS = 5_000;
+
+export async function killServer(): Promise<void> {
+  const proc = serverProcess;
+  if (!proc?.pid) return;
+
   serverProcess = null;
+
+  const pid = proc.pid;
+
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(() => {
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch {
+        // already dead
+      }
+      resolve();
+    }, KILL_TIMEOUT_MS);
+
+    proc.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+
+    treeKill(pid, 'SIGTERM', (err) => {
+      if (err) {
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch {
+          // already dead
+        }
+      }
+    });
+  });
 }

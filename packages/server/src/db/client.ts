@@ -9,12 +9,14 @@ import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import type { Database } from 'bun:sqlite';
 
 type Db = BunSQLiteDatabase<typeof schema>;
 
 const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
+let _sqlite: Database | undefined;
 
 function getDatabasePath(): string {
   return process.env['STITCH_DB_PATH']?.trim() || PATHS.filePaths.db;
@@ -91,6 +93,7 @@ export async function initDb(): Promise<void> {
   sqlite.run('PRAGMA busy_timeout = 5000');
   sqlite.run('PRAGMA foreign_keys = ON');
 
+  _sqlite = sqlite;
   _db = drizzle({ client: sqlite, schema }) as Db;
   migrate(_db, { migrationsFolder: migrationsDir });
 
@@ -98,4 +101,24 @@ export async function initDb(): Promise<void> {
   seedSettings(_db);
 
   log.info({ path: dbPath, migrationsDir, runtime: 'bun-sqlite' }, 'database initialized');
+}
+
+export function closeDb(): void {
+  if (!_sqlite) return;
+
+  try {
+    _sqlite.run('PRAGMA wal_checkpoint(TRUNCATE)');
+  } catch {
+    // best-effort WAL checkpoint
+  }
+
+  try {
+    _sqlite.close();
+  } catch {
+    // best-effort close
+  }
+
+  _sqlite = undefined;
+  _db = undefined;
+  log.info('database closed');
 }
