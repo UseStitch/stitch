@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { isServiceError } from '@/lib/service-result.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   OllamaModelInputSchema,
   deleteOllamaModel,
@@ -26,45 +26,30 @@ ollamaModelsRouter.get('/', async (c) => {
 ollamaModelsRouter.get('/discover', zValidator('query', discoverQuerySchema), async (c) => {
   const { baseURL } = c.req.valid('query');
   const result = await discoverOllamaModels(baseURL ?? 'http://localhost:11434');
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 ollamaModelsRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await getOllamaModel(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 ollamaModelsRouter.post('/', zValidator('json', OllamaModelInputSchema), async (c) => {
   const input = c.req.valid('json');
   const result = await upsertOllamaModel(input);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error, details: result.details }, result.status);
-  }
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 ollamaModelsRouter.put('/:id', zValidator('json', OllamaModelInputSchema), async (c) => {
   const id = c.req.param('id');
   const input = { ...c.req.valid('json'), id };
   const result = await upsertOllamaModel(input);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error, details: result.details }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 ollamaModelsRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteOllamaModel(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
