@@ -173,7 +173,9 @@ export const googleConnectorModule: ConnectorModule = {
           accountEmail: info.email ?? null,
           accountInfo: info as Record<string, unknown>,
         };
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Google onAuthorized hook profile fetch failed:', error);
         return { accountEmail: null, accountInfo: null };
       }
     },
@@ -193,19 +195,10 @@ export const googleConnectorModule: ConnectorModule = {
         }
       }
     },
-    onDeleted: async () => {
-      return;
-    },
   },
   lifecycle: {
-    register: async () => {
-      return;
-    },
     init: async ({ refreshToolsets }) => {
       await refreshToolsets();
-    },
-    shutdown: async () => {
-      return;
     },
   },
 };
