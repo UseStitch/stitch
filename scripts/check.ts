@@ -15,8 +15,8 @@ const steps = [
   },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
   {
-    name: 'format:check',
-    cmd: ['bun', 'run', 'format:check'],
+    name: 'format:changed:check',
+    cmd: ['bun', 'run', 'format:changed:check'],
   },
 ];
 
