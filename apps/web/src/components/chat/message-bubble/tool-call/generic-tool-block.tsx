@@ -1,6 +1,6 @@
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ToolCard, formatToolDisplayName, getToolLabel } from './card-primitives';
+import { ToolCard, getToolLabel, useStitchToolDisplayName } from './card-primitives';
 
 type GenericToolBlockProps = {
   toolName: string;
@@ -26,6 +26,7 @@ function getUsedAccount(args: unknown, result: unknown): string | null {
 
 export function GenericToolBlock({ toolName, status, args, result, error }: GenericToolBlockProps) {
   const label = getToolLabel(status, error);
+  const displayName = useStitchToolDisplayName(toolName) ?? toolName;
   const usedAccount = getUsedAccount(args, result);
 
   return (
@@ -34,7 +35,7 @@ export function GenericToolBlock({ toolName, status, args, result, error }: Gene
         <ToolCard.StatusIndicator status={status} />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <ToolCard.Title>{formatToolDisplayName(toolName)}</ToolCard.Title>
+            <ToolCard.Title>{displayName}</ToolCard.Title>
             {usedAccount ? (
               <span className="rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
                 {usedAccount}

@@ -1,6 +1,6 @@
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ToolCard, getToolLabel, truncateText } from './card-primitives';
+import { ToolCard, getToolLabel, truncateText, useStitchToolDisplayName } from './card-primitives';
 
 function getFilePathFromArgs(args: unknown): string | null {
   const value = (args as { filePath?: unknown })?.filePath;
@@ -18,6 +18,7 @@ type FileToolBlockProps = {
 
 export function FileToolBlock({ toolName, status, args, error }: FileToolBlockProps) {
   const label = getToolLabel(status, error);
+  const displayName = useStitchToolDisplayName(toolName);
   const filePath = getFilePathFromArgs(args);
   const displayPath = filePath ? truncateText(filePath) : 'Waiting for path...';
 
@@ -26,7 +27,7 @@ export function FileToolBlock({ toolName, status, args, error }: FileToolBlockPr
       <ToolCard.Header>
         <ToolCard.StatusIndicator status={status} />
         <div className="min-w-0 flex-1 space-y-1">
-          <ToolCard.Title>{toolName}</ToolCard.Title>
+          <ToolCard.Title>{displayName}</ToolCard.Title>
           <ToolCard.TitleContent truncate mono className="block">
             {label ? `${displayPath} - ${label}` : displayPath}
           </ToolCard.TitleContent>
