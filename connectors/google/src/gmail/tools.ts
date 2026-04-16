@@ -169,7 +169,7 @@ export function createGmailTools(
         return { ...result, usedAccount };
       },
     }),
-    listLabels: tool({
+    gmail_list_labels: tool({
       description: 'List Gmail labels with visibility and message/thread counts.',
       inputSchema: gmailListLabelsSchema,
       execute: async (input: z.infer<typeof gmailListLabelsSchema>) => {
@@ -178,7 +178,7 @@ export function createGmailTools(
         return { ...result, usedAccount };
       },
     }),
-    getLabels: tool({
+    gmail_get_label: tool({
       description: 'Get details for one Gmail label by label ID.',
       inputSchema: gmailGetLabelsSchema,
       execute: async (input: z.infer<typeof gmailGetLabelsSchema>) => {
@@ -209,7 +209,7 @@ export function createGmailTools(
   }
 
   if (canModify) {
-    tools['modifyLabels'] = tool({
+    tools['gmail_modify_labels'] = tool({
       description:
         'Create, update, or delete Gmail labels using operation enum values: create, update, delete.',
       inputSchema: gmailModifyLabelsSchema,
@@ -220,7 +220,7 @@ export function createGmailTools(
       },
     });
 
-    tools['modifyMessages'] = tool({
+    tools['gmail_modify_messages'] = tool({
       description: 'Add/remove Gmail labels on messages, or on threads when modifyThreads=true.',
       inputSchema: gmailModifyMessagesSchema,
       execute: async (input: z.infer<typeof gmailModifyMessagesSchema>) => {
@@ -243,14 +243,14 @@ export const GMAIL_TOOL_SUMMARIES = [
   { name: 'gmail_search', description: 'Search Gmail messages using Gmail search syntax' },
   { name: 'gmail_read', description: 'Read the full content of a Gmail message by ID' },
   { name: 'gmail_send', description: 'Send an email or reply to a thread (requires write access)' },
-  { name: 'listLabels', description: 'List Gmail labels with metadata and visibility settings' },
-  { name: 'getLabels', description: 'Get details for a single Gmail label by ID' },
+  { name: 'gmail_list_labels', description: 'List Gmail labels with metadata and visibility settings' },
+  { name: 'gmail_get_label', description: 'Get details for a single Gmail label by ID' },
   {
-    name: 'modifyLabels',
+    name: 'gmail_modify_labels',
     description: 'Create, update, or delete Gmail labels using an operation enum',
   },
   {
-    name: 'modifyMessages',
+    name: 'gmail_modify_messages',
     description: 'Add or remove labels on messages (or threads with modifyThreads=true)',
   },
 ];

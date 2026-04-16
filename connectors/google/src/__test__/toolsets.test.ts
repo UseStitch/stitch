@@ -12,8 +12,8 @@ describe('buildGoogleToolsets', () => {
     expect(gmail?.tools().map((tool) => tool.name)).toEqual([
       'gmail_search',
       'gmail_read',
-      'listLabels',
-      'getLabels',
+      'gmail_list_labels',
+      'gmail_get_label',
     ]);
   });
 
@@ -32,18 +32,18 @@ describe('buildGoogleToolsets', () => {
       'gmail_search',
       'gmail_read',
       'gmail_send',
-      'listLabels',
-      'getLabels',
+      'gmail_list_labels',
+      'gmail_get_label',
     ]);
 
     expect(modify?.tools().map((tool) => tool.name)).toEqual([
       'gmail_search',
       'gmail_read',
       'gmail_send',
-      'listLabels',
-      'getLabels',
-      'modifyLabels',
-      'modifyMessages',
+      'gmail_list_labels',
+      'gmail_get_label',
+      'gmail_modify_labels',
+      'gmail_modify_messages',
     ]);
   });
 
