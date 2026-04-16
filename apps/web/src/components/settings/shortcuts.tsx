@@ -60,7 +60,9 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex items-center gap-1.5">
         <kbd className={KBD_CLASS}>Leader</kbd>
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">then</span>
+        <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
+          then
+        </span>
         {suffixDisplayKeys.map((key, i) => (
           <kbd key={`suffix-${i}`} className={KBD_CLASS}>
             {key}
@@ -117,11 +119,11 @@ function ShortcutRow({
   const isLeaderShortcut = entry.hotkey?.startsWith('LEADER+');
 
   return (
-    <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5 last:border-0 hover:bg-muted/20 transition-colors">
+    <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/20">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">{entry.label}</span>
         {!isDefault && (
-          <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
             Custom
           </span>
         )}
@@ -140,7 +142,7 @@ function ShortcutRow({
         )}
       >
         {isRecording ? (
-          <span className="text-xs font-medium italic text-muted-foreground">Press keys...</span>
+          <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
         ) : conflict ? (
           <span className="text-xs font-semibold text-destructive">Conflicts with {conflict}</span>
         ) : (
@@ -276,7 +278,7 @@ function ShortcutsContent() {
         <div className="relative flex-1">
           <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-9 bg-muted/20 border-border/60 shadow-inner"
+            className="border-border/60 bg-muted/20 pl-9 shadow-inner"
             placeholder="Search shortcuts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -302,11 +304,12 @@ function ShortcutsContent() {
           onClick={handleStartLeaderKeyRecording}
           className={cn(
             'text-sm rounded-md px-2 py-1.5 transition-colors min-w-32 text-right hover:bg-accent/60 cursor-pointer',
-            recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
+            recordingId === LEADER_KEY_RECORDING_ID &&
+              'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
           )}
         >
           {recordingId === LEADER_KEY_RECORDING_ID ? (
-            <span className="text-xs font-medium italic text-muted-foreground">Press keys...</span>
+            <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
           ) : (
             <HotkeyBadge hotkey={leaderKey} isSequence={false} />
           )}
@@ -314,7 +317,9 @@ function ShortcutsContent() {
       </div>
 
       {groups.size === 0 && (
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">No shortcuts found matching "{search}"</p>
+        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
+          No shortcuts found matching "{search}"
+        </p>
       )}
 
       <div className="flex flex-col gap-8">
@@ -340,7 +345,7 @@ function ShortcutsContent() {
       </div>
 
       {recordingId && (
-        <p className="text-center text-xs font-medium text-muted-foreground pt-4">
+        <p className="pt-4 text-center text-xs font-medium text-muted-foreground">
           {recordingId === LEADER_KEY_RECORDING_ID
             ? 'Press Escape to cancel'
             : 'Press Escape to cancel · Backspace to unassign'}
@@ -359,7 +364,9 @@ export function ShortcutsSettings() {
           Customize keyboard shortcuts for quick actions
         </p>
       </div>
-      <React.Suspense fallback={<div className="text-sm font-medium text-muted-foreground">Loading...</div>}>
+      <React.Suspense
+        fallback={<div className="text-sm font-medium text-muted-foreground">Loading...</div>}
+      >
         <ShortcutsContent />
       </React.Suspense>
     </div>

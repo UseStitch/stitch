@@ -1,14 +1,10 @@
-import {
-  ArrowRightIcon,
-  FolderIcon,
-  ListTodoIcon,
-  MergeIcon,
-  PlusIcon,
-} from 'lucide-react';
+import { ArrowRightIcon, FolderIcon, ListTodoIcon, MergeIcon, PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useRouterState } from '@tanstack/react-router';
+
+import type { AgendaListWithCounts } from '@stitch/shared/agenda/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +35,6 @@ import {
   useMoveAgendaItem,
   useReorderAgendaLists,
 } from '@/lib/queries/agenda';
-import type { AgendaListWithCounts } from '@stitch/shared/agenda/types';
 import { cn } from '@/lib/utils';
 
 function getDragType(e: React.DragEvent): 'agenda-list' | 'agenda-item' | null {
@@ -110,7 +105,7 @@ function ListRow({
             {mergeIndicator ? (
               <Badge
                 variant="default"
-                className="animate-in fade-in zoom-in-95 text-[10px] px-1.5 py-0"
+                className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in"
               >
                 {mergeIndicator === 'list' ? (
                   <span className="flex items-center gap-0.5">
@@ -125,7 +120,7 @@ function ListRow({
                 )}
               </Badge>
             ) : openCount > 0 ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
                 {openCount}
               </Badge>
             ) : null}
@@ -135,17 +130,13 @@ function ListRow({
             {list.itemCounts.overdue > 0 && (
               <>
                 <span>·</span>
-                <span className="text-destructive">
-                  {list.itemCounts.overdue} overdue
-                </span>
+                <span className="text-destructive">{list.itemCounts.overdue} overdue</span>
               </>
             )}
             {list.itemCounts.dueSoon > 0 && (
               <>
                 <span>·</span>
-                <span className="text-warning">
-                  {list.itemCounts.dueSoon} due soon
-                </span>
+                <span className="text-warning">{list.itemCounts.dueSoon} due soon</span>
               </>
             )}
           </div>
@@ -304,8 +295,7 @@ export function AgendaSidebarContent() {
               }}
             >
               {lists.map((list, index) => {
-                const showDropBefore =
-                  dropIndex === index && dragListId && dragListId !== list.id;
+                const showDropBefore = dropIndex === index && dragListId && dragListId !== list.id;
                 const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
                 return (
                   <React.Fragment key={list.id}>
@@ -316,15 +306,15 @@ export function AgendaSidebarContent() {
                         isActive={list.id === selectedListId}
                         isDragging={dragListId === list.id}
                         mergeIndicator={
-                        isMergeTarget
-                          ? 'list'
-                          : mergeTargetId === list.id && !dragListId
-                            ? 'item'
-                            : null
-                      }
+                          isMergeTarget
+                            ? 'list'
+                            : mergeTargetId === list.id && !dragListId
+                              ? 'item'
+                              : null
+                        }
                         onDragStart={() => setDragListId(list.id)}
-                    onMoveItem={handleMoveItem}
-                  />
+                        onMoveItem={handleMoveItem}
+                      />
                     </div>
                   </React.Fragment>
                 );
@@ -367,7 +357,9 @@ export function AgendaSidebarContent() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Label>
+                Description <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
               <Textarea
                 placeholder="What is this list for?"
                 value={newListDescription}

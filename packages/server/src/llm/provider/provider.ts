@@ -9,13 +9,14 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGateway } from 'ai';
 import { z } from 'zod';
+
 import { AWS_BEDROCK_REGIONS } from '@stitch/shared/providers/types';
 
 const AWS_REGION_VALUES = AWS_BEDROCK_REGIONS.map((r) => r.value) as [string, ...string[]];
 
 const BedrockCredentialsSchema = z.object({
   providerId: z.literal('amazon-bedrock'),
-  region: z.enum(AWS_REGION_VALUES).optional(),
+  region: z.enum(AWS_REGION_VALUES),
   auth: z.discriminatedUnion('method', [
     z.object({ method: z.literal('api-key'), apiKey: z.string() }),
     z.object({

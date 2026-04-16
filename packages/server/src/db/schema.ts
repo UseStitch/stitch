@@ -11,6 +11,11 @@ import {
 } from 'drizzle-orm/sqlite-core';
 
 import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
+import type {
+  AgendaEventType,
+  AgendaItemPriority,
+  AgendaItemStatus,
+} from '@stitch/shared/agenda/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
@@ -23,11 +28,6 @@ import type {
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
-import type {
-  AgendaEventType,
-  AgendaItemPriority,
-  AgendaItemStatus,
-} from '@stitch/shared/agenda/types';
 
 /** @deprecated Type field is no longer used but kept for DB compatibility */
 type AgendaItemType = 'todo' | 'reminder' | 'checkup';
@@ -315,7 +315,9 @@ export const lanceMigrations = sqliteTable('lance_migrations', {
   prevId: text('prev_id'),
   name: text('name').notNull(),
   checksum: text('checksum').notNull().default(''),
-  status: text('status', { enum: ['applied', 'failed'] }).notNull().default('applied'),
+  status: text('status', { enum: ['applied', 'failed'] })
+    .notNull()
+    .default('applied'),
   error: text('error'),
   appliedAt: integer('applied_at', { mode: 'number' }).notNull(),
 });
@@ -542,10 +544,7 @@ export const agendaItems = sqliteTable(
     index('agenda_items_status_idx').on(table.status),
     index('agenda_items_due_at_idx').on(table.dueAt),
     index('agenda_items_created_at_idx').on(table.createdAt),
-    check(
-      'agenda_items_type_check',
-      sql`${table.type} in ('todo', 'reminder', 'checkup')`,
-    ),
+    check('agenda_items_type_check', sql`${table.type} in ('todo', 'reminder', 'checkup')`),
     check(
       'agenda_items_status_check',
       sql`${table.status} in ('open', 'in_progress', 'done', 'cancelled')`,

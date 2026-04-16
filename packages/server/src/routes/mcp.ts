@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
 import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
@@ -32,8 +33,8 @@ const createMcpServerSchema = z.object({
 export const mcpRouter = new Hono();
 
 mcpRouter.get('/', async (c) => {
-  const servers = await listMcpServers();
-  return c.json(servers);
+  const result = await listMcpServers();
+  return unwrapResult(c, result);
 });
 
 mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
@@ -44,37 +45,27 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
     url: body.url,
     authConfig: body.authConfig,
   });
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 mcpRouter.get('/registry', async (c) => {
   const result = await listMcpRegistryServers();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 mcpRouter.post('/registry/refresh', async (c) => {
   const result = await refreshMcpRegistryCache({ force: true });
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 mcpRouter.post('/refresh', async (c) => {
@@ -103,10 +94,8 @@ mcpRouter.get('/icons/:key', async (c) => {
 mcpRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteMcpServer(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
   evictMcpClient(id);
   await refreshMcpToolsets({ refreshTools: false });
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });

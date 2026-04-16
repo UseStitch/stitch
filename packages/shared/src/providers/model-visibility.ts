@@ -1,10 +1,10 @@
-export type ModelVisibilityInput = {
+type ModelVisibilityInput = {
   id: string;
   family?: string;
   release_date?: string;
 };
 
-export type ProviderModelGroup = {
+type ProviderModelGroup = {
   providerId: string;
   models: ModelVisibilityInput[];
 };
@@ -67,12 +67,6 @@ export function buildDefaultVisibleSet(providers: ProviderModelGroup[]): Set<str
 
   return visible;
 }
-
-export type ModelVisibilityOverride = {
-  providerId: string;
-  modelId: string;
-  visibility: 'show' | 'hide';
-};
 
 /**
  * Returns true if a model should appear in the model selector.

@@ -22,7 +22,12 @@ type MessageQueuePanelProps = {
   sendQueuedRef: React.RefObject<SendQueuedMessageFn | null>;
 };
 
-export function MessageQueuePanel({ sessionId, className, onEdit, sendQueuedRef }: MessageQueuePanelProps) {
+export function MessageQueuePanel({
+  sessionId,
+  className,
+  onEdit,
+  sendQueuedRef,
+}: MessageQueuePanelProps) {
   const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(sessionId));
 
   const items = queuedMessages ?? [];

@@ -4,8 +4,8 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
-import { AnimatedTitle } from '@/components/animated-title';
 import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
+import { AnimatedTitle } from '@/components/animated-title';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {

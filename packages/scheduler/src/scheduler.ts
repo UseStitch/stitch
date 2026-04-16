@@ -29,7 +29,12 @@ function calculateNextRunMs(schedule: JobSchedule, afterMs: number): number {
   return getNextCronRunMs(schedule.expression, afterMs, schedule.timezone ?? 'UTC');
 }
 
-function calculateDueCount(schedule: JobSchedule, nextRunAt: number, now: number, hardLimit: number): number {
+function calculateDueCount(
+  schedule: JobSchedule,
+  nextRunAt: number,
+  now: number,
+  hardLimit: number,
+): number {
   if (now < nextRunAt) return 0;
 
   if (schedule.type === 'interval') {
@@ -133,7 +138,12 @@ export function createScheduler(options: SchedulerOptions) {
       if (!state || !state.enabled) return;
 
       const now = Date.now();
-      const dueCount = calculateDueCount(job.schedule, state.nextRunAt, now, Math.max(1, job.catchupMaxRuns));
+      const dueCount = calculateDueCount(
+        job.schedule,
+        state.nextRunAt,
+        now,
+        Math.max(1, job.catchupMaxRuns),
+      );
 
       if (dueCount > 0) {
         let nextRunAt = state.nextRunAt;
@@ -142,7 +152,9 @@ export function createScheduler(options: SchedulerOptions) {
           nextRunAt = calculateNextRunMs(job.schedule, nextRunAt);
         }
 
-        const incrementBy = job.queueEnabled ? runsToQueue(dueCount, job.catchup, job.catchupMaxRuns) : 0;
+        const incrementBy = job.queueEnabled
+          ? runsToQueue(dueCount, job.catchup, job.catchupMaxRuns)
+          : 0;
 
         await store.enqueueDueRuns({
           key: jobKey,
@@ -194,7 +206,10 @@ export function createScheduler(options: SchedulerOptions) {
       now,
     });
 
-    logger.info({ event: 'scheduler.job.registered', key: normalized.key }, 'scheduled job registered');
+    logger.info(
+      { event: 'scheduler.job.registered', key: normalized.key },
+      'scheduled job registered',
+    );
 
     if (timer) await evaluateDue(normalized.key);
   }
@@ -203,7 +218,10 @@ export function createScheduler(options: SchedulerOptions) {
     jobs.delete(key);
     const removed = await store.unregisterJob(key);
 
-    logger.info({ event: 'scheduler.job.unregistered', key, removed }, 'scheduled job unregistered');
+    logger.info(
+      { event: 'scheduler.job.unregistered', key, removed },
+      'scheduled job unregistered',
+    );
 
     return removed;
   }

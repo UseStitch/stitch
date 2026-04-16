@@ -22,7 +22,12 @@ const AGENDA_TOOL_CONFIG: Record<
   agenda_list_lists: { label: 'List Lists', icon: ListTodoIcon, verb: 'Listing' },
 };
 
-function getAgendaArgs(args: unknown): { title?: string; itemId?: string; name?: string; listName?: string } {
+function getAgendaArgs(args: unknown): {
+  title?: string;
+  itemId?: string;
+  name?: string;
+  listName?: string;
+} {
   const value = args as Record<string, unknown> | undefined;
   return {
     title: typeof value?.title === 'string' ? value.title : undefined,

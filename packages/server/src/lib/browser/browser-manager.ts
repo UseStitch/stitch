@@ -419,10 +419,7 @@ class BrowserManager {
       return;
     }
 
-    const [userDataDir, settings] = await Promise.all([
-      resolveActiveProfileDir(),
-      listSettings(),
-    ]);
+    const [userDataDir, settings] = await Promise.all([resolveActiveProfileDir(), listSettings()]);
 
     const headless = options.headless ?? settings['browser.headless'] !== 'false';
 

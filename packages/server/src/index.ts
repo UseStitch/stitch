@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { init } from '@/init.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { agendaRouter } from '@/routes/agenda.js';
 import { automationsRouter } from '@/routes/automations.js';
 import { browserRouter } from '@/routes/browser.js';
 import { chatRouter } from '@/routes/chat.js';
@@ -24,7 +25,6 @@ import { recordingsRouter } from '@/routes/recordings.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
 import { usageRouter } from '@/routes/usage.js';
-import { agendaRouter } from '@/routes/agenda.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
 function parseArgs() {

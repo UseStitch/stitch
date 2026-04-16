@@ -1,4 +1,10 @@
-import { ArrowDownToLineIcon, ExternalLinkIcon, PlusIcon, RefreshCwIcon, SearchIcon } from 'lucide-react';
+import {
+  ArrowDownToLineIcon,
+  ExternalLinkIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -60,7 +66,9 @@ export function McpRegistryList({
             aria-label="Refresh MCP registry"
             disabled={refreshRegistry.isPending}
           >
-            <RefreshCwIcon className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`} />
+            <RefreshCwIcon
+              className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`}
+            />
           </Button>
           <Button size="sm" variant="outline" onClick={onAddCustom}>
             <PlusIcon className="size-4" />
@@ -70,7 +78,7 @@ export function McpRegistryList({
       </div>
 
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <SearchIcon className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -87,7 +95,7 @@ export function McpRegistryList({
         {filteredServers.map((server) => (
           <div
             key={server.id}
-            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors hover:bg-muted/20 last:border-b-0"
+            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20"
           >
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -99,7 +107,7 @@ export function McpRegistryList({
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="border-border/40 bg-background/60 text-[11px] capitalize text-muted-foreground"
+                    className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize"
                   >
                     {tag}
                   </Badge>
@@ -117,7 +125,11 @@ export function McpRegistryList({
               >
                 <ExternalLinkIcon className="size-3.5" />
               </Button>
-              <Button size="icon-sm" onClick={() => onInstall(server)} aria-label={`Install ${server.name}`}>
+              <Button
+                size="icon-sm"
+                onClick={() => onInstall(server)}
+                aria-label={`Install ${server.name}`}
+              >
                 <ArrowDownToLineIcon className="size-3.5" />
               </Button>
             </ButtonGroup>

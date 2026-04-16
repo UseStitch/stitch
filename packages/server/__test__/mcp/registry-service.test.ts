@@ -3,9 +3,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { clearMcpRegistryCacheForTests, listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
+import {
+  clearMcpRegistryCacheForTests,
+  listMcpRegistryServers,
+  refreshMcpRegistryCache,
+} from '@/mcp/registry-service.js';
 
-type FetchLike = NonNullable<NonNullable<Parameters<typeof listMcpRegistryServers>[0]>['fetchImpl']>;
+type FetchLike = NonNullable<
+  NonNullable<Parameters<typeof listMcpRegistryServers>[0]>['fetchImpl']
+>;
 
 const tempDirs: string[] = [];
 

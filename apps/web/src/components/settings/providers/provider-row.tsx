@@ -1,15 +1,15 @@
 import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
-import { serverFetch } from '@/lib/api';
-import { type ProviderSummary, providerKeys } from '@/lib/queries/providers';
+import { useDeleteProviderConfigMutation } from '@/lib/mutations/provider-config';
+import { type ProviderSummary } from '@/lib/queries/providers';
 
 type Props = {
   provider: ProviderSummary;
@@ -22,14 +22,11 @@ export function ProviderRow({ provider, onSelect }: Props) {
     : undefined;
   const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await serverFetch(`/provider/${provider.id}/config`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to disconnect');
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: providerKeys.all });
-    },
+  const deleteMutation = useDeleteProviderConfigMutation({
+    providerId: provider.id,
+    queryClient,
+    successMessage: `${meta?.displayName ?? 'Provider'} disconnected`,
+    errorMessage: 'Failed to disconnect',
   });
 
   if (!meta) return null;

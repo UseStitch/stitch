@@ -1,17 +1,12 @@
-import {
-  CalendarIcon,
-  Trash2Icon,
-  XIcon,
-} from 'lucide-react';
+import { CalendarIcon, Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-import { settingsQueryOptions } from '@/lib/queries/settings';
-import {
-  PRIORITY_LABELS,
-  STATUS_LABELS,
-} from '@/components/agenda/constants';
+import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
+import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
+
+import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -23,29 +18,15 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
-import {
-  AGENDA_ITEM_PRIORITIES,
-  AGENDA_ITEM_STATUSES,
-} from '@stitch/shared/agenda/types';
-import {
-  useDeleteAgendaItem,
-  useUpdateAgendaItem,
-} from '@/lib/queries/agenda';
+import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
+
+const DEBOUNCE_MS = 600;
 
 type Props = {
   item: AgendaItem | null;
@@ -77,6 +58,13 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
 
+  const updateMutation = useUpdateAgendaItem();
+  const deleteMutation = useDeleteAgendaItem();
+
+  // Keep a stable ref to the item so callbacks can access it without stale closures
+  const itemRef = React.useRef(item);
+  itemRef.current = item;
+
   React.useEffect(() => {
     if (item) {
       setTitle(item.title);
@@ -85,10 +73,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
       setPriority(item.priority);
       setDueDate(item.dueAt ? new Date(item.dueAt) : undefined);
     }
-  }, [item, timeZone]);
-
-  const updateMutation = useUpdateAgendaItem();
-  const deleteMutation = useDeleteAgendaItem();
+  }, [item]);
 
   function dateToMs(date: Date): number {
     const y = date.getFullYear();
@@ -97,22 +82,91 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     return new Date(y, m, d, 12, 0, 0).getTime();
   }
 
-  function handleSave() {
-    if (!item) return;
-    const newDueMs = dueDate ? dateToMs(dueDate) : null;
-    updateMutation.mutate(
-      {
-        id: item.id,
-        updates: {
-          title: title !== item.title ? title : undefined,
-          description: description !== item.description ? description : undefined,
-          status: status !== item.status ? status : undefined,
-          priority: priority !== item.priority ? priority : undefined,
-          dueAt: newDueMs !== item.dueAt ? newDueMs : undefined,
-        },
-      },
-      { onSuccess: () => onOpenChange(false) },
-    );
+  function save(updates: {
+    title?: string;
+    description?: string;
+    status?: AgendaItemStatus;
+    priority?: AgendaItemPriority;
+    dueAt?: number | null;
+  }) {
+    if (!itemRef.current) return;
+    updateMutation.mutate({ id: itemRef.current.id, updates });
+  }
+
+  // Debounced save for text fields
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function saveDebounced(updates: { title?: string; description?: string }) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => save(updates), DEBOUNCE_MS);
+  }
+
+  // Flush any pending debounced save when the sheet closes
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      const current = itemRef.current;
+      if (current) {
+        const pendingTitle = title !== current.title ? title : undefined;
+        const pendingDescription = description !== current.description ? description : undefined;
+        if (pendingTitle !== undefined || pendingDescription !== undefined) {
+          save({ title: pendingTitle, description: pendingDescription });
+        }
+      }
+    }
+    onOpenChange(nextOpen);
+  }
+
+  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const next = e.target.value;
+    setTitle(next);
+    if (itemRef.current && next !== itemRef.current.title) {
+      saveDebounced({ title: next, description: undefined });
+    }
+  }
+
+  function handleDescriptionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const next = e.target.value;
+    setDescription(next);
+    if (itemRef.current && next !== itemRef.current.description) {
+      saveDebounced({ title: undefined, description: next });
+    }
+  }
+
+  function handleStatusChange(v: string | null) {
+    if (!v) return;
+    const next = v as AgendaItemStatus;
+    setStatus(next);
+    if (itemRef.current && next !== itemRef.current.status) {
+      save({ status: next });
+    }
+  }
+
+  function handlePriorityChange(v: string | null) {
+    if (!v) return;
+    const next = v as AgendaItemPriority;
+    setPriority(next);
+    if (itemRef.current && next !== itemRef.current.priority) {
+      save({ priority: next });
+    }
+  }
+
+  function handleDateSelect(date: Date | undefined) {
+    setDueDate(date);
+    setDatePickerOpen(false);
+    if (!itemRef.current) return;
+    const newDueMs = date ? dateToMs(date) : null;
+    if (newDueMs !== itemRef.current.dueAt) {
+      save({ dueAt: newDueMs });
+    }
+  }
+
+  function handleClearDate() {
+    setDueDate(undefined);
+    if (itemRef.current && itemRef.current.dueAt !== null) {
+      save({ dueAt: null });
+    }
   }
 
   function handleDelete() {
@@ -125,19 +179,11 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     });
   }
 
-  const isDirty =
-    item &&
-    (title !== item.title ||
-      description !== item.description ||
-      status !== item.status ||
-      priority !== item.priority ||
-      (dueDate ? dateToMs(dueDate) : null) !== item.dueAt);
-
   if (!item) return null;
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Agenda Item</SheetTitle>
@@ -160,11 +206,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             {/* Title */}
             <div className="flex flex-col gap-1.5">
               <Label>Title</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Item title..."
-              />
+              <Input value={title} onChange={handleTitleChange} placeholder="Item title..." />
             </div>
 
             {/* Description */}
@@ -172,7 +214,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               <Label>Description</Label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={handleDescriptionChange}
                 className="min-h-20 resize-none"
                 placeholder="Details..."
               />
@@ -182,10 +224,8 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as AgendaItemStatus)}>
-                  <SelectTrigger className="w-full">
-                    {STATUS_LABELS[status]}
-                  </SelectTrigger>
+                <Select value={status} onValueChange={handleStatusChange}>
+                  <SelectTrigger className="w-full">{STATUS_LABELS[status]}</SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>
@@ -198,13 +238,8 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
 
               <div className="flex flex-col gap-1.5">
                 <Label>Priority</Label>
-                <Select
-                  value={priority}
-                  onValueChange={(v) => setPriority(v as AgendaItemPriority)}
-                >
-                  <SelectTrigger className="w-full">
-                    {PRIORITY_LABELS[priority]}
-                  </SelectTrigger>
+                <Select value={priority} onValueChange={handlePriorityChange}>
+                  <SelectTrigger className="w-full">{PRIORITY_LABELS[priority]}</SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_PRIORITIES.map((p) => (
                       <SelectItem key={p} value={p}>
@@ -236,7 +271,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                       variant="ghost"
                       size="icon-xs"
                       className="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={() => setDueDate(undefined)}
+                      onClick={handleClearDate}
                     >
                       <XIcon className="size-3" />
                     </Button>
@@ -246,10 +281,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={(date) => {
-                      setDueDate(date);
-                      setDatePickerOpen(false);
-                    }}
+                    onSelect={handleDateSelect}
                     defaultMonth={dueDate}
                   />
                 </PopoverContent>
@@ -267,18 +299,9 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               <Trash2Icon className="size-3.5" />
               Delete
             </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!isDirty || updateMutation.isPending}
-              >
-                {updateMutation.isPending ? 'Saving...' : 'Save'}
-              </Button>
-            </div>
+            {updateMutation.isPending && (
+              <span className="text-xs text-muted-foreground">Saving…</span>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

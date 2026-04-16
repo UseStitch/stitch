@@ -2,18 +2,18 @@ import { generateText, Output } from 'ai';
 import { asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
+import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions, userSettings } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { createProvider } from '@/llm/provider/provider.js';
+import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -99,7 +99,10 @@ function collectToolsetContext(messageList: GenerationMessageContext[]): {
   };
 }
 
-async function getPromptUserContext(): Promise<{ userName: string | null; userTimezone: string | null }> {
+async function getPromptUserContext(): Promise<{
+  userName: string | null;
+  userTimezone: string | null;
+}> {
   const db = getDb();
   const rows = await db
     .select({ key: userSettings.key, value: userSettings.value })
@@ -121,7 +124,8 @@ function buildAutomationPrompt(input: {
   const availableToolsets =
     input.availableToolsets.length > 0 ? input.availableToolsets.join(', ') : '(none registered)';
   const usedToolNames = input.usedToolNames.length > 0 ? input.usedToolNames.join(', ') : '(none)';
-  const inferredToolsets = input.inferredToolsets.length > 0 ? input.inferredToolsets.join(', ') : '(none)';
+  const inferredToolsets =
+    input.inferredToolsets.length > 0 ? input.inferredToolsets.join(', ') : '(none)';
 
   return [
     'Review the conversation and create an automation draft.',

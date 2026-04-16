@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { McpServersContent } from '@/components/settings/mcp-servers/content';
 
 export function McpServersSettings() {

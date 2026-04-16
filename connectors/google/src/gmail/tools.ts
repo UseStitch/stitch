@@ -221,8 +221,7 @@ export function createGmailTools(
     });
 
     tools['modifyMessages'] = tool({
-      description:
-        'Add/remove Gmail labels on messages, or on threads when modifyThreads=true.',
+      description: 'Add/remove Gmail labels on messages, or on threads when modifyThreads=true.',
       inputSchema: gmailModifyMessagesSchema,
       execute: async (input: z.infer<typeof gmailModifyMessagesSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);

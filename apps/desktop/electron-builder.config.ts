@@ -82,7 +82,11 @@ const config: Configuration = {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
-    binaries: ['Contents/Resources/stitch-server'],
+    binaries: [
+      'Contents/Resources/stitch-server',
+      'Contents/Resources/audio-capture/stitch-audio-capture',
+      'Contents/Resources/audio-capture/stitch-meeting-watch',
+    ],
     target: ['dmg', 'zip'],
   },
   linux: {

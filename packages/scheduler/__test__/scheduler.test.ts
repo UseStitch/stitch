@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createScheduler } from '../src/scheduler.js';
-import type { JobSchedule, PersistedJob, PersistedJobRun, SchedulerLogger, SchedulerStore } from '../src/types.js';
+
+import type {
+  JobSchedule,
+  PersistedJob,
+  PersistedJobRun,
+  SchedulerLogger,
+  SchedulerStore,
+} from '../src/types.js';
 
 function makeLogger(): SchedulerLogger {
   const noop = () => {};

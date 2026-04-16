@@ -189,8 +189,8 @@ const COMPACTION_PROMPT = `Provide a detailed prompt for continuing our conversa
 Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next.
 The summary that you construct will be used so a future run can continue the work.
 
-When constructing the summary, try to stick to this template:
----
+Use the following markdown sections in your response. Do not wrap your response in a code block.
+
 ## Goal
 
 [What goal(s) is the user trying to accomplish?]
@@ -211,7 +211,6 @@ When constructing the summary, try to stick to this template:
 ## Relevant files / directories
 
 [Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
----
 
 Keep your summary under 1500 words. Prioritize actionable information over completeness.
 If the conversation is very long, focus on the most recent work and goals.`;

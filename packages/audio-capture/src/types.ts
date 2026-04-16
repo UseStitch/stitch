@@ -182,7 +182,9 @@ export type NativeCaptureEvent =
   | NativeCapturePermissionsStatusEvent
   | NativeCaptureDeviceChangedEvent;
 
-export type NativeCaptureEventListener = (event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent) => void;
+export type NativeCaptureEventListener = (
+  event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent,
+) => void;
 
 export type NativeCaptureController = {
   send: (command: NativeCaptureCommand) => void;

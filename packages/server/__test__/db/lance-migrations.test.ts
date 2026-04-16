@@ -1,13 +1,12 @@
+import * as lancedb from '@lancedb/lancedb';
+import { Field, Int32, Schema, Utf8 } from 'apache-arrow';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-
-import { Field, Int32, Schema, Utf8 } from 'apache-arrow';
-import * as lancedb from '@lancedb/lancedb';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { migration0001AddPinnedColumn } from '@/db/lance-migrations/0001-add-pinned-column.js';
 import { runPendingMigrations } from '@/db/lance-migrations.js';
+import { migration0001AddPinnedColumn } from '@/db/lance-migrations/0001-add-pinned-column.js';
 import { getConnection } from '@/memory/store/connection.js';
 
 vi.mock('@/memory/store/connection.js', () => ({
@@ -58,9 +57,7 @@ function createMockDb(initialRows: MigrationRow[] = []) {
   };
 }
 
-async function withTempWorkspace(
-  fn: (ctx: { tempDir: string }) => Promise<void>,
-) {
+async function withTempWorkspace(fn: (ctx: { tempDir: string }) => Promise<void>) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'stitch-lance-migration-'));
 
   try {
@@ -70,7 +67,10 @@ async function withTempWorkspace(
   }
 }
 
-async function createSemanticTable(tempDir: string, withPinned = false): Promise<lancedb.Connection> {
+async function createSemanticTable(
+  tempDir: string,
+  withPinned = false,
+): Promise<lancedb.Connection> {
   const connection = await lancedb.connect(path.join(tempDir, 'memory.lance'));
 
   const fields: Field[] = [new Field('id', new Utf8(), false)];

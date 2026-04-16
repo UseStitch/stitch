@@ -19,7 +19,7 @@ export const SHORTCUT_CATEGORIES = ['Workspace', 'Chat', 'Sessions'] as const;
 
 export type ShortcutCategory = (typeof SHORTCUT_CATEGORIES)[number];
 
-export interface ShortcutDefault {
+interface ShortcutDefault {
   actionId: ShortcutActionId;
   hotkey: string | null;
   isSequence: boolean;

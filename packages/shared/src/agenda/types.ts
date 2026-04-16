@@ -94,10 +94,6 @@ export type AgendaListWithCounts = AgendaList & {
   };
 };
 
-export type ListAgendaListsResponse = {
-  lists: AgendaListWithCounts[];
-};
-
 export type ListAgendaItemsResponse = {
   items: AgendaItem[];
   page: number;
@@ -108,8 +104,4 @@ export type ListAgendaItemsResponse = {
 
 export type AgendaItemDetail = AgendaItem & {
   events: AgendaItemEvent[];
-};
-
-export type AgendaItemDetailResponse = {
-  item: AgendaItemDetail;
 };

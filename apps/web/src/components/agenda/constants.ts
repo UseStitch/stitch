@@ -1,7 +1,4 @@
-import type {
-  AgendaItemPriority,
-  AgendaItemStatus,
-} from '@stitch/shared/agenda/types';
+import type { AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 
 export const STATUS_LABELS: Record<AgendaItemStatus, string> = {
   open: 'Open',

@@ -3,10 +3,10 @@ import type { JobSchedule, RegisteredJob } from '@stitch/scheduler';
 
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
-import { runMemoryMaintenance } from '@/memory/maintenance.js';
+import * as ModelsDev from '@/llm/provider/models.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
-import * as ModelsDev from '@/llm/provider/models.js';
+import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
 import * as ToolTruncation from '@/tools/runtime/truncation.js';
 
@@ -27,12 +27,7 @@ export async function startScheduler(): Promise<void> {
   if (scheduler) return;
 
   scheduler = createScheduler({
-    logger: {
-      debug: (extra, message) => log.debug(extra, message),
-      info: (extra, message) => log.info(extra, message),
-      warn: (extra, message) => log.warn(extra, message),
-      error: (extra, message) => log.error(extra, message),
-    },
+    logger: log,
     store: createSchedulerStore(),
     pollIntervalMs: 1_000,
   });
@@ -40,7 +35,9 @@ export async function startScheduler(): Promise<void> {
   await scheduler.registerJob({
     key: 'memory-maintenance',
     schedule: { type: 'interval', everyMs: MEMORY_MAINTENANCE_INTERVAL_MS },
-    callback: async () => { await runMemoryMaintenance(); },
+    callback: async () => {
+      await runMemoryMaintenance();
+    },
     maxConcurrency: 1,
     queueEnabled: true,
     catchup: 'one',

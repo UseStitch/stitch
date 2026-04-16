@@ -1,6 +1,6 @@
+import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +21,9 @@ function resolveDefaultTarget() {
     return 'x86_64-pc-windows-msvc';
   }
 
-  throw new Error(`Unsupported local platform/arch for native audio build: ${process.platform}/${process.arch}`);
+  throw new Error(
+    `Unsupported local platform/arch for native audio build: ${process.platform}/${process.arch}`,
+  );
 }
 
 function parseTarget() {

@@ -1,5 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 
+import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
+
 import type {
   ConnectorDefinition,
   ConnectorInstance,
@@ -7,7 +9,6 @@ import type {
   ConnectorStatus,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
-import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 import { createConnectorInstanceId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -59,16 +60,18 @@ function toSafe(
   };
 }
 
-export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]> {
+export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
   const db = getDb();
   const rows = await db
     .select()
     .from(connectorInstances)
     .orderBy(asc(connectorInstances.createdAt));
-  return rows.map((r) => {
-    const instance = r as ConnectorInstance;
-    return toSafe(instance, getConnectorDefinition(instance.connectorId));
-  });
+  return ok(
+    rows.map((r) => {
+      const instance = r as ConnectorInstance;
+      return toSafe(instance, getConnectorDefinition(instance.connectorId));
+    }),
+  );
 }
 
 export async function getConnectorInstance(

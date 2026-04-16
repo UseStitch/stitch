@@ -122,6 +122,9 @@
     "packages/scheduler": {
       "name": "@stitch/scheduler",
       "version": "0.0.0",
+      "dependencies": {
+        "@stitch/shared": "workspace:*",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",

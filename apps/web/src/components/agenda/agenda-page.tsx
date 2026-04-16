@@ -13,13 +13,16 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
+import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
+import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
+
+import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
 import {
   PRIORITY_LABELS,
   PRIORITY_VARIANTS,
   STATUS_LABELS,
   STATUS_VARIANTS,
 } from '@/components/agenda/constants';
-import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,11 +37,6 @@ import {
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -47,21 +45,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
-import type {
-  AgendaItem,
-  AgendaItemPriority,
-  AgendaItemStatus,
-} from '@stitch/shared/agenda/types';
-import {
-  AGENDA_ITEM_PRIORITIES,
-  AGENDA_ITEM_STATUSES,
-} from '@stitch/shared/agenda/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import {
   agendaItemsQueryOptions,
   agendaListsQueryOptions,
@@ -344,12 +329,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="text-xl font-semibold bg-transparent border-none outline-none ring-1 ring-primary rounded px-1 -ml-1 w-full"
+                  className="-ml-1 w-full rounded border-none bg-transparent px-1 text-xl font-semibold ring-1 ring-primary outline-none"
                 />
               ) : currentList ? (
                 <button
                   type="button"
-                  className="group/title flex items-center gap-1.5 rounded px-1 -ml-1 transition-colors hover:bg-muted"
+                  className="group/title -ml-1 flex items-center gap-1.5 rounded px-1 transition-colors hover:bg-muted"
                   onClick={startRenaming}
                 >
                   <h1 className="text-xl font-semibold">{currentList.name}</h1>
@@ -411,10 +396,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <Select
-            value={filterStatus}
-            onValueChange={(v) => setFilterStatus(v as FilterStatus)}
-          >
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
             <SelectTrigger className="w-40 bg-background">
               <span className="truncate">
                 <span className="text-muted-foreground">Status: </span>
@@ -462,11 +444,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 <CheckCircleIcon />
                 Mark Done {selectedIds.size}
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setBulkDeleteOpen(true)}
-              >
+              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
                 <Trash2Icon />
                 Delete {selectedIds.size}
               </Button>
@@ -548,9 +526,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   </div>
                 </React.Fragment>
               ))}
-              {dropIndex === items.length && dragItemId && (
-                <div className="h-0.5 bg-primary" />
-              )}
+              {dropIndex === items.length && dragItemId && <div className="h-0.5 bg-primary" />}
             </div>
           )}
 
@@ -647,9 +623,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
               Delete {selectedIds.size} item{selectedIds.size === 1 ? '' : 's'}?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            These items will be permanently removed.
-          </p>
+          <p className="text-sm text-muted-foreground">These items will be permanently removed.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
               Cancel
@@ -705,15 +679,22 @@ type AgendaItemRowProps = {
   onDateChange: (itemId: string, dueAt: number | null) => void;
 };
 
-function AgendaItemRow({ item, selected, showListColumn, isDragging, timeZone, onToggleSelect, onClick, onDragStart, onDateChange }: AgendaItemRowProps) {
+function AgendaItemRow({
+  item,
+  selected,
+  showListColumn,
+  isDragging,
+  timeZone,
+  onToggleSelect,
+  onClick,
+  onDragStart,
+  onDateChange,
+}: AgendaItemRowProps) {
   const rowRef = React.useRef<HTMLDivElement>(null);
   const [dateOpen, setDateOpen] = React.useState(false);
   const isDone = item.status === 'done' || item.status === 'cancelled';
   const isOverdue =
-    item.dueAt &&
-    item.dueAt < Date.now() &&
-    item.status !== 'done' &&
-    item.status !== 'cancelled';
+    item.dueAt && item.dueAt < Date.now() && item.status !== 'done' && item.status !== 'cancelled';
 
   function handleDragStart(e: React.DragEvent) {
     e.stopPropagation();
@@ -757,13 +738,21 @@ function AgendaItemRow({ item, selected, showListColumn, isDragging, timeZone, o
           onToggleSelect();
         }}
       >
-        <Checkbox checked={selected || isDone} onCheckedChange={onToggleSelect} aria-label="Select item" />
+        <Checkbox
+          checked={selected || isDone}
+          onCheckedChange={onToggleSelect}
+          aria-label="Select item"
+        />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${isDone ? 'line-through text-muted-foreground' : ''}`}>{item.title}</p>
+        <p className={`truncate text-sm ${isDone ? 'text-muted-foreground line-through' : ''}`}>
+          {item.title}
+        </p>
         {item.description && (
-          <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>{item.description}</p>
+          <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>
+            {item.description}
+          </p>
         )}
       </div>
 
@@ -785,10 +774,7 @@ function AgendaItemRow({ item, selected, showListColumn, isDragging, timeZone, o
         </span>
       )}
 
-      <div
-        className="w-24 text-right"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
             className={`inline-flex cursor-pointer rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}

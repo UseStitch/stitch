@@ -7,6 +7,8 @@ import { z } from 'zod';
 
 import type { StartRecordingInput } from '@stitch/shared/recordings/types';
 
+import { unwrapResult } from '@/lib/route-helpers.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import { isServiceError } from '@/lib/service-result.js';
 import {
   cancelRecordingAnalysis,
@@ -28,76 +30,57 @@ const startRecordingSchema = z.object({
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
 });
 
+const recordingIdParamSchema = z.object({
+  id: z.templateLiteral([z.literal('rec'), z.string()]),
+});
+
+const analyzeQuerySchema = z.object({
+  force: z.enum(['1', 'true']).optional(),
+});
+
 export const recordingsRouter = new Hono();
 
-function parsePagination(query: Record<string, string | undefined>) {
-  const pageRaw = Number.parseInt(query.page ?? '1', 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize ?? '10', 10);
-
-  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 10;
-
-  return { page, pageSize };
-}
-
-recordingsRouter.get('/', async (c) => {
-  const { page, pageSize } = parsePagination({
-    page: c.req.query('page'),
-    pageSize: c.req.query('pageSize'),
-  });
-  const result = await listRecordings({ page, pageSize });
-  return c.json(result);
-});
+recordingsRouter.get(
+  '/',
+  zValidator('query', paginationQuerySchema({ pageSize: 10 })),
+  async (c) => {
+    const { page, pageSize } = c.req.valid('query');
+    const result = await listRecordings({ page, pageSize });
+    return c.json(result);
+  },
+);
 
 recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async (c) => {
   const body = c.req.valid('json') as StartRecordingInput;
   const result = await startRecording(body);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data, 201);
+  return unwrapResult(c, result, 201);
 });
 
 recordingsRouter.post('/stop', async (c) => {
   const result = await stopRecording();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.get('/devices', async (c) => {
   const result = await listAudioDevices();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.get('/permissions', async (c) => {
   const result = await checkAudioPermissions();
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
-recordingsRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
+recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
   const result = await deleteRecording(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.body(null, 204);
+  return unwrapResult(c, result, 204);
 });
 
-recordingsRouter.get('/:id/audio', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
+recordingsRouter.get('/:id/audio', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
   const result = await getRecordingAudioFile(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+  if (isServiceError(result)) return unwrapResult(c, result);
 
   const stat = await fs.stat(result.data.filePath);
   const range = c.req.header('range');
@@ -152,34 +135,30 @@ recordingsRouter.get('/:id/audio', async (c) => {
   });
 });
 
-recordingsRouter.post('/:id/analyze', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const forceRaw = c.req.query('force');
-  const force = forceRaw === '1' || forceRaw === 'true';
-  const result = await startRecordingAnalysis(id, { force });
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
+recordingsRouter.post(
+  '/:id/analyze',
+  zValidator('param', recordingIdParamSchema),
+  zValidator('query', analyzeQuerySchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { force } = c.req.valid('query');
+    const result = await startRecordingAnalysis(id, { force: !!force });
+    return unwrapResult(c, result, 202);
+  },
+);
 
-  return c.json(result.data, 202);
-});
-
-recordingsRouter.get('/:id/analysis', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
+recordingsRouter.get('/:id/analysis', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
   const result = await getRecordingAnalysis(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.json(result.data);
+  return unwrapResult(c, result);
 });
 
-recordingsRouter.post('/:id/analysis/cancel', async (c) => {
-  const id = c.req.param('id') as `rec_${string}`;
-  const result = await cancelRecordingAnalysis(id);
-  if (isServiceError(result)) {
-    return c.json({ error: result.error }, result.status);
-  }
-
-  return c.body(null, 204);
-});
+recordingsRouter.post(
+  '/:id/analysis/cancel',
+  zValidator('param', recordingIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await cancelRecordingAnalysis(id);
+    return unwrapResult(c, result, 204);
+  },
+);

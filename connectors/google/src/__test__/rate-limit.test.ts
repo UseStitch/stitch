@@ -21,7 +21,10 @@ describe('resolveGoogleQuotaOperation', () => {
     ).toEqual({ service: 'gmail', quotaCost: 5 });
 
     expect(
-      resolveGoogleQuotaOperation('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', 'POST'),
+      resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+        'POST',
+      ),
     ).toEqual({ service: 'gmail', quotaCost: 100 });
 
     expect(
@@ -37,16 +40,22 @@ describe('resolveGoogleQuotaOperation', () => {
       resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files?q=test', 'GET'),
     ).toEqual({ service: 'drive', quotaCost: 1 });
 
-    expect(resolveGoogleQuotaOperation('https://docs.googleapis.com/v1/documents/abc', 'GET')).toEqual(
-      { service: 'docsRead', quotaCost: 1 },
-    );
+    expect(
+      resolveGoogleQuotaOperation('https://docs.googleapis.com/v1/documents/abc', 'GET'),
+    ).toEqual({ service: 'docsRead', quotaCost: 1 });
 
     expect(
-      resolveGoogleQuotaOperation('https://docs.googleapis.com/v1/documents/abc:batchUpdate', 'POST'),
+      resolveGoogleQuotaOperation(
+        'https://docs.googleapis.com/v1/documents/abc:batchUpdate',
+        'POST',
+      ),
     ).toEqual({ service: 'docsWrite', quotaCost: 1 });
 
     expect(
-      resolveGoogleQuotaOperation('https://www.googleapis.com/calendar/v3/calendars/primary/events', 'GET'),
+      resolveGoogleQuotaOperation(
+        'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+        'GET',
+      ),
     ).toEqual({ service: 'calendar', quotaCost: 1 });
   });
 });

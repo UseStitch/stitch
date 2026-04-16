@@ -2,11 +2,7 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import {
-  CATEGORY_LABELS,
-  CONFIDENCE_LABELS,
-  CONFIDENCE_VARIANTS,
-} from '@/components/memories/constants';
+import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { MemoryCategory, MemoryConfidence, SemanticMemory } from '@/lib/queries/memories';
 import { deleteMemoryMutationOptions, updateMemoryMutationOptions } from '@/lib/queries/memories';
 
+const DEBOUNCE_MS = 600;
+
 type Props = {
   memory: SemanticMemory | null;
   open: boolean;
@@ -42,6 +40,12 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
   const [confidence, setConfidence] = React.useState<MemoryConfidence>('stated');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
 
+  const updateMutation = useMutation(updateMemoryMutationOptions(queryClient));
+  const deleteMutation = useMutation(deleteMemoryMutationOptions(queryClient));
+
+  const memoryRef = React.useRef(memory);
+  memoryRef.current = memory;
+
   React.useEffect(() => {
     if (memory) {
       setContent(memory.content);
@@ -50,22 +54,58 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
     }
   }, [memory]);
 
-  const updateMutation = useMutation(updateMemoryMutationOptions(queryClient));
-  const deleteMutation = useMutation(deleteMemoryMutationOptions(queryClient));
+  function save(updates: {
+    content?: string;
+    category?: MemoryCategory;
+    confidence?: MemoryConfidence;
+  }) {
+    if (!memoryRef.current) return;
+    updateMutation.mutate({ id: memoryRef.current.id, updates });
+  }
 
-  function handleSave() {
-    if (!memory) return;
-    updateMutation.mutate(
-      {
-        id: memory.id,
-        updates: {
-          content: content !== memory.content ? content : undefined,
-          category: category !== memory.category ? category : undefined,
-          confidence: confidence !== memory.confidence ? confidence : undefined,
-        },
-      },
-      { onSuccess: () => onOpenChange(false) },
-    );
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function saveDebounced(nextContent: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => save({ content: nextContent }), DEBOUNCE_MS);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      const current = memoryRef.current;
+      if (current && content !== current.content) {
+        save({ content });
+      }
+    }
+    onOpenChange(nextOpen);
+  }
+
+  function handleContentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const next = e.target.value;
+    setContent(next);
+    if (memoryRef.current && next !== memoryRef.current.content) {
+      saveDebounced(next);
+    }
+  }
+
+  function handleCategoryChange(v: string | null) {
+    if (!v) return;
+    const next = v as MemoryCategory;
+    setCategory(next);
+    if (memoryRef.current && next !== memoryRef.current.category) {
+      save({ category: next });
+    }
+  }
+
+  function handleConfidenceChange(v: string | null) {
+    if (!v) return;
+    const next = v as MemoryConfidence;
+    setConfidence(next);
+    if (memoryRef.current && next !== memoryRef.current.confidence) {
+      save({ confidence: next });
+    }
   }
 
   function handleDelete() {
@@ -78,11 +118,6 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
     });
   }
 
-  const isDirty =
-    memory &&
-    (content !== memory.content ||
-      category !== memory.category ||
-      confidence !== memory.confidence);
   const selectedCategoryLabel = CATEGORY_LABELS[category];
   const selectedConfidenceLabel = CONFIDENCE_LABELS[confidence];
 
@@ -90,7 +125,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Memory</SheetTitle>
@@ -102,7 +137,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               <Label>Content</Label>
               <Textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={handleContentChange}
                 className="min-h-28 resize-none"
                 placeholder="Memory content..."
               />
@@ -111,7 +146,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             {/* Category */}
             <div className="flex flex-col gap-1.5">
               <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as MemoryCategory)}>
+              <Select value={category} onValueChange={handleCategoryChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue>{selectedCategoryLabel}</SelectValue>
                 </SelectTrigger>
@@ -128,19 +163,14 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             {/* Confidence */}
             <div className="flex flex-col gap-1.5">
               <Label>Confidence</Label>
-              <Select
-                value={confidence}
-                onValueChange={(v) => setConfidence(v as MemoryConfidence)}
-              >
+              <Select value={confidence} onValueChange={handleConfidenceChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue>{selectedConfidenceLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(CONFIDENCE_LABELS) as MemoryConfidence[]).map((conf) => (
                     <SelectItem key={conf} value={conf}>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={CONFIDENCE_VARIANTS[conf]}>{CONFIDENCE_LABELS[conf]}</Badge>
-                      </div>
+                      {CONFIDENCE_LABELS[conf]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -183,18 +213,9 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             >
               Delete
             </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!isDirty || updateMutation.isPending}
-              >
-                {updateMutation.isPending ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
+            {updateMutation.isPending && (
+              <span className="text-xs text-muted-foreground">Saving…</span>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

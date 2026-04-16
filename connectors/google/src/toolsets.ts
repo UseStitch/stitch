@@ -6,6 +6,8 @@
  * the scopes allow it.
  */
 
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
+
 import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.js';
 import { DOCS_TOOL_SUMMARIES, createDocsTools } from './docs/tools.js';
 import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
@@ -16,8 +18,6 @@ import {
   hasServiceAccess,
   hasWriteAccess,
 } from './scopes.js';
-
-import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import type { GoogleClient } from './client.js';
 
@@ -30,7 +30,7 @@ export const GOOGLE_CAPABILITY_CALENDAR_WRITE = 'google.calendar.write';
 export const GOOGLE_CAPABILITY_DOCS_READ = 'google.docs.read';
 export const GOOGLE_CAPABILITY_DOCS_WRITE = 'google.docs.write';
 
-export const GOOGLE_DEFAULT_CAPABILITIES = [
+const GOOGLE_DEFAULT_CAPABILITIES = [
   GOOGLE_CAPABILITY_GMAIL_READ,
   GOOGLE_CAPABILITY_GMAIL_WRITE,
   GOOGLE_CAPABILITY_DRIVE_READ,

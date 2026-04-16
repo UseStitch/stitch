@@ -8,4 +8,4 @@ export type {
   ExtractedFact,
 } from '@stitch/shared/memory/types';
 
-export { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@stitch/shared/memory/types';
+export { MEMORY_CATEGORIES, MEMORY_CONFIDENCES, MEMORY_SOURCES } from '@stitch/shared/memory/types';

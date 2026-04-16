@@ -4,14 +4,7 @@
   "title": "Stitch MCP Marketplace Server",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "id",
-    "name",
-    "description",
-    "docsUrl",
-    "tags",
-    "install"
-  ],
+  "required": ["id", "name", "description", "docsUrl", "tags", "install"],
   "properties": {
     "$schema": {
       "type": "string",
@@ -56,12 +49,7 @@
     "mcpInstallConfig": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "transport",
-        "url",
-        "authConfig"
-      ],
+      "required": ["name", "transport", "url", "authConfig"],
       "properties": {
         "name": {
           "type": "string",
@@ -70,10 +58,7 @@
         },
         "transport": {
           "type": "string",
-          "enum": [
-            "stdio",
-            "http"
-          ]
+          "enum": ["stdio", "http"]
         },
         "url": {
           "type": "string",
@@ -84,9 +69,7 @@
             {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type"
-              ],
+              "required": ["type"],
               "properties": {
                 "type": {
                   "const": "none"
@@ -96,10 +79,7 @@
             {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "apiKey"
-              ],
+              "required": ["type", "apiKey"],
               "properties": {
                 "type": {
                   "const": "api_key"
@@ -113,10 +93,7 @@
             {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "headers"
-              ],
+              "required": ["type", "headers"],
               "properties": {
                 "type": {
                   "const": "headers"
@@ -139,9 +116,7 @@
               {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "type"
-                ],
+                "required": ["type"],
                 "properties": {
                   "type": {
                     "const": "none"
@@ -151,10 +126,7 @@
               {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "type",
-                  "apiKey"
-                ],
+                "required": ["type", "apiKey"],
                 "properties": {
                   "type": {
                     "const": "api_key"
@@ -168,10 +140,7 @@
               {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "type",
-                  "headers"
-                ],
+                "required": ["type", "headers"],
                 "properties": {
                   "type": {
                     "const": "headers"

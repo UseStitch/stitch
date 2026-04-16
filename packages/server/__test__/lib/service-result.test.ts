@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
 
 describe('ServiceResult', () => {
@@ -16,7 +17,7 @@ describe('ServiceResult', () => {
 
   it('err() should support all configured HTTP status codes', () => {
     const statuses = [400, 401, 403, 404, 409, 422, 500] as const;
-    
+
     for (const status of statuses) {
       const result = err('Error', status);
       expect(result.status).toBe(status);

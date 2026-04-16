@@ -39,9 +39,7 @@ export function buildRows(
     const message = messages[i];
     if (
       message.parts.some(
-        (part) =>
-          part.type === 'session-title' ||
-          part.type === 'automation-generation',
+        (part) => part.type === 'session-title' || part.type === 'automation-generation',
       )
     ) {
       continue;
