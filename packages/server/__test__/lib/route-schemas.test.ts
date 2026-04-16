@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prefixedId, routeSchemas } from '@/lib/route-schemas.js';
+import { paginationQuerySchema, prefixedId, routeSchemas } from '@/lib/route-schemas.js';
 import { ID_PREFIXES } from '@stitch/shared/id';
 
 describe('Route Schemas', () => {
@@ -47,5 +47,54 @@ describe('Route Schemas', () => {
       expect(routeSchemas.automationId.safeParse('auto_123').success).toBe(true);
       expect(routeSchemas.automationId.safeParse('msg_123').success).toBe(false);
     });
+  });
+});
+
+describe('paginationQuerySchema', () => {
+  const schema = paginationQuerySchema();
+  const schema10 = paginationQuerySchema({ pageSize: 10 });
+
+  it('applies default page=1 and pageSize=20 when params are absent', () => {
+    const result = schema.parse({});
+    expect(result).toEqual({ page: 1, pageSize: 20 });
+  });
+
+  it('applies custom default pageSize', () => {
+    const result = schema10.parse({});
+    expect(result).toEqual({ page: 1, pageSize: 10 });
+  });
+
+  it('parses valid page and pageSize from strings', () => {
+    const result = schema.parse({ page: '3', pageSize: '50' });
+    expect(result).toEqual({ page: 3, pageSize: 50 });
+  });
+
+  it('parses valid page and pageSize from numbers', () => {
+    const result = schema.parse({ page: 2, pageSize: 25 });
+    expect(result).toEqual({ page: 2, pageSize: 25 });
+  });
+
+  it('rejects page < 1', () => {
+    expect(schema.safeParse({ page: '0' }).success).toBe(false);
+    expect(schema.safeParse({ page: '-1' }).success).toBe(false);
+  });
+
+  it('rejects pageSize < 1', () => {
+    expect(schema.safeParse({ pageSize: '0' }).success).toBe(false);
+  });
+
+  it('rejects pageSize > 100', () => {
+    expect(schema.safeParse({ pageSize: '101' }).success).toBe(false);
+    expect(schema.safeParse({ pageSize: '200' }).success).toBe(false);
+  });
+
+  it('accepts boundary values pageSize=1 and pageSize=100', () => {
+    expect(schema.parse({ pageSize: '1' })).toEqual({ page: 1, pageSize: 1 });
+    expect(schema.parse({ pageSize: '100' })).toEqual({ page: 1, pageSize: 100 });
+  });
+
+  it('rejects non-numeric strings', () => {
+    expect(schema.safeParse({ page: 'abc' }).success).toBe(false);
+    expect(schema.safeParse({ pageSize: 'xyz' }).success).toBe(false);
   });
 });

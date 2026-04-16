@@ -18,14 +18,13 @@ import {
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES, MEMORY_SOURCES } from '@/memory/types.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import type { Context } from 'hono';
 
-const semanticQuerySchema = z.object({
+const semanticQuerySchema = paginationQuerySchema({ pageSize: 20 }).extend({
   source: z.enum(MEMORY_SOURCES).optional(),
   category: z.enum(MEMORY_CATEGORIES).optional(),
   q: z.string().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 const patchSchema = z.object({

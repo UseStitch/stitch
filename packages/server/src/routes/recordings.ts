@@ -23,15 +23,11 @@ import {
 } from '@/recordings/service.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
-});
-
-const paginationQuerySchema = z.object({
-  page: z.string().transform(Number).refine((n) => Number.isInteger(n) && n > 0).default(1),
-  pageSize: z.string().transform(Number).refine((n) => Number.isInteger(n) && n >= 1 && n <= 100).default(10),
 });
 
 const recordingIdParamSchema = z.object({
@@ -46,7 +42,7 @@ export const recordingsRouter = new Hono();
 
 recordingsRouter.get(
   '/',
-  zValidator('query', paginationQuerySchema),
+  zValidator('query', paginationQuerySchema({ pageSize: 10 })),
   async (c) => {
     const { page, pageSize } = c.req.valid('query');
     const result = await listRecordings({ page, pageSize });
