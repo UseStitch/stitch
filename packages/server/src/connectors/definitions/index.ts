@@ -1,5 +1,4 @@
 import { googleConnectorModule } from '@stitch-connectors/google';
-
 import type { ConnectorModule } from '@stitch-connectors/sdk';
 
 import { registerConnector } from '@/connectors/registry.js';

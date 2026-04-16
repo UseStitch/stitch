@@ -5,13 +5,14 @@
  */
 
 import { noopLogger, type StitchLogger } from '@stitch/shared/logger';
+
 import {
   DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
   GoogleRateLimitCoordinator,
   type GoogleRateLimitConfig,
 } from './rate-limit.js';
 
-export type GoogleClientConfig = {
+type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
   getAccessToken: () => Promise<string>;
   /** Optional logger instance — defaults to no-op if not provided. */
@@ -22,7 +23,7 @@ export type GoogleClientConfig = {
   rateLimits?: Partial<GoogleRateLimitConfig>;
 };
 
-export class GoogleApiError extends Error {
+class GoogleApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
   readonly reason: string | undefined;
@@ -185,7 +186,9 @@ type ParsedApiError = {
   retryAfterMs: number | undefined;
 };
 
-function mergeRateLimitConfig(overrides: Partial<GoogleRateLimitConfig> | undefined): GoogleRateLimitConfig {
+function mergeRateLimitConfig(
+  overrides: Partial<GoogleRateLimitConfig> | undefined,
+): GoogleRateLimitConfig {
   if (!overrides) {
     return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
   }
@@ -195,15 +198,19 @@ function mergeRateLimitConfig(overrides: Partial<GoogleRateLimitConfig> | undefi
     services: {
       gmail: {
         project:
-          overrides.services?.gmail?.project ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.project,
+          overrides.services?.gmail?.project ??
+          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.project,
         account:
-          overrides.services?.gmail?.account ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.account,
+          overrides.services?.gmail?.account ??
+          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.account,
       },
       drive: {
         project:
-          overrides.services?.drive?.project ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.project,
+          overrides.services?.drive?.project ??
+          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.project,
         account:
-          overrides.services?.drive?.account ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.account,
+          overrides.services?.drive?.account ??
+          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.account,
       },
       docsRead: {
         project:
@@ -302,7 +309,11 @@ function computeExponentialBackoffMs(attempt: number, maxDelayMs: number): numbe
   return Math.min(maxDelayMs, baseMs + Math.floor(Math.random() * 1000));
 }
 
-function isRetryableRateLimit(status: number, reason: string | undefined, message: string): boolean {
+function isRetryableRateLimit(
+  status: number,
+  reason: string | undefined,
+  message: string,
+): boolean {
   if (status === 429 || status === 503) {
     return true;
   }

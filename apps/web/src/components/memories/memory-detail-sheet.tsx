@@ -2,10 +2,7 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import {
-  CATEGORY_LABELS,
-  CONFIDENCE_LABELS,
-} from '@/components/memories/constants';
+import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

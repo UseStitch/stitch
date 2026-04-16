@@ -48,7 +48,8 @@ export function FieldGroup({
                 className={`w-full${errors[field.key] ? ' border-destructive' : ''}`}
               >
                 <SelectValue placeholder={field.placeholder}>
-                  {field.options.find((o) => o.value === values[field.key])?.label ?? values[field.key]}
+                  {field.options.find((o) => o.value === values[field.key])?.label ??
+                    values[field.key]}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-80 max-w-none">

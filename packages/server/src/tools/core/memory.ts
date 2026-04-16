@@ -1,8 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { getMemoryConfig } from '@/memory/config.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { getMemoryConfig } from '@/memory/config.js';
 import {
   addSemanticMemory,
   deleteSemanticMemory,

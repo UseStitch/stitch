@@ -84,7 +84,10 @@ export async function processMemories(input: {
     }
 
     if (input.userMessage.trim().length < config.minMessageLength) {
-      log.debug({ sessionId: input.sessionId, len: input.userMessage.length }, 'skipping extraction for short message');
+      log.debug(
+        { sessionId: input.sessionId, len: input.userMessage.length },
+        'skipping extraction for short message',
+      );
       return;
     }
 
@@ -137,7 +140,8 @@ export async function processMemories(input: {
     if (config.confidenceFilter !== 'all') {
       facts = facts.filter((fact) => {
         if (config.confidenceFilter === 'stated') return fact.confidence === 'stated';
-        if (config.confidenceFilter === 'stated+confirmed') return fact.confidence === 'stated' || fact.confidence === 'confirmed';
+        if (config.confidenceFilter === 'stated+confirmed')
+          return fact.confidence === 'stated' || fact.confidence === 'confirmed';
         return true;
       });
     }
@@ -180,7 +184,10 @@ export async function processMemories(input: {
       // Similarity Pre-check
       const topMatch = existing[0];
       if (topMatch && topMatch.score >= 0.85) {
-        log.info({ factContent: fact.content, score: topMatch.score }, 'skipping dedup due to high similarity pre-check');
+        log.info(
+          { factContent: fact.content, score: topMatch.score },
+          'skipping dedup due to high similarity pre-check',
+        );
         skipCount++;
         continue;
       }
@@ -246,11 +253,20 @@ export async function processMemories(input: {
       }
     }
 
-    log.info({ 
-      sessionId: input.sessionId, 
-      extracted: facts.length,
-      decisions: { ADD: addCount, UPDATE: updateCount, DELETE: deleteCount, NONE: noneCount, SKIPPED_HIGH_SIMILARITY: skipCount }
-    }, 'memory processing complete');
+    log.info(
+      {
+        sessionId: input.sessionId,
+        extracted: facts.length,
+        decisions: {
+          ADD: addCount,
+          UPDATE: updateCount,
+          DELETE: deleteCount,
+          NONE: noneCount,
+          SKIPPED_HIGH_SIMILARITY: skipCount,
+        },
+      },
+      'memory processing complete',
+    );
 
     if (config.autoprune && (addCount > 0 || updateCount > 0)) {
       await pruneStaleMemories({

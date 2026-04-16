@@ -1,6 +1,7 @@
-import type { Context } from 'hono';
 import { isServiceError } from './service-result.js';
+
 import type { ServiceResult } from './service-result.js';
+import type { Context } from 'hono';
 
 type SuccessStatus = 200 | 201 | 202 | 204;
 
@@ -19,10 +20,7 @@ export function unwrapResult<T>(
   return c.json(result.data, successStatus);
 }
 
-export function requireFound<T>(
-  value: T | null | undefined,
-  label: string,
-): ServiceResult<T> {
+export function requireFound<T>(value: T | null | undefined, label: string): ServiceResult<T> {
   if (value === null || value === undefined) return { error: `${label} not found`, status: 404 };
   return { data: value };
 }

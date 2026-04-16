@@ -89,13 +89,7 @@ export function ToolCallBlock({
   }
 
   if (toolName === 'execute_typescript' && hasArgs) {
-    return (
-      <ExecuteTypescriptToolBlock
-        status={status}
-        args={args}
-        onAbort={onAbort}
-      />
-    );
+    return <ExecuteTypescriptToolBlock status={status} args={args} onAbort={onAbort} />;
   }
 
   if (SEARCH_TOOLS.has(toolName) && hasArgs) {

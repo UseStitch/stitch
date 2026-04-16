@@ -11,6 +11,7 @@ import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
+import { createProvider } from '@/llm/provider/provider.js';
 import {
   ContextOverflowError,
   getErrorCode,
@@ -18,7 +19,6 @@ import {
   isStreamAbortedError,
   StreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { createProvider } from '@/llm/provider/provider.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 

@@ -1,5 +1,6 @@
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
+
+import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Tool } from 'ai';
 
 /** Brief summary of a single tool inside a toolset, used for LLM discovery. */

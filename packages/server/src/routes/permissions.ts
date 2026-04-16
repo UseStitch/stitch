@@ -7,8 +7,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 import {
   allowPermissionResponse,
   alternativePermissionResponse,
@@ -31,7 +31,10 @@ permissionsRouter.get('/sessions/:id/permission-responses', async (c) => {
   const db = getDb();
   const sessionId = c.req.param('id') as PrefixedString<'ses'>;
 
-  const [session] = await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, sessionId));
+  const [session] = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId));
   const sessionResult = requireFound(session, 'Session');
   if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
 

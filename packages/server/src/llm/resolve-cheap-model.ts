@@ -1,4 +1,5 @@
 import type { SettingsKey } from '@stitch/shared/settings/types';
+
 import { resolveModel, type ResolvedModel } from '@/llm/resolve-model.js';
 
 const CHEAP_MODEL_PRIORITY = [
@@ -18,7 +19,7 @@ const CHEAP_MODEL_PRIORITY = [
  * 3. Fallback to the caller-provided model (usually the active chat model)
  *
  * Returns `null` only when no configured provider is found at all.
- * 
+ *
  * Note: This acts as a wrapper around `resolveModel`, passing the cheap model
  * priority list, and swallowing errors to return `null` instead for forgiving tasks.
  */

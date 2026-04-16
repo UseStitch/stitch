@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { ID_PREFIXES, type IdPrefix, type PrefixedString } from '@stitch/shared/id';
 
 export function paginationQuerySchema(defaults: { pageSize?: number } = {}) {

@@ -3,8 +3,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';

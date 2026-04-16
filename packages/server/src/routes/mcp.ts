@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
-import { isServiceError } from '@/lib/service-result.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
 import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';

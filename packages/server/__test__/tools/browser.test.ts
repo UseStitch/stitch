@@ -26,9 +26,9 @@ describe('browser tool abort contract', () => {
   });
 
   test('converts non-abort errors to thrown Error', async () => {
-    await expect(executeWithAbort(() => Promise.reject(new Error('CDP connection failed')))).rejects.toThrow(
-      'CDP connection failed',
-    );
+    await expect(
+      executeWithAbort(() => Promise.reject(new Error('CDP connection failed'))),
+    ).rejects.toThrow('CDP connection failed');
   });
 
   test('returns result when action succeeds', async () => {

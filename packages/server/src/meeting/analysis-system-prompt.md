@@ -25,7 +25,7 @@ You are analyzing a meeting transcript. Perform the following steps in order:
 - Write a high-level, 1-2 paragraph executive summary of the entire meeting.
 - Focus on the main purpose of the meeting, the overarching themes discussed, and the general outcome.
 - Do NOT include granular bulleted lists of action items, decisions, risks, or open questions in this summary.
-- Keep it concise, professional, and easy to read. 
+- Keep it concise, professional, and easy to read.
 
 ## Step 3: Structured Topic Extraction
 

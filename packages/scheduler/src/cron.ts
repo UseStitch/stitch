@@ -81,7 +81,9 @@ function matchesCron(parts: CronParts, at: Date, timezone: CronSchedule['timezon
   );
 }
 
-export function validateCronExpression(expression: string): { valid: true } | { valid: false; error: string } {
+export function validateCronExpression(
+  expression: string,
+): { valid: true } | { valid: false; error: string } {
   try {
     parseCron(expression);
     return { valid: true };
@@ -90,7 +92,11 @@ export function validateCronExpression(expression: string): { valid: true } | { 
   }
 }
 
-export function getNextCronRunMs(expression: string, afterMs: number, timezone: 'UTC' | 'local'): number {
+export function getNextCronRunMs(
+  expression: string,
+  afterMs: number,
+  timezone: 'UTC' | 'local',
+): number {
   const parts = parseCron(expression);
   const cursor = new Date(afterMs);
 
@@ -108,5 +114,7 @@ export function getNextCronRunMs(expression: string, afterMs: number, timezone: 
     else cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
   }
 
-  throw new Error(`Unable to find next cron run within ${MAX_SCAN_MINUTES} minutes for "${expression}"`);
+  throw new Error(
+    `Unable to find next cron run within ${MAX_SCAN_MINUTES} minutes for "${expression}"`,
+  );
 }

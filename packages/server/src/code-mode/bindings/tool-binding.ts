@@ -1,6 +1,5 @@
-import type { Tool } from 'ai';
-
 import type { ToolBinding } from '@/code-mode/isolate/types.js';
+import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';
 
@@ -30,7 +29,7 @@ export function toolsToBindings(tools: Record<string, Tool>): Record<string, Too
     const description = tool.description ?? `Tool: ${name}`;
     const schema = extractJsonSchema(
       (tool as unknown as Record<string, unknown>)['parameters'] ??
-      (tool as unknown as Record<string, unknown>)['inputSchema'],
+        (tool as unknown as Record<string, unknown>)['inputSchema'],
     );
 
     const execute = tool.execute;

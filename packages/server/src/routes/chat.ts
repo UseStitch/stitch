@@ -2,9 +2,7 @@ import { Hono } from 'hono';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import {
-  generateAutomationDraft,
-} from '@/automations/generation.js';
+import { generateAutomationDraft } from '@/automations/generation.js';
 import {
   abortSessionRun,
   createSession,

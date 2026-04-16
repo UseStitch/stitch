@@ -8,7 +8,11 @@ import type { McpServer } from '@stitch/shared/mcp/types';
 
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { mcpServersQueryOptions, useDeleteMcpServer, useRefreshMcpServers } from '@/lib/queries/mcp';
+import {
+  mcpServersQueryOptions,
+  useDeleteMcpServer,
+  useRefreshMcpServers,
+} from '@/lib/queries/mcp';
 import { knownMcpToolsQueryOptions } from '@/lib/queries/tools';
 
 export function McpServerList({

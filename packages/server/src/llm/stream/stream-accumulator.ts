@@ -251,7 +251,9 @@ export class StreamAccumulator {
         const partId = createPartId();
         const truncationMeta = this.getToolTruncationMeta(part.output);
         const sanitizedOutput = this.stripToolTruncationMeta(part.output);
-        const fallbackError = isToolErrorResult(sanitizedOutput) ? sanitizedOutput.error : undefined;
+        const fallbackError = isToolErrorResult(sanitizedOutput)
+          ? sanitizedOutput.error
+          : undefined;
 
         await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,

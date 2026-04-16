@@ -6,9 +6,7 @@ import {
 } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 
-import type {
-  GeneratedAutomationDraft,
-} from '@stitch/shared/automations/types';
+import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 import type {
   Message,
   Session,

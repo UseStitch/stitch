@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { computeTotalPages, paginatedQuery } from '../../src/lib/paginated-query.js';
 
 describe('paginated-query', () => {

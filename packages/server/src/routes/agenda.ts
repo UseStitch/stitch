@@ -2,10 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import {
-  AGENDA_ITEM_PRIORITIES,
-  AGENDA_ITEM_STATUSES,
-} from '@stitch/shared/agenda/types';
+import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import {
@@ -131,16 +128,20 @@ agendaRouter.post('/items/reorder', zValidator('json', reorderSchema), async (c)
   return c.json({ success: true });
 });
 
-agendaRouter.get('/items', zValidator('query', paginationQuerySchema({ pageSize: 20 })), async (c) => {
-  const { page, pageSize } = c.req.valid('query');
+agendaRouter.get(
+  '/items',
+  zValidator('query', paginationQuerySchema({ pageSize: 20 })),
+  async (c) => {
+    const { page, pageSize } = c.req.valid('query');
 
-  const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
-  const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
-  const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
+    const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
+    const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
+    const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
 
-  const result = await getAgendaItems({ listId, status, priority, page, pageSize });
-  return c.json(result);
-});
+    const result = await getAgendaItems({ listId, status, priority, page, pageSize });
+    return c.json(result);
+  },
+);
 
 agendaRouter.post('/items', zValidator('json', createItemSchema), async (c) => {
   const body = c.req.valid('json');

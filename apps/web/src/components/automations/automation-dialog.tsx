@@ -44,7 +44,9 @@ type AutomationDialogProps = {
   timezone: string;
 };
 
-function getInitialSelection(providerModels: ProviderModels[]): { providerId: string; modelId: string } | null {
+function getInitialSelection(
+  providerModels: ProviderModels[],
+): { providerId: string; modelId: string } | null {
   const provider = providerModels[0];
   const model = provider?.models[0];
   if (!provider || !model) return null;
@@ -101,12 +103,14 @@ export function AutomationDialog({
     setCronExpression('0 9 * * *');
   }, [open, mode, automation, providerModels, prefill]);
 
-  const selectedProvider = providerModels.find((provider) => provider.providerId === providerId) ?? null;
+  const selectedProvider =
+    providerModels.find((provider) => provider.providerId === providerId) ?? null;
   const availableModels = React.useMemo(() => selectedProvider?.models ?? [], [selectedProvider]);
   const selectedProviderLabel = selectedProvider?.providerName ?? null;
   const selectedModelLabel =
     availableModels.find((model) => model.id === modelId)?.name ??
-    providerModels.flatMap((provider) => provider.models).find((model) => model.id === modelId)?.name ??
+    providerModels.flatMap((provider) => provider.models).find((model) => model.id === modelId)
+      ?.name ??
     null;
 
   React.useEffect(() => {
@@ -120,9 +124,7 @@ export function AutomationDialog({
   const isCronValid = cronExpression.trim().length > 0;
   const triggerLabel = isScheduled ? 'Scheduled' : 'Manual';
   const scheduleSummary = getAutomationScheduleLabel(
-    !isScheduled
-      ? null
-      : { type: 'cron', expression: cronExpression.trim() },
+    !isScheduled ? null : { type: 'cron', expression: cronExpression.trim() },
   );
 
   const canSubmit =
@@ -142,11 +144,11 @@ export function AutomationDialog({
 
     await onSubmit(
       {
-      title: title.trim(),
-      initialMessage: initialMessage.trim(),
-      providerId,
-      modelId,
-      schedule,
+        title: title.trim(),
+        initialMessage: initialMessage.trim(),
+        providerId,
+        modelId,
+        schedule,
       },
       action,
     );
@@ -237,7 +239,9 @@ export function AutomationDialog({
             </div>
 
             <div className="rounded-lg border border-border/60 bg-card/70 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Current schedule</p>
+              <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Current schedule
+              </p>
               <p className="mt-1 text-sm text-foreground">{scheduleSummary}</p>
             </div>
           </div>
@@ -249,7 +253,11 @@ export function AutomationDialog({
                 size="sm"
                 variant={editorView === 'prompt' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('prompt')}
-                className={editorView === 'prompt' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
+                className={
+                  editorView === 'prompt'
+                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
+                    : ''
+                }
               >
                 Prompt
               </Button>
@@ -258,7 +266,11 @@ export function AutomationDialog({
                 size="sm"
                 variant={editorView === 'preview' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('preview')}
-                className={editorView === 'preview' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
+                className={
+                  editorView === 'preview'
+                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
+                    : ''
+                }
               >
                 Preview
               </Button>
@@ -271,7 +283,11 @@ export function AutomationDialog({
                     if (!isScheduled) return;
                     setEditorView('schedule');
                   }}
-                  className={editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}
+                  className={
+                    editorView === 'schedule'
+                      ? 'bg-background text-foreground shadow-sm hover:bg-background'
+                      : ''
+                  }
                 >
                   Schedule
                 </Button>
@@ -296,7 +312,9 @@ export function AutomationDialog({
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="automation-message">Initial prompt</Label>
-                  <span className="text-xs text-muted-foreground">{initialMessage.length} chars</span>
+                  <span className="text-xs text-muted-foreground">
+                    {initialMessage.length} chars
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   This message is used to kick off the session when the automation runs.
@@ -314,7 +332,11 @@ export function AutomationDialog({
             ) : (
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
-                  <CronExpressionBuilder value={cronExpression} onChange={setCronExpression} timezone={timezone} />
+                  <CronExpressionBuilder
+                    value={cronExpression}
+                    onChange={setCronExpression}
+                    timezone={timezone}
+                  />
                 </div>
               </div>
             )}
@@ -327,7 +349,11 @@ export function AutomationDialog({
           </Button>
           {mode === 'create' ? (
             <>
-              <Button variant="outline" onClick={() => void handleSubmit('create')} disabled={!canSubmit}>
+              <Button
+                variant="outline"
+                onClick={() => void handleSubmit('create')}
+                disabled={!canSubmit}
+              >
                 {isPending ? 'Creating...' : 'Create'}
               </Button>
               <Button onClick={() => void handleSubmit('create-view')} disabled={!canSubmit}>

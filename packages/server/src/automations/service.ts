@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import { validateCronExpression } from '@stitch/scheduler';
 
+import { validateCronExpression } from '@stitch/scheduler';
 import type {
   Automation,
   ListAutomationsResponse,
@@ -73,7 +73,7 @@ export async function listAutomations(input: {
   pageSize: number;
 }): Promise<ListAutomationsResponse> {
   const db = getDb();
-  
+
   const result = await paginatedQuery({
     dataQuery: db.select().from(automations).orderBy(asc(automations.createdAt)),
     countQuery: db.select({ total: sql<number>`count(*)` }).from(automations),

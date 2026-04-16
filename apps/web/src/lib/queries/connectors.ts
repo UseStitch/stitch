@@ -1,9 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type {
-  ConnectorDefinition,
-  ConnectorInstanceSafe,
-} from '@stitch/shared/connectors/types';
+import type { ConnectorDefinition, ConnectorInstanceSafe } from '@stitch/shared/connectors/types';
 
 import { serverFetch } from '@/lib/api';
 

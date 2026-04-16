@@ -3,10 +3,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
 
+import { type StitchLogger } from '@stitch/shared/logger';
+
 import * as Glob from '@/lib/glob.js';
 import { PATHS } from '@/lib/paths.js';
-
-import { type StitchLogger } from '@stitch/shared/logger';
 
 const Level = z
   .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])

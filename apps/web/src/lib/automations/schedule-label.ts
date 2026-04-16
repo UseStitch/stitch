@@ -47,7 +47,10 @@ function formatCron(expression: string): string {
   if (dayOfMonth === '*' && month === '*') {
     const days = toNumberList(dayOfWeek);
     if (days) {
-      const labels = days.length === 0 ? 'every day' : days.map((day) => WEEKDAY_LABELS[day] ?? `${day}`).join(', ');
+      const labels =
+        days.length === 0
+          ? 'every day'
+          : days.map((day) => WEEKDAY_LABELS[day] ?? `${day}`).join(', ');
       return `Weekly on ${labels} at ${formatTime(hour, minute)}`;
     }
   }

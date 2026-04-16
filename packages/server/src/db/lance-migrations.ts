@@ -1,11 +1,10 @@
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
-
 import { MIGRATIONS } from '@/db/lance-migrations/manifest.js';
 import type { LanceMigrationDefinition } from '@/db/lance-migrations/types.js';
 import * as schema from '@/db/schema.js';
 import { lanceMigrations } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { getConnection } from '@/memory/store/connection.js';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 const log = Log.create({ service: 'lance-migrations' });
 
@@ -74,7 +73,7 @@ async function markApplied(db: Db, migration: LanceMigrationDefinition): Promise
 }
 
 function assertChecksumMatches(
-  existing: (typeof lanceMigrations.$inferSelect) | undefined,
+  existing: typeof lanceMigrations.$inferSelect | undefined,
   migration: LanceMigrationDefinition,
 ): void {
   if (!existing) return;
@@ -129,11 +128,7 @@ export async function runPendingMigrations(db: Db): Promise<void> {
     assertChecksumMatches(existing, migration);
 
     if (existing?.status === 'applied') {
-      if (
-        !existing.id ||
-        !existing.checksum ||
-        existing.prevId !== migration.prevId
-      ) {
+      if (!existing.id || !existing.checksum || existing.prevId !== migration.prevId) {
         await markApplied(db, migration);
       }
       continue;
@@ -192,6 +187,5 @@ export async function runPendingMigrations(db: Db): Promise<void> {
 
       throw error;
     }
-
   }
 }

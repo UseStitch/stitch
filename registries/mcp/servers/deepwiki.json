@@ -5,11 +5,7 @@
   "description": "Read DeepWiki docs and ask repository-grounded questions.",
   "homepageUrl": "https://docs.devin.ai/work-with-devin/deepwiki",
   "docsUrl": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
-  "tags": [
-    "documentation",
-    "repositories",
-    "research"
-  ],
+  "tags": ["documentation", "repositories", "research"],
   "install": {
     "name": "DeepWiki",
     "transport": "http",

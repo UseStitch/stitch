@@ -24,7 +24,10 @@ function getMigrationsDir(): string {
   if (process.env.NODE_ENV === 'development') {
     const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
     if (fs.existsSync(sourceMigrationsDir)) {
-      log.info({ migrationsDir: sourceMigrationsDir, execPath: process.execPath }, 'migrations dir resolved (dev)');
+      log.info(
+        { migrationsDir: sourceMigrationsDir, execPath: process.execPath },
+        'migrations dir resolved (dev)',
+      );
       return sourceMigrationsDir;
     }
   }

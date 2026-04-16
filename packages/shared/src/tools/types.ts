@@ -2,19 +2,17 @@ export const TOOL_TYPES = ['stitch', 'mcp', 'plugin'] as const;
 
 export type ToolType = (typeof TOOL_TYPES)[number];
 
-export type ToolDataResult<T = unknown> = {
+type ToolDataResult<T = unknown> = {
   data: T;
   error?: never;
   details?: never;
 };
 
-export type ToolErrorResult = {
+type ToolErrorResult = {
   error: string;
   details?: unknown;
   data?: never;
 };
-
-export type ToolResult<T = unknown> = ToolDataResult<T> | ToolErrorResult;
 
 export function isToolErrorResult(value: unknown): value is ToolErrorResult {
   if (!value || typeof value !== 'object') {

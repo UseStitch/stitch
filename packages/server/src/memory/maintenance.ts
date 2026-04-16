@@ -1,8 +1,8 @@
+import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { deduplicateMemories, getMemoryStats, pruneStaleMemories } from '@/memory/service.js';
 import type { MemoryStats } from '@/memory/service.js';
-import { isServiceError } from '@/lib/service-result.js';
-import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'memory-maintenance' });
 

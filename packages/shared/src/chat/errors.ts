@@ -26,7 +26,7 @@ export type StreamErrorDetails = {
   statusCode?: number;
 };
 
-export type UserFacingStreamError = {
+type UserFacingStreamError = {
   title: string;
   message: string;
   suggestion?: string;

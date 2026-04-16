@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { resolveModel } from '@/llm/resolve-model.js';
-import * as Models from '@/llm/provider/models.js';
+
 import { getDb } from '@/db/client.js';
+import * as Models from '@/llm/provider/models.js';
+import { resolveModel } from '@/llm/resolve-model.js';
 
 vi.mock('@/db/client.js', () => ({
   getDb: vi.fn(),
@@ -130,10 +131,7 @@ describe('resolveModel', () => {
   });
 
   test('falls back to fallback keys when priorityModelIds yields no match', async () => {
-    mockDbResponses(
-      [],
-      [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
-    );
+    mockDbResponses([], [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,

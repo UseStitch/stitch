@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import type { Recording, RecordingAnalysis } from '@stitch/shared/recordings/types';
-
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+
+import type { Recording, RecordingAnalysis } from '@stitch/shared/recordings/types';
 
 import { AnalysisHeader } from './analysis/analysis-header';
 import { SummarySection } from './analysis/summary-section';
@@ -126,7 +126,10 @@ function buildAnalysisMarkdown(
     lines.push('');
   }
 
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return lines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) {

@@ -3,13 +3,13 @@ import { Hono } from 'hono';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import {
   addToQueue,
   listQueuedMessages,
   removeFromQueue,
   updateQueuedMessage,
 } from '@/queue/service.js';
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 
 export const queueRouter = new Hono();
 
