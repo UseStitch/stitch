@@ -201,4 +201,108 @@ describe('toolset management tools', () => {
     expect(result.warning).toBeUndefined();
     expect(result.collisions).toBeUndefined();
   });
+
+  describe('list_toolsets query filtering', () => {
+    beforeEach(() => {
+      clearToolsets();
+      registerToolset({
+        id: 'browser-toolset',
+        name: 'Browser',
+        description: 'Control a headless browser',
+        tools: () => [],
+        activate: async () => ({}),
+      } satisfies Toolset);
+      registerToolset({
+        id: 'database-toolset',
+        name: 'Database',
+        description: 'Query and manage SQL databases',
+        tools: () => [],
+        activate: async () => ({}),
+      } satisfies Toolset);
+      registerToolset({
+        id: 'email-sender',
+        name: 'Email',
+        description: 'Send and receive messages',
+        tools: () => [],
+        activate: async () => ({}),
+      } satisfies Toolset);
+    });
+
+    test('filters by name match', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.({ query: 'browser' }, {} as never)) as {
+        toolsets: { id: string }[];
+        totalAvailable: number;
+      };
+
+      expect(result.toolsets).toHaveLength(1);
+      expect(result.toolsets[0].id).toBe('browser-toolset');
+      expect(result.totalAvailable).toBe(3);
+    });
+
+    test('filters by description match', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.({ query: 'sql' }, {} as never)) as {
+        toolsets: { id: string }[];
+        totalAvailable: number;
+      };
+
+      expect(result.toolsets).toHaveLength(1);
+      expect(result.toolsets[0].id).toBe('database-toolset');
+      expect(result.totalAvailable).toBe(3);
+    });
+
+    test('filters by id match', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.({ query: 'email-sender' }, {} as never)) as {
+        toolsets: { id: string }[];
+        totalAvailable: number;
+      };
+
+      expect(result.toolsets).toHaveLength(1);
+      expect(result.toolsets[0].id).toBe('email-sender');
+      expect(result.totalAvailable).toBe(3);
+    });
+
+    test('returns empty array with totalAvailable when no match', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.(
+        { query: 'xyz_nomatch' },
+        {} as never,
+      )) as {
+        toolsets: unknown[];
+        totalAvailable: number;
+      };
+
+      expect(result.toolsets).toHaveLength(0);
+      expect(result.totalAvailable).toBe(3);
+    });
+
+    test('returns full catalog without totalAvailable when no query provided', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.({}, {} as never)) as {
+        toolsets: { id: string }[];
+        totalAvailable?: number;
+      };
+
+      expect(result.toolsets).toHaveLength(3);
+      expect(result.totalAvailable).toBeUndefined();
+    });
+
+    test('toolsetId takes precedence over query when both provided', async () => {
+      const manager = createManager();
+      const tools = createToolsetTools(manager);
+      const result = (await tools.list_toolsets.execute?.(
+        { toolsetId: 'browser-toolset', query: 'database' },
+        {} as never,
+      )) as { toolsetId: string };
+
+      expect(result.toolsetId).toBe('browser-toolset');
+    });
+  });
 });
