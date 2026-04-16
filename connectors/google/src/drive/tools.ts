@@ -21,6 +21,10 @@ const driveFileSchema = z.object({
     .optional()
     .describe('Optional account email or label when multiple Google accounts are connected'),
   fileId: z.string().describe('The Google Drive file ID'),
+  mimeType: z
+    .string()
+    .optional()
+    .describe('Optional MIME type of the file. Providing this skips an extra metadata lookup if known from a previous search.'),
 });
 
 const driveWriteSchema = z.object({
@@ -71,7 +75,7 @@ export function createDriveTools(
       inputSchema: driveFileSchema,
       execute: async (input: z.infer<typeof driveFileSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DriveApi.getFileContent(client, input.fileId);
+        const result = await DriveApi.getFileContent(client, input.fileId, input.mimeType);
         return { ...result, usedAccount };
       },
     }),
