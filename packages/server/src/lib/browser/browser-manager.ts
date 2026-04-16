@@ -18,6 +18,7 @@ import { SessionHealthWatchdog } from '@/lib/browser/watchdogs/session-health-wa
 import { StorageStateManager } from '@/lib/browser/watchdogs/storage-state-manager.js';
 import * as Log from '@/lib/log.js';
 import { getBrowserProfilePath } from '@/lib/paths.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { listSettings } from '@/settings/service.js';
 import type { ChildProcess } from 'node:child_process';
 
@@ -37,8 +38,9 @@ async function resolveActiveProfileDir(): Promise<string> {
   // Profile importing is not supported on Windows; always use the default clean profile.
   if (process.platform === 'win32') return DEFAULT_BROWSER_PROFILE_DIR;
 
-  const settings = await listSettings();
-  const activeProfile = settings['browser.activeProfile'];
+  const settingsResult = await listSettings();
+  if (isServiceError(settingsResult)) return DEFAULT_BROWSER_PROFILE_DIR;
+  const activeProfile = settingsResult.data['browser.activeProfile'];
   if (!activeProfile) return DEFAULT_BROWSER_PROFILE_DIR;
 
   const parts = activeProfile.split('/');
@@ -419,9 +421,8 @@ class BrowserManager {
       return;
     }
 
-    const [userDataDir, settings] = await Promise.all([resolveActiveProfileDir(), listSettings()]);
-
-    const headless = options.headless ?? settings['browser.headless'] !== 'false';
+    const [userDataDir, settingsResult] = await Promise.all([resolveActiveProfileDir(), listSettings()]);
+    const headless = options.headless ?? (!isServiceError(settingsResult) && settingsResult.data['browser.headless'] !== 'false');
 
     const instance = await launchChrome({
       userDataDir,
