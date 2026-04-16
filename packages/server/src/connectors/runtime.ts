@@ -31,6 +31,7 @@ function getLifecycleContext(connectorId: string) {
       return rows.filter((row) => row.connectorId === id);
     },
     refreshToolsets: async () => refreshConnectorToolsets(connectorId),
+    logger: log,
   };
 }
 

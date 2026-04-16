@@ -160,7 +160,7 @@ export const googleConnectorModule: ConnectorModule = {
     ],
   },
   hooks: {
-    onAuthorized: async ({ accessToken }) => {
+    onAuthorized: async ({ accessToken, logger }) => {
       try {
         const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -173,7 +173,8 @@ export const googleConnectorModule: ConnectorModule = {
           accountEmail: info.email ?? null,
           accountInfo: info as Record<string, unknown>,
         };
-      } catch {
+      } catch (error) {
+        logger.warn({ error }, 'Google onAuthorized hook profile fetch failed');
         return { accountEmail: null, accountInfo: null };
       }
     },
@@ -193,19 +194,10 @@ export const googleConnectorModule: ConnectorModule = {
         }
       }
     },
-    onDeleted: async () => {
-      return;
-    },
   },
   lifecycle: {
-    register: async () => {
-      return;
-    },
     init: async ({ refreshToolsets }) => {
       await refreshToolsets();
-    },
-    shutdown: async () => {
-      return;
     },
   },
 };

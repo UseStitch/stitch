@@ -70,13 +70,42 @@ function hasCapability(capabilities: string[], capability: string): boolean {
   return capabilities.includes(capability);
 }
 
+export function canActivateToolset(
+  toolsetId: string,
+  scopes: string[],
+  capabilities: string[],
+): boolean {
+  if (toolsetId === 'google-gmail') {
+    return (
+      hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
+    );
+  }
+  if (toolsetId === 'google-drive') {
+    return (
+      hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
+    );
+  }
+  if (toolsetId === 'google-calendar') {
+    return (
+      hasServiceAccess(scopes, 'calendar') &&
+      hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
+    );
+  }
+  if (toolsetId === 'google-docs') {
+    return (
+      hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)
+    );
+  }
+  return false;
+}
+
 function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
   const canWriteCapability = hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_WRITE);
   const canSend = hasGmailSendAccess(scopes) && canWriteCapability;
   const canModify = hasGmailModifyAccess(scopes) && canWriteCapability;
   const summaries = GMAIL_TOOL_SUMMARIES.filter((t) => {
     if (t.name === 'gmail_send') return canSend;
-    if (t.name === 'modifyLabels' || t.name === 'modifyMessages') return canModify;
+    if (t.name === 'gmail_modify_labels' || t.name === 'gmail_modify_messages') return canModify;
     return true;
   });
 
@@ -94,8 +123,8 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
         ? 'You have send access. Use gmail_send to compose or reply to emails.'
         : 'You do not have send access. Sending emails is not available.',
       canModify
-        ? 'You have label modify access. Use modifyLabels and modifyMessages to manage labels and archive messages.'
-        : 'You have read-only label access. Use listLabels and getLabels to inspect labels.',
+        ? 'You have label modify access. Use gmail_modify_labels and gmail_modify_messages to manage labels and archive messages.'
+        : 'You have read-only label access. Use gmail_list_labels and gmail_get_label to inspect labels.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createGmailTools(resolveClient, { canSend, canModify }),

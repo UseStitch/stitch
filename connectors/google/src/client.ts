@@ -11,6 +11,7 @@ import {
   GoogleRateLimitCoordinator,
   type GoogleRateLimitConfig,
 } from './rate-limit.js';
+import { sleep } from './utils.js';
 
 type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
@@ -189,54 +190,23 @@ type ParsedApiError = {
 function mergeRateLimitConfig(
   overrides: Partial<GoogleRateLimitConfig> | undefined,
 ): GoogleRateLimitConfig {
-  if (!overrides) {
-    return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
+  if (!overrides) return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
+  
+  const services = { ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services };
+  if (overrides.services) {
+    for (const key of Object.keys(services) as (keyof typeof services)[]) {
+      if (overrides.services[key]) {
+        services[key] = {
+          project: overrides.services[key]?.project ?? services[key].project,
+          account: overrides.services[key]?.account ?? services[key].account,
+        };
+      }
+    }
   }
 
   return {
     maxQueueWaitMs: overrides.maxQueueWaitMs ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.maxQueueWaitMs,
-    services: {
-      gmail: {
-        project:
-          overrides.services?.gmail?.project ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.project,
-        account:
-          overrides.services?.gmail?.account ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.gmail.account,
-      },
-      drive: {
-        project:
-          overrides.services?.drive?.project ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.project,
-        account:
-          overrides.services?.drive?.account ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.drive.account,
-      },
-      docsRead: {
-        project:
-          overrides.services?.docsRead?.project ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.docsRead.project,
-        account:
-          overrides.services?.docsRead?.account ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.docsRead.account,
-      },
-      docsWrite: {
-        project:
-          overrides.services?.docsWrite?.project ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.docsWrite.project,
-        account:
-          overrides.services?.docsWrite?.account ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.docsWrite.account,
-      },
-      calendar: {
-        project:
-          overrides.services?.calendar?.project ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.calendar.project,
-        account:
-          overrides.services?.calendar?.account ??
-          DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services.calendar.account,
-      },
-    },
+    services,
   };
 }
 
@@ -334,29 +304,4 @@ function isRetryableRateLimit(
   }
 
   return /rate.?limit|too many requests|quota/i.test(message);
-}
-
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (ms <= 0) {
-      resolve();
-      return;
-    }
-
-    const onAbort = () => {
-      clearTimeout(timeout);
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-
-    const timeout = setTimeout(() => {
-      if (signal) {
-        signal.removeEventListener('abort', onAbort);
-      }
-      resolve();
-    }, ms);
-
-    if (signal) {
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-  });
 }
