@@ -223,6 +223,7 @@ export async function authorizeOAuthInstance(
         const hookResult = await module.hooks.onAuthorized({
           instance,
           accessToken: tokens.accessToken,
+          logger: log,
         });
         accountEmail = hookResult.accountEmail;
         accountInfo = hookResult.accountInfo;
@@ -425,7 +426,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
 
   const module = getConnectorModule(existing.connectorId);
   if (module?.hooks?.onDeleted) {
-    await module.hooks.onDeleted({ instance: existing });
+    await module.hooks.onDeleted({ instance: existing, logger: log });
   }
   await refreshConnectorToolsetsFor(existing.connectorId);
 
@@ -452,7 +453,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
   try {
     const module = getConnectorModule(instance.connectorId);
     if (module?.hooks?.testConnection) {
-      await module.hooks.testConnection({ instance });
+      await module.hooks.testConnection({ instance, logger: log });
       return ok(true);
     }
 

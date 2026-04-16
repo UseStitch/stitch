@@ -160,7 +160,7 @@ export const googleConnectorModule: ConnectorModule = {
     ],
   },
   hooks: {
-    onAuthorized: async ({ accessToken }) => {
+    onAuthorized: async ({ accessToken, logger }) => {
       try {
         const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -174,8 +174,7 @@ export const googleConnectorModule: ConnectorModule = {
           accountInfo: info as Record<string, unknown>,
         };
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('Google onAuthorized hook profile fetch failed:', error);
+        logger.warn({ error }, 'Google onAuthorized hook profile fetch failed');
         return { accountEmail: null, accountInfo: null };
       }
     },
