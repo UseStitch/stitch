@@ -14,7 +14,7 @@
     },
     "apps/desktop": {
       "name": "@stitch/desktop",
-      "version": "0.2.6",
+      "version": "0.2.9",
       "dependencies": {
         "electron-updater": "^6.8.3",
         "tree-kill": "1.2.2",
@@ -29,7 +29,7 @@
     },
     "apps/web": {
       "name": "@stitch/web",
-      "version": "0.2.6",
+      "version": "0.2.9",
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@stitch/shared": "workspace:*",
@@ -122,6 +122,9 @@
     "packages/scheduler": {
       "name": "@stitch/scheduler",
       "version": "0.0.0",
+      "dependencies": {
+        "@stitch/shared": "workspace:*",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",
