@@ -17,18 +17,34 @@ export function createToolsetTools(manager: ToolsetManager) {
       .join(' ');
 
   const list_toolsets = tool({
-    description: `List toolsets and inspect toolset contents. Call with no arguments for a compact catalog, or pass a toolset ID for detailed tools and prompts.`,
+    description: `List toolsets and inspect toolset contents. Call with no arguments for the full catalog, pass a query string to filter by keyword (e.g. "database"), or pass a toolsetId to inspect a specific toolset's tools and prompts in detail.`,
     inputSchema: z.object({
       toolsetId: z
         .string()
         .optional()
         .describe('Optional toolset ID to inspect in detail (e.g. "browser")'),
+      query: z
+        .string()
+        .optional()
+        .describe('Keyword to filter the catalog (e.g. "database", "browser", "email")'),
     }),
-    execute: async ({ toolsetId }) => {
+    execute: async ({ toolsetId, query }) => {
       if (!toolsetId) {
-        return {
-          toolsets: manager.getCatalogWithState(),
-        };
+        const fullCatalog = manager.getCatalogWithState();
+
+        if (!query) {
+          return { toolsets: fullCatalog };
+        }
+
+        const q = query.toLowerCase();
+        const filtered = fullCatalog.filter(
+          (ts) =>
+            ts.name.toLowerCase().includes(q) ||
+            ts.description.toLowerCase().includes(q) ||
+            ts.id.toLowerCase().includes(q),
+        );
+
+        return { toolsets: filtered, totalAvailable: fullCatalog.length };
       }
 
       const toolset = getToolset(toolsetId);
