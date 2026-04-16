@@ -71,7 +71,7 @@ import { paginatedQuery } from '@/lib/paginated-query.js';
 export async function listAutomations(input: {
   page: number;
   pageSize: number;
-}): Promise<ListAutomationsResponse> {
+}): Promise<ServiceResult<ListAutomationsResponse>> {
   const db = getDb();
 
   const result = await paginatedQuery({
@@ -82,7 +82,7 @@ export async function listAutomations(input: {
     transform: toAutomationRow,
   });
 
-  return { automations: result.items, ...result };
+  return ok({ automations: result.items, ...result });
 }
 
 export async function createAutomation(
