@@ -97,32 +97,23 @@ function toAutomationRow(row: AutomationDbRow): AutomationRow {
   };
 }
 
+import { paginatedQuery } from '@/lib/paginated-query.js';
+
 export async function listAutomations(input: {
   page: number;
   pageSize: number;
 }): Promise<ListAutomationsResponse> {
   const db = getDb();
-  const offset = (input.page - 1) * input.pageSize;
-  const [rows, countRows] = await Promise.all([
-    db
-      .select()
-      .from(automations)
-      .orderBy(asc(automations.createdAt))
-      .limit(input.pageSize)
-      .offset(offset),
-    db.select({ total: sql<number>`count(*)` }).from(automations),
-  ]);
-
-  const total = Number(countRows[0]?.total ?? 0);
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
-
-  return {
-    automations: rows.map(toAutomationRow),
+  
+  const result = await paginatedQuery({
+    dataQuery: db.select().from(automations).orderBy(asc(automations.createdAt)),
+    countQuery: db.select({ total: sql<number>`count(*)` }).from(automations),
     page: input.page,
     pageSize: input.pageSize,
-    total,
-    totalPages,
-  };
+    transform: toAutomationRow,
+  });
+
+  return { automations: result.items, ...result };
 }
 
 export async function createAutomation(

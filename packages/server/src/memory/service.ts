@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import * as Log from '@/lib/log.js';
 import { ok, err } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { computeTotalPages } from '@/lib/paginated-query.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { createEmbedder } from '@/memory/embedding/factory.js';
 import { getSemanticTable } from '@/memory/store/tables.js';
@@ -206,7 +207,7 @@ export async function searchSemanticMemories(input: {
   const end = start + input.pageSize;
   const pageRows = results.slice(start, end);
   const total = results.length;
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
   return ok({
     memories: pageRows.map((r: Record<string, unknown>) => ({
@@ -257,7 +258,7 @@ export async function getAllSemanticMemories(input: {
   const end = start + input.pageSize;
   const pageRows = rows.slice(start, end);
   const total = rows.length;
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
   return ok({
     memories: pageRows.map((r) => ({
