@@ -8,13 +8,13 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions, userSettings } from '@/db/schema.js';
-import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 import { isServiceError } from '@/lib/service-result.js';
+import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import * as Models from '@/llm/provider/models.js';
+import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';

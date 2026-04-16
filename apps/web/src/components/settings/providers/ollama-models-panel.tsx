@@ -1,9 +1,14 @@
 import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
-
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { serverFetch } from '@/lib/api';
 import {
   discoverOllamaModelsQueryOptions,
@@ -12,11 +17,6 @@ import {
   type OllamaModel,
   type OllamaModelInput,
 } from '@/lib/queries/ollama-models';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 
 type Props = {
   baseURL?: string;
@@ -61,8 +61,10 @@ function modelToForm(model: OllamaModel): ModelFormState {
     outputLimit: String(model.outputLimit),
     inputCostPerMillion: String(model.inputCostPerMillion),
     outputCostPerMillion: String(model.outputCostPerMillion),
-    cacheReadCostPerMillion: model.cacheReadCostPerMillion !== null ? String(model.cacheReadCostPerMillion) : '',
-    cacheWriteCostPerMillion: model.cacheWriteCostPerMillion !== null ? String(model.cacheWriteCostPerMillion) : '',
+    cacheReadCostPerMillion:
+      model.cacheReadCostPerMillion !== null ? String(model.cacheReadCostPerMillion) : '',
+    cacheWriteCostPerMillion:
+      model.cacheWriteCostPerMillion !== null ? String(model.cacheWriteCostPerMillion) : '',
     supportsToolCalls: model.supportsToolCalls,
     supportsVision: model.supportsVision,
     supportsReasoning: model.supportsReasoning,
@@ -276,7 +278,11 @@ function ModelForm({
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Button type="submit" size="sm" disabled={isPending || !form.id.trim() || !form.name.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isPending || !form.id.trim() || !form.name.trim()}
+        >
           {isPending ? 'Saving...' : 'Save'}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>

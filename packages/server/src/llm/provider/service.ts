@@ -99,7 +99,10 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   if (providerId === 'ollama_local') {
     const db = getDb();
     const [[config], modelCount] = await Promise.all([
-      db.select({ providerId: providerConfig.providerId }).from(providerConfig).where(eq(providerConfig.providerId, 'ollama_local')),
+      db
+        .select({ providerId: providerConfig.providerId })
+        .from(providerConfig)
+        .where(eq(providerConfig.providerId, 'ollama_local')),
       db.select({ value: count() }).from(ollamaModels),
     ]);
     return ok({
