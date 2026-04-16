@@ -9,6 +9,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 import { ProviderLogo } from './provider-logo';
 
 import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
+import { OllamaModelsPanel } from '@/components/settings/providers/ollama-models-panel';
 import {
   buildProviderConfigBody,
   hydrateProviderConfigState,
@@ -188,80 +189,88 @@ export function ProviderConfig({ provider, onBack }: Props) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-5">
-        {/* Extra top-level fields (region, project, location, etc.) */}
-        {meta.extraFields.length > 0 && (
-          <FieldGroup
-            fields={meta.extraFields}
-            providerId={provider.id}
-            values={extraFields}
-            errors={fieldErrors}
-            onChange={handleExtraFieldChange}
+      {provider.id === 'ollama_local' && provider.enabled ? (
+        <div className="flex flex-1 flex-col gap-5">
+          <OllamaModelsPanel
+            baseURL={(extraFields['baseURL'] as string | undefined) || undefined}
           />
-        )}
-
-        {/* Auth method section */}
-        {hasMultipleMethods ? (
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList>
-              {enabledAuthMethods.map((m) => (
-                <TabsTrigger key={m.method} value={m.method}>
-                  {m.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {enabledAuthMethods.map((m) => (
-              <TabsContent key={m.method} value={m.method} className="mt-4">
-                {m.fields.length > 0 ? (
-                  <FieldGroup
-                    fields={m.fields}
-                    providerId={`${provider.id}-${m.method}`}
-                    values={fieldsByMethod[m.method] ?? {}}
-                    errors={fieldErrors}
-                    onChange={(key, value) =>
-                      setFieldsByMethod((prev) => ({
-                        ...prev,
-                        [m.method]: { ...prev[m.method], [key]: value },
-                      }))
-                    }
-                  />
-                ) : (
-                  <NoFieldsNote method={m.method} />
-                )}
-              </TabsContent>
-            ))}
-          </Tabs>
-        ) : (
-          activeMethodDef &&
-          (activeMethodDef.fields.length > 0 ? (
-            <FieldGroup
-              fields={activeMethodDef.fields}
-              providerId={provider.id}
-              values={currentMethodFields}
-              errors={fieldErrors}
-              onChange={handleMethodFieldChange}
-            />
-          ) : (
-            <NoFieldsNote method={activeMethodDef.method} />
-          ))
-        )}
-
-        <div className="flex items-center gap-2 pt-1">
-          <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
-            {saveMutation.isPending ? 'Saving...' : 'Save'}
-          </Button>
-          {provider.enabled && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
-            </Button>
-          )}
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-1 flex-col gap-5">
+          {/* Extra top-level fields (region, project, location, etc.) */}
+          {meta.extraFields.length > 0 && (
+            <FieldGroup
+              fields={meta.extraFields}
+              providerId={provider.id}
+              values={extraFields}
+              errors={fieldErrors}
+              onChange={handleExtraFieldChange}
+            />
+          )}
+
+          {/* Auth method section */}
+          {hasMultipleMethods ? (
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList>
+                {enabledAuthMethods.map((m) => (
+                  <TabsTrigger key={m.method} value={m.method}>
+                    {m.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {enabledAuthMethods.map((m) => (
+                <TabsContent key={m.method} value={m.method} className="mt-4">
+                  {m.fields.length > 0 ? (
+                    <FieldGroup
+                      fields={m.fields}
+                      providerId={`${provider.id}-${m.method}`}
+                      values={fieldsByMethod[m.method] ?? {}}
+                      errors={fieldErrors}
+                      onChange={(key, value) =>
+                        setFieldsByMethod((prev) => ({
+                          ...prev,
+                          [m.method]: { ...prev[m.method], [key]: value },
+                        }))
+                      }
+                    />
+                  ) : (
+                    <NoFieldsNote method={m.method} />
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : (
+            activeMethodDef &&
+            (activeMethodDef.fields.length > 0 ? (
+              <FieldGroup
+                fields={activeMethodDef.fields}
+                providerId={provider.id}
+                values={currentMethodFields}
+                errors={fieldErrors}
+                onChange={handleMethodFieldChange}
+              />
+            ) : (
+              <NoFieldsNote method={activeMethodDef.method} />
+            ))
+          )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
+              {saveMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+            {provider.enabled && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,10 +9,12 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 import { getDb } from '@/db/client.js';
 import { messages, sessions, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import * as Models from '@/llm/provider/models.js';
+import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -585,6 +587,14 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
  * Look up model limits for a given provider/model combination.
  */
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
+  if (providerId === 'ollama_local') {
+    const result = await OllamaModels.getOllamaModel(modelId);
+    if (!isServiceError(result)) {
+      return { context: result.data.contextWindow, output: result.data.outputLimit };
+    }
+    return { context: 200_000, output: 8_192 };
+  }
+
   const providers = await Models.get();
   const provider = providers[providerId];
   const model = provider?.models[modelId];

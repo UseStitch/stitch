@@ -19,6 +19,7 @@
     "@ai-sdk/google-vertex": "catalog:ai",
     "@ai-sdk/mcp": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
+    "@ai-sdk/openai-compatible": "catalog:ai",
     "@aws-sdk/credential-providers": "^3.1008.0",
     "@hono/node-server": "^1.19.11",
     "@hono/zod-validator": "^0.7.6",
