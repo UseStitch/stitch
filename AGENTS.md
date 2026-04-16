@@ -14,8 +14,9 @@ Stitch is a ai based tool to help users do work locally.
 
 After completing any task, you **must** run the following checks and fix all issues until the output is fully clean:
 
-1. `bun run check` - Gives all the check results (includes lint, test, typecheck, knip)
-2. If working with Rust files, use `cargo test` and `cargo format`
+1. `bun run check` - Gives all the check results (includes lint, test, typecheck, knip, format:changed)
+2. If format check fails, run `bun run format:changed` to fix
+3. If working with Rust files, use `cargo test` and `cargo format`
 
 Do not consider a task done until all three commands pass with zero errors.
 

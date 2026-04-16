@@ -2,8 +2,9 @@
 import { spawnSync } from 'bun';
 
 const steps = [
-  { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
+  { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
+  { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
   {
     name: 'lint',
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--fix', '--fix-suggestions', '.'],
@@ -12,12 +13,12 @@ const steps = [
     name: 'lint:check',
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--deny-warnings', '.'],
   },
-  { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
-  { name: 'knip:check', cmd: ['bunx', 'knip'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
+  {
+    name: 'format:changed:check',
+    cmd: ['bun', 'run', 'format:changed:check'],
+  },
 ];
-
-let failed = false;
 
 for (const step of steps) {
   const result = spawnSync(step.cmd, { stdout: 'pipe', stderr: 'pipe' });
@@ -26,10 +27,10 @@ for (const step of steps) {
   if (result.exitCode !== 0) {
     console.log(`${step.name}: Fail`);
     console.log(output);
-    failed = true;
+    process.exit(1);
   } else {
     console.log(`${step.name}: Pass`);
   }
 }
 
-process.exit(failed ? 1 : 0);
+process.exit(0);
