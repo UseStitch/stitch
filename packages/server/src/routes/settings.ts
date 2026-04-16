@@ -36,7 +36,8 @@ settingsRouter.put('/:key', zValidator('json', settingValueSchema), async (c) =>
       );
     }
 
-    const providerModels = await listEnabledProviderEmbeddingModels();
+    const providerModelsResult = await listEnabledProviderEmbeddingModels();
+    const providerModels = isServiceError(providerModelsResult) ? [] : providerModelsResult.data;
     const hasConfiguredModel = providerModels.some(
       (provider) =>
         provider.providerId === memoryConfig.embeddingProviderId &&

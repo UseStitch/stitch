@@ -11,9 +11,9 @@ type VisibilityOverride = {
   visibility: 'show' | 'hide';
 };
 
-export async function listVisibilityOverrides(): Promise<VisibilityOverride[]> {
+export async function listVisibilityOverrides(): Promise<ServiceResult<VisibilityOverride[]>> {
   const db = getDb();
-  return db.select().from(modelVisibility);
+  return ok(await db.select().from(modelVisibility));
 }
 
 export async function upsertVisibility(

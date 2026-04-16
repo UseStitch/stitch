@@ -69,15 +69,15 @@ async function resolveProvider(providerId: string): Promise<ServiceResult<Models
   return ok(provider);
 }
 
-export async function listProviders(): Promise<ProviderSummary[]> {
+export async function listProviders(): Promise<ServiceResult<ProviderSummary[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.get(),
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
-  return Object.values(providers).map((provider) =>
-    toProviderSummary(provider, enabledIds.has(provider.id)),
+  return ok(
+    Object.values(providers).map((provider) => toProviderSummary(provider, enabledIds.has(provider.id))),
   );
 }
 
@@ -107,7 +107,7 @@ export async function listProviderModels(
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
 }
 
-export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSummary[]> {
+export async function listEnabledProviderAudioModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.getAudioModels(),
@@ -115,16 +115,18 @@ export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSu
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  return Object.values(providers)
-    .filter((provider) => enabledIds.has(provider.id))
-    .map((provider) => ({
-      providerId: provider.id,
-      providerName: provider.name,
-      models: Object.values(provider.models).map(toModelSummary),
-    }));
+  return ok(
+    Object.values(providers)
+      .filter((provider) => enabledIds.has(provider.id))
+      .map((provider) => ({
+        providerId: provider.id,
+        providerName: provider.name,
+        models: Object.values(provider.models).map(toModelSummary),
+      })),
+  );
 }
 
-export async function listEnabledProviderEmbeddingModels(): Promise<ProviderModelsSummary[]> {
+export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.getEmbeddingModels(),
@@ -132,13 +134,15 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ProviderMode
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  return Object.values(providers)
-    .filter((provider) => enabledIds.has(provider.id))
-    .map((provider) => ({
-      providerId: provider.id,
-      providerName: provider.name,
-      models: Object.values(provider.models).map(toModelSummary),
-    }));
+  return ok(
+    Object.values(providers)
+      .filter((provider) => enabledIds.has(provider.id))
+      .map((provider) => ({
+        providerId: provider.id,
+        providerName: provider.name,
+        models: Object.values(provider.models).map(toModelSummary),
+      })),
+  );
 }
 
 export async function getEmbeddingModelDimensions(
