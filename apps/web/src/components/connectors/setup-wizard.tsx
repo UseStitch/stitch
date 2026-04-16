@@ -451,6 +451,26 @@ function ScopesStep({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        {enableApisUrl && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <p className="mb-1.5 text-xs font-medium text-foreground">
+              Before connecting, enable the APIs for the services you select below:
+            </p>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              onClick={() => {
+                void (
+                  window.api?.shell?.openExternal(enableApisUrl) ??
+                  window.open(enableApisUrl, '_blank')
+                );
+              }}
+            >
+              <ExternalLinkIcon className="size-3.5" />
+              Enable required Google APIs in Cloud Console
+            </button>
+          </div>
+        )}
         {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
           <div className="space-y-3">
             {config.serviceAccessOptions.map((option) => {
@@ -465,7 +485,7 @@ function ScopesStep({
                     <Button
                       type="button"
                       size="sm"
-                      variant={value === 'none' ? 'secondary' : 'outline'}
+                      variant={value === 'none' ? 'default' : 'outline'}
                       onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}
                     >
                       Off
@@ -473,7 +493,7 @@ function ScopesStep({
                     <Button
                       type="button"
                       size="sm"
-                      variant={value === 'read' ? 'secondary' : 'outline'}
+                      variant={value === 'read' ? 'default' : 'outline'}
                       onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}
                     >
                       Read
@@ -481,7 +501,7 @@ function ScopesStep({
                     <Button
                       type="button"
                       size="sm"
-                      variant={value === 'write' ? 'secondary' : 'outline'}
+                      variant={value === 'write' ? 'default' : 'outline'}
                       onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}
                     >
                       Read + Write
@@ -512,24 +532,6 @@ function ScopesStep({
               ))}
             </div>
           </ScrollArea>
-        )}
-        {enableApisUrl && (
-          <a
-            href={enableApisUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md bg-muted/50 px-3 py-2 text-xs text-primary hover:bg-muted"
-            onClick={(e) => {
-              e.preventDefault();
-              void (
-                window.api?.shell?.openExternal(enableApisUrl) ??
-                window.open(enableApisUrl, '_blank')
-              );
-            }}
-          >
-            <ExternalLinkIcon className="size-3" />
-            Enable required Google APIs in Cloud Console
-          </a>
         )}
       </div>
       <DialogFooter className="shrink-0">
