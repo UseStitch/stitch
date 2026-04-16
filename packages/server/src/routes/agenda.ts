@@ -25,6 +25,7 @@ import {
   updateAgendaList,
 } from '@/agenda/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 
 const createListSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -66,16 +67,6 @@ const addEventSchema = z.object({
 });
 
 export const agendaRouter = new Hono();
-
-function parsePagination(query: Record<string, string | undefined>) {
-  const pageRaw = Number.parseInt(query.page ?? '1', 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize ?? '20', 10);
-
-  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 20;
-
-  return { page, pageSize };
-}
 
 // --- Lists ---
 
@@ -140,11 +131,8 @@ agendaRouter.post('/items/reorder', zValidator('json', reorderSchema), async (c)
   return c.json({ success: true });
 });
 
-agendaRouter.get('/items', async (c) => {
-  const { page, pageSize } = parsePagination({
-    page: c.req.query('page'),
-    pageSize: c.req.query('pageSize'),
-  });
+agendaRouter.get('/items', zValidator('query', paginationQuerySchema({ pageSize: 20 })), async (c) => {
+  const { page, pageSize } = c.req.valid('query');
 
   const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
   const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;

@@ -35,10 +35,10 @@ export function automationsPageQueryOptions(input: { page: number; pageSize: num
 }
 
 export const automationsQueryOptions = queryOptions({
-  queryKey: automationKeys.list(1, 1000),
+  queryKey: automationKeys.list(1, 100),
   staleTime: Infinity,
   queryFn: async (): Promise<Automation[]> => {
-    const params = new URLSearchParams({ page: '1', pageSize: '1000' });
+    const params = new URLSearchParams({ page: '1', pageSize: '100' });
     const res = await serverFetch(`/automations?${params.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch automations');
     const data = (await res.json()) as ListAutomationsResponse;

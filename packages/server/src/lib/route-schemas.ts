@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { ID_PREFIXES, type IdPrefix, type PrefixedString } from '@stitch/shared/id';
 
+export function paginationQuerySchema(defaults: { pageSize?: number } = {}) {
+  const defaultPageSize = defaults.pageSize ?? 20;
+  return z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(defaultPageSize),
+  });
+}
+
 export function prefixedId<P extends IdPrefix>(prefix: P) {
   return z.custom<PrefixedString<P>>((val) => {
     return typeof val === 'string' && val.startsWith(`${prefix}_`);

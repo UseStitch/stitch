@@ -18,6 +18,7 @@ import {
 } from '@/automations/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 
 const scheduleSchema = z
   .object({
@@ -42,21 +43,8 @@ const updateAutomationSchema = createAutomationSchema
 
 export const automationsRouter = new Hono();
 
-function parsePagination(query: Record<string, string | undefined>) {
-  const pageRaw = Number.parseInt(query.page ?? '1', 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize ?? '10', 10);
-
-  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 100) : 10;
-
-  return { page, pageSize };
-}
-
-automationsRouter.get('/', async (c) => {
-  const { page, pageSize } = parsePagination({
-    page: c.req.query('page'),
-    pageSize: c.req.query('pageSize'),
-  });
+automationsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
+  const { page, pageSize } = c.req.valid('query');
   const result = await listAutomations({ page, pageSize });
   return c.json(result);
 });
