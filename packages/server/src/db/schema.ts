@@ -236,6 +236,10 @@ export const modelVisibility = sqliteTable(
   ],
 );
 
+import type { RawModel } from '@/llm/provider/models.js';
+
+type OllamaModality = NonNullable<RawModel['modalities']>['input'][number];
+
 export const ollamaModels = sqliteTable('ollama_models', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -249,6 +253,14 @@ export const ollamaModels = sqliteTable('ollama_models', {
   supportsToolCalls: integer('supports_tool_calls', { mode: 'boolean' }).notNull().default(false),
   supportsVision: integer('supports_vision', { mode: 'boolean' }).notNull().default(false),
   supportsReasoning: integer('supports_reasoning', { mode: 'boolean' }).notNull().default(false),
+  inputModalities: blob('input_modalities', { mode: 'json' })
+    .$type<OllamaModality[]>()
+    .notNull()
+    .default(['text']),
+  outputModalities: blob('output_modalities', { mode: 'json' })
+    .$type<OllamaModality[]>()
+    .notNull()
+    .default(['text']),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

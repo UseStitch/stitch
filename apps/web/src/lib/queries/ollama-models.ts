@@ -2,6 +2,8 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { serverFetch } from '@/lib/api';
 
+export type OllamaModality = 'text' | 'audio' | 'image' | 'video' | 'pdf';
+
 export type OllamaModel = {
   id: string;
   name: string;
@@ -15,6 +17,8 @@ export type OllamaModel = {
   supportsToolCalls: boolean;
   supportsVision: boolean;
   supportsReasoning: boolean;
+  inputModalities: OllamaModality[];
+  outputModalities: OllamaModality[];
   createdAt: number;
   updatedAt: number;
 };
@@ -32,6 +36,8 @@ export type OllamaModelInput = {
   supportsToolCalls: boolean;
   supportsVision: boolean;
   supportsReasoning: boolean;
+  inputModalities: OllamaModality[];
+  outputModalities: OllamaModality[];
 };
 
 type DiscoveredModel = {

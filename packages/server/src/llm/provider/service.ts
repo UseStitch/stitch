@@ -146,8 +146,8 @@ function ollamaModelToSummary(m: OllamaModels.OllamaModel): ModelSummary {
       output: m.outputLimit,
     },
     modalities: {
-      input: m.supportsVision ? (['text', 'image'] as const) : (['text'] as const),
-      output: ['text'] as const,
+      input: m.inputModalities,
+      output: m.outputModalities,
     },
   };
 }

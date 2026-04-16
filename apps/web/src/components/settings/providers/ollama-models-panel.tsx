@@ -14,6 +14,7 @@ import {
   discoverOllamaModelsQueryOptions,
   ollamaModelKeys,
   ollamaModelsQueryOptions,
+  type OllamaModality,
   type OllamaModel,
   type OllamaModelInput,
 } from '@/lib/queries/ollama-models';
@@ -35,7 +36,11 @@ type ModelFormState = {
   supportsToolCalls: boolean;
   supportsVision: boolean;
   supportsReasoning: boolean;
+  inputModalities: OllamaModality[];
+  outputModalities: OllamaModality[];
 };
+
+const ALL_MODALITIES: OllamaModality[] = ['text', 'audio', 'image', 'video', 'pdf'];
 
 const DEFAULT_FORM: ModelFormState = {
   id: '',
@@ -50,6 +55,8 @@ const DEFAULT_FORM: ModelFormState = {
   supportsToolCalls: false,
   supportsVision: false,
   supportsReasoning: false,
+  inputModalities: ['text'],
+  outputModalities: ['text'],
 };
 
 function modelToForm(model: OllamaModel): ModelFormState {
@@ -68,6 +75,8 @@ function modelToForm(model: OllamaModel): ModelFormState {
     supportsToolCalls: model.supportsToolCalls,
     supportsVision: model.supportsVision,
     supportsReasoning: model.supportsReasoning,
+    inputModalities: model.inputModalities,
+    outputModalities: model.outputModalities,
   };
 }
 
@@ -97,6 +106,8 @@ function formToInput(form: ModelFormState): OllamaModelInput {
     supportsToolCalls: form.supportsToolCalls,
     supportsVision: form.supportsVision,
     supportsReasoning: form.supportsReasoning,
+    inputModalities: form.inputModalities,
+    outputModalities: form.outputModalities,
   };
 }
 
@@ -277,6 +288,52 @@ function ModelForm({
         </div>
       </div>
 
+      <p className="text-xs font-medium text-muted-foreground">Modalities</p>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs text-muted-foreground">Input</p>
+          {ALL_MODALITIES.map((m) => (
+            <div key={m} className="flex items-center gap-2">
+              <Checkbox
+                id={`ollama-input-mod-${m}`}
+                checked={form.inputModalities.includes(m)}
+                disabled={m === 'text'}
+                onCheckedChange={(v) =>
+                  set(
+                    'inputModalities',
+                    v
+                      ? [...form.inputModalities, m]
+                      : form.inputModalities.filter((x) => x !== m),
+                  )
+                }
+              />
+              <Label htmlFor={`ollama-input-mod-${m}`}>{m}</Label>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs text-muted-foreground">Output</p>
+          {ALL_MODALITIES.map((m) => (
+            <div key={m} className="flex items-center gap-2">
+              <Checkbox
+                id={`ollama-output-mod-${m}`}
+                checked={form.outputModalities.includes(m)}
+                disabled={m === 'text'}
+                onCheckedChange={(v) =>
+                  set(
+                    'outputModalities',
+                    v
+                      ? [...form.outputModalities, m]
+                      : form.outputModalities.filter((x) => x !== m),
+                  )
+                }
+              />
+              <Label htmlFor={`ollama-output-mod-${m}`}>{m}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-2 pt-1">
         <Button
           type="submit"
@@ -406,6 +463,8 @@ export function OllamaModelsPanel({ baseURL }: Props) {
                   supportsToolCalls: false,
                   supportsVision: false,
                   supportsReasoning: false,
+                  inputModalities: ['text'],
+                  outputModalities: ['text'],
                 });
               }}
             >

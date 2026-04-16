@@ -5,8 +5,11 @@ import { getDb } from '@/db/client.js';
 import { ollamaModels } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { ModelSchema } from '@/llm/provider/models.js';
 
 export type OllamaModel = typeof ollamaModels.$inferSelect;
+
+const MODALITY = ModelSchema.shape.modalities.unwrap().shape.input.element;
 
 export const OllamaModelInputSchema = z.object({
   id: z.string().min(1),
@@ -21,6 +24,8 @@ export const OllamaModelInputSchema = z.object({
   supportsToolCalls: z.boolean().default(false),
   supportsVision: z.boolean().default(false),
   supportsReasoning: z.boolean().default(false),
+  inputModalities: z.array(MODALITY).default(['text']),
+  outputModalities: z.array(MODALITY).default(['text']),
 });
 
 type OllamaModelInput = z.infer<typeof OllamaModelInputSchema>;
@@ -71,6 +76,8 @@ export async function upsertOllamaModel(
         supportsToolCalls: parsed.data.supportsToolCalls,
         supportsVision: parsed.data.supportsVision,
         supportsReasoning: parsed.data.supportsReasoning,
+        inputModalities: parsed.data.inputModalities,
+        outputModalities: parsed.data.outputModalities,
         updatedAt: now,
       },
     })
