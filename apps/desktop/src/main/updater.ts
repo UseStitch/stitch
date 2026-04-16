@@ -21,7 +21,7 @@ type UpdaterState = {
 
 type UpdaterOptions = {
   getWindow: () => BrowserWindow | null;
-  prepareForInstall: () => void;
+  prepareForInstall: () => void | Promise<void>;
 };
 
 const UPDATER_EVENT_CHANNEL = 'updater:event';
@@ -106,12 +106,12 @@ export function createUpdater(options: UpdaterOptions) {
     return state;
   }
 
-  function installUpdate(): boolean {
+  async function installUpdate(): Promise<boolean> {
     if (!app.isPackaged || state.status !== 'downloaded') {
       return false;
     }
 
-    options.prepareForInstall();
+    await options.prepareForInstall();
     autoUpdater.quitAndInstall(false, true);
     return true;
   }
