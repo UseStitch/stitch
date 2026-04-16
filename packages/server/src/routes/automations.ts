@@ -17,7 +17,7 @@ import {
   updateAutomation,
 } from '@/automations/service.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { paginationQuerySchema } from '@/lib/route-schemas.js';
+import { paginationQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
 import { isServiceError } from '@/lib/service-result.js';
 
 const scheduleSchema = z
@@ -41,6 +41,8 @@ const updateAutomationSchema = createAutomationSchema
     message: 'At least one field must be provided',
   });
 
+const automationIdParamSchema = z.object({ id: routeSchemas.automationId });
+
 export const automationsRouter = new Hono();
 
 automationsRouter.get(
@@ -49,7 +51,7 @@ automationsRouter.get(
   async (c) => {
     const { page, pageSize } = c.req.valid('query');
     const result = await listAutomations({ page, pageSize });
-    return c.json(result);
+    return unwrapResult(c, result);
   },
 );
 
@@ -68,40 +70,57 @@ automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c
   return unwrapResult(c, result, 201);
 });
 
-automationsRouter.patch('/:id', zValidator('json', updateAutomationSchema), async (c) => {
-  const id = c.req.param('id');
-  const body = c.req.valid('json') as UpdateAutomationInput;
-  const result = await updateAutomation(id, body);
-  if (isServiceError(result)) return unwrapResult(c, result);
+automationsRouter.patch(
+  '/:id',
+  zValidator('param', automationIdParamSchema),
+  zValidator('json', updateAutomationSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const body = c.req.valid('json') as UpdateAutomationInput;
+    const result = await updateAutomation(id, body);
+    if (isServiceError(result)) return unwrapResult(c, result);
 
-  try {
-    await syncAutomationSchedule(result.data);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to schedule automation';
-    return c.json({ error: message }, 500);
-  }
+    try {
+      await syncAutomationSchedule(result.data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to schedule automation';
+      return c.json({ error: message }, 500);
+    }
 
-  return unwrapResult(c, result);
-});
+    return unwrapResult(c, result);
+  },
+);
 
-automationsRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id');
-  const result = await deleteAutomation(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+automationsRouter.delete(
+  '/:id',
+  zValidator('param', automationIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await deleteAutomation(id);
+    if (isServiceError(result)) return unwrapResult(c, result);
 
-  await unregisterAutomationSchedule(id).catch(() => {});
+    await unregisterAutomationSchedule(id).catch(() => {});
 
-  return unwrapResult(c, result, 204);
-});
+    return unwrapResult(c, result, 204);
+  },
+);
 
-automationsRouter.get('/:id/sessions', async (c) => {
-  const id = c.req.param('id');
-  const result = await listAutomationSessions(id);
-  return unwrapResult(c, result);
-});
+automationsRouter.get(
+  '/:id/sessions',
+  zValidator('param', automationIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await listAutomationSessions(id);
+    return unwrapResult(c, result);
+  },
+);
 
-automationsRouter.post('/:id/run', async (c) => {
-  const id = c.req.param('id');
-  const result = await runAutomation(id);
-  return unwrapResult(c, result, 201);
-});
+automationsRouter.post(
+  '/:id/run',
+  zValidator('param', automationIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await runAutomation(id);
+    return unwrapResult(c, result, 201);
+  },
+);
