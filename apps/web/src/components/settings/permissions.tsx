@@ -7,6 +7,10 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import {
+  filterCoreTools,
+  filterToolsetsByQuery,
+} from '@/components/settings/permissions/filtering';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -221,24 +225,9 @@ function ToolsContent() {
   );
 
   const query = search.trim().toLowerCase();
-  const stitchTools = knownTools
-    .filter((tool) => tool.toolType === 'stitch')
-    .filter((tool) => {
-      if (!query) return true;
-      return (
-        tool.displayName.toLowerCase().includes(query) ||
-        tool.toolName.toLowerCase().includes(query)
-      );
-    });
+  const stitchTools = filterCoreTools(knownTools, query);
 
-  const filteredToolsets = knownToolsets.filter((toolset) => {
-    if (!query) return true;
-    return (
-      toolset.name.toLowerCase().includes(query) ||
-      toolset.id.toLowerCase().includes(query) ||
-      toolset.description.toLowerCase().includes(query)
-    );
-  });
+  const filteredToolsets = filterToolsetsByQuery(knownToolsets, query);
 
   const nativeToolsets = filteredToolsets.filter((toolset) => toolset.source === 'native');
   const connectorToolsets = filteredToolsets.filter((toolset) => toolset.source === 'connector');
