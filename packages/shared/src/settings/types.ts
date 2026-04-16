@@ -282,7 +282,8 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'recordings.outputDeviceId',
     value: '',
-    description: 'Preferred speaker device name for system audio capture. Empty string uses the system default.',
+    description:
+      'Preferred speaker device name for system audio capture. Empty string uses the system default.',
   },
   {
     key: 'recordings.speakerGain',

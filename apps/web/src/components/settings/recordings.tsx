@@ -23,10 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import {
-  audioProviderModelsQueryOptions,
-  type ProviderModels,
-} from '@/lib/queries/providers';
+import { audioProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
 import {
   deleteSettingMutationOptions,
@@ -173,14 +170,18 @@ function PermissionStatus() {
       <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
         {micDenied ? (
           <li>
-            Microphone access is denied. Go to <strong>System Settings &gt; Privacy &amp;
-            Security &gt; Microphone</strong> and grant access.
+            Microphone access is denied. Go to{' '}
+            <strong>System Settings &gt; Privacy &amp; Security &gt; Microphone</strong> and grant
+            access.
           </li>
         ) : null}
         {screenDenied ? (
           <li>
-            Screen recording access is denied. Go to <strong>System Settings &gt; Privacy &amp;
-            Security &gt; Screen &amp; System Audio Recording</strong> and grant access.
+            Screen recording access is denied. Go to{' '}
+            <strong>
+              System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording
+            </strong>{' '}
+            and grant access.
           </li>
         ) : null}
       </ul>
@@ -231,12 +232,10 @@ function AudioDeviceSettings() {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Input Device</Label>
-          <p className="text-xs text-muted-foreground">
-            Microphone used for recording.
-          </p>
+          <p className="text-xs text-muted-foreground">Microphone used for recording.</p>
         </div>
         <div className="w-64 shrink-0">
           <Select
@@ -244,9 +243,7 @@ function AudioDeviceSettings() {
             onValueChange={handleInputDeviceChange}
           >
             <SelectTrigger className="w-full">
-              <SelectValue>
-                {currentInputDevice || 'System Default'}
-              </SelectValue>
+              <SelectValue>{currentInputDevice || 'System Default'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>
@@ -260,7 +257,7 @@ function AudioDeviceSettings() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Output Device</Label>
           <p className="text-xs text-muted-foreground">
@@ -273,9 +270,7 @@ function AudioDeviceSettings() {
             onValueChange={handleOutputDeviceChange}
           >
             <SelectTrigger className="w-full">
-              <SelectValue>
-                {currentOutputDevice || 'System Default'}
-              </SelectValue>
+              <SelectValue>{currentOutputDevice || 'System Default'}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={SYSTEM_DEFAULT_VALUE}>System Default</SelectItem>

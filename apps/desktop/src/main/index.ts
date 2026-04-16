@@ -104,12 +104,15 @@ async function createWindow() {
     mainWindow.setIcon(windowIcon);
   }
 
-  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    dialog.showErrorBox(
-      'Failed to load Stitch UI',
-      `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
-    );
-  });
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL) => {
+      dialog.showErrorBox(
+        'Failed to load Stitch UI',
+        `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
+      );
+    },
+  );
 
   // Hide to tray on close instead of quitting, unless the app is actually quitting.
   mainWindow.on('close', (event) => {

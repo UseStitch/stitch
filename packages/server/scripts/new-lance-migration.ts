@@ -53,7 +53,9 @@ function parseArgs(argv: string[]): Args {
   }
 
   if (!args.name) {
-    throw new Error('Usage: bun run lance:migration:new --name <migration-name> [--table <table-name>]');
+    throw new Error(
+      'Usage: bun run lance:migration:new --name <migration-name> [--table <table-name>]',
+    );
   }
 
   return args as Args;

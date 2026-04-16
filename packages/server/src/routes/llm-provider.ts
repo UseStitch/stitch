@@ -3,8 +3,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 import {
   deleteProviderCredentials,
   getProvider,

@@ -1,4 +1,3 @@
-
 type PaginatedResult<T> = {
   items: T[];
   page: number;
@@ -26,7 +25,9 @@ export function computeTotalPages(total: number, pageSize: number): number {
  * @param transform  - Optional row mapper applied to each data row
  */
 export async function paginatedQuery<TRow, TOut = TRow>(input: {
-  dataQuery: { limit: (n: number) => { offset: (n: number) => Promise<TRow[]> | PromiseLike<TRow[]> } };
+  dataQuery: {
+    limit: (n: number) => { offset: (n: number) => Promise<TRow[]> | PromiseLike<TRow[]> };
+  };
   countQuery: PromiseLike<{ total: number }[]>;
   page: number;
   pageSize: number;

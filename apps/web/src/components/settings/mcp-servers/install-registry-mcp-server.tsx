@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
+import { HeaderRows } from './header-rows';
+import {
+  AUTH_TYPE_LABELS,
+  applyAuthConfigToForm,
+  buildAuthConfig,
+  describeAuthConfig,
+  type AddFormState,
+} from './shared';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,15 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAddMcpServer } from '@/lib/queries/mcp';
-
-import { HeaderRows } from './header-rows';
-import {
-  AUTH_TYPE_LABELS,
-  applyAuthConfigToForm,
-  buildAuthConfig,
-  describeAuthConfig,
-  type AddFormState,
-} from './shared';
 
 export function InstallRegistryMcpServer({
   server,
@@ -70,7 +70,8 @@ export function InstallRegistryMcpServer({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const selectedAuthOption = authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
+  const selectedAuthOption =
+    authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
 
   const handleAuthPresetChange = (id: string | null) => {
     if (!id) return;
@@ -114,12 +115,19 @@ export function InstallRegistryMcpServer({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to MCP marketplace">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onBack}
+          aria-label="Back to MCP marketplace"
+        >
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div>
           <h2 className="text-base font-bold">Install {server.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Review connection settings before adding</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Review connection settings before adding
+          </p>
         </div>
       </div>
 
@@ -164,7 +172,10 @@ export function InstallRegistryMcpServer({
 
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-          <Select value={form.authType} onValueChange={(v) => set('authType', v as AddFormState['authType'])}>
+          <Select
+            value={form.authType}
+            onValueChange={(v) => set('authType', v as AddFormState['authType'])}
+          >
             <SelectTrigger className="w-full">
               <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
             </SelectTrigger>

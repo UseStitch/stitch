@@ -7,13 +7,13 @@ import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
+import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import {
   buildProviderConfigBody,
   hydrateProviderConfigState,
   resolveDefaultAuthMethod,
   type FieldValues,
 } from '@/components/settings/providers/utils';
-import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

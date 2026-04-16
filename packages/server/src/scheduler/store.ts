@@ -1,11 +1,10 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
+import type { SchedulerStore } from '@stitch/scheduler';
 import { createScheduledJobId, createScheduledJobRunId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { scheduledJobs, scheduledJobRuns } from '@/db/schema.js';
-
-import type { SchedulerStore } from '@stitch/scheduler';
 
 type ScheduledJobRunId = (typeof scheduledJobRuns.$inferSelect)['id'];
 
@@ -13,7 +12,11 @@ export function createSchedulerStore(): SchedulerStore {
   return {
     async upsertJob(input) {
       const db = getDb();
-      const existing = db.select().from(scheduledJobs).where(eq(scheduledJobs.key, input.key)).get();
+      const existing = db
+        .select()
+        .from(scheduledJobs)
+        .where(eq(scheduledJobs.key, input.key))
+        .get();
 
       if (existing) {
         const updated = db
@@ -93,7 +96,12 @@ export function createSchedulerStore(): SchedulerStore {
 
       return db.transaction((tx) => {
         const job = tx.select().from(scheduledJobs).where(eq(scheduledJobs.key, input.key)).get();
-        if (!job || !job.enabled || job.queuedCount <= 0 || job.runningCount >= job.maxConcurrency) {
+        if (
+          !job ||
+          !job.enabled ||
+          job.queuedCount <= 0 ||
+          job.runningCount >= job.maxConcurrency
+        ) {
           return null;
         }
 

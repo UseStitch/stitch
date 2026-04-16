@@ -99,17 +99,4 @@ export function createMeetingDetector(
   return createNoopMeetingDetector();
 }
 
-export type {
-  AudioDeviceList,
-  AudioPermissionsStatus,
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-} from './types.js';
+export type { AudioDeviceList, AudioPermissionsStatus } from './types.js';

@@ -1,6 +1,6 @@
 import * as Log from '@/lib/log.js';
-import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
 
@@ -49,11 +49,14 @@ export async function retrieveMemoryContext(
   let candidates = semantic.memories.filter((m) => m.score >= config.retrievalMinScore);
 
   if (config.retrievalRecencyBoost) {
-    const scoredCandidates = candidates.map(m => {
-      const blendedScore = (m.score * 0.7) + (getRecencyFactor(m.lastAccessedAt) * 0.2) + (getConfidenceFactor(m.confidence) * 0.1);
+    const scoredCandidates = candidates.map((m) => {
+      const blendedScore =
+        m.score * 0.7 +
+        getRecencyFactor(m.lastAccessedAt) * 0.2 +
+        getConfidenceFactor(m.confidence) * 0.1;
       return { ...m, blendedScore };
     });
-    
+
     scoredCandidates.sort((a, b) => b.blendedScore - a.blendedScore);
     candidates = scoredCandidates;
   }

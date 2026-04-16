@@ -20,7 +20,12 @@ type SessionDeleteDialogProps = {
   onDeleted?: () => void;
 };
 
-export function SessionDeleteDialog({ sessionId, open, onOpenChange, onDeleted }: SessionDeleteDialogProps) {
+export function SessionDeleteDialog({
+  sessionId,
+  open,
+  onOpenChange,
+  onDeleted,
+}: SessionDeleteDialogProps) {
   const navigate = useNavigate();
   const deleteSession = useDeleteSession();
 

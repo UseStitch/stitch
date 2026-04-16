@@ -14,7 +14,13 @@ import { PermissionSelect } from './permissions/permission-select';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   knownMcpToolsQueryOptions,
   knownToolsQueryOptions,
@@ -94,7 +100,9 @@ function PermissionsContent() {
     if (scope === 'stitch') return tool.toolType === 'stitch';
     if (scope === 'providers') return tool.toolType === 'plugin';
     if (selectedServerName) {
-      return tool.toolType === 'mcp' && mcpServerNameByTool.get(tool.toolName) === selectedServerName;
+      return (
+        tool.toolType === 'mcp' && mcpServerNameByTool.get(tool.toolName) === selectedServerName
+      );
     }
     return true;
   });

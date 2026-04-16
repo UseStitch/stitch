@@ -1,17 +1,12 @@
-import {
-  CalendarIcon,
-  Trash2Icon,
-  XIcon,
-} from 'lucide-react';
+import { CalendarIcon, Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-import { settingsQueryOptions } from '@/lib/queries/settings';
-import {
-  PRIORITY_LABELS,
-  STATUS_LABELS,
-} from '@/components/agenda/constants';
+import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
+import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
+
+import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -23,28 +18,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
-import {
-  AGENDA_ITEM_PRIORITIES,
-  AGENDA_ITEM_STATUSES,
-} from '@stitch/shared/agenda/types';
-import {
-  useDeleteAgendaItem,
-  useUpdateAgendaItem,
-} from '@/lib/queries/agenda';
+import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 const DEBOUNCE_MS = 600;
@@ -227,11 +206,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             {/* Title */}
             <div className="flex flex-col gap-1.5">
               <Label>Title</Label>
-              <Input
-                value={title}
-                onChange={handleTitleChange}
-                placeholder="Item title..."
-              />
+              <Input value={title} onChange={handleTitleChange} placeholder="Item title..." />
             </div>
 
             {/* Description */}
@@ -250,9 +225,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               <div className="flex flex-col gap-1.5">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full">
-                    {STATUS_LABELS[status]}
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full">{STATUS_LABELS[status]}</SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>
@@ -266,9 +239,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               <div className="flex flex-col gap-1.5">
                 <Label>Priority</Label>
                 <Select value={priority} onValueChange={handlePriorityChange}>
-                  <SelectTrigger className="w-full">
-                    {PRIORITY_LABELS[priority]}
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full">{PRIORITY_LABELS[priority]}</SelectTrigger>
                   <SelectContent>
                     {AGENDA_ITEM_PRIORITIES.map((p) => (
                       <SelectItem key={p} value={p}>

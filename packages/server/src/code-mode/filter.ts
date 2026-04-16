@@ -1,6 +1,5 @@
-import type { Tool } from 'ai';
-
 import { listToolsets } from '@/tools/toolsets/registry.js';
+import type { Tool } from 'ai';
 
 const ALWAYS_EXCLUDED_TOOLS = new Set([
   'question',
@@ -28,11 +27,7 @@ export function applyToolFilter(
   tools: Record<string, Tool>,
   filter: CodeModeToolFilter = {},
 ): Record<string, Tool> {
-  const {
-    excludeToolsets = [],
-    excludeTools = [],
-    excludeToolsInToolset = {},
-  } = filter;
+  const { excludeToolsets = [], excludeTools = [], excludeToolsInToolset = {} } = filter;
 
   const specificExclusions = new Set<string>(excludeTools);
 

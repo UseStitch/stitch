@@ -77,10 +77,14 @@ async function preflightPermissionCheck(): Promise<void> {
     const issues: string[] = [];
 
     if (permissions.microphone === 'denied') {
-      issues.push('Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.');
+      issues.push(
+        'Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.',
+      );
     }
     if (permissions.screenCapture === 'denied') {
-      issues.push('Screen recording access is denied. Grant screen recording permission in System Settings > Privacy & Security > Screen & System Audio Recording.');
+      issues.push(
+        'Screen recording access is denied. Grant screen recording permission in System Settings > Privacy & Security > Screen & System Audio Recording.',
+      );
     }
 
     if (issues.length > 0) {

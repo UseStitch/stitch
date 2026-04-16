@@ -5,6 +5,7 @@ import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { markSessionUnread } from '@/chat/service.js';
+import { createCodeModeTool } from '@/code-mode/tool.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -28,7 +29,6 @@ import {
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { processMemories } from '@/memory/processor.js';
-import { createCodeModeTool } from '@/code-mode/tool.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';

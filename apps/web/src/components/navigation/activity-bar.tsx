@@ -124,86 +124,86 @@ export function ActivityBar() {
         )}
         <div className="flex w-full flex-col items-center gap-2">
           {ACTIVITY_ITEMS.map((item) => {
-          const active = isActive(item.matchPrefix, currentPath);
-          return (
-            <Tooltip key={item.id}>
-              <TooltipTrigger
-                render={
-                  <Link
-                    to={item.to}
-                    className={cn(
-                      'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                    )}
-                  />
-                }
-              >
-                {item.icon}
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
+            const active = isActive(item.matchPrefix, currentPath);
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger
+                  render={
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                      )}
+                    />
+                  }
+                >
+                  {item.icon}
+                </TooltipTrigger>
+                <TooltipContent side="right">{item.label}</TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
 
-      <div className="mt-auto flex w-full flex-col items-center gap-2">
-        {BOTTOM_ACTIVITY_ITEMS.map((item) => {
-          const active = isActive(item.matchPrefix, currentPath);
-          const isConnectors = item.id === 'connectors';
-          const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
-          return (
-            <Tooltip key={item.id}>
-              <TooltipTrigger
-                render={
-                  <Link
-                    to={item.to}
-                    className={cn(
-                      'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                    )}
-                  />
-                }
-              >
-                {item.icon}
-                {showUpdateIndicator ? (
-                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-                ) : null}
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {isConnectors && pendingConnectorUpdates > 0
-                  ? `${item.label} (updates available)`
-                  : item.label}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+        <div className="mt-auto flex w-full flex-col items-center gap-2">
+          {BOTTOM_ACTIVITY_ITEMS.map((item) => {
+            const active = isActive(item.matchPrefix, currentPath);
+            const isConnectors = item.id === 'connectors';
+            const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger
+                  render={
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                      )}
+                    />
+                  }
+                >
+                  {item.icon}
+                  {showUpdateIndicator ? (
+                    <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+                  ) : null}
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {isConnectors && pendingConnectorUpdates > 0
+                    ? `${item.label} (updates available)`
+                    : item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => setSettingsTab('general')}
-                className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                aria-label="Open settings"
-              />
-            }
-          >
-            <SettingsIcon className="size-5" />
-            {showSettingsUpdateIndicator ? (
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-            ) : null}
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
-          </TooltipContent>
-        </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('general')}
+                  className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  aria-label="Open settings"
+                />
+              }
+            >
+              <SettingsIcon className="size-5" />
+              {showSettingsUpdateIndicator ? (
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+              ) : null}
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
-    </div>
     </TooltipProvider>
   );
 }

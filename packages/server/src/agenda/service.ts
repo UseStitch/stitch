@@ -1,12 +1,5 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
-import { paginatedQuery } from '@/lib/paginated-query.js';
 
-import {
-  createAgendaItemEventId,
-  createAgendaItemId,
-  createAgendaListId,
-} from '@stitch/shared/id';
-import type { PrefixedString } from '@stitch/shared/id';
 import type {
   AgendaItem,
   AgendaItemDetail,
@@ -21,9 +14,12 @@ import type {
   UpdateAgendaItemInput,
   UpdateAgendaListInput,
 } from '@stitch/shared/agenda/types';
+import { createAgendaItemEventId, createAgendaItemId, createAgendaListId } from '@stitch/shared/id';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { agendaItems, agendaItemEvents, agendaLists } from '@/db/schema.js';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 
 type AgendaListRow = typeof agendaLists.$inferSelect;
 type AgendaItemRow = typeof agendaItems.$inferSelect;
@@ -94,14 +90,18 @@ export async function getAgendaLists(input?: {
       .all();
 
     const threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000;
-    const counts = { open: 0, in_progress: 0, done: 0, cancelled: 0, total: items.length, overdue: 0, dueSoon: 0 };
+    const counts = {
+      open: 0,
+      in_progress: 0,
+      done: 0,
+      cancelled: 0,
+      total: items.length,
+      overdue: 0,
+      dueSoon: 0,
+    };
     for (const item of items) {
       counts[item.status as keyof typeof counts]++;
-      if (
-        item.dueAt &&
-        item.status !== 'done' &&
-        item.status !== 'cancelled'
-      ) {
+      if (item.dueAt && item.status !== 'done' && item.status !== 'cancelled') {
         if (item.dueAt < now) {
           counts.overdue++;
         } else if (item.dueAt <= threeDaysFromNow) {
@@ -114,9 +114,7 @@ export async function getAgendaLists(input?: {
   });
 }
 
-async function getAgendaListByName(
-  name: string,
-): Promise<AgendaList | null> {
+async function getAgendaListByName(name: string): Promise<AgendaList | null> {
   const db = getDb();
   const row = db
     .select()
@@ -231,9 +229,7 @@ export async function getAgendaItems(input: {
   return result;
 }
 
-export async function getAgendaItem(
-  id: PrefixedString<'aitm'>,
-): Promise<AgendaItemDetail | null> {
+export async function getAgendaItem(id: PrefixedString<'aitm'>): Promise<AgendaItemDetail | null> {
   const db = getDb();
   const row = db
     .select({ item: agendaItems, listName: agendaLists.name })
@@ -451,9 +447,7 @@ export async function getAgendaItemEvents(
   return rows.map(toAgendaItemEvent);
 }
 
-export async function reorderAgendaItems(
-  orderedIds: PrefixedString<'aitm'>[],
-): Promise<void> {
+export async function reorderAgendaItems(orderedIds: PrefixedString<'aitm'>[]): Promise<void> {
   const db = getDb();
   const now = Date.now();
   for (let i = 0; i < orderedIds.length; i++) {
@@ -464,9 +458,7 @@ export async function reorderAgendaItems(
   }
 }
 
-export async function reorderAgendaLists(
-  orderedIds: PrefixedString<'alist'>[],
-): Promise<void> {
+export async function reorderAgendaLists(orderedIds: PrefixedString<'alist'>[]): Promise<void> {
   const db = getDb();
   const now = Date.now();
   for (let i = 0; i < orderedIds.length; i++) {

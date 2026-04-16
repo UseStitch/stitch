@@ -15,8 +15,8 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });

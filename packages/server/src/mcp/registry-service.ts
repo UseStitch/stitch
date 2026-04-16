@@ -78,7 +78,10 @@ async function readRegistryFromDisk(cacheFilePath: string): Promise<McpRegistryP
   }
 }
 
-async function writeRegistryToDisk(cacheFilePath: string, payload: McpRegistryPayload): Promise<void> {
+async function writeRegistryToDisk(
+  cacheFilePath: string,
+  payload: McpRegistryPayload,
+): Promise<void> {
   await fs.mkdir(path.dirname(cacheFilePath), { recursive: true });
   await fs.writeFile(cacheFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
@@ -119,7 +122,10 @@ export async function refreshMcpRegistryCache(
     return ok(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    log.warn({ event: 'mcp_registry.refresh_failed', error: message }, 'failed to refresh MCP registry');
+    log.warn(
+      { event: 'mcp_registry.refresh_failed', error: message },
+      'failed to refresh MCP registry',
+    );
     return err(`Failed to refresh MCP registry: ${message}`, 500);
   }
 }

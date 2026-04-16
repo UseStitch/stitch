@@ -43,7 +43,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
   const sendQueuedRef = React.useRef<SendQueuedMessageFn | null>(null);
   const timezone =
-    settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    settings?.['profile.timezone']?.trim() ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'UTC';
 
   const rightPanelOpen = rightPanel !== 'closed';
 
@@ -152,7 +154,10 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             setGeneratedDraft(null);
             toast.success('Automation created');
             if (action === 'create-view') {
-              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
+              void navigate({
+                to: '/automations/$automationId',
+                params: { automationId: created.id },
+              });
             }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation');

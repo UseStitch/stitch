@@ -15,12 +15,12 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { broadcast } from '@/lib/sse.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
+import * as Models from '@/llm/provider/models.js';
+import { listProviders } from '@/llm/provider/service.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortPermissionResponses } from '@/permission/service.js';
-import * as Models from '@/llm/provider/models.js';
-import { listProviders } from '@/llm/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -542,10 +542,7 @@ export async function getSessionStats(
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
-    db
-      .select({ id: sessions.id })
-      .from(sessions)
-      .where(eq(sessions.parentSessionId, sessionId)),
+    db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId)),
   ]);
 
   const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);

@@ -2,6 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { unwrapResult } from '@/lib/route-helpers.js';
+import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { resetEmbedder } from '@/memory/embedding/factory.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
@@ -17,8 +19,6 @@ import {
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES, MEMORY_SOURCES } from '@/memory/types.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
-import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import type { Context } from 'hono';
 
 const semanticQuerySchema = paginationQuerySchema({ pageSize: 20 }).extend({
@@ -67,11 +67,22 @@ memoryRouter.get('/semantic', zValidator('query', semanticQuerySchema), async (c
   }
 
   if (q) {
-    const result = await searchSemanticMemories({ query: q, page, pageSize, sourceFilter: source, categoryFilter: category });
+    const result = await searchSemanticMemories({
+      query: q,
+      page,
+      pageSize,
+      sourceFilter: source,
+      categoryFilter: category,
+    });
     return unwrapResult(c, result);
   }
 
-  const result = await getAllSemanticMemories({ page, pageSize, sourceFilter: source, categoryFilter: category });
+  const result = await getAllSemanticMemories({
+    page,
+    pageSize,
+    sourceFilter: source,
+    categoryFilter: category,
+  });
   return unwrapResult(c, result);
 });
 

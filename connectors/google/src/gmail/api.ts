@@ -304,7 +304,9 @@ export async function listLabels(client: GoogleClient): Promise<{ labels: GmailL
 }
 
 export async function getLabels(client: GoogleClient, labelId: string): Promise<GmailLabel> {
-  const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`);
+  const raw = await client.request<GmailLabelRaw>(
+    `${GMAIL_API}/labels/${encodeURIComponent(labelId)}`,
+  );
   return mapLabel(raw);
 }
 

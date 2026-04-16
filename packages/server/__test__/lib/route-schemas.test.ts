@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { paginationQuerySchema, prefixedId, routeSchemas } from '@/lib/route-schemas.js';
+
 import { ID_PREFIXES } from '@stitch/shared/id';
+
+import { paginationQuerySchema, prefixedId, routeSchemas } from '@/lib/route-schemas.js';
 
 describe('Route Schemas', () => {
   describe('prefixedId()', () => {
     it('should validate correctly formatted prefixed strings', () => {
       const schema = prefixedId(ID_PREFIXES.session);
       const result = schema.safeParse('ses_123abc');
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toBe('ses_123abc');
@@ -16,13 +18,13 @@ describe('Route Schemas', () => {
 
     it('should reject incorrectly formatted prefixed strings', () => {
       const schema = prefixedId(ID_PREFIXES.session);
-      
+
       const result1 = schema.safeParse('wrong_123abc');
       expect(result1.success).toBe(false);
-      
+
       const result2 = schema.safeParse('ses123abc');
       expect(result2.success).toBe(false);
-      
+
       const result3 = schema.safeParse('ses_'); // technically matches prefix check, but realistic ones have length
       // Actually our simple validator just checks startsWith(`ses_`)
       expect(result3.success).toBe(true);

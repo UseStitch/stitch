@@ -219,7 +219,11 @@ export function runMaintenanceMutationOptions(
       const parts: string[] = [];
       if (result.pruned > 0) parts.push(`${result.pruned} pruned`);
       if (result.deduplicated > 0) parts.push(`${result.deduplicated} deduplicated`);
-      toast.success(parts.length > 0 ? `Maintenance complete: ${parts.join(', ')}` : 'Maintenance complete — nothing to clean up');
+      toast.success(
+        parts.length > 0
+          ? `Maintenance complete: ${parts.join(', ')}`
+          : 'Maintenance complete — nothing to clean up',
+      );
     },
     onError: (err) => toast.error(err.message),
   };

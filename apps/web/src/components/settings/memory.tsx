@@ -23,10 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -34,6 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
@@ -264,48 +264,64 @@ function ExtractionSettings() {
   const selectedConfidenceLabel =
     CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ??
     'Select confidence filter';
-  
-  const saveMaxFacts = useMutation(saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }));
-  const saveMinMessageLength = useMutation(saveSettingMutationOptions('memory.extraction.minMessageLength', queryClient, { silent: true }));
-  const saveConfidenceFilter = useMutation(saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }));
-  
+
+  const saveMaxFacts = useMutation(
+    saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }),
+  );
+  const saveMinMessageLength = useMutation(
+    saveSettingMutationOptions('memory.extraction.minMessageLength', queryClient, { silent: true }),
+  );
+  const saveConfidenceFilter = useMutation(
+    saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }),
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Max Facts Per Turn</Label>
-          <p className="text-xs text-muted-foreground">Maximum number of memories extracted in a single response.</p>
+          <p className="text-xs text-muted-foreground">
+            Maximum number of memories extracted in a single response.
+          </p>
         </div>
         <div className="w-32">
-          <Input 
-            type="number" min="1" max="10"
+          <Input
+            type="number"
+            min="1"
+            max="10"
             defaultValue={settings['memory.extraction.maxFactsPerTurn']}
             onBlur={(e) => saveMaxFacts.mutate(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Min Message Length</Label>
-          <p className="text-xs text-muted-foreground">Skip extraction if user message is shorter than this (characters).</p>
+          <p className="text-xs text-muted-foreground">
+            Skip extraction if user message is shorter than this (characters).
+          </p>
         </div>
         <div className="w-32">
-          <Input 
-            type="number" min="0" max="500"
+          <Input
+            type="number"
+            min="0"
+            max="500"
             defaultValue={settings['memory.extraction.minMessageLength']}
             onBlur={(e) => saveMinMessageLength.mutate(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Confidence Filter</Label>
           <p className="text-xs text-muted-foreground">Which types of extracted facts to store.</p>
         </div>
         <div className="w-52">
-          <Select 
+          <Select
             value={confidenceFilter}
-            onValueChange={(val) => { if (val) saveConfidenceFilter.mutate(val); }}
+            onValueChange={(val) => {
+              if (val) saveConfidenceFilter.mutate(val);
+            }}
           >
             <SelectTrigger className="w-full">
               <SelectValue>{selectedConfidenceLabel}</SelectValue>
@@ -327,43 +343,59 @@ function ExtractionSettings() {
 function RetentionSettings() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  
-  const saveMaxMemories = useMutation(saveSettingMutationOptions('memory.retention.maxMemories', queryClient, { silent: true }));
-  const saveStaleDays = useMutation(saveSettingMutationOptions('memory.retention.staleDays', queryClient, { silent: true }));
-  const saveAutoPrune = useMutation(saveSettingMutationOptions('memory.retention.autoprune', queryClient, { silent: true }));
-  
+
+  const saveMaxMemories = useMutation(
+    saveSettingMutationOptions('memory.retention.maxMemories', queryClient, { silent: true }),
+  );
+  const saveStaleDays = useMutation(
+    saveSettingMutationOptions('memory.retention.staleDays', queryClient, { silent: true }),
+  );
+  const saveAutoPrune = useMutation(
+    saveSettingMutationOptions('memory.retention.autoprune', queryClient, { silent: true }),
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Max Memories</Label>
-          <p className="text-xs text-muted-foreground">Hard cap on total stored memories. Oldest low-value memories are pruned first.</p>
+          <p className="text-xs text-muted-foreground">
+            Hard cap on total stored memories. Oldest low-value memories are pruned first.
+          </p>
         </div>
         <div className="w-32">
-          <Input 
-            type="number" min="10" max="5000"
+          <Input
+            type="number"
+            min="10"
+            max="5000"
             defaultValue={settings['memory.retention.maxMemories']}
             onBlur={(e) => saveMaxMemories.mutate(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Stale Days</Label>
-          <p className="text-xs text-muted-foreground">Memories not accessed in this many days are candidates for pruning.</p>
+          <p className="text-xs text-muted-foreground">
+            Memories not accessed in this many days are candidates for pruning.
+          </p>
         </div>
         <div className="w-32">
-          <Input 
-            type="number" min="1" max="365"
+          <Input
+            type="number"
+            min="1"
+            max="365"
             defaultValue={settings['memory.retention.staleDays']}
             onBlur={(e) => saveStaleDays.mutate(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Auto-prune</Label>
-          <p className="text-xs text-muted-foreground">Run automatic pruning after extraction to stay within limits.</p>
+          <p className="text-xs text-muted-foreground">
+            Run automatic pruning after extraction to stay within limits.
+          </p>
         </div>
         <Switch
           checked={settings['memory.retention.autoprune'] === 'true'}
@@ -386,30 +418,42 @@ function RetrievalSettings() {
   React.useEffect(() => {
     setMinScoreValue(initialMinScore);
   }, [initialMinScore]);
-  
-  const saveMaxResults = useMutation(saveSettingMutationOptions('memory.retrieval.maxResults', queryClient, { silent: true }));
-  const saveMinScore = useMutation(saveSettingMutationOptions('memory.retrieval.minScore', queryClient, { silent: true }));
-  const saveRecencyBoost = useMutation(saveSettingMutationOptions('memory.retrieval.recencyBoost', queryClient, { silent: true }));
-  
+
+  const saveMaxResults = useMutation(
+    saveSettingMutationOptions('memory.retrieval.maxResults', queryClient, { silent: true }),
+  );
+  const saveMinScore = useMutation(
+    saveSettingMutationOptions('memory.retrieval.minScore', queryClient, { silent: true }),
+  );
+  const saveRecencyBoost = useMutation(
+    saveSettingMutationOptions('memory.retrieval.recencyBoost', queryClient, { silent: true }),
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Max Context Results</Label>
-          <p className="text-xs text-muted-foreground">Maximum memories injected into context per turn.</p>
+          <p className="text-xs text-muted-foreground">
+            Maximum memories injected into context per turn.
+          </p>
         </div>
         <div className="w-32">
-          <Input 
-            type="number" min="1" max="20"
+          <Input
+            type="number"
+            min="1"
+            max="20"
             defaultValue={settings['memory.retrieval.maxResults']}
             onBlur={(e) => saveMaxResults.mutate(e.target.value)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Min Relevance Score</Label>
-          <p className="text-xs text-muted-foreground">Minimum score (0.0 to 1.0) to include a memory.</p>
+          <p className="text-xs text-muted-foreground">
+            Minimum score (0.0 to 1.0) to include a memory.
+          </p>
         </div>
         <div className="w-52 shrink-0">
           <div className="flex items-center gap-3">
@@ -431,10 +475,12 @@ function RetrievalSettings() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <Label className="text-sm font-medium">Recency Boost</Label>
-          <p className="text-xs text-muted-foreground">Boost recently-accessed memories in ranking.</p>
+          <p className="text-xs text-muted-foreground">
+            Boost recently-accessed memories in ranking.
+          </p>
         </div>
         <Switch
           checked={settings['memory.retrieval.recencyBoost'] === 'true'}

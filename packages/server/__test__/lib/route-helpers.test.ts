@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Context } from 'hono';
-import { err, ok } from '@/lib/service-result.js';
+
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { err, ok } from '@/lib/service-result.js';
+import type { Context } from 'hono';
 
 describe('route-helpers', () => {
   const mockContext = () => {
@@ -63,7 +64,10 @@ describe('route-helpers', () => {
 
       unwrapResult(c, result);
 
-      expect(c.json).toHaveBeenCalledWith({ error: 'Invalid input', details: { field: 'name' } }, 422);
+      expect(c.json).toHaveBeenCalledWith(
+        { error: 'Invalid input', details: { field: 'name' } },
+        422,
+      );
     });
   });
 

@@ -121,7 +121,10 @@ export function SessionPageHeader({
                   <PencilLineIcon className="size-4" />
                   Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onGenerateAutomation} disabled={generateAutomationPending}>
+                <DropdownMenuItem
+                  onClick={onGenerateAutomation}
+                  disabled={generateAutomationPending}
+                >
                   <SparklesIcon className="size-4" />
                   {generateAutomationPending ? 'Generating...' : 'Generate automation'}
                 </DropdownMenuItem>

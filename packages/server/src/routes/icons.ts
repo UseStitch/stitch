@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 
-import { getSimpleIcon } from '@/lib/simple-icons.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
+import { getSimpleIcon } from '@/lib/simple-icons.js';
 
 export const iconsRouter = new Hono();
 

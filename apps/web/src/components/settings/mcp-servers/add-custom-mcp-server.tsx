@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 
 import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 
+import { HeaderRows } from './header-rows';
+import { AUTH_TYPE_LABELS, type AddFormState, buildAuthConfig } from './shared';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAddMcpServer } from '@/lib/queries/mcp';
-
-import { HeaderRows } from './header-rows';
-import { AUTH_TYPE_LABELS, type AddFormState, buildAuthConfig } from './shared';
 
 export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
   const addServer = useAddMcpServer();
@@ -100,7 +100,10 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-          <Select value={form.authType} onValueChange={(v) => set('authType', v as AddFormState['authType'])}>
+          <Select
+            value={form.authType}
+            onValueChange={(v) => set('authType', v as AddFormState['authType'])}
+          >
             <SelectTrigger className="w-full">
               <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
             </SelectTrigger>

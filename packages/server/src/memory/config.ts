@@ -74,7 +74,8 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     embeddingModelId: byKey.get('memory.embedding.modelId') ?? '',
     maxFactsPerTurn: Number.parseInt(byKey.get('memory.extraction.maxFactsPerTurn') ?? '2', 10),
     minMessageLength: Number.parseInt(byKey.get('memory.extraction.minMessageLength') ?? '40', 10),
-    confidenceFilter: (byKey.get('memory.extraction.confidenceFilter') ?? 'stated') as MemoryConfig['confidenceFilter'],
+    confidenceFilter: (byKey.get('memory.extraction.confidenceFilter') ??
+      'stated') as MemoryConfig['confidenceFilter'],
     maxMemories: Number.parseInt(byKey.get('memory.retention.maxMemories') ?? '200', 10),
     staleDays: Number.parseInt(byKey.get('memory.retention.staleDays') ?? '60', 10),
     autoprune: byKey.get('memory.retention.autoprune') !== 'false',

@@ -1,17 +1,13 @@
-import * as React from 'react';
-import { Label } from '@/components/ui/label';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-import { Calendar, Info } from 'lucide-react';
 import { CronExpressionParser } from 'cron-parser';
 import { format } from 'date-fns';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Calendar, Info } from 'lucide-react';
+import * as React from 'react';
+
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface CronExpressionBuilderProps {
   value: string;
@@ -178,16 +174,7 @@ export function CronExpressionBuilder({
     if (cron !== value) {
       onChange(cron);
     }
-  }, [
-    frequency,
-    minutes,
-    hours,
-    daysOfWeek,
-    daysOfMonth,
-    months,
-    onChange,
-    value,
-  ]);
+  }, [frequency, minutes, hours, daysOfWeek, daysOfMonth, months, onChange, value]);
 
   // Update on state change
   React.useEffect(() => {
@@ -222,9 +209,7 @@ export function CronExpressionBuilder({
   const renderMinutes = () => (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Label className="text-xs font-semibold uppercase text-muted-foreground">
-          Minute
-        </Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase">Minute</Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
@@ -259,15 +244,12 @@ export function CronExpressionBuilder({
 
   const renderHours = () => (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase text-muted-foreground">
-        Hours
-      </Label>
+      <Label className="text-xs font-semibold text-muted-foreground uppercase">Hours</Label>
       <ToggleGroup
         multiple
         value={hours.map((h) => h.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setHours(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          if (vals.length > 0) setHours(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -286,15 +268,12 @@ export function CronExpressionBuilder({
 
   const renderWeekdays = () => (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase text-muted-foreground">
-        Days of Week
-      </Label>
+      <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Week</Label>
       <ToggleGroup
         multiple
         value={daysOfWeek.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setDaysOfWeek(vals.map((v) => Number.parseInt(v)));
+          if (vals.length > 0) setDaysOfWeek(vals.map((v) => Number.parseInt(v)));
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -313,17 +292,13 @@ export function CronExpressionBuilder({
 
   const renderDaysOfMonth = () => (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase text-muted-foreground">
-        Days of Month
-      </Label>
+      <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Month</Label>
       <ToggleGroup
         multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0)
-            setDaysOfMonth(
-              vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b),
-            );
+            setDaysOfMonth(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
         }}
         className="flex flex-wrap justify-start gap-1"
       >
@@ -342,9 +317,7 @@ export function CronExpressionBuilder({
 
   const renderMonths = () => (
     <div className="space-y-2">
-      <Label className="text-xs font-semibold uppercase text-muted-foreground">
-        Months
-      </Label>
+      <Label className="text-xs font-semibold text-muted-foreground uppercase">Months</Label>
       <ToggleGroup
         multiple
         value={months.map((m) => m.toString())}
@@ -389,13 +362,13 @@ export function CronExpressionBuilder({
               }
             }
           }}
-          className="justify-start border bg-muted/30 rounded-md p-1 w-fit"
+          className="w-fit justify-start rounded-md border bg-muted/30 p-1"
         >
           {FREQUENCIES.map((f) => (
             <ToggleGroupItem
               key={f.value}
               value={f.value}
-              className="h-8 px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm rounded-sm"
+              className="h-8 rounded-sm px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm"
             >
               {f.label}
             </ToggleGroupItem>
@@ -403,9 +376,9 @@ export function CronExpressionBuilder({
         </ToggleGroup>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-col gap-6 lg:flex-row">
         {/* Main Builder Area */}
-        <ScrollArea className="flex-1 h-100 pr-4">
+        <ScrollArea className="h-100 flex-1 pr-4">
           <div className="flex flex-col gap-6 pb-4">
             {frequency === 'hourly' && <>{renderMinutes()}</>}
 
@@ -428,7 +401,7 @@ export function CronExpressionBuilder({
               <>
                 {renderMonths()}
                 {renderDaysOfMonth()}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   {renderHours()}
                   {renderMinutes()}
                 </div>
@@ -442,12 +415,10 @@ export function CronExpressionBuilder({
         </ScrollArea>
 
         {/* Upcoming Executions Sidebar */}
-        <div className="lg:w-64 shrink-0 flex flex-col gap-3 border-l lg:pl-6 border-border/50">
+        <div className="flex shrink-0 flex-col gap-3 border-l border-border/50 lg:w-64 lg:pl-6">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <h3 className="text-xs font-semibold uppercase tracking-wider">
-              Upcoming Runs
-            </h3>
+            <h3 className="text-xs font-semibold tracking-wider uppercase">Upcoming Runs</h3>
           </div>
 
           <div className="space-y-2">
@@ -457,23 +428,15 @@ export function CronExpressionBuilder({
                   key={execution.key}
                   className="flex flex-col gap-0.5 rounded-md border bg-card/50 p-2.5 text-sm shadow-sm"
                 >
-                  <span className="font-medium text-foreground">
-                    {execution.date}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    at {execution.time}
-                  </span>
+                  <span className="font-medium text-foreground">{execution.date}</span>
+                  <span className="text-xs text-muted-foreground">at {execution.time}</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-muted-foreground italic">
-                No upcoming runs scheduled
-              </p>
+              <p className="text-xs text-muted-foreground italic">No upcoming runs scheduled</p>
             )}
           </div>
-          <div className="text-[10px] text-muted-foreground text-right">
-            Timezone: {timezone}
-          </div>
+          <div className="text-right text-[10px] text-muted-foreground">Timezone: {timezone}</div>
         </div>
       </div>
     </div>
