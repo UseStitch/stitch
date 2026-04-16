@@ -6,7 +6,7 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { getDb } from '@/db/client.js';
 import { userSettings } from '@/db/schema.js';
-import { err, ok } from '@/lib/service-result.js';
+import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
@@ -31,7 +31,8 @@ async function checkMemoryEnablePrerequisites(): Promise<ServiceResult<null>> {
     );
   }
 
-  const providerModels = await listEnabledProviderEmbeddingModels();
+  const providerModelsResult = await listEnabledProviderEmbeddingModels();
+  const providerModels = isServiceError(providerModelsResult) ? [] : providerModelsResult.data;
   const hasConfiguredModel = providerModels.some(
     (provider) =>
       provider.providerId === memoryConfig.embeddingProviderId &&

@@ -265,7 +265,8 @@ export async function startRecordingAnalysis(
     return ok({ analysis: toResponse(existing, recordingId) });
   }
 
-  const audioProviders = await listEnabledProviderAudioModels();
+  const audioProvidersResult = await listEnabledProviderAudioModels();
+  const audioProviders = isServiceError(audioProvidersResult) ? [] : audioProvidersResult.data;
   const fallbackProvider = audioProviders[0];
   const fallbackModel = fallbackProvider?.models[0];
 
