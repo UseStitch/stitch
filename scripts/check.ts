@@ -2,8 +2,9 @@
 import { spawnSync } from 'bun';
 
 const steps = [
-  { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
+  { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
+  { name: 'test', cmd: ['bun', 'run', '--filter', '*', 'test'] },
   {
     name: 'lint',
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--fix', '--fix-suggestions', '.'],
@@ -12,8 +13,6 @@ const steps = [
     name: 'lint:check',
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--deny-warnings', '.'],
   },
-  { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
-  { name: 'knip:check', cmd: ['bunx', 'knip'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
 ];
 
