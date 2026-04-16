@@ -84,4 +84,25 @@ describe('buildGoogleToolsets', () => {
       'docs_update',
     ]);
   });
+
+  it('only exposes calendar write tools when calendar write access exists', () => {
+    const readOnly = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      capabilities: ['google.calendar.read', 'google.calendar.write'],
+    }).find((toolset) => toolset.id === 'google-calendar');
+
+    const writable = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/calendar.events'],
+      capabilities: ['google.calendar.read', 'google.calendar.write'],
+    }).find((toolset) => toolset.id === 'google-calendar');
+
+    expect(readOnly?.tools().map((tool) => tool.name)).toEqual(['calendar_list', 'calendar_get']);
+    expect(writable?.tools().map((tool) => tool.name)).toEqual([
+      'calendar_list',
+      'calendar_get',
+      'calendar_create',
+      'calendar_update',
+      'calendar_delete',
+    ]);
+  });
 });

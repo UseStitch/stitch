@@ -135,7 +135,12 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
     hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
   const summaries = canWrite
     ? CALENDAR_TOOL_SUMMARIES
-    : CALENDAR_TOOL_SUMMARIES.filter((t) => t.name !== 'calendar_create');
+    : CALENDAR_TOOL_SUMMARIES.filter(
+        (t) =>
+          t.name !== 'calendar_create' &&
+          t.name !== 'calendar_update' &&
+          t.name !== 'calendar_delete',
+      );
 
   return {
     id: 'google-calendar',
@@ -149,8 +154,8 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
       'Always pass the user\'s local IANA timezone (e.g. "America/New_York") so that "today" and time ranges are anchored to their local time, not UTC.',
       'The calendar_list tool defaults to showing upcoming events from now.',
       canWrite
-        ? 'You have write access. Use calendar_create to schedule new events. Pass addMeet: true to automatically attach a Google Meet link.'
-        : 'You have read-only access. Creating events is not available.',
+        ? 'You have write access. Use calendar_create to schedule new events, calendar_update to modify existing events, and calendar_delete to remove them. Pass addMeet: true to automatically attach a Google Meet link.'
+        : 'You have read-only access. Creating, updating, and deleting events is not available.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
