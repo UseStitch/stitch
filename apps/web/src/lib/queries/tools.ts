@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permissions/types';
 import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/shared/tools/types';
 
@@ -20,10 +21,23 @@ type KnownMcpTool = {
   toolIconPath?: string;
 };
 
+type KnownToolset = {
+  id: string;
+  name: string;
+  description: string;
+  icon: ConnectorIconSource | null;
+  source: 'native' | 'provider' | 'connector' | 'mcp';
+  toolCount: number;
+  hasInstructions: boolean;
+  promptCount: number;
+  tools: { toolName: string; displayName: string }[];
+};
+
 export const toolKeys = {
   all: ['tools-config'] as const,
   knownTools: () => [...toolKeys.all, 'known-tools'] as const,
   knownMcpTools: () => [...toolKeys.all, 'known-mcp-tools'] as const,
+  knownToolsets: () => [...toolKeys.all, 'known-toolsets'] as const,
   permissions: () => [...toolKeys.all, 'permissions'] as const,
   enabledStates: () => [...toolKeys.all, 'enabled-states'] as const,
 };
@@ -47,6 +61,17 @@ export const knownMcpToolsQueryOptions = queryOptions({
     if (!res.ok) throw new Error('Failed to fetch MCP tools');
     const data = (await res.json()) as { tools: KnownMcpTool[] };
     return data.tools;
+  },
+});
+
+export const knownToolsetsQueryOptions = queryOptions({
+  queryKey: toolKeys.knownToolsets(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<KnownToolset[]> => {
+    const res = await serverFetch('/config/toolsets');
+    if (!res.ok) throw new Error('Failed to fetch toolsets');
+    const data = (await res.json()) as { toolsets: KnownToolset[] };
+    return data.toolsets;
   },
 });
 
@@ -136,6 +161,7 @@ export function useSetToolEnabledState() {
         queryClient.invalidateQueries({ queryKey: toolKeys.enabledStates() }),
         queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
         queryClient.invalidateQueries({ queryKey: toolKeys.knownMcpTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
       ]);
     },
   });

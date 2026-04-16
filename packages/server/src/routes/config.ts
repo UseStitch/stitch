@@ -6,12 +6,14 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import { TOOL_ENABLED_SCOPES } from '@stitch/shared/tools/types';
 
+import { listConnectorDefinitions } from '@/connectors/registry.js';
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
 import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
 import { getToolEnabledStates, setToolEnabledState } from '@/tools/enabled-service.js';
 import { getGlobalProviderKnownTools } from '@/tools/providers/index.js';
 import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
+import { listToolsets } from '@/tools/toolsets/registry.js';
 
 const upsertPermissionSchema = z.object({
   toolName: z.string().min(1),
@@ -26,6 +28,30 @@ const upsertToolEnabledSchema = z.object({
 });
 
 export const configRouter = new Hono();
+
+type ToolsetSource = 'native' | 'provider' | 'connector' | 'mcp';
+
+const NATIVE_TOOLSET_IDS = new Set(['browser', 'agenda']);
+
+function getToolsetSource(toolsetId: string): ToolsetSource {
+  if (toolsetId.startsWith('mcp:')) return 'mcp';
+  if (NATIVE_TOOLSET_IDS.has(toolsetId)) return 'native';
+
+  const connectorDefs = listConnectorDefinitions();
+  if (connectorDefs.some((definition) => toolsetId.startsWith(`${definition.id}-`))) {
+    return 'connector';
+  }
+
+  return 'provider';
+}
+
+function humanizeToolName(name: string): string {
+  return name
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 
 configRouter.get('/tools', async (c) => {
   const mcpServersWithTools = await getMcpServersWithCachedTools();
@@ -65,6 +91,27 @@ configRouter.get('/mcp-tools', async (c) => {
   });
 
   return c.json({ tools });
+});
+
+configRouter.get('/toolsets', async (c) => {
+  const toolsets = listToolsets()
+    .map((toolset) => ({
+      id: toolset.id,
+      name: toolset.name,
+      description: toolset.description,
+      icon: toolset.icon ?? null,
+      source: getToolsetSource(toolset.id),
+      toolCount: toolset.tools().length,
+      hasInstructions: !!toolset.instructions,
+      promptCount: toolset.prompts?.length ?? 0,
+      tools: toolset.tools().map((tool) => ({
+        toolName: tool.name,
+        displayName: humanizeToolName(tool.name),
+      })),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return c.json({ toolsets });
 });
 
 configRouter.get('/tools/enabled', async (c) => {

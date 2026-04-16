@@ -15,7 +15,7 @@ const browserInstructions = readFileSync(
 
 export const browserToolProvider: ToolProvider = {
   name: 'browser',
-  knownTools: () => [{ toolType: 'stitch', toolName: 'browser', displayName: 'Browser' }],
+  knownTools: () => [{ toolType: 'plugin', toolName: 'browser', displayName: 'Browser' }],
   createTools: (context) => ({
     browser: createRegisteredTool(context),
   }),

@@ -1,11 +1,4 @@
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  SearchIcon,
-  ServerIcon,
-  Settings2Icon,
-  WrenchIcon,
-} from 'lucide-react';
+import { SearchIcon, ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -13,11 +6,13 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
+import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
   knownMcpToolsQueryOptions,
+  knownToolsetsQueryOptions,
   knownToolsQueryOptions,
   toolEnabledStatesQueryOptions,
   useSetToolEnabledState,
@@ -35,10 +30,12 @@ type EditingTarget =
       type: 'toolset';
       toolsetId: string;
       displayName: string;
-      mcpTools: { toolName: string; displayName: string }[];
+      subtitle: string;
+      tools: { toolName: string; displayName: string }[];
+      perToolEnabledScope?: 'tool' | 'mcp_tool';
     };
 
-type ScopeFilter = 'all' | 'stitch' | 'providers' | 'mcp';
+type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 
 type ToolRowProps = {
   name: string;
@@ -51,6 +48,17 @@ type ToolRowProps = {
   isMutating: boolean;
   reserveMiddleSlot?: boolean;
   isNested?: boolean;
+};
+
+type ToolsetRowProps = {
+  name: string;
+  description: string;
+  icon?: React.ReactNode;
+  enabled: boolean;
+  onConfigure: () => void;
+  onToggleEnabled: (enabled: boolean) => void;
+  isMutating: boolean;
+  settingsAlign?: 'start' | 'end';
 };
 
 function ToolRow({
@@ -98,6 +106,44 @@ function ToolRow({
   );
 }
 
+function ToolsetRow({
+  name,
+  description,
+  icon,
+  enabled,
+  onConfigure,
+  onToggleEnabled,
+  isMutating,
+  settingsAlign = 'start',
+}: ToolsetRowProps) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
+      <div className="flex min-w-0 items-center gap-2.5">
+        {icon ?? <ServerIcon className="size-4 shrink-0 text-muted-foreground" />}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{name}</p>
+          <p className="truncate text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={onConfigure}
+        className={cn(
+          'h-7 w-full px-2 text-muted-foreground hover:text-foreground',
+          settingsAlign === 'end' ? 'justify-end' : 'justify-start',
+        )}
+      >
+        <Settings2Icon className="size-3.5" />
+        Settings
+      </Button>
+      <div className="flex w-10 justify-end">
+        <Switch checked={enabled} onCheckedChange={onToggleEnabled} disabled={isMutating} />
+      </div>
+    </div>
+  );
+}
+
 function SectionCard({
   title,
   description,
@@ -128,13 +174,13 @@ function SectionCard({
 function ToolsContent() {
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
   const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
+  const { data: knownToolsets } = useSuspenseQuery(knownToolsetsQueryOptions);
   const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
   const setToolEnabledState = useSetToolEnabledState();
 
   const [search, setSearch] = React.useState('');
-  const [scope, setScope] = React.useState<ScopeFilter>('all');
+  const [scope, setScope] = React.useState<ScopeFilter>('stitch');
   const [editingTarget, setEditingTarget] = React.useState<EditingTarget | null>(null);
-  const [expandedServers, setExpandedServers] = React.useState<Record<string, boolean>>({});
 
   const mcpToolMetaByName = React.useMemo(() => {
     return new Map(
@@ -185,15 +231,17 @@ function ToolsContent() {
       );
     });
 
-  const pluginTools = knownTools
-    .filter((tool) => tool.toolType === 'plugin')
-    .filter((tool) => {
-      if (!query) return true;
-      return (
-        tool.displayName.toLowerCase().includes(query) ||
-        tool.toolName.toLowerCase().includes(query)
-      );
-    });
+  const filteredToolsets = knownToolsets.filter((toolset) => {
+    if (!query) return true;
+    return (
+      toolset.name.toLowerCase().includes(query) ||
+      toolset.id.toLowerCase().includes(query) ||
+      toolset.description.toLowerCase().includes(query)
+    );
+  });
+
+  const nativeToolsets = filteredToolsets.filter((toolset) => toolset.source === 'native');
+  const connectorToolsets = filteredToolsets.filter((toolset) => toolset.source === 'connector');
 
   const mcpToolsetGroups = React.useMemo(() => {
     const groups = new Map<
@@ -263,14 +311,18 @@ function ToolsContent() {
     })
     .filter((group) => group.tools.length > 0);
 
-  const visibleStitch = scope === 'all' || scope === 'stitch';
-  const visibleProviders = scope === 'all' || scope === 'providers';
-  const visibleMcp = scope === 'all' || scope === 'mcp';
+  const visibleStitch = scope === 'stitch';
+  const visibleNative = scope === 'native';
+  const visibleConnectors = scope === 'connectors';
+  const visibleMcp = scope === 'mcp';
 
   const enabledCount =
     (visibleStitch ? stitchTools.filter((tool) => getEnabled('tool', tool.toolName)).length : 0) +
-    (visibleProviders
-      ? pluginTools.filter((tool) => getEnabled('toolset', tool.toolName)).length
+    (visibleNative
+      ? nativeToolsets.filter((toolset) => getEnabled('toolset', toolset.id)).length
+      : 0) +
+    (visibleConnectors
+      ? connectorToolsets.filter((toolset) => getEnabled('toolset', toolset.id)).length
       : 0) +
     (visibleMcp
       ? filteredMcpGroups.reduce((count, group) => {
@@ -284,7 +336,8 @@ function ToolsContent() {
 
   const totalCount =
     (visibleStitch ? stitchTools.length : 0) +
-    (visibleProviders ? pluginTools.length : 0) +
+    (visibleNative ? nativeToolsets.length : 0) +
+    (visibleConnectors ? connectorToolsets.length : 0) +
     (visibleMcp
       ? filteredMcpGroups.reduce((count, group) => count + 1 + group.tools.length, 0)
       : 0);
@@ -323,7 +376,7 @@ function ToolsContent() {
           <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-8"
-            placeholder="Search by tool or MCP server..."
+            placeholder="Search by tool, toolset, or MCP server..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -332,9 +385,9 @@ function ToolsContent() {
         <div className="flex flex-wrap gap-1.5">
           {(
             [
-              { id: 'all', label: 'All tools' },
               { id: 'stitch', label: 'Core tools' },
-              { id: 'providers', label: 'Provider tools' },
+              { id: 'native', label: 'Native toolsets' },
+              { id: 'connectors', label: 'Connector tools' },
               { id: 'mcp', label: 'MCP servers' },
             ] as const
           ).map((option) => (
@@ -380,29 +433,69 @@ function ToolsContent() {
         </SectionCard>
       )}
 
-      {visibleProviders && pluginTools.length > 0 && (
+      {visibleNative && nativeToolsets.length > 0 && (
         <SectionCard
-          title="Provider tools"
-          description="Tool integrations shipped by model providers"
-          count={pluginTools.length}
+          title="Native toolsets"
+          description="Built-in toolsets available in Stitch"
+          count={nativeToolsets.length}
         >
           <div className="divide-y divide-border/40">
-            {pluginTools.map((tool) => (
-              <ToolRow
-                key={tool.toolName}
-                name={tool.displayName}
-                subtitle="Provider toolset"
-                technicalName={tool.toolName}
-                enabled={getEnabled('toolset', tool.toolName)}
+            {nativeToolsets.map((toolset) => (
+              <ToolsetRow
+                key={toolset.id}
+                name={toolset.name}
+                description={toolset.description}
+                enabled={getEnabled('toolset', toolset.id)}
+                settingsAlign="end"
                 onConfigure={() =>
                   setEditingTarget({
-                    type: 'tool',
-                    toolName: tool.toolName,
-                    displayName: tool.displayName,
-                    enabledScope: 'toolset',
+                    type: 'toolset',
+                    toolsetId: toolset.id,
+                    displayName: toolset.name,
+                    subtitle: 'Native toolset',
+                    tools: toolset.tools,
                   })
                 }
-                onToggleEnabled={(checked) => updateEnabled('toolset', tool.toolName, checked)}
+                onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
+                isMutating={isMutating}
+              />
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {visibleConnectors && connectorToolsets.length > 0 && (
+        <SectionCard
+          title="Connector tools"
+          description="Toolsets from connected apps like Google Workspace"
+          count={connectorToolsets.length}
+        >
+          <div className="divide-y divide-border/40">
+            {connectorToolsets.map((toolset) => (
+              <ToolsetRow
+                key={toolset.id}
+                name={toolset.name}
+                description={toolset.description}
+                icon={
+                  toolset.icon ? (
+                    <ConnectorIcon
+                      icon={toolset.icon}
+                      className="size-4 shrink-0 text-muted-foreground"
+                    />
+                  ) : undefined
+                }
+                enabled={getEnabled('toolset', toolset.id)}
+                settingsAlign="end"
+                onConfigure={() =>
+                  setEditingTarget({
+                    type: 'toolset',
+                    toolsetId: toolset.id,
+                    displayName: toolset.name,
+                    subtitle: 'Connector toolset',
+                    tools: toolset.tools,
+                  })
+                }
+                onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
                 isMutating={isMutating}
               />
             ))}
@@ -413,16 +506,14 @@ function ToolsContent() {
       {visibleMcp && filteredMcpGroups.length > 0 && (
         <SectionCard
           title="MCP servers"
-          description="Enable entire servers or fine-tune individual MCP tools"
+          description="Enable entire servers and open settings to manage server tools"
           count={filteredMcpGroups.length}
         >
           <div className="divide-y divide-border/40">
             {filteredMcpGroups.map((group) => {
-              const isExpanded = query.length > 0 || expandedServers[group.serverId] === true;
-
               return (
                 <div key={group.serverId} className="flex flex-col">
-                  <div className="grid grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
+                  <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
                     <div className="flex min-w-0 items-center gap-2.5">
                       {group.serverIconPath ? (
                         <img
@@ -450,7 +541,9 @@ function ToolsContent() {
                           type: 'toolset',
                           toolsetId: `mcp:${group.serverId}`,
                           displayName: group.serverName,
-                          mcpTools: group.tools.map((tool) => ({
+                          subtitle: 'MCP server',
+                          perToolEnabledScope: 'mcp_tool',
+                          tools: group.tools.map((tool) => ({
                             toolName: tool.toolName,
                             displayName: tool.displayName,
                           })),
@@ -459,24 +552,6 @@ function ToolsContent() {
                     >
                       <Settings2Icon className="size-3.5" />
                       Settings
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground"
-                      onClick={() =>
-                        setExpandedServers((current) => ({
-                          ...current,
-                          [group.serverId]: !isExpanded,
-                        }))
-                      }
-                    >
-                      {isExpanded ? (
-                        <ChevronDownIcon className="size-3.5" />
-                      ) : (
-                        <ChevronRightIcon className="size-3.5" />
-                      )}
-                      {isExpanded ? 'Hide' : 'Show'}
                     </Button>
                     <div className="flex w-10 justify-end">
                       <Switch
@@ -488,33 +563,6 @@ function ToolsContent() {
                       />
                     </div>
                   </div>
-
-                  {isExpanded && (
-                    <div className="divide-y divide-border/40 border-t border-border/40">
-                      {group.tools.map((tool) => (
-                        <ToolRow
-                          key={tool.toolName}
-                          name={tool.displayName}
-                          iconPath={tool.iconPath}
-                          enabled={getEnabled('mcp_tool', tool.toolName)}
-                          reserveMiddleSlot
-                          isNested
-                          onConfigure={() =>
-                            setEditingTarget({
-                              type: 'tool',
-                              toolName: tool.toolName,
-                              displayName: tool.displayName,
-                              enabledScope: 'mcp_tool',
-                            })
-                          }
-                          onToggleEnabled={(checked) =>
-                            updateEnabled('mcp_tool', tool.toolName, checked)
-                          }
-                          isMutating={isMutating}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -523,7 +571,8 @@ function ToolsContent() {
       )}
 
       {((visibleStitch && stitchTools.length === 0) || !visibleStitch) &&
-        ((visibleProviders && pluginTools.length === 0) || !visibleProviders) &&
+        ((visibleNative && nativeToolsets.length === 0) || !visibleNative) &&
+        ((visibleConnectors && connectorToolsets.length === 0) || !visibleConnectors) &&
         ((visibleMcp && filteredMcpGroups.length === 0) || !visibleMcp) && (
           <div className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center">
             <WrenchIcon className="mx-auto mb-2 size-4 text-muted-foreground" />

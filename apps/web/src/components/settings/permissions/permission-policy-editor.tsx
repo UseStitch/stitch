@@ -34,7 +34,9 @@ type PermissionTarget =
       type: 'toolset';
       toolsetId: string;
       displayName: string;
-      mcpTools: { toolName: string; displayName: string }[];
+      subtitle: string;
+      tools: { toolName: string; displayName: string }[];
+      perToolEnabledScope?: 'tool' | 'mcp_tool';
     };
 
 type PermissionPolicyEditorProps = {
@@ -396,32 +398,32 @@ export function PermissionPolicyEditor({
     );
   }
 
+  const hasPerToolToggle = !!target.perToolEnabledScope;
+
   return (
     <div className="space-y-6">
       <EditorHeader
         title={target.displayName}
-        subtitle="MCP server"
+        subtitle={target.subtitle}
         enabled={getEnabled('toolset', target.toolsetId)}
         onBack={onBack}
         onToggle={(checked) => onToggleEnabled('toolset', target.toolsetId, checked)}
       />
 
-      <Section
-        title="Server tools"
-        description="Enable specific MCP tools and open settings for per-tool permission behavior."
-      >
+      <Section title="Toolset tools" description="Open settings for per-tool permission behavior.">
         <div className="overflow-hidden rounded-lg border border-border/60">
           <div className="divide-y divide-border/40">
-            {target.mcpTools.map((tool) => (
+            {target.tools.map((tool) => (
               <div
                 key={tool.toolName}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5"
+                className={
+                  hasPerToolToggle
+                    ? 'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5'
+                    : 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5'
+                }
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{tool.displayName}</p>
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    {tool.toolName}
-                  </p>
                 </div>
                 <Button
                   size="sm"
@@ -432,10 +434,19 @@ export function PermissionPolicyEditor({
                   <Settings2Icon className="size-3.5" />
                   Settings
                 </Button>
-                <Switch
-                  checked={getEnabled('mcp_tool', tool.toolName)}
-                  onCheckedChange={(checked) => onToggleEnabled('mcp_tool', tool.toolName, checked)}
-                />
+                {target.perToolEnabledScope
+                  ? (() => {
+                      const perToolEnabledScope = target.perToolEnabledScope;
+                      return (
+                        <Switch
+                          checked={getEnabled(perToolEnabledScope, tool.toolName)}
+                          onCheckedChange={(checked) =>
+                            onToggleEnabled(perToolEnabledScope, tool.toolName, checked)
+                          }
+                        />
+                      );
+                    })()
+                  : null}
               </div>
             ))}
           </div>
