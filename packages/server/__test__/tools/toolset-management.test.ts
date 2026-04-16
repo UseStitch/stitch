@@ -4,6 +4,7 @@ import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
+import type { Tool } from 'ai';
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {
@@ -17,6 +18,10 @@ function createManager(): ToolsetManager {
     messageId: 'msg_test' as never,
     streamRunId: 'run_test',
   });
+}
+
+function makeTool(description: string): Tool {
+  return { description, parameters: { type: 'object', properties: {} } } as unknown as Tool;
 }
 
 function registerTestToolset(overrides: Partial<Toolset> = {}): Toolset {
@@ -131,5 +136,69 @@ describe('toolset management tools', () => {
     await expect(
       tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
     ).rejects.toThrow('Unknown toolset');
+  });
+
+  test('activate_toolset includes warning and collisions when tool names overlap', async () => {
+    registerToolset({
+      id: 'first-toolset',
+      name: 'First',
+      description: 'First toolset',
+      tools: () => [{ name: 'search', description: 'search' }],
+      activate: async () => ({ search: makeTool('search from first') }),
+    } satisfies Toolset);
+
+    registerToolset({
+      id: 'second-toolset',
+      name: 'Second',
+      description: 'Second toolset',
+      tools: () => [
+        { name: 'search', description: 'search' },
+        { name: 'list', description: 'list' },
+      ],
+      activate: async () => ({
+        search: makeTool('search from second'),
+        list: makeTool('list from second'),
+      }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    const tools = createToolsetTools(manager);
+    await tools.activate_toolset.execute?.({ toolsetId: 'first-toolset' }, {} as never);
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'second-toolset' },
+      {} as never,
+    )) as { warning?: string; collisions?: string[] };
+
+    expect(result.warning).toContain('search');
+    expect(result.collisions).toEqual(['search']);
+  });
+
+  test('activate_toolset omits warning and collisions when no overlap exists', async () => {
+    registerToolset({
+      id: 'no-overlap-a',
+      name: 'A',
+      description: 'A',
+      tools: () => [{ name: 'tool_a', description: 'a' }],
+      activate: async () => ({ tool_a: makeTool('a') }),
+    } satisfies Toolset);
+
+    registerToolset({
+      id: 'no-overlap-b',
+      name: 'B',
+      description: 'B',
+      tools: () => [{ name: 'tool_b', description: 'b' }],
+      activate: async () => ({ tool_b: makeTool('b') }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    const tools = createToolsetTools(manager);
+    await tools.activate_toolset.execute?.({ toolsetId: 'no-overlap-a' }, {} as never);
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'no-overlap-b' },
+      {} as never,
+    )) as { warning?: string; collisions?: string[] };
+
+    expect(result.warning).toBeUndefined();
+    expect(result.collisions).toBeUndefined();
   });
 });

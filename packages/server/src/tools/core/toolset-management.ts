@@ -81,13 +81,14 @@ export function createToolsetTools(manager: ToolsetManager) {
         };
       }
 
-      const toolNames = await manager.activate(toolsetId);
-      if (toolNames === null) {
+      const result = await manager.activate(toolsetId);
+      if (result === null) {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
         );
       }
 
+      const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
       const shouldIncludeVerbose = verbose === true;
 
@@ -108,6 +109,10 @@ export function createToolsetTools(manager: ToolsetManager) {
               arguments: p.arguments,
             })) ?? null)
           : null,
+        ...(collisions.length > 0 && {
+          warning: `Tool name collision: ${collisions.join(', ')} already exist in another active toolset. The new definitions have overwritten the previous ones.`,
+          collisions,
+        }),
       };
     },
   });

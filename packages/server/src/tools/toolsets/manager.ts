@@ -26,10 +26,15 @@ export class ToolsetManager {
     this.context = context;
   }
 
-  /** Activate a toolset by ID. Returns the newly available tool names, or null if not found. */
-  async activate(toolsetId: string): Promise<string[] | null> {
+  /**
+   * Activate a toolset by ID.
+   * Returns the newly available tool names and any collision warnings, or null if not found.
+   */
+  async activate(
+    toolsetId: string,
+  ): Promise<{ toolNames: string[]; collisions: string[] } | null> {
     if (this.activeIds.has(toolsetId)) {
-      return Object.keys(this.activeToolCache.get(toolsetId) ?? {});
+      return { toolNames: Object.keys(this.activeToolCache.get(toolsetId) ?? {}), collisions: [] };
     }
 
     const toolset = getToolset(toolsetId);
@@ -42,6 +47,16 @@ export class ToolsetManager {
     }
 
     const tools = withToolResultHandlingRecord(await toolset.activate(this.context));
+    const currentToolNames = new Set(Object.keys(this.getActiveTools()));
+    const collisions = Object.keys(tools).filter((name) => currentToolNames.has(name));
+
+    if (collisions.length > 0) {
+      log.warn(
+        { event: 'toolset.activate.collision', toolsetId, collisions },
+        'tool name collision detected on activation',
+      );
+    }
+
     this.activeIds.add(toolsetId);
     this.activeToolCache.set(toolsetId, tools);
 
@@ -55,7 +70,7 @@ export class ToolsetManager {
       'toolset activated',
     );
 
-    return Object.keys(tools);
+    return { toolNames: Object.keys(tools), collisions };
   }
 
   /** Deactivate a toolset, removing its tools from the active set. */
