@@ -97,7 +97,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}`,
+        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,

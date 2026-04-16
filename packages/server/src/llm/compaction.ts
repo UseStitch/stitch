@@ -17,7 +17,9 @@ import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
+import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';
@@ -549,7 +551,7 @@ export async function buildCompactedHistory(
     }
   }
 
-  return buildHistoryMessages(msgs.slice(startIndex), {
+  const historyMessages = buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig?.useBasePrompt ?? true,
     systemPrompt: promptConfig?.systemPrompt ?? null,
     userName: promptUserContext.userName,
@@ -557,6 +559,26 @@ export async function buildCompactedHistory(
     memoryContext,
     codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
+
+  const instructionsBlock = buildActiveToolsetInstructionsBlock(sessionId);
+  if (instructionsBlock && historyMessages.length > 0 && historyMessages[0]?.role === 'system') {
+    const sysMsg = historyMessages[0];
+    const existing = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+    historyMessages[0] = { role: 'system', content: `${existing}${instructionsBlock}` };
+  }
+
+  return historyMessages;
+}
+
+export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'ses'>): string {
+  const activeIds = getSessionActiveToolsetIds(sessionId);
+  const instructionBlocks = activeIds
+    .map((id) => getToolset(id))
+    .filter((ts): ts is NonNullable<ReturnType<typeof getToolset>> => !!ts?.instructions)
+    .map((ts) => `### ${ts.name} Toolset Instructions\n${ts.instructions}`)
+    .join('\n\n');
+
+  return instructionBlocks ? `\n\n## Active Toolset Instructions\n\n${instructionBlocks}` : '';
 }
 
 /**

@@ -76,6 +76,23 @@ describe('toolset management tools', () => {
       instructions: null,
       prompts: null,
     });
+    expect((result as { message: string }).message).toContain(
+      'Call deactivate_toolset("test-toolset") when you no longer need it',
+    );
+  });
+
+  test('activate_toolset already_active response does not include deactivation nudge', async () => {
+    registerTestToolset();
+    const manager = createManager();
+    const tools = createToolsetTools(manager);
+    await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
+    const result = await tools.activate_toolset.execute?.(
+      { toolsetId: 'test-toolset' },
+      {} as never,
+    );
+
+    expect((result as { status: string }).status).toBe('already_active');
+    expect((result as { message: string }).message).not.toContain('deactivate_toolset');
   });
 
   test('activate_toolset includes details when verbose=true', async () => {
