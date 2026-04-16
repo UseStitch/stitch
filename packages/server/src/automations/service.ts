@@ -16,44 +16,13 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
-import { automations, providerConfig, sessions } from '@/db/schema.js';
+import { automations, sessions } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isAllowedProvider } from '@/llm/provider/models.js';
-import * as Models from '@/llm/provider/models.js';
+import { validateProviderModel } from '@/llm/resolve-model.js';
 
 type AutomationDbRow = typeof automations.$inferSelect;
 type AutomationRow = Automation;
-
-async function validateProviderModel(
-  providerId: string,
-  modelId: string,
-): Promise<ServiceResult<null>> {
-  if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
-  }
-
-  const providers = await Models.get();
-  const provider = providers[providerId];
-  if (!provider) {
-    return err('Provider not found', 404);
-  }
-
-  if (!provider.models[modelId]) {
-    return err('Model not found for provider', 400);
-  }
-
-  const db = getDb();
-  const [configuredProvider] = await db
-    .select({ providerId: providerConfig.providerId })
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
-  if (!configuredProvider) {
-    return err('Provider is not configured', 400);
-  }
-
-  return ok(null);
-}
 
 function normalizeText(value: string): string {
   return value.trim();
