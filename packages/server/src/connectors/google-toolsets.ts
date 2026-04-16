@@ -30,6 +30,9 @@ import type { Tool } from 'ai';
 const log = Log.create({ service: 'google-toolsets' });
 const REFRESH_BUFFER_MS = 60_000;
 
+/** Deduplicates concurrent refresh attempts for the same account. */
+const refreshInFlight = new Map<string, Promise<string>>();
+
 /** Convert a @stitch-connectors/google toolset definition into the server Toolset type. */
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
   return {
@@ -141,28 +144,56 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               if (definition?.authType === 'oauth2') {
                 const creds = await resolveOAuthCredentials(latest);
                 if (creds && latest.refreshToken) {
+                  const inFlight = refreshInFlight.get(chosen.id);
+                  if (inFlight) {
+                    cachedToken = await inFlight;
+                    return cachedToken;
+                  }
+
                   const config = definition.authConfig as OAuthConfig;
-                  const refreshed = await refreshAccessToken(
+                  const refreshPromise = refreshAccessToken(
                     config.tokenUrl,
                     creds.clientId,
                     creds.clientSecret,
                     latest.refreshToken,
                   );
+                  refreshInFlight.set(chosen.id, refreshPromise.then((r) => r.accessToken));
 
-                  await db
-                    .update(connectorInstances)
-                    .set({
-                      accessToken: refreshed.accessToken,
-                      refreshToken: refreshed.refreshToken ?? latest.refreshToken,
-                      tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
-                      status: 'connected',
-                      updatedAt: now,
-                    })
-                    .where(eq(connectorInstances.id, chosen.id));
+                  try {
+                    const refreshed = await refreshPromise;
 
-                  cachedToken = refreshed.accessToken;
-                  cachedTokenExpiresAt = refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null;
-                  return cachedToken;
+                    await db
+                      .update(connectorInstances)
+                      .set({
+                        accessToken: refreshed.accessToken,
+                        refreshToken: refreshed.refreshToken ?? latest.refreshToken,
+                        tokenExpiresAt: refreshed.expiresIn
+                          ? now + refreshed.expiresIn * 1000
+                          : null,
+                        status: 'connected',
+                        updatedAt: now,
+                      })
+                      .where(eq(connectorInstances.id, chosen.id));
+
+                    cachedToken = refreshed.accessToken;
+                    cachedTokenExpiresAt = refreshed.expiresIn
+                      ? now + refreshed.expiresIn * 1000
+                      : null;
+                    return cachedToken;
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    log.error(
+                      { event: 'google.token.refresh.failed', instanceId: chosen.id, error: message },
+                      'Google token refresh failed — marking instance as error',
+                    );
+                    await db
+                      .update(connectorInstances)
+                      .set({ status: 'error', updatedAt: Date.now() })
+                      .where(eq(connectorInstances.id, chosen.id));
+                    throw error;
+                  } finally {
+                    refreshInFlight.delete(chosen.id);
+                  }
                 }
               }
             }
