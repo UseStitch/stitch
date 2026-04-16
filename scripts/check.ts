@@ -14,6 +14,10 @@ const steps = [
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--deny-warnings', '.'],
   },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
+  {
+    name: 'format:check',
+    cmd: ['bun', 'run', 'format:check'],
+  },
 ];
 
 for (const step of steps) {
