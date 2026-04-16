@@ -1,4 +1,4 @@
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, Settings2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,17 +52,32 @@ export function ProviderRow({ provider, onSelect }: Props) {
           )}
         </div>
       </div>
-      <div className="ml-4 flex shrink-0 items-center">
+      <div className="ml-4 flex shrink-0 items-center gap-1.5">
         {provider.enabled ? (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="h-7 px-3 text-[13px] font-semibold"
-            onClick={handleDisconnect}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
-          </Button>
+          <>
+            {provider.id === 'ollama_local' && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Manage models"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect();
+                }}
+              >
+                <Settings2Icon className="size-3.5" />
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 px-3 text-[13px] font-semibold"
+              onClick={handleDisconnect}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
+            </Button>
+          </>
         ) : (
           <Button
             variant="outline"
