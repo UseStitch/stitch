@@ -5,6 +5,7 @@ import {
   NetworkIcon,
   ServerIcon,
   PaletteIcon,
+  WrenchIcon,
   FolderOpenIcon,
   MonitorIcon,
   CpuIcon,
@@ -19,7 +20,7 @@ import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
 import { MemorySettings } from '@/components/settings/memory';
 import { ModelsSettings } from '@/components/settings/models';
-import { PermissionsSettings } from '@/components/settings/permissions';
+import { ToolsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { RecordingsSettings } from '@/components/settings/recordings';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
@@ -63,7 +64,7 @@ const SECTIONS: SettingsSection[] = [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
       { id: 'models', label: 'Models', icon: <CpuIcon className="size-4" /> },
       { id: 'memory', label: 'Memory', icon: <BrainIcon className="size-4" /> },
-      { id: 'permissions', label: 'Permissions', icon: <ServerIcon className="size-4" /> },
+      { id: 'tools', label: 'Tools', icon: <WrenchIcon className="size-4" /> },
       { id: 'mcp-servers', label: 'MCP Servers', icon: <NetworkIcon className="size-4" /> },
     ],
   },
@@ -140,8 +141,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <ModelsSettings />;
     case 'memory':
       return <MemorySettings />;
-    case 'permissions':
-      return <PermissionsSettings />;
+    case 'tools':
+      return <ToolsSettings />;
     case 'mcp-servers':
       return <McpServersSettings />;
     default:

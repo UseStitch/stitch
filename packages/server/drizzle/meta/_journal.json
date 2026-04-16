@@ -127,6 +127,13 @@
       "when": 1776305872769,
       "tag": "0017_grey_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1776372719576,
+      "tag": "0018_sparkling_firebrand",
+      "breakpoints": true
     }
   ]
 }

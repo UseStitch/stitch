@@ -1,6 +1,7 @@
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import * as Log from '@/lib/log.js';
+import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
 import { withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
@@ -30,9 +31,7 @@ export class ToolsetManager {
    * Activate a toolset by ID.
    * Returns the newly available tool names and any collision warnings, or null if not found.
    */
-  async activate(
-    toolsetId: string,
-  ): Promise<{ toolNames: string[]; collisions: string[] } | null> {
+  async activate(toolsetId: string): Promise<{ toolNames: string[]; collisions: string[] } | null> {
     if (this.activeIds.has(toolsetId)) {
       return { toolNames: Object.keys(this.activeToolCache.get(toolsetId) ?? {}), collisions: [] };
     }
@@ -46,7 +45,25 @@ export class ToolsetManager {
       return null;
     }
 
-    const tools = withToolResultHandlingRecord(await toolset.activate(this.context));
+    const toolsetEnabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
+    if (!toolsetEnabled) {
+      log.info(
+        { event: 'toolset.activate.disabled', toolsetId },
+        'attempted to activate disabled toolset',
+      );
+      return null;
+    }
+
+    const allTools = withToolResultHandlingRecord(await toolset.activate(this.context));
+    const disabledMcpTools = toolsetId.startsWith('mcp:')
+      ? await getDisabledToolIdentifiers('mcp_tool')
+      : new Set<string>();
+    const tools =
+      disabledMcpTools.size === 0
+        ? allTools
+        : Object.fromEntries(
+            Object.entries(allTools).filter(([toolName]) => !disabledMcpTools.has(toolName)),
+          );
     const currentToolNames = new Set(Object.keys(this.getActiveTools()));
     const collisions = Object.keys(tools).filter((name) => currentToolNames.has(name));
 

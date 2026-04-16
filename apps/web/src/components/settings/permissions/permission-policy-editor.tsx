@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
+import { ArrowLeftIcon, FolderOpenIcon, Settings2Icon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ import { PermissionSelect } from './permission-select';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   toolPermissionsQueryOptions,
   useDeleteToolPermission,
@@ -20,19 +21,110 @@ import {
 
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 const COMMAND_PATTERN_TOOLS = new Set(['bash']);
-export const PATTERN_POLICY_TOOLS = new Set([...FILE_PATTERN_TOOLS, ...COMMAND_PATTERN_TOOLS]);
+const PATTERN_POLICY_TOOLS = new Set([...FILE_PATTERN_TOOLS, ...COMMAND_PATTERN_TOOLS]);
+
+type PermissionTarget =
+  | {
+      type: 'tool';
+      toolName: string;
+      displayName: string;
+      enabledScope: 'tool' | 'toolset' | 'mcp_tool';
+    }
+  | {
+      type: 'toolset';
+      toolsetId: string;
+      displayName: string;
+      subtitle: string;
+      tools: { toolName: string; displayName: string }[];
+      perToolEnabledScope?: 'tool' | 'mcp_tool';
+    };
 
 type PermissionPolicyEditorProps = {
-  toolName: string;
-  displayName: string;
+  target: PermissionTarget;
   onBack: () => void;
+  getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
+  onToggleEnabled: (
+    scope: 'tool' | 'toolset' | 'mcp_tool',
+    identifier: string,
+    enabled: boolean,
+  ) => void;
 };
 
-export function PermissionPolicyEditor({
+function EditorHeader({
+  title,
+  subtitle,
+  enabled,
+  onBack,
+  onToggle,
+}: {
+  title: string;
+  subtitle: string;
+  enabled: boolean;
+  onBack: () => void;
+  onToggle: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <Button variant="ghost" size="sm" onClick={onBack} className="h-7 w-fit px-2">
+        <ArrowLeftIcon className="size-3.5" />
+        Back to tools
+      </Button>
+
+      <div className="rounded-xl border border-border/60 bg-card/40 px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Enabled</span>
+            <Switch checked={enabled} onCheckedChange={onToggle} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ToolPermissionEditor({
   toolName,
   displayName,
   onBack,
-}: PermissionPolicyEditorProps) {
+  enabledScope,
+  getEnabled,
+  onToggleEnabled,
+}: {
+  toolName: string;
+  displayName: string;
+  onBack: () => void;
+  enabledScope: 'tool' | 'toolset' | 'mcp_tool';
+  getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
+  onToggleEnabled: (
+    scope: 'tool' | 'toolset' | 'mcp_tool',
+    identifier: string,
+    enabled: boolean,
+  ) => void;
+}) {
   const { data: permissions } = useSuspenseQuery(toolPermissionsQueryOptions);
   const upsertPermission = useUpsertToolPermission();
   const deletePermission = useDeleteToolPermission();
@@ -46,6 +138,7 @@ export function PermissionPolicyEditor({
   const globalPermission: ToolPermissionValue = globalRule?.permission ?? 'ask';
 
   const isFileTool = FILE_PATTERN_TOOLS.has(toolName);
+  const isPatternTool = PATTERN_POLICY_TOOLS.has(toolName);
   const isMutating = upsertPermission.isPending || deletePermission.isPending;
 
   const handleGlobalChange = (permission: ToolPermissionValue) => {
@@ -97,72 +190,78 @@ export function PermissionPolicyEditor({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to permissions">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <p className="text-sm font-semibold">{displayName} permissions</p>
-          <p className="text-xs text-muted-foreground">
-            Configure when this tool requires approval
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <EditorHeader
+        title={displayName}
+        subtitle={`Tool id: ${toolName}`}
+        enabled={getEnabled(enabledScope, toolName)}
+        onBack={onBack}
+        onToggle={(checked) => onToggleEnabled(enabledScope, toolName, checked)}
+      />
 
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Default behavior</p>
-        <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
-          <div>
-            <p className="text-sm">All uses</p>
-            <p className="text-xs text-muted-foreground">Applied when no specific rule matches</p>
+      <Section
+        title="Default behavior"
+        description="This permission is used when no path or command rule matches."
+      >
+        <div className="rounded-lg border border-border/60 bg-card/30 px-3 py-2.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <div>
+              <p className="text-sm font-medium">All uses</p>
+              <p className="text-xs text-muted-foreground">
+                Choose allow, ask, or deny by default.
+              </p>
+            </div>
+            <PermissionSelect
+              value={globalPermission}
+              onChange={handleGlobalChange}
+              includeDeny
+              disabled={isMutating}
+            />
           </div>
-          <PermissionSelect
-            value={globalPermission}
-            onChange={handleGlobalChange}
-            includeDeny
-            disabled={isMutating}
-          />
         </div>
-      </div>
+      </Section>
 
-      {patternRules.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Specific rules</p>
-          <div className="overflow-hidden rounded-md border border-border/50">
-            {patternRules.map((rule) => (
-              <div
-                key={rule.id}
-                className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 last:border-b-0"
-              >
-                <p className="flex-1 truncate font-mono text-xs text-muted-foreground">
-                  {rule.pattern}
-                </p>
-                <PermissionSelect
-                  value={rule.permission}
-                  onChange={(value) => handlePatternPermissionChange(rule, value)}
-                  includeDeny
-                  disabled={isMutating}
-                />
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={() => handleDeleteRule(rule)}
-                  disabled={isMutating}
-                  aria-label="Delete rule"
-                  className="shrink-0 text-muted-foreground/60 hover:text-destructive"
+      {isPatternTool && patternRules.length > 0 && (
+        <Section
+          title="Specific rules"
+          description="More specific patterns override the default behavior."
+        >
+          <div className="overflow-hidden rounded-lg border border-border/60">
+            <div className="divide-y divide-border/40">
+              {patternRules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5"
                 >
-                  <Trash2Icon className="size-3.5" />
-                </Button>
-              </div>
-            ))}
+                  <p className="truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+                  <PermissionSelect
+                    value={rule.permission}
+                    onChange={(value) => handlePatternPermissionChange(rule, value)}
+                    includeDeny
+                    disabled={isMutating}
+                  />
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteRule(rule)}
+                    disabled={isMutating}
+                    aria-label="Delete rule"
+                    className="text-muted-foreground/70 hover:text-destructive"
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </Section>
       )}
 
-      {toolName === 'bash' && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Common commands</p>
+      {isPatternTool && toolName === 'bash' && (
+        <Section
+          title="Common command presets"
+          description="Quickly allow common safe command patterns."
+        >
           <div className="flex flex-wrap gap-1.5">
             {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
               const existing = patternRules.find((rule) => rule.pattern === preset.pattern);
@@ -201,49 +300,158 @@ export function PermissionPolicyEditor({
               );
             })}
           </div>
-        </div>
+        </Section>
       )}
 
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">
-          {isFileTool ? 'Add path rule' : 'Add command rule'}
-        </p>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Input
-              value={newPattern}
-              onChange={(event) => setNewPattern(event.target.value)}
-              placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
-              className={isFileTool ? 'pr-8 font-mono text-xs' : 'font-mono text-xs'}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') handleAddRule();
-              }}
-            />
-            {isFileTool && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-                onClick={handleBrowse}
-                aria-label="Browse for path"
-                tabIndex={-1}
-              >
-                <FolderOpenIcon className="size-3.5" />
-              </Button>
-            )}
+      {isPatternTool && (
+        <Section
+          title={isFileTool ? 'Add path rule' : 'Add command rule'}
+          description={
+            isFileTool
+              ? 'Add file and directory patterns that should use a specific permission.'
+              : 'Add command patterns that should use a specific permission.'
+          }
+        >
+          <div className="rounded-lg border border-border/60 bg-card/30 p-3">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Input
+                  value={newPattern}
+                  onChange={(event) => setNewPattern(event.target.value)}
+                  placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
+                  className={isFileTool ? 'pr-8 font-mono text-xs' : 'font-mono text-xs'}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') handleAddRule();
+                  }}
+                />
+                {isFileTool && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                    onClick={handleBrowse}
+                    aria-label="Browse for path"
+                    tabIndex={-1}
+                  >
+                    <FolderOpenIcon className="size-3.5" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <PermissionSelect
+                  value={newPermission}
+                  onChange={setNewPermission}
+                  includeDeny
+                  disabled={isMutating}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddRule}
+                  disabled={!newPattern.trim() || isMutating}
+                >
+                  Add rule
+                </Button>
+              </div>
+            </div>
           </div>
-          <PermissionSelect
-            value={newPermission}
-            onChange={setNewPermission}
-            includeDeny
-            disabled={isMutating}
-          />
-          <Button size="sm" onClick={handleAddRule} disabled={!newPattern.trim() || isMutating}>
-            Add
-          </Button>
+        </Section>
+      )}
+    </div>
+  );
+}
+
+export function PermissionPolicyEditor({
+  target,
+  onBack,
+  getEnabled,
+  onToggleEnabled,
+}: PermissionPolicyEditorProps) {
+  const [editingMcpTool, setEditingMcpTool] = React.useState<{
+    toolName: string;
+    displayName: string;
+  } | null>(null);
+
+  if (editingMcpTool) {
+    return (
+      <ToolPermissionEditor
+        toolName={editingMcpTool.toolName}
+        displayName={editingMcpTool.displayName}
+        onBack={() => setEditingMcpTool(null)}
+        enabledScope="mcp_tool"
+        getEnabled={getEnabled}
+        onToggleEnabled={onToggleEnabled}
+      />
+    );
+  }
+
+  if (target.type === 'tool') {
+    return (
+      <ToolPermissionEditor
+        toolName={target.toolName}
+        displayName={target.displayName}
+        onBack={onBack}
+        enabledScope={target.enabledScope}
+        getEnabled={getEnabled}
+        onToggleEnabled={onToggleEnabled}
+      />
+    );
+  }
+
+  const hasPerToolToggle = !!target.perToolEnabledScope;
+
+  return (
+    <div className="space-y-6">
+      <EditorHeader
+        title={target.displayName}
+        subtitle={target.subtitle}
+        enabled={getEnabled('toolset', target.toolsetId)}
+        onBack={onBack}
+        onToggle={(checked) => onToggleEnabled('toolset', target.toolsetId, checked)}
+      />
+
+      <Section title="Toolset tools" description="Open settings for per-tool permission behavior.">
+        <div className="overflow-hidden rounded-lg border border-border/60">
+          <div className="divide-y divide-border/40">
+            {target.tools.map((tool) => (
+              <div
+                key={tool.toolName}
+                className={
+                  hasPerToolToggle
+                    ? 'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5'
+                    : 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5'
+                }
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{tool.displayName}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingMcpTool(tool)}
+                  className="h-7 w-20 justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <Settings2Icon className="size-3.5" />
+                  Settings
+                </Button>
+                {target.perToolEnabledScope
+                  ? (() => {
+                      const perToolEnabledScope = target.perToolEnabledScope;
+                      return (
+                        <Switch
+                          checked={getEnabled(perToolEnabledScope, tool.toolName)}
+                          onCheckedChange={(checked) =>
+                            onToggleEnabled(perToolEnabledScope, tool.toolName, checked)
+                          }
+                        />
+                      );
+                    })()
+                  : null}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </Section>
     </div>
   );
 }

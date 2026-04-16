@@ -28,6 +28,7 @@ import type {
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
+import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 
 /** @deprecated Type field is no longer used but kept for DB compatibility */
 type AgendaItemType = 'todo' | 'reminder' | 'checkup';
@@ -284,6 +285,22 @@ export const toolPermissions = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern)],
+);
+
+export const toolEnabled = sqliteTable(
+  'tool_enabled',
+  {
+    scope: text('scope').$type<ToolEnabledScope>().notNull(),
+    identifier: text('identifier').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [uniqueIndex('tool_enabled_scope_identifier_uidx').on(table.scope, table.identifier)],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {
