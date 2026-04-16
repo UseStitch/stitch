@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permissions/types';
-import type { ToolType } from '@stitch/shared/tools/types';
+import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/shared/tools/types';
 
 import { serverFetch } from '@/lib/api';
 
@@ -25,6 +25,7 @@ export const toolKeys = {
   knownTools: () => [...toolKeys.all, 'known-tools'] as const,
   knownMcpTools: () => [...toolKeys.all, 'known-mcp-tools'] as const,
   permissions: () => [...toolKeys.all, 'permissions'] as const,
+  enabledStates: () => [...toolKeys.all, 'enabled-states'] as const,
 };
 
 export const knownToolsQueryOptions = queryOptions({
@@ -56,6 +57,17 @@ export const toolPermissionsQueryOptions = queryOptions({
     const res = await serverFetch('/config/permissions');
     if (!res.ok) throw new Error('Failed to fetch permissions');
     return res.json() as Promise<ToolPermission[]>;
+  },
+});
+
+export const toolEnabledStatesQueryOptions = queryOptions({
+  queryKey: toolKeys.enabledStates(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<ToolEnabledState[]> => {
+    const res = await serverFetch('/config/tools/enabled');
+    if (!res.ok) throw new Error('Failed to fetch tool enabled states');
+    const data = (await res.json()) as { states: ToolEnabledState[] };
+    return data.states;
   },
 });
 
@@ -97,6 +109,34 @@ export function useDeleteToolPermission() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: toolKeys.permissions() });
+    },
+  });
+}
+
+export function useSetToolEnabledState() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      scope: ToolEnabledScope;
+      identifier: string;
+      enabled: boolean;
+    }) => {
+      const res = await serverFetch('/config/tools/enabled', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to update tool state');
+      }
+    },
+    onSuccess: () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: toolKeys.enabledStates() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownMcpTools() }),
+      ]);
     },
   });
 }

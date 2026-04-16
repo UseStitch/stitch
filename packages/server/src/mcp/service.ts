@@ -1,11 +1,11 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, like, or } from 'drizzle-orm';
 
 import { createMcpServerId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { mcpServers } from '@/db/schema.js';
+import { mcpServers, toolEnabled, toolPermissions } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { withMcpClient } from '@/mcp/client.js';
@@ -38,6 +38,9 @@ export async function createMcpServer(input: {
 
 export async function deleteMcpServer(serverId: string): Promise<ServiceResult<null>> {
   const db = getDb();
+  const toolsetId = `mcp:${serverId}`;
+  const mcpToolPrefix = `${serverId}_%`;
+
   const [existing] = await db
     .select()
     .from(mcpServers)
@@ -45,7 +48,18 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
   if (!existing) {
     return err('MCP server not found', 404);
   }
+
   await db.delete(mcpServers).where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  await db
+    .delete(toolEnabled)
+    .where(
+      or(
+        and(eq(toolEnabled.scope, 'toolset'), eq(toolEnabled.identifier, toolsetId)),
+        and(eq(toolEnabled.scope, 'mcp_tool'), like(toolEnabled.identifier, mcpToolPrefix)),
+      ),
+    );
+  await db.delete(toolPermissions).where(like(toolPermissions.toolName, mcpToolPrefix));
+
   return ok(null);
 }
 

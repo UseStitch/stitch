@@ -41,6 +41,7 @@ import {
   createRegisteredTool as createWriteRegisteredTool,
   DISPLAY_NAME as WRITE_DISPLAY_NAME,
 } from '@/tools/core/write.js';
+import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
 import { withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 
 export const MAX_STEPS = 25;
@@ -123,7 +124,12 @@ export async function createTools(context: {
     return shouldEnableMemoryTool;
   });
 
+  const disabledTools = await getDisabledToolIdentifiers('tool');
+  const enabledToolEntries = toolEntries.filter(([name]) => !disabledTools.has(name));
+
   return withToolResultHandlingRecord(
-    Object.fromEntries(toolEntries.map(([name, mod]) => [name, mod.createRegisteredTool(context)])),
+    Object.fromEntries(
+      enabledToolEntries.map(([name, mod]) => [name, mod.createRegisteredTool(context)]),
+    ),
   );
 }
