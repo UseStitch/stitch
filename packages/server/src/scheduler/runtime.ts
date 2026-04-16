@@ -27,12 +27,7 @@ export async function startScheduler(): Promise<void> {
   if (scheduler) return;
 
   scheduler = createScheduler({
-    logger: {
-      debug: (extra, message) => log.debug(extra, message),
-      info: (extra, message) => log.info(extra, message),
-      warn: (extra, message) => log.warn(extra, message),
-      error: (extra, message) => log.error(extra, message),
-    },
+    logger: log,
     store: createSchedulerStore(),
     pollIntervalMs: 1_000,
   });
