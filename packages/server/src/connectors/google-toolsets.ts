@@ -7,15 +7,12 @@
 import { eq } from 'drizzle-orm';
 
 import { GoogleClient } from '@stitch-connectors/google/client';
-import { hasServiceAccess } from '@stitch-connectors/google/scopes';
+
 import {
-  GOOGLE_CAPABILITY_CALENDAR_READ,
-  GOOGLE_CAPABILITY_DOCS_READ,
-  GOOGLE_CAPABILITY_DRIVE_READ,
-  GOOGLE_CAPABILITY_GMAIL_READ,
   GOOGLE_TOOLSET_IDS,
   type GoogleToolsetDefinition,
   buildGoogleToolsets,
+  canActivateToolset,
 } from '@stitch-connectors/google/toolsets';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
@@ -33,42 +30,6 @@ import type { Tool } from 'ai';
 const log = Log.create({ service: 'google-toolsets' });
 const REFRESH_BUFFER_MS = 60_000;
 
-function hasCapability(capabilities: string[] | null | undefined, capability: string): boolean {
-  return (capabilities ?? []).includes(capability);
-}
-
-function accountSupportsToolset(
-  toolsetId: string,
-  account: { scopes: string[] | null; capabilities: string[] | null },
-): boolean {
-  const scopes = account.scopes ?? [];
-  if (toolsetId === 'google-gmail') {
-    return (
-      hasServiceAccess(scopes, 'gmail') &&
-      hasCapability(account.capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
-    );
-  }
-  if (toolsetId === 'google-drive') {
-    return (
-      hasServiceAccess(scopes, 'drive') &&
-      hasCapability(account.capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
-    );
-  }
-  if (toolsetId === 'google-calendar') {
-    return (
-      hasServiceAccess(scopes, 'calendar') &&
-      hasCapability(account.capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
-    );
-  }
-  if (toolsetId === 'google-docs') {
-    return (
-      hasServiceAccess(scopes, 'docs') &&
-      hasCapability(account.capabilities, GOOGLE_CAPABILITY_DOCS_READ)
-    );
-  }
-  return false;
-}
-
 /** Convert a @stitch-connectors/google toolset definition into the server Toolset type. */
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
   return {
@@ -79,7 +40,15 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
     instructions: def.instructions,
     tools: () => def.tools(),
     activate: async () => {
+      const clientCache = new Map<string, { client: GoogleClient; usedAccount: string }>();
+
       return def.activate(async (account) => {
+        const cacheKey = account?.trim().toLowerCase() || 'default';
+        const cached = clientCache.get(cacheKey);
+        if (cached) {
+          return cached;
+        }
+
         const db = getDb();
         const rows = await db
           .select({
@@ -123,14 +92,25 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           throw new Error(`Unknown Google account "${account}". Available accounts: ${available}`);
         }
 
-        if (!accountSupportsToolset(def.id, chosen)) {
+        if (!canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], (chosen.capabilities) ?? [])) {
           throw new Error(
             `Google account ${chosen.accountEmail ?? chosen.label} does not have the permissions required for ${def.name}. Re-authorize this account with the required scopes.`,
           );
         }
 
+        let cachedToken: string | null = null;
+        let cachedTokenExpiresAt: number | null = null;
+
         const client = new GoogleClient({
           getAccessToken: async () => {
+            const now = Date.now();
+            if (
+              cachedToken &&
+              (!cachedTokenExpiresAt || cachedTokenExpiresAt > now + REFRESH_BUFFER_MS)
+            ) {
+              return cachedToken;
+            }
+
             const [latest] = await db
               .select({
                 id: connectorInstances.id,
@@ -150,7 +130,6 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               );
             }
 
-            const now = Date.now();
             const shouldRefresh =
               Boolean(latest.refreshToken) &&
               (latest.accessToken === null ||
@@ -181,7 +160,9 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                     })
                     .where(eq(connectorInstances.id, chosen.id));
 
-                  return refreshed.accessToken;
+                  cachedToken = refreshed.accessToken;
+                  cachedTokenExpiresAt = refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null;
+                  return cachedToken;
                 }
               }
             }
@@ -192,16 +173,20 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               );
             }
 
-            return latest.accessToken;
+            cachedToken = latest.accessToken;
+            cachedTokenExpiresAt = latest.tokenExpiresAt;
+            return cachedToken;
           },
           logger: log,
           quotaAccountKey: chosen.id,
         });
 
-        return {
+        const result = {
           client,
           usedAccount: chosen.accountEmail ?? chosen.label,
         };
+        clientCache.set(cacheKey, result);
+        return result;
       }) as Record<string, Tool>;
     },
   };
@@ -220,7 +205,14 @@ export async function registerGoogleToolsets(): Promise<void> {
   const db = getDb();
 
   const instances = await db
-    .select()
+    .select({
+      id: connectorInstances.id,
+      status: connectorInstances.status,
+      accessToken: connectorInstances.accessToken,
+      scopes: connectorInstances.scopes,
+      capabilities: connectorInstances.capabilities,
+      appliedVersion: connectorInstances.appliedVersion,
+    })
     .from(connectorInstances)
     .where(eq(connectorInstances.connectorId, 'google'));
 
