@@ -15,6 +15,18 @@ export const extractionSchema = z.object({
       confidence: z
         .enum(MEMORY_CONFIDENCES)
         .describe('"stated" if explicit, "inferred" if implied.'),
+      importanceScore: z
+        .number()
+        .min(0)
+        .max(1)
+        .describe(
+          'How valuable this fact will be in future sessions (0–1). High score = prevents user from repeating themselves. Low score = ephemeral or obvious.',
+        ),
+      durability: z
+        .enum(['ephemeral', 'session', 'long_term'])
+        .describe(
+          '"long_term" if this fact remains true across sessions. "session" if likely only relevant to the current task. "ephemeral" if it will be outdated very quickly.',
+        ),
     }),
   ),
 });
@@ -48,21 +60,32 @@ export function buildExtractionPrompt(userMessage: string, assistantMessage: str
 
 Rules:
 - Only extract information about the USER, not the assistant.
-- Extract at most 3 facts per turn. Focus on the most important ones.
+- Extract at most 1–2 facts per turn. Be highly selective — only the most durable, reusable facts.
 - Strongly prefer "stated" confidence. Only use "inferred" when the implication is very strong and specific.
-- Skip trivial or ephemeral information: greetings, acknowledgments, task-specific file paths, temporary variable names.
+- Skip trivial or ephemeral information: greetings, acknowledgments, task-specific file paths, temporary variable names, single-use instructions.
 - Skip information that is only relevant to the current task and has no lasting value across sessions.
 - Each fact must be a single, self-contained statement.
 - Do NOT extract trivial greetings, filler, or task-specific instructions that have no lasting value.
 - Do NOT extract information the assistant said unless the user confirmed it.
 - Prefer specifics over vague statements.
-- If there is nothing to extract, return an empty facts array.
+- If there is nothing durable to extract, return an empty facts array.
 
 Categories:
 - "preference": Things the user likes, prefers, or wants (e.g. "prefers dark mode", "likes TypeScript over JavaScript")
 - "fact": Objective information about the user (e.g. "works at Acme Corp", "uses macOS")
 - "workflow": How the user likes to work or processes they follow (e.g. "always runs tests before committing")
 - "constraint": Limitations or rules the user operates under (e.g. "cannot use GPL libraries", "must support IE11")
+
+Importance scoring (importanceScore 0-1):
+- 0.9-1.0: User explicitly asked to remember this, or corrected a wrong assumption. Will prevent frustration if recalled.
+- 0.7-0.9: Clear stable preference, environment fact, or recurring workflow that will save future back-and-forth.
+- 0.5-0.7: Useful but not critical. Saves minor friction.
+- Below 0.5: Ephemeral, obvious, or easily re-discovered. Do not extract these.
+
+Durability:
+- "long_term": Stable across sessions (preferences, identity facts, constraints, proven workflows).
+- "session": Likely only relevant to the current task or context window.
+- "ephemeral": Will be outdated in hours/days (e.g. "user is currently debugging X issue").
 
 <user_message>
 ${userMessage}
@@ -101,6 +124,7 @@ Important rules:
 - Prefer NONE over DELETE. Only DELETE when the existing memory is clearly and factually wrong.
 - Prefer NONE over UPDATE for minor wording differences.
 - If the new fact is very similar to an existing memory (just reworded), prefer NONE. Only use ADD for genuinely new information.
+- Even if similarity is high (>0.85), still check for contradictions — a high-similarity fact can still be a contradiction (e.g. "uses Python 3.9" vs "uses Python 3.12").
 
 <new_fact>
 content: ${fact.content}

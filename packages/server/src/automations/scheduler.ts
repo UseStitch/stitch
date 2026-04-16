@@ -4,6 +4,7 @@ import type { Automation, AutomationSchedule } from '@stitch/shared/automations/
 import { listAutomations, runAutomation } from './service.js';
 
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
+import { isServiceError } from '@/lib/service-result.js';
 
 const AUTOMATION_JOB_KEY_PREFIX = 'automation:';
 
@@ -27,7 +28,7 @@ async function registerAutomationJob(automation: Automation): Promise<void> {
     schedule: toSchedulerSchedule(automation.schedule),
     callback: async () => {
       const result = await runAutomation(automation.id);
-      if ('error' in result) {
+      if (isServiceError(result)) {
         throw new Error(result.error);
       }
     },
@@ -51,19 +52,21 @@ export async function unregisterAutomationSchedule(automationId: string): Promis
 
 export async function syncAllAutomationSchedules(): Promise<void> {
   const pageSize = 100;
-  const automations: Automation[] = [];
+  const automationList: Automation[] = [];
   let page = 1;
 
   while (true) {
     const result = await listAutomations({ page, pageSize });
-    automations.push(...result.automations);
+    if (isServiceError(result)) break;
 
-    if (result.totalPages === 0 || page >= result.totalPages) {
+    automationList.push(...result.data.automations);
+
+    if (result.data.totalPages === 0 || page >= result.data.totalPages) {
       break;
     }
 
     page += 1;
   }
 
-  await Promise.all(automations.map((automation) => syncAutomationSchedule(automation)));
+  await Promise.all(automationList.map((automation) => syncAutomationSchedule(automation)));
 }

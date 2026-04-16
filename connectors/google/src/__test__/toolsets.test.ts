@@ -12,8 +12,8 @@ describe('buildGoogleToolsets', () => {
     expect(gmail?.tools().map((tool) => tool.name)).toEqual([
       'gmail_search',
       'gmail_read',
-      'listLabels',
-      'getLabels',
+      'gmail_list_labels',
+      'gmail_get_label',
     ]);
   });
 
@@ -32,18 +32,18 @@ describe('buildGoogleToolsets', () => {
       'gmail_search',
       'gmail_read',
       'gmail_send',
-      'listLabels',
-      'getLabels',
+      'gmail_list_labels',
+      'gmail_get_label',
     ]);
 
     expect(modify?.tools().map((tool) => tool.name)).toEqual([
       'gmail_search',
       'gmail_read',
       'gmail_send',
-      'listLabels',
-      'getLabels',
-      'modifyLabels',
-      'modifyMessages',
+      'gmail_list_labels',
+      'gmail_get_label',
+      'gmail_modify_labels',
+      'gmail_modify_messages',
     ]);
   });
 
@@ -82,6 +82,27 @@ describe('buildGoogleToolsets', () => {
       'docs_read',
       'docs_create',
       'docs_update',
+    ]);
+  });
+
+  it('only exposes calendar write tools when calendar write access exists', () => {
+    const readOnly = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      capabilities: ['google.calendar.read', 'google.calendar.write'],
+    }).find((toolset) => toolset.id === 'google-calendar');
+
+    const writable = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/calendar.events'],
+      capabilities: ['google.calendar.read', 'google.calendar.write'],
+    }).find((toolset) => toolset.id === 'google-calendar');
+
+    expect(readOnly?.tools().map((tool) => tool.name)).toEqual(['calendar_list', 'calendar_get']);
+    expect(writable?.tools().map((tool) => tool.name)).toEqual([
+      'calendar_list',
+      'calendar_get',
+      'calendar_create',
+      'calendar_update',
+      'calendar_delete',
     ]);
   });
 });

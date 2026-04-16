@@ -28,6 +28,7 @@ import { useActions } from '@/lib/actions';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
+import { knownToolsQueryOptions } from '@/lib/queries/tools';
 import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
 interface RouterContext {
@@ -62,6 +63,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       context.queryClient.ensureQueryData(shortcutsQueryOptions),
       context.queryClient.ensureQueryData(providersQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
+      context.queryClient.ensureQueryData(knownToolsQueryOptions),
     ]),
 });
 

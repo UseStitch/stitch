@@ -164,3 +164,59 @@ export async function createEvent(
 
   return mapEvent(raw);
 }
+
+export async function updateEvent(
+  client: GoogleClient,
+  eventId: string,
+  patch: {
+    summary?: string;
+    description?: string;
+    location?: string;
+    start?: { dateTime: string; timeZone?: string };
+    end?: { dateTime: string; timeZone?: string };
+    attendees?: string[];
+    addMeet?: boolean;
+  },
+  calendarId = 'primary',
+  sendUpdates: 'all' | 'externalOnly' | 'none' = 'all',
+): Promise<CalendarEvent> {
+  const url = new URL(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+  );
+  url.searchParams.set('sendUpdates', sendUpdates);
+  if (patch.addMeet) url.searchParams.set('conferenceDataVersion', '1');
+
+  const body: Record<string, unknown> = {};
+  if (patch.summary !== undefined) body['summary'] = patch.summary;
+  if (patch.description !== undefined) body['description'] = patch.description;
+  if (patch.location !== undefined) body['location'] = patch.location;
+  if (patch.start !== undefined) body['start'] = patch.start;
+  if (patch.end !== undefined) body['end'] = patch.end;
+  if (patch.attendees !== undefined) body['attendees'] = patch.attendees.map((email) => ({ email }));
+  if (patch.addMeet) {
+    body['conferenceData'] = {
+      createRequest: { requestId: `meet-${Date.now()}` },
+    };
+  }
+
+  const raw = await client.request<CalendarEventRaw>(url.toString(), {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+
+  return mapEvent(raw);
+}
+
+export async function deleteEvent(
+  client: GoogleClient,
+  eventId: string,
+  calendarId = 'primary',
+  sendUpdates: 'all' | 'externalOnly' | 'none' = 'all',
+): Promise<void> {
+  const url = new URL(
+    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+  );
+  url.searchParams.set('sendUpdates', sendUpdates);
+
+  await client.request<void>(url.toString(), { method: 'DELETE' });
+}

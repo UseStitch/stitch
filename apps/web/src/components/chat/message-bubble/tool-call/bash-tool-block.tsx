@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ToolCard, getToolCardState, truncateText } from './card-primitives';
+import { ToolCard, getToolCardState, truncateText, useStitchToolDisplayName } from './card-primitives';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,7 @@ type BashToolBlockProps = {
 export function BashToolBlock({ toolName, status, args, onAbort }: BashToolBlockProps) {
   const { isActive } = getToolCardState(status);
   const { action, command } = getBashArgs(args);
+  const displayName = useStitchToolDisplayName(toolName);
   const [open, setOpen] = React.useState(false);
   const [showFullCommand, setShowFullCommand] = React.useState(false);
   const actionLabel = action ?? 'Run a shell command';
@@ -50,7 +51,7 @@ export function BashToolBlock({ toolName, status, args, onAbort }: BashToolBlock
         >
           <ToolCard.StatusIndicator status={status} />
           <span className="min-w-0 flex-1 text-left">
-            <ToolCard.Title>{toolName}</ToolCard.Title>
+            <ToolCard.Title>{displayName}</ToolCard.Title>
             <ToolCard.TitleContent truncate className="mt-1 block">
               {actionLabel}
             </ToolCard.TitleContent>

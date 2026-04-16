@@ -28,6 +28,9 @@ export const SETTINGS_KEYS = [
   'memory.extraction.maxFactsPerTurn',
   'memory.extraction.minMessageLength',
   'memory.extraction.confidenceFilter',
+  'memory.extraction.importanceMinScore',
+  'memory.extraction.maxFactsPerSession',
+  'memory.extraction.minTurnsBetweenWrites',
   'memory.retention.maxMemories',
   'memory.retention.staleDays',
   'memory.retention.autoprune',
@@ -74,6 +77,9 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'memory.extraction.maxFactsPerTurn': z.coerce.number().int().min(1),
   'memory.extraction.minMessageLength': z.coerce.number().int().min(0),
   'memory.extraction.confidenceFilter': z.enum(['stated', 'all', 'stated+confirmed']),
+  'memory.extraction.importanceMinScore': z.coerce.number().min(0).max(1),
+  'memory.extraction.maxFactsPerSession': z.coerce.number().int().min(1),
+  'memory.extraction.minTurnsBetweenWrites': z.coerce.number().int().min(0),
   'memory.retention.maxMemories': z.coerce.number().int().min(10),
   'memory.retention.staleDays': z.coerce.number().int().min(1),
   'memory.retention.autoprune': z.coerce.boolean(),
@@ -226,12 +232,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   },
   {
     key: 'memory.extraction.maxFactsPerTurn',
-    value: '2',
+    value: '1',
     description: 'Max facts extracted and persisted per conversation turn.',
   },
   {
     key: 'memory.extraction.minMessageLength',
-    value: '40',
+    value: '100',
     description: 'Skip extraction if user message is shorter than this (in characters).',
   },
   {
@@ -240,13 +246,31 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     description: 'Which confidences to auto-persist: stated, all, or stated+confirmed.',
   },
   {
+    key: 'memory.extraction.importanceMinScore',
+    value: '0.7',
+    description:
+      'Minimum importance score (0–1) a fact must have to be persisted. Lower scores are discarded.',
+  },
+  {
+    key: 'memory.extraction.maxFactsPerSession',
+    value: '20',
+    description:
+      'Hard cap on total auto-extracted facts written per session. Prevents burst over-capture.',
+  },
+  {
+    key: 'memory.extraction.minTurnsBetweenWrites',
+    value: '3',
+    description:
+      'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
+  },
+  {
     key: 'memory.retention.maxMemories',
-    value: '200',
+    value: '150',
     description: 'Hard cap on total stored memories. Oldest low-value memories pruned first.',
   },
   {
     key: 'memory.retention.staleDays',
-    value: '60',
+    value: '30',
     description: 'Memories not accessed in this many days are candidates for pruning.',
   },
   {
@@ -256,12 +280,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   },
   {
     key: 'memory.retrieval.maxResults',
-    value: '5',
+    value: '3',
     description: 'Max memories injected into context per turn.',
   },
   {
     key: 'memory.retrieval.minScore',
-    value: '0.45',
+    value: '0.6',
     description: 'Minimum relevance score to include a memory in context.',
   },
   {

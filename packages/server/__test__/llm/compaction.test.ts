@@ -1,9 +1,11 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, beforeEach } from 'vitest';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
-import { isOverflow } from '@/llm/compaction.js';
+import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
+import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { registerToolset, unregisterToolset, listToolsetIds } from '@/tools/toolsets/registry.js';
 
 describe('isOverflow', () => {
   const defaultLimits = { context: 200_000, output: 8_192 };
@@ -477,5 +479,101 @@ describe('buildHistoryMessages', () => {
     const firstContent = userMessages[0].content as Array<{ type: string }>;
     const realImages = firstContent.filter((p) => p.type === 'image');
     expect(realImages).toHaveLength(1);
+  });
+});
+
+describe('buildActiveToolsetInstructionsBlock', () => {
+  const sessionId = 'ses_test_compaction' as never;
+
+  beforeEach(() => {
+    for (const id of listToolsetIds()) {
+      unregisterToolset(id);
+    }
+    setSessionActiveToolsetIds(sessionId, []);
+  });
+
+  test('returns empty string when no toolsets are active', () => {
+    const result = buildActiveToolsetInstructionsBlock(sessionId);
+    expect(result).toBe('');
+  });
+
+  test('returns empty string when active toolsets have no instructions', () => {
+    registerToolset({
+      id: 'no-instructions',
+      name: 'No Instructions',
+      description: 'Toolset without instructions',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    setSessionActiveToolsetIds(sessionId, ['no-instructions']);
+
+    const result = buildActiveToolsetInstructionsBlock(sessionId);
+    expect(result).toBe('');
+  });
+
+  test('includes instructions for active toolsets that have them', () => {
+    registerToolset({
+      id: 'browser',
+      name: 'Browser',
+      description: 'Browser toolset',
+      instructions: 'Use browser_navigate to open pages.',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    setSessionActiveToolsetIds(sessionId, ['browser']);
+
+    const result = buildActiveToolsetInstructionsBlock(sessionId);
+    expect(result).toContain('## Active Toolset Instructions');
+    expect(result).toContain('### Browser Toolset Instructions');
+    expect(result).toContain('Use browser_navigate to open pages.');
+  });
+
+  test('omits toolsets that have no instructions even when mixed with ones that do', () => {
+    registerToolset({
+      id: 'with-instructions',
+      name: 'With Instructions',
+      description: 'Has instructions',
+      instructions: 'Do something specific.',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    registerToolset({
+      id: 'without-instructions',
+      name: 'Without Instructions',
+      description: 'No instructions',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    setSessionActiveToolsetIds(sessionId, ['with-instructions', 'without-instructions']);
+
+    const result = buildActiveToolsetInstructionsBlock(sessionId);
+    expect(result).toContain('### With Instructions Toolset Instructions');
+    expect(result).not.toContain('### Without Instructions Toolset Instructions');
+  });
+
+  test('includes multiple toolset instruction blocks', () => {
+    registerToolset({
+      id: 'ts-alpha',
+      name: 'Alpha',
+      description: 'Alpha',
+      instructions: 'Alpha instructions.',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    registerToolset({
+      id: 'ts-beta',
+      name: 'Beta',
+      description: 'Beta',
+      instructions: 'Beta instructions.',
+      tools: () => [],
+      activate: async () => ({}),
+    });
+    setSessionActiveToolsetIds(sessionId, ['ts-alpha', 'ts-beta']);
+
+    const result = buildActiveToolsetInstructionsBlock(sessionId);
+    expect(result).toContain('### Alpha Toolset Instructions');
+    expect(result).toContain('Alpha instructions.');
+    expect(result).toContain('### Beta Toolset Instructions');
+    expect(result).toContain('Beta instructions.');
   });
 });

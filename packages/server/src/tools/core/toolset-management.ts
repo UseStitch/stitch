@@ -81,13 +81,14 @@ export function createToolsetTools(manager: ToolsetManager) {
         };
       }
 
-      const toolNames = await manager.activate(toolsetId);
-      if (toolNames === null) {
+      const result = await manager.activate(toolsetId);
+      if (result === null) {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
         );
       }
 
+      const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
       const shouldIncludeVerbose = verbose === true;
 
@@ -97,7 +98,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}`,
+        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,
@@ -108,6 +109,10 @@ export function createToolsetTools(manager: ToolsetManager) {
               arguments: p.arguments,
             })) ?? null)
           : null,
+        ...(collisions.length > 0 && {
+          warning: `Tool name collision: ${collisions.join(', ')} already exist in another active toolset. The new definitions have overwritten the previous ones.`,
+          collisions,
+        }),
       };
     },
   });

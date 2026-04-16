@@ -265,6 +265,16 @@ function ExtractionSettings() {
     CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ??
     'Select confidence filter';
 
+  const initialImportanceScore = Math.max(
+    0,
+    Math.min(1, Number.parseFloat(settings['memory.extraction.importanceMinScore'] ?? '0.7')),
+  );
+  const [importanceScoreValue, setImportanceScoreValue] = React.useState(initialImportanceScore);
+
+  React.useEffect(() => {
+    setImportanceScoreValue(initialImportanceScore);
+  }, [initialImportanceScore]);
+
   const saveMaxFacts = useMutation(
     saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }),
   );
@@ -273,6 +283,21 @@ function ExtractionSettings() {
   );
   const saveConfidenceFilter = useMutation(
     saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }),
+  );
+  const saveImportanceMinScore = useMutation(
+    saveSettingMutationOptions('memory.extraction.importanceMinScore', queryClient, {
+      silent: true,
+    }),
+  );
+  const saveMaxFactsPerSession = useMutation(
+    saveSettingMutationOptions('memory.extraction.maxFactsPerSession', queryClient, {
+      silent: true,
+    }),
+  );
+  const saveMinTurnsBetweenWrites = useMutation(
+    saveSettingMutationOptions('memory.extraction.minTurnsBetweenWrites', queryClient, {
+      silent: true,
+    }),
   );
 
   return (
@@ -334,6 +359,67 @@ function ExtractionSettings() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Min Importance Score</Label>
+          <p className="text-xs text-muted-foreground">
+            Facts below this threshold (0–1) are discarded. Higher = stricter capture.
+          </p>
+        </div>
+        <div className="w-52 shrink-0">
+          <div className="flex items-center gap-3">
+            <Slider
+              value={[importanceScoreValue]}
+              min={0}
+              max={1}
+              step={0.05}
+              onValueChange={(value) => {
+                const rawValue = Array.isArray(value) ? value[0] : value;
+                const nextValue = Math.max(0, Math.min(1, rawValue ?? 0));
+                setImportanceScoreValue(nextValue);
+                saveImportanceMinScore.mutate(nextValue.toFixed(2));
+              }}
+            />
+            <span className="w-10 text-right text-xs font-medium text-muted-foreground tabular-nums">
+              {importanceScoreValue.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Max Facts Per Session</Label>
+          <p className="text-xs text-muted-foreground">
+            Hard cap on total auto-extracted memories written per session.
+          </p>
+        </div>
+        <div className="w-32">
+          <Input
+            type="number"
+            min="1"
+            max="200"
+            defaultValue={settings['memory.extraction.maxFactsPerSession']}
+            onBlur={(e) => saveMaxFactsPerSession.mutate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label className="text-sm font-medium">Min Turns Between Writes</Label>
+          <p className="text-xs text-muted-foreground">
+            Cooldown: minimum user turns between consecutive auto-memory writes.
+          </p>
+        </div>
+        <div className="w-32">
+          <Input
+            type="number"
+            min="0"
+            max="20"
+            defaultValue={settings['memory.extraction.minTurnsBetweenWrites']}
+            onBlur={(e) => saveMinTurnsBetweenWrites.mutate(e.target.value)}
+          />
         </div>
       </div>
     </div>

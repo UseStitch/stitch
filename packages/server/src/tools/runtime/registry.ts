@@ -2,6 +2,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { ToolType } from '@stitch/shared/tools/types';
 
 import { isDbInitialized } from '@/db/client.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import {
@@ -105,7 +106,10 @@ export async function createTools(context: {
   if (isDbInitialized()) {
     const memoryConfig = await getMemoryConfig();
     if (hasConfiguredEmbeddingModel(memoryConfig)) {
-      const embeddingProviders = await listEnabledProviderEmbeddingModels();
+      const embeddingProvidersResult = await listEnabledProviderEmbeddingModels();
+      const embeddingProviders = isServiceError(embeddingProvidersResult)
+        ? []
+        : embeddingProvidersResult.data;
       shouldEnableMemoryTool = embeddingProviders.some(
         (provider) =>
           provider.providerId === memoryConfig.embeddingProviderId &&
