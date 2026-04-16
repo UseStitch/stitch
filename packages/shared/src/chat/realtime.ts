@@ -221,11 +221,6 @@ export type SseEventPayloadMap = {
   'recording-device-changed': RecordingDeviceChangedPayload;
 };
 
-export type SseEvent = {
-  event: SseEventName;
-  data: string;
-};
-
 export type SseHandlers = {
   [K in SseEventName]?: (data: SseEventPayloadMap[K]) => void;
 };

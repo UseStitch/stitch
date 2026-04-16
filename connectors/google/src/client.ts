@@ -11,7 +11,7 @@ import {
   type GoogleRateLimitConfig,
 } from './rate-limit.js';
 
-export type GoogleClientConfig = {
+type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
   getAccessToken: () => Promise<string>;
   /** Optional logger instance — defaults to no-op if not provided. */
@@ -22,7 +22,7 @@ export type GoogleClientConfig = {
   rateLimits?: Partial<GoogleRateLimitConfig>;
 };
 
-export class GoogleApiError extends Error {
+class GoogleApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
   readonly reason: string | undefined;

@@ -46,14 +46,6 @@ export type PermissionResponse = {
   resolvedAt?: number;
 };
 
-export type PermissionAllow = Record<string, never>;
-
-export type PermissionReject = Record<string, never>;
-
-export type PermissionAlternative = {
-  entry: string;
-};
-
 export type PermissionDecisionResult = {
   decision: PermissionDecision;
   entry?: string;

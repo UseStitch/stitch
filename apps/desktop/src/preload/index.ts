@@ -1,20 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-export type ContextMenuParams = {
-  x: number;
-  y: number;
-  misspelledWord: string;
-  dictionarySuggestions: string[];
-  selectionText: string;
-  isEditable: boolean;
-  editFlags: {
-    canCut: boolean;
-    canCopy: boolean;
-    canPaste: boolean;
-    canSelectAll: boolean;
-  };
-};
-
 contextBridge.exposeInMainWorld('electron', {
   platform: process.platform,
   send: (channel: string, data?: unknown) => ipcRenderer.send(channel, data),

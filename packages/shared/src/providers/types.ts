@@ -25,8 +25,6 @@ export const AWS_BEDROCK_REGIONS = [
   { value: 'af-south-1', label: 'Africa (Cape Town)' },
 ] as const;
 
-export type AwsBedrockRegion = (typeof AWS_BEDROCK_REGIONS)[number]['value'];
-
 type BaseFieldDef = {
   key: string;
   label: string;

@@ -1,6 +1,7 @@
 import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
+  includeEntryExports: true,
   workspaces: {
     '.': {
       entry: [],
@@ -16,7 +17,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/shared': {
-      entry: ['src/**/*.ts'],
+      entry: ['src/**/*.ts', '__test__/**/*.test.{ts,tsx}'],
       project: ['src/**/*.ts'],
     },
     'packages/*': {

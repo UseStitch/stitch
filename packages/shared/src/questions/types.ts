@@ -28,9 +28,3 @@ export type QuestionRequest = {
   createdAt: number;
   answeredAt?: number;
 };
-
-export type QuestionReply = {
-  answers: string[][];
-};
-
-export type QuestionReject = Record<string, never>;

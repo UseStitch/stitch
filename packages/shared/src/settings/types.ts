@@ -94,7 +94,7 @@ export function isValidLeaderKeyHotkey(value: string): boolean {
   return SETTINGS_SCHEMAS['shortcuts.leaderKey'].safeParse(value).success;
 }
 
-export type SettingDefault = {
+type SettingDefault = {
   key: SettingsKey;
   value: string;
   description: string;

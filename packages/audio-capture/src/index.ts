@@ -29,7 +29,7 @@ const DRIVERS: Record<NodeJS.Platform, AudioCaptureDriver | undefined> = {
   netbsd: undefined,
 };
 
-export type AudioCaptureHandle = {
+type AudioCaptureHandle = {
   start: (input: StartCaptureInput) => Promise<void>;
   stop: () => Promise<StopCaptureResult | null>;
   getActive: () => ActiveCapture | null;
@@ -102,14 +102,14 @@ export function createMeetingDetector(
 export type {
   AudioDeviceList,
   AudioPermissionsStatus,
-  CaptureMode,
-  NativeCaptureEventListener,
-  PermissionState,
-  StartCaptureInput,
-  StopCaptureResult,
-  MeetingDetection,
-  MeetingDetectionEvent,
-  MeetingDetectionListener,
-  MeetingDetectionOptions,
-  MeetingDetector,
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 } from './types.js';
