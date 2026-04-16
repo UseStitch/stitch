@@ -153,14 +153,9 @@ export const googleConnectorModule: ConnectorModule = {
       { text: 'Give it a name (for example, Stitch Desktop)' },
       { text: 'Copy the Client ID and Client Secret' },
       {
-        text: 'Enable APIs for services you plan to use (Gmail API, Google Drive API, Google Calendar API, Google Docs API)',
-        href: 'https://console.cloud.google.com/apis/library',
-        hrefLabel: 'Google API Library',
-      },
-      {
         text: 'Add your email as a test user in OAuth consent screen while app is in testing mode',
-        href: 'https://console.cloud.google.com/apis/credentials/consent',
-        hrefLabel: 'OAuth Consent Screen',
+        href: 'https://console.cloud.google.com/auth/audience',
+        hrefLabel: 'OAuth Audience Page',
       },
     ],
   },
