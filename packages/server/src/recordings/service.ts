@@ -15,6 +15,7 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { computeTotalPages } from '@/lib/paginated-query.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
@@ -109,7 +110,7 @@ export async function listRecordings(input: {
     db.select({ total: sql<number>`count(*)` }).from(recordings),
   ]);
   const total = Number(countRows[0]?.total ?? 0);
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
   return {
     recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null)),

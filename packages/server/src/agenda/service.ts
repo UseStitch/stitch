@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 
 import {
   createAgendaItemEventId,
@@ -206,7 +207,6 @@ export async function getAgendaItems(input: {
   pageSize: number;
 }): Promise<ListAgendaItemsResponse> {
   const db = getDb();
-  const offset = (input.page - 1) * input.pageSize;
 
   const conditions = [];
   if (input.listId) conditions.push(eq(agendaItems.listId, input.listId));
@@ -215,28 +215,20 @@ export async function getAgendaItems(input: {
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const [rows, countResult] = [
-    db
+  const result = await paginatedQuery({
+    dataQuery: db
       .select({ item: agendaItems, listName: agendaLists.name })
       .from(agendaItems)
       .leftJoin(agendaLists, eq(agendaItems.listId, agendaLists.id))
       .where(where)
-      .orderBy(asc(agendaItems.position), desc(agendaItems.createdAt))
-      .limit(input.pageSize)
-      .offset(offset)
-      .all(),
-    db.select({ count: count() }).from(agendaItems).where(where).get(),
-  ];
-
-  const total = countResult?.count ?? 0;
-
-  return {
-    items: rows.map((r) => toAgendaItem(r.item, r.listName ?? undefined)),
+      .orderBy(asc(agendaItems.position), desc(agendaItems.createdAt)),
+    countQuery: db.select({ total: count() }).from(agendaItems).where(where),
     page: input.page,
     pageSize: input.pageSize,
-    total,
-    totalPages: Math.ceil(total / input.pageSize),
-  };
+    transform: (r) => toAgendaItem(r.item, r.listName ?? undefined),
+  });
+
+  return result;
 }
 
 export async function getAgendaItem(
