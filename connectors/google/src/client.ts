@@ -4,7 +4,7 @@
  * callback that the server's connector system provides.
  */
 
-import { noopLogger, type GoogleLogger } from './logger.js';
+import { noopLogger, type StitchLogger } from '@stitch/shared/logger';
 import {
   DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
   GoogleRateLimitCoordinator,
@@ -15,7 +15,7 @@ export type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
   getAccessToken: () => Promise<string>;
   /** Optional logger instance — defaults to no-op if not provided. */
-  logger?: GoogleLogger;
+  logger?: StitchLogger;
   /** Stable per-account key for account-level quota limiting. */
   quotaAccountKey?: string | null;
   /** Optional overrides for the built-in Google API limiter config. */
@@ -64,7 +64,7 @@ export class GoogleClient {
 
   private readonly getAccessToken: () => Promise<string>;
   private readonly rateLimitCoordinator: GoogleRateLimitCoordinator;
-  readonly log: GoogleLogger;
+  readonly log: StitchLogger;
 
   constructor(config: GoogleClientConfig) {
     this.getAccessToken = config.getAccessToken;

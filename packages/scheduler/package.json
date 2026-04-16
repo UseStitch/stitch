@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@stitch/shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "catalog:",
     "typescript": "catalog:",
