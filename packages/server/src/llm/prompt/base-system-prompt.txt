@@ -24,7 +24,7 @@ You are assisting users on their local machine.
 
 ## Tool Management
 
-You have a set of core tools always available: bash, read, write, edit, glob, grep, question, webfetch, agenda.
+You have a set of core tools always available: bash, read, write, edit, glob, grep, question, webfetch.
 
 Additional capabilities are organized into **toolsets** — groups of related tools that you can discover and load on demand.
 
@@ -36,7 +36,7 @@ Additional capabilities are organized into **toolsets** — groups of related to
 
 **Guidelines:**
 - Only activate toolsets you need for the current task.
-- Deactivate toolsets once you are done with them.
+- After completing a task that required a toolset, deactivate it immediately with deactivate_toolset.
 - Do not activate all toolsets at once — this wastes context space.
 - If unsure whether a toolset has what you need, use `list_toolsets` first to check.
 

@@ -1,10 +1,23 @@
 import { AlertCircleIcon, CheckIcon, CopyIcon, LoaderIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
 import { Button } from '@/components/ui/button';
+import { toolKeys } from '@/lib/queries/tools';
 import { cn } from '@/lib/utils';
+
+type KnownTool = { toolName: string; displayName: string };
+
+export function useStitchToolDisplayName(toolName: string): string {
+  const queryClient = useQueryClient();
+  return React.useMemo(() => {
+    const knownTools = queryClient.getQueryData<KnownTool[]>(toolKeys.knownTools());
+    return knownTools?.find((t) => t.toolName === toolName)?.displayName ?? formatToolDisplayName(toolName);
+  }, [queryClient, toolName]);
+}
 
 type ToolCardState = {
   hasError: boolean;
