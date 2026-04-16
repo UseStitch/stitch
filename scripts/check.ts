@@ -17,8 +17,6 @@ const steps = [
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
 ];
 
-let failed = false;
-
 for (const step of steps) {
   const result = spawnSync(step.cmd, { stdout: 'pipe', stderr: 'pipe' });
   const output = Buffer.concat([result.stdout, result.stderr]).toString();
@@ -26,10 +24,10 @@ for (const step of steps) {
   if (result.exitCode !== 0) {
     console.log(`${step.name}: Fail`);
     console.log(output);
-    failed = true;
+    process.exit(1);
   } else {
     console.log(`${step.name}: Pass`);
   }
 }
 
-process.exit(failed ? 1 : 0);
+process.exit(0);
