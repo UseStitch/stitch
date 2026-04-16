@@ -13,6 +13,7 @@ import {
   updateAgendaItem,
 } from '@/agenda/service.js';
 import { listSettings } from '@/settings/service.js';
+import { isServiceError } from '@/lib/service-result.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
@@ -58,8 +59,9 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
 }
 
 async function getUserTimezone(): Promise<string> {
-  const settings = await listSettings();
-  return settings['profile.timezone'] || 'UTC';
+  const settingsResult = await listSettings();
+  if (isServiceError(settingsResult)) return 'UTC';
+  return settingsResult.data['profile.timezone'] || 'UTC';
 }
 
 const TOOL_SUMMARIES = [
