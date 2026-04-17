@@ -82,6 +82,7 @@ describe('buildGoogleToolsets', () => {
       'docs_read',
       'docs_create',
       'docs_update',
+      'docs_edit',
     ]);
   });
 
