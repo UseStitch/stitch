@@ -17,7 +17,7 @@ export async function init() {
   await initDb();
   await runPendingMigrations(getDb());
 
-  // Register built-in/provider toolsets, then refresh MCP toolsets
+  // Register built-in toolsets, then refresh MCP toolsets
   registerDefaultToolsets();
   await refreshMcpToolsets();
 
