@@ -12,7 +12,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDialogContext } from '@/context/dialog-context';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
@@ -44,25 +44,11 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
     matchPrefix: '/',
   },
   {
-    id: 'connectors',
-    icon: <PlugIcon className="size-5" />,
-    label: 'Connectors',
-    to: '/connectors',
-    matchPrefix: '/connectors',
-  },
-  {
     id: 'automations',
     icon: <BotIcon className="size-5" />,
     label: 'Automations',
     to: '/automations',
     matchPrefix: '/automations',
-  },
-  {
-    id: 'memories',
-    icon: <BrainIcon className="size-5" />,
-    label: 'Memories',
-    to: '/memories',
-    matchPrefix: '/memories',
   },
   {
     id: 'recordings',
@@ -81,6 +67,20 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
 ];
 
 const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
+  {
+    id: 'connectors',
+    icon: <PlugIcon className="size-5" />,
+    label: 'Connectors',
+    to: '/connectors',
+    matchPrefix: '/connectors',
+  },
+  {
+    id: 'memories',
+    icon: <BrainIcon className="size-5" />,
+    label: 'Memories',
+    to: '/memories',
+    matchPrefix: '/memories',
+  },
   {
     id: 'usage',
     icon: <BarChart3Icon className="size-5" />,
@@ -112,96 +112,98 @@ export function ActivityBar() {
   const showTrafficLightPadding = isMac && !isFullScreen;
 
   return (
-    <div
-      className={cn(
-        'relative flex w-14 flex-col items-center bg-sidebar px-1.5 pb-3',
-        showTrafficLightPadding ? 'pt-10' : 'border-r border-border/50 pt-3',
-      )}
-    >
-      {showTrafficLightPadding && (
-        <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
-      )}
-      <div className="flex w-full flex-col items-center gap-2">
-        {ACTIVITY_ITEMS.map((item) => {
-          const active = isActive(item.matchPrefix, currentPath);
-          const isConnectors = item.id === 'connectors';
-          const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
-          return (
-            <Tooltip key={item.id}>
-              <TooltipTrigger
-                render={
-                  <Link
-                    to={item.to}
-                    className={cn(
-                      'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                    )}
-                  />
-                }
-              >
-                {item.icon}
-                {showUpdateIndicator ? (
-                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-                ) : null}
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {isConnectors && pendingConnectorUpdates > 0
-                  ? `${item.label} (updates available)`
-                  : item.label}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
+    <TooltipProvider>
+      <div
+        className={cn(
+          'relative flex w-14 flex-col items-center bg-sidebar px-1.5 pb-3',
+          showTrafficLightPadding ? 'pt-10' : 'border-r border-border/50 pt-3',
+        )}
+      >
+        {showTrafficLightPadding && (
+          <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
+        )}
+        <div className="flex w-full flex-col items-center gap-2">
+          {ACTIVITY_ITEMS.map((item) => {
+            const active = isActive(item.matchPrefix, currentPath);
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger
+                  render={
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                      )}
+                    />
+                  }
+                >
+                  {item.icon}
+                </TooltipTrigger>
+                <TooltipContent side="right">{item.label}</TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
 
-      <div className="mt-auto flex w-full flex-col items-center gap-2">
-        {BOTTOM_ACTIVITY_ITEMS.map((item) => {
-          const active = isActive(item.matchPrefix, currentPath);
-          return (
-            <Tooltip key={item.id}>
-              <TooltipTrigger
-                render={
-                  <Link
-                    to={item.to}
-                    className={cn(
-                      'flex size-10 items-center justify-center rounded-lg transition-colors',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                    )}
-                  />
-                }
-              >
-                {item.icon}
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
-            </Tooltip>
-          );
-        })}
+        <div className="mt-auto flex w-full flex-col items-center gap-2">
+          {BOTTOM_ACTIVITY_ITEMS.map((item) => {
+            const active = isActive(item.matchPrefix, currentPath);
+            const isConnectors = item.id === 'connectors';
+            const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger
+                  render={
+                    <Link
+                      to={item.to}
+                      className={cn(
+                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                      )}
+                    />
+                  }
+                >
+                  {item.icon}
+                  {showUpdateIndicator ? (
+                    <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+                  ) : null}
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {isConnectors && pendingConnectorUpdates > 0
+                    ? `${item.label} (updates available)`
+                    : item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => setSettingsTab('general')}
-                className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                aria-label="Open settings"
-              />
-            }
-          >
-            <SettingsIcon className="size-5" />
-            {showSettingsUpdateIndicator ? (
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-            ) : null}
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
-          </TooltipContent>
-        </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => setSettingsTab('general')}
+                  className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  aria-label="Open settings"
+                />
+              }
+            >
+              <SettingsIcon className="size-5" />
+              {showSettingsUpdateIndicator ? (
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
+              ) : null}
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

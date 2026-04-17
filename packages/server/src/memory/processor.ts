@@ -7,6 +7,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
@@ -30,6 +31,40 @@ import { calculateMessageCostUsd } from '@/utils/cost.js';
 const log = Log.create({ service: 'memory-processor' });
 
 const MEMORY_SOURCE = 'memory_extraction' as const;
+
+// ---------------------------------------------------------------------------
+// Per-session write budget tracking (in-process, resets on server restart).
+// Tracks: total facts written this session, and last turn index a write occurred.
+// ---------------------------------------------------------------------------
+
+type SessionWriteState = {
+  factsWritten: number;
+  lastWriteTurn: number;
+  turnCount: number;
+};
+
+const sessionWriteState = new Map<string, SessionWriteState>();
+
+function getSessionState(sessionId: string): SessionWriteState {
+  let state = sessionWriteState.get(sessionId);
+  if (!state) {
+    state = { factsWritten: 0, lastWriteTurn: -1, turnCount: 0 };
+    sessionWriteState.set(sessionId, state);
+  }
+  return state;
+}
+
+function incrementTurn(sessionId: string): SessionWriteState {
+  const state = getSessionState(sessionId);
+  state.turnCount++;
+  return state;
+}
+
+function recordWrite(sessionId: string, count: number): void {
+  const state = getSessionState(sessionId);
+  state.factsWritten += count;
+  state.lastWriteTurn = state.turnCount;
+}
 
 function recordUsageFireAndForget(params: {
   runId: string;
@@ -83,7 +118,44 @@ export async function processMemories(input: {
     }
 
     if (input.userMessage.trim().length < config.minMessageLength) {
-      log.debug({ sessionId: input.sessionId, len: input.userMessage.length }, 'skipping extraction for short message');
+      log.debug(
+        { sessionId: input.sessionId, len: input.userMessage.length },
+        'skipping extraction for short message',
+      );
+      return;
+    }
+
+    // Increment turn count and check write cooldown
+    const sessionState = incrementTurn(input.sessionId);
+
+    // Check per-session facts cap
+    if (sessionState.factsWritten >= config.maxFactsPerSession) {
+      log.debug(
+        {
+          sessionId: input.sessionId,
+          factsWritten: sessionState.factsWritten,
+          cap: config.maxFactsPerSession,
+        },
+        'skipping extraction: session facts cap reached',
+      );
+      return;
+    }
+
+    // Check cooldown: must be at least minTurnsBetweenWrites turns since last write
+    if (
+      config.minTurnsBetweenWrites > 0 &&
+      sessionState.lastWriteTurn >= 0 &&
+      sessionState.turnCount - sessionState.lastWriteTurn < config.minTurnsBetweenWrites
+    ) {
+      log.debug(
+        {
+          sessionId: input.sessionId,
+          turnCount: sessionState.turnCount,
+          lastWriteTurn: sessionState.lastWriteTurn,
+          minTurns: config.minTurnsBetweenWrites,
+        },
+        'skipping extraction: write cooldown active',
+      );
       return;
     }
 
@@ -136,18 +208,52 @@ export async function processMemories(input: {
     if (config.confidenceFilter !== 'all') {
       facts = facts.filter((fact) => {
         if (config.confidenceFilter === 'stated') return fact.confidence === 'stated';
-        if (config.confidenceFilter === 'stated+confirmed') return fact.confidence === 'stated' || fact.confidence === 'confirmed';
+        if (config.confidenceFilter === 'stated+confirmed')
+          return fact.confidence === 'stated' || fact.confidence === 'confirmed';
         return true;
       });
     }
 
+    // Gate 1: Importance score filter — discard low-value facts before any DB work
+    facts = facts.filter((fact) => {
+      if (fact.importanceScore < config.importanceMinScore) {
+        log.debug(
+          { factContent: fact.content, importanceScore: fact.importanceScore, threshold: config.importanceMinScore },
+          'discarding fact: below importance threshold',
+        );
+        return false;
+      }
+      return true;
+    });
+
+    // Gate 2: Durability filter — only persist long_term facts automatically
+    facts = facts.filter((fact) => {
+      if (fact.durability !== 'long_term') {
+        log.debug(
+          { factContent: fact.content, durability: fact.durability },
+          'discarding fact: not long_term durability',
+        );
+        return false;
+      }
+      return true;
+    });
+
     // Apply per-turn cap
     if (facts.length > config.maxFactsPerTurn) {
-      facts = facts.slice(0, config.maxFactsPerTurn);
+      // Keep highest-importance facts when capping
+      facts = facts
+        .sort((a, b) => b.importanceScore - a.importanceScore)
+        .slice(0, config.maxFactsPerTurn);
+    }
+
+    // Apply remaining session budget
+    const remainingBudget = config.maxFactsPerSession - sessionState.factsWritten;
+    if (facts.length > remainingBudget) {
+      facts = facts.slice(0, remainingBudget);
     }
 
     if (facts.length === 0) {
-      log.debug({ sessionId: input.sessionId }, 'all facts filtered out');
+      log.debug({ sessionId: input.sessionId }, 'all facts filtered out after gates');
       return;
     }
 
@@ -162,7 +268,7 @@ export async function processMemories(input: {
           query: fact.content,
           page: 1,
           pageSize: 5,
-        }).then((result) => result.memories),
+        }).then((result) => (isServiceError(result) ? [] : result.data.memories)),
       ),
     );
 
@@ -176,10 +282,16 @@ export async function processMemories(input: {
       const fact = facts[i];
       const existing = existingMemoriesPerFact[i];
 
-      // Similarity Pre-check
+      // Similarity pre-check: skip dedup LLM call only when score is extremely high AND
+      // no meaningful contradiction is likely. We now use a tighter threshold (0.95) to
+      // ensure near-matches (0.85–0.95) still go through the dedup LLM which can catch
+      // contradictions like "uses Python 3.9" vs "uses Python 3.12".
       const topMatch = existing[0];
-      if (topMatch && topMatch.score >= 0.85) {
-        log.info({ factContent: fact.content, score: topMatch.score }, 'skipping dedup due to high similarity pre-check');
+      if (topMatch && topMatch.score >= 0.95) {
+        log.info(
+          { factContent: fact.content, score: topMatch.score },
+          'skipping dedup: near-identical memory already exists',
+        );
         skipCount++;
         continue;
       }
@@ -245,11 +357,29 @@ export async function processMemories(input: {
       }
     }
 
-    log.info({ 
-      sessionId: input.sessionId, 
-      extracted: facts.length,
-      decisions: { ADD: addCount, UPDATE: updateCount, DELETE: deleteCount, NONE: noneCount, SKIPPED_HIGH_SIMILARITY: skipCount }
-    }, 'memory processing complete');
+    const writtenThisTurn = addCount + updateCount;
+    if (writtenThisTurn > 0) {
+      recordWrite(input.sessionId, writtenThisTurn);
+    }
+
+    log.info(
+      {
+        sessionId: input.sessionId,
+        extracted: facts.length,
+        decisions: {
+          ADD: addCount,
+          UPDATE: updateCount,
+          DELETE: deleteCount,
+          NONE: noneCount,
+          SKIPPED_HIGH_SIMILARITY: skipCount,
+        },
+        sessionBudget: {
+          factsWritten: sessionWriteState.get(input.sessionId)?.factsWritten,
+          cap: config.maxFactsPerSession,
+        },
+      },
+      'memory processing complete',
+    );
 
     if (config.autoprune && (addCount > 0 || updateCount > 0)) {
       await pruneStaleMemories({

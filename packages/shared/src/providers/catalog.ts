@@ -1,4 +1,5 @@
 import { AWS_BEDROCK_REGIONS } from './types.js';
+
 import type { ProviderId, ProviderMeta } from './types.js';
 
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
@@ -123,7 +124,10 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         required: true,
         secret: false,
         type: 'select',
-        options: AWS_BEDROCK_REGIONS.map((r) => ({ value: r.value, label: `${r.label} (${r.value})` })),
+        options: AWS_BEDROCK_REGIONS.map((r) => ({
+          value: r.value,
+          label: `${r.label} (${r.value})`,
+        })),
       },
     ],
     authMethods: [
@@ -167,6 +171,27 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'credential-provider',
         label: 'Credential Provider Chain',
         enabled: false,
+        fields: [],
+      },
+    ],
+  },
+  ollama_local: {
+    displayName: 'Ollama',
+    description: 'Run models locally with Ollama',
+    extraFields: [
+      {
+        key: 'baseURL',
+        label: 'Base URL',
+        placeholder: 'http://localhost:11434',
+        required: false,
+        secret: false,
+      },
+    ],
+    authMethods: [
+      {
+        method: 'none',
+        label: 'No authentication',
+        enabled: true,
         fields: [],
       },
     ],

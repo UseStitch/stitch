@@ -21,9 +21,7 @@ function getArgs(args: unknown): { code: string | null; description: string | nu
   return {
     code: typeof code === 'string' && code.trim().length > 0 ? code.trim() : null,
     description:
-      typeof description === 'string' && description.trim().length > 0
-        ? description.trim()
-        : null,
+      typeof description === 'string' && description.trim().length > 0 ? description.trim() : null,
   };
 }
 
@@ -62,7 +60,7 @@ function ShikiCode({ code }: { code: string }) {
 
 function FallbackCode({ code }: { code: string }) {
   return (
-    <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+    <pre className="overflow-x-auto font-mono text-xs break-all whitespace-pre-wrap text-muted-foreground">
       {code}
     </pre>
   );
@@ -122,12 +120,12 @@ export function ExecuteTypescriptToolBlock({
         <ToolCard.Content open={open} className="p-0">
           <Suspense
             fallback={
-              <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none">
+              <div className="prose prose-sm max-w-none px-3 py-2 dark:prose-invert">
                 <FallbackCode code={code} />
               </div>
             }
           >
-            <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm max-w-none px-3 py-2 dark:prose-invert">
               <ShikiCode code={code} />
             </div>
           </Suspense>

@@ -1,6 +1,6 @@
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ToolCard, getToolCardState, getToolLabel, truncateText } from './card-primitives';
+import { ToolCard, getToolCardState, getToolLabel, truncateText, useStitchToolDisplayName } from './card-primitives';
 
 function getWebfetchUrl(args: unknown): string | null {
   const value = (args as { url?: unknown })?.url;
@@ -26,6 +26,7 @@ export function WebfetchToolBlock({
 }: WebfetchToolBlockProps) {
   const { isActive } = getToolCardState(status);
   const label = getToolLabel(status, error);
+  const displayName = useStitchToolDisplayName(toolName);
   const url = getWebfetchUrl(args);
   const displayUrl = url ? truncateText(url) : 'Waiting for URL...';
 
@@ -34,7 +35,7 @@ export function WebfetchToolBlock({
       <ToolCard.Header>
         <ToolCard.StatusIndicator status={status} />
         <div className="min-w-0 flex-1 space-y-1">
-          <ToolCard.Title>{toolName}</ToolCard.Title>
+          <ToolCard.Title>{displayName}</ToolCard.Title>
           <ToolCard.TitleContent truncate mono className="block">
             {label ? `${displayUrl} - ${label}` : displayUrl}
           </ToolCard.TitleContent>

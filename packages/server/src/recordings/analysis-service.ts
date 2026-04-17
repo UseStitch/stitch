@@ -1,5 +1,5 @@
 import { Output, generateText } from 'ai';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
@@ -25,7 +25,7 @@ import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { listEnabledProviderAudioModels } from '@/llm/provider/service.js';
-import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { resolveModel } from '@/llm/resolve-model.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
@@ -221,121 +221,6 @@ async function broadcastRecordingAnalysisUpdated(input: {
   });
 }
 
-async function resolveTranscriptionModel(): Promise<
-  ServiceResult<{ providerId: string; modelId: string; credentials: ProviderCredentials }>
-> {
-  const db = getDb();
-  const [settingsRows, configs, audioProviders] = await Promise.all([
-    db
-      .select({ key: userSettings.key, value: userSettings.value })
-      .from(userSettings)
-      .where(
-        inArray(userSettings.key, [
-          'recordings.transcription.providerId',
-          'recordings.transcription.modelId',
-        ]),
-      ),
-    db.select().from(providerConfig),
-    listEnabledProviderAudioModels(),
-  ]);
-
-  const configuredProviderId = settingsRows.find(
-    (row) => row.key === 'recordings.transcription.providerId',
-  )?.value;
-  const configuredModelId = settingsRows.find(
-    (row) => row.key === 'recordings.transcription.modelId',
-  )?.value;
-
-  if (configuredProviderId && configuredModelId) {
-    const hasModel = audioProviders.some(
-      (provider) =>
-        provider.providerId === configuredProviderId &&
-        provider.models.some((model) => model.id === configuredModelId),
-    );
-    const config = configs.find((row) => row.providerId === configuredProviderId);
-    if (hasModel && config) {
-      return ok({
-        providerId: configuredProviderId,
-        modelId: configuredModelId,
-        credentials: config.credentials,
-      });
-    }
-  }
-
-  const fallbackProvider = audioProviders[0];
-  const fallbackModel = fallbackProvider?.models[0];
-  if (!fallbackProvider || !fallbackModel) {
-    return err('No enabled provider with audio-capable models found for transcription', 400);
-  }
-
-  const fallbackConfig = configs.find((row) => row.providerId === fallbackProvider.providerId);
-  if (!fallbackConfig) {
-    return err('No provider credentials found for transcription model', 400);
-  }
-
-  return ok({
-    providerId: fallbackProvider.providerId,
-    modelId: fallbackModel.id,
-    credentials: fallbackConfig.credentials,
-  });
-}
-
-async function resolveAnalysisModel(fallback: {
-  providerId: string;
-  modelId: string;
-}): Promise<
-  ServiceResult<{ providerId: string; modelId: string; credentials: ProviderCredentials }>
-> {
-  const db = getDb();
-  const [settingsRows, configs] = await Promise.all([
-    db
-      .select({ key: userSettings.key, value: userSettings.value })
-      .from(userSettings)
-      .where(
-        inArray(userSettings.key, [
-          'recordings.analysis.providerId',
-          'recordings.analysis.modelId',
-        ]),
-      ),
-    db.select().from(providerConfig),
-  ]);
-
-  const configuredProviderId = settingsRows.find(
-    (row) => row.key === 'recordings.analysis.providerId',
-  )?.value;
-  const configuredModelId = settingsRows.find(
-    (row) => row.key === 'recordings.analysis.modelId',
-  )?.value;
-  if (configuredProviderId && configuredModelId) {
-    const config = configs.find((row) => row.providerId === configuredProviderId);
-    if (!config) {
-      return err('Configured analysis provider is not connected', 400);
-    }
-
-    return ok({
-      providerId: configuredProviderId,
-      modelId: configuredModelId,
-      credentials: config.credentials,
-    });
-  }
-
-  const resolved = await resolveCheapModel({
-    providerIdKey: 'recordings.analysis.providerId',
-    modelIdKey: 'recordings.analysis.modelId',
-    fallbackProviderId: fallback.providerId,
-    fallbackModelId: fallback.modelId,
-  });
-  if (!resolved) {
-    return err('No model available for recording analysis', 400);
-  }
-
-  return ok({
-    providerId: resolved.providerId,
-    modelId: resolved.modelId,
-    credentials: resolved.credentials,
-  });
-}
-
 export async function getRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
 ): Promise<ServiceResult<RecordingAnalysisResponse>> {
@@ -380,15 +265,30 @@ export async function startRecordingAnalysis(
     return ok({ analysis: toResponse(existing, recordingId) });
   }
 
-  const transcriptionModel = await resolveTranscriptionModel();
+  const audioProvidersResult = await listEnabledProviderAudioModels();
+  const audioProviders = isServiceError(audioProvidersResult) ? [] : audioProvidersResult.data;
+  const fallbackProvider = audioProviders[0];
+  const fallbackModel = fallbackProvider?.models[0];
+
+  const transcriptionModel = await resolveModel({
+    providerIdKey: 'recordings.transcription.providerId',
+    modelIdKey: 'recordings.transcription.modelId',
+    fallbackProviderId: fallbackProvider?.providerId,
+    fallbackModelId: fallbackModel?.id,
+    modelFilter: (model) => model.modalities?.input?.includes('audio') ?? false,
+  });
+
   if (isServiceError(transcriptionModel)) {
     return transcriptionModel;
   }
 
-  const analysisModel = await resolveAnalysisModel({
-    providerId: transcriptionModel.data.providerId,
-    modelId: transcriptionModel.data.modelId,
+  const analysisModel = await resolveModel({
+    providerIdKey: 'recordings.analysis.providerId',
+    modelIdKey: 'recordings.analysis.modelId',
+    fallbackProviderId: transcriptionModel.data.providerId,
+    fallbackModelId: transcriptionModel.data.modelId,
   });
+
   if (isServiceError(analysisModel)) {
     return analysisModel;
   }

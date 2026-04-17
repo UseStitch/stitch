@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import {
   addToQueue,
   listQueuedMessages,
@@ -50,14 +51,14 @@ queueRouter.patch('/sessions/:id/queue/:queueId', async (c) => {
     attachments: body.attachments,
   });
 
-  if (!row) return c.json({ error: 'Queued message not found' }, 404);
-  return c.json(row);
+  const result = requireFound(row, 'Queued message');
+  return unwrapResult(c, result);
 });
 
 queueRouter.delete('/sessions/:id/queue/:queueId', (c) => {
   const queueId = c.req.param('queueId') as PrefixedString<'qmsg'>;
 
   const row = removeFromQueue(queueId);
-  if (!row) return c.json({ error: 'Queued message not found' }, 404);
-  return c.body(null, 204);
+  const result = requireFound(row, 'Queued message');
+  return unwrapResult(c, result, 204);
 });

@@ -58,9 +58,9 @@ export type NativeCaptureStartCommand = {
   mode: CaptureMode;
   sampleRateHz: number;
   channels: number;
-  enableAec: boolean;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
+  speakerGain: number | null;
 };
 
 export type NativeCaptureStopCommand = {
@@ -71,10 +71,25 @@ export type NativeCaptureStatusCommand = {
   type: 'status';
 };
 
+export type NativeCaptureListDevicesCommand = {
+  type: 'listDevices';
+};
+
+export type NativeCaptureCapabilitiesCommand = {
+  type: 'capabilities';
+};
+
+export type NativeCaptureCheckPermissionsCommand = {
+  type: 'checkPermissions';
+};
+
 export type NativeCaptureCommand =
   | NativeCaptureStartCommand
   | NativeCaptureStopCommand
-  | NativeCaptureStatusCommand;
+  | NativeCaptureStatusCommand
+  | NativeCaptureListDevicesCommand
+  | NativeCaptureCapabilitiesCommand
+  | NativeCaptureCheckPermissionsCommand;
 
 export type NativeCaptureErrorCode =
   | 'permission_denied'
@@ -124,13 +139,52 @@ export type NativeCaptureStatusEvent = {
   state: 'inactive' | 'active' | 'finalizing';
 };
 
+export type NativeCaptureDeviceListEvent = {
+  type: 'deviceList';
+  microphoneDevices: string[];
+  speakerDevices: string[];
+};
+
+export type NativeCaptureCapabilitiesEvent = {
+  type: 'capabilities';
+  supportedModes: CaptureMode[];
+  supportsRealtimeDual: boolean;
+};
+
+export type PermissionState = 'granted' | 'denied' | 'unknown';
+
+export type NativeCapturePermissionsStatusEvent = {
+  type: 'permissionsStatus';
+  microphone: PermissionState;
+  screenCapture: PermissionState;
+};
+
+export type AudioPermissionsStatus = {
+  microphone: PermissionState;
+  screenCapture: PermissionState;
+};
+
+export type NativeCaptureDeviceChangedEvent = {
+  type: 'deviceChanged';
+  kind: 'input' | 'output' | 'list';
+  deviceName: string | null;
+};
+
 export type NativeCaptureEvent =
   | NativeCaptureStartedEvent
   | NativeCaptureProgressEvent
   | NativeCaptureWarningEvent
   | NativeCaptureErrorEvent
   | NativeCaptureStoppedEvent
-  | NativeCaptureStatusEvent;
+  | NativeCaptureStatusEvent
+  | NativeCaptureDeviceListEvent
+  | NativeCaptureCapabilitiesEvent
+  | NativeCapturePermissionsStatusEvent
+  | NativeCaptureDeviceChangedEvent;
+
+export type NativeCaptureEventListener = (
+  event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent,
+) => void;
 
 export type NativeCaptureController = {
   send: (command: NativeCaptureCommand) => void;
@@ -138,18 +192,17 @@ export type NativeCaptureController = {
     type: TType,
     timeoutMs: number,
   ) => Promise<Extract<NativeCaptureEvent, { type: TType }>>;
+  onEvent: (listener: NativeCaptureEventListener) => void;
   close: () => void;
 };
 
 export type StartCaptureInput = {
   outputPath: string;
   format?: CaptureFormat;
-  mode?: CaptureMode;
-  sampleRateHz?: number;
   channels?: number;
-  enableAec?: boolean;
   micDeviceId?: string | null;
   speakerDeviceId?: string | null;
+  speakerGain?: number | null;
 };
 
 export type ActiveCapture = {
@@ -173,4 +226,11 @@ export type AudioCaptureDriver = {
   platform: CapturePlatform;
   start: (input: StartCaptureInput) => Promise<ActiveCapture>;
   stop: (capture: ActiveCapture) => Promise<StopCaptureResult>;
+  listDevices: () => Promise<AudioDeviceList>;
+  checkPermissions: () => Promise<AudioPermissionsStatus>;
+};
+
+export type AudioDeviceList = {
+  microphoneDevices: string[];
+  speakerDevices: string[];
 };

@@ -11,8 +11,8 @@
     "build": "turbo build",
     "dev": "turbo dev --filter=@stitch/web --filter=@stitch/desktop",
     "audio-native:build": "node scripts/build-audio-native.mjs",
-    "format": "oxfmt write .",
-    "format:check": "oxfmt check .",
+    "format:changed": "bun run scripts/format-changed.ts",
+    "format:changed:check": "bun run scripts/format-changed.ts --check",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "knip": "knip",
@@ -44,6 +44,7 @@
       "@ai-sdk/google": "3.0.43",
       "@ai-sdk/google-vertex": "4.0.80",
       "@ai-sdk/openai": "3.0.41",
+      "@ai-sdk/openai-compatible": "2.0.41",
       "@ai-sdk/mcp": "1.0.25",
       "@openrouter/ai-sdk-provider": "2.3.0"
     }

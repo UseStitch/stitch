@@ -11,6 +11,11 @@ import {
 } from 'drizzle-orm/sqlite-core';
 
 import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
+import type {
+  AgendaEventType,
+  AgendaItemPriority,
+  AgendaItemStatus,
+} from '@stitch/shared/agenda/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
@@ -23,11 +28,7 @@ import type {
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
-import type {
-  AgendaEventType,
-  AgendaItemPriority,
-  AgendaItemStatus,
-} from '@stitch/shared/agenda/types';
+import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 
 /** @deprecated Type field is no longer used but kept for DB compatibility */
 type AgendaItemType = 'todo' | 'reminder' | 'checkup';
@@ -236,6 +237,39 @@ export const modelVisibility = sqliteTable(
   ],
 );
 
+import type { RawModel } from '@/llm/provider/models.js';
+
+type OllamaModality = NonNullable<RawModel['modalities']>['input'][number];
+
+export const ollamaModels = sqliteTable('ollama_models', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  contextWindow: integer('context_window').notNull().default(8192),
+  inputLimit: integer('input_limit'),
+  outputLimit: integer('output_limit').notNull().default(8192),
+  inputCostPerMillion: real('input_cost_per_million').notNull().default(0),
+  outputCostPerMillion: real('output_cost_per_million').notNull().default(0),
+  cacheReadCostPerMillion: real('cache_read_cost_per_million'),
+  cacheWriteCostPerMillion: real('cache_write_cost_per_million'),
+  supportsToolCalls: integer('supports_tool_calls', { mode: 'boolean' }).notNull().default(false),
+  supportsVision: integer('supports_vision', { mode: 'boolean' }).notNull().default(false),
+  supportsReasoning: integer('supports_reasoning', { mode: 'boolean' }).notNull().default(false),
+  inputModalities: blob('input_modalities', { mode: 'json' })
+    .$type<OllamaModality[]>()
+    .notNull()
+    .default(['text']),
+  outputModalities: blob('output_modalities', { mode: 'json' })
+    .$type<OllamaModality[]>()
+    .notNull()
+    .default(['text']),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
 export const toolPermissions = sqliteTable(
   'tool_permissions',
   {
@@ -251,6 +285,22 @@ export const toolPermissions = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern)],
+);
+
+export const toolEnabled = sqliteTable(
+  'tool_enabled',
+  {
+    scope: text('scope').$type<ToolEnabledScope>().notNull(),
+    identifier: text('identifier').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [uniqueIndex('tool_enabled_scope_identifier_uidx').on(table.scope, table.identifier)],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {
@@ -290,7 +340,14 @@ export const queuedMessages = sqliteTable('queued_messages', {
 
 export const lanceMigrations = sqliteTable('lance_migrations', {
   version: integer('version').primaryKey(),
+  id: text('id').notNull().default(''),
+  prevId: text('prev_id'),
   name: text('name').notNull(),
+  checksum: text('checksum').notNull().default(''),
+  status: text('status', { enum: ['applied', 'failed'] })
+    .notNull()
+    .default('applied'),
+  error: text('error'),
   appliedAt: integer('applied_at', { mode: 'number' }).notNull(),
 });
 
@@ -516,10 +573,7 @@ export const agendaItems = sqliteTable(
     index('agenda_items_status_idx').on(table.status),
     index('agenda_items_due_at_idx').on(table.dueAt),
     index('agenda_items_created_at_idx').on(table.createdAt),
-    check(
-      'agenda_items_type_check',
-      sql`${table.type} in ('todo', 'reminder', 'checkup')`,
-    ),
+    check('agenda_items_type_check', sql`${table.type} in ('todo', 'reminder', 'checkup')`),
     check(
       'agenda_items_status_check',
       sql`${table.status} in ('open', 'in_progress', 'done', 'cancelled')`,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
+
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 
 const definition: ConnectorDefinition = {

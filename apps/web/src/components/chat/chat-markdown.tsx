@@ -114,11 +114,7 @@ interface SuspenseShikiCodeBlockProps {
   isStreaming: boolean;
 }
 
-function SuspenseShikiCodeBlock({
-  className,
-  code,
-  isStreaming,
-}: SuspenseShikiCodeBlockProps) {
+function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiCodeBlockProps) {
   const language = extractFenceLanguage(className);
   const cacheKey = createHighlightCacheKey(code, language, 'dual');
   const cachedHighlightedHtml = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
@@ -158,7 +154,11 @@ function SuspenseShikiCodeBlock({
   }
 
   if (!isStreaming) {
-    highlightedCodeCache.set(cacheKey, highlightedHtml, estimateHighlightedSize(highlightedHtml, code));
+    highlightedCodeCache.set(
+      cacheKey,
+      highlightedHtml,
+      estimateHighlightedSize(highlightedHtml, code),
+    );
   }
 
   return (

@@ -1,6 +1,12 @@
 import { newQuickJSAsyncWASMModule } from 'quickjs-emscripten';
 
-import type { IsolateContext, IsolateDriver, IsolateExecuteResult, IsolateOptions, ToolBinding } from '@/code-mode/isolate/types.js';
+import type {
+  IsolateContext,
+  IsolateDriver,
+  IsolateExecuteResult,
+  IsolateOptions,
+  ToolBinding,
+} from '@/code-mode/isolate/types.js';
 
 const DEFAULT_MEMORY_LIMIT_MB = 128;
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -178,10 +184,18 @@ export function createQuickJSDriver(): IsolateDriver {
                 const resolvedResult = await Promise.race([nativePromise, timeoutPromise]);
                 if (timeoutId !== null) clearTimeout(timeoutId);
 
-                if (resolvedResult && typeof resolvedResult === 'object' && 'error' in resolvedResult) {
+                if (
+                  resolvedResult &&
+                  typeof resolvedResult === 'object' &&
+                  'error' in resolvedResult
+                ) {
                   const err = resolvedResult.error;
                   result = { error: String(err ? vm.dump(err) : 'Unknown error') };
-                } else if (resolvedResult && typeof resolvedResult === 'object' && 'value' in resolvedResult) {
+                } else if (
+                  resolvedResult &&
+                  typeof resolvedResult === 'object' &&
+                  'value' in resolvedResult
+                ) {
                   const valueHandle = resolvedResult.value;
                   result = valueHandle ? vm.dump(valueHandle) : null;
                   valueHandle?.dispose();
@@ -207,8 +221,16 @@ export function createQuickJSDriver(): IsolateDriver {
         },
 
         dispose() {
-          try { vm.dispose(); } catch { /* ignore */ }
-          try { runtime.dispose(); } catch { /* ignore */ }
+          try {
+            vm.dispose();
+          } catch {
+            /* ignore */
+          }
+          try {
+            runtime.dispose();
+          } catch {
+            /* ignore */
+          }
         },
       };
     },

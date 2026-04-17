@@ -1,12 +1,13 @@
-import { eq } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema.js';
+import { providerConfig, ollamaModels } from '@/db/schema.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import * as ProviderLogos from '@/llm/provider/logos.js';
 import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';
+import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { ProviderCredentialsSchema } from '@/llm/provider/provider.js';
 
 type ProviderSummary = {
@@ -69,19 +70,50 @@ async function resolveProvider(providerId: string): Promise<ServiceResult<Models
   return ok(provider);
 }
 
-export async function listProviders(): Promise<ProviderSummary[]> {
+export async function listProviders(): Promise<ServiceResult<ProviderSummary[]>> {
   const db = getDb();
-  const [providers, configs] = await Promise.all([
+  const [providers, configs, ollamaModelCount] = await Promise.all([
     Models.get(),
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+    db.select({ value: count() }).from(ollamaModels),
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
-  return Object.values(providers).map((provider) =>
+  const ollamaCount = ollamaModelCount[0]?.value ?? 0;
+
+  const summaries = Object.values(providers).map((provider) =>
     toProviderSummary(provider, enabledIds.has(provider.id)),
   );
+
+  summaries.push({
+    id: 'ollama_local',
+    name: 'Ollama',
+    api: 'http://localhost:11434',
+    model_count: ollamaCount,
+    enabled: enabledIds.has('ollama_local'),
+  });
+
+  return ok(summaries);
 }
 
 export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
+  if (providerId === 'ollama_local') {
+    const db = getDb();
+    const [[config], modelCount] = await Promise.all([
+      db
+        .select({ providerId: providerConfig.providerId })
+        .from(providerConfig)
+        .where(eq(providerConfig.providerId, 'ollama_local')),
+      db.select({ value: count() }).from(ollamaModels),
+    ]);
+    return ok({
+      id: 'ollama_local',
+      name: 'Ollama',
+      api: 'http://localhost:11434',
+      model_count: modelCount[0]?.value ?? 0,
+      enabled: config !== undefined,
+    });
+  }
+
   const providerResult = await resolveProvider(providerId);
   if (isServiceError(providerResult)) {
     return providerResult;
@@ -96,9 +128,38 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   return ok(toProviderSummary(providerResult.data, config !== undefined));
 }
 
+function ollamaModelToSummary(m: OllamaModels.OllamaModel): ModelSummary {
+  return {
+    id: m.id,
+    name: m.name,
+    family: undefined,
+    release_date: new Date(m.createdAt).toISOString().split('T')[0],
+    cost: {
+      input: m.inputCostPerMillion,
+      output: m.outputCostPerMillion,
+      ...(m.cacheReadCostPerMillion !== null && { cache_read: m.cacheReadCostPerMillion }),
+      ...(m.cacheWriteCostPerMillion !== null && { cache_write: m.cacheWriteCostPerMillion }),
+    },
+    limit: {
+      context: m.contextWindow,
+      ...(m.inputLimit !== null && { input: m.inputLimit }),
+      output: m.outputLimit,
+    },
+    modalities: {
+      input: m.inputModalities,
+      output: m.outputModalities,
+    },
+  };
+}
+
 export async function listProviderModels(
   providerId: string,
 ): Promise<ServiceResult<ModelSummary[]>> {
+  if (providerId === 'ollama_local') {
+    const models = await OllamaModels.listOllamaModels();
+    return ok(models.map(ollamaModelToSummary));
+  }
+
   const providerResult = await resolveProvider(providerId);
   if (isServiceError(providerResult)) {
     return providerResult;
@@ -107,7 +168,7 @@ export async function listProviderModels(
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
 }
 
-export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSummary[]> {
+export async function listEnabledProviderAudioModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.getAudioModels(),
@@ -115,16 +176,18 @@ export async function listEnabledProviderAudioModels(): Promise<ProviderModelsSu
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  return Object.values(providers)
-    .filter((provider) => enabledIds.has(provider.id))
-    .map((provider) => ({
-      providerId: provider.id,
-      providerName: provider.name,
-      models: Object.values(provider.models).map(toModelSummary),
-    }));
+  return ok(
+    Object.values(providers)
+      .filter((provider) => enabledIds.has(provider.id))
+      .map((provider) => ({
+        providerId: provider.id,
+        providerName: provider.name,
+        models: Object.values(provider.models).map(toModelSummary),
+      })),
+  );
 }
 
-export async function listEnabledProviderEmbeddingModels(): Promise<ProviderModelsSummary[]> {
+export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.getEmbeddingModels(),
@@ -132,13 +195,15 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ProviderMode
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  return Object.values(providers)
-    .filter((provider) => enabledIds.has(provider.id))
-    .map((provider) => ({
-      providerId: provider.id,
-      providerName: provider.name,
-      models: Object.values(provider.models).map(toModelSummary),
-    }));
+  return ok(
+    Object.values(providers)
+      .filter((provider) => enabledIds.has(provider.id))
+      .map((provider) => ({
+        providerId: provider.id,
+        providerName: provider.name,
+        models: Object.values(provider.models).map(toModelSummary),
+      })),
+  );
 }
 
 export async function getEmbeddingModelDimensions(
@@ -155,6 +220,12 @@ export async function getProviderModel(
   providerId: string,
   modelId: string,
 ): Promise<ServiceResult<ModelSummary>> {
+  if (providerId === 'ollama_local') {
+    const result = await OllamaModels.getOllamaModel(modelId);
+    if (isServiceError(result)) return result;
+    return ok(ollamaModelToSummary(result.data));
+  }
+
   const providerResult = await resolveProvider(providerId);
   if (isServiceError(providerResult)) {
     return providerResult;

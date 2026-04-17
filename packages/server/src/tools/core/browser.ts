@@ -8,6 +8,7 @@ import type { ScrollDirection } from '@/lib/browser/types.js';
 import * as Log from '@/lib/log.js';
 import { askQuestion } from '@/question/service.js';
 import { listSettings, saveSetting } from '@/settings/service.js';
+import { isServiceError } from '@/lib/service-result.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import { withTruncation } from '@/tools/runtime/wrappers.js';
 
@@ -451,8 +452,8 @@ async function maybePromptProfileImport(
 ): Promise<void> {
   if (hasPromptedImport) return;
 
-  const settings = await listSettings();
-  const imported = settings['browser.profileImported'];
+  const settingsResult = await listSettings();
+  const imported = !isServiceError(settingsResult) && settingsResult.data['browser.profileImported'];
   if (imported) {
     hasPromptedImport = true;
     return;

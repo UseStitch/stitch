@@ -56,6 +56,45 @@ const calendarCreateSchema = z.object({
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
+const sendUpdatesEnum = z
+  .enum(['all', 'externalOnly', 'none'])
+  .optional()
+  .default('all')
+  .describe(
+    'Who to notify about the change: "all" (default), "externalOnly", or "none"',
+  );
+
+const calendarUpdateSchema = z.object({
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
+  eventId: z.string().describe('The calendar event ID to update'),
+  summary: z.string().optional().describe('New event title'),
+  description: z.string().optional().describe('New event description'),
+  location: z.string().optional().describe('New event location'),
+  startDateTime: z.string().optional().describe('New start time (ISO 8601)'),
+  endDateTime: z.string().optional().describe('New end time (ISO 8601)'),
+  timeZone: z.string().optional().describe('Time zone for start/end times (e.g. "America/Chicago")'),
+  attendees: z.array(z.string()).optional().describe('Replacement list of attendee email addresses'),
+  addMeet: z
+    .boolean()
+    .optional()
+    .describe('Set to true to attach a Google Meet link if not already present'),
+  calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
+  sendUpdates: sendUpdatesEnum,
+});
+
+const calendarDeleteSchema = z.object({
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
+  eventId: z.string().describe('The calendar event ID to delete'),
+  calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
+  sendUpdates: sendUpdatesEnum,
+});
+
 export function createCalendarTools(
   resolveClient: (
     account?: string,
@@ -113,6 +152,54 @@ export function createCalendarTools(
         return { ...result, usedAccount };
       },
     });
+
+    tools['calendar_update'] = tool({
+      description:
+        'Update an existing Google Calendar event. Only supply the fields you want to change.',
+      inputSchema: calendarUpdateSchema,
+      execute: async (input: z.infer<typeof calendarUpdateSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const start =
+          input.startDateTime !== undefined
+            ? { dateTime: input.startDateTime, timeZone: input.timeZone }
+            : undefined;
+        const end =
+          input.endDateTime !== undefined
+            ? { dateTime: input.endDateTime, timeZone: input.timeZone }
+            : undefined;
+        const result = await CalendarApi.updateEvent(
+          client,
+          input.eventId,
+          {
+            summary: input.summary,
+            description: input.description,
+            location: input.location,
+            start,
+            end,
+            attendees: input.attendees,
+            addMeet: input.addMeet,
+          },
+          input.calendarId,
+          input.sendUpdates,
+        );
+        return { ...result, usedAccount };
+      },
+    });
+
+    tools['calendar_delete'] = tool({
+      description: 'Delete a Google Calendar event by its ID.',
+      inputSchema: calendarDeleteSchema,
+      execute: async (input: z.infer<typeof calendarDeleteSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+        await CalendarApi.deleteEvent(
+          client,
+          input.eventId,
+          input.calendarId,
+          input.sendUpdates,
+        );
+        return { deleted: true, eventId: input.eventId, usedAccount };
+      },
+    });
   }
 
   return tools;
@@ -125,4 +212,9 @@ export const CALENDAR_TOOL_SUMMARIES = [
   },
   { name: 'calendar_get', description: 'Get full details for a specific calendar event' },
   { name: 'calendar_create', description: 'Create a new calendar event (requires write access)' },
+  {
+    name: 'calendar_update',
+    description: 'Update an existing calendar event (requires write access)',
+  },
+  { name: 'calendar_delete', description: 'Delete a calendar event (requires write access)' },
 ];

@@ -18,10 +18,7 @@ import {
 } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  visibleProviderModelsQueryOptions,
-  type ProviderModels,
-} from '@/lib/queries/providers';
+import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,

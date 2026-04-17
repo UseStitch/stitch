@@ -3,10 +3,12 @@ import { existsSync } from 'node:fs';
 import type { Configuration } from 'electron-builder';
 
 const audioCaptureBinaryFilter =
-  process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
+  process.platform === 'win32'
+    ? ['stitch-audio-capture.exe', 'stitch-meeting-watch.exe']
+    : ['stitch-audio-capture', 'stitch-meeting-watch'];
 
 const audioCaptureResource = {
-  from: '../../packages/audio-native/target/release',
+  from: '../../native/target/release',
   to: 'audio-capture',
   filter: audioCaptureBinaryFilter,
 };
@@ -80,7 +82,11 @@ const config: Configuration = {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
-    binaries: ['Contents/Resources/stitch-server'],
+    binaries: [
+      'Contents/Resources/stitch-server',
+      'Contents/Resources/audio-capture/stitch-audio-capture',
+      'Contents/Resources/audio-capture/stitch-meeting-watch',
+    ],
     target: ['dmg', 'zip'],
   },
   linux: {

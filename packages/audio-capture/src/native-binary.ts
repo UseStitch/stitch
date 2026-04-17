@@ -2,22 +2,28 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-function getBinaryName(): string {
-  return process.platform === 'win32' ? 'stitch-audio-capture.exe' : 'stitch-audio-capture';
+type NativeBinary = 'capture' | 'meeting-watch';
+
+function getBinaryName(binary: NativeBinary): string {
+  const suffix = process.platform === 'win32' ? '.exe' : '';
+  if (binary === 'meeting-watch') {
+    return `stitch-meeting-watch${suffix}`;
+  }
+  return `stitch-audio-capture${suffix}`;
 }
 
-function getRepoCandidatePaths(): string[] {
+function getRepoCandidatePaths(binary: NativeBinary): string[] {
   const filePath = fileURLToPath(import.meta.url);
   const sourceDir = path.dirname(filePath);
-  const binaryName = getBinaryName();
+  const binaryName = getBinaryName(binary);
   return [
-    path.join(sourceDir, '../../audio-native/target/release', binaryName),
-    path.join(sourceDir, '../../audio-native/target/debug', binaryName),
+    path.join(sourceDir, '../../../native/target/release', binaryName),
+    path.join(sourceDir, '../../../native/target/debug', binaryName),
   ];
 }
 
-function getPackagedCandidatePaths(): string[] {
-  const binaryName = getBinaryName();
+function getPackagedCandidatePaths(binary: NativeBinary): string[] {
+  const binaryName = getBinaryName(binary);
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (!resourcesPath) {
     return [];
@@ -29,22 +35,29 @@ function getPackagedCandidatePaths(): string[] {
   ];
 }
 
-export function resolveNativeBinaryPath(): string {
-  if (process.env.STITCH_AUDIO_CAPTURE_BIN) {
-    if (!existsSync(process.env.STITCH_AUDIO_CAPTURE_BIN)) {
-      throw new Error(
-        `STITCH_AUDIO_CAPTURE_BIN points to a missing file: ${process.env.STITCH_AUDIO_CAPTURE_BIN}`,
-      );
+function resolveBinary(binary: NativeBinary, overrideEnv: string): string {
+  const overridePath = process.env[overrideEnv];
+  if (overridePath) {
+    if (!existsSync(overridePath)) {
+      throw new Error(`${overrideEnv} points to a missing file: ${overridePath}`);
     }
-    return process.env.STITCH_AUDIO_CAPTURE_BIN;
+    return overridePath;
   }
 
-  const candidates = [...getPackagedCandidatePaths(), ...getRepoCandidatePaths()];
+  const candidates = [...getPackagedCandidatePaths(binary), ...getRepoCandidatePaths(binary)];
   for (const candidate of candidates) {
     if (existsSync(candidate)) {
       return candidate;
     }
   }
 
-  return getBinaryName();
+  return getBinaryName(binary);
+}
+
+export function resolveNativeBinaryPath(): string {
+  return resolveBinary('capture', 'STITCH_AUDIO_CAPTURE_BIN');
+}
+
+export function resolveMeetingWatcherBinaryPath(): string {
+  return resolveBinary('meeting-watch', 'STITCH_MEETING_WATCH_BIN');
 }

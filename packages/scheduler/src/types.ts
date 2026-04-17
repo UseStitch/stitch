@@ -1,9 +1,6 @@
-export type SchedulerLogger = {
-  debug(extra: Record<string, unknown>, message: string): void;
-  info(extra: Record<string, unknown>, message: string): void;
-  warn(extra: Record<string, unknown>, message: string): void;
-  error(extra: Record<string, unknown>, message: string): void;
-};
+import { type StitchLogger } from '@stitch/shared/logger';
+
+export type SchedulerLogger = StitchLogger;
 
 export type IntervalSchedule = {
   type: 'interval';

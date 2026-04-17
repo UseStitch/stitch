@@ -17,18 +17,34 @@ export function createToolsetTools(manager: ToolsetManager) {
       .join(' ');
 
   const list_toolsets = tool({
-    description: `List toolsets and inspect toolset contents. Call with no arguments for a compact catalog, or pass a toolset ID for detailed tools and prompts.`,
+    description: `List toolsets and inspect toolset contents. Call with no arguments for the full catalog, pass a query string to filter by keyword (e.g. "database"), or pass a toolsetId to inspect a specific toolset's tools and prompts in detail.`,
     inputSchema: z.object({
       toolsetId: z
         .string()
         .optional()
         .describe('Optional toolset ID to inspect in detail (e.g. "browser")'),
+      query: z
+        .string()
+        .optional()
+        .describe('Keyword to filter the catalog (e.g. "database", "browser", "email")'),
     }),
-    execute: async ({ toolsetId }) => {
+    execute: async ({ toolsetId, query }) => {
       if (!toolsetId) {
-        return {
-          toolsets: manager.getCatalogWithState(),
-        };
+        const fullCatalog = manager.getCatalogWithState();
+
+        if (!query) {
+          return { toolsets: fullCatalog };
+        }
+
+        const q = query.toLowerCase();
+        const filtered = fullCatalog.filter(
+          (ts) =>
+            ts.name.toLowerCase().includes(q) ||
+            ts.description.toLowerCase().includes(q) ||
+            ts.id.toLowerCase().includes(q),
+        );
+
+        return { toolsets: filtered, totalAvailable: fullCatalog.length };
       }
 
       const toolset = getToolset(toolsetId);
@@ -81,13 +97,14 @@ export function createToolsetTools(manager: ToolsetManager) {
         };
       }
 
-      const toolNames = await manager.activate(toolsetId);
-      if (toolNames === null) {
+      const result = await manager.activate(toolsetId);
+      if (result === null) {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
         );
       }
 
+      const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
       const shouldIncludeVerbose = verbose === true;
 
@@ -97,7 +114,7 @@ export function createToolsetTools(manager: ToolsetManager) {
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}`,
+        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,
@@ -108,6 +125,10 @@ export function createToolsetTools(manager: ToolsetManager) {
               arguments: p.arguments,
             })) ?? null)
           : null,
+        ...(collisions.length > 0 && {
+          warning: `Tool name collision: ${collisions.join(', ')} already exist in another active toolset. The new definitions have overwritten the previous ones.`,
+          collisions,
+        }),
       };
     },
   });

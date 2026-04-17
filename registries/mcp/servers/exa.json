@@ -5,11 +5,7 @@
   "description": "Web and code search tools from Exa via remote MCP.",
   "homepageUrl": "https://exa.ai",
   "docsUrl": "https://exa.ai/docs/reference/exa-mcp",
-  "tags": [
-    "search",
-    "web",
-    "research"
-  ],
+  "tags": ["search", "web", "research"],
   "install": {
     "name": "Exa",
     "transport": "http",

@@ -3,6 +3,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
 
+import { type StitchLogger } from '@stitch/shared/logger';
+
 import * as Glob from '@/lib/glob.js';
 import { PATHS } from '@/lib/paths.js';
 
@@ -24,15 +26,7 @@ function shouldLog(input: Level): boolean {
   return levelPriority[input] >= levelPriority[level];
 }
 
-type Logger = {
-  debug(extra: Record<string, any>, message: string): void;
-  debug(message: string): void;
-  info(extra: Record<string, any>, message: string): void;
-  info(message: string): void;
-  error(extra: Record<string, any>, message: string): void;
-  error(message: string): void;
-  warn(extra: Record<string, any>, message: string): void;
-  warn(message: string): void;
+type Logger = StitchLogger & {
   tag(key: string, value: string): Logger;
   clone(): Logger;
   time(

@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import {
   addSemanticMemory,
@@ -73,12 +74,16 @@ function createMemoryTool(context: ToolContext) {
             return { output: 'Please provide a search query.' };
           }
 
-          const result = await searchSemanticMemories({
+          const searchResult = await searchSemanticMemories({
             query: input.content,
             page: 1,
             pageSize: 10,
             sourceFilter: 'chat',
           });
+          if (isServiceError(searchResult)) {
+            return { output: 'Failed to search memories.' };
+          }
+          const result = searchResult.data;
           if (result.memories.length === 0) {
             return { output: 'No relevant memories found.' };
           }
@@ -101,11 +106,15 @@ function createMemoryTool(context: ToolContext) {
         }
 
         case 'list': {
-          const all = await getAllSemanticMemories({
+          const listResult = await getAllSemanticMemories({
             page: 1,
             pageSize: 1000,
             sourceFilter: 'chat',
           });
+          if (isServiceError(listResult)) {
+            return { output: 'Failed to list memories.' };
+          }
+          const all = listResult.data;
           if (all.memories.length === 0) {
             return { output: 'No memories stored yet.' };
           }

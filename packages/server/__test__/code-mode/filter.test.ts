@@ -38,7 +38,9 @@ describe('applyToolFilter', () => {
 
   test('excludes tools from excluded toolset IDs', () => {
     registerTestToolset('browser', ['browser']);
-    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', ['mcp_abcdefghijklmnopqrstuvwxyz_search']);
+    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', [
+      'mcp_abcdefghijklmnopqrstuvwxyz_search',
+    ]);
 
     const input = buildTools(['browser', 'mcp_abcdefghijklmnopqrstuvwxyz_search', 'read']);
     const result = applyToolFilter(input, {

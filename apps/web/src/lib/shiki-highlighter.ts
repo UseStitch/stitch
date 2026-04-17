@@ -49,9 +49,7 @@ async function getSharedHighlighter(themes: string[], langs: string[]): Promise<
   return promise;
 }
 
-export function getHighlighterPromise(
-  language: string,
-): Promise<Highlighter> {
+export function getHighlighterPromise(language: string): Promise<Highlighter> {
   const themes = ['github-light', 'github-dark'];
   const langs = [language];
 

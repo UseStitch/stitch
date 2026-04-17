@@ -1,6 +1,7 @@
 import { app, Menu, nativeImage, Tray } from 'electron';
 
 import { resolveResourcePath } from './resources';
+
 import type { BrowserWindow } from 'electron';
 
 let tray: Tray | null = null;

@@ -9,15 +9,19 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 import { getDb } from '@/db/client.js';
 import { messages, sessions, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import * as Models from '@/llm/provider/models.js';
+import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
+import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { estimate } from '@/utils/token.js';
@@ -187,8 +191,8 @@ const COMPACTION_PROMPT = `Provide a detailed prompt for continuing our conversa
 Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next.
 The summary that you construct will be used so a future run can continue the work.
 
-When constructing the summary, try to stick to this template:
----
+Use the following markdown sections in your response. Do not wrap your response in a code block.
+
 ## Goal
 
 [What goal(s) is the user trying to accomplish?]
@@ -209,7 +213,6 @@ When constructing the summary, try to stick to this template:
 ## Relevant files / directories
 
 [Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
----
 
 Keep your summary under 1500 words. Prioritize actionable information over completeness.
 If the conversation is very long, focus on the most recent work and goals.`;
@@ -550,7 +553,7 @@ export async function buildCompactedHistory(
     }
   }
 
-  return buildHistoryMessages(msgs.slice(startIndex), {
+  const historyMessages = buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig?.useBasePrompt ?? true,
     systemPrompt: promptConfig?.systemPrompt ?? null,
     userName: promptUserContext.userName,
@@ -558,12 +561,40 @@ export async function buildCompactedHistory(
     memoryContext,
     codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
+
+  const instructionsBlock = buildActiveToolsetInstructionsBlock(sessionId);
+  if (instructionsBlock && historyMessages.length > 0 && historyMessages[0]?.role === 'system') {
+    const sysMsg = historyMessages[0];
+    const existing = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+    historyMessages[0] = { role: 'system', content: `${existing}${instructionsBlock}` };
+  }
+
+  return historyMessages;
+}
+
+export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'ses'>): string {
+  const activeIds = getSessionActiveToolsetIds(sessionId);
+  const instructionBlocks = activeIds
+    .map((id) => getToolset(id))
+    .filter((ts): ts is NonNullable<ReturnType<typeof getToolset>> => !!ts?.instructions)
+    .map((ts) => `### ${ts.name} Toolset Instructions\n${ts.instructions}`)
+    .join('\n\n');
+
+  return instructionBlocks ? `\n\n## Active Toolset Instructions\n\n${instructionBlocks}` : '';
 }
 
 /**
  * Look up model limits for a given provider/model combination.
  */
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
+  if (providerId === 'ollama_local') {
+    const result = await OllamaModels.getOllamaModel(modelId);
+    if (!isServiceError(result)) {
+      return { context: result.data.contextWindow, output: result.data.outputLimit };
+    }
+    return { context: 200_000, output: 8_192 };
+  }
+
   const providers = await Models.get();
   const provider = providers[providerId];
   const model = provider?.models[modelId];

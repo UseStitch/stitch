@@ -8,6 +8,10 @@ import { isAllowedProvider } from '@/llm/provider/models.js';
 const log = Log.create({ service: 'provider-logos' });
 const LOGO_BASE_URL = 'https://models.dev/logos';
 
+const PROVIDER_LOGO_ALIASES: Record<string, string> = {
+  ollama_local: 'ollama-cloud',
+};
+
 type GetProviderLogoOptions = {
   cacheDir?: string;
   fetchImpl?: typeof fetch;
@@ -23,14 +27,15 @@ export async function get(
 ): Promise<string | undefined> {
   if (!isAllowedProvider(providerId)) return undefined;
 
+  const logoId = PROVIDER_LOGO_ALIASES[providerId] ?? providerId;
   const cacheDir = options.cacheDir ?? PATHS.dirPaths.providerLogos;
-  const filePath = getLogoPath(providerId, cacheDir);
+  const filePath = getLogoPath(logoId, cacheDir);
 
   const cached = await fs.readFile(filePath, 'utf8').catch(() => undefined);
   if (cached) return cached;
 
   const fetchImpl = options.fetchImpl ?? fetch;
-  const result = await fetchImpl(`${LOGO_BASE_URL}/${providerId}.svg`, {
+  const result = await fetchImpl(`${LOGO_BASE_URL}/${logoId}.svg`, {
     signal: AbortSignal.timeout(10 * 1000),
   }).catch((error) => {
     log.warn({ error, providerId }, 'failed to fetch provider logo');

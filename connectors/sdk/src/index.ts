@@ -1,10 +1,1 @@
-export type {
-  ConnectorDefinitionInput,
-  ConnectorIconSource,
-  ConnectorInstanceRecord,
-  ConnectorLifecycleContext,
-  ConnectorModule,
-  ConnectorServiceHooks,
-  ConnectorUpgradeState,
-} from './types.js';
-export { buildUpgradeState, getCapabilitiesForVersion } from './upgrade.js';
+export type { ConnectorModule } from './types.js';

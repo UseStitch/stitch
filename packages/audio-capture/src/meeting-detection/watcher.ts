@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 
-import { resolveNativeBinaryPath } from '../native-binary.js';
+import { resolveMeetingWatcherBinaryPath } from '../native-binary.js';
 import { createMeetingDetectionEngine } from './engine.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
@@ -16,12 +16,7 @@ export type WatchRow = {
 /** Discriminated union of native watcher events. */
 type WatchEvent = { type: 'snapshot'; rows: WatchRow[] } | { type: 'error'; message: string };
 
-/** Platform-specific flag passed to the native binary. */
 type WatchPlatform = 'macos' | 'windows';
-
-function watchFlag(platform: WatchPlatform): string {
-  return platform === 'macos' ? '--watch-macos-meeting-usage' : '--watch-windows-meeting-usage';
-}
 
 /** Minimal re-use of per-platform row classification from the scanner files. */
 type RowClassifier = (rows: WatchRow[]) => MeetingObservation[];
@@ -60,8 +55,8 @@ export function createNativeWatcherMeetingDetector(
   }
 
   function startProcess(): void {
-    const binaryPath = resolveNativeBinaryPath();
-    child = spawn(binaryPath, [watchFlag(platform)], {
+    const binaryPath = resolveMeetingWatcherBinaryPath();
+    child = spawn(binaryPath, [], {
       stdio: 'pipe',
       windowsHide: true,
     });

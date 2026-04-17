@@ -1,9 +1,9 @@
 {
   "name": "@stitch/desktop",
-  "version": "0.2.7",
+  "version": "0.3.0",
+  "private": true,
   "description": "Stitch desktop application",
   "author": "Stitch",
-  "private": true,
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

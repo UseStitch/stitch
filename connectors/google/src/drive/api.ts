@@ -100,10 +100,18 @@ const EXPORT_MIME_MAP: Record<string, string> = {
 export async function getFileContent(
   client: GoogleClient,
   fileId: string,
+  mimeType?: string,
 ): Promise<DriveFileContent> {
-  const meta = await getFileMetadata(client, fileId);
+  let fileMimeType = mimeType;
+  let fileName = fileId;
 
-  const exportMime = EXPORT_MIME_MAP[meta.mimeType];
+  if (!fileMimeType) {
+    const meta = await getFileMetadata(client, fileId);
+    fileMimeType = meta.mimeType;
+    fileName = meta.name;
+  }
+
+  const exportMime = EXPORT_MIME_MAP[fileMimeType];
 
   let content: string;
   if (exportMime) {
@@ -117,9 +125,9 @@ export async function getFileContent(
   }
 
   return {
-    id: meta.id,
-    name: meta.name,
-    mimeType: meta.mimeType,
+    id: fileId,
+    name: fileName,
+    mimeType: fileMimeType,
     content,
   };
 }

@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
 import * as Log from '@/lib/log.js';
+import { computeTotalPages } from '@/lib/paginated-query.js';
+import { ok, err } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
 import { createEmbedder } from '@/memory/embedding/factory.js';
 import { getSemanticTable } from '@/memory/store/tables.js';
@@ -13,6 +16,17 @@ import type {
   ExtractedFact,
 } from '@/memory/types.js';
 import type { VectorQuery } from '@lancedb/lancedb';
+
+export type MemoryStats = {
+  total: number;
+  pinned: number;
+  stale: number;
+  byCategory: Record<string, number>;
+  byConfidence: Record<string, number>;
+  avgAccessCount: number;
+  oldestCreatedAt: string | null;
+  newestCreatedAt: string | null;
+};
 
 const log = Log.create({ service: 'memory-service' });
 const MAX_SEARCH_RESULTS = 1000;
@@ -78,7 +92,7 @@ type SemanticMemoryUpdate = {
 export async function updateSemanticMemory(
   id: string,
   updates: SemanticMemoryUpdate,
-): Promise<void> {
+): Promise<ServiceResult<void>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
   const timestamp = now();
@@ -102,8 +116,7 @@ export async function updateSemanticMemory(
       .where(`id = '${escapeSql(id)}'`)
       .toArray();
     if (existing.length === 0) {
-      log.warn({ id }, 'semantic memory not found for update');
-      return;
+      return err('Memory not found', 404);
     }
     const row = existing[0];
 
@@ -129,17 +142,19 @@ export async function updateSemanticMemory(
   }
 
   log.info({ id }, 'updated semantic memory');
+  return ok(undefined);
 }
 
-export async function deleteSemanticMemory(id: string): Promise<void> {
+export async function deleteSemanticMemory(id: string): Promise<ServiceResult<void>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
   await table.delete(`id = '${escapeSql(id)}'`);
   log.info({ id }, 'deleted semantic memory');
+  return ok(undefined);
 }
 
-export async function deleteSemanticMemories(ids: string[]): Promise<void> {
-  if (ids.length === 0) return;
+export async function deleteSemanticMemories(ids: string[]): Promise<ServiceResult<void>> {
+  if (ids.length === 0) return ok(undefined);
 
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
@@ -147,6 +162,7 @@ export async function deleteSemanticMemories(ids: string[]): Promise<void> {
   const escapedList = ids.map((id) => `'${escapeSql(id)}'`).join(', ');
   await table.delete(`id IN (${escapedList})`);
   log.info({ count: ids.length }, 'bulk deleted semantic memories');
+  return ok(undefined);
 }
 
 export async function searchSemanticMemories(input: {
@@ -155,19 +171,19 @@ export async function searchSemanticMemories(input: {
   pageSize: number;
   sourceFilter?: MemorySource;
   categoryFilter?: MemoryCategory;
-}): Promise<SearchSemanticMemoriesResponse> {
+}): Promise<ServiceResult<SearchSemanticMemoriesResponse>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
   const [count, vector] = await Promise.all([table.countRows(), embedder.embed(input.query)]);
   if (count === 0) {
-    return {
+    return ok({
       memories: [],
       page: input.page,
       pageSize: input.pageSize,
       total: 0,
       totalPages: 0,
-    };
+    });
   }
 
   let search = (table.search(vector) as VectorQuery)
@@ -191,9 +207,9 @@ export async function searchSemanticMemories(input: {
   const end = start + input.pageSize;
   const pageRows = results.slice(start, end);
   const total = results.length;
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
-  return {
+  return ok({
     memories: pageRows.map((r: Record<string, unknown>) => ({
       id: r.id as string,
       content: r.content as string,
@@ -212,7 +228,7 @@ export async function searchSemanticMemories(input: {
     pageSize: input.pageSize,
     total,
     totalPages,
-  };
+  });
 }
 
 export async function getAllSemanticMemories(input: {
@@ -220,7 +236,7 @@ export async function getAllSemanticMemories(input: {
   pageSize: number;
   sourceFilter?: MemorySource;
   categoryFilter?: MemoryCategory;
-}): Promise<ListSemanticMemoriesResponse> {
+}): Promise<ServiceResult<ListSemanticMemoriesResponse>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
@@ -242,9 +258,9 @@ export async function getAllSemanticMemories(input: {
   const end = start + input.pageSize;
   const pageRows = rows.slice(start, end);
   const total = rows.length;
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
-  return {
+  return ok({
     memories: pageRows.map((r) => ({
       id: r.id as string,
       content: r.content as string,
@@ -262,7 +278,7 @@ export async function getAllSemanticMemories(input: {
     pageSize: input.pageSize,
     total,
     totalPages,
-  };
+  });
 }
 
 export async function touchSemanticMemories(ids: string[]): Promise<void> {
@@ -282,10 +298,10 @@ export async function touchSemanticMemories(ids: string[]): Promise<void> {
   });
 }
 
-export async function pinSemanticMemory(id: string, pinned: boolean): Promise<void> {
+export async function pinSemanticMemory(id: string, pinned: boolean): Promise<ServiceResult<void>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
-  
+
   await table.update({
     valuesSql: {
       pinned: pinned ? '1' : '0',
@@ -293,6 +309,7 @@ export async function pinSemanticMemory(id: string, pinned: boolean): Promise<vo
     where: `id = '${escapeSql(id)}'`,
   });
   log.info({ id, pinned }, 'updated memory pin status');
+  return ok(undefined);
 }
 
 function getRecencyFactor(dateStr: string): number {
@@ -308,38 +325,41 @@ function getConfidenceFactor(confidence: string): number {
   return 0.6; // inferred
 }
 
-export async function pruneStaleMemories(config: { maxMemories: number; staleDays: number }): Promise<void> {
+export async function pruneStaleMemories(config: {
+  maxMemories: number;
+  staleDays: number;
+}): Promise<ServiceResult<void>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
-  
+
   const count = await table.countRows();
-  if (count <= config.maxMemories) return;
+  if (count <= config.maxMemories) return ok(undefined);
 
   const rows = await table.query().toArray();
-  
+
   // Calculate value score for each memory
-  const scored = rows.map(r => {
+  const scored = rows.map((r) => {
     const accessCount = r.accessCount as number;
     const lastAccessedAt = r.lastAccessedAt as string;
     const confidence = r.confidence as string;
     const pinned = (r.pinned as number) === 1;
-    
+
     const daysSince = (Date.now() - Date.parse(lastAccessedAt)) / (1000 * 60 * 60 * 24);
-    
-    const value = 
-      (accessCount * 0.3) + 
-      (getRecencyFactor(lastAccessedAt) * 0.3) + 
-      (getConfidenceFactor(confidence) * 0.2) + 
+
+    const value =
+      accessCount * 0.3 +
+      getRecencyFactor(lastAccessedAt) * 0.3 +
+      getConfidenceFactor(confidence) * 0.2 +
       (pinned ? 1.0 : 0) * 0.2;
-      
+
     return { id: r.id as string, value, pinned, daysSince, accessCount };
   });
-  
+
   // Sort ascending by value (lowest value first)
   scored.sort((a, b) => a.value - b.value);
-  
+
   const toDelete = new Set<string>();
-  
+
   // First, delete lowest value memories until we are under the cap
   let currentTotal = count;
   for (const item of scored) {
@@ -349,19 +369,31 @@ export async function pruneStaleMemories(config: { maxMemories: number; staleDay
       currentTotal--;
     }
   }
-  
+
   // Second, delete any unpinned memory that is stale AND never accessed
   for (const item of scored) {
-    if (!item.pinned && !toDelete.has(item.id) && item.daysSince > config.staleDays && item.accessCount === 0) {
+    if (
+      !item.pinned &&
+      !toDelete.has(item.id) &&
+      item.daysSince > config.staleDays &&
+      item.accessCount === 0
+    ) {
       toDelete.add(item.id);
     }
   }
-  
+
   if (toDelete.size > 0) {
-    const escapedList = Array.from(toDelete).map((id) => `'${escapeSql(id)}'`).join(', ');
+    const escapedList = Array.from(toDelete)
+      .map((id) => `'${escapeSql(id)}'`)
+      .join(', ');
     await table.delete(`id IN (${escapedList})`);
-    log.info({ count: toDelete.size, totalWas: count, cap: config.maxMemories }, 'pruned low-value/stale memories');
+    log.info(
+      { count: toDelete.size, totalWas: count, cap: config.maxMemories },
+      'pruned low-value/stale memories',
+    );
   }
+
+  return ok(undefined);
 }
 
 export async function deduplicateMemories(similarityThreshold = 0.92): Promise<number> {
@@ -408,7 +440,10 @@ export async function deduplicateMemories(similarityThreshold = 0.92): Promise<n
       .map((id) => `'${escapeSql(id)}'`)
       .join(', ');
     await table.delete(`id IN (${escapedList})`);
-    log.info({ count: toDelete.size, threshold: similarityThreshold }, 'dedup sweep removed near-duplicate memories');
+    log.info(
+      { count: toDelete.size, threshold: similarityThreshold },
+      'dedup sweep removed near-duplicate memories',
+    );
   }
 
   return toDelete.size;
@@ -428,28 +463,28 @@ function computeMemoryValue(r: Record<string, unknown>): number {
   );
 }
 
-export async function getMemoryStats(): Promise<any> {
+export async function getMemoryStats(): Promise<ServiceResult<MemoryStats>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
-  
+
   const rows = await table.query().toArray();
-  const stats = {
+  const stats: MemoryStats = {
     total: rows.length,
     pinned: 0,
     stale: 0,
-    byCategory: {} as Record<string, number>,
-    byConfidence: {} as Record<string, number>,
+    byCategory: {},
+    byConfidence: {},
     avgAccessCount: 0,
-    oldestCreatedAt: null as string | null,
-    newestCreatedAt: null as string | null,
+    oldestCreatedAt: null,
+    newestCreatedAt: null,
   };
-  
-  if (rows.length === 0) return stats;
-  
+
+  if (rows.length === 0) return ok(stats);
+
   let totalAccesses = 0;
   let oldest = Number.MAX_VALUE;
   let newest = 0;
-  
+
   for (const r of rows) {
     const pinned = (r.pinned as number) === 1;
     const category = r.category as string;
@@ -457,23 +492,23 @@ export async function getMemoryStats(): Promise<any> {
     const accessCount = r.accessCount as number;
     const createdAtMs = Date.parse(r.createdAt as string);
     const lastAccessedMs = Date.parse(r.lastAccessedAt as string);
-    
+
     if (pinned) stats.pinned++;
-    
+
     const daysSinceAccess = (Date.now() - lastAccessedMs) / (1000 * 60 * 60 * 24);
     if (daysSinceAccess > 60 && accessCount === 0) stats.stale++; // Hardcoded 60 days for stat reporting
-    
+
     stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
     stats.byConfidence[confidence] = (stats.byConfidence[confidence] || 0) + 1;
-    
+
     totalAccesses += accessCount;
     if (createdAtMs < oldest) oldest = createdAtMs;
     if (createdAtMs > newest) newest = createdAtMs;
   }
-  
+
   stats.avgAccessCount = totalAccesses / rows.length;
   stats.oldestCreatedAt = oldest !== Number.MAX_VALUE ? new Date(oldest).toISOString() : null;
   stats.newestCreatedAt = newest !== 0 ? new Date(newest).toISOString() : null;
-  
-  return stats;
+
+  return ok(stats);
 }

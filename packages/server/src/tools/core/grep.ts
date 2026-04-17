@@ -203,7 +203,7 @@ function getSuggestion() {
 
 const shouldTruncate = true;
 
-export const DISPLAY_NAME = 'Grep';
+export const DISPLAY_NAME = 'Text Search';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createGrepTool();

@@ -7,6 +7,7 @@ import type {
   ConnectorVersion,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
+import type { StitchLogger } from '@stitch/shared/logger';
 
 export type ConnectorIconSource =
   | { type: 'svgString'; svgString: string }
@@ -46,28 +47,20 @@ export type ConnectorInstanceRecord = {
   updatedAt: number;
 };
 
-export type ConnectorToolsetDefinition = {
-  id: string;
-  name: string;
-  description: string;
-  icon?: ConnectorIconSource;
-  instructions?: string;
-  tools: () => { name: string; description: string }[];
-  activate: (resolveClient: (account?: string) => Promise<Record<string, unknown>>) => Record<string, unknown>;
-};
-
 export type ConnectorLifecycleContext = {
   listInstances: (connectorId: string) => Promise<ConnectorInstanceRecord[]>;
   refreshToolsets: () => Promise<void>;
+  logger: StitchLogger;
 };
 
 export type ConnectorServiceHooks = {
   onAuthorized?: (input: {
     instance: ConnectorInstanceRecord;
     accessToken: string;
+    logger: StitchLogger;
   }) => Promise<{ accountEmail: string | null; accountInfo: Record<string, unknown> | null }>;
-  onDeleted?: (input: { instance: ConnectorInstanceRecord }) => Promise<void>;
-  testConnection?: (input: { instance: ConnectorInstanceRecord }) => Promise<void>;
+  onDeleted?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
+  testConnection?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
 };
 
 export type ConnectorModule = {

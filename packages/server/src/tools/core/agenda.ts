@@ -1,10 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import {
-  AGENDA_ITEM_PRIORITIES,
-  AGENDA_ITEM_STATUSES,
-} from '@stitch/shared/agenda/types';
+import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import {
@@ -16,6 +13,7 @@ import {
   updateAgendaItem,
 } from '@/agenda/service.js';
 import { listSettings } from '@/settings/service.js';
+import { isServiceError } from '@/lib/service-result.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
@@ -61,8 +59,9 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
 }
 
 async function getUserTimezone(): Promise<string> {
-  const settings = await listSettings();
-  return settings['profile.timezone'] || 'UTC';
+  const settingsResult = await listSettings();
+  if (isServiceError(settingsResult)) return 'UTC';
+  return settingsResult.data['profile.timezone'] || 'UTC';
 }
 
 const TOOL_SUMMARIES = [
@@ -82,10 +81,22 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
     inputSchema: z.object({
       title: z.string().describe('Title for the new item'),
       description: z.string().optional().describe('Description or details for the item'),
-      listName: z.string().optional().describe('Name of the agenda list. Auto-creates if it does not exist.'),
-      status: z.enum(AGENDA_ITEM_STATUSES).optional().describe('Item status: "open", "in_progress", "done", or "cancelled"'),
-      priority: z.enum(AGENDA_ITEM_PRIORITIES).optional().describe('Priority level: "low", "medium", "high", or "urgent"'),
-      dueAt: z.string().optional().describe('Due date in ISO 8601 format (e.g. "2025-01-15T09:00:00Z")'),
+      listName: z
+        .string()
+        .optional()
+        .describe('Name of the agenda list. Auto-creates if it does not exist.'),
+      status: z
+        .enum(AGENDA_ITEM_STATUSES)
+        .optional()
+        .describe('Item status: "open", "in_progress", "done", or "cancelled"'),
+      priority: z
+        .enum(AGENDA_ITEM_PRIORITIES)
+        .optional()
+        .describe('Priority level: "low", "medium", "high", or "urgent"'),
+      dueAt: z
+        .string()
+        .optional()
+        .describe('Due date in ISO 8601 format (e.g. "2025-01-15T09:00:00Z")'),
     }),
     execute: async (input) => {
       const userTimezone = await getUserTimezone();
@@ -111,7 +122,9 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         `Status: ${item.status}`,
       ];
       if (item.dueAt) {
-        parts.push(`Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`);
+        parts.push(
+          `Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
+        );
       }
 
       return { output: parts.join('\n') };
@@ -132,7 +145,11 @@ Use when the user asks to mark something as done, change priority, reschedule, o
     }),
     execute: async (input) => {
       const userTimezone = await getUserTimezone();
-      const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : input.dueAt === '' ? null : undefined;
+      const dueAt = input.dueAt
+        ? parseDueDate(input.dueAt, userTimezone)
+        : input.dueAt === ''
+          ? null
+          : undefined;
 
       const item = await updateAgendaItem(
         input.itemId as PrefixedString<'aitm'>,
@@ -170,9 +187,7 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
       let listId: PrefixedString<'alist'> | undefined;
       if (input.listName) {
         const lists = await getAgendaLists();
-        const match = lists.find(
-          (l) => l.name.toLowerCase() === input.listName!.toLowerCase(),
-        );
+        const match = lists.find((l) => l.name.toLowerCase() === input.listName!.toLowerCase());
         if (match) listId = match.id;
       }
 
@@ -189,7 +204,9 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
       }
 
       const lines = result.items.map((item) => {
-        const due = item.dueAt ? ` | Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}` : '';
+        const due = item.dueAt
+          ? ` | Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`
+          : '';
         return `- [${item.status}] [${item.priority}] ${item.title} (id: ${item.id}, list: ${item.listName ?? 'Unknown'}${due})`;
       });
 
@@ -219,8 +236,14 @@ Use when the user wants to see the complete information about a specific item.`,
         `Status: ${detail.status} | Priority: ${detail.priority}`,
       ];
       if (detail.description) parts.push(`Description: ${detail.description}`);
-      if (detail.dueAt) parts.push(`Due: ${new Date(detail.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`);
-      if (detail.completedAt) parts.push(`Completed: ${new Date(detail.completedAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`);
+      if (detail.dueAt)
+        parts.push(
+          `Due: ${new Date(detail.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
+        );
+      if (detail.completedAt)
+        parts.push(
+          `Completed: ${new Date(detail.completedAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
+        );
 
       return { output: parts.join('\n') };
     },
@@ -279,12 +302,12 @@ export function createAgendaToolset(): Toolset {
     id: AGENDA_TOOLSET_ID,
     name: 'Agenda',
     description:
-      'Manage the user\'s agenda — a persistent system for tracking todos organized into lists. Activate to add items, update status, manage lists, and check what\'s pending or due.',
+      "Manage the user's agenda — a persistent system for tracking todos organized into lists. Activate to add items, update status, manage lists, and check what's pending or due.",
     instructions: [
-      'Agenda tools manage the user\'s persistent task tracking system.',
+      "Agenda tools manage the user's persistent task tracking system.",
       'When adding items, default priority is "medium" unless the user signals urgency.',
       'When the user mentions a list/topic name, match it to an existing list case-insensitively before creating a new one.',
-      'If the user mentions something that sounds like a task but doesn\'t explicitly ask to track it, do NOT add it automatically — only act on clear intent.',
+      "If the user mentions something that sounds like a task but doesn't explicitly ask to track it, do NOT add it automatically — only act on clear intent.",
       'When updating status, briefly confirm what changed.',
     ].join('\n'),
     tools: () => TOOL_SUMMARIES,

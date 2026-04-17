@@ -3,7 +3,7 @@ import type { PrefixedString } from '../id/index.js';
 import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
 
-export type { LanguageModelV3Source, LanguageModelUsage, TextStreamPart, ToolSet };
+export type { LanguageModelV3Source, LanguageModelUsage };
 
 export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
@@ -47,12 +47,6 @@ export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result'
   truncated: boolean;
   outputPath?: string;
 };
-export type ToolInputStartPart = Extract<FullStreamPart, { type: 'tool-input-start' }>;
-export type ToolInputDeltaPart = Extract<FullStreamPart, { type: 'tool-input-delta' }>;
-export type ToolInputEndPart = Extract<FullStreamPart, { type: 'tool-input-end' }>;
-export type ToolErrorPart = Extract<FullStreamPart, { type: 'tool-error' }>;
-export type FinishStreamPart = Extract<FullStreamPart, { type: 'finish' }>;
-
 export type CompactionPart = {
   type: 'compaction';
   auto: boolean;
@@ -128,8 +122,6 @@ export type Session = {
   createdAt: number;
   updatedAt: number;
 };
-
-export type SessionWithMessages = Session & { messages: Message[] };
 
 export type MessagesPage = {
   messages: Message[];

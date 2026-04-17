@@ -42,18 +42,18 @@ let serverUrl: string | null = null;
 let isQuitting = false;
 let isShuttingDown = false;
 
-function shutdownRuntime(): void {
+async function shutdownRuntime(): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
   destroyTray();
-  killServer();
+  await killServer();
 }
 
 const updater = createUpdater({
   getWindow: () => mainWindow,
-  prepareForInstall: () => {
+  prepareForInstall: async () => {
     isQuitting = true;
-    shutdownRuntime();
+    await shutdownRuntime();
   },
 });
 
@@ -104,12 +104,15 @@ async function createWindow() {
     mainWindow.setIcon(windowIcon);
   }
 
-  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    dialog.showErrorBox(
-      'Failed to load Stitch UI',
-      `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
-    );
-  });
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_event, errorCode, errorDescription, validatedURL) => {
+      dialog.showErrorBox(
+        'Failed to load Stitch UI',
+        `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
+      );
+    },
+  );
 
   // Hide to tray on close instead of quitting, unless the app is actually quitting.
   mainWindow.on('close', (event) => {
@@ -273,16 +276,19 @@ void app.whenReady().then(async () => {
       }
     });
   } catch (error) {
-    shutdownRuntime();
+    await shutdownRuntime();
     const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
     dialog.showErrorBox('Stitch failed to start', detail);
     app.exit(1);
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   isQuitting = true;
-  shutdownRuntime();
+  if (!isShuttingDown) {
+    event.preventDefault();
+    void shutdownRuntime().then(() => app.quit());
+  }
 });
 
 // The tray keeps the app alive even when the window is hidden.

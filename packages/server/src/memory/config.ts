@@ -11,6 +11,9 @@ type MemoryConfig = {
   maxFactsPerTurn: number;
   minMessageLength: number;
   confidenceFilter: 'stated' | 'all' | 'stated+confirmed';
+  importanceMinScore: number;
+  maxFactsPerSession: number;
+  minTurnsBetweenWrites: number;
   maxMemories: number;
   staleDays: number;
   autoprune: boolean;
@@ -37,6 +40,9 @@ const MEMORY_SETTING_KEYS = [
   'memory.extraction.maxFactsPerTurn',
   'memory.extraction.minMessageLength',
   'memory.extraction.confidenceFilter',
+  'memory.extraction.importanceMinScore',
+  'memory.extraction.maxFactsPerSession',
+  'memory.extraction.minTurnsBetweenWrites',
   'memory.retention.maxMemories',
   'memory.retention.staleDays',
   'memory.retention.autoprune',
@@ -72,14 +78,26 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     autoExtract: byKey.get('memory.autoExtract') !== 'false',
     embeddingProviderId: byKey.get('memory.embedding.providerId') ?? '',
     embeddingModelId: byKey.get('memory.embedding.modelId') ?? '',
-    maxFactsPerTurn: Number.parseInt(byKey.get('memory.extraction.maxFactsPerTurn') ?? '2', 10),
-    minMessageLength: Number.parseInt(byKey.get('memory.extraction.minMessageLength') ?? '40', 10),
-    confidenceFilter: (byKey.get('memory.extraction.confidenceFilter') ?? 'stated') as MemoryConfig['confidenceFilter'],
-    maxMemories: Number.parseInt(byKey.get('memory.retention.maxMemories') ?? '200', 10),
-    staleDays: Number.parseInt(byKey.get('memory.retention.staleDays') ?? '60', 10),
+    maxFactsPerTurn: Number.parseInt(byKey.get('memory.extraction.maxFactsPerTurn') ?? '1', 10),
+    minMessageLength: Number.parseInt(byKey.get('memory.extraction.minMessageLength') ?? '100', 10),
+    confidenceFilter: (byKey.get('memory.extraction.confidenceFilter') ??
+      'stated') as MemoryConfig['confidenceFilter'],
+    importanceMinScore: Number.parseFloat(
+      byKey.get('memory.extraction.importanceMinScore') ?? '0.7',
+    ),
+    maxFactsPerSession: Number.parseInt(
+      byKey.get('memory.extraction.maxFactsPerSession') ?? '20',
+      10,
+    ),
+    minTurnsBetweenWrites: Number.parseInt(
+      byKey.get('memory.extraction.minTurnsBetweenWrites') ?? '3',
+      10,
+    ),
+    maxMemories: Number.parseInt(byKey.get('memory.retention.maxMemories') ?? '150', 10),
+    staleDays: Number.parseInt(byKey.get('memory.retention.staleDays') ?? '30', 10),
     autoprune: byKey.get('memory.retention.autoprune') !== 'false',
-    retrievalMaxResults: Number.parseInt(byKey.get('memory.retrieval.maxResults') ?? '5', 10),
-    retrievalMinScore: Number.parseFloat(byKey.get('memory.retrieval.minScore') ?? '0.45'),
+    retrievalMaxResults: Number.parseInt(byKey.get('memory.retrieval.maxResults') ?? '3', 10),
+    retrievalMinScore: Number.parseFloat(byKey.get('memory.retrieval.minScore') ?? '0.6'),
     retrievalRecencyBoost: byKey.get('memory.retrieval.recencyBoost') !== 'false',
   };
   cacheExpiresAt = now + CACHE_TTL_MS;

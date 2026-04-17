@@ -224,22 +224,28 @@ export async function searchMessages(
     return { messages: [], nextPageToken: undefined, totalEstimate: 0 };
   }
 
-  // Fetch metadata for each message (batch-friendly: only headers)
-  const summaries = await Promise.all(
-    list.messages.map(async (msg) => {
-      const full = await client.request<GmailMessageRaw>(
-        `${GMAIL_API}/messages/${msg.id}?format=METADATA&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
-      );
-      return {
-        id: full.id,
-        threadId: full.threadId,
-        snippet: full.snippet,
-        from: extractHeader(full.payload?.headers, 'From'),
-        subject: extractHeader(full.payload?.headers, 'Subject'),
-        date: extractHeader(full.payload?.headers, 'Date'),
-      };
-    }),
-  );
+  // Fetch metadata for each message in chunks to avoid overwhelming the network
+  const summaries: GmailSearchResult['messages'] = [];
+  const chunkSize = 5;
+  for (let i = 0; i < list.messages.length; i += chunkSize) {
+    const chunk = list.messages.slice(i, i + chunkSize);
+    const results = await Promise.all(
+      chunk.map(async (msg) => {
+        const full = await client.request<GmailMessageRaw>(
+          `${GMAIL_API}/messages/${msg.id}?format=METADATA&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+        );
+        return {
+          id: full.id,
+          threadId: full.threadId,
+          snippet: full.snippet,
+          from: extractHeader(full.payload?.headers, 'From'),
+          subject: extractHeader(full.payload?.headers, 'Subject'),
+          date: extractHeader(full.payload?.headers, 'Date'),
+        };
+      }),
+    );
+    summaries.push(...results);
+  }
 
   return {
     messages: summaries,
@@ -304,7 +310,9 @@ export async function listLabels(client: GoogleClient): Promise<{ labels: GmailL
 }
 
 export async function getLabels(client: GoogleClient, labelId: string): Promise<GmailLabel> {
-  const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`);
+  const raw = await client.request<GmailLabelRaw>(
+    `${GMAIL_API}/labels/${encodeURIComponent(labelId)}`,
+  );
   return mapLabel(raw);
 }
 

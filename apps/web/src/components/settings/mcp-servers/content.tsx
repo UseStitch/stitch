@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { Button } from '@/components/ui/button';
-
 import { AddCustomMcpServer } from './add-custom-mcp-server';
 import { InstallRegistryMcpServer } from './install-registry-mcp-server';
 import { McpRegistryList } from './mcp-registry-list';
 import { McpServerList } from './mcp-server-list';
 import { McpToolsPreview } from './mcp-tools-preview';
+
 import type { View } from './shared';
+import { Button } from '@/components/ui/button';
 
 export function McpServersContent() {
   const [view, setView] = React.useState<View>({ type: 'home', tab: 'configured' });

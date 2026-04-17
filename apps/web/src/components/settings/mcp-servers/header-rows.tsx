@@ -1,9 +1,8 @@
 import { Trash2Icon } from 'lucide-react';
 
+import type { HeaderEntry } from './shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-import type { HeaderEntry } from './shared';
 
 export function HeaderRows({
   rows,

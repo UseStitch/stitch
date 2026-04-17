@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
+import type { AudioDeviceList, AudioPermissionsStatus } from '@stitch/audio-capture';
 import { createRecordingId } from '@stitch/shared/id';
 import type {
   ListRecordingsResponse,
@@ -15,9 +16,11 @@ import type {
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { broadcast } from '@/lib/sse.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
@@ -30,6 +33,32 @@ type ActiveRecording = {
 const capture = createAudioCaptureHandle();
 let activeRecording: ActiveRecording | null = null;
 const log = Log.create({ service: 'recordings' });
+
+type RecordingCaptureSettings = {
+  inputDeviceId: string | null;
+  outputDeviceId: string | null;
+  speakerGain: number;
+};
+
+async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
+  const db = getDb();
+  const rows = await db
+    .select({ key: userSettings.key, value: userSettings.value })
+    .from(userSettings)
+    .where(
+      sql`${userSettings.key} IN ('recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.speakerGain')`,
+    );
+
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const inputDeviceId = map.get('recordings.inputDeviceId') || null;
+  const outputDeviceId = map.get('recordings.outputDeviceId') || null;
+
+  const rawGain = Number.parseFloat(map.get('recordings.speakerGain') ?? '10');
+  const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
+
+  return { inputDeviceId, outputDeviceId, speakerGain };
+}
 
 function defaultTitle(): string {
   const now = new Date();
@@ -81,7 +110,7 @@ export async function listRecordings(input: {
     db.select({ total: sql<number>`count(*)` }).from(recordings),
   ]);
   const total = Number(countRows[0]?.total ?? 0);
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
+  const totalPages = computeTotalPages(total, input.pageSize);
 
   return {
     recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null)),
@@ -121,16 +150,35 @@ export async function startRecording(
   });
 
   try {
+    const settings = await readCaptureSettings();
     await capture.start({
       outputPath: filePath,
-      mode: 'dual',
-      sampleRateHz: 16_000,
       channels: 1,
-      enableAec: false,
+      micDeviceId: settings.inputDeviceId,
+      speakerDeviceId: settings.outputDeviceId,
+      speakerGain: settings.speakerGain,
     });
+
+    capture.onEvent((event) => {
+      if (event.type === 'warning') {
+        void broadcast('recording-warning', { code: event.code, message: event.message });
+      } else if (event.type === 'deviceChanged') {
+        void broadcast('recording-device-changed', {
+          kind: event.kind,
+          deviceName: event.deviceName,
+        });
+      }
+    });
+
     activeRecording = { id, filePath };
     log.info(
-      { recordingId: id, filePath, mode: 'dual', sampleRateHz: 16_000, enableAec: false },
+      {
+        recordingId: id,
+        filePath,
+        speakerGain: settings.speakerGain,
+        micDeviceId: settings.inputDeviceId,
+        speakerDeviceId: settings.outputDeviceId,
+      },
       'recording started',
     );
   } catch (error) {
@@ -274,4 +322,26 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   await db.delete(recordings).where(eq(recordings.id, recordingId));
 
   return ok(null);
+}
+
+export async function listAudioDevices(): Promise<ServiceResult<AudioDeviceList>> {
+  try {
+    const devices = await capture.listDevices();
+    return ok(devices);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to list audio devices';
+    log.warn({ error: message }, 'failed to list audio devices');
+    return err(message, 500);
+  }
+}
+
+export async function checkAudioPermissions(): Promise<ServiceResult<AudioPermissionsStatus>> {
+  try {
+    const permissions = await capture.checkPermissions();
+    return ok(permissions);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to check audio permissions';
+    log.warn({ error: message }, 'failed to check audio permissions');
+    return err(message, 500);
+  }
 }

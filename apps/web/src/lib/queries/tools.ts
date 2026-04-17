@@ -1,7 +1,8 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permissions/types';
-import type { ToolType } from '@stitch/shared/tools/types';
+import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/shared/tools/types';
 
 import { serverFetch } from '@/lib/api';
 
@@ -20,11 +21,25 @@ type KnownMcpTool = {
   toolIconPath?: string;
 };
 
+type KnownToolset = {
+  id: string;
+  name: string;
+  description: string;
+  icon: ConnectorIconSource | null;
+  source: 'native' | 'provider' | 'connector' | 'mcp';
+  toolCount: number;
+  hasInstructions: boolean;
+  promptCount: number;
+  tools: { toolName: string; displayName: string }[];
+};
+
 export const toolKeys = {
   all: ['tools-config'] as const,
   knownTools: () => [...toolKeys.all, 'known-tools'] as const,
   knownMcpTools: () => [...toolKeys.all, 'known-mcp-tools'] as const,
+  knownToolsets: () => [...toolKeys.all, 'known-toolsets'] as const,
   permissions: () => [...toolKeys.all, 'permissions'] as const,
+  enabledStates: () => [...toolKeys.all, 'enabled-states'] as const,
 };
 
 export const knownToolsQueryOptions = queryOptions({
@@ -49,6 +64,17 @@ export const knownMcpToolsQueryOptions = queryOptions({
   },
 });
 
+export const knownToolsetsQueryOptions = queryOptions({
+  queryKey: toolKeys.knownToolsets(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<KnownToolset[]> => {
+    const res = await serverFetch('/config/toolsets');
+    if (!res.ok) throw new Error('Failed to fetch toolsets');
+    const data = (await res.json()) as { toolsets: KnownToolset[] };
+    return data.toolsets;
+  },
+});
+
 export const toolPermissionsQueryOptions = queryOptions({
   queryKey: toolKeys.permissions(),
   staleTime: Infinity,
@@ -56,6 +82,17 @@ export const toolPermissionsQueryOptions = queryOptions({
     const res = await serverFetch('/config/permissions');
     if (!res.ok) throw new Error('Failed to fetch permissions');
     return res.json() as Promise<ToolPermission[]>;
+  },
+});
+
+export const toolEnabledStatesQueryOptions = queryOptions({
+  queryKey: toolKeys.enabledStates(),
+  staleTime: Infinity,
+  queryFn: async (): Promise<ToolEnabledState[]> => {
+    const res = await serverFetch('/config/tools/enabled');
+    if (!res.ok) throw new Error('Failed to fetch tool enabled states');
+    const data = (await res.json()) as { states: ToolEnabledState[] };
+    return data.states;
   },
 });
 
@@ -97,6 +134,35 @@ export function useDeleteToolPermission() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: toolKeys.permissions() });
+    },
+  });
+}
+
+export function useSetToolEnabledState() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      scope: ToolEnabledScope;
+      identifier: string;
+      enabled: boolean;
+    }) => {
+      const res = await serverFetch('/config/tools/enabled', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? 'Failed to update tool state');
+      }
+    },
+    onSuccess: () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: toolKeys.enabledStates() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownMcpTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
     },
   });
 }

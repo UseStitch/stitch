@@ -1,5 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 
+import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
+
 import type {
   ConnectorDefinition,
   ConnectorInstance,
@@ -7,12 +9,11 @@ import type {
   ConnectorStatus,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
-import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 import { createConnectorInstanceId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import { refreshAccessToken, startOAuthFlow } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
@@ -22,6 +23,7 @@ import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'connectors' });
+const REFRESH_BUFFER_MS = 60_000;
 
 function toSafe(
   instance: ConnectorInstance,
@@ -59,16 +61,18 @@ function toSafe(
   };
 }
 
-export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]> {
+export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
   const db = getDb();
   const rows = await db
     .select()
     .from(connectorInstances)
     .orderBy(asc(connectorInstances.createdAt));
-  return rows.map((r) => {
-    const instance = r as ConnectorInstance;
-    return toSafe(instance, getConnectorDefinition(instance.connectorId));
-  });
+  return ok(
+    rows.map((r) => {
+      const instance = r as ConnectorInstance;
+      return toSafe(instance, getConnectorDefinition(instance.connectorId));
+    }),
+  );
 }
 
 export async function getConnectorInstance(
@@ -220,6 +224,7 @@ export async function authorizeOAuthInstance(
         const hookResult = await module.hooks.onAuthorized({
           instance,
           accessToken: tokens.accessToken,
+          logger: log,
         });
         accountEmail = hookResult.accountEmail;
         accountInfo = hookResult.accountInfo;
@@ -422,7 +427,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
 
   const module = getConnectorModule(existing.connectorId);
   if (module?.hooks?.onDeleted) {
-    await module.hooks.onDeleted({ instance: existing });
+    await module.hooks.onDeleted({ instance: existing, logger: log });
   }
   await refreshConnectorToolsetsFor(existing.connectorId);
 
@@ -447,13 +452,52 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
   if (!definition) return err('Unknown connector type', 400);
 
   try {
+    // Proactively refresh an expiring/expired OAuth token before testing so the
+    // hook receives a usable access token even if the stored one has lapsed.
+    let testedInstance = instance;
+    if (
+      definition.authType === 'oauth2' &&
+      instance.refreshToken &&
+      (instance.accessToken === null ||
+        (instance.tokenExpiresAt !== null &&
+          instance.tokenExpiresAt <= Date.now() + REFRESH_BUFFER_MS))
+    ) {
+      const creds = await resolveOAuthCredentials(instance);
+      if (creds) {
+        const config = definition.authConfig as OAuthConfig;
+        const now = Date.now();
+        const refreshed = await refreshAccessToken(
+          config.tokenUrl,
+          creds.clientId,
+          creds.clientSecret,
+          instance.refreshToken,
+        );
+        await db
+          .update(connectorInstances)
+          .set({
+            accessToken: refreshed.accessToken,
+            refreshToken: refreshed.refreshToken ?? instance.refreshToken,
+            tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
+            status: 'connected' as ConnectorStatus,
+            updatedAt: now,
+          })
+          .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+        testedInstance = {
+          ...instance,
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken ?? instance.refreshToken,
+          tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
+        };
+      }
+    }
+
     const module = getConnectorModule(instance.connectorId);
     if (module?.hooks?.testConnection) {
-      await module.hooks.testConnection({ instance });
+      await module.hooks.testConnection({ instance: testedInstance, logger: log });
       return ok(true);
     }
 
-    if (definition.authType === 'oauth2' && instance.accessToken) {
+    if (definition.authType === 'oauth2' && testedInstance.accessToken) {
       return ok(true);
     } else if (definition.authType === 'api_key' && instance.apiKey) {
       return err('Connector test is not supported for this connector type', 400);

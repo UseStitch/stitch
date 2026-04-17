@@ -1,3 +1,5 @@
+import { sleep } from './utils.js';
+
 type RateLimitBucket = {
   capacity: number;
   windowMs: number;
@@ -154,36 +156,12 @@ type AcquireOptions = {
   maxWaitMs: number;
 };
 
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (ms <= 0) {
-      resolve();
-      return;
-    }
-
-    const onAbort = () => {
-      clearTimeout(timeout);
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-
-    const timeout = setTimeout(() => {
-      if (signal) {
-        signal.removeEventListener('abort', onAbort);
-      }
-      resolve();
-    }, ms);
-
-    if (signal) {
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-  });
-}
-
 class SlidingWindowLimiter {
   private readonly capacity: number;
   private readonly windowMs: number;
   private readonly events: { timestamp: number; weight: number }[] = [];
   private pending: Promise<void> = Promise.resolve();
+  private usedWeight: number = 0;
 
   constructor(config: RateLimitBucket) {
     this.capacity = config.capacity;
@@ -206,13 +184,23 @@ class SlidingWindowLimiter {
   }
 
   private pruneExpired(now: number): void {
-    while (this.events.length > 0 && now - this.events[0].timestamp >= this.windowMs) {
-      this.events.shift();
+    const expiredCount = this.events.findIndex((event) => now - event.timestamp < this.windowMs);
+    
+    if (expiredCount === -1 && this.events.length > 0) {
+      // All events are expired
+      this.usedWeight = 0;
+      this.events.length = 0;
+    } else if (expiredCount > 0) {
+      // Some events are expired
+      const expired = this.events.splice(0, expiredCount);
+      for (const event of expired) {
+        this.usedWeight -= event.weight;
+      }
     }
   }
 
   private used(): number {
-    return this.events.reduce((total, event) => total + event.weight, 0);
+    return this.usedWeight;
   }
 
   private async acquireInternal(weight: number, options: AcquireOptions): Promise<number> {
@@ -224,6 +212,7 @@ class SlidingWindowLimiter {
 
       if (this.used() + weight <= this.capacity) {
         this.events.push({ timestamp: now, weight });
+        this.usedWeight += weight;
         return waitedMs;
       }
 
@@ -288,14 +277,16 @@ export class GoogleRateLimitCoordinator {
       serviceConfig.account,
     );
 
-    const projectWait = await projectLimiter.acquire(operation.quotaCost, {
-      maxWaitMs: this.config.maxQueueWaitMs,
-      signal,
-    });
-    const accountWait = await accountLimiter.acquire(operation.quotaCost, {
-      maxWaitMs: this.config.maxQueueWaitMs,
-      signal,
-    });
+    const [projectWait, accountWait] = await Promise.all([
+      projectLimiter.acquire(operation.quotaCost, {
+        maxWaitMs: this.config.maxQueueWaitMs,
+        signal,
+      }),
+      accountLimiter.acquire(operation.quotaCost, {
+        maxWaitMs: this.config.maxQueueWaitMs,
+        signal,
+      }),
+    ]);
 
     return projectWait + accountWait;
   }

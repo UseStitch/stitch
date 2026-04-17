@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 
+import { validateCronExpression } from '@stitch/scheduler';
 import type {
   Automation,
   ListAutomationsResponse,
@@ -15,76 +16,16 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
-import { automations, providerConfig, sessions } from '@/db/schema.js';
+import { automations, sessions } from '@/db/schema.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isAllowedProvider } from '@/llm/provider/models.js';
-import * as Models from '@/llm/provider/models.js';
+import { validateProviderModel } from '@/llm/resolve-model.js';
 
 type AutomationDbRow = typeof automations.$inferSelect;
 type AutomationRow = Automation;
 
-async function validateProviderModel(
-  providerId: string,
-  modelId: string,
-): Promise<ServiceResult<null>> {
-  if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
-  }
-
-  const providers = await Models.get();
-  const provider = providers[providerId];
-  if (!provider) {
-    return err('Provider not found', 404);
-  }
-
-  if (!provider.models[modelId]) {
-    return err('Model not found for provider', 400);
-  }
-
-  const db = getDb();
-  const [configuredProvider] = await db
-    .select({ providerId: providerConfig.providerId })
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
-  if (!configuredProvider) {
-    return err('Provider is not configured', 400);
-  }
-
-  return ok(null);
-}
-
 function normalizeText(value: string): string {
   return value.trim();
-}
-
-function parseCronField(raw: string, min: number, max: number): boolean {
-  const parts = raw.split(',');
-  if (parts.length === 0) return false;
-
-  for (const part of parts) {
-    if (part === '*') continue;
-
-    if (part.startsWith('*/')) {
-      const step = Number(part.slice(2));
-      if (!Number.isInteger(step) || step <= 0) return false;
-      continue;
-    }
-
-    if (part.includes('-')) {
-      const [startRaw, endRaw] = part.split('-');
-      const start = Number(startRaw);
-      const end = Number(endRaw);
-      if (!Number.isInteger(start) || !Number.isInteger(end)) return false;
-      if (start < min || end > max || start > end) return false;
-      continue;
-    }
-
-    const value = Number(part);
-    if (!Number.isInteger(value) || value < min || value > max) return false;
-  }
-
-  return true;
 }
 
 function validateAutomationSchedule(
@@ -93,27 +34,10 @@ function validateAutomationSchedule(
   if (schedule === null) return ok(null);
 
   const expression = normalizeText(schedule.expression);
-  const fields = expression.split(/\s+/);
-  if (fields.length !== 5) {
-    return err('Cron expression must have 5 fields', 400);
-  }
+  const result = validateCronExpression(expression);
+  if (!result.valid) return err(result.error, 400);
 
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = fields;
-  const valid =
-    parseCronField(minute, 0, 59) &&
-    parseCronField(hour, 0, 23) &&
-    parseCronField(dayOfMonth, 1, 31) &&
-    parseCronField(month, 1, 12) &&
-    parseCronField(dayOfWeek, 0, 6);
-
-  if (!valid) {
-    return err('Invalid cron expression', 400);
-  }
-
-  return ok({
-    type: 'cron',
-    expression,
-  });
+  return ok({ type: 'cron', expression });
 }
 
 function serializeAutomationSchedule(
@@ -142,32 +66,23 @@ function toAutomationRow(row: AutomationDbRow): AutomationRow {
   };
 }
 
+import { paginatedQuery } from '@/lib/paginated-query.js';
+
 export async function listAutomations(input: {
   page: number;
   pageSize: number;
-}): Promise<ListAutomationsResponse> {
+}): Promise<ServiceResult<ListAutomationsResponse>> {
   const db = getDb();
-  const offset = (input.page - 1) * input.pageSize;
-  const [rows, countRows] = await Promise.all([
-    db
-      .select()
-      .from(automations)
-      .orderBy(asc(automations.createdAt))
-      .limit(input.pageSize)
-      .offset(offset),
-    db.select({ total: sql<number>`count(*)` }).from(automations),
-  ]);
 
-  const total = Number(countRows[0]?.total ?? 0);
-  const totalPages = total === 0 ? 0 : Math.ceil(total / input.pageSize);
-
-  return {
-    automations: rows.map(toAutomationRow),
+  const result = await paginatedQuery({
+    dataQuery: db.select().from(automations).orderBy(asc(automations.createdAt)),
+    countQuery: db.select({ total: sql<number>`count(*)` }).from(automations),
     page: input.page,
     pageSize: input.pageSize,
-    total,
-    totalPages,
-  };
+    transform: toAutomationRow,
+  });
+
+  return ok({ automations: result.items, ...result });
 }
 
 export async function createAutomation(

@@ -17,7 +17,7 @@ export function ok<T>(data: T): ServiceSuccess<T> {
 export function err(
   error: string,
   status: 400 | 401 | 403 | 404 | 409 | 422 | 500,
-  details?: unknown
+  details?: unknown,
 ): ServiceError {
   return { error, status, details };
 }

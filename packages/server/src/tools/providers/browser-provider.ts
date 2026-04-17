@@ -1,18 +1,21 @@
 import { readFileSync } from 'node:fs';
 
+import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { createRegisteredTool } from '@/tools/core/browser.js';
 import type { ToolProvider } from '@/tools/providers/types.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
-import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 
 const browserInstructions = readFileSync(
-  resolveRuntimeAssetPath(new URL('./instructions/browser.md', import.meta.url), 'tools/providers/instructions/browser.md'),
+  resolveRuntimeAssetPath(
+    new URL('./instructions/browser.md', import.meta.url),
+    'tools/providers/instructions/browser.md',
+  ),
   'utf8',
 ).trim();
 
 export const browserToolProvider: ToolProvider = {
   name: 'browser',
-  knownTools: () => [{ toolType: 'stitch', toolName: 'browser', displayName: 'Browser' }],
+  knownTools: () => [{ toolType: 'plugin', toolName: 'browser', displayName: 'Browser' }],
   createTools: (context) => ({
     browser: createRegisteredTool(context),
   }),

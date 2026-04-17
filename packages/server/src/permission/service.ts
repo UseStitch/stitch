@@ -278,7 +278,9 @@ export async function getPendingPermissionResponses(
   const rows = await db
     .select()
     .from(permissionResponses)
-    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
+    .where(
+      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
+    );
 
   return rows.map(toPermissionResponse);
 }
@@ -290,14 +292,18 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
   const pending = await db
     .select()
     .from(permissionResponses)
-    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
+    .where(
+      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
+    );
 
   if (pending.length === 0) return;
 
   await db
     .update(permissionResponses)
     .set({ status: 'rejected', resolvedAt: now })
-    .where(and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')));
+    .where(
+      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
+    );
 
   await Promise.all(
     pending.map(async (row) => {

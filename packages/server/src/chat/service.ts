@@ -11,16 +11,16 @@ import { getDb } from '@/db/client.js';
 import { messages, providerConfig, sessions } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
+import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { broadcast } from '@/lib/sse.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
+import * as Models from '@/llm/provider/models.js';
+import { listProviders } from '@/llm/provider/service.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import { abortPermissionResponses } from '@/permission/service.js';
-import * as Models from '@/llm/provider/models.js';
-import { listProviders } from '@/llm/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -542,10 +542,7 @@ export async function getSessionStats(
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
-    db
-      .select({ id: sessions.id })
-      .from(sessions)
-      .where(eq(sessions.parentSessionId, sessionId)),
+    db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId)),
   ]);
 
   const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
@@ -607,7 +604,8 @@ export async function getSessionStats(
   // Resolve provider/model labels and context limit
   const latestMessage =
     sessionMessages.length > 0 ? sessionMessages[sessionMessages.length - 1] : null;
-  const [providers, modelCatalog] = await Promise.all([listProviders(), Models.get()]);
+  const [providersResult, modelCatalog] = await Promise.all([listProviders(), Models.get()]);
+  const providers = isServiceError(providersResult) ? [] : providersResult.data;
 
   let providerLabel = '-';
   let modelLabel = '-';
