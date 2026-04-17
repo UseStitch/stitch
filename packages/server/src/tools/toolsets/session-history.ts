@@ -3,10 +3,7 @@ import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import {
-  getSessionHistoryMessages,
-  searchSessionHistory,
-} from '@/chat/history-search-service.js';
+import { getSessionHistoryMessages, searchSessionHistory } from '@/chat/history-search-service.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';

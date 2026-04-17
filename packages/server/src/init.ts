@@ -9,9 +9,9 @@ import { startMeetingDetection } from '@/recordings/meeting-detection.js';
 import { startScheduler } from '@/scheduler/runtime.js';
 import { createAgendaToolset } from '@/tools/core/agenda.js';
 import { createRecordingsToolset } from '@/tools/core/recordings.js';
-import { createSessionHistoryToolset } from '@/tools/core/session-history.js';
 import { registerProviderToolsets } from '@/tools/providers/index.js';
 import { registerToolset } from '@/tools/toolsets/registry.js';
+import { createSessionHistoryToolset } from '@/tools/toolsets/session-history.js';
 
 const log = Log.create({ service: 'init' });
 
