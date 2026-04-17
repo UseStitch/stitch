@@ -38,7 +38,7 @@ Use this when the user asks what happened earlier, references past decisions, or
         .number()
         .int()
         .min(1)
-        .max(5)
+        .max(100)
         .optional()
         .describe('Maximum sessions to return (default 3, max 5).'),
       roleFilter: z
