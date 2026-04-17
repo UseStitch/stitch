@@ -31,9 +31,9 @@ export const configRouter = new Hono();
 
 type ToolsetSource = 'native' | 'provider' | 'connector' | 'mcp';
 
-const NATIVE_TOOLSET_IDS = new Set(['browser', 'agenda']);
+const NATIVE_TOOLSET_IDS = new Set(['browser', 'agenda', 'session-history', 'recordings']);
 
-function getToolsetSource(toolsetId: string): ToolsetSource {
+export function getToolsetSource(toolsetId: string): ToolsetSource {
   if (toolsetId.startsWith('mcp:')) return 'mcp';
   if (NATIVE_TOOLSET_IDS.has(toolsetId)) return 'native';
 
