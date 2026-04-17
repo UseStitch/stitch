@@ -98,8 +98,7 @@ function isActive(matchPrefix: string, currentPath: string): boolean {
 }
 
 export function ActivityBar() {
-  const routerState = useRouterState();
-  const currentPath = routerState.location.pathname;
+  const currentPath = useRouterState({ select: (state) => state.location.pathname });
   const { setSettingsTab } = useDialogContext();
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
   const pendingConnectorUpdates = connectorInstances.filter(
