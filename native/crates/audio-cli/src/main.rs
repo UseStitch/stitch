@@ -1,12 +1,12 @@
 use std::io::{self, BufRead};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
 use audio_core::output::emit;
-use audio_core::protocol::{parse_start_command, Command, Event};
-use audio_recording::{device_display_name, start_session, stop_session, ActiveSession};
+use audio_core::protocol::{Command, Event, parse_start_command};
+use audio_recording::{ActiveSession, device_display_name, start_session, stop_session};
 use cpal::traits::{DeviceTrait, HostTrait};
 
 const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
