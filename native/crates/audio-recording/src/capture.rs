@@ -1,6 +1,6 @@
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -710,7 +710,7 @@ pub(crate) fn spawn_capture_worker(
 mod tests {
   use std::collections::VecDeque;
 
-  use super::{maybe_take_unpaired_pcm, weighted_f32_chunk, UNPAIRED_FLUSH_TICKS};
+  use super::{UNPAIRED_FLUSH_TICKS, maybe_take_unpaired_pcm, weighted_f32_chunk};
 
   #[test]
   fn weighted_f32_chunk_keeps_signal_for_unpaired_streams() {

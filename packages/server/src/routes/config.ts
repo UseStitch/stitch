@@ -7,11 +7,11 @@ import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import { TOOL_ENABLED_SCOPES } from '@stitch/shared/tools/types';
 
 import { listConnectorDefinitions } from '@/connectors/registry.js';
+import { getBrowserKnownTools } from '@/lib/browser/tool-config.js';
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
 import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
 import { getToolEnabledStates, setToolEnabledState } from '@/tools/enabled-service.js';
-import { getGlobalProviderKnownTools } from '@/tools/providers/index.js';
 import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 
@@ -31,9 +31,9 @@ export const configRouter = new Hono();
 
 type ToolsetSource = 'native' | 'provider' | 'connector' | 'mcp';
 
-const NATIVE_TOOLSET_IDS = new Set(['browser', 'agenda']);
+const NATIVE_TOOLSET_IDS = new Set(['browser', 'agenda', 'session-history', 'recordings']);
 
-function getToolsetSource(toolsetId: string): ToolsetSource {
+export function getToolsetSource(toolsetId: string): ToolsetSource {
   if (toolsetId.startsWith('mcp:')) return 'mcp';
   if (NATIVE_TOOLSET_IDS.has(toolsetId)) return 'native';
 
@@ -67,8 +67,7 @@ configRouter.get('/tools', async (c) => {
     }),
   );
 
-  const providerTools = await getGlobalProviderKnownTools();
-  return c.json({ tools: [...STITCH_KNOWN_TOOLS, ...mcpKnownTools, ...providerTools] });
+  return c.json({ tools: [...STITCH_KNOWN_TOOLS, ...mcpKnownTools, ...getBrowserKnownTools()] });
 });
 
 configRouter.get('/mcp-tools', async (c) => {

@@ -1,6 +1,6 @@
 #[cfg(target_os = "macos")]
 pub fn run_macos_meeting_watcher() {
-  use crate::watch_output::{emit_snapshot, emit_watch_error, WatchRow};
+  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
   use std::process::Command;
   use std::sync::{Arc, Mutex};
 
@@ -18,11 +18,7 @@ pub fn run_macos_meeting_watcher() {
     system.refresh_processes(ProcessesToUpdate::Some(&[pid_ref]), true);
     let process = system.process(pid_ref)?;
     let name = process.name().to_string_lossy().trim().to_string();
-    if name.is_empty() {
-      None
-    } else {
-      Some(name)
-    }
+    if name.is_empty() { None } else { Some(name) }
   }
 
   fn list_mic_using_processes() -> Result<Vec<MicUsingProcess>, String> {
