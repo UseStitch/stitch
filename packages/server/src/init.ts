@@ -7,11 +7,7 @@ import * as Log from '@/lib/log.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { startMeetingDetection } from '@/recordings/meeting-detection.js';
 import { startScheduler } from '@/scheduler/runtime.js';
-import { registerProviderToolsets } from '@/tools/providers/index.js';
-import { createAgendaToolset } from '@/tools/toolsets/agenda.js';
-import { createRecordingsToolset } from '@/tools/toolsets/recordings.js';
-import { registerToolset } from '@/tools/toolsets/registry.js';
-import { createSessionHistoryToolset } from '@/tools/toolsets/session-history.js';
+import { registerDefaultToolsets } from '@/tools/toolsets/register-default-toolsets.js';
 
 const log = Log.create({ service: 'init' });
 
@@ -21,11 +17,8 @@ export async function init() {
   await initDb();
   await runPendingMigrations(getDb());
 
-  // Register all toolsets (built-in providers + MCP servers + agenda)
-  registerProviderToolsets();
-  registerToolset(createAgendaToolset());
-  registerToolset(createSessionHistoryToolset());
-  registerToolset(createRecordingsToolset());
+  // Register built-in/provider toolsets, then refresh MCP toolsets
+  registerDefaultToolsets();
   await refreshMcpToolsets();
 
   // Register connector definitions and start token refresh
