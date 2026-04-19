@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { generateAutomationDraft } from '@/automations/generation.js';
+import { getMentionSuggestions } from '@/chat/mentions-service.js';
 import {
   abortSessionRun,
   createSession,
@@ -22,6 +23,12 @@ import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import type { DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 
 export const chatRouter = new Hono();
+
+chatRouter.get('/mentions/suggestions', (c) => {
+  const q = c.req.query('q') ?? '';
+  const suggestions = getMentionSuggestions(q);
+  return c.json({ suggestions });
+});
 
 chatRouter.post('/sessions', async (c) => {
   const body = await c.req.json<{ title?: string; parentSessionId?: string }>();

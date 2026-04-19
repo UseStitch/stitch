@@ -2,11 +2,14 @@ import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { Mention } from '@stitch/shared/chat/mentions';
+import { parseMentions, stripMentionTokens } from '@stitch/shared/chat/mentions';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { buildMentionContextBlock, resolveMentionToolsetIds } from '@/chat/mentions-service.js';
 import { getDb } from '@/db/client.js';
 import { messages, providerConfig, sessions } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
@@ -266,12 +269,15 @@ export async function sendMessage(
     modelId: input.modelId,
   });
 
+  const mentions: Mention[] = parseMentions(input.content);
+  const displayContent = mentions.length > 0 ? stripMentionTokens(input.content) : input.content;
+
   const userMessageId = createMessageId();
   const now = Date.now();
   const userPart: StoredPart = {
     type: 'text-delta',
     id: createPartId(),
-    text: input.content,
+    text: displayContent,
     startedAt: now,
     endedAt: now,
   };
@@ -335,7 +341,17 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
+  const mentionToolsetIds = resolveMentionToolsetIds(mentions);
+  const mentionContextBlock = buildMentionContextBlock(mentions);
+
   const llmMessages = await buildCompactedHistory(input.sessionId);
+
+  if (mentionContextBlock && llmMessages.length > 0 && llmMessages[0]?.role === 'system') {
+    const sysMsg = llmMessages[0];
+    const existing = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+    llmMessages[0] = { role: 'system', content: `${existing}${mentionContextBlock}` };
+  }
+
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 
@@ -346,6 +362,7 @@ export async function sendMessage(
     llmMessages,
     credentials: config.credentials,
     abortSignal,
+    activeToolsetIds: mentionToolsetIds.length > 0 ? mentionToolsetIds : undefined,
   })
     .catch((error) => {
       log.error(
