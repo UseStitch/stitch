@@ -1,5 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { Mention } from '@stitch/shared/chat/mentions';
+import { encodeMentions } from '@stitch/shared/chat/mentions';
 import type { QueuedMessage, QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -25,17 +27,19 @@ type AddToQueueInput = {
   sessionId: PrefixedString<'ses'>;
   content: string;
   attachments?: QueuedMessageAttachment[];
+  mentions?: Mention[];
 };
 
 export function useAddToQueue() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: AddToQueueInput): Promise<QueuedMessage> => {
+      const encodedContent = encodeMentions(input.content, input.mentions ?? []);
       const res = await serverFetch(`/chat/sessions/${input.sessionId}/queue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: input.content,
+          content: encodedContent,
           attachments: input.attachments,
         }),
       });
@@ -51,7 +55,7 @@ export function useAddToQueue() {
       const optimistic: QueuedMessage = {
         id: `qmsg_optimistic_${Date.now()}` as PrefixedString<'qmsg'>,
         sessionId: input.sessionId,
-        content: input.content,
+        content: encodeMentions(input.content, input.mentions ?? []),
         attachments: input.attachments ?? [],
         position: (previous?.length ?? 0) + 1,
         createdAt: Date.now(),

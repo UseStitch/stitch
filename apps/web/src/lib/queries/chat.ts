@@ -7,6 +7,8 @@ import {
 import type { InfiniteData } from '@tanstack/react-query';
 
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
+import type { Mention } from '@stitch/shared/chat/mentions';
+import { encodeMentions } from '@stitch/shared/chat/mentions';
 import type {
   Message,
   Session,
@@ -126,6 +128,7 @@ type SendMessageInput = {
   sessionId: PrefixedString<'ses'>;
   content: string;
   attachments?: Attachment[];
+  mentions?: Mention[];
   providerId: string;
   modelId: string;
   assistantMessageId: PrefixedString<'msg'>;
@@ -265,11 +268,12 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SendMessageInput): Promise<SendMessageResult> => {
+      const encodedContent = encodeMentions(input.content, input.mentions ?? []);
       const res = await serverFetch(`/chat/sessions/${input.sessionId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: input.content,
+          content: encodedContent,
           attachments: input.attachments?.map(({ path, mime, filename }) => ({
             path,
             mime,
