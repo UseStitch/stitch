@@ -4,11 +4,11 @@ import * as schema from '@/db/schema.js';
 import { lanceMigrations } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { getConnection } from '@/memory/store/connection.js';
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 const log = Log.create({ service: 'lance-migrations' });
 
-type Db = BunSQLiteDatabase<typeof schema>;
+type Db = BetterSQLite3Database<typeof schema>;
 
 function ensureMigrationsAreValid(migrations: LanceMigrationDefinition[]): void {
   const versions = new Set<number>();

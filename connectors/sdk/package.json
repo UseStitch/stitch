@@ -16,7 +16,7 @@
     "@stitch/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:testing"
   }

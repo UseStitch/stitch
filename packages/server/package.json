@@ -6,11 +6,10 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "dev": "NODE_ENV=development bun --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --minify --outfile dist/stitch-server",
-    "build:x64": "bun build src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/stitch-server",
+    "dev": "node build.mjs --watch",
+    "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
-    "lance:migration:new": "bun scripts/new-lance-migration.ts"
+    "lance:migration:new": "tsx scripts/new-lance-migration.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "catalog:ai",
@@ -32,7 +31,9 @@
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
     "apache-arrow": "^21.1.0",
+    "better-sqlite3": "^12.9.0",
     "drizzle-orm": "^0.45.1",
+    "esbuild": "^0.28.0",
     "glob": "13.0.6",
     "hono": "^4.12.7",
     "quickjs-emscripten": "^0.32.0",
@@ -40,8 +41,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
-    "@types/node": "^25.5.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "catalog:",
     "@types/turndown": "^5.0.6",
     "drizzle-kit": "^0.31.9",
     "typescript": "catalog:",

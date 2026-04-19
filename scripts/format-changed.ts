@@ -1,22 +1,21 @@
-#!/usr/bin/env bun
-import { spawnSync } from 'bun';
+#!/usr/bin/env tsx
+import { spawnSync } from 'node:child_process';
 
 const checkOnly = process.argv.includes('--check');
 
-const result = spawnSync(['git', 'diff', '--name-only', 'HEAD'], {
-  stdout: 'pipe',
-  stderr: 'pipe',
+const result = spawnSync('git', ['diff', '--name-only', 'HEAD'], {
+  stdio: ['ignore', 'pipe', 'pipe'],
+  encoding: 'utf8',
 });
 
-const files = result.stdout
-  .toString()
+const files = (result.stdout ?? '')
   .split('\n')
   .map((f) => f.trim())
   .filter(Boolean);
 
 if (files.length === 0) process.exit(0);
 
-const cmd = checkOnly ? ['oxfmt', 'check', ...files] : ['oxfmt', 'write', ...files];
+const args = checkOnly ? ['check', ...files] : ['write', ...files];
 
-const fmt = spawnSync(cmd, { stdout: 'inherit', stderr: 'inherit' });
-process.exit(fmt.exitCode ?? 0);
+const fmt = spawnSync('oxfmt', args, { stdio: 'inherit' });
+process.exit(fmt.status ?? 0);
