@@ -8,15 +8,14 @@ import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import * as schema from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
-import type { Database } from 'bun:sqlite';
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
-type Db = BunSQLiteDatabase<typeof schema>;
+type Db = BetterSQLite3Database<typeof schema>;
 
 const log = Log.create({ service: 'db' });
 
 let _db: Db | undefined;
-let _sqlite: Database | undefined;
+let _sqlite: import('better-sqlite3').Database | undefined;
 
 function getDatabasePath(): string {
   return process.env['STITCH_DB_PATH']?.trim() || PATHS.filePaths.db;
@@ -34,8 +33,9 @@ function getMigrationsDir(): string {
     }
   }
 
-  const migrationsDir = path.join(path.dirname(process.execPath), 'drizzle');
-  log.info({ migrationsDir, execPath: process.execPath }, 'migrations dir resolved');
+  const serverDir = process.env['STITCH_SERVER_DIR'] ?? path.dirname(process.execPath);
+  const migrationsDir = path.join(serverDir, 'drizzle');
+  log.info({ migrationsDir, serverDir }, 'migrations dir resolved');
   return migrationsDir;
 }
 
@@ -84,17 +84,17 @@ export async function initDb(): Promise<void> {
   const migrationsDir = getMigrationsDir();
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-  const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
-    import('bun:sqlite'),
-    import('drizzle-orm/bun-sqlite'),
-    import('drizzle-orm/bun-sqlite/migrator'),
+  const [{ default: Database }, { drizzle }, { migrate }] = await Promise.all([
+    import('better-sqlite3'),
+    import('drizzle-orm/better-sqlite3'),
+    import('drizzle-orm/better-sqlite3/migrator'),
   ]);
 
-  const sqlite = new BunDatabase(dbPath, { create: true });
-  sqlite.run('PRAGMA journal_mode = WAL');
-  sqlite.run('PRAGMA synchronous = NORMAL');
-  sqlite.run('PRAGMA busy_timeout = 5000');
-  sqlite.run('PRAGMA foreign_keys = ON');
+  const sqlite = new Database(dbPath);
+  sqlite.exec('PRAGMA journal_mode = WAL');
+  sqlite.exec('PRAGMA synchronous = NORMAL');
+  sqlite.exec('PRAGMA busy_timeout = 5000');
+  sqlite.exec('PRAGMA foreign_keys = ON');
 
   _sqlite = sqlite;
   _db = drizzle({ client: sqlite, schema }) as Db;
@@ -103,14 +103,14 @@ export async function initDb(): Promise<void> {
   seedShortcuts(_db);
   seedSettings(_db);
 
-  log.info({ path: dbPath, migrationsDir, runtime: 'bun-sqlite' }, 'database initialized');
+  log.info({ path: dbPath, migrationsDir, runtime: 'better-sqlite3' }, 'database initialized');
 }
 
 export function closeDb(): void {
   if (!_sqlite) return;
 
   try {
-    _sqlite.run('PRAGMA wal_checkpoint(TRUNCATE)');
+    _sqlite.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   } catch {
     // best-effort WAL checkpoint
   }

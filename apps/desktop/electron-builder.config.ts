@@ -37,18 +37,21 @@ const config: Configuration = {
       to: '',
       filter: ['icon.png', 'icon.ico'],
     },
+    // Bundled server JS (replaces the compiled bun binary)
     {
       from: '../../packages/server/dist',
       to: '',
-      filter: ['stitch-server*'],
+      filter: ['stitch-server.mjs'],
     },
+    // Native addons that cannot be bundled by esbuild
     {
-      from: '../../packages/server/dist/node_modules',
-      to: 'node_modules',
+      from: '../../packages/server/node_modules/better-sqlite3',
+      to: 'node_modules/better-sqlite3',
       filter: ['**/*'],
     },
+    // Drizzle migrations are embedded in stitch-server.js via dist/drizzle
     {
-      from: '../../packages/server/drizzle',
+      from: '../../packages/server/dist/drizzle',
       to: 'drizzle',
       filter: ['**/*'],
     },
@@ -82,8 +85,8 @@ const config: Configuration = {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
+    // stitch-server.js is not a binary — only native Rust binaries need signing
     binaries: [
-      'Contents/Resources/stitch-server',
       'Contents/Resources/audio-capture/stitch-audio-capture',
       'Contents/Resources/audio-capture/stitch-meeting-watch',
     ],

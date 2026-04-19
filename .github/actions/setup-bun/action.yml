@@ -4,6 +4,11 @@ description: Install Bun and project dependencies
 runs:
   using: composite
   steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: Install Bun
       uses: oven-sh/setup-bun@v2
       with:
