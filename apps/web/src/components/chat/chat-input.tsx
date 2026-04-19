@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import type { Mention } from '@stitch/shared/chat/mentions';
+
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { cn } from '@/lib/utils';
@@ -7,7 +9,7 @@ import { cn } from '@/lib/utils';
 type ChatInputProps = {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (value: string, attachments: Attachment[]) => void;
+  onSubmit: (value: string, attachments: Attachment[], mentions: Mention[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
   selectedModel: ModelSpec | null;

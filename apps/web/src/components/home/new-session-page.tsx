@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
+import type { Mention } from '@stitch/shared/chat/mentions';
 import type { MessagesPage, Session } from '@stitch/shared/chat/messages';
 import { createMessageId } from '@stitch/shared/id';
 
@@ -27,7 +28,7 @@ export function NewSessionPage() {
 
   const isSubmitting = createSession.isPending || sendMessage.isPending;
 
-  async function handleSubmit(text: string, attachments: Attachment[]) {
+  async function handleSubmit(text: string, attachments: Attachment[], mentions: Mention[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
 
     setNextSessionInputSeed(text);
@@ -55,6 +56,7 @@ export function NewSessionPage() {
               filename: attachment.filename,
             }))
           : undefined,
+      mentions: mentions.length > 0 ? mentions : undefined,
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
       assistantMessageId,
@@ -74,8 +76,8 @@ export function NewSessionPage() {
           <ChatInput
             value={value}
             onChange={setValue}
-            onSubmit={(text, attachments) => {
-              void handleSubmit(text, attachments);
+            onSubmit={(text, attachments, mentions) => {
+              void handleSubmit(text, attachments, mentions);
             }}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}

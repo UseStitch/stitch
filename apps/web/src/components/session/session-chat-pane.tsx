@@ -4,6 +4,7 @@ import { StickToBottom } from 'use-stick-to-bottom';
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
+import type { Mention } from '@stitch/shared/chat/mentions';
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
@@ -138,7 +139,7 @@ export function SessionChatPane({
     onSendQueuedMessage: sendQueuedMessage,
   });
 
-  async function handleSubmit(text: string, attachments: Attachment[]) {
+  async function handleSubmit(text: string, attachments: Attachment[], mentions: Mention[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
 
     // If streaming or a send is in-flight, queue the message instead
@@ -154,6 +155,7 @@ export function SessionChatPane({
                 filename: a.filename,
               }))
             : undefined,
+        mentions: mentions.length > 0 ? mentions : undefined,
       });
       setValue('');
       onOpenQueue();
@@ -177,6 +179,7 @@ export function SessionChatPane({
               filename: a.filename,
             }))
           : undefined,
+      mentions: mentions.length > 0 ? mentions : undefined,
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
       assistantMessageId,
@@ -243,8 +246,8 @@ export function SessionChatPane({
                       <ChatInput
                         value={value}
                         onChange={setValue}
-                        onSubmit={(text, attachments) => {
-                          void handleSubmit(text, attachments);
+                        onSubmit={(text, attachments, mentions) => {
+                          void handleSubmit(text, attachments, mentions);
                         }}
                         onStop={() => void abortStream(id)}
                         isStreaming={streamState.isStreaming}

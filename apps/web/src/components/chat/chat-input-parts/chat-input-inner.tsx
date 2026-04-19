@@ -1,7 +1,10 @@
-import { ArrowUpIcon, ListOrderedIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
+import { ArrowUpIcon, ListOrderedIcon, PaperclipIcon, SquareIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { useQuery } from '@tanstack/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
+
+import type { Mention, MentionSuggestion } from '@stitch/shared/chat/mentions';
 
 import { AttachmentPreview } from './attachment-preview';
 import { ModelSelectorPopover } from './model-selector-popover';
@@ -14,13 +17,14 @@ import {
 } from '@/components/model-selectors/provider-model-utils';
 import { Button } from '@/components/ui/button';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
+import { mentionSuggestionsQueryOptions } from '@/lib/queries/mentions';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
 
 type ChatInputInnerProps = {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (value: string, attachments: Attachment[]) => void;
+  onSubmit: (value: string, attachments: Attachment[], mentions: Mention[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
   selectedModel: ModelSpec | null;
@@ -33,6 +37,22 @@ type ChatInputInnerProps = {
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
 };
+
+/** Returns the @-query token being typed, or null if not in a mention. */
+function getActiveMentionQuery(
+  text: string,
+  cursorPos: number,
+): { query: string; startIndex: number } | null {
+  const textBeforeCursor = text.slice(0, cursorPos);
+  const atIndex = textBeforeCursor.lastIndexOf('@');
+  if (atIndex === -1) return null;
+
+  // Ensure there's no whitespace between @ and cursor
+  const tokenAfterAt = textBeforeCursor.slice(atIndex + 1);
+  if (/\s/.test(tokenAfterAt)) return null;
+
+  return { query: tokenAfterAt, startIndex: atIndex };
+}
 
 export function ChatInputInner({
   value,
@@ -53,7 +73,20 @@ export function ChatInputInner({
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
+  const [mentions, setMentions] = React.useState<Mention[]>([]);
+  const [mentionQuery, setMentionQuery] = React.useState<{
+    query: string;
+    startIndex: number;
+  } | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = React.useState(0);
+
+  const suggestionsQuery = useQuery({
+    ...mentionSuggestionsQueryOptions(mentionQuery?.query ?? ''),
+    enabled: mentionQuery !== null,
+  });
+  const suggestions = suggestionsQuery.data ?? [];
   const {
     attachments,
     isDragging,
@@ -79,11 +112,90 @@ export function ChatInputInner({
   );
   const canAttach = supportsAnyAttachment(selectedModelOption?.modelSummary ?? null);
 
+  const closeMentionDropdown = React.useCallback(() => {
+    setMentionQuery(null);
+    setHighlightedIndex(0);
+  }, []);
+
+  const selectSuggestion = React.useCallback(
+    (suggestion: MentionSuggestion) => {
+      if (!mentionQuery) return;
+
+      // Avoid duplicate mentions by ID
+      setMentions((prev) => {
+        if (prev.some((m) => m.id === suggestion.id)) return prev;
+        return [...prev, { type: suggestion.type, id: suggestion.id, label: suggestion.label }];
+      });
+
+      // Replace the @<query> token in text with @Label and a trailing space
+      const before = value.slice(0, mentionQuery.startIndex);
+      const after = value.slice(mentionQuery.startIndex + 1 + mentionQuery.query.length);
+      const replacement = `@${suggestion.label} `;
+      const newValue = `${before}${replacement}${after}`;
+      onChange(newValue);
+
+      closeMentionDropdown();
+
+      // Restore focus and move cursor after the inserted token
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        const pos = before.length + replacement.length;
+        el.setSelectionRange(pos, pos);
+      });
+    },
+    [value, mentionQuery, onChange, closeMentionDropdown],
+  );
+
+  const removeMention = React.useCallback((id: string) => {
+    setMentions((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
   const submit = React.useCallback(() => {
-    onSubmit(value, consumeForSubmit());
-  }, [consumeForSubmit, onSubmit, value]);
+    onSubmit(value, consumeForSubmit(), mentions);
+    setMentions([]);
+  }, [consumeForSubmit, onSubmit, value, mentions]);
+
+  function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const newValue = event.target.value;
+    onChange(newValue);
+
+    const cursor = event.target.selectionStart ?? newValue.length;
+    const active = getActiveMentionQuery(newValue, cursor);
+    if (active) {
+      setMentionQuery(active);
+      setHighlightedIndex(0);
+    } else {
+      closeMentionDropdown();
+    }
+  }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery && suggestions.length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setHighlightedIndex((i) => (i + 1) % suggestions.length);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setHighlightedIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+        return;
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        const item = suggestions[highlightedIndex];
+        if (item) selectSuggestion(item);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMentionDropdown();
+        return;
+      }
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if ((value.trim() || attachments.length > 0) && !disabled) {
@@ -91,6 +203,22 @@ export function ChatInputInner({
       }
     }
   }
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
+      ) {
+        closeMentionDropdown();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [closeMentionDropdown]);
 
   React.useEffect(() => {
     const element = textareaRef.current;
@@ -100,6 +228,18 @@ export function ChatInputInner({
   }, [value]);
 
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !disabled;
+
+  // Group suggestions by category
+  const groupedSuggestions = React.useMemo(() => {
+    const data = suggestionsQuery.data ?? [];
+    const groups = new Map<string, MentionSuggestion[]>();
+    for (const s of data) {
+      const list = groups.get(s.category) ?? [];
+      list.push(s);
+      groups.set(s.category, list);
+    }
+    return [...groups.entries()];
+  }, [suggestionsQuery.data]);
 
   return (
     <div
@@ -124,6 +264,47 @@ export function ChatInputInner({
         </div>
       )}
 
+      {/* Mention autocomplete dropdown */}
+      {mentionQuery !== null && suggestions.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="thin-scrollbar absolute right-0 bottom-full left-0 z-50 mb-1 max-h-64 overflow-y-auto rounded-xl border border-border bg-popover shadow-lg"
+        >
+          {groupedSuggestions.map(([category, items]) => (
+            <div key={category}>
+              <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                {category}
+              </div>
+              {items.map((item) => {
+                const flatIndex = suggestions.indexOf(item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={cn(
+                      'flex w-full flex-col gap-0.5 px-3 py-2 text-left transition-colors',
+                      flatIndex === highlightedIndex
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-accent/50',
+                    )}
+                    onMouseEnter={() => setHighlightedIndex(flatIndex)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectSuggestion(item);
+                    }}
+                  >
+                    <span className="text-sm leading-tight font-medium">@{item.label}</span>
+                    <span className="line-clamp-1 text-xs leading-tight text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 pt-3">
           {attachments.map((attachment) => (
@@ -132,6 +313,28 @@ export function ChatInputInner({
               attachment={attachment}
               onRemove={removeAttachment}
             />
+          ))}
+        </div>
+      )}
+
+      {/* Mention chips */}
+      {mentions.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+          {mentions.map((mention) => (
+            <span
+              key={mention.id}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/20"
+            >
+              @{mention.label}
+              <button
+                type="button"
+                onClick={() => removeMention(mention.id)}
+                className="flex items-center rounded-full text-primary/60 transition-colors hover:text-primary"
+                aria-label={`Remove @${mention.label}`}
+              >
+                <XIcon className="size-3" />
+              </button>
+            </span>
           ))}
         </div>
       )}
@@ -150,7 +353,7 @@ export function ChatInputInner({
       <textarea
         ref={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={handleTextChange}
         onKeyDown={handleKeyDown}
         onPaste={(event) => {
           void handlePaste(event);
