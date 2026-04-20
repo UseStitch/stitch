@@ -68,7 +68,8 @@ export function AssistantMessageBubble({
                   output !== null &&
                   output !== undefined &&
                   typeof output === 'object' &&
-                  'error' in (output as object);
+                  ('error' in (output as object) ||
+                    (output as { failed?: unknown }).failed === true);
                 const missingResult = !result;
                 const status = missingResult || isError ? 'error' : 'completed';
 

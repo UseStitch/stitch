@@ -164,13 +164,16 @@ Usage:
       }
 
       const cleanedOutput = stripAnsi(output);
+      const exitCode = proc.exitCode ?? 0;
+      const failed = exitCode !== 0 && !timedOut && !aborted;
 
       return {
         title: input.description,
         output: cleanedOutput,
+        failed,
         metadata: {
           description: input.description,
-          exit: proc.exitCode,
+          exit: exitCode,
           output:
             cleanedOutput.length > MAX_METADATA_LENGTH
               ? `${cleanedOutput.slice(0, MAX_METADATA_LENGTH)}\n\n...`

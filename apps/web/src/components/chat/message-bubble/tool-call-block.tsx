@@ -85,7 +85,15 @@ export function ToolCallBlock({
   }
 
   if (toolName === 'bash' && hasArgs) {
-    return <BashToolBlock toolName={toolName} status={status} args={args} onAbort={onAbort} />;
+    return (
+      <BashToolBlock
+        toolName={toolName}
+        status={status}
+        args={args}
+        result={result}
+        onAbort={onAbort}
+      />
+    );
   }
 
   if (toolName === 'execute_typescript' && hasArgs) {
