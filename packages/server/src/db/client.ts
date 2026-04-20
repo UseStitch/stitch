@@ -1,3 +1,6 @@
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -83,12 +86,6 @@ export async function initDb(): Promise<void> {
   const dbPath = getDatabasePath();
   const migrationsDir = getMigrationsDir();
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-
-  const [{ default: Database }, { drizzle }, { migrate }] = await Promise.all([
-    import('better-sqlite3'),
-    import('drizzle-orm/better-sqlite3'),
-    import('drizzle-orm/better-sqlite3/migrator'),
-  ]);
 
   const sqlite = new Database(dbPath);
   sqlite.exec('PRAGMA journal_mode = WAL');
