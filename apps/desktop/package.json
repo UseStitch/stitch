@@ -12,7 +12,7 @@
     "build:sidecar": "bun run --filter @stitch/server build",
     "build:audio-native": "bun ../../scripts/build-audio-native.mjs",
     "build:audio-native:x64": "STITCH_AUDIO_NATIVE_TARGET=x86_64-apple-darwin bun ../../scripts/build-audio-native.mjs",
-    "rebuild:native": "electron-rebuild --module-dir ../../packages/server --electron-prebuilt-dir node_modules/electron",
+    "rebuild:native": "electron-rebuild --module-dir ../../packages/server",
     "package": "bun run build:web && bun run build && bun run build:sidecar && bun run build:audio-native && electron-builder --config electron-builder.config.ts",
     "package:x64": "bun run build:web && bun run build && bun run build:sidecar && bun run build:audio-native:x64 && electron-builder --config electron-builder.config.ts --x64",
     "typecheck": "tsc --noEmit"
