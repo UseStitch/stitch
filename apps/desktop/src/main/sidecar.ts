@@ -1,44 +1,34 @@
-import { app, utilityProcess, type UtilityProcess } from 'electron';
-import { existsSync } from 'node:fs';
+import { app } from 'electron';
+import { execSync, spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve } from 'node:path';
+import treeKill from 'tree-kill';
 
 const HEALTH_POLL_INTERVAL_MS = 100;
 const HEALTH_TIMEOUT_MS = 30_000;
-const BUNDLE_WAIT_TIMEOUT_MS = 60_000;
 const HOSTNAME = '127.0.0.1';
 
-let serverProcess: UtilityProcess | null = null;
+let serverProcess: ChildProcess | null = null;
 
 function getMonorepoRoot(): string {
+  // app.getAppPath() points to apps/desktop in dev (the package dir)
+  // Go up two levels to reach the monorepo root
   return resolve(app.getAppPath(), '../..');
 }
 
-function getServerScriptPath(): string {
+function getSidecarCommand(port: number): { cmd: string; args: string[]; cwd?: string } {
+  const portArgs = ['--port', String(port), '--hostname', HOSTNAME];
+
   if (app.isPackaged) {
-    return join(process.resourcesPath, 'stitch-server.mjs');
+    const suffix = process.platform === 'win32' ? '.exe' : '';
+    const binaryPath = join(process.resourcesPath, `stitch-server${suffix}`);
+    return { cmd: binaryPath, args: portArgs };
   }
 
   const root = getMonorepoRoot();
-  return join(root, 'packages/server/dist/stitch-server.mjs');
-}
-
-// In dev, the server bundle is built by esbuild --watch in parallel.
-// Wait for it to appear on disk before trying to fork it.
-async function waitForBundle(scriptPath: string): Promise<void> {
-  if (existsSync(scriptPath)) return;
-
-  console.log(`[server] waiting for bundle at ${scriptPath}...`);
-  const deadline = Date.now() + BUNDLE_WAIT_TIMEOUT_MS;
-
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 200));
-    if (existsSync(scriptPath)) return;
-  }
-
-  throw new Error(
-    `Server bundle not found after ${BUNDLE_WAIT_TIMEOUT_MS}ms: ${scriptPath}\nRun "bun run build:sidecar" or ensure the server dev watcher is running.`,
-  );
+  const serverEntry = join(root, 'packages/server/src/index.ts');
+  const cwd = join(root, 'packages/server');
+  return { cmd: 'bun', args: [serverEntry, ...portArgs], cwd };
 }
 
 export async function findAvailablePort(): Promise<number> {
@@ -81,55 +71,93 @@ async function waitForHealthy(url: string): Promise<void> {
   throw new Error(`Server failed to become healthy within ${HEALTH_TIMEOUT_MS}ms`);
 }
 
+function killStaleServers(): Promise<void> {
+  try {
+    const cmd =
+      process.platform === 'win32'
+        ? 'tasklist /FI "IMAGENAME eq stitch-server.exe" /FO CSV /NH'
+        : 'pgrep -f stitch-server';
+
+    const output = execSync(cmd, { encoding: 'utf8', timeout: 3_000 }).trim();
+    if (!output) return Promise.resolve();
+
+    const pids =
+      process.platform === 'win32'
+        ? output
+            .split('\n')
+            .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
+            .filter(Number.isFinite)
+        : output.split('\n').map((s) => parseInt(s, 10)).filter(Number.isFinite);
+
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGTERM');
+      } catch {
+        // already dead or not owned
+      }
+    }
+
+    if (pids.length > 0) {
+      console.log(`[sidecar] killed ${pids.length} stale stitch-server process(es)`);
+    }
+  } catch {
+    // pgrep returns exit code 1 when no matches — ignore
+  }
+
+  return Promise.resolve();
+}
+
 export async function spawnServer(port: number): Promise<string> {
-  const scriptPath = getServerScriptPath();
+  await killStaleServers();
+
+  const { cmd, args, cwd } = getSidecarCommand(port);
   const url = `http://${HOSTNAME}:${port}`;
 
-  await waitForBundle(scriptPath);
-  console.log(`[server] starting: ${scriptPath}`);
+  console.log(`[sidecar] spawning: ${cmd} ${args.join(' ')}`);
 
-  const serverEnv: NodeJS.ProcessEnv = {
+  const sidecarEnv: NodeJS.ProcessEnv = {
     ...process.env,
     NODE_ENV: app.isPackaged ? 'production' : 'development',
     STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
-    // Anchors runtime asset and migration resolution to the correct directory
-    STITCH_SERVER_DIR: app.isPackaged ? process.resourcesPath : dirname(scriptPath),
   };
 
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
-    serverEnv.STITCH_AUDIO_CAPTURE_BIN = join(
+    const audioCaptureBin = join(
       process.resourcesPath,
       'audio-capture',
       `stitch-audio-capture${suffix}`,
     );
-    serverEnv.STITCH_MEETING_WATCH_BIN = join(
+    const meetingWatchBin = join(
       process.resourcesPath,
       'audio-capture',
       `stitch-meeting-watch${suffix}`,
     );
+    sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = audioCaptureBin;
+    sidecarEnv.STITCH_MEETING_WATCH_BIN = meetingWatchBin;
   }
 
-  serverProcess = utilityProcess.fork(
-    scriptPath,
-    [`--port`, String(port), `--hostname`, HOSTNAME],
-    {
-      env: serverEnv,
-      stdio: 'pipe',
-    },
-  );
+  serverProcess = spawn(cmd, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+    env: sidecarEnv,
+    ...(cwd && { cwd }),
+  });
 
   serverProcess.stdout?.on('data', (data: Buffer) => {
-    console.log(`[server:stdout] ${data.toString().trim()}`);
+    console.log(`[sidecar:stdout] ${data.toString().trim()}`);
   });
 
   serverProcess.stderr?.on('data', (data: Buffer) => {
-    console.error(`[server:stderr] ${data.toString().trim()}`);
+    console.error(`[sidecar:stderr] ${data.toString().trim()}`);
   });
 
   const exitPromise = new Promise<never>((_resolve, reject) => {
-    serverProcess!.once('exit', (code) => {
-      reject(new Error(`Server exited before becoming healthy (code=${code})`));
+    serverProcess!.on('exit', (code, signal) => {
+      reject(new Error(`Server exited before becoming healthy (code=${code}, signal=${signal})`));
+    });
+    serverProcess!.on('error', (err) => {
+      reject(new Error(`Failed to spawn server: ${err.message}`));
     });
   });
 
@@ -142,14 +170,16 @@ const KILL_TIMEOUT_MS = 5_000;
 
 export async function killServer(): Promise<void> {
   const proc = serverProcess;
-  if (!proc) return;
+  if (!proc?.pid) return;
 
   serverProcess = null;
+
+  const pid = proc.pid;
 
   await new Promise<void>((resolve) => {
     const timeout = setTimeout(() => {
       try {
-        proc.kill();
+        process.kill(pid, 'SIGKILL');
       } catch {
         // already dead
       }
@@ -161,6 +191,14 @@ export async function killServer(): Promise<void> {
       resolve();
     });
 
-    proc.kill();
+    treeKill(pid, 'SIGTERM', (err) => {
+      if (err) {
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch {
+          // already dead
+        }
+      }
+    });
   });
 }

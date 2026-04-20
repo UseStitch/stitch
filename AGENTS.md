@@ -10,14 +10,6 @@ Stitch is a ai based tool to help users do work locally.
 | ------------- | ------------------------ |
 | `bun install` | Install all dependencies |
 
-## Runtime
-
-- **Package manager**: Bun (`bun install`, `bun add`, `bun remove`, `bunx`)
-- **Runtime**: Node.js — all TypeScript is executed via `tsx` in development
-- **Server**: `packages/server` runs as a Node utility process inside Electron (no standalone binary)
-- **SQLite**: Uses `better-sqlite3` via `drizzle-orm/better-sqlite3` — do **not** use `bun:sqlite`
-- Do **not** use Bun runtime APIs (`Bun.file`, `Bun.serve`, `Bun.Transpiler`, `import from 'bun'`, etc.)
-
 ## General Workflow
 
 After completing any task, you **must** run the following checks and fix all issues until the output is fully clean:
