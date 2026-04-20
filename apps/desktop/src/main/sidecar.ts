@@ -87,7 +87,10 @@ function killStaleServers(): Promise<void> {
             .split('\n')
             .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
             .filter(Number.isFinite)
-        : output.split('\n').map((s) => parseInt(s, 10)).filter(Number.isFinite);
+        : output
+            .split('\n')
+            .map((s) => parseInt(s, 10))
+            .filter(Number.isFinite);
 
     for (const pid of pids) {
       try {
@@ -108,7 +111,9 @@ function killStaleServers(): Promise<void> {
 }
 
 export async function spawnServer(port: number): Promise<string> {
-  await killStaleServers();
+  if (app.isPackaged) {
+    await killStaleServers();
+  }
 
   const { cmd, args, cwd } = getSidecarCommand(port);
   const url = `http://${HOSTNAME}:${port}`;
