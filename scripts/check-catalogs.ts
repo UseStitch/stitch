@@ -1,9 +1,8 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { dirname, join, relative } from 'path';
-import { fileURLToPath } from 'url';
+import { join, relative } from 'path';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = import.meta.dir + '/..';
 
 // --- Load root package.json and extract all catalog entries ---
 const rootPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));

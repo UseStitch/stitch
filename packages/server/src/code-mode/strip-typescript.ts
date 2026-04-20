@@ -1,5 +1,3 @@
-import { transformSync } from 'esbuild';
-
 type StripResult = { code: string; error: null } | { code: null; error: string };
 
 const WRAPPER_PREFIX = 'async function __c__() {\n';
@@ -7,9 +5,9 @@ const WRAPPER_SUFFIX = '\n}';
 
 export function stripTypeScript(source: string): StripResult {
   try {
+    const transpiler = new Bun.Transpiler({ loader: 'ts' });
     const wrapped = `${WRAPPER_PREFIX}${source}${WRAPPER_SUFFIX}`;
-    const result = transformSync(wrapped, { loader: 'ts', target: 'esnext' });
-    const transpiled = result.code;
+    const transpiled = transpiler.transformSync(wrapped);
     // Strip the wrapper function to recover the plain JS body
     const start = transpiled.indexOf(WRAPPER_PREFIX);
     const end = transpiled.lastIndexOf(WRAPPER_SUFFIX);

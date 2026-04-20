@@ -10,19 +10,19 @@
     "build": "electron-vite build",
     "build:web": "bun run --filter @stitch/web build",
     "build:sidecar": "bun run --filter @stitch/server build",
+    "build:sidecar:x64": "bun run --filter @stitch/server build:x64",
     "build:audio-native": "bun ../../scripts/build-audio-native.mjs",
     "build:audio-native:x64": "STITCH_AUDIO_NATIVE_TARGET=x86_64-apple-darwin bun ../../scripts/build-audio-native.mjs",
-    "rebuild:native": "electron-rebuild --module-dir ../../packages/server",
     "package": "bun run build:web && bun run build && bun run build:sidecar && bun run build:audio-native && electron-builder --config electron-builder.config.ts",
-    "package:x64": "bun run build:web && bun run build && bun run build:sidecar && bun run build:audio-native:x64 && electron-builder --config electron-builder.config.ts --x64",
+    "package:x64": "bun run build:web && bun run build && bun run build:sidecar:x64 && bun run build:audio-native:x64 && electron-builder --config electron-builder.config.ts --x64",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "electron-updater": "^6.8.3"
+    "electron-updater": "^6.8.3",
+    "tree-kill": "1.2.2"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.3",
-    "@types/node": "catalog:",
+    "@types/node": "25.5.0",
     "electron": "41.0.1",
     "electron-builder": "26.8.1",
     "electron-vite": "5.0.0",

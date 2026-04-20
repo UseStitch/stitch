@@ -222,10 +222,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-electron-
 
-      - name: Rebuild native modules for Electron
-        working-directory: apps/desktop
-        run: bun run rebuild:native
-
       - name: Build desktop package
         working-directory: apps/desktop
         env:
