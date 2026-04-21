@@ -82,6 +82,8 @@ const config: Configuration = {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
+    entitlements: 'resources/entitlements.mac.plist',
+    entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
     binaries: [
       'Contents/Resources/stitch-server',
       'Contents/Resources/audio-capture/stitch-audio-capture',
