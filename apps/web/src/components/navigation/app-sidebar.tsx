@@ -129,8 +129,7 @@ function useActiveContext():
   | 'usage'
   | 'recordings'
   | 'agenda' {
-  const routerState = useRouterState();
-  const path = routerState.location.pathname;
+  const path = useRouterState({ select: (state) => state.location.pathname });
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
   if (path.startsWith('/memories')) return 'memories';

@@ -15,6 +15,8 @@ const isFileProtocol = window.location.protocol === 'file:';
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  defaultPreloadStaleTime: 0,
+  defaultStructuralSharing: true,
   ...(isFileProtocol ? { history: createHashHistory() } : {}),
   context: { queryClient },
 });

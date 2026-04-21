@@ -17,8 +17,10 @@ const DialogContext = React.createContext<DialogContextValue | null>(null);
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const search = useSearch({ strict: false });
-  const settingsTab = (search as { settings?: SettingsTab }).settings;
+  const settingsTab = useSearch({
+    strict: false,
+    select: (search) => (search as { settings?: SettingsTab }).settings,
+  });
 
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [renameSessionOpen, setRenameSessionOpen] = React.useState(false);

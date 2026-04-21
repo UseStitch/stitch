@@ -149,9 +149,9 @@ function ListRow({
 export function AgendaSidebarContent() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
-  const routerState = useRouterState();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedListId = typeof params.listId === 'string' ? params.listId : null;
-  const isOnIndex = routerState.location.pathname === '/agenda';
+  const isOnIndex = pathname === '/agenda';
 
   const { data } = useQuery(agendaListsQueryOptions());
   const lists = data?.lists ?? [];

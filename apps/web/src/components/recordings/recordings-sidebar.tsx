@@ -50,9 +50,9 @@ function formatDuration(durationMs: number | null): string {
 
 export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
-  const routerState = useRouterState();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedRecordingId = typeof params.id === 'string' ? params.id : null;
-  const isOnIndex = routerState.location.pathname === '/recordings';
+  const isOnIndex = pathname === '/recordings';
 
   const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 100 }));
   const recordings = data?.recordings ?? [];

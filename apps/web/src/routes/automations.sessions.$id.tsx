@@ -8,7 +8,6 @@ import {
   visibleProviderModelsQueryOptions,
 } from '@/lib/queries/providers';
 import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
-import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
 
 export const Route = createFileRoute('/automations/sessions/$id')({
@@ -23,7 +22,6 @@ export const Route = createFileRoute('/automations/sessions/$id')({
       context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
-      context.queryClient.ensureQueryData(settingsQueryOptions),
       context.queryClient.ensureQueryData(queuedMessagesQueryOptions(params.id)),
     ]);
   },
