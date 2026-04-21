@@ -196,7 +196,9 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
     hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
   const summaries = canWrite
     ? DOCS_TOOL_SUMMARIES
-    : DOCS_TOOL_SUMMARIES.filter((t) => t.name !== 'docs_create' && t.name !== 'docs_update');
+    : DOCS_TOOL_SUMMARIES.filter(
+        (t) => t.name !== 'docs_create' && t.name !== 'docs_update' && t.name !== 'docs_edit',
+      );
 
   return {
     id: 'google-docs',
@@ -208,7 +210,7 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
       'Google Docs search accepts optional Drive query filters (for example: "name contains \'Roadmap\'").',
       'docs_read returns flattened plain text extracted from the document body.',
       canWrite
-        ? 'You have write access. Use docs_create to create docs and docs_update to append or replace content.'
+        ? 'You have write access. Use docs_create to create docs, docs_update to append or replace content, and docs_edit for targeted text replacement.'
         : 'You have read-only access. Creating and updating docs is not available.',
     ].join('\n'),
     tools: () => summaries,

@@ -51,6 +51,44 @@ const docsUpdateSchema = z.object({
     .describe('Use "replace" to overwrite content or "append" to add at the end'),
 });
 
+const docsEditSchema = z
+  .object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    documentId: z.string().describe('The Google Docs document ID'),
+    oldString: z.string().min(1).describe('The text to replace'),
+    newString: z
+      .string()
+      .describe('The text to replace it with (must be different from oldString)'),
+    replaceAll: z
+      .boolean()
+      .optional()
+      .describe('Replace all occurrences of oldString (default false)'),
+  })
+  .refine((value) => value.newString !== value.oldString, {
+    message: 'newString must be different from oldString',
+    path: ['newString'],
+  });
+
+const MULTIPLE_MATCHES_ERROR =
+  'Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match.';
+
+function countOccurrences(content: string, oldString: string): number {
+  let count = 0;
+  let startIndex = 0;
+
+  while (true) {
+    const index = content.indexOf(oldString, startIndex);
+    if (index === -1) {
+      return count;
+    }
+    count += 1;
+    startIndex = index + oldString.length;
+  }
+}
+
 export function createDocsTools(
   resolveClient: (
     account?: string,
@@ -110,6 +148,37 @@ export function createDocsTools(
         return { ...result, usedAccount };
       },
     });
+
+    tools['docs_edit'] = tool({
+      description:
+        'Edit a Google Docs document by replacing exact text. Replaces one match by default, or all matches when replaceAll is true.',
+      inputSchema: docsEditSchema,
+      execute: async (input: z.infer<typeof docsEditSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const document = await DocsApi.readDocument(client, input.documentId);
+        const matchCount = countOccurrences(document.text, input.oldString);
+
+        if (matchCount === 0) {
+          throw new Error('oldString not found in content');
+        }
+
+        if (!input.replaceAll && matchCount > 1) {
+          throw new Error(MULTIPLE_MATCHES_ERROR);
+        }
+
+        const nextContent = input.replaceAll
+          ? document.text.replaceAll(input.oldString, input.newString)
+          : document.text.replace(input.oldString, input.newString);
+
+        const result = await DocsApi.updateDocument(
+          client,
+          input.documentId,
+          nextContent,
+          'replace',
+        );
+        return { ...result, usedAccount };
+      },
+    });
   }
 
   return tools;
@@ -120,4 +189,8 @@ export const DOCS_TOOL_SUMMARIES = [
   { name: 'docs_read', description: 'Read a Google Docs document as plain text' },
   { name: 'docs_create', description: 'Create a Google Docs document (requires write access)' },
   { name: 'docs_update', description: 'Update a Google Docs document (requires write access)' },
+  {
+    name: 'docs_edit',
+    description: 'Edit a Google Docs document by replacing exact text (requires write access)',
+  },
 ];
