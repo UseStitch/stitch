@@ -11,6 +11,10 @@ import { isServiceError } from '@/lib/service-result.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import { withTruncation } from '@/tools/runtime/wrappers.js';
 
+const descriptionField = z
+  .string()
+  .describe('Short description of the task this browser action is performing. Shown to the user.');
+
 const headlessField = z
   .boolean()
   .optional()
@@ -22,10 +26,12 @@ const headlessField = z
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
 
 const browserSnapshotInputSchema = z.object({
+  description: descriptionField,
   headless: headlessField,
 });
 
 const browserNavigateInputSchema = z.object({
+  description: descriptionField,
   action: z
     .enum(['navigate', 'search', 'go_back', 'go_forward', 'tab_new', 'tab_list', 'tab_focus', 'tab_close'])
     .describe('Navigation action to perform.'),
@@ -38,6 +44,7 @@ const browserNavigateInputSchema = z.object({
 });
 
 const browserInteractInputSchema = z.object({
+  description: descriptionField,
   action: z
     .enum(['click', 'type', 'press', 'hover', 'select', 'scroll', 'resize', 'evaluate'])
     .describe('Interaction action to perform.'),
@@ -66,6 +73,7 @@ const browserInteractInputSchema = z.object({
 });
 
 const browserWaitInputSchema = z.object({
+  description: descriptionField,
   mode: z
     .enum(['time', 'selector'])
     .describe('Wait mode. Use time for timed waits and selector for CSS selector waits.'),
@@ -76,6 +84,7 @@ const browserWaitInputSchema = z.object({
 });
 
 const browserScreenshotInputSchema = z.object({
+  description: descriptionField,
   ref: z.string().optional().describe('Element ref for element screenshot.'),
   format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format. Default png.'),
   quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg/webp.'),
@@ -84,6 +93,7 @@ const browserScreenshotInputSchema = z.object({
 });
 
 const browserDialogInputSchema = z.object({
+  description: descriptionField,
   action: z.enum(['state', 'handle']).describe('Dialog action to perform.'),
   dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Whether to accept or dismiss a dialog.'),
   promptText: z.string().optional().describe('Optional prompt text when accepting prompt dialogs.'),
@@ -91,6 +101,7 @@ const browserDialogInputSchema = z.object({
 });
 
 const browserContentInputSchema = z.object({
+  description: descriptionField,
   action: z.enum(['extract', 'search_page', 'find_elements']).describe('Content action to perform.'),
   query: z.string().optional().describe('Extraction query for extract action.'),
   selector: z.string().optional().describe('CSS selector for extract or find_elements actions.'),
@@ -156,6 +167,7 @@ const browserBatchActionSchema = z.object({
 });
 
 const browserBatchInputSchema = z.object({
+  description: descriptionField,
   actions: z.array(browserBatchActionSchema).min(1).max(5).describe('Sequential actions to execute.'),
   stopOnPageChange: z
     .boolean()

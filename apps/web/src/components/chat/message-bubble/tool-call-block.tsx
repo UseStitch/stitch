@@ -116,7 +116,7 @@ export function ToolCallBlock({
     return <FileToolBlock toolName={toolName} status={status} args={args} error={error} />;
   }
 
-  if (toolName === 'browser' && hasArgs) {
+  if (toolName.startsWith('browser_') && hasArgs) {
     return (
       <BrowserToolBlock
         toolName={toolName}

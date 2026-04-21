@@ -3,87 +3,23 @@ import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 
-import { ToolCard, truncateText } from './card-primitives';
+import { ToolCard, formatToolDisplayName } from './card-primitives';
 
 import { cn } from '@/lib/utils';
 
 function getBrowserArgs(args: unknown): {
-  action: string | null;
-  url: string | null;
-  ref: string | null;
-  text: string | null;
-  key: string | null;
-  tabId: string | null;
+  description: string | null;
   profile: string | null;
 } {
   const value = args as Record<string, unknown> | null | undefined;
   if (!value) {
-    return {
-      action: null,
-      url: null,
-      ref: null,
-      text: null,
-      key: null,
-      tabId: null,
-      profile: null,
-    };
+    return { description: null, profile: null };
   }
 
   return {
-    action: typeof value.action === 'string' ? value.action : null,
-    url: typeof value.url === 'string' ? value.url : null,
-    ref: typeof value.ref === 'string' ? value.ref : null,
-    text: typeof value.text === 'string' ? value.text : null,
-    key: typeof value.key === 'string' ? value.key : null,
-    tabId: typeof value.tabId === 'string' ? value.tabId : null,
+    description: typeof value.description === 'string' ? value.description : null,
     profile: typeof value.profile === 'string' ? value.profile : null,
   };
-}
-
-function getBrowserActionLabel(args: ReturnType<typeof getBrowserArgs>): string {
-  const { action, url, ref, text, key, tabId } = args;
-  if (!action) return 'Waiting...';
-
-  switch (action) {
-    case 'snapshot':
-      return 'Taking page snapshot';
-    case 'navigate':
-      return url ? `Navigate to ${truncateText(url, 60)}` : 'Navigate';
-    case 'click':
-      return ref ? `Click element ${ref}` : 'Click';
-    case 'type':
-      return ref ? `Type into ${ref}${text ? `: "${truncateText(text, 40)}"` : ''}` : 'Type';
-    case 'press':
-      return key ? `Press ${key}` : 'Press key';
-    case 'hover':
-      return ref ? `Hover over ${ref}` : 'Hover';
-    case 'select':
-      return ref ? `Select option in ${ref}` : 'Select';
-    case 'scroll':
-      return ref ? `Scroll ${ref} into view` : 'Scroll';
-    case 'screenshot':
-      return 'Taking screenshot';
-    case 'go_back':
-      return 'Go back';
-    case 'go_forward':
-      return 'Go forward';
-    case 'tab_new':
-      return url ? `Open new tab: ${truncateText(url, 60)}` : 'Open new tab';
-    case 'tab_list':
-      return 'List tabs';
-    case 'tab_focus':
-      return tabId ? `Switch to ${tabId}` : 'Switch tab';
-    case 'tab_close':
-      return tabId ? `Close ${tabId}` : 'Close tab';
-    case 'evaluate':
-      return 'Run JavaScript';
-    case 'wait':
-      return 'Waiting';
-    case 'resize':
-      return 'Resize viewport';
-    default:
-      return action;
-  }
 }
 
 type BrowserToolBlockProps = {
@@ -97,8 +33,8 @@ type BrowserToolBlockProps = {
 export function BrowserToolBlock({ toolName, status, args, result, error }: BrowserToolBlockProps) {
   const [open, setOpen] = React.useState(false);
   const browserArgs = getBrowserArgs(args);
-  const actionLabel = getBrowserActionLabel(browserArgs);
   const profileBadge = browserArgs.profile === 'user' ? 'User profile' : null;
+  const description = browserArgs.description;
 
   const resultOutput = (result as { output?: string } | undefined)?.output;
   const hasExpandableContent = Boolean(error || resultOutput);
@@ -118,7 +54,7 @@ export function BrowserToolBlock({ toolName, status, args, result, error }: Brow
           <ToolCard.StatusIndicator status={status} />
           <span className="min-w-0 flex-1 text-left">
             <span className="flex items-center gap-2">
-              <ToolCard.Title>{toolName}</ToolCard.Title>
+              <ToolCard.Title>{formatToolDisplayName(toolName)}</ToolCard.Title>
               {profileBadge ? (
                 <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                   <GlobeIcon className="size-2.5" />
@@ -126,9 +62,11 @@ export function BrowserToolBlock({ toolName, status, args, result, error }: Brow
                 </span>
               ) : null}
             </span>
-            <ToolCard.TitleContent truncate className="mt-1 block">
-              {actionLabel}
-            </ToolCard.TitleContent>
+            {description ? (
+              <ToolCard.TitleContent truncate className="mt-1 block">
+                {description}
+              </ToolCard.TitleContent>
+            ) : null}
           </span>
           {hasExpandableContent ? (
             <ChevronRightIcon
