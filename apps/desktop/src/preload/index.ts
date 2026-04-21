@@ -53,4 +53,12 @@ contextBridge.exposeInMainWorld('api', {
     replaceMisspelling: (word: string) => ipcRenderer.invoke('spellcheck:replaceMisspelling', word),
     addToDictionary: (word: string) => ipcRenderer.invoke('spellcheck:addToDictionary', word),
   },
+  permissions: {
+    requestMicrophone: () =>
+      ipcRenderer.invoke('permissions:requestMicrophone') as Promise<boolean>,
+    getScreenCaptureStatus: () =>
+      ipcRenderer.invoke('permissions:getScreenCaptureStatus') as Promise<string>,
+    openScreenCaptureSettings: () =>
+      ipcRenderer.invoke('permissions:openScreenCaptureSettings') as Promise<void>,
+  },
 });

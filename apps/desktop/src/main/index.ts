@@ -1,6 +1,14 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeImage,
+  shell,
+  systemPreferences,
+} from 'electron';
 import { randomUUID } from 'node:crypto';
-import { writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +23,42 @@ const DEV_SERVER_POLL_MS = 200;
 const DEV_SERVER_TIMEOUT_MS = 30_000;
 const DEV_APP_NAME = 'stitch-dev';
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
+
+/**
+ * With adhoc code signing, macOS ties TCC permissions to the exact code signature hash.
+ * After an app update the hash changes but old TCC entries remain, causing permissions
+ * to appear granted in System Settings while being silently rejected at runtime.
+ * This detects version changes and resets TCC so macOS will re-prompt.
+ */
+async function resetTccPermissionsIfVersionChanged(): Promise<boolean> {
+  if (process.platform !== 'darwin' || !app.isPackaged) return false;
+
+  const versionFile = join(app.getPath('userData'), '.last-tcc-version');
+  const currentVersion = app.getVersion();
+
+  try {
+    const lastVersion = (await readFile(versionFile, 'utf-8')).trim();
+    if (lastVersion === currentVersion) return false;
+  } catch {
+    // File doesn't exist — first run or upgrade from before this logic
+  }
+
+  const { execSync } = await import('node:child_process');
+  const bundleId = 'com.stitch.desktop';
+
+  for (const service of ['Microphone', 'ScreenCapture']) {
+    try {
+      execSync(`tccutil reset ${service} ${bundleId}`, { timeout: 5_000 });
+    } catch {
+      // tccutil may fail if no entry exists
+    }
+  }
+
+  await mkdir(join(app.getPath('userData')), { recursive: true });
+  await writeFile(versionFile, currentVersion, 'utf-8');
+
+  return true;
+}
 
 function configureAppIdentityForEnvironment(): void {
   if (app.isPackaged) {
@@ -220,6 +264,24 @@ ipcMain.handle('dialog:openPath', async () => {
   return result.canceled ? [] : result.filePaths;
 });
 
+ipcMain.handle('permissions:requestMicrophone', async () => {
+  if (process.platform !== 'darwin') return true;
+  return systemPreferences.askForMediaAccess('microphone');
+});
+
+ipcMain.handle('permissions:getScreenCaptureStatus', () => {
+  if (process.platform !== 'darwin') return 'granted';
+  return systemPreferences.getMediaAccessStatus('screen');
+});
+
+ipcMain.handle('permissions:openScreenCaptureSettings', () => {
+  if (process.platform === 'darwin') {
+    void shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
+    );
+  }
+});
+
 ipcMain.handle('updater:check', () => {
   return updater.checkForUpdates();
 });
@@ -251,7 +313,20 @@ void app.whenReady().then(async () => {
     const port = await findAvailablePort();
     serverUrl = await spawnServer(port);
 
+    const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
+
     await createWindow();
+
+    if (permissionsWereReset && mainWindow) {
+      void dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Permissions Required',
+        message: 'Stitch was updated and needs audio permissions re-granted.',
+        detail:
+          'When you start a recording, you will be prompted to grant microphone access. You may also need to enable Stitch under "System Audio Recording Only" in System Settings > Privacy & Security.',
+        buttons: ['OK'],
+      });
+    }
 
     if (process.platform !== 'darwin') {
       updater.init();

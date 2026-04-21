@@ -65,6 +65,11 @@ declare global {
         replaceMisspelling: (word: string) => Promise<void>;
         addToDictionary: (word: string) => Promise<void>;
       };
+      permissions?: {
+        requestMicrophone: () => Promise<boolean>;
+        getScreenCaptureStatus: () => Promise<string>;
+        openScreenCaptureSettings: () => Promise<void>;
+      };
     };
   }
 }

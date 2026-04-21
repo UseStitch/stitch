@@ -317,13 +317,18 @@ fn spawn_macos_speaker_source(
 
         let use_tap = std::sync::atomic::AtomicBool::new(true);
         let decided = std::sync::atomic::AtomicBool::new(false);
+        let mut decision_ticks: u32 = 0;
+        // Allow ~2 seconds (200 ticks at 10ms) for audio to start flowing
+        const DECISION_GRACE_TICKS: u32 = 200;
 
         while !stop_flag.load(Ordering::Relaxed) {
           tokio::time::sleep(Duration::from_millis(10)).await;
 
-          let mut got_tap = false;
+          let mut tap_has_signal = false;
           while let Ok(chunk) = tap_rx.try_recv() {
-            got_tap = true;
+            if !tap_has_signal {
+              tap_has_signal = chunk.iter().any(|&s| s.abs() > 1e-6);
+            }
             if use_tap.load(Ordering::Relaxed) {
               for c in chunk.chunks(960) {
                 let _ = tx.try_send(c.to_vec());
@@ -331,18 +336,35 @@ fn spawn_macos_speaker_source(
             }
           }
 
+          let mut got_sck = false;
           while let Ok(chunk) = sck_rx.try_recv() {
+            got_sck = true;
             if !use_tap.load(Ordering::Relaxed) {
               let _ = tx.try_send(chunk);
             }
           }
 
-          if !decided.load(Ordering::Relaxed) && sck_ok.is_some() {
-            if got_tap {
+          if !decided.load(Ordering::Relaxed) {
+            decision_ticks += 1;
+
+            if tap_has_signal {
+              // Tap is producing real audio — use it
               use_tap.store(true, Ordering::Relaxed);
               decided.store(true, Ordering::Relaxed);
-            } else {
+            } else if got_sck && decision_ticks >= DECISION_GRACE_TICKS {
+              // Tap silent after grace period, SCK has data — switch to SCK
               use_tap.store(false, Ordering::Relaxed);
+              decided.store(true, Ordering::Relaxed);
+            } else if sck_ok.is_some() && got_sck {
+              // SCK started and is producing data, but still in grace period — buffer SCK
+              // data by not deciding yet (tap may still start producing signal)
+            } else if decision_ticks >= DECISION_GRACE_TICKS {
+              // Grace period elapsed, tap silent, SCK either failed or has no data.
+              // If SCK started, use it even without data yet. Otherwise stick with tap.
+              if sck_ok.is_some() {
+                use_tap.store(false, Ordering::Relaxed);
+              }
+              decided.store(true, Ordering::Relaxed);
             }
           }
         }
