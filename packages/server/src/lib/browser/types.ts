@@ -39,7 +39,7 @@ export type BrowserVersionInfo = {
 
 export type ScreenshotResult = {
   data: string;
-  format: 'png' | 'jpeg';
+  format: 'png' | 'jpeg' | 'webp';
 };
 
 export type LaunchOptions = {
@@ -97,28 +97,3 @@ export type PageStats = {
   images: number;
   totalElements: number;
 };
-
-export const BROWSER_ACTIONS = [
-  'snapshot',
-  'navigate',
-  'click',
-  'type',
-  'press',
-  'hover',
-  'select',
-  'scroll',
-  'screenshot',
-  'go_back',
-  'go_forward',
-  'tab_new',
-  'tab_list',
-  'tab_focus',
-  'tab_close',
-  'evaluate',
-  'wait',
-  'resize',
-  'search_page',
-  'find_elements',
-  'search',
-  'extract',
-] as const;
