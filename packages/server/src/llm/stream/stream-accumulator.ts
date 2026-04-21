@@ -254,13 +254,19 @@ export class StreamAccumulator {
         const fallbackError = isToolErrorResult(sanitizedOutput)
           ? sanitizedOutput.error
           : undefined;
+        const isBashFailure =
+          !fallbackError &&
+          sanitizedOutput !== null &&
+          typeof sanitizedOutput === 'object' &&
+          (sanitizedOutput as { failed?: unknown }).failed === true;
+        const isError = Boolean(fallbackError) || isBashFailure;
 
         await this.broadcast('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          status: fallbackError ? 'error' : 'completed',
+          status: isError ? 'error' : 'completed',
           input: part.input,
           ...(fallbackError ? { error: fallbackError } : { output: sanitizedOutput }),
         });
