@@ -70,20 +70,47 @@ export const audioPermissionsQueryOptions = queryOptions({
 
 async function preflightPermissionCheck(): Promise<void> {
   try {
+    // Request microphone permission via Electron (triggers native macOS prompt)
+    if (window.api?.permissions?.requestMicrophone) {
+      await window.api.permissions.requestMicrophone();
+    }
+
+    // Check screen capture permission from the Electron main process.
+    // This is more reliable than the native binary's TCC check because it
+    // queries from the actual app process (correct code signing identity).
+    if (window.api?.permissions?.getScreenCaptureStatus) {
+      const status = await window.api.permissions.getScreenCaptureStatus();
+      if (status !== 'granted') {
+        if (window.api?.permissions?.openScreenCaptureSettings) {
+          void window.api.permissions.openScreenCaptureSettings();
+        }
+        throw new Error(
+          'Audio capture permission is needed. In the System Settings window, toggle on Stitch under "Screen & System Audio Recording", then click Start Recording again.',
+        );
+      }
+      return;
+    }
+
+    // Fallback for non-Electron (dev server): use the native binary check
     const res = await serverFetch('/recordings/permissions');
     if (!res.ok) return;
 
     const permissions = (await res.json()) as AudioPermissionsStatus;
+
+    if (permissions.microphone === 'granted' && permissions.screenCapture === 'granted') {
+      return;
+    }
+
     const issues: string[] = [];
 
-    if (permissions.microphone === 'denied') {
+    if (permissions.microphone !== 'granted') {
       issues.push(
         'Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.',
       );
     }
-    if (permissions.screenCapture === 'denied') {
+    if (permissions.screenCapture !== 'granted') {
       issues.push(
-        'Screen recording access is denied. Grant screen recording permission in System Settings > Privacy & Security > Screen & System Audio Recording.',
+        'Audio capture permission is needed. Toggle on Stitch under "Screen & System Audio Recording" in System Settings > Privacy & Security.',
       );
     }
 
@@ -91,6 +118,9 @@ async function preflightPermissionCheck(): Promise<void> {
       throw new Error(issues.join('\n'));
     }
   } catch (error) {
+    if (error instanceof Error && error.message.includes('permission is needed')) {
+      throw error;
+    }
     if (error instanceof Error && error.message.includes('access is denied')) {
       throw error;
     }

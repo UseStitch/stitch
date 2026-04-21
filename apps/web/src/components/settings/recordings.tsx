@@ -155,36 +155,52 @@ function ModelSelect({
 }
 
 function PermissionStatus() {
-  const { data: permissions } = useQuery(audioPermissionsQueryOptions);
+  const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
+  const [requesting, setRequesting] = React.useState(false);
 
   if (!permissions) return null;
 
   const micDenied = permissions.microphone === 'denied';
-  const screenDenied = permissions.screenCapture === 'denied';
+  const screenDenied = permissions.screenCapture !== 'granted';
 
   if (!micDenied && !screenDenied) return null;
 
+  const handleGrantPermissions = async () => {
+    setRequesting(true);
+    try {
+      if (micDenied && window.api?.permissions?.requestMicrophone) {
+        await window.api.permissions.requestMicrophone();
+      }
+      if (screenDenied && window.api?.permissions?.openScreenCaptureSettings) {
+        await window.api.permissions.openScreenCaptureSettings();
+      }
+      setTimeout(() => void refetch(), 2000);
+    } finally {
+      setRequesting(false);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
-      <p className="text-sm font-medium text-warning">Missing Permissions</p>
-      <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-        {micDenied ? (
-          <li>
-            Microphone access is denied. Go to{' '}
-            <strong>System Settings &gt; Privacy &amp; Security &gt; Microphone</strong> and grant
-            access.
-          </li>
-        ) : null}
-        {screenDenied ? (
-          <li>
-            Screen recording access is denied. Go to{' '}
-            <strong>
-              System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording
-            </strong>{' '}
-            and grant access.
-          </li>
-        ) : null}
-      </ul>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-warning">Missing Permissions</p>
+          <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+            {micDenied ? <li>Microphone access is required to capture audio.</li> : null}
+            {screenDenied ? (
+              <li>System audio recording access is required to capture system audio.</li>
+            ) : null}
+          </ul>
+        </div>
+        <button
+          type="button"
+          className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          disabled={requesting}
+          onClick={() => void handleGrantPermissions()}
+        >
+          {requesting ? 'Requesting...' : 'Grant Permissions'}
+        </button>
+      </div>
     </div>
   );
 }
