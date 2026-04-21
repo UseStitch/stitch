@@ -60,15 +60,51 @@ fn check_microphone_permission() -> &'static str {
   }
 }
 
+/// Query the TCC (Transparency, Consent, and Control) database for a permission.
+/// Returns 0 for granted, other values for denied/restricted.
+#[cfg(target_os = "macos")]
+fn tcc_preflight(service: &str) -> i32 {
+  use std::ffi::CStr;
+
+  type TCCPreflightFn =
+    unsafe extern "C" fn(service: *const std::ffi::c_void, options: *const std::ffi::c_void) -> i32;
+
+  unsafe {
+    let path = CStr::from_bytes_with_nul_unchecked(
+      b"/System/Library/PrivateFrameworks/TCC.framework/Versions/A/TCC\0",
+    );
+    let handle = libc::dlopen(path.as_ptr(), libc::RTLD_NOW);
+    if handle.is_null() {
+      return -1;
+    }
+
+    let sym_name = CStr::from_bytes_with_nul_unchecked(b"TCCAccessPreflight\0");
+    let sym = libc::dlsym(handle, sym_name.as_ptr());
+    if sym.is_null() {
+      libc::dlclose(handle);
+      return -1;
+    }
+
+    let preflight: TCCPreflightFn = std::mem::transmute(sym);
+    let service_str = cidre::ns::String::with_str(service);
+    let result = preflight(
+      service_str.as_ref() as *const cidre::ns::String as *const std::ffi::c_void,
+      std::ptr::null(),
+    );
+
+    libc::dlclose(handle);
+    result
+  }
+}
+
 fn check_screen_capture_permission() -> &'static str {
   #[cfg(target_os = "macos")]
   {
-    // On macOS, CGPreflightScreenCaptureAccess checks if the app has screen recording permission.
-    // This is available on macOS 10.15+. We use the foreign function interface to call it.
-    unsafe extern "C" {
-      fn CGPreflightScreenCaptureAccess() -> bool;
-    }
-    if unsafe { CGPreflightScreenCaptureAccess() } {
+    // Speaker capture uses two paths in parallel: process taps (need kTCCServiceAudioCapture)
+    // and ScreenCaptureKit (needs kTCCServiceScreenCapture). Either one is sufficient.
+    let audio_capture = tcc_preflight("kTCCServiceAudioCapture");
+    let screen_capture = tcc_preflight("kTCCServiceScreenCapture");
+    if audio_capture == 0 || screen_capture == 0 {
       return "granted";
     }
     return "denied";
