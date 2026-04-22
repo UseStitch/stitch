@@ -17,6 +17,8 @@ export const SETTINGS_KEYS = [
   'profile.name',
   'profile.timezone',
   'notifications.sound.enabled',
+  'notifications.os.enabled',
+  'notifications.os.recordingSuggestions.enabled',
   'browser.profileImported',
   'browser.activeProfile',
   'browser.headless',
@@ -66,6 +68,8 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'profile.name': z.string().min(1).max(80),
   'profile.timezone': z.string().min(1).max(120),
   'notifications.sound.enabled': z.coerce.boolean(),
+  'notifications.os.enabled': z.coerce.boolean(),
+  'notifications.os.recordingSuggestions.enabled': z.coerce.boolean(),
   'browser.profileImported': z.string(),
   'browser.activeProfile': z.string(),
   'browser.headless': z.coerce.boolean(),
@@ -185,6 +189,17 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'notifications.sound.enabled',
     value: 'true',
     description: 'Play an attention sound when the AI needs your input (question or permission).',
+  },
+  {
+    key: 'notifications.os.enabled',
+    value: 'true',
+    description: 'Show desktop notifications for in-app events.',
+  },
+  {
+    key: 'notifications.os.recordingSuggestions.enabled',
+    value: 'true',
+    description:
+      'Show desktop notifications when a meeting call is detected and recording is suggested.',
   },
   {
     key: 'browser.profileImported',

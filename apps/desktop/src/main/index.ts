@@ -4,6 +4,7 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  Notification,
   shell,
   systemPreferences,
 } from 'electron';
@@ -281,6 +282,50 @@ ipcMain.handle('permissions:openScreenCaptureSettings', () => {
     );
   }
 });
+
+ipcMain.handle(
+  'notifications:show',
+  (
+    _event,
+    input:
+      | {
+          title: string;
+          body?: string;
+          silent?: boolean;
+          clickAction?: {
+            kind: 'start-recording';
+            platform: 'google-meet' | 'teams' | 'zoom' | 'slack' | 'discord';
+            key: string;
+          } | null;
+        }
+      | null
+      | undefined,
+  ): boolean => {
+    if (!Notification.isSupported()) return false;
+    if (!input || typeof input.title !== 'string' || input.title.trim().length === 0) {
+      return false;
+    }
+
+    const notification = new Notification({
+      title: input.title,
+      body: input.body,
+      silent: input.silent,
+    });
+
+    notification.on('click', () => {
+      if (input.clickAction && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('notification:click-action', input.clickAction);
+      }
+
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      mainWindow.show();
+      mainWindow.focus();
+    });
+
+    notification.show();
+    return true;
+  },
+);
 
 ipcMain.handle('updater:check', () => {
   return updater.checkForUpdates();

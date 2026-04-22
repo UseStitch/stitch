@@ -8,7 +8,9 @@ import type { MeetingCallDetectedPayload } from '@stitch/shared/chat/realtime';
 
 import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/sse/sse-context';
+import { notifyAppEvent } from '@/lib/notifications';
 import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 const WARNING_LABELS: Record<string, string> = {
   input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
@@ -45,9 +47,38 @@ export function MeetingRecordingBanner() {
 
   const startRecording = useStartRecording();
   const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 10 }));
+  const { data: settings } = useQuery(settingsQueryOptions);
 
   const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
   activeRecordingIdRef.current = data?.activeRecordingId ?? null;
+
+  React.useEffect(() => {
+    const unsub = window.electron?.on('notification:click-action', (raw) => {
+      if (!raw || typeof raw !== 'object') return;
+
+      const payload = raw as Record<string, unknown>;
+      if (payload['kind'] !== 'start-recording') return;
+      if (typeof payload['platform'] !== 'string') return;
+      if (typeof payload['key'] !== 'string') return;
+      if (activeRecordingIdRef.current || startRecording.isPending) return;
+
+      void startRecording
+        .mutateAsync({
+          platform: payload['platform'] as MeetingCallDetectedPayload['platform'],
+        })
+        .then(
+          () => {
+            setDetection((current) => (current?.key === payload['key'] ? null : current));
+            toast.success('Recording started');
+          },
+          (error: unknown) => {
+            toast.error(error instanceof Error ? error.message : 'Failed to start recording');
+          },
+        );
+    });
+
+    return () => unsub?.();
+  }, [startRecording]);
 
   useSSE({
     'meeting-call-detected': (payload) => {
@@ -55,13 +86,19 @@ export function MeetingRecordingBanner() {
         return;
       }
 
-      setDetection((current) => {
-        if (dismissedKeys.has(payload.key)) {
-          return current;
-        }
+      if (dismissedKeys.has(payload.key)) {
+        return;
+      }
 
-        return payload;
-      });
+      void notifyAppEvent(
+        {
+          kind: 'recording-suggestion',
+          payload,
+        },
+        settings,
+      );
+
+      setDetection(payload);
     },
     'meeting-call-ended': ({ key }) => {
       setDetection((current) => {
