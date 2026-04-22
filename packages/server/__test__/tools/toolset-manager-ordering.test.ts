@@ -49,7 +49,8 @@ describe('ToolsetManager.activate collision detection', () => {
     await manager.activate('ts-a');
     const result = await manager.activate('ts-b');
 
-    expect(result?.collisions).toEqual([]);
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.collisions).toEqual([]);
   });
 
   test('reports collisions when two toolsets share a tool name', async () => {
@@ -79,7 +80,8 @@ describe('ToolsetManager.activate collision detection', () => {
     await manager.activate('ts-x');
     const result = await manager.activate('ts-y');
 
-    expect(result?.collisions).toEqual(['search']);
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.collisions).toEqual(['search']);
   });
 
   test('returns no collisions when activating the first toolset', async () => {
@@ -94,7 +96,8 @@ describe('ToolsetManager.activate collision detection', () => {
     const manager = createManager();
     const result = await manager.activate('ts-only');
 
-    expect(result?.collisions).toEqual([]);
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.collisions).toEqual([]);
   });
 
   test('already-active toolset returns empty collisions', async () => {
@@ -110,7 +113,8 @@ describe('ToolsetManager.activate collision detection', () => {
     await manager.activate('ts-once');
     const result = await manager.activate('ts-once');
 
-    expect(result?.collisions).toEqual([]);
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.collisions).toEqual([]);
   });
 });
 

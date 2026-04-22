@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { isToolEnabled } from '@/tools/enabled-service.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 
@@ -30,7 +31,7 @@ export function createToolsetTools(manager: ToolsetManager) {
     }),
     execute: async ({ toolsetId, query }) => {
       if (!toolsetId) {
-        const fullCatalog = manager.getCatalogWithState();
+        const fullCatalog = await manager.getCatalogWithState();
 
         if (!query) {
           return { toolsets: fullCatalog };
@@ -51,6 +52,13 @@ export function createToolsetTools(manager: ToolsetManager) {
       if (!toolset) {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
+        );
+      }
+
+      const enabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
+      if (!enabled) {
+        throw new Error(
+          `Toolset "${toolsetId}" is not in the catalog. Use list_toolsets with no arguments to see available IDs.`,
         );
       }
 
@@ -98,9 +106,14 @@ export function createToolsetTools(manager: ToolsetManager) {
       }
 
       const result = await manager.activate(toolsetId);
-      if (result === null) {
+      if (result.status === 'not_found') {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
+        );
+      }
+      if (result.status === 'disabled') {
+        throw new Error(
+          `Toolset "${toolsetId}" has been disabled by the user. Do not attempt to activate it or search for alternatives.`,
         );
       }
 
