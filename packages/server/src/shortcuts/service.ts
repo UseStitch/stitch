@@ -22,16 +22,18 @@ function isAllowedActionId(actionId: string): boolean {
   return ALLOWED_ACTION_IDS.has(actionId);
 }
 
-export async function listShortcuts(): Promise<ShortcutRow[]> {
+export async function listShortcuts(): Promise<ServiceResult<ShortcutRow[]>> {
   const db = getDb();
   const rows = await db.select().from(keyboardShortcuts);
-  return rows.map((row) => ({
-    actionId: row.actionId,
-    hotkey: row.hotkey,
-    isSequence: row.isSequence,
-    label: row.label,
-    category: row.category,
-  }));
+  return ok(
+    rows.map((row) => ({
+      actionId: row.actionId,
+      hotkey: row.hotkey,
+      isSequence: row.isSequence,
+      label: row.label,
+      category: row.category,
+    })),
+  );
 }
 
 export async function saveShortcut(
@@ -55,7 +57,7 @@ export async function saveShortcut(
   return ok(null);
 }
 
-export async function resetShortcuts(): Promise<void> {
+export async function resetShortcuts(): Promise<ServiceResult<null>> {
   const db = getDb();
   const now = Date.now();
   for (const def of SHORTCUT_DEFAULTS) {
@@ -64,6 +66,7 @@ export async function resetShortcuts(): Promise<void> {
       .set({ hotkey: def.hotkey, isSequence: def.isSequence, updatedAt: now })
       .where(eq(keyboardShortcuts.actionId, def.actionId));
   }
+  return ok(null);
 }
 
 export async function deleteShortcut(actionId: string): Promise<ServiceResult<null>> {
