@@ -1,12 +1,11 @@
 import { CalendarIcon, Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useQuery } from '@tanstack/react-query';
-
 import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 
 import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
+import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -23,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
-import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 const DEBOUNCE_MS = 600;
@@ -33,20 +31,6 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-function useUserTimezone(): string {
-  const { data: settings } = useQuery(settingsQueryOptions);
-  return settings?.['profile.timezone'] || Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-function formatDateInTz(ts: number, timeZone: string): string {
-  return new Date(ts).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone,
-  });
-}
 
 export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const timeZone = useUserTimezone();
