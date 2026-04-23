@@ -39,6 +39,7 @@ Additional capabilities are organized into **toolsets** — groups of related to
 - After completing a task that required a toolset, deactivate it immediately with deactivate_toolset.
 - Do not activate all toolsets at once — this wastes context space.
 - If unsure whether a toolset has what you need, use `list_toolsets` first to check.
+- If the capability you need does not appear in the `list_toolsets` catalog, it is not available. Do not try alternative names, IDs, or queries — the catalog is the complete and filtered list of what you can use.
 
 ## Delegating Work
 

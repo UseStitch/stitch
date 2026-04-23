@@ -29,11 +29,21 @@ export class ToolsetManager {
 
   /**
    * Activate a toolset by ID.
-   * Returns the newly available tool names and any collision warnings, or null if not found.
+   * Returns a discriminated result: activated with tool names, not_found, or disabled.
    */
-  async activate(toolsetId: string): Promise<{ toolNames: string[]; collisions: string[] } | null> {
+  async activate(
+    toolsetId: string,
+  ): Promise<
+    | { status: 'activated'; toolNames: string[]; collisions: string[] }
+    | { status: 'not_found' }
+    | { status: 'disabled' }
+  > {
     if (this.activeIds.has(toolsetId)) {
-      return { toolNames: Object.keys(this.activeToolCache.get(toolsetId) ?? {}), collisions: [] };
+      return {
+        status: 'activated',
+        toolNames: Object.keys(this.activeToolCache.get(toolsetId) ?? {}),
+        collisions: [],
+      };
     }
 
     const toolset = getToolset(toolsetId);
@@ -42,7 +52,7 @@ export class ToolsetManager {
         { event: 'toolset.activate.not_found', toolsetId },
         'attempted to activate unknown toolset',
       );
-      return null;
+      return { status: 'not_found' };
     }
 
     const toolsetEnabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
@@ -51,7 +61,7 @@ export class ToolsetManager {
         { event: 'toolset.activate.disabled', toolsetId },
         'attempted to activate disabled toolset',
       );
-      return null;
+      return { status: 'disabled' };
     }
 
     const allTools = withToolResultHandlingRecord(await toolset.activate(this.context));
@@ -87,7 +97,7 @@ export class ToolsetManager {
       'toolset activated',
     );
 
-    return { toolNames: Object.keys(tools), collisions };
+    return { status: 'activated', toolNames: Object.keys(tools), collisions };
   }
 
   /** Deactivate a toolset, removing its tools from the active set. */
@@ -127,25 +137,31 @@ export class ToolsetManager {
 
   /**
    * Build a brief catalog of all available (registered) toolsets with their activation state.
+   * Disabled toolsets are excluded so the LLM never sees or attempts to use them.
    * Used by the list_toolsets meta-tool.
    */
-  getCatalogWithState(): Array<{
-    id: string;
-    name: string;
-    description: string;
-    icon?: ConnectorIconSource;
-    active: boolean;
-    hasInstructions: boolean;
-    promptCount: number;
-  }> {
-    return listToolsets().map((ts) => ({
-      id: ts.id,
-      name: ts.name,
-      description: ts.description,
-      icon: ts.icon,
-      active: this.activeIds.has(ts.id),
-      hasInstructions: !!ts.instructions,
-      promptCount: ts.prompts?.length ?? 0,
-    }));
+  async getCatalogWithState(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon?: ConnectorIconSource;
+      active: boolean;
+      hasInstructions: boolean;
+      promptCount: number;
+    }>
+  > {
+    const disabledIds = await getDisabledToolIdentifiers('toolset');
+    return listToolsets()
+      .filter((ts) => !disabledIds.has(ts.id))
+      .map((ts) => ({
+        id: ts.id,
+        name: ts.name,
+        description: ts.description,
+        icon: ts.icon,
+        active: this.activeIds.has(ts.id),
+        hasInstructions: !!ts.instructions,
+        promptCount: ts.prompts?.length ?? 0,
+      }));
   }
 }

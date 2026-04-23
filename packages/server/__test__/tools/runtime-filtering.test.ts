@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { ToolEnabledScope } from '@stitch/shared/tools/types';
+
 import { createTools } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
-import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 import type { Tool } from 'ai';
 
-const mockIsToolEnabled = vi.fn<(opts: { scope: ToolEnabledScope; identifier: string }) => Promise<boolean>>(
-  async () => true,
-);
+const mockIsToolEnabled = vi.fn<
+  (opts: { scope: ToolEnabledScope; identifier: string }) => Promise<boolean>
+>(async () => true);
 const mockGetDisabledToolIdentifiers = vi.fn<(scope: ToolEnabledScope) => Promise<Set<string>>>(
   async () => new Set<string>(),
 );
@@ -76,7 +77,7 @@ describe('runtime tool filtering', () => {
 
     const result = await manager.activate('toolset-disabled');
 
-    expect(result).toBeNull();
+    expect(result.status).toBe('disabled');
     expect(manager.getActiveTools()).toEqual({});
   });
 
@@ -108,7 +109,8 @@ describe('runtime tool filtering', () => {
     const result = await manager.activate('mcp:test-server');
     const activeTools = manager.getActiveTools();
 
-    expect(result?.toolNames).toEqual(['mcp_beta']);
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.toolNames).toEqual(['mcp_beta']);
     expect(Object.keys(activeTools)).toEqual(['mcp_beta']);
   });
 });
