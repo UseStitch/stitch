@@ -1,16 +1,25 @@
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@stitch/shared/id';
-import { createQuestionId } from '@stitch/shared/id';
-
-import { getDb } from '@/db/client.js';
-import { questions, sessions } from '@/db/schema.js';
+import { getSessionById } from '@/chat/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
-import { replyQuestion, rejectQuestion, getPendingQuestions } from '@/question/service.js';
+import {
+  createQuestion,
+  getPendingQuestions,
+  rejectQuestion,
+  replyQuestion,
+} from '@/question/service.js';
+
+const sessionParamSchema = z.object({
+  id: z.templateLiteral(['ses_', z.string()]),
+});
+
+const questionParamSchema = z.object({
+  sessionId: z.templateLiteral(['ses_', z.string()]),
+  questionId: z.templateLiteral(['quest_', z.string()]),
+});
 
 const questionOptionSchema = z.object({
   label: z.string(),
@@ -37,53 +46,38 @@ const replySchema = z.object({
 
 export const questionsRouter = new Hono();
 
-questionsRouter.get('/sessions/:id/questions', async (c) => {
-  const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+questionsRouter.get(
+  '/sessions/:id/questions',
+  zValidator('param', sessionParamSchema),
+  async (c) => {
+    const { id: sessionId } = c.req.valid('param');
 
-  const [session] = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.id, sessionId));
-  const sessionResult = requireFound(session, 'Session');
-  if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
+    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
+    if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
 
-  const rows = await getPendingQuestions(sessionId);
-
-  return c.json(rows);
-});
+    const rows = await getPendingQuestions(sessionId);
+    return c.json(rows);
+  },
+);
 
 questionsRouter.post(
   '/sessions/:id/questions',
+  zValidator('param', sessionParamSchema),
   zValidator('json', createQuestionsSchema),
   async (c) => {
-    const db = getDb();
-    const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+    const { id: sessionId } = c.req.valid('param');
 
-    const [session] = await db
-      .select({ id: sessions.id })
-      .from(sessions)
-      .where(eq(sessions.id, sessionId));
-    const sessionResult = requireFound(session, 'Session');
+    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
     if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
 
     const body = c.req.valid('json');
 
-    const id = createQuestionId();
-    const now = Date.now();
-
-    const [row] = await db
-      .insert(questions)
-      .values({
-        id,
-        sessionId,
-        questions: body.questions,
-        status: 'pending',
-        toolCallId: body.toolCallId,
-        messageId: body.messageId,
-        createdAt: now,
-      })
-      .returning();
+    const row = await createQuestion({
+      sessionId,
+      questions: body.questions,
+      toolCallId: body.toolCallId,
+      messageId: body.messageId,
+    });
 
     return c.json(row, 201);
   },
@@ -91,21 +85,24 @@ questionsRouter.post(
 
 questionsRouter.post(
   '/sessions/:sessionId/questions/:questionId/reply',
+  zValidator('param', questionParamSchema),
   zValidator('json', replySchema),
   async (c) => {
-    const questionId = c.req.param('questionId') as PrefixedString<'quest'>;
+    const { questionId } = c.req.valid('param');
     const { answers } = c.req.valid('json');
 
-    await replyQuestion(questionId, answers);
-
-    return c.json({ ok: true });
+    const result = await replyQuestion(questionId, answers);
+    return unwrapResult(c, result);
   },
 );
 
-questionsRouter.post('/sessions/:sessionId/questions/:questionId/reject', async (c) => {
-  const questionId = c.req.param('questionId') as PrefixedString<'quest'>;
+questionsRouter.post(
+  '/sessions/:sessionId/questions/:questionId/reject',
+  zValidator('param', questionParamSchema),
+  async (c) => {
+    const { questionId } = c.req.valid('param');
 
-  await rejectQuestion(questionId);
-
-  return c.json({ ok: true });
-});
+    const result = await rejectQuestion(questionId);
+    return unwrapResult(c, result);
+  },
+);

@@ -1,12 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
-import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
+import { getSessionById } from '@/chat/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import {
@@ -15,6 +11,15 @@ import {
   getPendingPermissionResponses,
   rejectPermissionResponse,
 } from '@/permission/service.js';
+
+const sessionParamSchema = z.object({
+  id: z.templateLiteral(['ses_', z.string()]),
+});
+
+const permissionResponseParamSchema = z.object({
+  sessionId: z.templateLiteral(['ses_', z.string()]),
+  permissionResponseId: z.templateLiteral(['permres_', z.string()]),
+});
 
 const setPermissionRuleSchema = z.object({
   permission: z.enum(['allow', 'deny', 'ask']),
@@ -27,56 +32,55 @@ const alternativeBodySchema = z.object({
 
 export const permissionsRouter = new Hono();
 
-permissionsRouter.get('/sessions/:id/permission-responses', async (c) => {
-  const db = getDb();
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+permissionsRouter.get(
+  '/sessions/:id/permission-responses',
+  zValidator('param', sessionParamSchema),
+  async (c) => {
+    const { id: sessionId } = c.req.valid('param');
 
-  const [session] = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.id, sessionId));
-  const sessionResult = requireFound(session, 'Session');
-  if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
+    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
+    if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
 
-  const rows = await getPendingPermissionResponses(sessionId);
-  return c.json(rows);
-});
+    const rows = await getPendingPermissionResponses(sessionId);
+    return c.json(rows);
+  },
+);
 
 permissionsRouter.post(
   '/sessions/:sessionId/permission-responses/:permissionResponseId/allow',
+  zValidator('param', permissionResponseParamSchema),
   zValidator('json', z.object({ setPermission: setPermissionRuleSchema.optional() })),
   async (c) => {
-    const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
+    const { permissionResponseId } = c.req.valid('param');
     const { setPermission } = c.req.valid('json');
 
     const result = await allowPermissionResponse(permissionResponseId, setPermission);
-    if (isServiceError(result)) return unwrapResult(c, result);
-    return c.json({ ok: true });
+    return unwrapResult(c, result);
   },
 );
 
 permissionsRouter.post(
   '/sessions/:sessionId/permission-responses/:permissionResponseId/reject',
+  zValidator('param', permissionResponseParamSchema),
   zValidator('json', z.object({ setPermission: setPermissionRuleSchema.optional() })),
   async (c) => {
-    const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
+    const { permissionResponseId } = c.req.valid('param');
     const { setPermission } = c.req.valid('json');
 
     const result = await rejectPermissionResponse(permissionResponseId, setPermission);
-    if (isServiceError(result)) return unwrapResult(c, result);
-    return c.json({ ok: true });
+    return unwrapResult(c, result);
   },
 );
 
 permissionsRouter.post(
   '/sessions/:sessionId/permission-responses/:permissionResponseId/alternative',
+  zValidator('param', permissionResponseParamSchema),
   zValidator('json', alternativeBodySchema),
   async (c) => {
-    const permissionResponseId = c.req.param('permissionResponseId') as PrefixedString<'permres'>;
+    const { permissionResponseId } = c.req.valid('param');
     const { entry } = c.req.valid('json');
 
     const result = await alternativePermissionResponse(permissionResponseId, entry.trim());
-    if (isServiceError(result)) return unwrapResult(c, result);
-    return c.json({ ok: true });
+    return unwrapResult(c, result);
   },
 );

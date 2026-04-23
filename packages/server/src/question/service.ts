@@ -7,6 +7,8 @@ import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/typ
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { err, ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import { broadcast } from '@/lib/sse.js';
 import { QuestionAbortedError } from '@/llm/stream/errors.js';
 
@@ -20,6 +22,32 @@ function toQuestionRequest(row: QuestionRow): QuestionRequest {
     answers: row.answers ?? undefined,
     answeredAt: row.answeredAt ?? undefined,
   };
+}
+
+export async function createQuestion(opts: {
+  sessionId: PrefixedString<'ses'>;
+  questions: QuestionInfo[];
+  toolCallId: string;
+  messageId: PrefixedString<'msg'>;
+}): Promise<QuestionRequest> {
+  const db = getDb();
+  const id = createQuestionId();
+  const now = Date.now();
+
+  const [row] = await db
+    .insert(questions)
+    .values({
+      id,
+      sessionId: opts.sessionId,
+      questions: opts.questions,
+      status: 'pending',
+      toolCallId: opts.toolCallId,
+      messageId: opts.messageId,
+      createdAt: now,
+    })
+    .returning();
+
+  return toQuestionRequest(row);
 }
 
 type PendingQuestion = {
@@ -101,7 +129,7 @@ export async function askQuestion(opts: {
 export async function replyQuestion(
   questionId: PrefixedString<'quest'>,
   answers: string[][],
-): Promise<void> {
+): Promise<ServiceResult<null>> {
   const db = getDb();
   const now = Date.now();
 
@@ -116,7 +144,7 @@ export async function replyQuestion(
     .returning();
 
   if (!question) {
-    throw new Error(`Question not found: ${questionId}`);
+    return err(`Question not found: ${questionId}`, 404);
   }
 
   await broadcast('question-replied', {
@@ -143,15 +171,18 @@ export async function replyQuestion(
   }
 
   log.info({ questionId }, 'question replied');
+  return ok(null);
 }
 
-export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promise<void> {
+export async function rejectQuestion(
+  questionId: PrefixedString<'quest'>,
+): Promise<ServiceResult<null>> {
   const db = getDb();
   const now = Date.now();
 
   const [question] = await db.select().from(questions).where(eq(questions.id, questionId));
   if (!question) {
-    throw new Error(`Question not found: ${questionId}`);
+    return err(`Question not found: ${questionId}`, 404);
   }
 
   await db
@@ -185,6 +216,7 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
   }
 
   log.info({ questionId }, 'question rejected');
+  return ok(null);
 }
 
 export async function getPendingQuestions(
