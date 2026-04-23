@@ -6,6 +6,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { queuedMessages } from '@/db/schema.js';
+import { requireFound } from '@/lib/route-helpers.js';
+import { ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 
 type AddToQueueInput = {
   sessionId: PrefixedString<'ses'>;
@@ -18,17 +21,22 @@ type UpdateQueuedMessageInput = {
   attachments?: QueuedMessageAttachment[];
 };
 
-export function listQueuedMessages(sessionId: PrefixedString<'ses'>) {
+type QueuedMessageRow = typeof queuedMessages.$inferSelect;
+
+export function listQueuedMessages(
+  sessionId: PrefixedString<'ses'>,
+): ServiceResult<QueuedMessageRow[]> {
   const db = getDb();
-  return db
+  const rows = db
     .select()
     .from(queuedMessages)
     .where(eq(queuedMessages.sessionId, sessionId))
     .orderBy(asc(queuedMessages.position))
     .all();
+  return ok(rows);
 }
 
-export function addToQueue(input: AddToQueueInput) {
+export function addToQueue(input: AddToQueueInput): ServiceResult<QueuedMessageRow> {
   const db = getDb();
   const id = createQueuedMessageId();
   const now = Date.now();
@@ -55,10 +63,13 @@ export function addToQueue(input: AddToQueueInput) {
     .returning()
     .get();
 
-  return row;
+  return ok(row);
 }
 
-export function updateQueuedMessage(id: PrefixedString<'qmsg'>, input: UpdateQueuedMessageInput) {
+export function updateQueuedMessage(
+  id: PrefixedString<'qmsg'>,
+  input: UpdateQueuedMessageInput,
+): ServiceResult<QueuedMessageRow> {
   const db = getDb();
   const now = Date.now();
 
@@ -73,13 +84,13 @@ export function updateQueuedMessage(id: PrefixedString<'qmsg'>, input: UpdateQue
     .returning()
     .get();
 
-  return row ?? null;
+  return requireFound(row, 'Queued message');
 }
 
-export function removeFromQueue(id: PrefixedString<'qmsg'>) {
+export function removeFromQueue(id: PrefixedString<'qmsg'>): ServiceResult<QueuedMessageRow> {
   const db = getDb();
 
   const row = db.delete(queuedMessages).where(eq(queuedMessages.id, id)).returning().get();
 
-  return row ?? null;
+  return requireFound(row, 'Queued message');
 }

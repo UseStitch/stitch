@@ -1,9 +1,9 @@
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
-import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
-import type { PrefixedString } from '@stitch/shared/id';
-
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import {
   addToQueue,
   listQueuedMessages,
@@ -11,54 +11,74 @@ import {
   updateQueuedMessage,
 } from '@/queue/service.js';
 
+const attachmentSchema = z.object({
+  path: z.string(),
+  mime: z.string(),
+  filename: z.string(),
+});
+
+const addToQueueSchema = z
+  .object({
+    content: z.string().default(''),
+    attachments: z.array(attachmentSchema).optional(),
+  })
+  .refine(
+    (data) => data.content.trim().length > 0 || (data.attachments && data.attachments.length > 0),
+    { message: 'content or attachments are required' },
+  );
+
+const updateQueuedMessageSchema = z.object({
+  content: z.string().optional(),
+  attachments: z.array(attachmentSchema).optional(),
+});
+
+const sessionParamSchema = z.object({ id: routeSchemas.sessionId });
+const queueParamSchema = z.object({
+  id: routeSchemas.sessionId,
+  queueId: routeSchemas.queuedMessageId,
+});
+
 export const queueRouter = new Hono();
 
-queueRouter.get('/sessions/:id/queue', (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const rows = listQueuedMessages(sessionId);
-  return c.json(rows);
-});
-
-queueRouter.post('/sessions/:id/queue', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = await c.req.json<{
-    content: string;
-    attachments?: QueuedMessageAttachment[];
-  }>();
-
-  if (!body.content?.trim() && (!body.attachments || body.attachments.length === 0)) {
-    return c.json({ error: 'content or attachments are required' }, 400);
-  }
-
-  const row = addToQueue({
-    sessionId,
-    content: body.content ?? '',
-    attachments: body.attachments,
-  });
-
-  return c.json(row, 201);
-});
-
-queueRouter.patch('/sessions/:id/queue/:queueId', async (c) => {
-  const queueId = c.req.param('queueId') as PrefixedString<'qmsg'>;
-  const body = await c.req.json<{
-    content?: string;
-    attachments?: QueuedMessageAttachment[];
-  }>();
-
-  const row = updateQueuedMessage(queueId, {
-    content: body.content,
-    attachments: body.attachments,
-  });
-
-  const result = requireFound(row, 'Queued message');
+queueRouter.get('/sessions/:id/queue', zValidator('param', sessionParamSchema), (c) => {
+  const { id: sessionId } = c.req.valid('param');
+  const result = listQueuedMessages(sessionId);
   return unwrapResult(c, result);
 });
 
-queueRouter.delete('/sessions/:id/queue/:queueId', (c) => {
-  const queueId = c.req.param('queueId') as PrefixedString<'qmsg'>;
+queueRouter.post(
+  '/sessions/:id/queue',
+  zValidator('param', sessionParamSchema),
+  zValidator('json', addToQueueSchema),
+  (c) => {
+    const { id: sessionId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = addToQueue({
+      sessionId,
+      content: body.content,
+      attachments: body.attachments,
+    });
+    return unwrapResult(c, result, 201);
+  },
+);
 
-  const row = removeFromQueue(queueId);
-  const result = requireFound(row, 'Queued message');
+queueRouter.patch(
+  '/sessions/:id/queue/:queueId',
+  zValidator('param', queueParamSchema),
+  zValidator('json', updateQueuedMessageSchema),
+  (c) => {
+    const { queueId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = updateQueuedMessage(queueId, {
+      content: body.content,
+      attachments: body.attachments,
+    });
+    return unwrapResult(c, result);
+  },
+);
+
+queueRouter.delete('/sessions/:id/queue/:queueId', zValidator('param', queueParamSchema), (c) => {
+  const { queueId } = c.req.valid('param');
+  const result = removeFromQueue(queueId);
   return unwrapResult(c, result, 204);
 });
