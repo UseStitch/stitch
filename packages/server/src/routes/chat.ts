@@ -1,6 +1,6 @@
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-
-import type { PrefixedString } from '@stitch/shared/id';
+import { z } from 'zod';
 
 import { generateAutomationDraft } from '@/automations/generation.js';
 import {
@@ -19,145 +19,173 @@ import {
   splitSession,
 } from '@/chat/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
-import type { DoomLoopResponse } from '@/llm/stream/doom-loop.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
+
+const sessionIdParamSchema = z.object({ id: routeSchemas.sessionId });
+
+const splitParamSchema = z.object({
+  id: routeSchemas.sessionId,
+  msgId: routeSchemas.messageId,
+});
+
+const createSessionSchema = z.object({
+  title: z.string().trim().min(1).optional(),
+  parentSessionId: z.string().optional(),
+});
+
+const listSessionsQuerySchema = z.object({
+  type: z.enum(['chat', 'automation']).optional(),
+});
+
+const listMessagesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  cursor: z.coerce.number().int().optional(),
+});
+
+const renameSessionSchema = z.object({
+  title: z.string().trim().min(1),
+});
+
+const sendMessageSchema = z.object({
+  content: z.string().min(1),
+  providerId: z.string().min(1),
+  modelId: z.string().min(1),
+  assistantMessageId: routeSchemas.messageId,
+  attachments: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        mime: z.string().min(1),
+        filename: z.string().min(1),
+      }),
+    )
+    .optional(),
+});
+
+const doomLoopResponseSchema = z.object({
+  response: z.enum(['continue', 'stop']),
+});
 
 export const chatRouter = new Hono();
 
-chatRouter.post('/sessions', async (c) => {
-  const body = await c.req.json<{ title?: string; parentSessionId?: string }>();
-  const session = await createSession(body);
-  return c.json(session, 201);
+chatRouter.post('/sessions', zValidator('json', createSessionSchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createSession(body);
+  return unwrapResult(c, result, 201);
 });
 
-chatRouter.get('/sessions', async (c) => {
-  const type = c.req.query('type');
+chatRouter.get('/sessions', zValidator('query', listSessionsQuerySchema), async (c) => {
+  const { type } = c.req.valid('query');
   const sessionType = type === 'automation' ? 'automation' : 'chat';
-  const rows = await listSessions(sessionType);
-  return c.json(rows);
-});
-
-chatRouter.get('/sessions/:id', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-
-  const result = requireFound(await getSessionById(sessionId), 'Session');
+  const result = await listSessions(sessionType);
   return unwrapResult(c, result);
 });
 
-chatRouter.get('/sessions/:id/stats', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-
-  const result = await getSessionStats(sessionId);
+chatRouter.get('/sessions/:id', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = requireFound(await getSessionById(id), 'Session');
   return unwrapResult(c, result);
 });
 
-chatRouter.get('/sessions/:id/messages', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-
-  const limitParam = c.req.query('limit');
-  const cursorParam = c.req.query('cursor');
-  const limit = limitParam ? Number(limitParam) : undefined;
-  const cursor = cursorParam ? Number(cursorParam) : undefined;
-
-  const page = await listSessionMessages(sessionId, limit, cursor);
-  return c.json(page);
+chatRouter.get('/sessions/:id/stats', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await getSessionStats(id);
+  return unwrapResult(c, result);
 });
 
-chatRouter.delete('/sessions/:id', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
+chatRouter.get(
+  '/sessions/:id/messages',
+  zValidator('param', sessionIdParamSchema),
+  zValidator('query', listMessagesQuerySchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { limit, cursor } = c.req.valid('query');
+    const result = await listSessionMessages(id, limit, cursor);
+    return unwrapResult(c, result);
+  },
+);
 
-  const deleted = await deleteSession(sessionId);
-  const result = requireFound(deleted, 'Session');
+chatRouter.delete('/sessions/:id', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await deleteSession(id);
   return unwrapResult(c, result, 204);
 });
 
-chatRouter.patch('/sessions/:id', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = await c.req.json<{ title: string }>();
+chatRouter.patch(
+  '/sessions/:id',
+  zValidator('param', sessionIdParamSchema),
+  zValidator('json', renameSessionSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { title } = c.req.valid('json');
+    const updated = await renameSession(id, title);
+    const result = requireFound(updated, 'Session');
+    return unwrapResult(c, result);
+  },
+);
 
-  if (!body.title) {
-    return c.json({ error: 'Title is required' }, 400);
-  }
-
-  const updated = await renameSession(sessionId, body.title);
-  const result = requireFound(updated, 'Session');
-  return unwrapResult(c, result);
-});
-
-chatRouter.patch('/sessions/:id/read', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const updated = await markSessionRead(sessionId);
+chatRouter.patch('/sessions/:id/read', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const updated = await markSessionRead(id);
   const result = requireFound(updated, 'Session');
   return unwrapResult(c, result, 204);
 });
 
-chatRouter.post('/sessions/:id/messages', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = await c.req.json<{
-    content: string;
-    providerId: string;
-    modelId: string;
-    assistantMessageId: string;
-    attachments?: Array<{
-      path: string;
-      mime: string;
-      filename: string;
-    }>;
-  }>();
+chatRouter.post(
+  '/sessions/:id/messages',
+  zValidator('param', sessionIdParamSchema),
+  zValidator('json', sendMessageSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = await sendMessage({
+      sessionId: id,
+      content: body.content,
+      attachments: body.attachments,
+      providerId: body.providerId,
+      modelId: body.modelId,
+      assistantMessageId: body.assistantMessageId,
+    });
+    return unwrapResult(c, result, 202);
+  },
+);
 
-  if (!body.content || !body.providerId || !body.modelId || !body.assistantMessageId) {
-    return c.json(
-      { error: 'content, providerId, modelId, and assistantMessageId are required' },
-      400,
-    );
-  }
+chatRouter.post(
+  '/sessions/:id/doom-loop-response',
+  zValidator('param', sessionIdParamSchema),
+  zValidator('json', doomLoopResponseSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { response } = c.req.valid('json');
+    const result = resolveDoomLoop(id, response);
+    return unwrapResult(c, result);
+  },
+);
 
-  const result = await sendMessage({
-    sessionId,
-    content: body.content,
-    attachments: body.attachments,
-    providerId: body.providerId,
-    modelId: body.modelId,
-    assistantMessageId: body.assistantMessageId,
-  });
-  return unwrapResult(c, result, 202);
-});
-
-chatRouter.post('/sessions/:id/doom-loop-response', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const body = await c.req.json<{ response: DoomLoopResponse }>();
-
-  if (body.response !== 'continue' && body.response !== 'stop') {
-    return c.json({ error: 'response must be "continue" or "stop"' }, 400);
-  }
-
-  const result = resolveDoomLoop(sessionId, body.response);
-  return unwrapResult(c, result);
-});
-
-chatRouter.post('/sessions/:id/abort', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  await abortSessionRun(sessionId);
+chatRouter.post('/sessions/:id/abort', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  await abortSessionRun(id);
   return c.json({ ok: true });
 });
 
-chatRouter.post('/sessions/:id/split/:msgId', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-  const msgId = c.req.param('msgId') as PrefixedString<'msg'>;
-
-  const result = await splitSession(sessionId, msgId);
+chatRouter.post('/sessions/:id/split/:msgId', zValidator('param', splitParamSchema), async (c) => {
+  const { id, msgId } = c.req.valid('param');
+  const result = await splitSession(id, msgId);
   return unwrapResult(c, result, 201);
 });
 
-chatRouter.post('/sessions/:id/compact', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-
-  const result = await requestCompaction(sessionId);
+chatRouter.post('/sessions/:id/compact', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await requestCompaction(id);
   return unwrapResult(c, result, 202);
 });
 
-chatRouter.post('/sessions/:id/generate-automation', async (c) => {
-  const sessionId = c.req.param('id') as PrefixedString<'ses'>;
-
-  const result = await generateAutomationDraft(sessionId);
-  return unwrapResult(c, result, 201);
-});
+chatRouter.post(
+  '/sessions/:id/generate-automation',
+  zValidator('param', sessionIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await generateAutomationDraft(id);
+    return unwrapResult(c, result, 201);
+  },
+);

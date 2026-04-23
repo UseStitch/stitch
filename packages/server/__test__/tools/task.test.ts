@@ -72,8 +72,10 @@ describe('task tool', () => {
     const messageId = 'msg_parent' as PrefixedString<'msg'>;
 
     mocks.createSessionMock.mockResolvedValue({
-      id: childSessionId,
-      title: 'Investigate bug',
+      data: {
+        id: childSessionId,
+        title: 'Investigate bug',
+      },
     });
     mocks.broadcastMock.mockResolvedValue(undefined);
     mocks.valuesMock.mockResolvedValue(undefined);

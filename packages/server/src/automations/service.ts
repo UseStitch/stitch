@@ -17,7 +17,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { automations, sessions } from '@/db/schema.js';
-import { err, ok } from '@/lib/service-result.js';
+import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { validateProviderModel } from '@/llm/resolve-model.js';
 
@@ -261,11 +261,13 @@ export async function runAutomation(
   }
 
   const title = `${automation.title} #${updatedAutomation.runCount}`;
-  const session = await createSession({
+  const sessionResult = await createSession({
     title,
     type: 'automation',
     automationId: automation.id,
   });
+  if (isServiceError(sessionResult)) return sessionResult;
+  const session = sessionResult.data;
 
   const assistantMessageId = createMessageId();
   const sendResult = await sendMessage({
@@ -275,9 +277,7 @@ export async function runAutomation(
     modelId: automation.modelId,
     assistantMessageId,
   });
-  if ('error' in sendResult) {
-    return sendResult;
-  }
+  if (isServiceError(sendResult)) return sendResult;
 
   return ok({
     sessionId: session.id,

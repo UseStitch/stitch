@@ -11,6 +11,7 @@ import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
@@ -59,10 +60,18 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
     execute: async ({ title, task, toolsets: additionalToolsets }, { toolCallId }) => {
-      const childSession = await createSession({
+      const sessionResult = await createSession({
         title,
         parentSessionId: deps.parentSessionId,
       });
+      if (isServiceError(sessionResult)) {
+        return {
+          childSessionId: null,
+          childSessionName: null,
+          summary: `Task failed: could not create child session — ${sessionResult.error}`,
+        };
+      }
+      const childSession = sessionResult.data;
 
       const childSessionId = childSession.id;
 
