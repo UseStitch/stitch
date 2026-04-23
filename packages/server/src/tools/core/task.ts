@@ -149,6 +149,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           credentials: deps.credentials,
           abortSignal: childAbortSignal,
           activeToolsetIds: allToolsetIds,
+          allowTaskTool: false,
         });
 
         log.info(

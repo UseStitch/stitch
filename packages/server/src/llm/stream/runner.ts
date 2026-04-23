@@ -1249,10 +1249,13 @@ export async function runStream(opts: {
   abortSignal: AbortSignal;
   /** Toolset IDs to pre-activate (e.g. inherited from parent task) */
   activeToolsetIds?: string[];
+  /** Child sessions are not allowed to invoke task recursively. */
+  allowTaskTool?: boolean;
   model?: ReturnType<ReturnType<typeof createProvider>>;
   deps?: Partial<StreamRunnerDeps>;
 }): Promise<void> {
   const streamRunId = randomUUID();
+  const canUseTaskTool = opts.allowTaskTool ?? true;
 
   const toolContext = {
     sessionId: opts.sessionId,
@@ -1287,17 +1290,19 @@ export async function runStream(opts: {
     createToolsetTools(toolsetManager, toolContext.sessionId),
   );
 
-  // Build task tool (bound to this session's context)
-  const taskTool = withToolResultHandling(
-    createTaskTool(toolContext, {
-      parentSessionId: opts.sessionId,
-      parentAbortSignal: opts.abortSignal,
-      credentials: opts.credentials,
-      modelId: opts.modelId,
-      providerId: opts.credentials.providerId,
-      toolsetManager,
-    }),
-  );
+  // Build task tool (bound to this session's context), but never for child sessions.
+  const taskTool = canUseTaskTool
+    ? withToolResultHandling(
+        createTaskTool(toolContext, {
+          parentSessionId: opts.sessionId,
+          parentAbortSignal: opts.abortSignal,
+          credentials: opts.credentials,
+          modelId: opts.modelId,
+          providerId: opts.credentials.providerId,
+          toolsetManager,
+        }),
+      )
+    : null;
 
   // Build code mode tool with a lazy getter for always-current active tools.
   // The getter merges core tools + dynamic toolset tools at call time so
@@ -1305,7 +1310,12 @@ export async function runStream(opts: {
   const codeModeResult = createCodeModeTool({
     getTools: () => {
       const dynamic = toolsetManager.getActiveTools();
-      return { ...coreStitchTools, ...toolsetMetaTools, task: taskTool, ...dynamic };
+      return {
+        ...coreStitchTools,
+        ...toolsetMetaTools,
+        ...(taskTool ? { task: taskTool } : {}),
+        ...dynamic,
+      };
     },
   });
 
@@ -1313,7 +1323,7 @@ export async function runStream(opts: {
   const coreTools: Record<string, Tool> = {
     ...coreStitchTools,
     ...toolsetMetaTools,
-    task: taskTool,
+    ...(taskTool ? { task: taskTool } : {}),
     execute_typescript: codeModeResult.tool,
   };
 
