@@ -49,7 +49,9 @@ type SendMessageInput = {
   assistantMessageId: string;
 };
 
-export async function createSession(input: CreateSessionInput) {
+export async function createSession(
+  input: CreateSessionInput,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const id = createSessionId();
   const now = Date.now();
@@ -69,12 +71,19 @@ export async function createSession(input: CreateSessionInput) {
     })
     .returning();
 
-  return session;
+  return ok(session);
 }
 
-export async function listSessions(type: 'chat' | 'automation' = 'chat') {
+export async function listSessions(
+  type: 'chat' | 'automation' = 'chat',
+): Promise<ServiceResult<(typeof sessions.$inferSelect)[]>> {
   const db = getDb();
-  return db.select().from(sessions).where(eq(sessions.type, type)).orderBy(asc(sessions.createdAt));
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.type, type))
+    .orderBy(asc(sessions.createdAt));
+  return ok(rows);
 }
 
 export async function getSessionById(sessionId: PrefixedString<'ses'>) {
@@ -87,7 +96,7 @@ export async function listSessionMessages(
   sessionId: PrefixedString<'ses'>,
   limit?: number,
   cursor?: number,
-) {
+): Promise<ServiceResult<{ messages: (typeof messages.$inferSelect)[]; hasMore: boolean }>> {
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
@@ -106,16 +115,19 @@ export async function listSessionMessages(
   const hasMore = rows.length > pageSize;
   const page = hasMore ? rows.slice(0, pageSize) : rows;
   page.reverse();
-  return { messages: page, hasMore };
+  return ok({ messages: page, hasMore });
 }
 
-export async function deleteSession(sessionId: PrefixedString<'ses'>) {
+export async function deleteSession(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<{ id: string }>> {
   const db = getDb();
   const result = await db
     .delete(sessions)
     .where(eq(sessions.id, sessionId))
     .returning({ id: sessions.id });
-  return result.length > 0;
+  if (result.length === 0) return err('Session not found', 404);
+  return ok(result[0]);
 }
 
 export async function renameSession(sessionId: PrefixedString<'ses'>, title: string) {
