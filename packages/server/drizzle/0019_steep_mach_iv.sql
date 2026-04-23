@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` ADD `active_toolset_ids` blob DEFAULT '[]' NOT NULL;

@@ -32,8 +32,8 @@ import {
   agendaListsQueryOptions,
   useCreateAgendaList,
   useMergeAgendaLists,
-  useMoveAgendaItem,
   useReorderAgendaLists,
+  useUpdateAgendaItem,
 } from '@/lib/queries/agenda';
 import { cn } from '@/lib/utils';
 
@@ -158,7 +158,7 @@ export function AgendaSidebarContent() {
 
   const createListMutation = useCreateAgendaList();
   const mergeMutation = useMergeAgendaLists();
-  const moveMutation = useMoveAgendaItem();
+  const moveItemMutation = useUpdateAgendaItem();
   const reorderMutation = useReorderAgendaLists();
 
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -215,7 +215,7 @@ export function AgendaSidebarContent() {
     const itemId = e.dataTransfer.getData('application/x-agenda-item');
 
     if (itemId && mergeTargetId) {
-      moveMutation.mutate({ itemId, listId: mergeTargetId });
+      moveItemMutation.mutate({ id: itemId, updates: { listId: mergeTargetId } });
     } else if (listSourceId && mergeTargetId && listSourceId !== mergeTargetId) {
       mergeMutation.mutate(
         { targetId: mergeTargetId, sourceId: listSourceId },
@@ -241,7 +241,7 @@ export function AgendaSidebarContent() {
   }
 
   function handleMoveItem(itemId: string, listId: string) {
-    moveMutation.mutate({ itemId, listId });
+    moveItemMutation.mutate({ id: itemId, updates: { listId } });
   }
 
   function handleCreateList() {

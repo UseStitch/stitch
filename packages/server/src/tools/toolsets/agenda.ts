@@ -9,23 +9,41 @@ import {
   createAgendaList,
   getAgendaItem,
   getAgendaItems,
+  getAgendaListByName,
   getAgendaLists,
   updateAgendaItem,
 } from '@/agenda/service.js';
-import { listSettings } from '@/settings/service.js';
 import { isServiceError } from '@/lib/service-result.js';
+import { listSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const AGENDA_TOOLSET_ID = 'agenda';
 
+const dateFormattersCache = new Map<string, Intl.DateTimeFormat>();
+
+function getDateFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = dateFormattersCache.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone,
+    });
+    dateFormattersCache.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 function parseDueDate(dateStr: string, timeZone: string): number | null {
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
   if (isDateOnly) {
     const [year, month, day] = dateStr.split('-').map(Number);
     const utcNoon = Date.UTC(year, month - 1, day, 12, 0, 0);
-    const formatter = new Intl.DateTimeFormat('en-US', {
+
+    const tzFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
       hour: '2-digit',
       day: '2-digit',
@@ -39,7 +57,7 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
     });
 
     const probe = new Date(utcNoon);
-    const tzParts = formatter.formatToParts(probe);
+    const tzParts = tzFormatter.formatToParts(probe);
     const utcParts = utcFormatter.formatToParts(probe);
 
     const tzHour = Number(tzParts.find((p) => p.type === 'hour')?.value ?? 0);
@@ -58,7 +76,7 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
-async function getUserTimezone(): Promise<string> {
+async function resolveUserTimezone(): Promise<string> {
   const settingsResult = await listSettings();
   if (isServiceError(settingsResult)) return 'UTC';
   return settingsResult.data['profile.timezone'] || 'UTC';
@@ -73,7 +91,7 @@ const TOOL_SUMMARIES = [
   { name: 'agenda_list_lists', description: 'Show all agenda lists with counts' },
 ];
 
-function createAgendaTools(context: ToolContext) {
+function createAgendaTools(context: ToolContext, userTimezone: string) {
   const agenda_add_item = tool({
     description: `Create a new agenda item. Requires a title. Optionally set priority (low/medium/high/urgent), dueAt (ISO date), listName (auto-creates list if missing), and description.
 
@@ -99,13 +117,12 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         .describe('Due date in ISO 8601 format (e.g. "2025-01-15T09:00:00Z")'),
     }),
     execute: async (input) => {
-      const userTimezone = await getUserTimezone();
       const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : null;
       if (input.dueAt && dueAt === null) {
         return { output: 'Invalid due date format. Use ISO 8601 (e.g. "2025-01-15T09:00:00Z").' };
       }
 
-      const item = await createAgendaItem({
+      const result = createAgendaItem({
         title: input.title,
         description: input.description,
         priority: input.priority,
@@ -115,6 +132,11 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         sourceMessageId: context.messageId,
       });
 
+      if (isServiceError(result)) {
+        return { output: `Failed to create item: ${result.error}` };
+      }
+
+      const item = result.data;
       const parts = [
         `Added "${item.title}" (id: ${item.id})`,
         `List: ${item.listName ?? 'General'}`,
@@ -122,9 +144,7 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         `Status: ${item.status}`,
       ];
       if (item.dueAt) {
-        parts.push(
-          `Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
-        );
+        parts.push(`Due: ${getDateFormatter(userTimezone).format(new Date(item.dueAt))}`);
       }
 
       return { output: parts.join('\n') };
@@ -144,14 +164,13 @@ Use when the user asks to mark something as done, change priority, reschedule, o
       dueAt: z.string().optional().describe('New due date in ISO 8601, or empty string to clear'),
     }),
     execute: async (input) => {
-      const userTimezone = await getUserTimezone();
       const dueAt = input.dueAt
         ? parseDueDate(input.dueAt, userTimezone)
         : input.dueAt === ''
           ? null
           : undefined;
 
-      const item = await updateAgendaItem(
+      const result = updateAgendaItem(
         input.itemId as PrefixedString<'aitm'>,
         {
           title: input.title,
@@ -163,10 +182,11 @@ Use when the user asks to mark something as done, change priority, reschedule, o
         context.sessionId,
       );
 
-      if (!item) {
+      if (isServiceError(result)) {
         return { output: `No agenda item found with id: ${input.itemId}` };
       }
 
+      const item = result.data;
       return {
         output: `Updated "${item.title}" (id: ${item.id})\nStatus: ${item.status} | Priority: ${item.priority}`,
       };
@@ -183,12 +203,10 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
       filterPriority: z.enum(AGENDA_ITEM_PRIORITIES).optional().describe('Filter by priority'),
     }),
     execute: async (input) => {
-      const userTimezone = await getUserTimezone();
       let listId: PrefixedString<'alist'> | undefined;
       if (input.listName) {
-        const lists = await getAgendaLists();
-        const match = lists.find((l) => l.name.toLowerCase() === input.listName!.toLowerCase());
-        if (match) listId = match.id;
+        const listResult = getAgendaListByName(input.listName);
+        if (!isServiceError(listResult) && listResult.data) listId = listResult.data.id;
       }
 
       const result = await getAgendaItems({
@@ -199,19 +217,23 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
         pageSize: 50,
       });
 
-      if (result.items.length === 0) {
+      if (isServiceError(result)) {
+        return { output: `Failed to list items: ${result.error}` };
+      }
+
+      const { items, total } = result.data;
+      if (items.length === 0) {
         return { output: 'No agenda items found matching the filters.' };
       }
 
-      const lines = result.items.map((item) => {
-        const due = item.dueAt
-          ? ` | Due: ${new Date(item.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`
-          : '';
+      const formatter = getDateFormatter(userTimezone);
+      const lines = items.map((item) => {
+        const due = item.dueAt ? ` | Due: ${formatter.format(new Date(item.dueAt))}` : '';
         return `- [${item.status}] [${item.priority}] ${item.title} (id: ${item.id}, list: ${item.listName ?? 'Unknown'}${due})`;
       });
 
       return {
-        output: `${result.total} item(s) found\n${lines.join('\n')}`,
+        output: `${total} item(s) found\n${lines.join('\n')}`,
       };
     },
   });
@@ -224,26 +246,22 @@ Use when the user wants to see the complete information about a specific item.`,
       itemId: z.string().describe('The ID of the agenda item'),
     }),
     execute: async (input) => {
-      const userTimezone = await getUserTimezone();
-      const detail = await getAgendaItem(input.itemId as PrefixedString<'aitm'>);
-      if (!detail) {
+      const result = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
+      if (isServiceError(result)) {
         return { output: `No agenda item found with id: ${input.itemId}` };
       }
 
+      const detail = result.data;
+      const formatter = getDateFormatter(userTimezone);
       const parts = [
         `Title: ${detail.title}`,
         `List: ${detail.listName ?? 'Unknown'}`,
         `Status: ${detail.status} | Priority: ${detail.priority}`,
       ];
       if (detail.description) parts.push(`Description: ${detail.description}`);
-      if (detail.dueAt)
-        parts.push(
-          `Due: ${new Date(detail.dueAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
-        );
+      if (detail.dueAt) parts.push(`Due: ${formatter.format(new Date(detail.dueAt))}`);
       if (detail.completedAt)
-        parts.push(
-          `Completed: ${new Date(detail.completedAt).toLocaleDateString('en-US', { timeZone: userTimezone })}`,
-        );
+        parts.push(`Completed: ${formatter.format(new Date(detail.completedAt))}`);
 
       return { output: parts.join('\n') };
     },
@@ -258,11 +276,16 @@ Use when the user wants to organize items into a new list/topic.`,
       description: z.string().optional().describe('Optional description for the list'),
     }),
     execute: async (input) => {
-      const list = await createAgendaList({
+      const result = createAgendaList({
         name: input.name,
         description: input.description,
       });
 
+      if (isServiceError(result)) {
+        return { output: `Failed to create list: ${result.error}` };
+      }
+
+      const list = result.data;
       return { output: `Created list "${list.name}" (id: ${list.id})` };
     },
   });
@@ -273,7 +296,12 @@ Use when the user wants to organize items into a new list/topic.`,
 Use when the user wants to see what lists exist or get an overview of their agenda.`,
     inputSchema: z.object({}),
     execute: async () => {
-      const lists = await getAgendaLists();
+      const result = getAgendaLists();
+      if (isServiceError(result)) {
+        return { output: `Failed to list agenda lists: ${result.error}` };
+      }
+
+      const lists = result.data;
       if (lists.length === 0) {
         return { output: 'No agenda lists yet. Create one with agenda_create_list.' };
       }
@@ -312,7 +340,8 @@ export function createAgendaToolset(): Toolset {
     ].join('\n'),
     tools: () => TOOL_SUMMARIES,
     activate: async (context: ToolContext) => {
-      return createAgendaTools(context) as unknown as Record<string, Tool>;
+      const userTimezone = await resolveUserTimezone();
+      return createAgendaTools(context, userTimezone) as unknown as Record<string, Tool>;
     },
   };
 }

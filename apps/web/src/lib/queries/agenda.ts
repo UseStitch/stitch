@@ -81,7 +81,7 @@ export function useCreateAgendaList() {
       return res.json();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
       toast.success('List created');
     },
     onError: (err) => toast.error(err.message),
@@ -108,7 +108,7 @@ export function useUpdateAgendaList() {
       return res.json();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
+      void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
       toast.success('List updated');
     },
     onError: (err) => toast.error(err.message),
@@ -127,6 +127,7 @@ export function useDeleteAgendaList() {
       }
     },
     onSuccess: () => {
+      // Items are cascade-deleted, so both caches are stale
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('List deleted');
     },
@@ -159,6 +160,7 @@ export function useCreateAgendaItem() {
       return res.json();
     },
     onSuccess: () => {
+      // New item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('Item created');
     },
@@ -192,8 +194,15 @@ export function useUpdateAgendaItem() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
+    onSuccess: (_data, variables) => {
+      // Status changes affect list counts; listId moves affect both caches
+      const touchesListCounts =
+        variables.updates.status !== undefined || variables.updates.listId !== undefined;
+      if (touchesListCounts) {
+        void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
+      } else {
+        void queryClient.invalidateQueries({ queryKey: agendaKeys.items() });
+      }
       toast.success('Item updated');
     },
     onError: (err) => toast.error(err.message),
@@ -212,6 +221,7 @@ export function useDeleteAgendaItem() {
       }
     },
     onSuccess: () => {
+      // Deleted item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('Item deleted');
     },
@@ -238,30 +248,6 @@ export function useMergeAgendaLists() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('Lists merged');
-    },
-    onError: (err) => toast.error(err.message),
-  });
-}
-
-export function useMoveAgendaItem() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: { itemId: string; listId: string }) => {
-      const res = await serverFetch(`/agenda/items/${input.itemId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listId: input.listId }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to move item');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
-      toast.success('Item moved');
     },
     onError: (err) => toast.error(err.message),
   });

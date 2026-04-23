@@ -23,6 +23,7 @@ import {
   STATUS_LABELS,
   STATUS_VARIANTS,
 } from '@/components/agenda/constants';
+import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -57,22 +58,6 @@ import {
   useUpdateAgendaItem,
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
-import { settingsQueryOptions } from '@/lib/queries/settings';
-
-function useUserTimezone(): string {
-  const { data: settings } = useQuery(settingsQueryOptions);
-  return settings?.['profile.timezone'] || Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-function formatDateInTz(ts: number, timeZone: string): string {
-  return new Date(ts).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone,
-  });
-}
-
 type FilterStatus = AgendaItemStatus | 'all';
 type FilterPriority = AgendaItemPriority | 'all';
 
@@ -210,36 +195,19 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
   function handleBulkDelete() {
     const ids = Array.from(selectedIds);
-    let completed = 0;
-    for (const id of ids) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          completed++;
-          if (completed === ids.length) {
-            setSelectedIds(new Set());
-            setBulkDeleteOpen(false);
-          }
-        },
-      });
-    }
+    void Promise.allSettled(ids.map((id) => deleteMutation.mutateAsync(id))).then(() => {
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+    });
   }
 
   function handleBulkMarkDone() {
     const ids = Array.from(selectedIds);
-    let completed = 0;
-    for (const id of ids) {
-      updateMutation.mutate(
-        { id, updates: { status: 'done' } },
-        {
-          onSuccess: () => {
-            completed++;
-            if (completed === ids.length) {
-              setSelectedIds(new Set());
-            }
-          },
-        },
-      );
-    }
+    void Promise.allSettled(
+      ids.map((id) => updateMutation.mutateAsync({ id, updates: { status: 'done' } })),
+    ).then(() => {
+      setSelectedIds(new Set());
+    });
   }
 
   function handleDateChange(itemId: string, dueAt: number | null) {
