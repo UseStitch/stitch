@@ -12,9 +12,11 @@ function clearToolsets(): void {
   }
 }
 
+const TEST_SESSION_ID = 'ses_test' as never;
+
 function createManager(): ToolsetManager {
   return new ToolsetManager({
-    sessionId: 'ses_test' as never,
+    sessionId: TEST_SESSION_ID,
     messageId: 'msg_test' as never,
     streamRunId: 'run_test',
   });
@@ -48,7 +50,7 @@ describe('toolset management tools', () => {
   test('list_toolsets returns catalog when called without toolsetId', async () => {
     registerTestToolset();
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     const result = await tools.list_toolsets.execute?.({}, {} as never);
 
     expect(result).toMatchObject({
@@ -67,7 +69,7 @@ describe('toolset management tools', () => {
   test('activate_toolset omits verbose details by default', async () => {
     registerTestToolset();
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     const result = await tools.activate_toolset.execute?.(
       { toolsetId: 'test-toolset' },
       {} as never,
@@ -89,7 +91,7 @@ describe('toolset management tools', () => {
   test('activate_toolset already_active response does not include deactivation nudge', async () => {
     registerTestToolset();
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
     const result = await tools.activate_toolset.execute?.(
       { toolsetId: 'test-toolset' },
@@ -103,7 +105,7 @@ describe('toolset management tools', () => {
   test('activate_toolset includes details when verbose=true', async () => {
     registerTestToolset();
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     const result = await tools.activate_toolset.execute?.(
       {
         toolsetId: 'test-toolset',
@@ -122,7 +124,7 @@ describe('toolset management tools', () => {
 
   test('list_toolsets throws when unknown toolsetId is requested', async () => {
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
     await expect(
       tools.list_toolsets.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
@@ -131,7 +133,7 @@ describe('toolset management tools', () => {
 
   test('activate_toolset throws when unknown toolsetId is requested', async () => {
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
     await expect(
       tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
@@ -162,7 +164,7 @@ describe('toolset management tools', () => {
     } satisfies Toolset);
 
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'first-toolset' }, {} as never);
     const result = (await tools.activate_toolset.execute?.(
       { toolsetId: 'second-toolset' },
@@ -191,7 +193,7 @@ describe('toolset management tools', () => {
     } satisfies Toolset);
 
     const manager = createManager();
-    const tools = createToolsetTools(manager);
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'no-overlap-a' }, {} as never);
     const result = (await tools.activate_toolset.execute?.(
       { toolsetId: 'no-overlap-b' },
@@ -230,7 +232,7 @@ describe('toolset management tools', () => {
 
     test('filters by name match', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
       const result = (await tools.list_toolsets.execute?.({ query: 'browser' }, {} as never)) as {
         toolsets: { id: string }[];
         totalAvailable: number;
@@ -243,7 +245,7 @@ describe('toolset management tools', () => {
 
     test('filters by description match', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
       const result = (await tools.list_toolsets.execute?.({ query: 'sql' }, {} as never)) as {
         toolsets: { id: string }[];
         totalAvailable: number;
@@ -256,8 +258,11 @@ describe('toolset management tools', () => {
 
     test('filters by id match', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
-      const result = (await tools.list_toolsets.execute?.({ query: 'email-sender' }, {} as never)) as {
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
+      const result = (await tools.list_toolsets.execute?.(
+        { query: 'email-sender' },
+        {} as never,
+      )) as {
         toolsets: { id: string }[];
         totalAvailable: number;
       };
@@ -269,7 +274,7 @@ describe('toolset management tools', () => {
 
     test('returns empty array with totalAvailable when no match', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
       const result = (await tools.list_toolsets.execute?.(
         { query: 'xyz_nomatch' },
         {} as never,
@@ -284,7 +289,7 @@ describe('toolset management tools', () => {
 
     test('returns full catalog without totalAvailable when no query provided', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
       const result = (await tools.list_toolsets.execute?.({}, {} as never)) as {
         toolsets: { id: string }[];
         totalAvailable?: number;
@@ -296,7 +301,7 @@ describe('toolset management tools', () => {
 
     test('toolsetId takes precedence over query when both provided', async () => {
       const manager = createManager();
-      const tools = createToolsetTools(manager);
+      const tools = createToolsetTools(manager, TEST_SESSION_ID);
       const result = (await tools.list_toolsets.execute?.(
         { toolsetId: 'browser-toolset', query: 'database' },
         {} as never,

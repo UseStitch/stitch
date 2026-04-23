@@ -114,6 +114,10 @@ export const sessions = sqliteTable('sessions', {
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),
   isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
+  activeToolsetIds: blob('active_toolset_ids', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default([]),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

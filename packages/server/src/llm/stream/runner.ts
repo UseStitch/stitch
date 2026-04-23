@@ -1263,17 +1263,29 @@ export async function runStream(opts: {
   // Create per-session toolset manager
   const toolsetManager = new ToolsetManager(toolContext);
 
-  // Pre-activate requested toolsets (inherited from parent or explicit)
+  // Pre-activate toolsets persisted from the previous turn (or explicitly passed for sub-tasks)
   const toolsetIdsToActivate = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
   if (toolsetIdsToActivate.length > 0) {
-    await Promise.all(toolsetIdsToActivate.map((id) => toolsetManager.activate(id)));
+    await Promise.all(
+      toolsetIdsToActivate.map(async (id) => {
+        const result = await toolsetManager.activate(id);
+        if (result.status === 'not_found' || result.status === 'disabled') {
+          log.warn(
+            { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
+            'failed to restore previously active toolset — skipping',
+          );
+        }
+      }),
+    );
   }
 
   // Build always-active core tools
   const coreStitchTools = await createTools(toolContext);
 
   // Build meta-tools (bound to this session's toolset manager)
-  const toolsetMetaTools = withToolResultHandlingRecord(createToolsetTools(toolsetManager));
+  const toolsetMetaTools = withToolResultHandlingRecord(
+    createToolsetTools(toolsetManager, toolContext.sessionId),
+  );
 
   // Build task tool (bound to this session's context)
   const taskTool = withToolResultHandling(

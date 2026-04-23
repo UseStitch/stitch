@@ -1,19 +1,39 @@
+import { eq } from 'drizzle-orm';
+
 import type { PrefixedString } from '@stitch/shared/id';
 
-const activeToolsetsBySession = new Map<PrefixedString<'ses'>, Set<string>>();
+import { getDb, isDbInitialized } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+
+// Fallback used only when DB is not initialized (e.g. unit tests).
+const inMemoryFallback = new Map<string, string[]>();
 
 export function getSessionActiveToolsetIds(sessionId: PrefixedString<'ses'>): string[] {
-  return [...(activeToolsetsBySession.get(sessionId) ?? new Set<string>())];
+  if (!isDbInitialized()) return inMemoryFallback.get(sessionId) ?? [];
+  const row = getDb()
+    .select({ activeToolsetIds: sessions.activeToolsetIds })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId))
+    .get();
+  return row?.activeToolsetIds ?? [];
 }
 
 export function setSessionActiveToolsetIds(
   sessionId: PrefixedString<'ses'>,
   toolsetIds: Iterable<string>,
 ): void {
-  const ids = new Set(toolsetIds);
-  if (ids.size === 0) {
-    activeToolsetsBySession.delete(sessionId);
+  const ids = [...toolsetIds];
+  if (!isDbInitialized()) {
+    if (ids.length === 0) {
+      inMemoryFallback.delete(sessionId);
+    } else {
+      inMemoryFallback.set(sessionId, ids);
+    }
     return;
   }
-  activeToolsetsBySession.set(sessionId, ids);
+  getDb()
+    .update(sessions)
+    .set({ activeToolsetIds: ids, updatedAt: Date.now() })
+    .where(eq(sessions.id, sessionId))
+    .run();
 }

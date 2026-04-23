@@ -1,6 +1,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import type { PrefixedString } from '@stitch/shared/id';
+
+import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -9,7 +12,7 @@ import { getToolset } from '@/tools/toolsets/registry.js';
  * Create the three toolset management meta-tools bound to a specific ToolsetManager instance.
  * These are always-active tools that let the LLM discover, activate, and deactivate toolsets.
  */
-export function createToolsetTools(manager: ToolsetManager) {
+export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedString<'ses'>) {
   const humanizeToolName = (name: string) =>
     name
       .split(/[_-]+/)
@@ -117,6 +120,8 @@ export function createToolsetTools(manager: ToolsetManager) {
         );
       }
 
+      setSessionActiveToolsetIds(sessionId, manager.getActiveIds());
+
       const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
       const shouldIncludeVerbose = verbose === true;
@@ -161,6 +166,8 @@ export function createToolsetTools(manager: ToolsetManager) {
           message: `Toolset "${toolsetId}" was not active.`,
         };
       }
+
+      setSessionActiveToolsetIds(sessionId, manager.getActiveIds());
 
       return {
         toolsetId,
