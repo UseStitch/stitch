@@ -358,6 +358,7 @@ export async function sendMessage(
     llmMessages,
     credentials: config.credentials,
     abortSignal,
+    allowTaskTool: session.parentSessionId === null,
   })
     .catch((error) => {
       log.error(
