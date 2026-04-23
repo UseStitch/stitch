@@ -5,7 +5,6 @@ import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { markSessionUnread } from '@/chat/service.js';
-import { createCodeModeTool } from '@/code-mode/tool.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -23,16 +22,11 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import {
-  getSessionActiveToolsetIds,
-  setSessionActiveToolsetIds,
-} from '@/llm/stream/session-toolsets.js';
+import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
+import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { processMemories } from '@/memory/processor.js';
-import { createTaskTool } from '@/tools/core/task.js';
-import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
-import { withToolResultHandling, withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
+import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -1255,88 +1249,22 @@ export async function runStream(opts: {
   deps?: Partial<StreamRunnerDeps>;
 }): Promise<void> {
   const streamRunId = randomUUID();
-  const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const toolContext = {
+  const assembler = ToolAssembler.create({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,
-  };
-
-  // Create per-session toolset manager
-  const toolsetManager = new ToolsetManager(toolContext);
-
-  // Pre-activate toolsets persisted from the previous turn (or explicitly passed for sub-tasks)
-  const toolsetIdsToActivate = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
-  if (toolsetIdsToActivate.length > 0) {
-    await Promise.all(
-      toolsetIdsToActivate.map(async (id) => {
-        const result = await toolsetManager.activate(id);
-        if (result.status === 'not_found' || result.status === 'disabled') {
-          log.warn(
-            { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
-            'failed to restore previously active toolset — skipping',
-          );
-        }
-      }),
-    );
-  }
-
-  // Build always-active core tools
-  const coreStitchTools = await createTools(toolContext);
-
-  // Build meta-tools (bound to this session's toolset manager)
-  const toolsetMetaTools = withToolResultHandlingRecord(
-    createToolsetTools(toolsetManager, toolContext.sessionId),
-  );
-
-  // Build task tool (bound to this session's context), but never for child sessions.
-  const taskTool = canUseTaskTool
-    ? withToolResultHandling(
-        createTaskTool(toolContext, {
-          parentSessionId: opts.sessionId,
-          parentAbortSignal: opts.abortSignal,
-          credentials: opts.credentials,
-          modelId: opts.modelId,
-          providerId: opts.credentials.providerId,
-          toolsetManager,
-        }),
-      )
-    : null;
-
-  // Build code mode tool with a lazy getter for always-current active tools.
-  // The getter merges core tools + dynamic toolset tools at call time so
-  // newly activated toolsets are available inside the sandbox.
-  const codeModeResult = createCodeModeTool({
-    getTools: () => {
-      const dynamic = toolsetManager.getActiveTools();
-      return {
-        ...coreStitchTools,
-        ...toolsetMetaTools,
-        ...(taskTool ? { task: taskTool } : {}),
-        ...dynamic,
-      };
-    },
+    credentials: opts.credentials,
+    modelId: opts.modelId,
+    abortSignal: opts.abortSignal,
+    activeToolsetIds: opts.activeToolsetIds,
+    allowTaskTool: opts.allowTaskTool,
   });
 
-  // Combine all always-active tools
-  const coreTools: Record<string, Tool> = {
-    ...coreStitchTools,
-    ...toolsetMetaTools,
-    ...(taskTool ? { task: taskTool } : {}),
-    execute_typescript: codeModeResult.tool,
-  };
+  const { coreTools, toolsetManager, codeModeSystemPrompt } = await assembler.assemble();
 
   const messages = opts.llmMessages;
-  const codeModePrompt = codeModeResult.getSystemPrompt();
-  if (messages.length > 0 && messages[0]?.role === 'system') {
-    const sysMsg = messages[0];
-    const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    messages[0] = {
-      role: 'system',
-      content: `${existingContent}\n\n${codeModePrompt}`,
-    };
-  }
+  appendToSystemPrompt(messages, codeModeSystemPrompt);
 
   const transformedMessages = await transformAttachmentsForModel(
     messages,
@@ -1355,4 +1283,10 @@ export async function runStream(opts: {
     opts.deps,
   );
   await runner.run();
+}
+
+function appendToSystemPrompt(messages: ModelMessage[], suffix: string): void {
+  if (messages.length === 0 || messages[0]?.role !== 'system') return;
+  const existing = typeof messages[0].content === 'string' ? messages[0].content : '';
+  messages[0] = { role: 'system', content: `${existing}\n\n${suffix}` };
 }
