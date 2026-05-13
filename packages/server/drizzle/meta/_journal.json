@@ -141,6 +141,13 @@
       "when": 1776910380189,
       "tag": "0019_steep_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1778712024721,
+      "tag": "0020_acoustic_longshot",
+      "breakpoints": true
     }
   ]
 }

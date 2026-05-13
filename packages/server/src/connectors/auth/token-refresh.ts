@@ -3,7 +3,7 @@ import { eq, and, isNotNull, lt } from 'drizzle-orm';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
+import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
@@ -61,6 +61,7 @@ export async function refreshExpiringTokens(): Promise<void> {
           refreshToken: tokens.refreshToken ?? instance.refreshToken,
           tokenExpiresAt: tokens.expiresIn ? now + tokens.expiresIn * 1000 : null,
           status: 'connected',
+          authIssue: null,
           updatedAt: Date.now(),
         })
         .where(eq(connectorInstances.id, instance.id));
@@ -71,15 +72,30 @@ export async function refreshExpiringTokens(): Promise<void> {
       );
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
+      const requiresReauth = requiresOAuthReauth(e);
       log.error(
-        { event: 'token-refresh.failed', instanceId: instance.id, error: message },
-        `Token refresh failed for ${instance.label}`,
+        {
+          event: 'token-refresh.failed',
+          instanceId: instance.id,
+          label: instance.label,
+          requiresReauth,
+          error: message,
+        },
+        requiresReauth
+          ? `Token refresh failed for ${instance.label} and requires reauthorization`
+          : `Token refresh failed for ${instance.label}`,
       );
 
-      await db
-        .update(connectorInstances)
-        .set({ status: 'error', updatedAt: Date.now() })
-        .where(eq(connectorInstances.id, instance.id));
+      if (requiresReauth) {
+        await db
+          .update(connectorInstances)
+          .set({
+            status: 'error',
+            authIssue: 'reauthorization_required',
+            updatedAt: Date.now(),
+          })
+          .where(eq(connectorInstances.id, instance.id));
+      }
     }
   }
 }

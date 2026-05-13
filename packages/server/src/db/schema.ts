@@ -507,6 +507,7 @@ export const connectorInstances = sqliteTable(
     tokenExpiresAt: integer('token_expires_at', { mode: 'number' }),
     scopes: blob('scopes', { mode: 'json' }).$type<string[]>(),
     status: text('status').$type<ConnectorStatus>().notNull().default('pending_setup'),
+    authIssue: text('auth_issue').$type<'reauthorization_required' | 'temporary_failure'>(),
     accountEmail: text('account_email'),
     accountInfo: blob('account_info', { mode: 'json' }).$type<Record<string, unknown>>(),
     createdAt: integer('created_at', { mode: 'number' })

@@ -10,6 +10,8 @@ export type ConnectorUpgradeAction = 'none' | 'reauthorize' | 'rotate_api_key';
 
 export type ConnectorStatus = 'pending_setup' | 'awaiting_auth' | 'connected' | 'error';
 
+export type ConnectorAuthIssue = 'reauthorization_required' | 'temporary_failure';
+
 export type ConnectorSetupInstruction = {
   text: string;
   href?: string;
@@ -81,6 +83,7 @@ export type ConnectorInstance = {
   tokenExpiresAt: number | null;
   scopes: string[] | null;
   status: ConnectorStatus;
+  authIssue: ConnectorAuthIssue | null;
   accountEmail: string | null;
   accountInfo: Record<string, unknown> | null;
   createdAt: number;
