@@ -24,8 +24,16 @@ const config: KnipConfig = {
       entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
+    'packages/audio-capture': {
+      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+      project: ['src/**/*.{ts,tsx}'],
+    },
     'connectors/*': {
-      entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}', 'src/__test__/**/*.test.{ts,tsx}'],
+      project: ['src/**/*.{ts,tsx}'],
+    },
+    'connectors/sdk': {
+      entry: ['src/index.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
   },
@@ -40,7 +48,7 @@ const config: KnipConfig = {
     'tailwindcss',
     '@tailwindcss/typography',
   ],
-  ignoreBinaries: ['gh'],
+  ignoreBinaries: [],
 };
 
 export default config;
