@@ -1,4 +1,5 @@
-import { newQuickJSAsyncWASMModule } from 'quickjs-emscripten';
+import quickJSVariant from '@jitl/quickjs-singlefile-mjs-release-asyncify';
+import { newQuickJSAsyncWASMModuleFromVariant } from 'quickjs-emscripten-core';
 
 import type {
   IsolateContext,
@@ -38,7 +39,7 @@ export function createQuickJSDriver(): IsolateDriver {
       const memoryLimitMb = options.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
 
-      const module = await newQuickJSAsyncWASMModule();
+      const module = await newQuickJSAsyncWASMModuleFromVariant(quickJSVariant);
       const runtime = module.newRuntime();
       runtime.setMemoryLimit(memoryLimitMb * 1024 * 1024);
       runtime.setMaxStackSize(MAX_STACK_SIZE);
