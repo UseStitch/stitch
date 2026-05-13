@@ -3,6 +3,20 @@ import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-update
 
 import type { BrowserWindow } from 'electron';
 
+const NETWORK_ERROR_CODES = [
+  'ERR_INTERNET_DISCONNECTED',
+  'ERR_NETWORK_CHANGED',
+  'ERR_NAME_NOT_RESOLVED',
+  'ERR_CONNECTION_REFUSED',
+  'ERR_CONNECTION_TIMED_OUT',
+  'ENOTFOUND',
+  'ECONNREFUSED',
+];
+
+function isNetworkError(error: Error): boolean {
+  return NETWORK_ERROR_CODES.some((code) => error.message.includes(code));
+}
+
 type UpdaterStatus =
   | 'idle'
   | 'checking'
@@ -82,6 +96,10 @@ export function createUpdater(options: UpdaterOptions) {
     });
 
     autoUpdater.on('error', (error) => {
+      if (isNetworkError(error)) {
+        emit({ status: 'idle' });
+        return;
+      }
       emit({ status: 'error', error: error.message });
     });
   }
@@ -96,6 +114,10 @@ export function createUpdater(options: UpdaterOptions) {
       await autoUpdater.checkForUpdates();
       return state;
     } catch (error) {
+      if (error instanceof Error && isNetworkError(error)) {
+        emit({ status: 'idle' });
+        return state;
+      }
       const message = error instanceof Error ? error.message : String(error);
       emit({ status: 'error', error: message });
       return state;
