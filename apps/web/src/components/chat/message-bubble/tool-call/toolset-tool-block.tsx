@@ -149,13 +149,7 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
   const detail = toolName === 'list_toolsets' ? getToolsetDetail(result) : null;
   const label = getToolLabel(status, error);
   const hasExpandedResults = toolName === 'list_toolsets' && (catalog?.length || detail);
-  const [open, setOpen] = React.useState(Boolean(hasExpandedResults && !isActive));
-
-  React.useEffect(() => {
-    if (hasExpandedResults && !isActive) {
-      setOpen(true);
-    }
-  }, [hasExpandedResults, isActive]);
+  const [open, setOpen] = React.useState(false);
 
   const description = isActive
     ? toolsetId
