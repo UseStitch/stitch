@@ -18,11 +18,16 @@ const MAX_FILE_BYTES = 512 * 1024;
 const DESCRIPTION = `Fast content search tool using regular expressions.
 
 Usage:
+- Use this to search inside files by text or regex.
+- Do not use this to find files by name or extension; use glob for that.
 - Searches file contents using regex pattern.
 - include filters files by pattern (example: "*.ts" or "**/*.{ts,tsx}").
 - Always provide a narrow absolute directory in path. Do not search the entire computer.
 - Keep searches scoped and specific for performance.
-- For very large repos, run multiple focused searches instead of one broad scan.`;
+- For very large repos, run multiple focused searches instead of one broad scan.
+
+Example:
+- To find calls to \`buildSystemPrompt\`, search the relevant source directory with pattern \`buildSystemPrompt\` and include \`*.ts\`.`;
 
 const grepInputSchema = z.object({
   pattern: z.string().describe('The regex pattern to search for in file contents'),

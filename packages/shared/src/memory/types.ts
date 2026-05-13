@@ -1,4 +1,4 @@
-export const MEMORY_CATEGORIES = ['preference', 'fact', 'workflow', 'constraint'] as const;
+export const MEMORY_CATEGORIES = ['preference', 'fact', 'constraint'] as const;
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
 export const MEMORY_CONFIDENCES = ['stated', 'inferred', 'confirmed'] as const;

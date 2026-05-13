@@ -72,6 +72,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         description: toolset.description,
         icon: toolset.icon ?? null,
         active: manager.isActive(toolsetId),
+        persisted: manager.isPersisted(toolsetId),
         hasInstructions: !!toolset.instructions,
         promptCount: toolset.prompts?.length ?? 0,
         prompts:
@@ -90,21 +91,35 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
   });
 
   const activate_toolset = tool({
-    description: `Activate a toolset to make its tools callable. Activate only what you need. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
+    description: `Activate a toolset to make its tools callable. Activation applies to the current run by default. Set persist=true only when the toolset should stay active for future turns in this session. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
     inputSchema: z.object({
       toolsetId: z.string().describe('The toolset ID to activate (e.g. "browser")'),
+      persist: z
+        .boolean()
+        .optional()
+        .describe('Keep this toolset active for future turns in the same session.'),
       verbose: z
         .boolean()
         .optional()
         .describe('Include full toolset instructions and prompt metadata in the response.'),
     }),
-    execute: async ({ toolsetId, verbose }) => {
+    execute: async ({ toolsetId, persist, verbose }) => {
       if (manager.isActive(toolsetId)) {
+        const wasPersisted = manager.isPersisted(toolsetId);
+        if (persist === true) {
+          manager.pin(toolsetId);
+          setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
+        }
+
         return {
           toolsetId,
           status: 'already_active',
           icon: getToolset(toolsetId)?.icon ?? null,
-          message: `Toolset "${toolsetId}" is already active.`,
+          persisted: manager.isPersisted(toolsetId),
+          message:
+            persist === true && !wasPersisted
+              ? `Toolset "${toolsetId}" is already active and will now persist for future turns.`
+              : `Toolset "${toolsetId}" is already active.`,
         };
       }
 
@@ -120,19 +135,26 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         );
       }
 
-      setSessionActiveToolsetIds(sessionId, manager.getActiveIds());
+      if (persist === true) {
+        manager.pin(toolsetId);
+        setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
+      }
 
       const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
       const shouldIncludeVerbose = verbose === true;
+      const persisted = manager.isPersisted(toolsetId);
 
       return {
         toolsetId,
         status: 'activated',
+        persisted,
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: `Toolset "${toolsetId}" activated. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`,
+        message: persisted
+          ? `Toolset "${toolsetId}" activated and will persist for future turns. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`
+          : `Toolset "${toolsetId}" activated for this run only. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean. Set persist=true on activation only when you expect to need it again in future turns.`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,
@@ -167,7 +189,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         };
       }
 
-      setSessionActiveToolsetIds(sessionId, manager.getActiveIds());
+      setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
 
       return {
         toolsetId,

@@ -957,7 +957,7 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
-    setSessionActiveToolsetIds(this.ctx.sessionId, this.ctx.toolsetManager.getActiveIds());
+    setSessionActiveToolsetIds(this.ctx.sessionId, this.ctx.toolsetManager.getPersistedIds());
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
@@ -1264,10 +1264,11 @@ export async function runStream(opts: {
   };
 
   // Create per-session toolset manager
-  const toolsetManager = new ToolsetManager(toolContext);
+  const persistedToolsetIds = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
+  const toolsetManager = new ToolsetManager(toolContext, persistedToolsetIds);
 
   // Pre-activate toolsets persisted from the previous turn (or explicitly passed for sub-tasks)
-  const toolsetIdsToActivate = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
+  const toolsetIdsToActivate = persistedToolsetIds;
   if (toolsetIdsToActivate.length > 0) {
     await Promise.all(
       toolsetIdsToActivate.map(async (id) => {

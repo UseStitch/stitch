@@ -19,6 +19,8 @@ const DEFAULT_LIMIT = 2000;
 const DESCRIPTION = `Read a file or directory from the local filesystem. If the path does not exist, an error is returned.
 
 Usage:
+- Use this when you already know the exact file or directory path you need.
+- Do not use this to discover filenames or search file contents; use glob or grep first.
 - The filePath parameter should be an absolute path.
 - By default, this tool returns up to 2000 lines from the start of the file.
 - The offset parameter is the line number to start from (1-indexed).
@@ -29,7 +31,10 @@ Usage:
 - Any line longer than 2000 characters is truncated.
 - Call this tool in parallel when you know there are multiple files you want to read.
 - Avoid tiny repeated slices (30 line chunks). If you need more context, read a larger window.
-- This tool only supports text files. Non-text files will return an error.`;
+- This tool only supports text files. Non-text files will return an error.
+
+Example:
+- After \`glob\` returns a specific file path, call \`read\` with that exact path.`;
 
 const readInputSchema = z.object({
   filePath: z.string().describe('The absolute path to the file or directory to read'),

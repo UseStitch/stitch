@@ -74,6 +74,7 @@ function createEditTool() {
     description: `Performs exact string replacements in files.
 
 Usage:
+- Use this to modify an existing known file. Do not use it to create new files.
 - You must use your Read tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file.
 - When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: line number + colon + space (e.g., \`1: \`). Everything after that space is the actual file content to match. Never include any part of the line number prefix in the oldString or newString.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
@@ -81,7 +82,10 @@ Usage:
 - This tool only supports text files. Non-text files will return an error.
 - The edit will FAIL if oldString is not found in the file with an error "oldString not found in content".
 - The edit will FAIL if oldString is found multiple times in the file with an error "Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match." Either provide a larger string with more surrounding context to make it unique or use replaceAll to change every instance of oldString.
-- Use replaceAll for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.`,
+- Use replaceAll for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
+
+Parameter sourcing:
+- \`oldString\` must come from the current file contents. Do not guess text you have not read.`,
     inputSchema: editInputSchema,
     execute: async (input) => {
       const targetPath = await editFileContent(input);
