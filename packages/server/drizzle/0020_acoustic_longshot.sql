@@ -1,0 +1,1 @@
+ALTER TABLE `connector_instances` ADD `auth_issue` text;

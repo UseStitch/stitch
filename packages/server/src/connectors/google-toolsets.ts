@@ -7,7 +7,6 @@
 import { eq } from 'drizzle-orm';
 
 import { GoogleClient } from '@stitch-connectors/google/client';
-
 import {
   GOOGLE_TOOLSET_IDS,
   type GoogleToolsetDefinition,
@@ -18,7 +17,7 @@ import {
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { refreshAccessToken } from '@/connectors/auth/oauth2.js';
+import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
@@ -95,7 +94,9 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           throw new Error(`Unknown Google account "${account}". Available accounts: ${available}`);
         }
 
-        if (!canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], (chosen.capabilities) ?? [])) {
+        if (
+          !canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], chosen.capabilities ?? [])
+        ) {
           throw new Error(
             `Google account ${chosen.accountEmail ?? chosen.label} does not have the permissions required for ${def.name}. Re-authorize this account with the required scopes.`,
           );
@@ -105,9 +106,11 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
         let cachedTokenExpiresAt: number | null = null;
 
         const client = new GoogleClient({
-          getAccessToken: async () => {
+          getAccessToken: async (options) => {
+            const forceRefresh = options?.forceRefresh === true;
             const now = Date.now();
             if (
+              !forceRefresh &&
               cachedToken &&
               (!cachedTokenExpiresAt || cachedTokenExpiresAt > now + REFRESH_BUFFER_MS)
             ) {
@@ -135,7 +138,8 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
 
             const shouldRefresh =
               Boolean(latest.refreshToken) &&
-              (latest.accessToken === null ||
+              (forceRefresh ||
+                latest.accessToken === null ||
                 (latest.tokenExpiresAt !== null &&
                   latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
 
@@ -157,7 +161,10 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                     creds.clientSecret,
                     latest.refreshToken,
                   );
-                  refreshInFlight.set(chosen.id, refreshPromise.then((r) => r.accessToken));
+                  refreshInFlight.set(
+                    chosen.id,
+                    refreshPromise.then((r) => r.accessToken),
+                  );
 
                   try {
                     const refreshed = await refreshPromise;
@@ -171,6 +178,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                           ? now + refreshed.expiresIn * 1000
                           : null,
                         status: 'connected',
+                        authIssue: null,
                         updatedAt: now,
                       })
                       .where(eq(connectorInstances.id, chosen.id));
@@ -182,14 +190,30 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                     return cachedToken;
                   } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
+                    const requiresReauth = requiresOAuthReauth(error);
                     log.error(
-                      { event: 'google.token.refresh.failed', instanceId: chosen.id, error: message },
-                      'Google token refresh failed — marking instance as error',
+                      {
+                        event: 'google.token.refresh.failed',
+                        instanceId: chosen.id,
+                        accountEmail: chosen.accountEmail,
+                        forceRefresh,
+                        requiresReauth,
+                        error: message,
+                      },
+                      requiresReauth
+                        ? 'Google token refresh failed and requires reauthorization'
+                        : 'Google token refresh failed',
                     );
-                    await db
-                      .update(connectorInstances)
-                      .set({ status: 'error', updatedAt: Date.now() })
-                      .where(eq(connectorInstances.id, chosen.id));
+                    if (requiresReauth) {
+                      await db
+                        .update(connectorInstances)
+                        .set({
+                          status: 'error',
+                          authIssue: 'reauthorization_required',
+                          updatedAt: Date.now(),
+                        })
+                        .where(eq(connectorInstances.id, chosen.id));
+                    }
                     throw error;
                   } finally {
                     refreshInFlight.delete(chosen.id);

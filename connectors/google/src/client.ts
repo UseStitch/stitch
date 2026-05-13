@@ -15,7 +15,7 @@ import { sleep } from './utils.js';
 
 type GoogleClientConfig = {
   /** Callback that returns a fresh access token (post-refresh if needed). */
-  getAccessToken: () => Promise<string>;
+  getAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string>;
   /** Optional logger instance — defaults to no-op if not provided. */
   logger?: StitchLogger;
   /** Stable per-account key for account-level quota limiting. */
@@ -64,12 +64,14 @@ export class GoogleClient {
   private static readonly MAX_RETRIES = 5;
   private static readonly MAX_BACKOFF_MS = 64_000;
 
-  private readonly getAccessToken: () => Promise<string>;
+  private readonly getAccessToken: (options?: { forceRefresh?: boolean }) => Promise<string>;
+  private readonly authAccountKey: string | null;
   private readonly rateLimitCoordinator: GoogleRateLimitCoordinator;
   readonly log: StitchLogger;
 
   constructor(config: GoogleClientConfig) {
     this.getAccessToken = config.getAccessToken;
+    this.authAccountKey = config.quotaAccountKey ?? null;
     this.log = config.logger ?? noopLogger;
     this.rateLimitCoordinator = new GoogleRateLimitCoordinator(
       mergeRateLimitConfig(config.rateLimits),
@@ -95,6 +97,8 @@ export class GoogleClient {
 
   private async executeWithRetries(url: string, options?: RequestOptions): Promise<Response> {
     const method = options?.method ?? 'GET';
+    let forceRefresh = false;
+    let retriedUnauthorized = false;
 
     for (let attempt = 1; attempt <= GoogleClient.MAX_RETRIES + 1; attempt += 1) {
       try {
@@ -111,7 +115,8 @@ export class GoogleClient {
         throw new GoogleApiError(429, message, { reason: 'localRateLimitExceeded' });
       }
 
-      const token = await this.getAccessToken();
+      const token = await this.getAccessToken({ forceRefresh });
+      forceRefresh = false;
 
       this.log.debug({ url, method, attempt }, 'Google API request');
 
@@ -140,6 +145,24 @@ export class GoogleClient {
         attempt <= GoogleClient.MAX_RETRIES &&
         isRetryableRateLimit(response.status, parsedError.reason, parsedError.message);
 
+      if (response.status === 401 && !retriedUnauthorized) {
+        retriedUnauthorized = true;
+        forceRefresh = true;
+        this.log.warn(
+          {
+            url,
+            method,
+            status: response.status,
+            code: parsedError.code,
+            reason: parsedError.reason,
+            attempt,
+            quotaAccountKey: this.authAccountKey,
+          },
+          'Google API returned unauthorized, forcing token refresh retry',
+        );
+        continue;
+      }
+
       if (!retryable) {
         this.log.error(
           {
@@ -148,6 +171,7 @@ export class GoogleClient {
             status: response.status,
             code: parsedError.code,
             reason: parsedError.reason,
+            quotaAccountKey: this.authAccountKey,
           },
           parsedError.message,
         );
@@ -191,7 +215,7 @@ function mergeRateLimitConfig(
   overrides: Partial<GoogleRateLimitConfig> | undefined,
 ): GoogleRateLimitConfig {
   if (!overrides) return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
-  
+
   const services = { ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services };
   if (overrides.services) {
     for (const key of Object.keys(services) as (keyof typeof services)[]) {

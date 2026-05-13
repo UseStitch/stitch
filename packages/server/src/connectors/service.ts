@@ -13,7 +13,11 @@ import { createConnectorInstanceId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { refreshAccessToken, startOAuthFlow } from '@/connectors/auth/oauth2.js';
+import {
+  refreshAccessToken,
+  requiresOAuthReauth,
+  startOAuthFlow,
+} from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
@@ -124,6 +128,7 @@ export async function createOAuthConnectorInstance(input: {
     tokenExpiresAt: null,
     scopes: input.scopes,
     status: 'awaiting_auth' as ConnectorStatus,
+    authIssue: null,
     accountEmail: null,
     accountInfo: null,
   };
@@ -166,6 +171,7 @@ export async function createApiKeyConnectorInstance(input: {
     tokenExpiresAt: null,
     scopes: null,
     status: 'connected' as ConnectorStatus,
+    authIssue: null,
     accountEmail: null,
     accountInfo: null,
   };
@@ -237,6 +243,7 @@ export async function authorizeOAuthInstance(
           refreshToken: tokens.refreshToken,
           tokenExpiresAt: tokens.expiresIn ? now + tokens.expiresIn * 1000 : null,
           status: 'connected' as ConnectorStatus,
+          authIssue: null,
           accountEmail,
           accountInfo,
           appliedVersion: definition.currentVersion,
@@ -255,7 +262,11 @@ export async function authorizeOAuthInstance(
       const message = error instanceof Error ? error.message : String(error);
       await db
         .update(connectorInstances)
-        .set({ status: 'error' as ConnectorStatus, updatedAt: Date.now() })
+        .set({
+          status: 'error' as ConnectorStatus,
+          authIssue: 'temporary_failure',
+          updatedAt: Date.now(),
+        })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
       log.warn(
         { event: 'connector.authorize.failed', instanceId, error: message },
@@ -357,6 +368,7 @@ export async function upgradeConnectorInstance(
         appliedVersion: definition.currentVersion,
         capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
         status: 'connected' as ConnectorStatus,
+        authIssue: null,
         updatedAt: now,
       })
       .where(eq(connectorInstances.id, typedInstanceId));
@@ -376,11 +388,13 @@ export async function upgradeConnectorInstance(
     const setValues: {
       scopes: string[];
       status: ConnectorStatus;
+      authIssue: null;
       updatedAt: number;
       apiKey?: string | null;
     } = {
       scopes: nextScopes,
       status: 'awaiting_auth' as ConnectorStatus,
+      authIssue: null,
       updatedAt: now,
     };
 
@@ -479,6 +493,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
             refreshToken: refreshed.refreshToken ?? instance.refreshToken,
             tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
             status: 'connected' as ConnectorStatus,
+            authIssue: null,
             updatedAt: now,
           })
           .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
@@ -506,16 +521,28 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    const requiresReauth = requiresOAuthReauth(e);
     log.error(
-      { event: 'connector.test.failed', instanceId, error: message },
+      { event: 'connector.test.failed', instanceId, requiresReauth, error: message },
       'Connection test failed',
     );
 
-    await db
-      .update(connectorInstances)
-      .set({ status: 'error' as ConnectorStatus, updatedAt: Date.now() })
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+    if (requiresReauth) {
+      await db
+        .update(connectorInstances)
+        .set({
+          status: 'error' as ConnectorStatus,
+          authIssue: 'reauthorization_required',
+          updatedAt: Date.now(),
+        })
+        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+    }
 
-    return err(`Connection test failed: ${message}`, 400);
+    return err(
+      requiresReauth
+        ? 'Connection test failed: Google requires reauthorization for this account.'
+        : `Connection test failed: Temporary Google auth failure. ${message}`,
+      400,
+    );
   }
 }

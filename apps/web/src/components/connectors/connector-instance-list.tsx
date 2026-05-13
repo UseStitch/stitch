@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import type {
+  ConnectorAuthIssue,
   ConnectorDefinition,
   ConnectorInstanceSafe,
   ConnectorStatus,
@@ -61,6 +62,40 @@ const STATUS_CONFIG: Record<
     variant: 'destructive',
   },
 };
+
+const AUTH_ISSUE_COPY: Record<
+  ConnectorAuthIssue,
+  { label: string; message: string; actionLabel: string }
+> = {
+  reauthorization_required: {
+    label: 'Reauth Required',
+    message: 'Google needs you to sign in again for this connector.',
+    actionLabel: 'Reauthorize',
+  },
+  temporary_failure: {
+    label: 'Retry Authorization',
+    message: 'Authorization hit a temporary issue. Retry to complete the connection.',
+    actionLabel: 'Retry Authorization',
+  },
+};
+
+function getStatusPresentation(instance: ConnectorInstanceSafe) {
+  if (instance.status === 'error' && instance.authIssue) {
+    const issue = AUTH_ISSUE_COPY[instance.authIssue];
+    return {
+      ...STATUS_CONFIG.error,
+      label: issue.label,
+      message: issue.message,
+      actionLabel: issue.actionLabel,
+    };
+  }
+
+  return {
+    ...STATUS_CONFIG[instance.status],
+    message: null,
+    actionLabel: 'Authorize',
+  };
+}
 
 export function ConnectorInstanceList({ instances, definitions }: Props) {
   const deleteMutation = useDeleteConnector();
@@ -142,7 +177,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
     <div className="space-y-3">
       {instances.map((instance) => {
         const def = getDefinition(instance.connectorId);
-        const statusConfig = STATUS_CONFIG[instance.status];
+        const statusConfig = getStatusPresentation(instance);
         const isTesting = testingId === instance.id;
 
         return (
@@ -176,6 +211,9 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   {instance.accountEmail}
                 </p>
               )}
+              {statusConfig.message && (
+                <p className="mt-1 text-xs text-muted-foreground">{statusConfig.message}</p>
+              )}
             </div>
 
             <div className="flex items-center gap-1">
@@ -198,23 +236,21 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   disabled={authorizeMutation.isPending}
                 >
                   <ExternalLinkIcon className="size-3.5" />
-                  Authorize
+                  {statusConfig.actionLabel}
                 </Button>
               )}
-              {instance.status === 'connected' && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => handleTest(instance.id)}
-                  disabled={isTesting}
-                >
-                  {isTesting ? (
-                    <Loader2Icon className="size-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCwIcon className="size-3.5" />
-                  )}
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => handleTest(instance.id)}
+                disabled={isTesting}
+              >
+                {isTesting ? (
+                  <Loader2Icon className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCwIcon className="size-3.5" />
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"

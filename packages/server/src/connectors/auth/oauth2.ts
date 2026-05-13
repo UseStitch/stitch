@@ -14,6 +14,41 @@ type OAuthTokens = {
   expiresIn: number | null;
 };
 
+type OAuthErrorPayload = {
+  error?: string;
+  error_description?: string;
+};
+
+export class OAuthRefreshError extends Error {
+  readonly status: number;
+  readonly errorCode: string | undefined;
+  readonly errorDescription: string | undefined;
+
+  constructor(status: number, bodyText: string) {
+    super(`Token refresh failed (${status}): ${bodyText}`);
+    this.name = 'OAuthRefreshError';
+    this.status = status;
+
+    let parsed: OAuthErrorPayload | null = null;
+    try {
+      parsed = JSON.parse(bodyText) as OAuthErrorPayload;
+    } catch {
+      parsed = null;
+    }
+
+    this.errorCode = parsed?.error;
+    this.errorDescription = parsed?.error_description;
+  }
+}
+
+export function requiresOAuthReauth(error: unknown): boolean {
+  return (
+    error instanceof OAuthRefreshError &&
+    error.status === 400 &&
+    error.errorCode === 'invalid_grant'
+  );
+}
+
 function generateCodeVerifier(): string {
   return crypto.randomBytes(32).toString('base64url');
 }
@@ -234,7 +269,7 @@ export async function refreshAccessToken(
       { event: 'oauth.refresh.failed', status: response.status, errorBody },
       'Token refresh failed',
     );
-    throw new Error(`Token refresh failed (${response.status}): ${errorBody}`);
+    throw new OAuthRefreshError(response.status, errorBody);
   }
 
   const data = (await response.json()) as {
