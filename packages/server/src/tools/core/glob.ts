@@ -12,11 +12,16 @@ const MAX_RESULTS = 100;
 const DESCRIPTION = `Fast file pattern matching tool.
 
 Usage:
+- Use this to discover files by name, extension, or path pattern.
+- Do not use this to search file contents; use grep for that.
 - Supports glob patterns like "**/*.ts" or "src/**/*.tsx".
 - Returns matching file paths sorted by modification time (newest first).
 - Always provide a narrow absolute directory in path. Do not search the entire computer.
 - Keep searches scoped and specific for performance.
-- If you need multiple searches, batch a few focused calls instead of one very broad pattern.`;
+- If you need multiple searches, batch a few focused calls instead of one very broad pattern.
+
+Example:
+- To find prompt files, search with pattern \`**/*prompt*\` in the server source directory.`;
 
 const globInputSchema = z.object({
   pattern: z.string().describe('The glob pattern to match files against'),

@@ -37,7 +37,7 @@ function createQuestionTool(context: {
 }) {
   return tool({
     description:
-      'Ask the user questions during execution. Use this when you need clarification or additional information from the user before proceeding.',
+      'Ask the user questions during execution. Use this only when you are blocked by missing information or a user decision. Do not use it when a safe default exists or when the answer can be found from context or tools.',
     inputSchema: questionInputSchema,
     execute: async (input, { toolCallId, abortSignal }) => {
       const answers = await askQuestion({

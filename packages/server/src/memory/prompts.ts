@@ -56,13 +56,14 @@ export const deduplicationSchema = z.object({
  * Prompt sent to the LLM to extract memorable facts from a conversation turn.
  */
 export function buildExtractionPrompt(userMessage: string, assistantMessage: string): string {
-  return `You are a memory extraction system. Analyze the following conversation turn and extract any facts, preferences, constraints, or workflows the user has explicitly stated or strongly implied.
+  return `You are a memory extraction system. Analyze the following conversation turn and extract any facts, preferences, or constraints the user has explicitly stated or strongly implied.
 
 Rules:
 - Only extract information about the USER, not the assistant.
 - Extract at most 1–2 facts per turn. Be highly selective — only the most durable, reusable facts.
 - Strongly prefer "stated" confidence. Only use "inferred" when the implication is very strong and specific.
 - Skip trivial or ephemeral information: greetings, acknowledgments, task-specific file paths, temporary variable names, single-use instructions.
+- Skip information about the user's temporary workflow for the current task, even if it sounds procedural.
 - Skip information that is only relevant to the current task and has no lasting value across sessions.
 - Each fact must be a single, self-contained statement.
 - Do NOT extract trivial greetings, filler, or task-specific instructions that have no lasting value.
@@ -73,17 +74,16 @@ Rules:
 Categories:
 - "preference": Things the user likes, prefers, or wants (e.g. "prefers dark mode", "likes TypeScript over JavaScript")
 - "fact": Objective information about the user (e.g. "works at Acme Corp", "uses macOS")
-- "workflow": How the user likes to work or processes they follow (e.g. "always runs tests before committing")
 - "constraint": Limitations or rules the user operates under (e.g. "cannot use GPL libraries", "must support IE11")
 
 Importance scoring (importanceScore 0-1):
 - 0.9-1.0: User explicitly asked to remember this, or corrected a wrong assumption. Will prevent frustration if recalled.
-- 0.7-0.9: Clear stable preference, environment fact, or recurring workflow that will save future back-and-forth.
+- 0.7-0.9: Clear stable preference, environment fact, or durable constraint that will save future back-and-forth.
 - 0.5-0.7: Useful but not critical. Saves minor friction.
 - Below 0.5: Ephemeral, obvious, or easily re-discovered. Do not extract these.
 
 Durability:
-- "long_term": Stable across sessions (preferences, identity facts, constraints, proven workflows).
+- "long_term": Stable across sessions (preferences, identity facts, constraints).
 - "session": Likely only relevant to the current task or context window.
 - "ephemeral": Will be outdated in hours/days (e.g. "user is currently debugging X issue").
 

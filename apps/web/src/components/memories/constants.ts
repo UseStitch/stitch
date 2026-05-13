@@ -3,7 +3,6 @@ import type { MemoryCategory, MemoryConfidence } from '@stitch/shared/memory/typ
 export const CATEGORY_LABELS: Record<MemoryCategory, string> = {
   preference: 'Preference',
   fact: 'Fact',
-  workflow: 'Workflow',
   constraint: 'Constraint',
 };
 
@@ -13,7 +12,6 @@ export const CATEGORY_VARIANTS: Record<
 > = {
   preference: 'default',
   fact: 'secondary',
-  workflow: 'outline',
   constraint: 'destructive',
 };
 

@@ -128,6 +128,8 @@ Fetches the URL content and converts it to the requested format (markdown by def
 Returns the content in the specified format.
 
 Usage notes:
+- Use this when you already have a specific URL to fetch.
+- Do not use this for general browsing, multi-step website interaction, or broad discovery when another search or browser capability is a better fit.
 - If another tool offers better web fetching capabilities, use that tool instead.
 - The URL must be fully formed.
 - HTTP URLs are automatically upgraded to HTTPS.
@@ -135,6 +137,9 @@ Usage notes:
 - This tool is read-only and does not modify files.
 - Results may be summarized if content is very large.
 - This tool should only be used for fetching content, and not for general browsing or navigation.
+
+Parameter sourcing:
+- Use a URL from the user or a prior tool result. Do not invent URLs.
 `,
     inputSchema: webfetchInputSchema,
     execute: async (input, { abortSignal }) => {

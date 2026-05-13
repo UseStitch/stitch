@@ -18,13 +18,19 @@ export class ToolsetManager {
   /** Set of currently active toolset IDs */
   private readonly activeIds = new Set<string>();
 
+  /** Subset of active toolsets that should persist across future turns. */
+  private readonly persistedIds = new Set<string>();
+
   /** Cached tool instances for each active toolset (lazy-populated on activate) */
   private readonly activeToolCache = new Map<string, Record<string, Tool>>();
 
   private readonly context: ToolContext;
 
-  constructor(context: ToolContext) {
+  constructor(context: ToolContext, persistedToolsetIds: Iterable<string> = []) {
     this.context = context;
+    for (const id of persistedToolsetIds) {
+      this.persistedIds.add(id);
+    }
   }
 
   /**
@@ -107,6 +113,7 @@ export class ToolsetManager {
     }
 
     this.activeIds.delete(toolsetId);
+    this.persistedIds.delete(toolsetId);
     this.activeToolCache.delete(toolsetId);
 
     log.info({ event: 'toolset.deactivated', toolsetId }, 'toolset deactivated');
@@ -121,6 +128,28 @@ export class ToolsetManager {
   /** Return the set of currently active toolset IDs. */
   getActiveIds(): Set<string> {
     return new Set(this.activeIds);
+  }
+
+  /** Return the set of active toolset IDs that should persist across future turns. */
+  getPersistedIds(): Set<string> {
+    return new Set(this.persistedIds);
+  }
+
+  pin(toolsetId: string): boolean {
+    if (!this.activeIds.has(toolsetId)) {
+      return false;
+    }
+
+    this.persistedIds.add(toolsetId);
+    return true;
+  }
+
+  unpin(toolsetId: string): boolean {
+    return this.persistedIds.delete(toolsetId);
+  }
+
+  isPersisted(toolsetId: string): boolean {
+    return this.persistedIds.has(toolsetId);
   }
 
   /**
@@ -147,6 +176,7 @@ export class ToolsetManager {
       description: string;
       icon?: ConnectorIconSource;
       active: boolean;
+      persisted: boolean;
       hasInstructions: boolean;
       promptCount: number;
     }>
@@ -160,6 +190,7 @@ export class ToolsetManager {
         description: ts.description,
         icon: ts.icon,
         active: this.activeIds.has(ts.id),
+        persisted: this.persistedIds.has(ts.id),
         hasInstructions: !!ts.instructions,
         promptCount: ts.prompts?.length ?? 0,
       }));

@@ -28,6 +28,8 @@ function createWriteTool() {
     description: `Writes a file to the local filesystem.
 
 Usage:
+- Use this to create a new file or fully replace a file when that is clearly required.
+- Do not use this for targeted edits to an existing file; use Edit instead.
 - This tool will overwrite the existing file if there is one at the provided path.
 - If this is an existing file, you MUST use the Read tool first to read the file's contents. This tool will fail if you did not read the file first.
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.

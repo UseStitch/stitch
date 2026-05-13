@@ -86,11 +86,15 @@ function createBashTool() {
 
 Usage:
 - This tool is for terminal operations.
+- Use this for shell-native tasks like git, package managers, test runners, compilers, or native CLIs.
+- Do not use this for file read/write/search/edit when read, write, glob, grep, and edit tools are available.
 - workdir is required and must be an absolute folder path.
-- Do not use this tool for file read/write/search/edit when read, write, glob, grep, and edit tools are available.
 - Keep commands focused and safe.
 - timeout is optional and defaults to 120000 ms.
-- Output may be truncated for metadata safety.`,
+- Output may be truncated for metadata safety.
+
+Parameter sourcing:
+- Reuse paths, filenames, branch names, and identifiers from prior tool results when available. Do not invent them.`,
     inputSchema: bashInputSchema,
     execute: async (input, { abortSignal }) => {
       const workdir = await validateExistingDirectoryPath(input.workdir);

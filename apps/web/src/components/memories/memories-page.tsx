@@ -71,7 +71,6 @@ const CATEGORY_FILTER_LABELS: Record<FilterCategory, string> = {
   all: 'All categories',
   preference: CATEGORY_LABELS.preference,
   fact: CATEGORY_LABELS.fact,
-  workflow: CATEGORY_LABELS.workflow,
   constraint: CATEGORY_LABELS.constraint,
 };
 

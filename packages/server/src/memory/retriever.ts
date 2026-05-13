@@ -2,9 +2,37 @@ import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
+import type { MemoryCategory } from '@/memory/types.js';
 import type { MemorySource } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-retriever' });
+const CHAT_MEMORY_CATEGORIES: MemoryCategory[] = ['preference', 'fact', 'constraint'];
+
+function tokenize(value: string): Set<string> {
+  return new Set(
+    value
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 3),
+  );
+}
+
+function getLexicalFactor(query: string, content: string): number {
+  const queryTokens = tokenize(query);
+  if (queryTokens.size === 0) return 0;
+
+  const contentTokens = tokenize(content);
+  if (contentTokens.size === 0) return 0;
+
+  let shared = 0;
+  for (const token of queryTokens) {
+    if (contentTokens.has(token)) {
+      shared += 1;
+    }
+  }
+
+  return shared / queryTokens.size;
+}
 
 function getRecencyFactor(dateStr: string): number {
   const ms = Date.parse(dateStr);
@@ -38,30 +66,30 @@ export async function retrieveMemoryContext(
   const semanticResult = await searchSemanticMemories({
     query,
     page: 1,
-    pageSize: config.retrievalMaxResults * 2, // Fetch more for blended scoring
+    pageSize: config.retrievalMaxResults * 4, // Fetch more for blended scoring and filtering
     sourceFilter,
   });
 
   if (isServiceError(semanticResult)) return null;
   const semantic = semanticResult.data;
 
-  // Apply base threshold filter first
-  let candidates = semantic.memories.filter((m) => m.score >= config.retrievalMinScore);
+  // Apply category and score filters before reranking.
+  const candidates = semantic.memories.filter(
+    (m) => CHAT_MEMORY_CATEGORIES.includes(m.category) && m.score >= config.retrievalMinScore,
+  );
 
-  if (config.retrievalRecencyBoost) {
-    const scoredCandidates = candidates.map((m) => {
-      const blendedScore =
-        m.score * 0.7 +
-        getRecencyFactor(m.lastAccessedAt) * 0.2 +
-        getConfidenceFactor(m.confidence) * 0.1;
-      return { ...m, blendedScore };
-    });
+  const scoredCandidates = candidates.map((m) => {
+    const lexicalFactor = getLexicalFactor(query, m.content);
+    const recencyFactor = config.retrievalRecencyBoost ? getRecencyFactor(m.lastAccessedAt) : 0;
+    const confidenceFactor = getConfidenceFactor(m.confidence);
+    const blendedScore =
+      m.score * 0.6 + lexicalFactor * 0.25 + recencyFactor * 0.1 + confidenceFactor * 0.05;
+    return { ...m, blendedScore };
+  });
 
-    scoredCandidates.sort((a, b) => b.blendedScore - a.blendedScore);
-    candidates = scoredCandidates;
-  }
+  scoredCandidates.sort((a, b) => b.blendedScore - a.blendedScore);
 
-  const relevant = candidates.slice(0, config.retrievalMaxResults);
+  const relevant = scoredCandidates.slice(0, config.retrievalMaxResults);
 
   if (relevant.length === 0) return null;
 

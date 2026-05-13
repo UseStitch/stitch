@@ -24,14 +24,14 @@ const memoryInputSchema = z.object({
   category: z
     .enum(MEMORY_CATEGORIES)
     .optional()
-    .describe('Category for the memory (preference, fact, workflow, constraint)'),
+    .describe('Category for the memory (preference, fact, constraint)'),
   memoryId: z.string().optional().describe('The ID of the memory to forget'),
 });
 
 const DESCRIPTION = `Manage long-term memories about the user. Only use this tool when the user explicitly asks to remember, recall, forget, or list memories. Background memory extraction already runs automatically after each conversation turn.
 
 Use this tool to:
-- "remember": Store a fact, preference, workflow, or constraint about the user when they explicitly ask you to remember something.
+- "remember": Store a fact, preference, or constraint about the user when they explicitly ask you to remember something.
 - "recall": Search for relevant memories using a natural language query when the user asks what you know about them.
 - "forget": Delete a specific memory by ID when the user asks to remove something.
 - "list": Show all stored memories when the user asks to see their memories.
