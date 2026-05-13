@@ -112,7 +112,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
                 {rightPanel === 'details' ? (
-                  <SessionDetailsSheet {...details} className="hidden lg:block" />
+                  <SessionDetailsSheet {...details} sessionId={sessionId} className="hidden lg:block" />
                 ) : (
                   <MessageQueuePanel
                     sessionId={sessionId}

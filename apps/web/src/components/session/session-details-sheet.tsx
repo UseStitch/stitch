@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
 type SessionDetailsSheetProps = {
+  sessionId: string;
   sessionTitle: string;
   providerLabel: string;
   modelLabel: string;
@@ -113,6 +114,7 @@ function SplitRow({
 }
 
 export function SessionDetailsSheet({
+  sessionId,
   sessionTitle,
   providerLabel,
   modelLabel,
@@ -147,7 +149,15 @@ export function SessionDetailsSheet({
     >
       <div className="h-full border-l border-foreground/20 bg-transparent">
         <div className="border-b border-border/80 bg-background/65 px-5 py-3.5 backdrop-blur-sm">
-          <p className="text-base font-medium">Context</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-base font-medium">Context</p>
+            <span
+              className="truncate rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+              title={sessionId}
+            >
+              {sessionId}
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground">Session metadata and token usage.</p>
         </div>
         <ScrollArea className="h-[calc(100%-74px)]">
