@@ -107,14 +107,17 @@ type GmailMessage = {
 };
 
 type GmailSearchResult = {
-  messages: {
-    id: string;
-    threadId: string;
-    snippet: string;
-    from: string | undefined;
-    subject: string | undefined;
-    date: string | undefined;
-  }[];
+  messages: (
+    | { id: string; threadId: string }
+    | {
+        id: string;
+        threadId: string;
+        snippet: string;
+        from: string | undefined;
+        subject: string | undefined;
+        date: string | undefined;
+      }
+  )[];
   nextPageToken: string | undefined;
   totalEstimate: number;
 };
@@ -212,6 +215,7 @@ export async function searchMessages(
   query: string,
   maxResults = 10,
   pageToken?: string,
+  idsOnly = true,
 ): Promise<GmailSearchResult> {
   const params = new URLSearchParams({ q: query, maxResults: String(maxResults) });
   if (pageToken) params.set('pageToken', pageToken);
@@ -222,6 +226,14 @@ export async function searchMessages(
 
   if (!list.messages?.length) {
     return { messages: [], nextPageToken: undefined, totalEstimate: 0 };
+  }
+
+  if (idsOnly) {
+    return {
+      messages: list.messages.map((msg) => ({ id: msg.id, threadId: msg.threadId })),
+      nextPageToken: list.nextPageToken,
+      totalEstimate: list.resultSizeEstimate ?? 0,
+    };
   }
 
   // Fetch metadata for each message in chunks to avoid overwhelming the network

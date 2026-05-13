@@ -13,6 +13,11 @@ const gmailSearchSchema = z.object({
   query: z.string().describe('Gmail search query (same syntax as Gmail search bar)'),
   maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
   pageToken: z.string().optional().describe('Pagination token from a previous search'),
+  idsOnly: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('When true (default), returns only message IDs without fetching metadata'),
 });
 
 const gmailReadSchema = z.object({
@@ -155,6 +160,7 @@ export function createGmailTools(
           input.query,
           input.maxResults,
           input.pageToken,
+          input.idsOnly,
         );
         return { ...result, usedAccount };
       },
@@ -243,7 +249,10 @@ export const GMAIL_TOOL_SUMMARIES = [
   { name: 'gmail_search', description: 'Search Gmail messages using Gmail search syntax' },
   { name: 'gmail_read', description: 'Read the full content of a Gmail message by ID' },
   { name: 'gmail_send', description: 'Send an email or reply to a thread (requires write access)' },
-  { name: 'gmail_list_labels', description: 'List Gmail labels with metadata and visibility settings' },
+  {
+    name: 'gmail_list_labels',
+    description: 'List Gmail labels with metadata and visibility settings',
+  },
   { name: 'gmail_get_label', description: 'Get details for a single Gmail label by ID' },
   {
     name: 'gmail_modify_labels',
