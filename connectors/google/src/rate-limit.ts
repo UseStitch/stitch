@@ -61,6 +61,9 @@ const GMAIL_METHOD_COSTS = {
   LABELS_GET: 1,
   LABELS_MUTATE: 5,
   THREADS_MODIFY: 10,
+  FILTERS_LIST: 1,
+  FILTERS_GET: 1,
+  FILTERS_MUTATE: 5,
   DEFAULT: 5,
 } as const;
 
@@ -109,6 +112,14 @@ function resolveGmailQuotaCost(pathname: string, method: string): number {
 
   if (/\/labels\/[^/]+$/.test(withoutQuery)) {
     return method === 'GET' ? GMAIL_METHOD_COSTS.LABELS_GET : GMAIL_METHOD_COSTS.LABELS_MUTATE;
+  }
+
+  if (withoutQuery.endsWith('/settings/filters')) {
+    return method === 'GET' ? GMAIL_METHOD_COSTS.FILTERS_LIST : GMAIL_METHOD_COSTS.FILTERS_MUTATE;
+  }
+
+  if (/\/settings\/filters\/[^/]+$/.test(withoutQuery)) {
+    return method === 'GET' ? GMAIL_METHOD_COSTS.FILTERS_GET : GMAIL_METHOD_COSTS.FILTERS_MUTATE;
   }
 
   return GMAIL_METHOD_COSTS.DEFAULT;
@@ -185,7 +196,7 @@ class SlidingWindowLimiter {
 
   private pruneExpired(now: number): void {
     const expiredCount = this.events.findIndex((event) => now - event.timestamp < this.windowMs);
-    
+
     if (expiredCount === -1 && this.events.length > 0) {
       // All events are expired
       this.usedWeight = 0;

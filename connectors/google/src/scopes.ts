@@ -10,6 +10,8 @@ export const GOOGLE_SCOPE_USERINFO_EMAIL = 'https://www.googleapis.com/auth/user
 export const GOOGLE_SCOPE_GMAIL_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 export const GOOGLE_SCOPE_GMAIL_SEND = 'https://www.googleapis.com/auth/gmail.send';
 export const GOOGLE_SCOPE_GMAIL_MODIFY = 'https://www.googleapis.com/auth/gmail.modify';
+export const GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC =
+  'https://www.googleapis.com/auth/gmail.settings.basic';
 
 export const GOOGLE_SCOPE_DRIVE_READONLY = 'https://www.googleapis.com/auth/drive.readonly';
 export const GOOGLE_SCOPE_DRIVE_FILE = 'https://www.googleapis.com/auth/drive.file';
@@ -27,6 +29,7 @@ const GMAIL_SCOPES = [
   GOOGLE_SCOPE_GMAIL_READONLY,
   GOOGLE_SCOPE_GMAIL_SEND,
   GOOGLE_SCOPE_GMAIL_MODIFY,
+  GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC,
 ] as const;
 
 const DRIVE_SCOPES = [
@@ -97,4 +100,11 @@ export function hasGmailSendAccess(grantedScopes: string[]): boolean {
 /** Check if granted scopes can modify Gmail resources (labels, message labels). */
 export function hasGmailModifyAccess(grantedScopes: string[]): boolean {
   return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_MODIFY);
+}
+
+/** Check if granted scopes can manage Gmail settings (filters, etc.). */
+export function hasGmailSettingsAccess(grantedScopes: string[]): boolean {
+  return grantedScopes.some(
+    (s) => s === GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC || s === GOOGLE_SCOPE_GMAIL_MODIFY,
+  );
 }

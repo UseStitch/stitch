@@ -44,6 +44,22 @@ describe('buildGoogleToolsets', () => {
       'gmail_get_label',
       'gmail_modify_labels',
       'gmail_modify_messages',
+      'gmail_filters',
+    ]);
+  });
+
+  it('exposes gmail_filters with gmail.settings.basic scope but not modify tools', () => {
+    const settingsOnly = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+      capabilities: ['google.gmail.read', 'google.gmail.write'],
+    }).find((toolset) => toolset.id === 'google-gmail');
+
+    expect(settingsOnly?.tools().map((tool) => tool.name)).toEqual([
+      'gmail_search',
+      'gmail_read',
+      'gmail_list_labels',
+      'gmail_get_label',
+      'gmail_filters',
     ]);
   });
 

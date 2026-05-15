@@ -141,13 +141,96 @@ const gmailModifyMessagesSchema = z
     },
   );
 
+const gmailFiltersSchema = z.discriminatedUnion('operation', [
+  z.object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    operation: z.literal('list'),
+  }),
+  z.object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    operation: z.literal('get'),
+    filterId: z.string().describe('Server-assigned filter ID'),
+  }),
+  z.object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    operation: z.literal('create'),
+    criteria: z
+      .object({
+        from: z.string().optional().describe("Filter messages from this sender's email or name"),
+        to: z
+          .string()
+          .optional()
+          .describe("Filter messages to this recipient's email or name (includes cc/bcc)"),
+        subject: z
+          .string()
+          .optional()
+          .describe('Filter messages containing this phrase in the subject (case-insensitive)'),
+        query: z
+          .string()
+          .optional()
+          .describe('Filter using Gmail advanced search syntax (e.g. "is:unread has:attachment")'),
+        negatedQuery: z
+          .string()
+          .optional()
+          .describe('Exclude messages matching this Gmail search query'),
+        hasAttachment: z.boolean().optional().describe('Only match messages with attachments'),
+        excludeChats: z.boolean().optional().describe('Exclude chat messages from matching'),
+        size: z.number().int().optional().describe('Message size threshold in bytes'),
+        sizeComparison: z
+          .enum(['smaller', 'larger'])
+          .optional()
+          .describe('Whether to match messages smaller or larger than the size threshold'),
+      })
+      .optional()
+      .describe('Criteria that incoming messages must meet for the filter to fire'),
+    action: z
+      .object({
+        addLabelIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Label IDs to add. System labels: INBOX, UNREAD, SPAM, TRASH, IMPORTANT, STARRED. Pass a user label ID to tag the message.',
+          ),
+        removeLabelIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Label IDs to remove. Common: INBOX (archive/skip inbox), UNREAD (mark read), SPAM (never spam), IMPORTANT (never mark important).',
+          ),
+        forward: z
+          .string()
+          .optional()
+          .describe('Forward matching messages to this verified email address'),
+      })
+      .optional()
+      .describe('Actions to apply to messages that match the criteria'),
+  }),
+  z.object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    operation: z.literal('delete'),
+    filterId: z.string().describe('Server-assigned filter ID to permanently delete'),
+  }),
+]);
+
 export function createGmailTools(
   resolveClient: (
     account?: string,
   ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
-  permissions: { canSend: boolean; canModify: boolean },
+  permissions: { canSend: boolean; canModify: boolean; canManageFilters: boolean },
 ) {
-  const { canSend, canModify } = permissions;
+  const { canSend, canModify, canManageFilters } = permissions;
   const tools: Record<string, Tool> = {
     gmail_search: tool({
       description:
@@ -242,6 +325,39 @@ export function createGmailTools(
     });
   }
 
+  if (canManageFilters) {
+    tools['gmail_filters'] = tool({
+      description:
+        'Manage Gmail filters that automatically label, archive, delete, or forward incoming messages. Operations: list (all filters), get (one filter by ID), create (new filter with criteria + action), delete (permanently remove a filter). Note: the Gmail API has no update endpoint — to modify a filter, delete it and create a new one.',
+      inputSchema: gmailFiltersSchema,
+      execute: async (input: z.infer<typeof gmailFiltersSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+
+        if (input.operation === 'list') {
+          const result = await GmailApi.listFilters(client);
+          return { ...result, usedAccount };
+        }
+
+        if (input.operation === 'get') {
+          const result = await GmailApi.getFilter(client, input.filterId);
+          return { ...result, usedAccount };
+        }
+
+        if (input.operation === 'create') {
+          const result = await GmailApi.createFilter(client, {
+            criteria: input.criteria,
+            action: input.action,
+          });
+          return { ...result, usedAccount };
+        }
+
+        // delete
+        const result = await GmailApi.deleteFilter(client, input.filterId);
+        return { ...result, usedAccount };
+      },
+    });
+  }
+
   return tools;
 }
 
@@ -261,5 +377,10 @@ export const GMAIL_TOOL_SUMMARIES = [
   {
     name: 'gmail_modify_messages',
     description: 'Add or remove labels on messages (or threads with modifyThreads=true)',
+  },
+  {
+    name: 'gmail_filters',
+    description:
+      'List, get, create, or delete Gmail filters that auto-label, archive, or forward incoming messages (requires settings access)',
   },
 ];

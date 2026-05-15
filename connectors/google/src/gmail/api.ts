@@ -378,6 +378,212 @@ export async function modifyLabels(
   };
 }
 
+// ─── Filters ─────────────────────────────────────────────────────────────────
+
+type GmailFilterCriteria = {
+  from?: string;
+  to?: string;
+  subject?: string;
+  query?: string;
+  negatedQuery?: string;
+  hasAttachment?: boolean;
+  excludeChats?: boolean;
+  size?: number;
+  sizeComparison?: 'smaller' | 'larger' | 'unspecified';
+};
+
+type GmailFilterAction = {
+  addLabelIds?: string[];
+  removeLabelIds?: string[];
+  forward?: string;
+};
+
+type GmailFilterRaw = {
+  id: string;
+  criteria?: GmailFilterCriteria;
+  action?: GmailFilterAction;
+};
+
+type GmailFilterListResponse = {
+  filter?: GmailFilterRaw[];
+};
+
+type GmailFilter = {
+  id: string;
+  criteria: GmailFilterCriteria;
+  action: GmailFilterAction;
+  /** Human-readable summary for the LLM, e.g. "from: boss@co.com → add IMPORTANT, skip inbox" */
+  summary: string;
+};
+
+type GmailFilterInput = {
+  criteria?: GmailFilterCriteria;
+  action?: GmailFilterAction;
+};
+
+/**
+ * Build a concise human-readable summary of a filter so the LLM can reason about
+ * what each filter does without parsing raw label ID arrays.
+ */
+function summarizeFilter(criteria: GmailFilterCriteria, action: GmailFilterAction): string {
+  const parts: string[] = [];
+
+  // Criteria
+  if (criteria.from) parts.push(`from: ${criteria.from}`);
+  if (criteria.to) parts.push(`to: ${criteria.to}`);
+  if (criteria.subject) parts.push(`subject contains "${criteria.subject}"`);
+  if (criteria.query) parts.push(`query: ${criteria.query}`);
+  if (criteria.negatedQuery) parts.push(`not matching: ${criteria.negatedQuery}`);
+  if (criteria.hasAttachment) parts.push('has attachment');
+  if (criteria.excludeChats) parts.push('exclude chats');
+  if (
+    criteria.size !== undefined &&
+    criteria.sizeComparison &&
+    criteria.sizeComparison !== 'unspecified'
+  ) {
+    const bytes = criteria.size;
+    const kb = bytes / 1024;
+    const mb = kb / 1024;
+    const sizeStr =
+      mb >= 1 ? `${mb.toFixed(1)} MB` : kb >= 1 ? `${kb.toFixed(0)} KB` : `${bytes} B`;
+    parts.push(`size ${criteria.sizeComparison} ${sizeStr}`);
+  }
+
+  const matchStr = parts.length > 0 ? parts.join(', ') : 'all messages';
+
+  // Actions
+  const actions: string[] = [];
+
+  const LABEL_NAMES: Record<string, string> = {
+    INBOX: 'inbox',
+    UNREAD: 'unread',
+    SPAM: 'spam',
+    TRASH: 'trash',
+    IMPORTANT: 'important',
+    STARRED: 'starred',
+    SENT: 'sent',
+    DRAFT: 'drafts',
+    CATEGORY_PERSONAL: 'category:personal',
+    CATEGORY_SOCIAL: 'category:social',
+    CATEGORY_PROMOTIONS: 'category:promotions',
+    CATEGORY_UPDATES: 'category:updates',
+    CATEGORY_FORUMS: 'category:forums',
+  };
+
+  function labelName(id: string): string {
+    return LABEL_NAMES[id] ?? id;
+  }
+
+  if (action.addLabelIds?.length) {
+    const effects: string[] = [];
+    if (action.addLabelIds.includes('TRASH')) effects.push('delete');
+    if (action.addLabelIds.includes('STARRED')) effects.push('star');
+    if (action.addLabelIds.includes('IMPORTANT')) effects.push('mark important');
+    const userLabels = action.addLabelIds.filter((id) => !LABEL_NAMES[id]);
+    if (userLabels.length) effects.push(`label as: ${userLabels.join(', ')}`);
+    const remainder = action.addLabelIds.filter(
+      (id) => id !== 'TRASH' && id !== 'STARRED' && id !== 'IMPORTANT' && LABEL_NAMES[id],
+    );
+    if (remainder.length) effects.push(`add labels: ${remainder.map(labelName).join(', ')}`);
+
+    if (effects.length) actions.push(effects.join('; '));
+  }
+
+  if (action.removeLabelIds?.length) {
+    const effects: string[] = [];
+    if (action.removeLabelIds.includes('INBOX')) effects.push('skip inbox (archive)');
+    if (action.removeLabelIds.includes('UNREAD')) effects.push('mark as read');
+    if (action.removeLabelIds.includes('SPAM')) effects.push('never spam');
+    if (action.removeLabelIds.includes('IMPORTANT')) effects.push('never mark important');
+    const remainder = action.removeLabelIds.filter(
+      (id) => id !== 'INBOX' && id !== 'UNREAD' && id !== 'SPAM' && id !== 'IMPORTANT',
+    );
+    if (remainder.length) effects.push(`remove labels: ${remainder.map(labelName).join(', ')}`);
+
+    if (effects.length) actions.push(effects.join('; '));
+  }
+
+  if (action.removeLabelIds?.length) {
+    const names = action.removeLabelIds.map(labelName);
+
+    const effects: string[] = [];
+    if (names.includes('inbox')) effects.push('skip inbox (archive)');
+    if (names.includes('unread')) effects.push('mark as read');
+    if (names.includes('spam')) effects.push('never spam');
+    if (names.includes('important')) effects.push('never mark important');
+    const remainder = names.filter(
+      (n) => n !== 'inbox' && n !== 'unread' && n !== 'spam' && n !== 'important',
+    );
+    if (remainder.length) effects.push(`remove labels: ${remainder.join(', ')}`);
+
+    if (effects.length) actions.push(effects.join('; '));
+  }
+
+  if (action.forward) actions.push(`forward to ${action.forward}`);
+
+  const actionStr = actions.length > 0 ? actions.join(' + ') : 'no action';
+
+  return `Match [${matchStr}] → ${actionStr}`;
+}
+
+function mapFilter(raw: GmailFilterRaw): GmailFilter {
+  const criteria = raw.criteria ?? {};
+  const action = raw.action ?? {};
+  return {
+    id: raw.id,
+    criteria,
+    action,
+    summary: summarizeFilter(criteria, action),
+  };
+}
+
+export async function listFilters(client: GoogleClient): Promise<{ filters: GmailFilter[] }> {
+  const response = await client.request<GmailFilterListResponse>(`${GMAIL_API}/settings/filters`);
+  return {
+    filters: (response.filter ?? []).map(mapFilter),
+  };
+}
+
+export async function getFilter(client: GoogleClient, filterId: string): Promise<GmailFilter> {
+  const raw = await client.request<GmailFilterRaw>(
+    `${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`,
+  );
+  return mapFilter(raw);
+}
+
+export async function createFilter(
+  client: GoogleClient,
+  input: GmailFilterInput,
+): Promise<GmailFilter> {
+  const criteria = input.criteria ?? {};
+
+  const hasCriteria = Object.values(criteria).some((v) => v !== undefined);
+  if (!hasCriteria) {
+    throw new Error(
+      'A filter must have at least one criteria field (e.g. from, to, subject, query, hasAttachment).',
+    );
+  }
+
+  const raw = await client.request<GmailFilterRaw>(`${GMAIL_API}/settings/filters`, {
+    method: 'POST',
+    body: JSON.stringify({
+      criteria,
+      action: input.action ?? {},
+    }),
+  });
+  return mapFilter(raw);
+}
+
+export async function deleteFilter(
+  client: GoogleClient,
+  filterId: string,
+): Promise<{ filterId: string; deleted: true }> {
+  await client.request(`${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`, {
+    method: 'DELETE',
+  });
+  return { filterId, deleted: true };
+}
+
 export async function modifyMessages(
   client: GoogleClient,
   input: {

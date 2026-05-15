@@ -35,6 +35,36 @@ describe('resolveGoogleQuotaOperation', () => {
     ).toEqual({ service: 'gmail', quotaCost: 10 });
   });
 
+  it('maps Gmail settings.filters endpoints to correct quota costs', () => {
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/settings/filters',
+        'GET',
+      ),
+    ).toEqual({ service: 'gmail', quotaCost: 1 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/settings/filters',
+        'POST',
+      ),
+    ).toEqual({ service: 'gmail', quotaCost: 5 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/settings/filters/filter-id-123',
+        'GET',
+      ),
+    ).toEqual({ service: 'gmail', quotaCost: 1 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/settings/filters/filter-id-123',
+        'DELETE',
+      ),
+    ).toEqual({ service: 'gmail', quotaCost: 5 });
+  });
+
   it('maps non-Gmail services to request-count quota units', () => {
     expect(
       resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files?q=test', 'GET'),
