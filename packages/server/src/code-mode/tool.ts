@@ -19,6 +19,7 @@ type CodeModeOptions = {
   driver?: IsolateDriver;
   filter?: CodeModeToolFilter;
   isolateOptions?: IsolateOptions;
+  abortSignal?: AbortSignal;
 };
 
 type CodeModeToolResult = {
@@ -56,7 +57,8 @@ Use this when you need to:
 The sandbox has access to all active tools as \`external_*\` async functions.
 The sandbox has no filesystem, network, or Node.js access beyond these functions.`,
     inputSchema: codeModeInputSchema,
-    execute: async ({ code, description }) => {
+    execute: async ({ code, description }, { abortSignal: callAbortSignal }) => {
+      const abortSignal = callAbortSignal ?? options.abortSignal;
       const startedAt = Date.now();
 
       const stripped = stripTypeScript(code);
@@ -73,7 +75,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
 
       const activeTools = options.getTools();
       const filteredTools = applyToolFilter(activeTools, filter);
-      const bindings = toolsToBindings(filteredTools);
+      const bindings = toolsToBindings(filteredTools, abortSignal);
 
       log.info(
         {
@@ -85,13 +87,20 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         'executing code mode',
       );
 
-      const context = await driver.createContext(bindings, isolateOptions);
+      const context = await driver.createContext(bindings, { ...isolateOptions, abortSignal });
 
       let execResult: { result: unknown; logs: string[] };
       try {
         execResult = await context.execute(stripped.code);
       } finally {
-        context.dispose();
+        try {
+          context.dispose();
+        } catch (disposeErr) {
+          log.warn(
+            { event: 'code-mode.dispose.error', error: String(disposeErr) },
+            'context dispose failed',
+          );
+        }
       }
 
       const durationMs = Date.now() - startedAt;

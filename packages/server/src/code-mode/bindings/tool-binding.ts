@@ -19,7 +19,10 @@ function extractJsonSchema(schema: unknown): Record<string, unknown> {
   return { type: 'object', properties: {} };
 }
 
-export function toolsToBindings(tools: Record<string, Tool>): Record<string, ToolBinding> {
+export function toolsToBindings(
+  tools: Record<string, Tool>,
+  abortSignal?: AbortSignal,
+): Record<string, ToolBinding> {
   const bindings: Record<string, ToolBinding> = {};
 
   for (const [name, tool] of Object.entries(tools)) {
@@ -37,13 +40,15 @@ export function toolsToBindings(tools: Record<string, Tool>): Record<string, Too
       name: bindingName,
       description,
       inputSchema: schema,
-      execute: async (input: unknown) => {
+      execute: async (input: unknown, signal?: AbortSignal) => {
+        const effectiveSignal = signal ?? abortSignal;
         return execute(
           input as Parameters<typeof execute>[0],
           {
             toolCallId: `code-mode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             messages: [],
             skipTruncation: true,
+            abortSignal: effectiveSignal,
           } as unknown as Parameters<typeof execute>[1],
         );
       },

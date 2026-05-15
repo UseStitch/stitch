@@ -1318,6 +1318,7 @@ export async function runStream(opts: {
         ...dynamic,
       };
     },
+    abortSignal: opts.abortSignal,
   });
 
   // Combine all always-active tools

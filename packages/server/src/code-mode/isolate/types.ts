@@ -2,7 +2,7 @@ export type ToolBinding = {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  execute: (input: unknown) => Promise<unknown>;
+  execute: (input: unknown, abortSignal?: AbortSignal) => Promise<unknown>;
 };
 
 export type IsolateExecuteResult = {
@@ -20,6 +20,8 @@ export type IsolateOptions = {
   memoryLimit?: number;
   /** Execution timeout in ms, excluding time spent waiting for permissions (default: 120_000) */
   timeout?: number;
+  /** AbortSignal to cancel execution and all in-flight tool calls */
+  abortSignal?: AbortSignal;
 };
 
 export type IsolateDriver = {
