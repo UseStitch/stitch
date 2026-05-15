@@ -15,6 +15,7 @@ import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
 import {
   hasGmailModifyAccess,
   hasGmailSendAccess,
+  hasGmailSettingsAccess,
   hasServiceAccess,
   hasWriteAccess,
 } from './scopes.js';
@@ -103,9 +104,11 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
   const canWriteCapability = hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_WRITE);
   const canSend = hasGmailSendAccess(scopes) && canWriteCapability;
   const canModify = hasGmailModifyAccess(scopes) && canWriteCapability;
+  const canManageFilters = hasGmailSettingsAccess(scopes) && canWriteCapability;
   const summaries = GMAIL_TOOL_SUMMARIES.filter((t) => {
     if (t.name === 'gmail_send') return canSend;
     if (t.name === 'gmail_modify_labels' || t.name === 'gmail_modify_messages') return canModify;
+    if (t.name === 'gmail_filters') return canManageFilters;
     return true;
   });
 
@@ -125,9 +128,13 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
       canModify
         ? 'You have label modify access. Use gmail_modify_labels and gmail_modify_messages to manage labels and archive messages.'
         : 'You have read-only label access. Use gmail_list_labels and gmail_get_label to inspect labels.',
+      canManageFilters
+        ? 'You have settings access. Use gmail_filters to list, get, create, or delete inbox filters. To update a filter, delete it and recreate it.'
+        : 'You do not have settings access. Managing Gmail filters is not available.',
     ].join('\n'),
     tools: () => summaries,
-    activate: (resolveClient) => createGmailTools(resolveClient, { canSend, canModify }),
+    activate: (resolveClient) =>
+      createGmailTools(resolveClient, { canSend, canModify, canManageFilters }),
   };
 }
 

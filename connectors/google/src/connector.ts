@@ -13,6 +13,7 @@ import {
   GOOGLE_SCOPE_GMAIL_MODIFY,
   GOOGLE_SCOPE_GMAIL_READONLY,
   GOOGLE_SCOPE_GMAIL_SEND,
+  GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC,
   GOOGLE_SCOPE_USERINFO_EMAIL,
 } from './scopes.js';
 import {
@@ -94,7 +95,7 @@ export const googleConnectorModule: ConnectorModule = {
     description: 'Connect Gmail, Drive, and Calendar in one place.',
     icon: { type: 'simpleIcons', slug: 'google' },
     enabled: true,
-    currentVersion: 2,
+    currentVersion: 3,
     versionHistory: [
       {
         version: 1,
@@ -118,6 +119,14 @@ export const googleConnectorModule: ConnectorModule = {
         action: 'reauthorize',
         capabilities: [GOOGLE_CAPABILITY_DOCS_READ, GOOGLE_CAPABILITY_DOCS_WRITE],
         requiredScopes: [GOOGLE_SCOPE_DOCS],
+      },
+      {
+        version: 3,
+        title: 'Gmail filter management',
+        description: 'Adds tools to create, view, and delete Gmail inbox filters.',
+        action: 'reauthorize',
+        capabilities: [],
+        requiredScopes: [GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC],
       },
     ],
     serviceIcons: {
