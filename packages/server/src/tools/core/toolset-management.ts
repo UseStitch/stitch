@@ -21,7 +21,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       .join(' ');
 
   const list_toolsets = tool({
-    description: `List toolsets and inspect toolset contents. Call with no arguments for the full catalog, pass a query string to filter by keyword (e.g. "database"), or pass a toolsetId to inspect a specific toolset's tools and prompts in detail.`,
+    description: `List toolsets and inspect toolset contents. Prefer a query string when you already know the domain (for example "gmail", "browser", or "calendar"). Call with no arguments only for broad discovery. Pass a toolsetId to inspect one specific toolset's exact callable tool names, descriptions, and prompts in detail.`,
     inputSchema: z.object({
       toolsetId: z
         .string()
@@ -91,7 +91,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
   });
 
   const activate_toolset = tool({
-    description: `Activate a toolset to make its tools callable. Activation applies to the current run by default. Set persist=true only when the toolset should stay active for future turns in this session. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
+    description: `Activate a toolset to make its tools callable. Use the exact toolset ID returned by list_toolsets. Activation applies to the current run by default. Set persist=true only when the toolset should stay active for future turns in this session. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
     inputSchema: z.object({
       toolsetId: z.string().describe('The toolset ID to activate (e.g. "browser")'),
       persist: z

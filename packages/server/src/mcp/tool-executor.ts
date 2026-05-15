@@ -175,12 +175,34 @@ function buildToolsetDescription(
   server: McpServerWithTools,
   liveInfo: McpServerLiveInfo | null,
 ): string {
+  const prefix = formatMcpToolName(server.id, '...');
+
   if (liveInfo?.description) {
-    return liveInfo.description;
+    return `${liveInfo.description} Activate this toolset to use its prefixed MCP tools (for example ${prefix}).`;
   }
 
   const toolCount = server.tools?.length ?? 0;
-  return `MCP server "${server.name}" - provides ${toolCount} tool(s).`;
+  return `MCP server "${server.name}" - provides ${toolCount} tool(s). Activate this toolset to use its prefixed MCP tools (for example ${prefix}).`;
+}
+
+function buildMcpInstructions(input: {
+  server: McpServerWithTools;
+  liveInfo: McpServerLiveInfo | null;
+  prompts: ToolsetPrompt[];
+}): string | undefined {
+  const exactNameRule = [
+    'Use the exact toolset ID and exact callable tool names exactly as listed.',
+    'Do not invent aliases, shortened names, camelCase variants, or unprefixed MCP tool names.',
+    `All callable tools from this server are prefixed with ${formatMcpToolName(input.server.id, '...')}.`,
+  ].join(' ');
+
+  const promptRule =
+    input.prompts.length > 0
+      ? 'This toolset also exposes MCP prompt templates. Inspect the listed prompt names and arguments before using them.'
+      : null;
+
+  const liveInstructions = input.liveInfo?.instructions?.trim();
+  return [exactNameRule, promptRule, liveInstructions].filter(Boolean).join('\n\n') || undefined;
 }
 
 function pickDisplayIcon(icons?: McpIcon[]): McpIcon | undefined {
@@ -218,12 +240,14 @@ function createMcpToolset(
     id: toolsetId,
     name: displayName,
     description,
-    instructions: liveInfo?.instructions ?? undefined,
+    instructions: buildMcpInstructions({ server, liveInfo, prompts }),
     prompts: prompts.length > 0 ? prompts : undefined,
     tools: () =>
       cachedTools.map((tool) => ({
         name: formatMcpToolName(server.id, tool.name),
-        description: tool.description ?? `Tool from MCP server "${displayName}"`,
+        description:
+          tool.description ??
+          `Tool from MCP server "${displayName}". Use this exact prefixed tool name; do not call the unprefixed MCP tool name.`,
       })),
     activate: (context) => getToolsForServer(server, context),
   };
