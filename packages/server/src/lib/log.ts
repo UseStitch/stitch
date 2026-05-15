@@ -31,7 +31,7 @@ type Logger = StitchLogger & {
   clone(): Logger;
   time(
     message: string,
-    extra?: Record<string, any>,
+    extra?: Record<string, unknown>,
   ): {
     stop(): void;
     [Symbol.dispose](): void;
@@ -46,24 +46,152 @@ interface Options {
   level?: Level;
 }
 
+interface CleanupPlan {
+  files: string[];
+  maxFiles: number;
+}
+
 let logpath = '';
-let write = (msg: any) => {
+let logStream: ReturnType<typeof createWriteStream> | null = null;
+let logOptions: Options | null = null;
+let rotationPromise: Promise<void> | null = null;
+const CLEANUP_THRESHOLD = 5;
+const MAX_LOG_FILES = 10;
+let nextRotationAt = Number.POSITIVE_INFINITY;
+let rotationTimer: ReturnType<typeof setTimeout> | null = null;
+let write: (msg: string) => number | Promise<number> = (msg: string) => {
   process.stderr.write(msg);
   return msg.length;
 };
 
+function getLogFilename(options: Options, now = new Date()): string {
+  return options.dev ? 'dev.log' : `${now.toISOString().slice(0, 10)}.log`;
+}
+
+function getNextRotationAt(now = new Date()): number {
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+}
+
+function isProductionFileLogging(options: Options | null): options is Options {
+  return Boolean(options && !options.dev && !options.print);
+}
+
+function getLogPath(options: Options, now = new Date()): string {
+  return path.join(PATHS.logDir, getLogFilename(options, now));
+}
+
+function shouldRotate(options: Options, now: Date): boolean {
+  if (!logStream) return true;
+  if (options.dev) return !logpath;
+  return now.getTime() >= nextRotationAt;
+}
+
+function resetLogState(): void {
+  clearRotationTimer();
+  logpath = '';
+  nextRotationAt = Number.POSITIVE_INFINITY;
+}
+
+function createCleanupPlan(files: string[], dir: string): CleanupPlan {
+  const preservedFilename =
+    dir === PATHS.logDir && isProductionFileLogging(logOptions) ? getLogFilename(logOptions) : null;
+
+  if (!preservedFilename) {
+    return { files, maxFiles: MAX_LOG_FILES };
+  }
+
+  return {
+    files: files.filter((file) => path.basename(file) !== preservedFilename),
+    maxFiles: MAX_LOG_FILES - 1,
+  };
+}
+
+function clearRotationTimer(): void {
+  if (!rotationTimer) return;
+  clearTimeout(rotationTimer);
+  rotationTimer = null;
+}
+
+function scheduleRotation(options: Options): void {
+  clearRotationTimer();
+  if (options.dev || options.print || !Number.isFinite(nextRotationAt)) return;
+
+  const delayMs = Math.max(0, nextRotationAt - Date.now());
+  rotationTimer = setTimeout(() => {
+    rotationTimer = null;
+    if (!logOptions || logOptions.dev || logOptions.print) return;
+    ensureLogStream(logOptions).catch(() => {});
+  }, delayMs);
+}
+
+async function closeLogStream(): Promise<void> {
+  const stream = logStream;
+  logStream = null;
+  if (!stream) return;
+
+  await new Promise<void>((resolve) => {
+    stream.end(() => resolve());
+  });
+}
+
+async function ensureLogStream(options: Options): Promise<void> {
+  const now = new Date();
+  if (!shouldRotate(options, now)) {
+    return;
+  }
+
+  const nextLogpath = getLogPath(options, now);
+  if (nextLogpath === logpath && logStream) return;
+
+  if (rotationPromise) {
+    await rotationPromise;
+  }
+  if (nextLogpath === logpath && logStream) return;
+
+  rotationPromise = (async () => {
+    const rotationNow = new Date();
+    const resolvedLogpath = getLogPath(options, rotationNow);
+    if (resolvedLogpath === logpath && logStream) return;
+
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    if (options.dev) {
+      await fs.writeFile(resolvedLogpath, '');
+    } else {
+      await fs.writeFile(resolvedLogpath, '', { flag: 'a' });
+    }
+
+    const nextStream = createWriteStream(resolvedLogpath, { flags: 'a' });
+    await closeLogStream();
+    logStream = nextStream;
+    logpath = resolvedLogpath;
+    nextRotationAt = options.dev ? Number.POSITIVE_INFINITY : getNextRotationAt(rotationNow);
+    scheduleRotation(options);
+  })().finally(() => {
+    rotationPromise = null;
+  });
+
+  await rotationPromise;
+}
+
 export async function init(options: Options) {
   if (options.level) level = options.level;
+  logOptions = options;
+  await closeLogStream();
+  resetLogState();
   await cleanup();
   if (options.print) return;
-  logpath = path.join(
-    PATHS.logDir,
-    options.dev ? 'dev.log' : new Date().toISOString().split('.')[0].replace(/:/g, '') + '.log',
-  );
-  await fs.mkdir(PATHS.logDir, { recursive: true });
-  await fs.writeFile(logpath, '');
-  const stream = createWriteStream(logpath, { flags: 'a' });
-  write = async (msg: any) => {
+  await ensureLogStream(options);
+  write = async (msg: string) => {
+    if (logOptions) {
+      await ensureLogStream(logOptions);
+    }
+
+    const stream = logStream;
+    if (!stream) {
+      process.stderr.write(msg);
+      return msg.length;
+    }
+
     return new Promise((resolve, reject) => {
       stream.write(msg, (err) => {
         if (err) reject(err);
@@ -74,14 +202,17 @@ export async function init(options: Options) {
 }
 
 export async function cleanup(dir = PATHS.logDir) {
-  const files = await Glob.scan('????-??-??T??????.log', {
+  const files = await Glob.scan('{????-??-??.log,????-??-??T??????.log}', {
     cwd: dir,
     absolute: true,
     include: 'file',
   });
-  if (files.length <= 5) return;
 
-  const filesToDelete = files.sort().slice(0, -10);
+  const plan = createCleanupPlan(files, dir);
+
+  if (plan.files.length <= CLEANUP_THRESHOLD) return;
+
+  const filesToDelete = plan.files.sort().slice(0, -plan.maxFiles);
   await Promise.all(filesToDelete.map((file) => fs.unlink(file).catch(() => {})));
 }
 
@@ -102,22 +233,25 @@ function serializeValue(value: unknown): unknown {
   return value;
 }
 
-export function create(tags?: Record<string, any>) {
+export function create(tags?: Record<string, unknown>) {
   tags = tags || {};
 
   const service = tags['service'];
   if (service && typeof service === 'string') {
     const cached = loggers.get(service);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
   }
 
-  function build(lvl: string, extra: Record<string, any>, message: string) {
+  function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {
+    if (!shouldLog(lvl)) return;
+
+    const [extra, msg] =
+      typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
+
     const entry: Record<string, unknown> = {
-      level: lvl,
+      level: lvl.toLowerCase(),
       time: new Date().toISOString(),
-      msg: message,
+      msg,
     };
 
     for (const [key, value] of Object.entries({ ...tags, ...extra })) {
@@ -126,37 +260,21 @@ export function create(tags?: Record<string, any>) {
       }
     }
 
-    return JSON.stringify(entry) + '\n';
+    void write(JSON.stringify(entry) + '\n');
   }
 
   const result: Logger = {
-    debug(extraOrMessage: Record<string, any> | string, message?: string) {
-      if (shouldLog('DEBUG')) {
-        const [extra, msg] =
-          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
-        write(build('debug', extra, msg));
-      }
+    debug(extraOrMessage: Record<string, unknown> | string, message?: string) {
+      emit('DEBUG', extraOrMessage, message);
     },
-    info(extraOrMessage: Record<string, any> | string, message?: string) {
-      if (shouldLog('INFO')) {
-        const [extra, msg] =
-          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
-        write(build('info', extra, msg));
-      }
+    info(extraOrMessage: Record<string, unknown> | string, message?: string) {
+      emit('INFO', extraOrMessage, message);
     },
-    error(extraOrMessage: Record<string, any> | string, message?: string) {
-      if (shouldLog('ERROR')) {
-        const [extra, msg] =
-          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
-        write(build('error', extra, msg));
-      }
+    warn(extraOrMessage: Record<string, unknown> | string, message?: string) {
+      emit('WARN', extraOrMessage, message);
     },
-    warn(extraOrMessage: Record<string, any> | string, message?: string) {
-      if (shouldLog('WARN')) {
-        const [extra, msg] =
-          typeof extraOrMessage === 'string' ? [{}, extraOrMessage] : [extraOrMessage, message!];
-        write(build('warn', extra, msg));
-      }
+    error(extraOrMessage: Record<string, unknown> | string, message?: string) {
+      emit('ERROR', extraOrMessage, message);
     },
     tag(key: string, value: string) {
       if (tags) tags[key] = value;
@@ -165,18 +283,11 @@ export function create(tags?: Record<string, any>) {
     clone() {
       return create({ ...tags });
     },
-    time(message: string, extra?: Record<string, any>) {
+    time(message: string, extra?: Record<string, unknown>) {
       const now = Date.now();
       result.info({ status: 'started', ...extra }, message);
       function stop() {
-        result.info(
-          {
-            status: 'completed',
-            duration: Date.now() - now,
-            ...extra,
-          },
-          message,
-        );
+        result.info({ status: 'completed', duration: Date.now() - now, ...extra }, message);
       }
       return {
         stop,
