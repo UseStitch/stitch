@@ -157,6 +157,24 @@ export async function listMcpRegistryServers(
   return ok(normalizeServers(refreshed.data));
 }
 
+export async function findMcpRegistryServerForInstall(input: {
+  name: string;
+  url: string;
+}): Promise<McpRegistryServer | null> {
+  const result = await listMcpRegistryServers();
+  if (isServiceError(result)) return null;
+
+  const normalizedUrl = input.url.trim().toLowerCase();
+  const normalizedName = input.name.trim().toLowerCase();
+
+  return (
+    result.data.find((server) => server.install.url.trim().toLowerCase() === normalizedUrl) ??
+    result.data.find((server) => server.install.name.trim().toLowerCase() === normalizedName) ??
+    result.data.find((server) => server.name.trim().toLowerCase() === normalizedName) ??
+    null
+  );
+}
+
 export function clearMcpRegistryCacheForTests(): void {
   inMemoryRegistry = null;
 }

@@ -34,6 +34,7 @@ import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { withToolResultHandling, withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
@@ -192,6 +193,31 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   broadcast: Sse.broadcast,
   now: Date.now,
 };
+
+async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
+  const catalog = await manager.getCatalogWithState();
+  if (catalog.length === 0) return '';
+
+  const lines = catalog.map((item) => {
+    const toolset = getToolset(item.id);
+    const tools = toolset
+      ?.tools()
+      .slice(0, 3)
+      .map((tool) => `${tool.name}: ${tool.description}`)
+      .join('; ');
+    const active = item.active ? 'active' : 'inactive';
+    const toolSummary = tools ? ` Tools: ${tools}.` : '';
+    return `- ${item.name} (${item.id}, ${active}): ${item.description}.${toolSummary}`;
+  });
+
+  return [
+    '## Available Toolsets',
+    '',
+    'Use `activate_toolset` when a listed toolset clearly matches the task. For web/current-info tasks, prefer relevant web-search MCP toolsets when available. For GitHub repository questions, prefer relevant repository-knowledge MCP toolsets when available. Do not activate unrelated toolsets.',
+    '',
+    ...lines,
+  ].join('\n');
+}
 
 type InternalRunStreamOptions = RunStreamOptions & {
   coreTools: Record<string, Tool>;
@@ -1331,12 +1357,14 @@ export async function runStream(opts: {
 
   const messages = opts.llmMessages;
   const codeModePrompt = codeModeResult.getSystemPrompt();
+  const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
   if (messages.length > 0 && messages[0]?.role === 'system') {
     const sysMsg = messages[0];
     const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+    const promptAdditions = [codeModePrompt, toolsetsPrompt].filter(Boolean).join('\n\n');
     messages[0] = {
       role: 'system',
-      content: `${existingContent}\n\n${codeModePrompt}`,
+      content: `${existingContent}\n\n${promptAdditions}`,
     };
   }
 

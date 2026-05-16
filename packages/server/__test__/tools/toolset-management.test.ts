@@ -77,6 +77,7 @@ describe('toolset management tools', () => {
 
     expect(result).toMatchObject({
       toolsetId: 'test-toolset',
+      toolsetName: 'Test Toolset',
       status: 'activated',
       hasInstructions: true,
       promptCount: 1,
@@ -120,6 +121,33 @@ describe('toolset management tools', () => {
       instructions: 'Use this toolset carefully.',
       prompts: [{ name: 'demo', description: 'Demo prompt' }],
     });
+  });
+
+  test('activate_toolset humanizes MCP tool names in message', async () => {
+    registerTestToolset({
+      id: 'mcp:mcp_12345678901234567890123456',
+      name: 'Exa',
+      tools: () => [
+        {
+          name: 'mcp_12345678901234567890123456_web_search_exa',
+          description: 'Search the web',
+        },
+      ],
+      activate: async () => ({
+        mcp_12345678901234567890123456_web_search_exa: makeTool('Search the web'),
+      }),
+    });
+    const manager = createManager();
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'mcp:mcp_12345678901234567890123456' },
+      {} as never,
+    )) as { message: string; toolsetName: string; toolDisplayNames: string[] };
+
+    expect(result.toolsetName).toBe('Exa');
+    expect(result.toolDisplayNames).toEqual(['Web Search Exa']);
+    expect(result.message).toContain('Toolset "Exa" activated');
+    expect(result.message).not.toContain('mcp_12345678901234567890123456_web_search_exa');
   });
 
   test('list_toolsets throws when unknown toolsetId is requested', async () => {

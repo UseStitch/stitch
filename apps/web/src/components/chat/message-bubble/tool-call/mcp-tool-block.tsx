@@ -1,13 +1,15 @@
 import { WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { McpServer } from '@stitch/shared/mcp/types';
 
 import { ToolCard, getToolLabel } from './card-primitives';
+
+import { knownMcpToolsQueryOptions } from '@/lib/queries/tools';
 
 type McpToolBlockProps = {
   toolName: string;
@@ -17,6 +19,7 @@ type McpToolBlockProps = {
 
 type KnownMcpTool = {
   name: string;
+  displayName: string;
   serverName: string;
   serverIconPath?: string;
   toolIconPath?: string;
@@ -24,16 +27,18 @@ type KnownMcpTool = {
 
 export function McpToolBlock({ toolName, status, error }: McpToolBlockProps) {
   const queryClient = useQueryClient();
+  const { data: fetchedMcpTools } = useQuery(knownMcpToolsQueryOptions);
   const parsed = parseMcpToolName(toolName);
   const label = getToolLabel(status, error);
 
   const mcpTool = React.useMemo(() => {
-    const knownMcpTools = queryClient.getQueryData<KnownMcpTool[]>([
+    const cachedMcpTools = queryClient.getQueryData<KnownMcpTool[]>([
       'tools-config',
       'known-mcp-tools',
     ]);
+    const knownMcpTools = fetchedMcpTools ?? cachedMcpTools;
     return knownMcpTools?.find((tool) => tool.name === toolName) ?? null;
-  }, [queryClient, toolName]);
+  }, [fetchedMcpTools, queryClient, toolName]);
 
   const serverName = React.useMemo(() => {
     if (!parsed) return null;
@@ -42,7 +47,7 @@ export function McpToolBlock({ toolName, status, error }: McpToolBlockProps) {
     return servers?.find((server) => server.id === parsed.serverId)?.name ?? null;
   }, [mcpTool?.serverName, parsed, queryClient]);
 
-  const displayName = parsed?.toolName ?? toolName;
+  const displayName = mcpTool?.displayName ?? parsed?.toolName ?? toolName;
 
   return (
     <ToolCard.Root status={status}>

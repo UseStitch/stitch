@@ -1,11 +1,12 @@
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
-import type { McpIcon } from '@stitch/shared/mcp/types';
+import type { McpIcon, McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpClient, withMcpClient } from '@/mcp/client.js';
 import { cacheMcpIcon } from '@/mcp/icons.js';
+import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
 import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import type { ToolContext } from '@/tools/runtime/wrappers.js';
@@ -41,6 +42,7 @@ type McpToolExecutorDeps = {
   fetchMcpTools: typeof fetchMcpTools;
   fetchServerInfo: typeof fetchServerInfo;
   fetchServerPrompts: typeof fetchServerPrompts;
+  findRegistryServer: typeof findMcpRegistryServerForInstall;
   buildServerPresentation: typeof buildServerPresentation;
 };
 
@@ -49,6 +51,7 @@ const DEFAULT_DEPS: McpToolExecutorDeps = {
   fetchMcpTools,
   fetchServerInfo,
   fetchServerPrompts,
+  findRegistryServer: findMcpRegistryServerForInstall,
   buildServerPresentation,
 };
 
@@ -174,9 +177,23 @@ function buildMcpToolsetId(server: McpServerWithTools): string {
 function buildToolsetDescription(
   server: McpServerWithTools,
   liveInfo: McpServerLiveInfo | null,
+  registryServer: McpRegistryServer | null,
 ): string {
   if (liveInfo?.description) {
     return liveInfo.description;
+  }
+
+  if (registryServer?.description) {
+    return registryServer.description;
+  }
+
+  const toolDescriptions = (server.tools ?? [])
+    .map((tool) => tool.description?.trim())
+    .filter((description): description is string => !!description)
+    .slice(0, 2);
+
+  if (toolDescriptions.length > 0) {
+    return toolDescriptions.join(' ');
   }
 
   const toolCount = server.tools?.length ?? 0;
@@ -207,12 +224,13 @@ async function resolveIconPath(input: {
 function createMcpToolset(
   server: McpServerWithTools,
   liveInfo: McpServerLiveInfo | null,
+  registryServer: McpRegistryServer | null,
   prompts: ToolsetPrompt[],
 ): Toolset {
   const toolsetId = buildMcpToolsetId(server);
   const cachedTools = server.tools ?? [];
-  const displayName = liveInfo?.title ?? liveInfo?.name ?? server.name;
-  const description = buildToolsetDescription(server, liveInfo);
+  const displayName = registryServer?.name ?? server.name ?? liveInfo?.title ?? liveInfo?.name;
+  const description = buildToolsetDescription(server, liveInfo, registryServer);
 
   return {
     id: toolsetId,
@@ -232,6 +250,7 @@ function createMcpToolset(
 async function buildServerPresentation(
   server: McpServerWithTools,
   liveInfo: McpServerLiveInfo | null,
+  registryServer?: McpRegistryServer | null,
 ): Promise<McpServerPresentation> {
   const tools = server.tools ?? [];
   const toolPresentations = await Promise.all(
@@ -260,9 +279,9 @@ async function buildServerPresentation(
 
   return {
     serverId: server.id,
-    name: liveInfo?.name ?? server.name,
-    title: liveInfo?.title,
-    description: liveInfo?.description,
+    name: registryServer?.name ?? server.name ?? liveInfo?.name,
+    title: registryServer?.name ?? liveInfo?.title,
+    description: liveInfo?.description ?? registryServer?.description,
     instructions: liveInfo?.instructions,
     iconPath,
     tools: Object.fromEntries(toolPresentations),
@@ -328,11 +347,18 @@ async function refreshMcpToolsetsInternal(
 
   const infoResults = await Promise.allSettled(serverSnapshots.map(deps.fetchServerInfo));
   const promptResults = await Promise.allSettled(serverSnapshots.map(deps.fetchServerPrompts));
+  const registryResults = await Promise.allSettled(
+    serverSnapshots.map((server) =>
+      deps.findRegistryServer({ name: server.name, url: server.url }),
+    ),
+  );
 
   const registeredIds: string[] = [];
   for (const [index, server] of serverSnapshots.entries()) {
     const liveInfo = infoResults[index]?.status === 'fulfilled' ? infoResults[index].value : null;
     const prompts = promptResults[index]?.status === 'fulfilled' ? promptResults[index].value : [];
+    const registryServer =
+      registryResults[index]?.status === 'fulfilled' ? registryResults[index].value : null;
 
     if (liveInfo) {
       log.info(
@@ -350,11 +376,11 @@ async function refreshMcpToolsetsInternal(
       );
     }
 
-    const toolset = createMcpToolset(server, liveInfo, prompts);
+    const toolset = createMcpToolset(server, liveInfo, registryServer, prompts);
     registerToolset(toolset);
     registeredIds.push(toolset.id);
 
-    const presentation = await deps.buildServerPresentation(server, liveInfo);
+    const presentation = await deps.buildServerPresentation(server, liveInfo, registryServer);
     serverPresentationById.set(server.id, presentation);
   }
 

@@ -7,12 +7,15 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
+import { useQuery } from '@tanstack/react-query';
+
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import { ToolCard, getToolCardState, getToolLabel } from './card-primitives';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { knownToolsetsQueryOptions } from '@/lib/queries/tools';
 import { cn } from '@/lib/utils';
 
 const TOOLSET_TOOL_CONFIG: Record<
@@ -25,6 +28,7 @@ const TOOLSET_TOOL_CONFIG: Record<
 };
 
 type ToolsetCatalogItem = {
+  id?: string;
   name: string;
   description: string;
 };
@@ -36,6 +40,7 @@ type ToolsetTool = {
 };
 
 type ToolsetDetail = {
+  toolsetId?: string;
   name: string;
   description: string;
   tools: ToolsetTool[];
@@ -49,6 +54,12 @@ function getToolsetId(args: unknown): string | null {
 function getResultMessage(result: unknown): string | null {
   if (!result || typeof result !== 'object') return null;
   const value = (result as Record<string, unknown>).message;
+  return typeof value === 'string' ? value : null;
+}
+
+function getResultToolsetName(result: unknown): string | null {
+  if (!result || typeof result !== 'object') return null;
+  const value = (result as Record<string, unknown>).toolsetName;
   return typeof value === 'string' ? value : null;
 }
 
@@ -77,12 +88,14 @@ function getToolsetCatalog(result: unknown): ToolsetCatalogItem[] | null {
     if (!item || typeof item !== 'object') continue;
 
     const typed = item as Record<string, unknown>;
+    const id = typeof typed.id === 'string' ? typed.id : undefined;
     const name = typeof typed.name === 'string' ? typed.name : null;
     const description = typeof typed.description === 'string' ? typed.description : null;
 
     if (!name || !description) continue;
 
     items.push({
+      id,
       name,
       description,
     });
@@ -95,6 +108,7 @@ function getToolsetDetail(result: unknown): ToolsetDetail | null {
   if (!result || typeof result !== 'object') return null;
 
   const typed = result as Record<string, unknown>;
+  const toolsetId = typeof typed.toolsetId === 'string' ? typed.toolsetId : undefined;
   const name = typeof typed.name === 'string' ? typed.name : null;
   const description = typeof typed.description === 'string' ? typed.description : null;
   const toolsValue = typed.tools;
@@ -120,6 +134,7 @@ function getToolsetDetail(result: unknown): ToolsetDetail | null {
   }
 
   return {
+    toolsetId,
     name,
     description,
     tools,
@@ -135,6 +150,7 @@ type ToolsetToolBlockProps = {
 };
 
 export function ToolsetToolBlock({ toolName, status, args, result, error }: ToolsetToolBlockProps) {
+  const { data: knownToolsets } = useQuery(knownToolsetsQueryOptions);
   const { isActive } = getToolCardState(status);
   const config = TOOLSET_TOOL_CONFIG[toolName] ?? {
     label: 'Toolset',
@@ -143,6 +159,10 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
   };
   const Icon = config.icon;
   const toolsetId = getToolsetId(args);
+  const knownToolset = toolsetId
+    ? knownToolsets?.find((toolset) => toolset.id === toolsetId)
+    : undefined;
+  const toolsetDisplayName = getResultToolsetName(result) ?? knownToolset?.name ?? toolsetId;
   const resultMessage = getResultMessage(result);
   const resultIcon = getResultIcon(result);
   const catalog = toolName === 'list_toolsets' ? getToolsetCatalog(result) : null;
@@ -153,7 +173,7 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
 
   const description = isActive
     ? toolsetId
-      ? `${config.verb} "${toolsetId}"...`
+      ? `${config.verb} "${toolsetDisplayName}"...`
       : `${config.verb}...`
     : detail
       ? `${detail.tools.length} tool${detail.tools.length === 1 ? '' : 's'} fetched`
@@ -175,15 +195,15 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <ToolCard.Title>{config.label}</ToolCard.Title>
-                {toolsetId ? (
+                {toolsetDisplayName ? (
                   <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1" title={toolsetId ?? undefined}>
                       {resultIcon ? (
                         <ConnectorIcon icon={resultIcon} className="size-2.5" />
                       ) : (
                         <Icon className="size-2.5" />
                       )}
-                      {toolsetId}
+                      {toolsetDisplayName}
                     </span>
                   </span>
                 ) : null}
@@ -205,15 +225,15 @@ export function ToolsetToolBlock({ toolName, status, args, result, error }: Tool
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <ToolCard.Title>{config.label}</ToolCard.Title>
-                {toolsetId ? (
+                {toolsetDisplayName ? (
                   <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1" title={toolsetId ?? undefined}>
                       {resultIcon ? (
                         <ConnectorIcon icon={resultIcon} className="size-2.5" />
                       ) : (
                         <Icon className="size-2.5" />
                       )}
-                      {toolsetId}
+                      {toolsetDisplayName}
                     </span>
                   </span>
                 ) : null}
