@@ -26,6 +26,7 @@ export function buildSystemPrompt(input: {
   userName?: string | null;
   userTimezone?: string | null;
   memoryContext?: string | null;
+  todoContext?: string | null;
   codeModePrompt?: string | null;
 }): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
@@ -48,6 +49,10 @@ export function buildSystemPrompt(input: {
 
   if (input.memoryContext) {
     result = `${result}\n\n<memory>\n${input.memoryContext}\n</memory>`;
+  }
+
+  if (input.todoContext) {
+    result = `${result}\n\n${input.todoContext}`;
   }
 
   return result;

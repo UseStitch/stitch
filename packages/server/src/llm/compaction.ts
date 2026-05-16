@@ -21,6 +21,7 @@ import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -210,6 +211,8 @@ Use the following markdown sections in your response. Do not wrap your response 
 
 [What work has been completed, what work is still in progress, and what work is left?]
 
+If the system prompt includes a <todos> block, preserve those current todo items in this section.
+
 ## Relevant files / directories
 
 [Construct a structured list of relevant files that have been read, edited, or created that pertain to the task at hand. If all the files in a directory are relevant, include the path to the directory.]
@@ -279,10 +282,11 @@ export async function compact(input: {
   try {
     log.info({ sessionId, auto: input.auto }, 'compaction starting');
 
-    const [compactionSettings, promptUserContext, resolved] = await Promise.all([
+    const [compactionSettings, promptUserContext, resolved, todoContext] = await Promise.all([
       input.compactionSettings ?? getCompactionSettings(),
       getPromptUserContext(),
       resolveCompactionModel(input.providerId, input.modelId),
+      getSessionTodosPromptBlock(sessionId),
     ]);
 
     await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
@@ -342,6 +346,7 @@ export async function compact(input: {
       systemPrompt: null,
       userName: promptUserContext.userName,
       userTimezone: promptUserContext.userTimezone,
+      todoContext,
     });
 
     const provider = createProvider(resolved.credentials);
@@ -512,7 +517,7 @@ export async function buildCompactedHistory(
 ): Promise<ModelMessage[]> {
   const db = getDb();
 
-  const [msgs, promptUserContext, sessionRow] = await Promise.all([
+  const [msgs, promptUserContext, sessionRow, todoContext] = await Promise.all([
     db
       .select()
       .from(messages)
@@ -525,6 +530,7 @@ export async function buildCompactedHistory(
         })
       : getPromptUserContext(),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
+    getSessionTodosPromptBlock(sessionId),
   ]);
 
   // Automations can read all memories; chat only sees 'chat' memories
@@ -559,6 +565,7 @@ export async function buildCompactedHistory(
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,
+    todoContext,
     codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
 

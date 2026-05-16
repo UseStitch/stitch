@@ -34,6 +34,10 @@ import {
   DISPLAY_NAME as READ_DISPLAY_NAME,
 } from '@/tools/core/read.js';
 import {
+  createRegisteredTool as createTodoRegisteredTool,
+  DISPLAY_NAME as TODO_DISPLAY_NAME,
+} from '@/tools/core/todo.js';
+import {
   createRegisteredTool as createWebfetchRegisteredTool,
   DISPLAY_NAME as WEBFETCH_DISPLAY_NAME,
 } from '@/tools/core/webfetch.js';
@@ -87,6 +91,10 @@ const STITCH_TOOL_MODULES = {
   memory: {
     displayName: MEMORY_DISPLAY_NAME,
     createRegisteredTool: createMemoryRegisteredTool,
+  },
+  todo: {
+    displayName: TODO_DISPLAY_NAME,
+    createRegisteredTool: createTodoRegisteredTool,
   },
 } as const;
 

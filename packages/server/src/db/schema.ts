@@ -28,6 +28,7 @@ import type {
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 import type { QuestionInfo, QuestionRequestStatus } from '@stitch/shared/questions/types';
+import type { TodoPriority, TodoStatus } from '@stitch/shared/todos/types';
 import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 
 /** @deprecated Type field is no longer used but kept for DB compatibility */
@@ -149,6 +150,31 @@ export const messages = sqliteTable('messages', {
   startedAt: integer('started_at', { mode: 'number' }).notNull(),
   duration: integer('duration_ms'),
 });
+
+export const sessionTodos = sqliteTable(
+  'session_todos',
+  {
+    id: text('id').$type<PrefixedString<'todo'>>().primaryKey(),
+    sessionId: text('session_id')
+      .$type<PrefixedString<'ses'>>()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    status: text('status').$type<TodoStatus>().notNull(),
+    priority: text('priority').$type<TodoPriority>().notNull(),
+    sortOrder: integer('sort_order', { mode: 'number' }).notNull(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    index('session_todos_session_id_idx').on(table.sessionId),
+    index('session_todos_order_idx').on(table.sessionId, table.sortOrder),
+  ],
+);
 
 export const llmUsageEvents = sqliteTable(
   'llm_usage_events',
