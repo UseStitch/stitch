@@ -7,7 +7,8 @@ import {
   getParentDirPermissionSuggestion,
 } from '@/tools/runtime/file-permissions.js';
 import {
-  isTextFileBuffer,
+  decodeTextFileBuffer,
+  isKnownBinaryFilePath,
   truncateLine,
   validateAbsoluteFilePath,
 } from '@/tools/runtime/shared.js';
@@ -95,14 +96,14 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
     throw new Error('Path must point to a file or directory');
   }
 
-  const buffer = await fs.readFile(targetPath);
-  if (!isTextFileBuffer(buffer)) {
+  if (isKnownBinaryFilePath(targetPath)) {
     throw new Error('Only text files are supported');
   }
 
+  const buffer = await fs.readFile(targetPath);
   const offset = normalizePositiveInteger(parsed.offset, 1);
   const limit = normalizePositiveInteger(parsed.limit, DEFAULT_LIMIT);
-  const content = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  const content = decodeTextFileBuffer(buffer);
 
   return {
     output: formatNumberedContent(content, offset, limit),

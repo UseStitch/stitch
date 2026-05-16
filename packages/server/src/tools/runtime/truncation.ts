@@ -58,7 +58,7 @@ export async function truncateOutput(
   await fs.writeFile(outputPath, text, 'utf-8');
   log.info({ outputPath }, 'truncated output saved');
 
-  const hint = `The tool call succeeded but the output was truncated. Full output saved to: ${outputPath}\nUse Read with offset/limit to view specific sections or Grep to search the full content.`;
+  const hint = `The tool call succeeded but the output was truncated. Full raw output saved to: ${outputPath}\nUse Read with offset/limit to inspect ranges, or Grep to search the full content before reading. For very large single-line output, prefer Grep first.`;
   const content = `${preview}\n\n...${removed} ${unit} truncated...\n\n${hint}`;
 
   return { content, truncated: true, outputPath };

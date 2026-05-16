@@ -23,6 +23,21 @@ type TruncationMeta = {
   };
 };
 
+function getTruncatableText(result: unknown): string {
+  if (typeof result === 'string') return result;
+
+  if (result !== null && typeof result === 'object') {
+    const output = (result as { output?: unknown }).output;
+    if (typeof output === 'string') return output;
+  }
+
+  try {
+    return JSON.stringify(result);
+  } catch {
+    return String(result);
+  }
+}
+
 type ToolPermissionBehavior = {
   getPatternTargets: (input: unknown) => string[];
   getSuggestion: (input: unknown) => PermissionSuggestion | null;
@@ -42,16 +57,7 @@ export function withTruncation<T extends Tool>(
     }
 
     const result = await originalExecute(...args);
-    const text =
-      typeof result === 'string'
-        ? result
-        : (() => {
-            try {
-              return JSON.stringify(result);
-            } catch {
-              return String(result);
-            }
-          })();
+    const text = getTruncatableText(result);
     const truncated = await truncateOutput(text, options);
     if (truncated.truncated) {
       const meta: TruncationMeta = {
@@ -60,6 +66,25 @@ export function withTruncation<T extends Tool>(
           outputPath: truncated.outputPath,
         },
       };
+
+      if (typeof result === 'string') {
+        return {
+          output: truncated.content,
+          ...meta,
+        };
+      }
+
+      if (
+        result !== null &&
+        typeof result === 'object' &&
+        typeof (result as { output?: unknown }).output === 'string'
+      ) {
+        return {
+          ...result,
+          output: truncated.content,
+          ...meta,
+        };
+      }
 
       return {
         output: truncated.content,
