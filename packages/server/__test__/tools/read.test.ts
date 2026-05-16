@@ -27,6 +27,16 @@ describe('read tool helpers', () => {
     expect(result.output).toBe('1: alpha\n2: beta\n3: gamma');
   });
 
+  test('reads UTF-16LE text files created by Windows tools', async () => {
+    const dir = await createTempDir();
+    const filePath = path.join(dir, 'windows-output.txt');
+    await fs.writeFile(filePath, Buffer.from('alpha\nbeta', 'utf16le'));
+
+    const result = await readPathContent({ filePath });
+
+    expect(result.output).toBe('1: alpha\n2: beta');
+  });
+
   test('supports offset and limit when reading file content', async () => {
     const dir = await createTempDir();
     const filePath = path.join(dir, 'example.txt');
@@ -79,6 +89,22 @@ describe('read tool helpers', () => {
     const dir = await createTempDir();
     const filePath = path.join(dir, 'image.png');
     await fs.writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]));
+
+    await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
+  });
+
+  test('rejects known binary file extensions', async () => {
+    const dir = await createTempDir();
+    const filePath = path.join(dir, 'module.wasm');
+    await fs.writeFile(filePath, 'plain bytes that would otherwise decode as utf8', 'utf8');
+
+    await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
+  });
+
+  test('rejects files with too many non-printable characters', async () => {
+    const dir = await createTempDir();
+    const filePath = path.join(dir, 'control.txt');
+    await fs.writeFile(filePath, Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 65, 66]));
 
     await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
   });

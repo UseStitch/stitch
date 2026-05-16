@@ -8,12 +8,14 @@ import { withToolResultHandling, withTruncation } from '@/tools/runtime/wrappers
 
 describe('withTruncation', () => {
   test('returns compact result when truncation is triggered', async () => {
+    const largeOutput = 'big output\n'.repeat(300);
     const wrapped = withTruncation(
       tool({
         description: 'test tool',
         inputSchema: z.object({}),
         execute: async () => ({
-          output: 'big output',
+          output: largeOutput,
+          title: 'kept title',
           attachment: 'x'.repeat(20_000),
         }),
       }),
@@ -35,6 +37,10 @@ describe('withTruncation', () => {
     const outputPath = (result as { __stitchToolResultMeta: { outputPath: string } })
       .__stitchToolResultMeta.outputPath;
     await expect(fs.stat(outputPath)).resolves.toBeDefined();
+    await expect(fs.readFile(outputPath, 'utf8')).resolves.toBe(largeOutput);
+    expect(result).toMatchObject({ title: 'kept title' });
+    expect((result as { output: string }).output).toContain('Full raw output saved to:');
+    expect((result as { output: string }).output).toContain('prefer Grep first');
   });
 
   test('returns original result when truncation is not needed', async () => {
