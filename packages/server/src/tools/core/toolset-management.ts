@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
@@ -14,7 +15,7 @@ import { getToolset } from '@/tools/toolsets/registry.js';
  */
 export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedString<'ses'>) {
   const humanizeToolName = (name: string) =>
-    name
+    (parseMcpToolName(name)?.toolName ?? name)
       .split(/[_-]+/)
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -106,6 +107,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     execute: async ({ toolsetId, persist, verbose }) => {
       if (manager.isActive(toolsetId)) {
         const wasPersisted = manager.isPersisted(toolsetId);
+        const toolsetName = getToolset(toolsetId)?.name ?? toolsetId;
         if (persist === true) {
           manager.pin(toolsetId);
           setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
@@ -113,13 +115,14 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
         return {
           toolsetId,
+          toolsetName,
           status: 'already_active',
           icon: getToolset(toolsetId)?.icon ?? null,
           persisted: manager.isPersisted(toolsetId),
           message:
             persist === true && !wasPersisted
-              ? `Toolset "${toolsetId}" is already active and will now persist for future turns.`
-              : `Toolset "${toolsetId}" is already active.`,
+              ? `Toolset "${toolsetName}" is already active and will now persist for future turns.`
+              : `Toolset "${toolsetName}" is already active.`,
         };
       }
 
@@ -142,19 +145,21 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
+      const toolsetName = toolset?.name ?? toolsetId;
       const shouldIncludeVerbose = verbose === true;
       const persisted = manager.isPersisted(toolsetId);
 
       return {
         toolsetId,
+        toolsetName,
         status: 'activated',
         persisted,
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
         message: persisted
-          ? `Toolset "${toolsetId}" activated and will persist for future turns. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`
-          : `Toolset "${toolsetId}" activated for this run only. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean. Set persist=true on activation only when you expect to need it again in future turns.`,
+          ? `Toolset "${toolsetName}" activated and will persist for future turns. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`
+          : `Toolset "${toolsetName}" activated for this run only. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean. Set persist=true on activation only when you expect to need it again in future turns.`,
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,
@@ -179,13 +184,16 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       toolsetId: z.string().describe('The toolset ID to deactivate'),
     }),
     execute: async ({ toolsetId }) => {
+      const toolset = getToolset(toolsetId);
+      const toolsetName = toolset?.name ?? toolsetId;
       const removed = manager.deactivate(toolsetId);
       if (!removed) {
         return {
           toolsetId,
+          toolsetName,
           status: 'not_active',
-          icon: getToolset(toolsetId)?.icon ?? null,
-          message: `Toolset "${toolsetId}" was not active.`,
+          icon: toolset?.icon ?? null,
+          message: `Toolset "${toolsetName}" was not active.`,
         };
       }
 
@@ -193,9 +201,10 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       return {
         toolsetId,
+        toolsetName,
         status: 'deactivated',
-        icon: getToolset(toolsetId)?.icon ?? null,
-        message: `Toolset "${toolsetId}" deactivated. Its tools are no longer available.`,
+        icon: toolset?.icon ?? null,
+        message: `Toolset "${toolsetName}" deactivated. Its tools are no longer available.`,
       };
     },
   });
