@@ -1,6 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-gitloops"],
   "agent": {
     "explore": {
       "model": "google/gemini-3-flash-preview"
