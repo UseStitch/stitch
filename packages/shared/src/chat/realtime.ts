@@ -134,6 +134,10 @@ export type PermissionResponseResolvedPayload = {
   sessionId: PrefixedString<'ses'>;
 };
 
+export type SessionTodosUpdatedPayload = {
+  sessionId: PrefixedString<'ses'>;
+};
+
 export type MeetingCallDetectedPayload = {
   key: string;
   platform: MeetingPlatform;
@@ -185,6 +189,7 @@ export const SSE_EVENT_NAMES = [
   'question-rejected',
   'permission-response-requested',
   'permission-response-resolved',
+  'session-todos-updated',
   'meeting-call-detected',
   'meeting-call-ended',
   'recording-analysis-updated',
@@ -214,6 +219,7 @@ export type SseEventPayloadMap = {
   'question-rejected': QuestionRejectedPayload;
   'permission-response-requested': PermissionResponseRequestedPayload;
   'permission-response-resolved': PermissionResponseResolvedPayload;
+  'session-todos-updated': SessionTodosUpdatedPayload;
   'meeting-call-detected': MeetingCallDetectedPayload;
   'meeting-call-ended': MeetingCallEndedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;

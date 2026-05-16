@@ -20,6 +20,7 @@ import {
 } from '@/chat/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
+import { listSessionTodos } from '@/todos/service.js';
 
 const sessionIdParamSchema = z.object({ id: routeSchemas.sessionId });
 
@@ -90,6 +91,12 @@ chatRouter.get('/sessions/:id', zValidator('param', sessionIdParamSchema), async
 chatRouter.get('/sessions/:id/stats', zValidator('param', sessionIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await getSessionStats(id);
+  return unwrapResult(c, result);
+});
+
+chatRouter.get('/sessions/:id/todos', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await listSessionTodos(id);
   return unwrapResult(c, result);
 });
 

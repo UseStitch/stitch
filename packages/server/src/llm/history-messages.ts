@@ -69,6 +69,7 @@ export function buildHistoryMessages(
     userName?: string | null;
     userTimezone?: string | null;
     memoryContext?: string | null;
+    todoContext?: string | null;
     codeModePrompt?: string | null;
   },
 ): ModelMessage[] {
@@ -276,6 +277,7 @@ export function buildHistoryMessages(
         userName: promptConfig?.userName ?? null,
         userTimezone: promptConfig?.userTimezone ?? null,
         memoryContext: promptConfig?.memoryContext ?? null,
+        todoContext: promptConfig?.todoContext ?? null,
         codeModePrompt: promptConfig?.codeModePrompt ?? null,
       }),
     });

@@ -5,12 +5,14 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
+import type { SessionTodo } from '@stitch/shared/todos/types';
 
 import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
 import { PermissionResponseDock } from '@/components/chat/docks/permission-response-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
+import { TodoDock } from '@/components/chat/docks/todo-dock';
 import type { RetryInfo, DoomLoopInfo } from '@/stores/stream-store';
 
 type UseSessionDocksOptions = {
@@ -19,6 +21,7 @@ type UseSessionDocksOptions = {
   doomLoop: DoomLoopInfo | null;
   pendingQuestions: QuestionRequest[];
   pendingPermissionResponses: PermissionResponse[];
+  todos: SessionTodo[];
   replyQuestion: UseMutationResult<
     unknown,
     Error,
@@ -56,6 +59,7 @@ export function useSessionDocks({
   doomLoop,
   pendingQuestions,
   pendingPermissionResponses,
+  todos,
   replyQuestion,
   rejectQuestion,
   allowPermissionResponse,
@@ -184,12 +188,27 @@ export function useSessionDocks({
       });
     }
 
+    if (todos.length > 0) {
+      const activeCount = todos.filter(
+        (todo) => todo.status === 'pending' || todo.status === 'in_progress',
+      ).length;
+
+      items.push({
+        id: 'todos',
+        title: activeCount > 0 ? `Todos (${activeCount} active)` : 'Todos',
+        defaultExpanded: todos.some((todo) => todo.status === 'in_progress'),
+        variant: 'default',
+        children: <TodoDock todos={todos} />,
+      });
+    }
+
     return items;
   }, [
     doomLoop,
     retry,
     pendingQuestions,
     pendingPermissionResponses,
+    todos,
     sessionId,
     replyQuestion,
     rejectQuestion,

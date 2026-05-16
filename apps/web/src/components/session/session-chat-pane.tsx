@@ -25,6 +25,7 @@ import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-sync';
 import { useQuestionSync } from '@/hooks/sse/use-question-sync';
 import { useSessionStream } from '@/hooks/sse/use-session-stream';
+import { useTodoSync } from '@/hooks/sse/use-todo-sync';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import {
@@ -35,6 +36,7 @@ import {
   useSplitSession,
 } from '@/lib/queries/chat';
 import { useAddToQueue } from '@/lib/queries/queue';
+import { sessionTodosQueryOptions } from '@/lib/queries/todos';
 import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -58,6 +60,7 @@ export function SessionChatPane({
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
   const isChildSession = session.parentSessionId !== null;
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
+  const { data: todos } = useSuspenseQuery(sessionTodosQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
   const lastUsedModel = React.useMemo(
@@ -82,6 +85,7 @@ export function SessionChatPane({
 
   useQuestionSync(id);
   usePermissionResponseSync(id);
+  useTodoSync(id);
   useSessionStream({ sessionId: id });
 
   const docks = useSessionDocks({
@@ -90,6 +94,7 @@ export function SessionChatPane({
     doomLoop: streamState.doomLoop,
     pendingQuestions: pendingItems.pendingQuestions,
     pendingPermissionResponses: pendingItems.pendingPermissionResponses,
+    todos,
     replyQuestion: pendingItems.replyQuestion,
     rejectQuestion: pendingItems.rejectQuestion,
     allowPermissionResponse: pendingItems.allowPermissionResponse,
