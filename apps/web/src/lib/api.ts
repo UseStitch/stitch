@@ -1,3 +1,5 @@
+import type { MeetingPlatform } from '@stitch/shared/recordings/types';
+
 export type ContextMenuParams = {
   x: number;
   y: number;
@@ -27,6 +29,17 @@ export type DesktopUpdaterState = {
   version?: string;
   progress?: number;
   error?: string;
+};
+
+type DesktopNotificationInput = {
+  title: string;
+  body?: string;
+  silent?: boolean;
+  clickAction?: {
+    kind: 'start-recording';
+    platform: MeetingPlatform;
+    key: string;
+  } | null;
 };
 
 declare global {
@@ -69,6 +82,9 @@ declare global {
         requestMicrophone: () => Promise<boolean>;
         getScreenCaptureStatus: () => Promise<string>;
         openScreenCaptureSettings: () => Promise<void>;
+      };
+      notifications?: {
+        show: (input: DesktopNotificationInput) => Promise<boolean>;
       };
     };
   }

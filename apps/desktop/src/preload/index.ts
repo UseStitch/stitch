@@ -61,4 +61,16 @@ contextBridge.exposeInMainWorld('api', {
     openScreenCaptureSettings: () =>
       ipcRenderer.invoke('permissions:openScreenCaptureSettings') as Promise<void>,
   },
+  notifications: {
+    show: (input: {
+      title: string;
+      body?: string;
+      silent?: boolean;
+      clickAction?: {
+        kind: 'start-recording';
+        platform: 'google-meet' | 'teams' | 'zoom' | 'slack' | 'discord';
+        key: string;
+      } | null;
+    }) => ipcRenderer.invoke('notifications:show', input) as Promise<boolean>,
+  },
 });

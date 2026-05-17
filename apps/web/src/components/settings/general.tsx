@@ -327,26 +327,78 @@ function NotificationsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   const soundEnabled = settings['notifications.sound.enabled'] !== 'false';
+  const osEnabled = settings['notifications.os.enabled'] !== 'false';
+  const recordingSuggestionsEnabled =
+    settings['notifications.os.recordingSuggestions.enabled'] !== 'false';
 
-  const saveMutation = useMutation(
+  const saveSoundMutation = useMutation(
     saveSettingMutationOptions('notifications.sound.enabled', queryClient, { silent: true }),
+  );
+  const saveOsMutation = useMutation(
+    saveSettingMutationOptions('notifications.os.enabled', queryClient, { silent: true }),
+  );
+  const saveRecordingSuggestionsMutation = useMutation(
+    saveSettingMutationOptions('notifications.os.recordingSuggestions.enabled', queryClient, {
+      silent: true,
+    }),
   );
 
   function handleSoundToggle(checked: boolean) {
-    saveMutation.mutate(checked ? 'true' : 'false');
+    saveSoundMutation.mutate(checked ? 'true' : 'false');
+  }
+
+  function handleOsToggle(checked: boolean) {
+    saveOsMutation.mutate(checked ? 'true' : 'false');
+  }
+
+  function handleRecordingSuggestionsToggle(checked: boolean) {
+    saveRecordingSuggestionsMutation.mutate(checked ? 'true' : 'false');
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor="sound-toggle" className="text-sm font-medium">
-          Sound alerts
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          Play an attention sound when the AI needs your input
-        </p>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-4 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label htmlFor="sound-toggle" className="text-sm font-medium">
+            Sound alerts
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Play an attention sound when the AI needs your input
+          </p>
+        </div>
+        <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
       </div>
-      <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
+      <div className="flex items-center justify-between gap-4 border-t border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label htmlFor="desktop-notifications-toggle" className="text-sm font-medium">
+            Desktop notifications
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Show system notifications for important app events
+          </p>
+        </div>
+        <Switch
+          id="desktop-notifications-toggle"
+          checked={osEnabled}
+          onCheckedChange={handleOsToggle}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-4 border-t border-border/50 py-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <Label htmlFor="recording-suggestions-toggle" className="text-sm font-medium">
+            Recording suggestions
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Notify when a meeting call is detected and recording can start
+          </p>
+        </div>
+        <Switch
+          id="recording-suggestions-toggle"
+          checked={recordingSuggestionsEnabled}
+          onCheckedChange={handleRecordingSuggestionsToggle}
+          disabled={!osEnabled}
+        />
+      </div>
     </div>
   );
 }
