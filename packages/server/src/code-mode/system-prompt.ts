@@ -50,6 +50,7 @@ Do not use \`execute_typescript\` for:
 - Straightforward search/read/modify flows you can complete directly
 - Simple batching that does not require substantial branching or transformation
 - Tasks that are already practical with normal tool calls in a few steps
+- Any task completable in 3 or fewer direct tool calls — the overhead and failure surface are not worth it
 
 ### How it works
 
@@ -73,6 +74,8 @@ ${typeSection}
 - Do not assume any global variables exist other than \`console\` and the \`external_*\` functions
 - External functions return \`Promise<unknown>\` — use type assertions if needed
 - If \`execute_typescript\` fails once in the current run, do not retry it for the same task unless the error clearly indicates a code mistake you can fix. Fall back to direct tool calls instead.
+- **Always return a structured object, not a plain string.** Include fields like \`found\`, \`processed\`, \`count\`, or \`ids\` so the result is unambiguous. A string like \`"No results found"\` is indistinguishable from a successful no-op — a structured return like \`{ found: 0, query: "...", processed: 0 }\` makes the outcome clear.
+- **Include the intermediate data that led to the outcome.** If a search returned zero results, include the query and the raw result count in the return object so you can diagnose whether the query was wrong, not just that nothing was processed.
 
 ### Async patterns
 

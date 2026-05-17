@@ -22,7 +22,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       .join(' ');
 
   const list_toolsets = tool({
-    description: `List toolsets and inspect toolset contents. Prefer a query string when you already know the domain (for example "gmail", "browser", or "calendar"). Call with no arguments only for broad discovery. Pass a toolsetId to inspect one specific toolset's exact callable tool names, descriptions, and prompts in detail.`,
+    description: `List toolsets and inspect toolset contents. Prefer a query string when you already know the domain (for example "gmail", "browser", or "calendar"). Call with no arguments only for broad discovery. Pass a toolsetId only when you need to inspect prompts or instructions before activation — activate_toolset already returns the full tool list, so do not call list_toolsets with a toolsetId just to preview tools you are about to activate.`,
     inputSchema: z.object({
       toolsetId: z
         .string()
