@@ -24,6 +24,7 @@ import { queueRouter } from '@/routes/queue.js';
 import { recordingsRouter } from '@/routes/recordings.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
+import { skillsRouter } from '@/routes/skills.js';
 import { usageRouter } from '@/routes/usage.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 
@@ -67,6 +68,7 @@ app.route('/llm/models', modelsRouter);
 app.route('/llm/provider', providerRouter);
 app.route('/llm/ollama/models', ollamaModelsRouter);
 app.route('/settings', settingsRouter);
+app.route('/skills', skillsRouter);
 app.route('/recordings', recordingsRouter);
 app.route('/shortcuts', shortcutsRouter);
 app.route('/usage', usageRouter);

@@ -29,6 +29,7 @@ import {
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { processMemories } from '@/memory/processor.js';
+import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
@@ -1358,10 +1359,13 @@ export async function runStream(opts: {
   const messages = opts.llmMessages;
   const codeModePrompt = codeModeResult.getSystemPrompt();
   const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
+  const skillsPrompt = await buildSkillsSystemPrompt();
   if (messages.length > 0 && messages[0]?.role === 'system') {
     const sysMsg = messages[0];
     const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    const promptAdditions = [codeModePrompt, toolsetsPrompt].filter(Boolean).join('\n\n');
+    const promptAdditions = [codeModePrompt, toolsetsPrompt, skillsPrompt]
+      .filter(Boolean)
+      .join('\n\n');
     messages[0] = {
       role: 'system',
       content: `${existingContent}\n\n${promptAdditions}`,

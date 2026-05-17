@@ -10,6 +10,7 @@ import {
   MonitorIcon,
   CpuIcon,
   MicIcon,
+  WandSparklesIcon,
 } from 'lucide-react';
 import * as React from 'react';
 
@@ -24,6 +25,7 @@ import { ToolsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { RecordingsSettings } from '@/components/settings/recordings';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
+import { SkillsSettings } from '@/components/settings/skills';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useDialogContext } from '@/context/dialog-context';
@@ -64,6 +66,7 @@ const SECTIONS: SettingsSection[] = [
       { id: 'providers', label: 'Providers', icon: <ServerIcon className="size-4" /> },
       { id: 'models', label: 'Models', icon: <CpuIcon className="size-4" /> },
       { id: 'memory', label: 'Memory', icon: <BrainIcon className="size-4" /> },
+      { id: 'skills', label: 'Skills', icon: <WandSparklesIcon className="size-4" /> },
       { id: 'tools', label: 'Tools', icon: <WrenchIcon className="size-4" /> },
       { id: 'mcp-servers', label: 'MCP Servers', icon: <NetworkIcon className="size-4" /> },
     ],
@@ -141,6 +144,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <ModelsSettings />;
     case 'memory':
       return <MemorySettings />;
+    case 'skills':
+      return <SkillsSettings />;
     case 'tools':
       return <ToolsSettings />;
     case 'mcp-servers':

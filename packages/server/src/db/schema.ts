@@ -45,6 +45,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
+import type { SkillId } from '@stitch/shared/skills/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { LanguageModelUsage } from 'ai';
@@ -331,6 +332,29 @@ export const toolEnabled = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [uniqueIndex('tool_enabled_scope_identifier_uidx').on(table.scope, table.identifier)],
+);
+
+export const skills = sqliteTable(
+  'skills',
+  {
+    id: text('id').$type<SkillId>().primaryKey(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    content: text('content').notNull(),
+    hash: text('hash').notNull(),
+    isExternal: integer('is_external', { mode: 'boolean' }).notNull().default(false),
+    source: text('source'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [
+    uniqueIndex('skills_name_uidx').on(table.name),
+    uniqueIndex('skills_hash_uidx').on(table.hash),
+  ],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {
