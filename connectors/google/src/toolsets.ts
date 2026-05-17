@@ -67,6 +67,9 @@ type BuildGoogleToolsetsInput = {
   appliedVersion?: number;
 };
 
+const EXACT_TOOL_NAME_INSTRUCTION =
+  'Use the exact callable tool names exactly as listed. Do not invent aliases, camelCase variants, or shortened names.';
+
 function hasCapability(capabilities: string[], capability: string): boolean {
   return capabilities.includes(capability);
 }
@@ -116,9 +119,13 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
     id: 'google-gmail',
     name: 'Google Gmail',
     icon: { type: 'simpleIcons', slug: 'gmail' },
-    description:
-      'Search, read, and send emails via Gmail. Activate to access your inbox, search messages, and compose emails.',
+    description: canSend
+      ? 'Search, read, send, label, and manage Gmail messages and labels.'
+      : canModify
+        ? 'Search, read, label, and manage Gmail messages without send access.'
+        : 'Search and read Gmail messages and inspect Gmail labels.',
     instructions: [
+      EXACT_TOOL_NAME_INSTRUCTION,
       'Gmail tools use standard Gmail search syntax for queries.',
       'Common operators: from:, to:, subject:, is:unread, is:starred, has:attachment, newer_than:, older_than:, label:',
       'Example queries: "from:boss@company.com newer_than:7d", "subject:invoice is:unread", "has:attachment filename:pdf"',
@@ -126,11 +133,12 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
         ? 'You have send access. Use gmail_send to compose or reply to emails.'
         : 'You do not have send access. Sending emails is not available.',
       canModify
-        ? 'You have label modify access. Use gmail_modify_labels and gmail_modify_messages to manage labels and archive messages.'
+        ? 'You have label modify access. Use gmail_modify_labels with an explicit operation field (create, update, or delete). Use gmail_modify_messages to add or remove labels on messages or threads.'
         : 'You have read-only label access. Use gmail_list_labels and gmail_get_label to inspect labels.',
       canManageFilters
-        ? 'You have settings access. Use gmail_filters to list, get, create, or delete inbox filters. To update a filter, delete it and recreate it.'
+        ? 'You have settings access. Use gmail_filters with an explicit operation field (list, get, create, or delete). To update a filter, delete it and recreate it.'
         : 'You do not have settings access. Managing Gmail filters is not available.',
+      'Do not add SPAM and TRASH in the same gmail_modify_messages call. Apply those actions in separate steps if needed.',
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) =>
@@ -149,9 +157,11 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
     id: 'google-drive',
     name: 'Google Drive',
     icon: { type: 'simpleIcons', slug: 'googledrive' },
-    description:
-      'Search, read, and create files in Google Drive. Access Google Docs, Sheets, PDFs, and other documents.',
+    description: canWrite
+      ? 'Search, read, and create text files in Google Drive, including access to Docs, Sheets, PDFs, and other documents.'
+      : 'Search and read Google Drive files, including Docs, Sheets, PDFs, and other documents.',
     instructions: [
+      EXACT_TOOL_NAME_INSTRUCTION,
       'Drive search uses the Google Drive query syntax.',
       'Common queries: "name contains \'report\'", "mimeType=\'application/pdf\'", "modifiedTime > \'2024-01-01\'"',
       "Combine with: and, or, not. Example: \"name contains 'Q4' and mimeType='application/vnd.google-apps.spreadsheet'\"",
@@ -182,9 +192,11 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
     id: 'google-calendar',
     name: 'Google Calendar',
     icon: { type: 'simpleIcons', slug: 'googlecalendar' },
-    description:
-      'View and manage Google Calendar events. Check upcoming meetings, search events, and create new ones.',
+    description: canWrite
+      ? 'View and manage Google Calendar events, including creating, updating, and deleting events.'
+      : 'View Google Calendar events and inspect upcoming meetings without write access.',
     instructions: [
+      EXACT_TOOL_NAME_INSTRUCTION,
       'Calendar tools default to the primary calendar. Use calendarId parameter for other calendars.',
       'Time parameters use ISO 8601 format (e.g., "2025-06-15T10:00:00Z").',
       'Always pass the user\'s local IANA timezone (e.g. "America/New_York") so that "today" and time ranges are anchored to their local time, not UTC.',
@@ -211,9 +223,11 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
     id: 'google-docs',
     name: 'Google Docs',
     icon: { type: 'simpleIcons', slug: 'googledocs' },
-    description:
-      'Search, read, create, and update Google Docs documents. Use Docs for structured notes, drafts, and collaborative writing.',
+    description: canWrite
+      ? 'Search, read, create, and update Google Docs documents for structured notes, drafts, and collaborative writing.'
+      : 'Search and read Google Docs documents without write access.',
     instructions: [
+      EXACT_TOOL_NAME_INSTRUCTION,
       'Google Docs search accepts optional Drive query filters (for example: "name contains \'Roadmap\'").',
       'docs_read returns flattened plain text extracted from the document body.',
       canWrite

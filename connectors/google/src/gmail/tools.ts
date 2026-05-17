@@ -259,7 +259,8 @@ export function createGmailTools(
       },
     }),
     gmail_list_labels: tool({
-      description: 'List Gmail labels with visibility and message/thread counts.',
+      description:
+        'List Gmail labels with visibility and message/thread counts. Use this to discover exact label IDs before calling gmail_get_label or gmail_modify_messages.',
       inputSchema: gmailListLabelsSchema,
       execute: async (input: z.infer<typeof gmailListLabelsSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -268,7 +269,7 @@ export function createGmailTools(
       },
     }),
     gmail_get_label: tool({
-      description: 'Get details for one Gmail label by label ID.',
+      description: 'Get details for one Gmail label by label ID, such as INBOX or a user label ID.',
       inputSchema: gmailGetLabelsSchema,
       execute: async (input: z.infer<typeof gmailGetLabelsSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -300,7 +301,7 @@ export function createGmailTools(
   if (canModify) {
     tools['gmail_modify_labels'] = tool({
       description:
-        'Create, update, or delete Gmail labels using operation enum values: create, update, delete.',
+        'Create, update, or delete Gmail labels. Always include operation with one of: create, update, delete.',
       inputSchema: gmailModifyLabelsSchema,
       execute: async (input: z.infer<typeof gmailModifyLabelsSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -310,7 +311,8 @@ export function createGmailTools(
     });
 
     tools['gmail_modify_messages'] = tool({
-      description: 'Add/remove Gmail labels on messages, or on threads when modifyThreads=true.',
+      description:
+        'Add or remove Gmail labels on messages, or on threads when modifyThreads=true. Provide at least one of addLabelIds or removeLabelIds. Do not add SPAM and TRASH in the same call.',
       inputSchema: gmailModifyMessagesSchema,
       execute: async (input: z.infer<typeof gmailModifyMessagesSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -328,7 +330,7 @@ export function createGmailTools(
   if (canManageFilters) {
     tools['gmail_filters'] = tool({
       description:
-        'Manage Gmail filters that automatically label, archive, delete, or forward incoming messages. Operations: list (all filters), get (one filter by ID), create (new filter with criteria + action), delete (permanently remove a filter). Note: the Gmail API has no update endpoint — to modify a filter, delete it and create a new one.',
+        'Manage Gmail filters that automatically label, archive, delete, or forward incoming messages. Always include operation with one of: list, get, create, delete. Note: the Gmail API has no update endpoint, so to modify a filter you must delete it and recreate it.',
       inputSchema: gmailFiltersSchema,
       execute: async (input: z.infer<typeof gmailFiltersSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -372,15 +374,16 @@ export const GMAIL_TOOL_SUMMARIES = [
   { name: 'gmail_get_label', description: 'Get details for a single Gmail label by ID' },
   {
     name: 'gmail_modify_labels',
-    description: 'Create, update, or delete Gmail labels using an operation enum',
+    description: 'Create, update, or delete Gmail labels; requires operation=create|update|delete',
   },
   {
     name: 'gmail_modify_messages',
-    description: 'Add or remove labels on messages (or threads with modifyThreads=true)',
+    description:
+      'Add or remove labels on messages or threads; requires addLabelIds/removeLabelIds and cannot add SPAM and TRASH together',
   },
   {
     name: 'gmail_filters',
     description:
-      'List, get, create, or delete Gmail filters that auto-label, archive, or forward incoming messages (requires settings access)',
+      'List, get, create, or delete Gmail filters; requires operation=list|get|create|delete (requires settings access)',
   },
 ];

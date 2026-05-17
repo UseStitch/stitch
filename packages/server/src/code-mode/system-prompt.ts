@@ -35,7 +35,7 @@ ${typeStubs}
 
 ## Code Mode: \`execute_typescript\`
 
-You have access to an \`execute_typescript\` tool that runs TypeScript code in a secure sandbox. Use it to orchestrate multiple tool calls, transform data, or implement logic that would otherwise require many sequential steps.
+You have access to an \`execute_typescript\` tool that runs TypeScript code in a secure sandbox. Use it sparingly to orchestrate multiple tool calls, transform data, or implement logic that would otherwise require many sequential steps.
 
 ### When to use \`execute_typescript\`
 
@@ -43,6 +43,13 @@ You have access to an \`execute_typescript\` tool that runs TypeScript code in a
 - When you need loops, conditionals, or data transformations across tool outputs
 - When you want to parallelize independent tool calls with \`Promise.all\`
 - When a single-step tool call is insufficient for the task
+
+Do not use \`execute_typescript\` for:
+
+- A small number of direct tool calls
+- Straightforward search/read/modify flows you can complete directly
+- Simple batching that does not require substantial branching or transformation
+- Tasks that are already practical with normal tool calls in a few steps
 
 ### How it works
 
@@ -65,6 +72,7 @@ ${typeSection}
 - If you define a helper \`async function\`, you **must \`await\`** the call at the top level — returning an un-awaited Promise silently discards the result
 - Do not assume any global variables exist other than \`console\` and the \`external_*\` functions
 - External functions return \`Promise<unknown>\` — use type assertions if needed
+- If \`execute_typescript\` fails once in the current run, do not retry it for the same task unless the error clearly indicates a code mistake you can fix. Fall back to direct tool calls instead.
 
 ### Async patterns
 
