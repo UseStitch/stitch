@@ -11,6 +11,7 @@ import { GenericToolBlock } from '@/components/chat/message-bubble/tool-call/gen
 import { McpToolBlock } from '@/components/chat/message-bubble/tool-call/mcp-tool-block';
 import { QuestionToolBlock } from '@/components/chat/message-bubble/tool-call/question-tool-block';
 import { SearchToolBlock } from '@/components/chat/message-bubble/tool-call/search-tool-block';
+import { SkillToolBlock } from '@/components/chat/message-bubble/tool-call/skill-tool-block';
 import { ToolsetToolBlock } from '@/components/chat/message-bubble/tool-call/toolset-tool-block';
 import { WebfetchToolBlock } from '@/components/chat/message-bubble/tool-call/webfetch-tool-block';
 
@@ -70,6 +71,10 @@ export function ToolCallBlock({
 
   if (toolName === 'question' && hasArgs) {
     return <QuestionToolBlock toolName={toolName} status={status} args={args} result={result} />;
+  }
+
+  if (toolName === 'skill' && hasArgs) {
+    return <SkillToolBlock status={status} args={args} result={result} error={error} />;
   }
 
   if (toolName === 'webfetch' && hasArgs) {

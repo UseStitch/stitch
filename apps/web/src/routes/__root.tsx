@@ -47,6 +47,7 @@ const settingsSearchSchema = z.object({
       'providers',
       'models',
       'tools',
+      'skills',
       'mcp-servers',
       'memory',
     ])

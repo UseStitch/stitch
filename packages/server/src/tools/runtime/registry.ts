@@ -34,6 +34,10 @@ import {
   DISPLAY_NAME as READ_DISPLAY_NAME,
 } from '@/tools/core/read.js';
 import {
+  createRegisteredTool as createSkillRegisteredTool,
+  DISPLAY_NAME as SKILL_DISPLAY_NAME,
+} from '@/tools/core/skill.js';
+import {
   createRegisteredTool as createTodoRegisteredTool,
   DISPLAY_NAME as TODO_DISPLAY_NAME,
 } from '@/tools/core/todo.js';
@@ -96,15 +100,20 @@ const STITCH_TOOL_MODULES = {
     displayName: TODO_DISPLAY_NAME,
     createRegisteredTool: createTodoRegisteredTool,
   },
+  skill: {
+    displayName: SKILL_DISPLAY_NAME,
+    createRegisteredTool: createSkillRegisteredTool,
+    alwaysActive: true,
+  },
 } as const;
 
-export const STITCH_KNOWN_TOOLS: KnownTool[] = Object.entries(STITCH_TOOL_MODULES).map(
-  ([name, mod]) => ({
+export const STITCH_KNOWN_TOOLS: KnownTool[] = Object.entries(STITCH_TOOL_MODULES)
+  .filter(([, mod]) => !('alwaysActive' in mod && mod.alwaysActive))
+  .map(([name, mod]) => ({
     toolType: 'stitch',
     toolName: name,
     displayName: mod.displayName,
-  }),
-);
+  }));
 
 export async function createTools(context: {
   sessionId: PrefixedString<'ses'>;
@@ -133,7 +142,9 @@ export async function createTools(context: {
   });
 
   const disabledTools = await getDisabledToolIdentifiers('tool');
-  const enabledToolEntries = toolEntries.filter(([name]) => !disabledTools.has(name));
+  const enabledToolEntries = toolEntries.filter(
+    ([name, mod]) => ('alwaysActive' in mod && mod.alwaysActive) || !disabledTools.has(name),
+  );
 
   return withToolResultHandlingRecord(
     Object.fromEntries(
