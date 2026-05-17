@@ -12,7 +12,7 @@ import { registerDefaultToolsets } from '@/tools/toolsets/register-default-tools
 const log = Log.create({ service: 'init' });
 
 export async function init() {
-  await Log.init({ print: false });
+  await Log.init({});
 
   await initDb();
   await runPendingMigrations(getDb());
