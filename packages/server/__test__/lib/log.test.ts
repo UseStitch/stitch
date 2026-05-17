@@ -1,190 +1,144 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 
-describe('Log.init', () => {
-  const CLEANUP_THRESHOLD = 5;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
+async function fileExists(filepath: string): Promise<boolean> {
+  return fs
+    .access(filepath)
+    .then(() => true)
+    .catch(() => false);
+}
+
+async function clearLogDir() {
+  const entries = await fs.readdir(PATHS.logDir).catch(() => []);
+  await Promise.all(entries.map((f) => fs.unlink(path.join(PATHS.logDir, f)).catch(() => {})));
+}
+
+async function writeLogFiles(names: string[]) {
+  await fs.mkdir(PATHS.logDir, { recursive: true });
+  await Promise.all(
+    names.map((name) => fs.writeFile(path.join(PATHS.logDir, name), 'test', 'utf-8')),
+  );
+}
+
+// Generates filenames matching pino-roll's Extension Last format: app.<date>.<count>.log
+function dailyLogNames(count: number, startDate = new Date('2020-01-01')): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(startDate.getTime() + i * 86_400_000);
+    return `app.${d.toISOString().slice(0, 10)}.${i + 1}.log`;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Log.cleanup
+// ---------------------------------------------------------------------------
+
+describe('Log.cleanup', () => {
   beforeEach(async () => {
     await fs.mkdir(PATHS.logDir, { recursive: true });
     await clearLogDir();
   });
+
   afterEach(async () => {
-    vi.useRealTimers();
     await clearLogDir();
   });
 
-  test('does not delete files when at threshold', async () => {
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD, startingAt, ONE_DAY);
-    await writeFiles(oldFiles);
+  test('does nothing when there are 10 or fewer log files', async () => {
+    const files = dailyLogNames(10);
+    await writeLogFiles(files);
 
-    await Log.init({ print: false });
+    await Log.cleanup();
 
-    for (const filename of oldFiles) {
-      expect(await fileExists(path.join(PATHS.logDir, filename))).toBe(true);
+    for (const name of files) {
+      expect(await fileExists(path.join(PATHS.logDir, name))).toBe(true);
     }
   });
 
-  test('deletes one old file when startup also creates a current log', async () => {
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD + 5, startingAt, ONE_DAY);
+  test('deletes the oldest file when there are 11 log files', async () => {
+    const files = dailyLogNames(11);
+    await writeLogFiles(files);
 
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-11-02T00:00:00.000Z'));
-    await writeFiles(oldFiles);
+    await Log.cleanup();
 
-    await Log.init({ print: false });
-
-    expect(await fileExists(path.join(PATHS.logDir, '2020-01-01T000000.log'))).toBe(false);
-    for (const filename of oldFiles.slice(1)) {
-      expect(await fileExists(path.join(PATHS.logDir, filename))).toBe(true);
-    }
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-02.log'))).toBe(true);
-  });
-
-  test('deletes the oldest file when threshold exceeded by 6', async () => {
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD + 6, startingAt, ONE_DAY);
-    await writeFiles(oldFiles);
-
-    await Log.init({ print: false });
-
-    expect(await fileExists(path.join(PATHS.logDir, '2020-01-01T000000.log'))).toBe(false);
-  });
-
-  test('preserves nine newest old files plus the current log at startup', async () => {
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD + 6, startingAt, ONE_DAY);
-
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-11-02T00:00:00.000Z'));
-    await writeFiles(oldFiles);
-
-    await Log.init({ print: false });
-
-    for (const filename of oldFiles.slice(-9)) {
-      expect(await fileExists(path.join(PATHS.logDir, filename))).toBe(true);
-    }
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-02.log'))).toBe(true);
-  });
-
-  test('does not delete dev.log during cleanup', async () => {
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD + 6, startingAt, ONE_DAY);
-    await writeFiles([...oldFiles, 'dev.log']);
-
-    await Log.init({ print: false });
-
-    expect(await fileExists(path.join(PATHS.logDir, 'dev.log'))).toBe(true);
-  });
-
-  test('creates new log file after cleanup runs', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-11-02T00:00:00.000Z'));
-    const startingAt = new Date('2020-01-01');
-    const oldFiles = createLogFiles(CLEANUP_THRESHOLD + 6, startingAt, ONE_DAY);
-    await writeFiles(oldFiles);
-
-    await Log.init({ print: false });
-
-    expect(await fileExists(path.join(PATHS.logDir, '2020-01-01T000000.log'))).toBe(false);
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-02.log'))).toBe(true);
-  });
-
-  test('rotates to a new daily log file after midnight in production', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-11-02T23:59:59.000Z'));
-
-    await Log.init({ print: false });
-    const log = Log.create({ service: 'test' });
-
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-02.log'))).toBe(true);
-
-    vi.setSystemTime(new Date('2025-11-03T00:00:01.000Z'));
-    log.info('rotated');
-
-    vi.useRealTimers();
-    await waitForFileExists(path.join(PATHS.logDir, '2025-11-03.log'));
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-03.log'))).toBe(true);
-  });
-
-  test('cleanup deletes the oldest daily log and preserves the newest 10', async () => {
-    const dailyFiles = createDailyLogFiles(11, new Date('2025-11-01'));
-    await writeFiles(dailyFiles);
-
-    await Log.init({ print: true });
-
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-01.log'))).toBe(false);
-    for (const filename of dailyFiles.slice(-10)) {
-      expect(await fileExists(path.join(PATHS.logDir, filename))).toBe(true);
+    expect(await fileExists(path.join(PATHS.logDir, files[0]))).toBe(false);
+    for (const name of files.slice(1)) {
+      expect(await fileExists(path.join(PATHS.logDir, name))).toBe(true);
     }
   });
 
-  test('cleanup preserves the current daily log with legacy timestamped logs present', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-11-11T12:00:00.000Z'));
+  test('keeps the 10 newest files when there are many', async () => {
+    const files = dailyLogNames(20);
+    await writeLogFiles(files);
 
-    const legacyFiles = createLogFiles(10, new Date('2025-11-01'), ONE_DAY);
-    await writeFiles(legacyFiles);
+    await Log.cleanup();
 
-    await Log.init({ print: false });
+    for (const name of files.slice(0, 10)) {
+      expect(await fileExists(path.join(PATHS.logDir, name))).toBe(false);
+    }
+    for (const name of files.slice(-10)) {
+      expect(await fileExists(path.join(PATHS.logDir, name))).toBe(true);
+    }
+  });
 
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-11.log'))).toBe(true);
-    expect(await fileExists(path.join(PATHS.logDir, '2025-11-01T000000.log'))).toBe(false);
+  test('does nothing when the log directory does not exist', async () => {
+    await fs.rm(PATHS.logDir, { recursive: true, force: true });
+    await expect(Log.cleanup()).resolves.not.toThrow();
   });
 });
 
-async function fileExists(filepath: string): Promise<boolean> {
-  return fs.access(filepath).then(
-    () => true,
-    () => false,
-  );
-}
+// ---------------------------------------------------------------------------
+// Log.create
+// ---------------------------------------------------------------------------
 
-async function waitForFileExists(filepath: string): Promise<void> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    if (await fileExists(filepath)) return;
-    await new Promise<void>((resolve) => setTimeout(resolve, 10));
-  }
-
-  throw new Error(`Timed out waiting for file: ${filepath}`);
-}
-
-async function clearLogDir() {
-  const existingLogFiles = await fs.readdir(PATHS.logDir).catch(() => []);
-
-  await Promise.all(
-    existingLogFiles.map((existingLogFile) => {
-      const filepath = path.join(PATHS.logDir, existingLogFile);
-      return fs.unlink(filepath).catch(() => {});
-    }),
-  );
-}
-
-function writeFiles(filenames: string[]) {
-  return Promise.all(
-    filenames.map((f) => fs.writeFile(path.join(PATHS.logDir, f), 'test', 'utf-8')),
-  );
-}
-
-const ONE_DAY = 1000 * 60 * 60 * 24;
-
-function createLogFiles(count: number, startDate: Date, increment = ONE_DAY): string[] {
-  return Array.from({ length: count }, (_, index) => {
-    const creationOffset = index * increment;
-    const fileCreatedAt = new Date(startDate.getTime() + creationOffset);
-    return fileCreatedAt.toISOString().split('.')[0].replace(/:/g, '') + '.log';
+describe('Log.create', () => {
+  test('returns a logger with all required methods', () => {
+    const log = Log.create({ service: 'test-create' });
+    expect(typeof log.debug).toBe('function');
+    expect(typeof log.info).toBe('function');
+    expect(typeof log.warn).toBe('function');
+    expect(typeof log.error).toBe('function');
+    expect(typeof log.tag).toBe('function');
+    expect(typeof log.clone).toBe('function');
+    expect(typeof log.time).toBe('function');
   });
-}
 
-function createDailyLogFiles(count: number, startDate: Date, increment = ONE_DAY): string[] {
-  return Array.from({ length: count }, (_, index) => {
-    const creationOffset = index * increment;
-    const fileCreatedAt = new Date(startDate.getTime() + creationOffset);
-    return `${fileCreatedAt.toISOString().slice(0, 10)}.log`;
+  test('tag() returns the same logger instance for chaining', () => {
+    const log = Log.create({ service: 'test-tag' });
+    const chained = log.tag('requestId', 'abc123');
+    expect(chained).toBe(log);
   });
-}
+
+  test('clone() returns a different logger instance', () => {
+    const log = Log.create({ service: 'test-clone' });
+    const cloned = log.clone();
+    expect(cloned).not.toBe(log);
+  });
+
+  test('returns the cached instance for the same service', () => {
+    const a = Log.create({ service: 'test-cache' });
+    const b = Log.create({ service: 'test-cache' });
+    expect(a).toBe(b);
+  });
+
+  test('time() returns stop() and [Symbol.dispose]', () => {
+    const log = Log.create({ service: 'test-time' });
+    const timer = log.time('my-op');
+    expect(typeof timer.stop).toBe('function');
+    expect(typeof timer[Symbol.dispose]).toBe('function');
+    timer.stop();
+  });
+
+  test('time() using-block calls stop via [Symbol.dispose]', () => {
+    const log = Log.create({ service: 'test-using' });
+    expect(() => {
+      using _t = log.time('block-op');
+    }).not.toThrow();
+  });
+});
