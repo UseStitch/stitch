@@ -28,6 +28,14 @@ const gmailReadSchema = z.object({
   messageId: z.string().describe('The Gmail message ID to read'),
 });
 
+const gmailDownloadAttachmentsSchema = z.object({
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
+  messageId: z.string().describe('The Gmail message ID whose attachments should be downloaded'),
+});
+
 const gmailSendSchema = z.object({
   account: z
     .string()
@@ -229,6 +237,7 @@ export function createGmailTools(
     account?: string,
   ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   permissions: { canSend: boolean; canModify: boolean; canManageFilters: boolean },
+  config?: { tempPath?: string },
 ) {
   const { canSend, canModify, canManageFilters } = permissions;
   const tools: Record<string, Tool> = {
@@ -255,6 +264,20 @@ export function createGmailTools(
       execute: async (input: z.infer<typeof gmailReadSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
         const result = await GmailApi.getMessage(client, input.messageId);
+        return { ...result, usedAccount };
+      },
+    }),
+    gmail_download_attachments: tool({
+      description:
+        'Download all attachments from a Gmail message by ID to a temporary local folder. Returns file paths for downloaded attachments.',
+      inputSchema: gmailDownloadAttachmentsSchema,
+      execute: async (input: z.infer<typeof gmailDownloadAttachmentsSchema>) => {
+        if (!config?.tempPath) {
+          throw new Error('Gmail attachment downloads require a configured temp path.');
+        }
+
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await GmailApi.downloadAttachments(client, input.messageId, config.tempPath);
         return { ...result, usedAccount };
       },
     }),
@@ -366,6 +389,10 @@ export function createGmailTools(
 export const GMAIL_TOOL_SUMMARIES = [
   { name: 'gmail_search', description: 'Search Gmail messages using Gmail search syntax' },
   { name: 'gmail_read', description: 'Read the full content of a Gmail message by ID' },
+  {
+    name: 'gmail_download_attachments',
+    description: 'Download attachments from a Gmail message by ID to temporary local files',
+  },
   { name: 'gmail_send', description: 'Send an email or reply to a thread (requires write access)' },
   {
     name: 'gmail_list_labels',

@@ -55,6 +55,7 @@ type GoogleQuotaOperation = {
 const GMAIL_METHOD_COSTS = {
   MESSAGES_LIST: 5,
   MESSAGES_GET: 5,
+  MESSAGES_ATTACHMENTS_GET: 20,
   MESSAGES_MODIFY: 5,
   MESSAGES_SEND: 100,
   LABELS_LIST: 1,
@@ -104,6 +105,10 @@ function resolveGmailQuotaCost(pathname: string, method: string): number {
 
   if (/\/messages\/[^/]+$/.test(withoutQuery) && method === 'GET') {
     return GMAIL_METHOD_COSTS.MESSAGES_GET;
+  }
+
+  if (/\/messages\/[^/]+\/attachments\/[^/]+$/.test(withoutQuery) && method === 'GET') {
+    return GMAIL_METHOD_COSTS.MESSAGES_ATTACHMENTS_GET;
   }
 
   if (withoutQuery.endsWith('/labels')) {

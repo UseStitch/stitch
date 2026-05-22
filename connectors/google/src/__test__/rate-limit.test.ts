@@ -22,6 +22,13 @@ describe('resolveGoogleQuotaOperation', () => {
 
     expect(
       resolveGoogleQuotaOperation(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/abc/attachments/att-1',
+        'GET',
+      ),
+    ).toEqual({ service: 'gmail', quotaCost: 20 });
+
+    expect(
+      resolveGoogleQuotaOperation(
         'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
         'POST',
       ),
