@@ -1,7 +1,7 @@
+import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
-import type { ToolBinding } from '@/code-mode/isolate/types.js';
 
-export function buildCodeModeSystemPrompt(bindings: Record<string, ToolBinding>): string {
+export function buildCodeModeSystemPrompt(bindings: Record<string, ToolTypeInfo>): string {
   const typeStubs = generateTypeStubs(bindings);
 
   const functionList = Object.values(bindings)
