@@ -81,6 +81,7 @@ export const PATHS = {
   dataDir: paths.data,
   cacheDir: paths.cache,
   logDir: paths.log,
+  tempDir: paths.temp,
 
   filePaths: {
     db: path.join(paths.data, `${APP_NAME}.db`),

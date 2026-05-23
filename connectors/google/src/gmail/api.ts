@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 import type { GoogleClient } from '../client.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -7,6 +10,7 @@ type GmailHeader = { name: string; value: string };
 type GmailMessagePartBody = {
   size: number;
   data?: string;
+  attachmentId?: string;
 };
 
 type GmailMessagePart = {
@@ -31,9 +35,43 @@ type GmailListResponse = {
   resultSizeEstimate?: number;
 };
 
+type GmailAttachmentResponse = {
+  data?: string;
+  size: number;
+};
+
 function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
   return atob(base64);
+}
+
+function decodeBase64UrlBuffer(data: string): Buffer {
+  const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+  return Buffer.from(base64, 'base64');
+}
+
+function safeFilename(filename: string): string {
+  const parsed = Array.from(path.basename(filename))
+    .map((char) => (char.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(char) ? '_' : char))
+    .join('')
+    .trim();
+  return parsed && parsed !== '.' && parsed !== '..' ? parsed : 'attachment';
+}
+
+function uniquePath(dir: string, filename: string, used: Set<string>): string {
+  const safe = safeFilename(filename);
+  const ext = path.extname(safe);
+  const name = path.basename(safe, ext);
+  let candidate = safe;
+  let index = 1;
+
+  while (used.has(candidate)) {
+    candidate = `${name}-${index}${ext}`;
+    index += 1;
+  }
+
+  used.add(candidate);
+  return path.join(dir, candidate);
 }
 
 function extractHeader(headers: GmailHeader[] | undefined, name: string): string | undefined {
@@ -52,7 +90,12 @@ function extractAttachments(payload: GmailMessagePart | undefined): GmailAttachm
         ?.value.match(/name="?([^";]+)"?/i)?.[1];
 
     if (filename && part.body?.size) {
-      attachments.push({ filename, mimeType: part.mimeType, size: part.body.size });
+      attachments.push({
+        attachmentId: part.body.attachmentId,
+        filename,
+        mimeType: part.mimeType,
+        size: part.body.size,
+      });
     }
 
     // Recurse into nested multipart
@@ -88,9 +131,14 @@ function extractBody(payload: GmailMessagePart | undefined): string {
 }
 
 type GmailAttachment = {
+  attachmentId: string | undefined;
   filename: string;
   mimeType: string;
   size: number;
+};
+
+type GmailDownloadedAttachment = GmailAttachment & {
+  path: string;
 };
 
 type GmailMessage = {
@@ -283,6 +331,48 @@ export async function getMessage(client: GoogleClient, messageId: string): Promi
     labels: raw.labelIds ?? [],
     attachments: extractAttachments(raw.payload),
   };
+}
+
+export async function downloadAttachments(
+  client: GoogleClient,
+  messageId: string,
+  tempPath: string,
+): Promise<{ messageId: string; attachments: GmailDownloadedAttachment[] }> {
+  const raw = await client.request<GmailMessageRaw>(
+    `${GMAIL_API}/messages/${encodeURIComponent(messageId)}?format=FULL`,
+  );
+  const attachments = extractAttachments(raw.payload).filter(
+    (attachment) => attachment.attachmentId,
+  );
+
+  if (attachments.length === 0) {
+    return { messageId: raw.id, attachments: [] };
+  }
+
+  const outputDir = path.join(tempPath, 'gmail-attachments', raw.id);
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const usedFilenames = new Set<string>();
+  const downloaded: GmailDownloadedAttachment[] = [];
+
+  for (const attachment of attachments) {
+    const attachmentId = attachment.attachmentId;
+    if (!attachmentId) continue;
+
+    const response = await client.request<GmailAttachmentResponse>(
+      `${GMAIL_API}/messages/${encodeURIComponent(raw.id)}/attachments/${encodeURIComponent(attachmentId)}`,
+    );
+    if (!response.data) {
+      throw new Error(`Gmail attachment ${attachmentId} did not include download data`);
+    }
+
+    const filePath = uniquePath(outputDir, attachment.filename, usedFilenames);
+
+    await fs.writeFile(filePath, decodeBase64UrlBuffer(response.data));
+    downloaded.push({ ...attachment, path: filePath });
+  }
+
+  return { messageId: raw.id, attachments: downloaded };
 }
 
 export async function sendMessage(

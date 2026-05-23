@@ -65,6 +65,7 @@ type BuildGoogleToolsetsInput = {
   scopes: string[];
   capabilities?: string[];
   appliedVersion?: number;
+  tempPath?: string;
 };
 
 const EXACT_TOOL_NAME_INSTRUCTION =
@@ -103,7 +104,11 @@ export function canActivateToolset(
   return false;
 }
 
-function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
+function createGmailToolset(
+  scopes: string[],
+  capabilities: string[],
+  config?: { tempPath?: string },
+): GoogleToolsetDefinition {
   const canWriteCapability = hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_WRITE);
   const canSend = hasGmailSendAccess(scopes) && canWriteCapability;
   const canModify = hasGmailModifyAccess(scopes) && canWriteCapability;
@@ -142,7 +147,7 @@ function createGmailToolset(scopes: string[], capabilities: string[]): GoogleToo
     ].join('\n'),
     tools: () => summaries,
     activate: (resolveClient) =>
-      createGmailTools(resolveClient, { canSend, canModify, canManageFilters }),
+      createGmailTools(resolveClient, { canSend, canModify, canManageFilters }, config),
   };
 }
 
@@ -246,16 +251,19 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
 export function buildGoogleToolsets(
   input: string[] | BuildGoogleToolsetsInput,
 ): GoogleToolsetDefinition[] {
-  const normalizedInput = Array.isArray(input) ? { scopes: input } : input;
+  const normalizedInput: BuildGoogleToolsetsInput = Array.isArray(input)
+    ? { scopes: input }
+    : input;
   const scopes = normalizedInput.scopes;
   const capabilities = normalizedInput.capabilities ?? [...GOOGLE_DEFAULT_CAPABILITIES];
+  const tempPath = normalizedInput.tempPath;
   const toolsets: GoogleToolsetDefinition[] = [];
 
   if (
     hasServiceAccess(scopes, 'gmail') &&
     hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
   ) {
-    toolsets.push(createGmailToolset(scopes, capabilities));
+    toolsets.push(createGmailToolset(scopes, capabilities, { tempPath }));
   }
 
   if (

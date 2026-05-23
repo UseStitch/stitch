@@ -22,6 +22,7 @@ import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
+import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
@@ -291,7 +292,12 @@ export async function registerGoogleToolsets(): Promise<void> {
     ),
   );
 
-  const toolsetDefs = buildGoogleToolsets({ scopes, capabilities, appliedVersion });
+  const toolsetDefs = buildGoogleToolsets({
+    scopes,
+    capabilities,
+    appliedVersion,
+    tempPath: PATHS.tempDir,
+  });
 
   for (const def of toolsetDefs) {
     registerToolset(toServerToolset(def));
