@@ -13,6 +13,7 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { permissionResponses, toolPermissions } from '@/db/schema.js';
+import { interactionBroker } from '@/interactions/broker.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -30,14 +31,6 @@ function toPermissionResponse(row: PermissionResponseRow): PermissionResponse {
     resolvedAt: row.resolvedAt ?? undefined,
   };
 }
-
-type PendingPermissionResponse = {
-  resolve: (decision: PermissionDecisionResult) => void;
-  reject: (error: Error) => void;
-  streamRunId?: string;
-};
-
-const pendingPermissionResponses = new Map<PrefixedString<'permres'>, PendingPermissionResponse>();
 
 type SetPermissionRule = {
   permission: ToolPermissionValue;
@@ -145,31 +138,13 @@ export async function requestPermissionResponse(opts: {
     'permission requested',
   );
 
-  return new Promise((resolve, reject) => {
-    const abortHandler = () => {
-      pendingPermissionResponses.delete(id);
-      reject(new PermissionResponseAbortedError());
-    };
-
-    if (opts.abortSignal) {
-      if (opts.abortSignal.aborted) {
-        reject(new PermissionResponseAbortedError());
-        return;
-      }
-      opts.abortSignal.addEventListener('abort', abortHandler, { once: true });
-    }
-
-    pendingPermissionResponses.set(id, {
-      streamRunId: opts.streamRunId,
-      resolve: (decision) => {
-        opts.abortSignal?.removeEventListener('abort', abortHandler);
-        resolve(decision);
-      },
-      reject: (error) => {
-        opts.abortSignal?.removeEventListener('abort', abortHandler);
-        reject(error);
-      },
-    });
+  return interactionBroker.wait<PermissionDecisionResult>({
+    id,
+    kind: 'permission',
+    sessionId: opts.sessionId,
+    streamRunId: opts.streamRunId,
+    abortSignal: opts.abortSignal,
+    abortError: () => new PermissionResponseAbortedError(),
   });
 }
 
@@ -215,7 +190,7 @@ async function resolvePermissionResponse(opts: {
     sessionId: permissionResponse?.sessionId ?? existing.sessionId,
   });
 
-  const pending = pendingPermissionResponses.get(opts.permissionResponseId);
+  const pending = interactionBroker.get(opts.permissionResponseId);
   log.info(
     {
       event: 'stream.permission.resolved',
@@ -227,10 +202,7 @@ async function resolvePermissionResponse(opts: {
     'permission resolved',
   );
 
-  if (pending) {
-    pending.resolve(opts.decision);
-    pendingPermissionResponses.delete(opts.permissionResponseId);
-  }
+  interactionBroker.resolve(opts.permissionResponseId, opts.decision);
 
   return ok(null);
 }
@@ -305,17 +277,17 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
       and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
     );
 
+  const aborted = interactionBroker.abortSession({
+    sessionId,
+    kind: 'permission',
+    error: new PermissionResponseAbortedError('Permission response aborted by session abort'),
+  });
+  const streamRunIds = new Map(aborted.map((entry) => [entry.id, entry.streamRunId]));
+
   await Promise.all(
     pending.map(async (row) => {
       const id = row.id;
-      const entry = pendingPermissionResponses.get(id);
-      const streamRunId = entry?.streamRunId;
-      if (entry) {
-        entry.reject(
-          new PermissionResponseAbortedError('Permission response aborted by session abort'),
-        );
-        pendingPermissionResponses.delete(id);
-      }
+      const streamRunId = streamRunIds.get(id);
 
       await broadcast('permission-response-resolved', {
         permissionResponseId: row.id,
