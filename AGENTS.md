@@ -41,15 +41,24 @@ Do not consider a task done until all three commands pass with zero errors.
 
 ## Testing
 
-- Project uses **Vitest** for testing. Tests are organized by workspace.
-- Tests are located in `__test__` directories:
+- `packages/server` is being migrated from **Vitest** to **Bun test**. Both runners are active during the migration.
+- Other packages use **Vitest**.
+
+### Test Locations (packages/server)
+
+- Tests are should be colocated with source files in `src/`
+- When migrating a test, move it from `__test__/` to sit next to its source file in `src/`, then delete the original
+
+### Test Locations (other packages)
+
+- Tests are located in `__test__` directories
 
 ### Test Patterns
 
 - **Unit tests**: Test individual functions/handlers in isolation
 - **Integration tests**: Test full WebSocket flows with mock MongoDB/Valkey
 - File naming: `*.test.ts`
-- Config: `vitest.config.ts` in each workspace
+- Config: `vitest.config.ts` in each workspace (except `packages/server` which uses `bunfig.toml` for bun tests)
 
 ### Test Quality Guidelines
 

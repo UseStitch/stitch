@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    include: ['__test__/**/*.test.ts'],
     setupFiles: [path.resolve(__dirname, '__test__/setup.ts')],
   },
 });
