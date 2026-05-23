@@ -3,13 +3,14 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import {
   isTextFileBuffer,
   truncateLine,
   validateAbsoluteDirectoryPath,
 } from '@/tools/runtime/shared.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const MAX_MATCHES = 100;
 const MAX_FILES_SCANNED = 2000;
@@ -206,21 +207,17 @@ function getSuggestion() {
   return null;
 }
 
-const shouldTruncate = true;
-
 export const DISPLAY_NAME = 'Text Search';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createGrepTool();
-  const gatedTool = withPermissionGate(
-    'grep',
-    {
-      getPatternTargets,
-      getSuggestion,
-    },
-    baseTool,
-    context,
-  );
-
-  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
+  return createToolRuntime(context)
+    .use(permissionMiddleware())
+    .use(truncationMiddleware())
+    .wrapTool('grep', baseTool, {
+      permission: {
+        getPatternTargets,
+        getSuggestion,
+      },
+    });
 }

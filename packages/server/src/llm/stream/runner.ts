@@ -32,8 +32,9 @@ import { processMemories } from '@/memory/processor.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
+import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
 import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
-import { withToolResultHandling, withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
@@ -1312,15 +1313,24 @@ export async function runStream(opts: {
 
   // Build always-active core tools
   const coreStitchTools = await createTools(toolContext);
+  const runtime = createToolRuntime(toolContext).use(resultNormalizationMiddleware());
 
   // Build meta-tools (bound to this session's toolset manager)
-  const toolsetMetaTools = withToolResultHandlingRecord(
-    createToolsetTools(toolsetManager, toolContext.sessionId),
+  const toolsetMetaTools = runtime.toAiToolRecord(
+    Object.entries(createToolsetTools(toolsetManager, toolContext.sessionId)).map(
+      ([name, tool]) => ({
+        name,
+        description: tool.description ?? '',
+        source: 'meta' as const,
+        tool,
+      }),
+    ),
   );
 
   // Build task tool (bound to this session's context), but never for child sessions.
   const taskTool = canUseTaskTool
-    ? withToolResultHandling(
+    ? runtime.wrapTool(
+        'task',
         createTaskTool(toolContext, {
           parentSessionId: opts.sessionId,
           parentAbortSignal: opts.abortSignal,
@@ -1329,6 +1339,7 @@ export async function runStream(opts: {
           providerId: opts.credentials.providerId,
           toolsetManager,
         }),
+        { source: 'task' },
       )
     : null;
 

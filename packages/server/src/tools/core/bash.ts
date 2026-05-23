@@ -10,9 +10,10 @@ import {
   deriveCommandFamilies,
   getCommandFamilySuggestion,
 } from '@/tools/runtime/bash-families.js';
+import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
 const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
@@ -200,21 +201,17 @@ function getSuggestion(input: unknown): PermissionSuggestion | null {
   return getCommandFamilySuggestion(command);
 }
 
-const shouldTruncate = true;
-
 export const DISPLAY_NAME = 'Bash';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createBashTool();
-  const gatedTool = withPermissionGate(
-    'bash',
-    {
-      getPatternTargets,
-      getSuggestion,
-    },
-    baseTool,
-    context,
-  );
-
-  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
+  return createToolRuntime(context)
+    .use(permissionMiddleware())
+    .use(truncationMiddleware())
+    .wrapTool('bash', baseTool, {
+      permission: {
+        getPatternTargets,
+        getSuggestion,
+      },
+    });
 }

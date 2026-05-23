@@ -2,8 +2,9 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
+import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -260,26 +261,22 @@ function getSuggestion(input: unknown) {
   };
 }
 
-const shouldTruncate = true;
-
 export const DISPLAY_NAME = 'Web Fetch';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createTool();
-  const gatedTool = withPermissionGate(
-    'webfetch',
-    {
-      getPatternTargets,
-      getSuggestion,
-    },
-    baseTool,
-    context,
-  );
-
-  return shouldTruncate
-    ? withTruncation(gatedTool, {
+  return createToolRuntime(context)
+    .use(permissionMiddleware())
+    .use(
+      truncationMiddleware({
         maxLines: 1200,
         maxBytes: 24 * 1024,
-      })
-    : gatedTool;
+      }),
+    )
+    .wrapTool('webfetch', baseTool, {
+      permission: {
+        getPatternTargets,
+        getSuggestion,
+      },
+    });
 }

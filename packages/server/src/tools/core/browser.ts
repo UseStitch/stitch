@@ -3,13 +3,19 @@ import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { importChromeProfile, listChromeProfiles } from '@/lib/browser/chrome-profile-importer.js';
-import type { BrowserTab, FindElementsResult, ScrollDirection, SearchPageResult } from '@/lib/browser/types.js';
+import type {
+  BrowserTab,
+  FindElementsResult,
+  ScrollDirection,
+  SearchPageResult,
+} from '@/lib/browser/types.js';
 import * as Log from '@/lib/log.js';
+import { isServiceError } from '@/lib/service-result.js';
 import { askQuestion } from '@/question/service.js';
 import { listSettings, saveSetting } from '@/settings/service.js';
-import { isServiceError } from '@/lib/service-result.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withTruncation } from '@/tools/runtime/wrappers.js';
+import { truncationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 const descriptionField = z
   .string()
@@ -33,7 +39,16 @@ const browserSnapshotInputSchema = z.object({
 const browserNavigateInputSchema = z.object({
   description: descriptionField,
   action: z
-    .enum(['navigate', 'search', 'go_back', 'go_forward', 'tab_new', 'tab_list', 'tab_focus', 'tab_close'])
+    .enum([
+      'navigate',
+      'search',
+      'go_back',
+      'go_forward',
+      'tab_new',
+      'tab_list',
+      'tab_focus',
+      'tab_close',
+    ])
     .describe('Navigation action to perform.'),
   url: z.string().optional().describe('URL for navigate or tab_new actions.'),
   query: z.string().optional().describe('Search query for search action.'),
@@ -51,14 +66,22 @@ const browserInteractInputSchema = z.object({
   ref: z
     .string()
     .optional()
-    .describe('Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select.'),
+    .describe(
+      'Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select.',
+    ),
   text: z.string().optional().describe('Text to type. Required for type action.'),
-  key: z.string().optional().describe('Key to press (e.g. Enter, Tab, Escape). Required for press action.'),
+  key: z
+    .string()
+    .optional()
+    .describe('Key to press (e.g. Enter, Tab, Escape). Required for press action.'),
   values: z.array(z.string()).optional().describe('Option values for select action.'),
   submit: z.boolean().optional().describe('Press Enter after typing. For type action.'),
   slowly: z.boolean().optional().describe('Type character by character. For type action.'),
   clear: z.boolean().optional().describe('Clear the field before typing. For type action.'),
-  doubleClick: z.boolean().optional().describe('Double-click instead of single click. For click action.'),
+  doubleClick: z
+    .boolean()
+    .optional()
+    .describe('Double-click instead of single click. For click action.'),
   button: z.string().optional().describe('Mouse button: left, right, or middle. For click action.'),
   modifiers: z.array(z.string()).optional().describe('Keyboard modifiers for click action.'),
   direction: z
@@ -67,7 +90,10 @@ const browserInteractInputSchema = z.object({
     .describe('Direction to scroll. Required for scroll action.'),
   width: z.number().optional().describe('Viewport width in pixels. Required for resize action.'),
   height: z.number().optional().describe('Viewport height in pixels. Required for resize action.'),
-  fn: z.string().optional().describe('JavaScript expression to evaluate. Required for evaluate action.'),
+  fn: z
+    .string()
+    .optional()
+    .describe('JavaScript expression to evaluate. Required for evaluate action.'),
   timeoutMs: timeoutField,
   headless: headlessField,
 });
@@ -95,38 +121,53 @@ const browserScreenshotInputSchema = z.object({
 const browserDialogInputSchema = z.object({
   description: descriptionField,
   action: z.enum(['state', 'handle']).describe('Dialog action to perform.'),
-  dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Whether to accept or dismiss a dialog.'),
+  dialogAction: z
+    .enum(['accept', 'dismiss'])
+    .optional()
+    .describe('Whether to accept or dismiss a dialog.'),
   promptText: z.string().optional().describe('Optional prompt text when accepting prompt dialogs.'),
   headless: headlessField,
 });
 
 const browserContentInputSchema = z.object({
   description: descriptionField,
-  action: z.enum(['extract', 'search_page', 'find_elements']).describe('Content action to perform.'),
+  action: z
+    .enum(['extract', 'search_page', 'find_elements'])
+    .describe('Content action to perform.'),
   query: z.string().optional().describe('Extraction query for extract action.'),
   selector: z.string().optional().describe('CSS selector for extract or find_elements actions.'),
-  pattern: z.string().optional().describe('Text pattern to search for. Required for search_page action.'),
+  pattern: z
+    .string()
+    .optional()
+    .describe('Text pattern to search for. Required for search_page action.'),
   regex: z.boolean().optional().describe('Treat pattern as regex for search_page action.'),
   caseSensitive: z.boolean().optional().describe('Case-sensitive search for search_page action.'),
-  contextChars: z.number().optional().describe('Context characters per match for search_page action.'),
-  cssScope: z.string().optional().describe('CSS selector to scope text search within for search_page action.'),
-  maxResults: z.number().optional().describe('Max results for search_page or find_elements actions.'),
-  attributes: z.array(z.string()).optional().describe('Attributes to extract for find_elements action.'),
-  includeText: z.boolean().optional().describe('Include text content for find_elements action. Default true.'),
+  contextChars: z
+    .number()
+    .optional()
+    .describe('Context characters per match for search_page action.'),
+  cssScope: z
+    .string()
+    .optional()
+    .describe('CSS selector to scope text search within for search_page action.'),
+  maxResults: z
+    .number()
+    .optional()
+    .describe('Max results for search_page or find_elements actions.'),
+  attributes: z
+    .array(z.string())
+    .optional()
+    .describe('Attributes to extract for find_elements action.'),
+  includeText: z
+    .boolean()
+    .optional()
+    .describe('Include text content for find_elements action. Default true.'),
   headless: headlessField,
 });
 
 const browserBatchActionSchema = z.object({
   tool: z
-    .enum([
-      'snapshot',
-      'navigate',
-      'interact',
-      'wait',
-      'screenshot',
-      'dialog',
-      'content',
-    ])
+    .enum(['snapshot', 'navigate', 'interact', 'wait', 'screenshot', 'dialog', 'content'])
     .describe('Tool group to execute for this batch action.'),
   op: z.string().optional().describe('Operation name within the selected tool group.'),
   url: z.string().optional().describe('URL for navigate/tab_new operations.'),
@@ -163,12 +204,19 @@ const browserBatchActionSchema = z.object({
   cssScope: z.string().optional().describe('CSS scope for search_page operation.'),
   maxResults: z.number().optional().describe('Max results for search_page/find_elements.'),
   attributes: z.array(z.string()).optional().describe('Attributes to return for find_elements.'),
-  includeText: z.boolean().optional().describe('Whether find_elements should include text content.'),
+  includeText: z
+    .boolean()
+    .optional()
+    .describe('Whether find_elements should include text content.'),
 });
 
 const browserBatchInputSchema = z.object({
   description: descriptionField,
-  actions: z.array(browserBatchActionSchema).min(1).max(5).describe('Sequential actions to execute.'),
+  actions: z
+    .array(browserBatchActionSchema)
+    .min(1)
+    .max(5)
+    .describe('Sequential actions to execute.'),
   stopOnPageChange: z
     .boolean()
     .optional()
@@ -267,7 +315,8 @@ async function maybePromptProfileImport(
   if (hasPromptedImport) return;
 
   const settingsResult = await listSettings();
-  const imported = !isServiceError(settingsResult) && settingsResult.data['browser.profileImported'];
+  const imported =
+    !isServiceError(settingsResult) && settingsResult.data['browser.profileImported'];
   if (imported) {
     hasPromptedImport = true;
     return;
@@ -417,10 +466,7 @@ function formatSearchPageSummary(pattern: string, result: SearchPageResult) {
   return `Found ${total} match${total !== 1 ? 'es' : ''} for "${pattern}"${showing < total ? ` (showing ${showing})` : ''}:\n${matchLines.join('\n')}`;
 }
 
-function formatFindElementsSummary(
-  selector: string,
-  result: FindElementsResult,
-) {
+function formatFindElementsSummary(selector: string, result: FindElementsResult) {
   const elemLines = result.elements.map((el, i) => {
     let line = `  ${i + 1}. <${el.tag}>`;
     if (el.text) line += ` "${el.text}"`;
@@ -458,7 +504,12 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
       case 'search': {
         if (!input.query) throw new Error('Missing required field: query');
         return {
-          output: await browser.search(input.query, input.engine ?? 'google', signal, input.timeoutMs),
+          output: await browser.search(
+            input.query,
+            input.engine ?? 'google',
+            signal,
+            input.timeoutMs,
+          ),
         };
       }
       case 'go_back': {
@@ -531,7 +582,9 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
       }
       case 'scroll': {
         if (!input.direction) throw new Error('Missing required field: direction');
-        return { output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal) };
+        return {
+          output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal),
+        };
       }
       case 'resize': {
         if (!input.width) throw new Error('Missing required field: width');
@@ -640,9 +693,14 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
 }
 
 function createSnapshotTool(context: ToolContext) {
-  return createBrowserTool(context, SNAPSHOT_DESCRIPTION, browserSnapshotInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'snapshot' }, signal);
-  });
+  return createBrowserTool(
+    context,
+    SNAPSHOT_DESCRIPTION,
+    browserSnapshotInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'snapshot' }, signal);
+    },
+  );
 }
 
 function createBrowserTool<TInput extends { headless?: boolean }>(
@@ -659,19 +717,31 @@ function createBrowserTool<TInput extends { headless?: boolean }>(
     },
   });
 
-  return withTruncation(baseTool, { maxLines: 800, maxBytes: 16 * 1024 });
+  return createToolRuntime(context)
+    .use(truncationMiddleware({ maxLines: 800, maxBytes: 16 * 1024 }))
+    .wrapTool('browser', baseTool);
 }
 
 function createNavigateTool(context: ToolContext) {
-  return createBrowserTool(context, NAVIGATE_DESCRIPTION, browserNavigateInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'navigate', op: input.action }, signal);
-  });
+  return createBrowserTool(
+    context,
+    NAVIGATE_DESCRIPTION,
+    browserNavigateInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'navigate', op: input.action }, signal);
+    },
+  );
 }
 
 function createInteractTool(context: ToolContext) {
-  return createBrowserTool(context, INTERACT_DESCRIPTION, browserInteractInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'interact', op: input.action }, signal);
-  });
+  return createBrowserTool(
+    context,
+    INTERACT_DESCRIPTION,
+    browserInteractInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'interact', op: input.action }, signal);
+    },
+  );
 }
 
 function createWaitTool(context: ToolContext) {
@@ -681,21 +751,36 @@ function createWaitTool(context: ToolContext) {
 }
 
 function createScreenshotTool(context: ToolContext) {
-  return createBrowserTool(context, SCREENSHOT_DESCRIPTION, browserScreenshotInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'screenshot', op: 'capture' }, signal);
-  });
+  return createBrowserTool(
+    context,
+    SCREENSHOT_DESCRIPTION,
+    browserScreenshotInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'screenshot', op: 'capture' }, signal);
+    },
+  );
 }
 
 function createDialogTool(context: ToolContext) {
-  return createBrowserTool(context, DIALOG_DESCRIPTION, browserDialogInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'dialog', op: input.action }, signal);
-  });
+  return createBrowserTool(
+    context,
+    DIALOG_DESCRIPTION,
+    browserDialogInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'dialog', op: input.action }, signal);
+    },
+  );
 }
 
 function createContentTool(context: ToolContext) {
-  return createBrowserTool(context, CONTENT_DESCRIPTION, browserContentInputSchema, (input, signal) => {
-    return executeOperation({ ...input, tool: 'content', op: input.action }, signal);
-  });
+  return createBrowserTool(
+    context,
+    CONTENT_DESCRIPTION,
+    browserContentInputSchema,
+    (input, signal) => {
+      return executeOperation({ ...input, tool: 'content', op: input.action }, signal);
+    },
+  );
 }
 
 function createBatchTool(context: ToolContext) {
@@ -813,7 +898,9 @@ function createBatchTool(context: ToolContext) {
     },
   });
 
-  return withTruncation(baseTool, { maxLines: 800, maxBytes: 16 * 1024 });
+  return createToolRuntime(context)
+    .use(truncationMiddleware({ maxLines: 800, maxBytes: 16 * 1024 }))
+    .wrapTool('browser', baseTool);
 }
 
 export function createRegisteredTools(context: ToolContext) {

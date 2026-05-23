@@ -16,7 +16,7 @@ import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 
 const log = Log.create({ service: 'task-tool' });
