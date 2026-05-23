@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => {
   const broadcastMock = vi.fn();
   const createPermissionResponseIdMock = vi.fn();
   const createPermissionRuleIdMock = vi.fn(() => 'perm_rule');
+  const deleteMock = vi.fn(() => ({ where: vi.fn(async () => undefined) }));
 
   const db = {
     insert: vi.fn(() => ({
@@ -29,6 +30,7 @@ const mocks = vi.hoisted(() => {
         where: vi.fn(async () => selectWhere.shift() ?? []),
       })),
     })),
+    delete: deleteMock,
   };
 
   return {
@@ -39,6 +41,7 @@ const mocks = vi.hoisted(() => {
     insertReturning,
     updateReturning,
     selectWhere,
+    deleteMock,
   };
 });
 
@@ -70,12 +73,13 @@ describe('permission service interactions', () => {
     mocks.insertReturning.length = 0;
     mocks.updateReturning.length = 0;
     mocks.selectWhere.length = 0;
+    mocks.deleteMock.mockReset();
+    mocks.deleteMock.mockReturnValue({ where: vi.fn(async () => undefined) });
   });
 
   test('requestPermissionResponse broadcasts and resolves through allowPermissionResponse', async () => {
-    const { requestPermissionResponse, allowPermissionResponse } = await import(
-      '@/permission/service.js'
-    );
+    const { requestPermissionResponse, allowPermissionResponse } =
+      await import('@/permission/service.js');
     const permissionResponseId = 'permres_allow' as PrefixedString<'permres'>;
     mocks.createPermissionResponseIdMock.mockReturnValueOnce(permissionResponseId);
     const row = {
@@ -120,9 +124,8 @@ describe('permission service interactions', () => {
   });
 
   test('alternativePermissionResponse resolves with alternative entry', async () => {
-    const { requestPermissionResponse, alternativePermissionResponse } = await import(
-      '@/permission/service.js'
-    );
+    const { requestPermissionResponse, alternativePermissionResponse } =
+      await import('@/permission/service.js');
     const permissionResponseId = 'permres_alt' as PrefixedString<'permres'>;
     mocks.createPermissionResponseIdMock.mockReturnValueOnce(permissionResponseId);
     const row = {
@@ -153,7 +156,9 @@ describe('permission service interactions', () => {
     });
 
     await Promise.resolve();
-    await expect(alternativePermissionResponse(permissionResponseId, 'Use read instead')).resolves.toEqual({
+    await expect(
+      alternativePermissionResponse(permissionResponseId, 'Use read instead'),
+    ).resolves.toEqual({
       data: null,
     });
     await expect(promise).resolves.toEqual({
@@ -224,5 +229,45 @@ describe('permission service interactions', () => {
     mocks.updateReturning.push([{ ...secondRow, status: 'rejected', resolvedAt: 2 }]);
     await rejectPermissionResponse(secondId);
     await expect(second).resolves.toEqual({ decision: 'reject' });
+  });
+});
+
+describe('upsertPerm', () => {
+  beforeEach(() => {
+    mocks.deleteMock.mockReturnValue({ where: vi.fn(async () => undefined) });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    mocks.deleteMock.mockReset();
+    mocks.deleteMock.mockReturnValue({ where: vi.fn(async () => undefined) });
+  });
+
+  test('deletes existing global rule before inserting when pattern is null', async () => {
+    const { upsertPerm } = await import('@/permission/service.js');
+
+    await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: null });
+
+    expect(mocks.db.delete).toHaveBeenCalledOnce();
+    expect(mocks.db.insert).toHaveBeenCalledOnce();
+  });
+
+  test('does not delete when pattern is a non-null string', async () => {
+    const { upsertPerm } = await import('@/permission/service.js');
+
+    await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: '/home/*' });
+
+    expect(mocks.db.delete).not.toHaveBeenCalled();
+    expect(mocks.db.insert).toHaveBeenCalledOnce();
+  });
+
+  test('calling upsertPerm twice with null pattern deletes then inserts each time', async () => {
+    const { upsertPerm } = await import('@/permission/service.js');
+
+    await upsertPerm({ toolName: 'bash', permission: 'ask', pattern: null });
+    await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: null });
+
+    expect(mocks.db.delete).toHaveBeenCalledTimes(2);
+    expect(mocks.db.insert).toHaveBeenCalledTimes(2);
   });
 });

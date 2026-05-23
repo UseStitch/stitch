@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPermissionResponseId, createPermissionRuleId } from '@stitch/shared/id';
@@ -44,6 +44,14 @@ export async function upsertPerm(opts: {
 }): Promise<void> {
   const db = getDb();
   const now = Date.now();
+
+  // SQLite NULL != NULL in unique indexes, so onConflictDoUpdate never fires for
+  // pattern IS NULL. Delete the existing global rule before inserting.
+  if (opts.pattern === null) {
+    await db
+      .delete(toolPermissions)
+      .where(and(eq(toolPermissions.toolName, opts.toolName), isNull(toolPermissions.pattern)));
+  }
 
   await db
     .insert(toolPermissions)
