@@ -10,7 +10,7 @@ import {
   getAllSemanticMemories,
 } from '@/memory/service.js';
 import { MEMORY_CATEGORIES } from '@/memory/types.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 export const DISPLAY_NAME = 'Memory';
 

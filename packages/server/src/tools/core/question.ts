@@ -4,8 +4,9 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { askQuestion } from '@/question/service.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
+import { permissionMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 const questionOptionSchema = z
   .object({
@@ -82,21 +83,14 @@ function getSuggestion() {
   return null;
 }
 
-const shouldTruncate = false;
-
 export const DISPLAY_NAME = 'Question';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createTool(context);
-  const gatedTool = withPermissionGate(
-    'question',
-    {
+  return createToolRuntime(context).use(permissionMiddleware()).wrapTool('question', baseTool, {
+    permission: {
       getPatternTargets,
       getSuggestion,
     },
-    baseTool,
-    context,
-  );
-
-  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
+  });
 }

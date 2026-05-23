@@ -3,9 +3,10 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate, withTruncation } from '@/tools/runtime/wrappers.js';
 
 const MAX_RESULTS = 100;
 
@@ -103,21 +104,17 @@ function getSuggestion() {
   return null;
 }
 
-const shouldTruncate = true;
-
 export const DISPLAY_NAME = 'File Search';
 
 export function createRegisteredTool(context: ToolContext) {
   const baseTool = createGlobTool();
-  const gatedTool = withPermissionGate(
-    'glob',
-    {
-      getPatternTargets,
-      getSuggestion,
-    },
-    baseTool,
-    context,
-  );
-
-  return shouldTruncate ? withTruncation(gatedTool) : gatedTool;
+  return createToolRuntime(context)
+    .use(permissionMiddleware())
+    .use(truncationMiddleware())
+    .wrapTool('glob', baseTool, {
+      permission: {
+        getPatternTargets,
+        getSuggestion,
+      },
+    });
 }

@@ -15,7 +15,7 @@ import {
 } from '@/agenda/service.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { listSettings } from '@/settings/service.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 

@@ -6,7 +6,7 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
 import { isServiceError } from '@/lib/service-result.js';
 import { listSessionTodos, replaceSessionTodos } from '@/todos/service.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 export const DISPLAY_NAME = 'Todo';
 

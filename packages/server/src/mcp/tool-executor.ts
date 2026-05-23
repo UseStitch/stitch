@@ -9,8 +9,9 @@ import { cacheMcpIcon } from '@/mcp/icons.js';
 import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
 import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
-import { withPermissionGate } from '@/tools/runtime/wrappers.js';
+import { permissionMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
@@ -64,15 +65,14 @@ async function getToolsForServer(
     (client) => client.tools() as Promise<Record<string, Tool>>,
   );
 
+  const runtime = createToolRuntime(context).use(permissionMiddleware());
   const prefixed: Record<string, Tool> = {};
   for (const [toolName, toolDef] of Object.entries(rawTools)) {
     const prefixedName = formatMcpToolName(server.id, toolName);
-    prefixed[prefixedName] = withPermissionGate(
-      prefixedName,
-      { getPatternTargets: () => [], getSuggestion: () => null },
-      toolDef,
-      context,
-    );
+    prefixed[prefixedName] = runtime.wrapTool(prefixedName, toolDef, {
+      source: 'mcp',
+      permission: { getPatternTargets: () => [], getSuggestion: () => null },
+    });
   }
   return prefixed;
 }

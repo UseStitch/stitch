@@ -3,25 +3,15 @@ import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import {
-  getRecordingAnalysis,
-  startRecordingAnalysis,
-} from '@/recordings/analysis-service.js';
+import { getRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { getRecordingAnalysesByIds, searchRecordings } from '@/recordings/search-service.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const RECORDINGS_TOOLSET_ID = 'recordings';
 const RECORDING_STATUSES = ['recording', 'completed', 'failed'] as const;
-const RECORDING_PLATFORMS = [
-  'manual',
-  'zoom',
-  'teams',
-  'slack',
-  'discord',
-  'google-meet',
-] as const;
+const RECORDING_PLATFORMS = ['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet'] as const;
 
 const TOOL_SUMMARIES = [
   {
@@ -76,10 +66,15 @@ Use this first to find relevant recording IDs before fetching detailed analysis.
         platforms: input.platforms,
       });
 
-      let analysisByRecordingId = new Map<string, Awaited<ReturnType<typeof getRecordingAnalysesByIds>>[number]>();
+      let analysisByRecordingId = new Map<
+        string,
+        Awaited<ReturnType<typeof getRecordingAnalysesByIds>>[number]
+      >();
       if (input.includeAnalysisSnapshot === true && hits.length > 0) {
         const analyses = await getRecordingAnalysesByIds(hits.map((hit) => hit.recordingId));
-        analysisByRecordingId = new Map(analyses.map((analysis) => [analysis.recordingId, analysis]));
+        analysisByRecordingId = new Map(
+          analyses.map((analysis) => [analysis.recordingId, analysis]),
+        );
       }
 
       return {

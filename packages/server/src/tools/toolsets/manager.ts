@@ -2,8 +2,9 @@ import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import * as Log from '@/lib/log.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
-import { withToolResultHandlingRecord } from '@/tools/runtime/wrappers.js';
-import type { ToolContext } from '@/tools/runtime/wrappers.js';
+import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
+import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import type { Tool } from 'ai';
 
@@ -70,7 +71,13 @@ export class ToolsetManager {
       return { status: 'disabled' };
     }
 
-    const allTools = withToolResultHandlingRecord(await toolset.activate(this.context));
+    const runtime = createToolRuntime(this.context).use(resultNormalizationMiddleware());
+    const toolsetTools = await toolset.activate(this.context);
+    const allTools = runtime.toAiToolRecord(
+      Object.entries(toolsetTools).map(([name, tool]) =>
+        defineRuntimeTool(name, tool, { source: toolsetId.startsWith('mcp:') ? 'mcp' : 'toolset' }),
+      ),
+    );
     const disabledMcpTools = toolsetId.startsWith('mcp:')
       ? await getDisabledToolIdentifiers('mcp_tool')
       : new Set<string>();
