@@ -2,6 +2,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
 
+import { interactionBroker } from '@/interactions/broker.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 import * as Usage from '@/utils/usage.js';
@@ -37,37 +38,21 @@ export function isDoomLoop(history: ToolCallRecord[]): boolean {
   return tail.every((r) => r.toolName === first.toolName && r.inputJson === first.inputJson);
 }
 
-// ─── Promise registry ─────────────────────────────────────────────────────────
-// One pending prompt per session at a time.
-
-type PendingDecision = {
-  resolve: (response: DoomLoopResponse) => void;
-  timer: ReturnType<typeof setTimeout>;
-};
-
-const pending = new Map<PrefixedString<'ses'>, PendingDecision>();
-
 /**
  * Pause execution until the user responds via the API endpoint.
  * Automatically resolves with `'stop'` after `DECISION_TIMEOUT_MS`.
  */
 export function waitForUserDecision(sessionId: PrefixedString<'ses'>): Promise<DoomLoopResponse> {
-  // If there is already a pending prompt for this session, resolve it first.
-  const existing = pending.get(sessionId);
-  if (existing) {
-    clearTimeout(existing.timer);
-    existing.resolve('stop');
-    pending.delete(sessionId);
-  }
-
-  return new Promise<DoomLoopResponse>((resolve) => {
-    const timer = setTimeout(() => {
+  return interactionBroker.wait<DoomLoopResponse>({
+    id: sessionId,
+    kind: 'doom_loop',
+    sessionId,
+    timeoutMs: DECISION_TIMEOUT_MS,
+    onTimeout: () => {
       log.warn({ sessionId }, 'doom loop decision timed out, auto-stopping');
-      pending.delete(sessionId);
-      resolve('stop');
-    }, DECISION_TIMEOUT_MS);
-
-    pending.set(sessionId, { resolve, timer });
+      return 'stop';
+    },
+    onDuplicate: () => 'stop',
   });
 }
 
@@ -79,13 +64,7 @@ export function resolveDecision(
   sessionId: PrefixedString<'ses'>,
   response: DoomLoopResponse,
 ): boolean {
-  const entry = pending.get(sessionId);
-  if (!entry) return false;
-
-  clearTimeout(entry.timer);
-  entry.resolve(response);
-  pending.delete(sessionId);
-  return true;
+  return interactionBroker.resolve(sessionId, response);
 }
 
 /**

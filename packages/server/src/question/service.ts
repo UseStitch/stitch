@@ -6,6 +6,7 @@ import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/typ
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';
+import { interactionBroker } from '@/interactions/broker.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -49,14 +50,6 @@ export async function createQuestion(opts: {
 
   return toQuestionRequest(row);
 }
-
-type PendingQuestion = {
-  resolve: (answers: string[][]) => void;
-  reject: (error: Error) => void;
-  streamRunId?: string;
-};
-
-const pendingQuestions = new Map<PrefixedString<'quest'>, PendingQuestion>();
 
 export async function askQuestion(opts: {
   sessionId: PrefixedString<'ses'>;
@@ -104,25 +97,13 @@ export async function askQuestion(opts: {
     question: toQuestionRequest(row),
   });
 
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      pendingQuestions.delete(id);
-    };
-
-    const abortHandler = () => {
-      cleanup();
-      reject(new QuestionAbortedError());
-    };
-
-    if (opts.abortSignal) {
-      if (opts.abortSignal.aborted) {
-        reject(new QuestionAbortedError());
-        return;
-      }
-      opts.abortSignal.addEventListener('abort', abortHandler, { once: true });
-    }
-
-    pendingQuestions.set(id, { resolve, reject, streamRunId: opts.streamRunId });
+  return interactionBroker.wait<string[][]>({
+    id,
+    kind: 'question',
+    sessionId: opts.sessionId,
+    streamRunId: opts.streamRunId,
+    abortSignal: opts.abortSignal,
+    abortError: () => new QuestionAbortedError(),
   });
 }
 
@@ -153,7 +134,7 @@ export async function replyQuestion(
     answers,
   });
 
-  const pending = pendingQuestions.get(questionId);
+  const pending = interactionBroker.get(questionId);
   log.info(
     {
       event: 'stream.question.resolved',
@@ -165,10 +146,7 @@ export async function replyQuestion(
     'question resolved',
   );
 
-  if (pending) {
-    pending.resolve(answers);
-    pendingQuestions.delete(questionId);
-  }
+  interactionBroker.resolve(questionId, answers);
 
   log.info({ questionId }, 'question replied');
   return ok(null);
@@ -198,7 +176,7 @@ export async function rejectQuestion(
     sessionId: question.sessionId,
   });
 
-  const pending = pendingQuestions.get(questionId);
+  const pending = interactionBroker.get(questionId);
   log.info(
     {
       event: 'stream.question.resolved',
@@ -210,10 +188,7 @@ export async function rejectQuestion(
     'question resolved',
   );
 
-  if (pending) {
-    pending.reject(new Error('Question rejected by user'));
-    pendingQuestions.delete(questionId);
-  }
+  interactionBroker.reject(questionId, new Error('Question rejected by user'));
 
   log.info({ questionId }, 'question rejected');
   return ok(null);
@@ -251,14 +226,16 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
     .set({ status: 'rejected', answeredAt: now })
     .where(and(eq(questions.sessionId, sessionId), eq(questions.status, 'pending')));
 
+  const aborted = interactionBroker.abortSession({
+    sessionId,
+    kind: 'question',
+    error: new QuestionAbortedError('Question aborted by session abort'),
+  });
+  const streamRunIds = new Map(aborted.map((entry) => [entry.id, entry.streamRunId]));
+
   await Promise.all(
     pendingRows.map(async (q) => {
-      const entry = pendingQuestions.get(q.id);
-      const streamRunId = entry?.streamRunId;
-      if (entry) {
-        entry.reject(new QuestionAbortedError('Question aborted by session abort'));
-        pendingQuestions.delete(q.id);
-      }
+      const streamRunId = streamRunIds.get(q.id);
       await broadcast('question-rejected', { questionId: q.id, sessionId });
 
       log.info(
