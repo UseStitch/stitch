@@ -5,7 +5,6 @@ import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { markSessionUnread } from '@/chat/service.js';
-import { createCodeModeTool } from '@/code-mode/tool.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
@@ -23,20 +22,12 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import {
-  getSessionActiveToolsetIds,
-  setSessionActiveToolsetIds,
-} from '@/llm/stream/session-toolsets.js';
+import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
+import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { processMemories } from '@/memory/processor.js';
-import { buildSkillsSystemPrompt } from '@/skills/service.js';
-import { createTaskTool } from '@/tools/core/task.js';
-import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
-import { createTools, MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
-import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
@@ -195,31 +186,6 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   broadcast: Sse.broadcast,
   now: Date.now,
 };
-
-async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
-  const catalog = await manager.getCatalogWithState();
-  if (catalog.length === 0) return '';
-
-  const lines = catalog.map((item) => {
-    const toolset = getToolset(item.id);
-    const tools = toolset
-      ?.tools()
-      .slice(0, 3)
-      .map((tool) => `${tool.name}: ${tool.description}`)
-      .join('; ');
-    const active = item.active ? 'active' : 'inactive';
-    const toolSummary = tools ? ` Tools: ${tools}.` : '';
-    return `- ${item.name} (${item.id}, ${active}): ${item.description}.${toolSummary}`;
-  });
-
-  return [
-    '## Available Toolsets',
-    '',
-    'Use `activate_toolset` when a listed toolset clearly matches the task. For web/current-info tasks, prefer relevant web-search MCP toolsets when available. For GitHub repository questions, prefer relevant repository-knowledge MCP toolsets when available. Do not activate unrelated toolsets.',
-    '',
-    ...lines,
-  ].join('\n');
-}
 
 type InternalRunStreamOptions = RunStreamOptions & {
   coreTools: Record<string, Tool>;
@@ -1285,101 +1251,24 @@ export async function runStream(opts: {
   const streamRunId = randomUUID();
   const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const toolContext = {
+  const { staticTools, toolsetManager, promptAdditions } = await ToolAssembler.create({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,
-  };
-
-  // Create per-session toolset manager
-  const persistedToolsetIds = opts.activeToolsetIds ?? getSessionActiveToolsetIds(opts.sessionId);
-  const toolsetManager = new ToolsetManager(toolContext, persistedToolsetIds);
-
-  // Pre-activate toolsets persisted from the previous turn (or explicitly passed for sub-tasks)
-  const toolsetIdsToActivate = persistedToolsetIds;
-  if (toolsetIdsToActivate.length > 0) {
-    await Promise.all(
-      toolsetIdsToActivate.map(async (id) => {
-        const result = await toolsetManager.activate(id);
-        if (result.status === 'not_found' || result.status === 'disabled') {
-          log.warn(
-            { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
-            'failed to restore previously active toolset — skipping',
-          );
-        }
-      }),
-    );
-  }
-
-  // Build always-active core tools
-  const coreStitchTools = await createTools(toolContext);
-  const runtime = createToolRuntime(toolContext).use(resultNormalizationMiddleware());
-
-  // Build meta-tools (bound to this session's toolset manager)
-  const toolsetMetaTools = runtime.toAiToolRecord(
-    Object.entries(createToolsetTools(toolsetManager, toolContext.sessionId)).map(
-      ([name, tool]) => ({
-        name,
-        description: tool.description ?? '',
-        source: 'meta' as const,
-        tool,
-      }),
-    ),
-  );
-
-  // Build task tool (bound to this session's context), but never for child sessions.
-  const taskTool = canUseTaskTool
-    ? runtime.wrapTool(
-        'task',
-        createTaskTool(toolContext, {
-          parentSessionId: opts.sessionId,
-          parentAbortSignal: opts.abortSignal,
-          credentials: opts.credentials,
-          modelId: opts.modelId,
-          providerId: opts.credentials.providerId,
-          toolsetManager,
-        }),
-        { source: 'task' },
-      )
-    : null;
-
-  // Build code mode tool with a lazy getter for always-current active tools.
-  // The getter merges core tools + dynamic toolset tools at call time so
-  // newly activated toolsets are available inside the sandbox.
-  const codeModeResult = createCodeModeTool({
-    getTools: () => {
-      const dynamic = toolsetManager.getActiveTools();
-      return {
-        ...coreStitchTools,
-        ...toolsetMetaTools,
-        ...(taskTool ? { task: taskTool } : {}),
-        ...dynamic,
-      };
-    },
+    credentials: opts.credentials,
+    modelId: opts.modelId,
     abortSignal: opts.abortSignal,
-  });
-
-  // Combine all always-active tools
-  const coreTools: Record<string, Tool> = {
-    ...coreStitchTools,
-    ...toolsetMetaTools,
-    ...(taskTool ? { task: taskTool } : {}),
-    execute_typescript: codeModeResult.tool,
-  };
+    activeToolsetIds: opts.activeToolsetIds,
+    allowTaskTool: canUseTaskTool,
+  }).assemble();
 
   const messages = opts.llmMessages;
-  const codeModePrompt = codeModeResult.getSystemPrompt();
-  const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
-  const skillsPrompt = await buildSkillsSystemPrompt();
   if (messages.length > 0 && messages[0]?.role === 'system') {
     const sysMsg = messages[0];
     const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    const promptAdditions = [codeModePrompt, toolsetsPrompt, skillsPrompt]
-      .filter(Boolean)
-      .join('\n\n');
     messages[0] = {
       role: 'system',
-      content: `${existingContent}\n\n${promptAdditions}`,
+      content: `${existingContent}\n\n${promptAdditions.join('\n\n')}`,
     };
   }
 
@@ -1393,7 +1282,7 @@ export async function runStream(opts: {
     {
       ...opts,
       llmMessages: transformedMessages,
-      coreTools,
+      coreTools: staticTools,
       toolsetManager,
       streamRunId,
     },
