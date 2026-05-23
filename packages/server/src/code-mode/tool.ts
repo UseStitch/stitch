@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { toolsToBindings } from '@/code-mode/bindings/tool-binding.js';
+import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { applyToolFilter } from '@/code-mode/filter.js';
 import type { CodeModeToolFilter } from '@/code-mode/filter.js';
 import { createQuickJSDriver } from '@/code-mode/isolate/quickjs-driver.js';
@@ -31,6 +31,8 @@ export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult
   const driver = options.driver ?? createQuickJSDriver();
   const filter = options.filter ?? {};
   const isolateOptions = options.isolateOptions ?? {};
+
+  const getFilteredTools = () => applyToolFilter(options.getTools(), filter);
 
   const codeModeInputSchema = z.object({
     code: z
@@ -73,8 +75,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         };
       }
 
-      const activeTools = options.getTools();
-      const filteredTools = applyToolFilter(activeTools, filter);
+      const filteredTools = getFilteredTools();
       const bindings = toolsToBindings(filteredTools, abortSignal);
 
       log.info(
@@ -111,10 +112,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
           description,
           durationMs,
           logCount: execResult.logs.length,
-          hasError:
-            execResult.result !== null &&
-            typeof execResult.result === 'object' &&
-            'error' in execResult.result,
+          hasError: isErrorResult(execResult.result),
         },
         'code mode execution complete',
       );
@@ -144,15 +142,18 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
     tool: codeModeToolInstance,
 
     getSystemPrompt(): string {
-      const activeTools = options.getTools();
-      const filteredTools = applyToolFilter(activeTools, filter);
-      const bindings = toolsToBindings(filteredTools);
-      return buildCodeModeSystemPrompt(bindings);
+      const filteredTools = getFilteredTools();
+      const typeInfo = toolsToTypeInfo(filteredTools);
+      return buildCodeModeSystemPrompt(typeInfo);
     },
   };
 }
 
-function serializeIsolateOutput(result: unknown, logs: string[]): string {
+export function isErrorResult(result: unknown): result is { error: unknown } {
+  return result !== null && typeof result === 'object' && 'error' in result;
+}
+
+export function serializeIsolateOutput(result: unknown, logs: string[]): string {
   const parts: string[] = [];
 
   if (logs.length > 0) {
@@ -165,9 +166,8 @@ function serializeIsolateOutput(result: unknown, logs: string[]): string {
 
   if (result === null || result === undefined) {
     parts.push('(no return value)');
-  } else if (typeof result === 'object' && 'error' in result) {
-    const err = (result as { error: unknown }).error;
-    const errMsg = typeof err === 'string' ? err : JSON.stringify(err);
+  } else if (isErrorResult(result)) {
+    const errMsg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
     parts.push(`Error: ${errMsg}`);
   } else {
     try {

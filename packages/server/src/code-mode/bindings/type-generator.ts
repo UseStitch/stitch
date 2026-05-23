@@ -1,4 +1,4 @@
-import type { ToolBinding } from '@/code-mode/isolate/types.js';
+import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 
 type JsonSchema = Record<string, unknown>;
 
@@ -80,7 +80,7 @@ type TypeStubOptions = {
 };
 
 export function generateTypeStubs(
-  bindings: Record<string, ToolBinding>,
+  bindings: Record<string, ToolTypeInfo>,
   options: TypeStubOptions = {},
 ): string {
   const includeDescriptions = options.includeDescriptions ?? true;

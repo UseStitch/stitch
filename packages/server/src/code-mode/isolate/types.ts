@@ -30,3 +30,14 @@ export type IsolateDriver = {
     options?: IsolateOptions,
   ): Promise<IsolateContext>;
 };
+
+/**
+ * Magic property names used to signal errors across the WASM boundary.
+ * These form the protocol between the host and sandbox environments.
+ */
+export const ERROR_KEYS = {
+  /** Returned by tool bindings when a tool call fails */
+  TOOL_ERROR: '__error',
+  /** Returned by the sandbox wrapper when user code throws */
+  CODE_ERROR: '__codeError',
+} as const;
