@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import os from 'node:os';
 import path from 'path';
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from 'bun:test';
 
 import * as Glob from '@/lib/glob.js';
 

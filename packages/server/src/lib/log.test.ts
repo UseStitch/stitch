@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
@@ -89,7 +89,7 @@ describe('Log.cleanup', () => {
 
   test('does nothing when the log directory does not exist', async () => {
     await fs.rm(PATHS.logDir, { recursive: true, force: true });
-    await expect(Log.cleanup()).resolves.not.toThrow();
+    await Log.cleanup();
   });
 });
 
