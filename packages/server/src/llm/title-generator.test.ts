@@ -1,6 +1,6 @@
 import { APICallError } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, mock } from 'bun:test';
 
 import { generateTitle } from '@/llm/title-generator.js';
 
@@ -29,7 +29,7 @@ function makeMockModel(text: string): MockLanguageModelV3 {
 
 describe('generateTitle', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mock.restore();
   });
 
   test('returns trimmed title from model response', async () => {
