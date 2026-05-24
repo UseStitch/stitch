@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, jest, mock, test } from 'bun:test';
 
 import {
   createAbortRace,
@@ -9,59 +9,63 @@ import {
 
 describe('createPausableTimer', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   test('reports elapsed time when not paused', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
-    vi.advanceTimersByTime(500);
+    jest.setSystemTime(500);
 
     expect(timer.getElapsed(startedAt)).toBe(500);
   });
 
   test('pausing stops elapsed time accumulation', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
-    vi.advanceTimersByTime(200);
+    jest.setSystemTime(200);
     timer.pause();
-    vi.advanceTimersByTime(300);
+    jest.setSystemTime(500);
 
     expect(timer.getElapsed(startedAt)).toBe(200);
   });
 
   test('resuming resumes elapsed time accumulation', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
-    vi.advanceTimersByTime(200);
+    jest.setSystemTime(200);
     timer.pause();
-    vi.advanceTimersByTime(300);
+    jest.setSystemTime(500);
     timer.resume();
-    vi.advanceTimersByTime(100);
+    jest.setSystemTime(600);
 
     expect(timer.getElapsed(startedAt)).toBe(300);
   });
 
   test('multiple pause/resume cycles accumulate correctly', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
-    vi.advanceTimersByTime(100); // 100ms active
+    jest.setSystemTime(100); // 100ms active
     timer.pause();
-    vi.advanceTimersByTime(200); // 200ms paused
+    jest.setSystemTime(300); // 200ms paused
     timer.resume();
-    vi.advanceTimersByTime(150); // 150ms active
+    jest.setSystemTime(450); // 150ms active
     timer.pause();
-    vi.advanceTimersByTime(500); // 500ms paused
+    jest.setSystemTime(950); // 500ms paused
     timer.resume();
-    vi.advanceTimersByTime(50); // 50ms active
+    jest.setSystemTime(1000); // 50ms active
 
     expect(timer.getElapsed(startedAt)).toBe(300);
     expect(timer.getTotalPausedMs()).toBe(700);
@@ -73,19 +77,20 @@ describe('createPausableTimer', () => {
   });
 
   test('getPausedAt returns timestamp when paused', () => {
+    jest.setSystemTime(1000);
     const timer = createPausableTimer();
-    const before = Date.now();
     timer.pause();
-    expect(timer.getPausedAt()).toBe(before);
+    expect(timer.getPausedAt()).toBe(1000);
   });
 
   test('double pause is a no-op', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
     timer.pause();
     const firstPausedAt = timer.getPausedAt();
-    vi.advanceTimersByTime(100);
+    jest.setSystemTime(100);
     timer.pause();
 
     expect(timer.getPausedAt()).toBe(firstPausedAt);
@@ -93,15 +98,16 @@ describe('createPausableTimer', () => {
   });
 
   test('double resume is a no-op', () => {
+    jest.setSystemTime(0);
     const timer = createPausableTimer();
     const startedAt = Date.now();
 
-    vi.advanceTimersByTime(100);
+    jest.setSystemTime(100);
     timer.pause();
-    vi.advanceTimersByTime(200);
+    jest.setSystemTime(300);
     timer.resume();
     timer.resume();
-    vi.advanceTimersByTime(50);
+    jest.setSystemTime(350);
 
     expect(timer.getElapsed(startedAt)).toBe(150);
     expect(timer.getTotalPausedMs()).toBe(200);
@@ -118,8 +124,8 @@ describe('createAbortRace', () => {
     const controller = new AbortController();
     controller.abort();
 
-    const promise = createAbortRace(controller.signal, 'already aborted');
-    await expect(promise).rejects.toThrow('already aborted');
+    const caught = await createAbortRace(controller.signal, 'already aborted')!.catch((e) => e);
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'already aborted');
   });
 
   test('rejects when signal is aborted', async () => {
@@ -127,67 +133,49 @@ describe('createAbortRace', () => {
     const promise = createAbortRace(controller.signal, 'was aborted');
 
     controller.abort();
-    await expect(promise).rejects.toThrow('was aborted');
+    const caught = await promise!.catch((e) => e);
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'was aborted');
   });
 });
 
 describe('createExecutionTimeoutRace', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   test('rejects after timeout elapses', async () => {
     const timer = createPausableTimer();
     const startedAt = Date.now();
-    const race = createExecutionTimeoutRace(timer, startedAt, 1000);
+    const race = createExecutionTimeoutRace(timer, startedAt, 50);
 
-    const rejection = expect(race.promise).rejects.toThrow('timed out after 1000ms');
-
-    vi.advanceTimersByTime(1100);
-    await rejection;
-
+    const caught = await race.promise.catch((e) => e);
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message.includes('timed out after 50ms'));
     expect(race.isTimedOut()).toBe(true);
     race.cleanup();
-  });
+  }, 2000);
 
   test('does not reject before timeout', async () => {
     const timer = createPausableTimer();
     const startedAt = Date.now();
-    const race = createExecutionTimeoutRace(timer, startedAt, 1000);
+    const race = createExecutionTimeoutRace(timer, startedAt, 500);
 
-    vi.advanceTimersByTime(500);
+    await Bun.sleep(10);
     expect(race.isTimedOut()).toBe(false);
 
     race.cleanup();
   });
 
-  test('cleanup prevents rejection', () => {
+  test('cleanup prevents rejection', async () => {
     const timer = createPausableTimer();
     const startedAt = Date.now();
-    const race = createExecutionTimeoutRace(timer, startedAt, 1000);
+    const race = createExecutionTimeoutRace(timer, startedAt, 50);
 
     race.cleanup();
-    vi.advanceTimersByTime(2000);
+    await Bun.sleep(100);
     expect(race.isTimedOut()).toBe(false);
   });
 });
 
 describe('wrapWithPausableTimeout', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   test('pauses timer during execution and resumes after', async () => {
     const timer = createPausableTimer();
-    const execute = vi.fn().mockResolvedValue('result');
+    const execute = mock(() => Promise.resolve('result'));
 
     const wrapped = wrapWithPausableTimeout(execute, timer, 5000);
     const promise = wrapped({ test: true });
@@ -202,26 +190,23 @@ describe('wrapWithPausableTimeout', () => {
 
   test('resumes timer even on execution failure', async () => {
     const timer = createPausableTimer();
-    const execute = vi.fn().mockRejectedValue(new Error('failed'));
+    const execute = mock(() => Promise.reject(new Error('failed')));
 
     const wrapped = wrapWithPausableTimeout(execute, timer, 5000);
 
-    await expect(wrapped({})).rejects.toThrow('failed');
+    const caught = await wrapped({}).catch((e) => e);
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'failed');
     expect(timer.getPausedAt()).toBeNull();
   });
 
   test('rejects if tool call exceeds timeout', async () => {
     const timer = createPausableTimer();
-    const execute = vi.fn().mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 10_000)),
-    );
+    const execute = mock(() => Bun.sleep(10_000));
 
-    const wrapped = wrapWithPausableTimeout(execute, timer, 1000);
-    const promise = wrapped({});
+    const wrapped = wrapWithPausableTimeout(execute, timer, 50);
+    const caught = await wrapped({}).catch((e) => e);
 
-    vi.advanceTimersByTime(1100);
-
-    await expect(promise).rejects.toThrow('Tool call timed out after 1000ms');
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'Tool call timed out after 50ms');
     expect(timer.getPausedAt()).toBeNull();
-  });
+  }, 2000);
 });

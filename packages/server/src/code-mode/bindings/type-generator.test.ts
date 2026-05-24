@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
-import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
+import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
 
 describe('generateTypeStubs', () => {
   test('generates type stub for a simple tool', () => {
