@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, jest, beforeEach, afterEach } from 'bun:test';
 
 import {
   isDoomLoop,
@@ -65,11 +65,11 @@ describe('isDoomLoop', () => {
 
 describe('waitForUserDecision / resolveDecision', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   test('resolveDecision returns false when no pending prompt exists', () => {
@@ -90,7 +90,8 @@ describe('waitForUserDecision / resolveDecision', () => {
 
   test('auto-stops after timeout when user does not respond', async () => {
     const promise = waitForUserDecision('ses_3');
-    await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    jest.advanceTimersByTime(5 * 60 * 1000);
+    await Promise.resolve();
     await expect(promise).resolves.toBe('stop');
   });
 

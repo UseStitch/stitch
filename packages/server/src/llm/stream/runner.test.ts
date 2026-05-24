@@ -1,6 +1,6 @@
 import { simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, mock } from 'bun:test';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
@@ -36,12 +36,12 @@ function createTextModel(text: string): MockLanguageModelV3 {
 
 describe('runStream integration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mock.restore();
   });
 
   test('streams text and persists assistant payload through injected persistence deps', async () => {
     const savedMessages: Array<{ finishReason: string; parts: unknown[] }> = [];
-    const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
+    const broadcastMock = mock(async (..._args: unknown[]) => {});
 
     await runStream({
       sessionId: 'ses_integration_1' as never,

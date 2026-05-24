@@ -1,5 +1,5 @@
 import { APICallError } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
 import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import { StreamPartError } from '@/llm/stream/errors.js';
