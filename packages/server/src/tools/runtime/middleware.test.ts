@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import fs from 'node:fs/promises';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { PATHS } from '@/lib/paths.js';
@@ -32,6 +32,15 @@ describe('truncationMiddleware', () => {
       );
 
     const result = await wrapped.execute?.({}, {} as never);
+
+    if (!result || typeof result !== 'object' || !('__stitchToolResultMeta' in result)) {
+      throw new Error('expected truncation metadata in wrapped tool result');
+    }
+    const typed = result as { output: string; title: string; __stitchToolResultMeta: { truncated: boolean; outputPath: string } };
+    const outputPath = typed.__stitchToolResultMeta.outputPath;
+    const output = typed.output;
+    const title = typed.title;
+
     expect(result).toMatchObject({
       output: expect.stringContaining('truncated'),
       __stitchToolResultMeta: {
@@ -40,16 +49,13 @@ describe('truncationMiddleware', () => {
       },
     });
 
-    if (!result || typeof result !== 'object' || !('__stitchToolResultMeta' in result)) {
-      throw new Error('expected truncation metadata in wrapped tool result');
-    }
-    const outputPath = (result as { __stitchToolResultMeta: { outputPath: string } })
-      .__stitchToolResultMeta.outputPath;
-    await expect(fs.stat(outputPath)).resolves.toBeDefined();
-    await expect(fs.readFile(outputPath, 'utf8')).resolves.toBe(largeOutput);
-    expect(result).toMatchObject({ title: 'kept title' });
-    expect((result as { output: string }).output).toContain('Full raw output saved to:');
-    expect((result as { output: string }).output).toContain('prefer Grep first');
+    await fs.stat(outputPath);
+    const savedContent = await fs.readFile(outputPath, 'utf8');
+
+    expect(savedContent).toBe(largeOutput);
+    expect(title).toBe('kept title');
+    expect(output).toContain('Full raw output saved to:');
+    expect(output).toContain('prefer Grep first');
   });
 
   test('returns original result when truncation is not needed', async () => {

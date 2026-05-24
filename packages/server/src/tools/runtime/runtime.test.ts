@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';

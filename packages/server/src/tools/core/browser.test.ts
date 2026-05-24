@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
 // Test the abort rethrow logic in isolation — we want to confirm that the
 // execute handler rethrows DOMException AbortErrors and converts other errors
@@ -20,9 +20,8 @@ async function executeWithAbort(action: () => Promise<unknown>): Promise<unknown
 describe('browser tool abort contract', () => {
   test('rethrows DOMException AbortError', async () => {
     const abortError = new DOMException('Browser action aborted', 'AbortError');
-    await expect(executeWithAbort(() => Promise.reject(abortError))).rejects.toSatisfy(
-      (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
-    );
+    const caught = await executeWithAbort(() => Promise.reject(abortError)).catch((e) => e);
+    expect(caught).toSatisfy((e) => e instanceof DOMException && (e as DOMException).name === 'AbortError');
   });
 
   test('converts non-abort errors to thrown Error', async () => {

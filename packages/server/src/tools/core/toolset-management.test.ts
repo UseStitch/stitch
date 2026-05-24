@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -74,6 +74,7 @@ describe('toolset management tools', () => {
       { toolsetId: 'test-toolset' },
       {} as never,
     );
+    const message = (result as { message: string }).message;
 
     expect(result).toMatchObject({
       toolsetId: 'test-toolset',
@@ -84,9 +85,7 @@ describe('toolset management tools', () => {
       instructions: null,
       prompts: null,
     });
-    expect((result as { message: string }).message).toContain(
-      'Call deactivate_toolset("test-toolset") when you no longer need it',
-    );
+    expect(message).toContain('Call deactivate_toolset("test-toolset") when you no longer need it');
   });
 
   test('activate_toolset already_active response does not include deactivation nudge', async () => {
@@ -98,9 +97,11 @@ describe('toolset management tools', () => {
       { toolsetId: 'test-toolset' },
       {} as never,
     );
+    const status = (result as { status: string }).status;
+    const message = (result as { message: string }).message;
 
-    expect((result as { status: string }).status).toBe('already_active');
-    expect((result as { message: string }).message).not.toContain('deactivate_toolset');
+    expect(status).toBe('already_active');
+    expect(message).not.toContain('deactivate_toolset');
   });
 
   test('activate_toolset includes details when verbose=true', async () => {
