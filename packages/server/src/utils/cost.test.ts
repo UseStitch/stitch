@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import type { LanguageModelUsage } from 'ai';

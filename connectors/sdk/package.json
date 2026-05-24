@@ -10,14 +10,13 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "bun test"
   },
   "dependencies": {
     "@stitch/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:testing"
+    "typescript": "catalog:"
   }
 }

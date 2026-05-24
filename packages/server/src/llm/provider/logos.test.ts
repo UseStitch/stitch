@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, mock, test } from 'bun:test';
 
 import * as ProviderLogos from '@/llm/provider/logos.js';
 
@@ -20,7 +20,7 @@ describe('provider logos cache', () => {
     await using tmp = await tmpdir();
     await fs.writeFile(path.join(tmp.path, 'openai.svg'), '<svg>cached</svg>', 'utf8');
 
-    const fetchImpl = vi.fn<typeof fetch>();
+    const fetchImpl = mock<typeof fetch>();
     const logo = await ProviderLogos.get('openai', { cacheDir: tmp.path, fetchImpl });
 
     expect(logo).toBe('<svg>cached</svg>');
@@ -30,9 +30,9 @@ describe('provider logos cache', () => {
   test('fetches and caches logo on cache miss', async () => {
     await using tmp = await tmpdir();
 
-    const fetchImpl = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response('<svg>remote</svg>', { status: 200 }));
+    const fetchImpl = mock<typeof fetch>().mockResolvedValue(
+      new Response('<svg>remote</svg>', { status: 200 }),
+    );
 
     const logo = await ProviderLogos.get('openai', { cacheDir: tmp.path, fetchImpl });
     const cached = await fs.readFile(path.join(tmp.path, 'openai.svg'), 'utf8');
@@ -45,9 +45,9 @@ describe('provider logos cache', () => {
   test('returns undefined when upstream logo is missing', async () => {
     await using tmp = await tmpdir();
 
-    const fetchImpl = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response('missing', { status: 404 }));
+    const fetchImpl = mock<typeof fetch>().mockResolvedValue(
+      new Response('missing', { status: 404 }),
+    );
 
     const logo = await ProviderLogos.get('openai', { cacheDir: tmp.path, fetchImpl });
     const cached = await fs
@@ -61,7 +61,7 @@ describe('provider logos cache', () => {
   test('returns undefined for non-allowed provider IDs', async () => {
     await using tmp = await tmpdir();
 
-    const fetchImpl = vi.fn<typeof fetch>();
+    const fetchImpl = mock<typeof fetch>();
     const logo = await ProviderLogos.get('not-real-provider', { cacheDir: tmp.path, fetchImpl });
 
     expect(logo).toBeUndefined();

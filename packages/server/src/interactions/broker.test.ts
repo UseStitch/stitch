@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 import { InteractionBroker } from '@/interactions/broker.js';
 
@@ -11,7 +11,6 @@ describe('InteractionBroker', () => {
 
   afterEach(() => {
     broker.clear();
-    vi.useRealTimers();
   });
 
   test('resolves a pending interaction', async () => {
@@ -69,17 +68,15 @@ describe('InteractionBroker', () => {
   });
 
   test('timeout resolves with configured decision', async () => {
-    vi.useFakeTimers();
-
     const promise = broker.wait<string>({
       id: 'doom_loop:ses_1',
       kind: 'doom_loop',
       sessionId: 'ses_1',
-      timeoutMs: 100,
+      timeoutMs: 10,
       onTimeout: () => 'stop',
     });
 
-    await vi.advanceTimersByTimeAsync(100);
+    await Bun.sleep(20);
     await expect(promise).resolves.toBe('stop');
   });
 

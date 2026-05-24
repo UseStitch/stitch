@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
 import { resolvePermissionFromRules, wildcardPatternMatches } from '@/permission/policy.js';
 
