@@ -2,12 +2,11 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { createWorkerSandbox } from '@stitch/sandbox';
+import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { applyToolFilter } from '@/code-mode/filter.js';
 import type { CodeModeToolFilter } from '@/code-mode/filter.js';
-import { createQuickJSDriver } from '@/code-mode/isolate/quickjs-driver.js';
-import type { IsolateDriver, IsolateOptions } from '@/code-mode/isolate/types.js';
 import { stripTypeScript } from '@/code-mode/strip-typescript.js';
 import { buildCodeModeSystemPrompt } from '@/code-mode/system-prompt.js';
 import * as Log from '@/lib/log.js';
@@ -15,8 +14,6 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
-
-const CODE_MODE_BACKEND = process.env['STITCH_CODE_MODE_BACKEND'];
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -32,7 +29,7 @@ type CodeModeToolResult = {
 };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
-  const driver = options.driver ?? createDefaultDriver();
+  const driver = options.driver ?? createWorkerSandbox();
   const filter = options.filter ?? {};
   const isolateOptions = options.isolateOptions ?? {};
 
@@ -151,11 +148,6 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
       return buildCodeModeSystemPrompt(typeInfo);
     },
   };
-}
-
-function createDefaultDriver(): IsolateDriver {
-  if (CODE_MODE_BACKEND === 'quickjs') return createQuickJSDriver();
-  return createWorkerSandbox();
 }
 
 export function isErrorResult(result: unknown): result is { error: unknown } {
