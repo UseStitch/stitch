@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run-ci: ${{ steps.filter.outputs.ci }}
+      rust: ${{ steps.filter.outputs.rust }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
@@ -28,10 +29,16 @@ jobs:
               - '!apps/website/**'
               - '!registries/**'
               - '!**/*.md'
+              - '!**/*.txt'
               - '!LICENSE'
               - '!.opencode/**'
+              - '!packages/server/src/skills/built-ins/**'
               - '!.github/ISSUE_TEMPLATE/**'
               - '!.github/CODEOWNERS'
+            rust:
+              - 'native/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
 
   check:
     name: check (linux)
@@ -47,15 +54,15 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Setup Rust toolchain
-        if: needs.filter.outputs.run-ci == 'true'
+        if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux Rust test dependencies
-        if: needs.filter.outputs.run-ci == 'true' && runner.os == 'Linux'
+        if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true' && runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config
 
       - name: Cache Rust dependencies
-        if: needs.filter.outputs.run-ci == 'true'
+        if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: native
@@ -79,5 +86,5 @@ jobs:
         run: bun run test
 
       - name: Run Rust tests
-        if: needs.filter.outputs.run-ci == 'true'
+        if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
         run: cargo test --manifest-path native/Cargo.toml --workspace
