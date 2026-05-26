@@ -1,6 +1,6 @@
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import fs from 'fs/promises';
 import path from 'path';
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
@@ -28,7 +28,7 @@ async function writeLogFiles(names: string[]) {
   );
 }
 
-// Generates filenames matching pino-roll's Extension Last format: app.<date>.<count>.log
+// Generates filenames matching log format: app.<date>.<count>.log
 function dailyLogNames(count: number, startDate = new Date('2020-01-01')): string[] {
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(startDate.getTime() + i * 86_400_000);

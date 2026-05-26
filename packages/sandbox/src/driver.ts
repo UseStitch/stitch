@@ -17,6 +17,7 @@ import type {
   IsolateDriver,
   IsolateExecuteResult,
   IsolateOptions,
+  SandboxDriverOptions,
   ToolBinding,
 } from './types.js';
 
@@ -86,7 +87,9 @@ function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
   }
 }
 
-export function createWorkerSandbox(): IsolateDriver {
+export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): IsolateDriver {
+  const workerUrl = driverOptions?.workerUrl ?? new URL('./worker-entry.ts', import.meta.url);
+
   return {
     async createContext(
       bindings: Record<string, ToolBinding>,
@@ -112,7 +115,7 @@ export function createWorkerSandbox(): IsolateDriver {
         workerData: { toolNames, libraries },
       };
 
-      const worker = new Worker(new URL('./worker-entry.ts', import.meta.url), workerOptions);
+      const worker = new Worker(workerUrl, workerOptions);
       let disposed = false;
       let toolCallCount = 0;
       const timer = createPausableTimer();
