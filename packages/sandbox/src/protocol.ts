@@ -1,6 +1,7 @@
 export type WorkerExecuteMessage = {
   type: 'execute';
   code: string;
+  allowedPackages: string[];
 };
 
 export type WorkerToolResultMessage = {

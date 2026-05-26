@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import { createWorkerSandbox } from '../src/index.js';
-
 import type { ToolBinding } from '../src/types.js';
 
 async function execute(code: string, bindings: Record<string, ToolBinding> = {}) {
@@ -50,47 +49,6 @@ describe('worker sandbox', () => {
     const result = await execute('return await external_sum({ values: [1, 2, 3] });', bindings);
 
     expect(result.result).toBe(6);
-  });
-
-  test('injects host-approved libraries', async () => {
-    const context = await createWorkerSandbox().createContext(
-      {},
-      {
-        timeout: 2_000,
-        libraries: {
-          sample: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href },
-          sampleWorker: {
-            specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href,
-            globalName: 'sampleWorker',
-            inject: false,
-          },
-        },
-      },
-    );
-
-    try {
-      const result = await context.execute(`
-        return {
-          label: sample.label,
-          doubled: sample.double(21),
-          frozen: Object.isFrozen(sample),
-          canReadFunctionPrototype: sample.canReadFunctionPrototype(),
-          hasGlobalSampleWorker: sample.hasGlobalSampleWorker(),
-          sampleWorkerType: typeof sampleWorker,
-        };
-      `);
-
-      expect(result.result).toEqual({
-        label: 'sample-library',
-        doubled: 42,
-        frozen: true,
-        canReadFunctionPrototype: true,
-        hasGlobalSampleWorker: true,
-        sampleWorkerType: 'object',
-      });
-    } finally {
-      context.dispose();
-    }
   });
 
   test('terminates infinite loops', async () => {

@@ -2,16 +2,16 @@ import { Worker } from 'node:worker_threads';
 
 import {
   SandboxMessageTooLargeError,
-  SandboxSecurityError,
   SandboxTimeoutError,
   SandboxToolError,
   SandboxToolLimitError,
   SandboxUnknownToolError,
 } from './errors.js';
-import { isWorkerMessage } from './protocol.js';
-import { createAbortRace, createExecutionTimeoutRace, createPausableTimer } from './timer.js';
-
-import type { HostMessage, WorkerMessage } from './protocol.js';
+import {
+  createAbortRace,
+  createExecutionTimeoutRace,
+  createPausableTimer,
+} from './timer.js';
 import type {
   IsolateContext,
   IsolateDriver,
@@ -19,30 +19,14 @@ import type {
   IsolateOptions,
   ToolBinding,
 } from './types.js';
+import type { HostMessage, WorkerMessage } from './protocol.js';
+import { isWorkerMessage } from './protocol.js';
 
 const DEFAULT_MEMORY_LIMIT_MB = 128;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_TOOL_CALLS = 100;
 const DEFAULT_MAX_MESSAGE_BYTES = 512 * 1024;
 const TOOL_TIMEOUT_BUFFER_MS = 5_000;
-const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
-const RESERVED_LIBRARY_NAMES = new Set([
-  'console',
-  'Bun',
-  'process',
-  'require',
-  'fetch',
-  'WebSocket',
-  'Worker',
-  'SharedWorker',
-  'XMLHttpRequest',
-  'EventSource',
-  'importScripts',
-  'navigator',
-  'location',
-  'eval',
-  'Function',
-]);
 
 type WorkerWithBunOptions = ConstructorParameters<typeof Worker>[1] & {
   smol?: boolean;
@@ -71,21 +55,6 @@ function postToWorker(worker: Worker, message: HostMessage): void {
   worker.postMessage(message);
 }
 
-function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
-  for (const [name, library] of Object.entries(libraries ?? {})) {
-    if (!IDENTIFIER_PATTERN.test(name) || RESERVED_LIBRARY_NAMES.has(name)) {
-      throw new SandboxSecurityError(`Invalid sandbox library name: ${name}`);
-    }
-    if (
-      library.globalName !== undefined &&
-      (!IDENTIFIER_PATTERN.test(library.globalName) ||
-        RESERVED_LIBRARY_NAMES.has(library.globalName))
-    ) {
-      throw new SandboxSecurityError(`Invalid sandbox library global name: ${library.globalName}`);
-    }
-  }
-}
-
 export function createWorkerSandbox(): IsolateDriver {
   return {
     async createContext(
@@ -96,11 +65,10 @@ export function createWorkerSandbox(): IsolateDriver {
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
       const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
       const maxMessageBytes = options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES;
-      const libraries = options.libraries ?? {};
+      const allowedPackages = options.allowedPackages ?? [];
       const abortSignal = options.abortSignal;
       const toolTimeoutMs = Math.max(1_000, timeoutMs - TOOL_TIMEOUT_BUFFER_MS);
       const toolNames = Object.keys(bindings);
-      validateLibraryNames(libraries);
       const workerOptions: WorkerWithBunOptions = {
         env: {},
         resourceLimits: {
@@ -109,7 +77,7 @@ export function createWorkerSandbox(): IsolateDriver {
           stackSizeMb: 1,
         },
         smol: true,
-        workerData: { toolNames, libraries },
+        workerData: { toolNames },
       };
 
       const worker = new Worker(new URL('./worker-entry.ts', import.meta.url), workerOptions);
@@ -142,9 +110,7 @@ export function createWorkerSandbox(): IsolateDriver {
               postToWorker(worker, { type: 'tool_error', id, error });
             };
 
-            const executeToolCall = async (
-              message: Extract<WorkerMessage, { type: 'tool_call' }>,
-            ) => {
+            const executeToolCall = async (message: Extract<WorkerMessage, { type: 'tool_call' }>) => {
               timer.pause();
               try {
                 toolCallCount += 1;
@@ -164,10 +130,7 @@ export function createWorkerSandbox(): IsolateDriver {
                 let timeoutId: ReturnType<typeof setTimeout> | null = null;
                 const toolTimeout = new Promise<never>((_, rejectTool) => {
                   timeoutId = setTimeout(
-                    () =>
-                      rejectTool(
-                        new SandboxToolError(`Tool call timed out after ${toolTimeoutMs}ms`),
-                      ),
+                    () => rejectTool(new SandboxToolError(`Tool call timed out after ${toolTimeoutMs}ms`)),
                     toolTimeoutMs,
                   );
                   abortSignal?.addEventListener(
@@ -232,14 +195,11 @@ export function createWorkerSandbox(): IsolateDriver {
             worker.on('message', onMessage);
             worker.on('error', onError);
             worker.on('exit', onExit);
-            postToWorker(worker, { type: 'execute', code });
+            postToWorker(worker, { type: 'execute', code, allowedPackages });
           });
 
           try {
-            const raceTargets: Promise<IsolateExecuteResult>[] = [
-              executionPromise,
-              timeoutRace.promise,
-            ];
+            const raceTargets: Promise<IsolateExecuteResult>[] = [executionPromise, timeoutRace.promise];
             if (abortPromise !== null) raceTargets.push(abortPromise);
             return await Promise.race(raceTargets);
           } catch (err) {

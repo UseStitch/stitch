@@ -15,12 +15,6 @@ export type IsolateContext = {
   dispose(): void;
 };
 
-export type SandboxLibrary = {
-  specifier: string;
-  globalName?: string;
-  inject?: boolean;
-};
-
 export type IsolateOptions = {
   /** Memory limit in MB (default: 128) */
   memoryLimit?: number;
@@ -32,8 +26,8 @@ export type IsolateOptions = {
   maxToolCalls?: number;
   /** Maximum postMessage payload size in bytes (default: 512 KiB) */
   maxMessageBytes?: number;
-  /** Host-approved libraries injected into sandbox code by variable name. */
-  libraries?: Record<string, SandboxLibrary>;
+  /** Package names available to sandbox code. Package loading is reserved for a later phase. */
+  allowedPackages?: string[];
 };
 
 export type IsolateDriver = {
