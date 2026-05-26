@@ -2,12 +2,11 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { createWorkerSandbox } from '@stitch/sandbox';
+import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { applyToolFilter } from '@/code-mode/filter.js';
 import type { CodeModeToolFilter } from '@/code-mode/filter.js';
-import { createQuickJSDriver } from '@/code-mode/isolate/quickjs-driver.js';
-import type { IsolateDriver, IsolateOptions } from '@/code-mode/isolate/types.js';
 import { stripTypeScript } from '@/code-mode/strip-typescript.js';
 import { buildCodeModeSystemPrompt } from '@/code-mode/system-prompt.js';
 import * as Log from '@/lib/log.js';
@@ -15,8 +14,8 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
-
-const CODE_MODE_BACKEND = process.env['STITCH_CODE_MODE_BACKEND'];
+const PDFJS_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.mjs');
+const PDFJS_WORKER_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -32,7 +31,7 @@ type CodeModeToolResult = {
 };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
-  const driver = options.driver ?? createDefaultDriver();
+  const driver = options.driver ?? createWorkerSandbox();
   const filter = options.filter ?? {};
   const isolateOptions = options.isolateOptions ?? {};
 
@@ -92,7 +91,10 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         'executing code mode',
       );
 
-      const context = await driver.createContext(bindings, { ...isolateOptions, abortSignal });
+      const context = await driver.createContext(
+        bindings,
+        createCodeModeIsolateOptions(isolateOptions, abortSignal),
+      );
 
       let execResult: { result: unknown; logs: string[] };
       try {
@@ -148,14 +150,28 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
     getSystemPrompt(): string {
       const filteredTools = getFilteredTools();
       const typeInfo = toolsToTypeInfo(filteredTools);
-      return buildCodeModeSystemPrompt(typeInfo);
+      return buildCodeModeSystemPrompt(typeInfo, ['pdfjs']);
     },
   };
 }
 
-function createDefaultDriver(): IsolateDriver {
-  if (CODE_MODE_BACKEND === 'quickjs') return createQuickJSDriver();
-  return createWorkerSandbox();
+function createCodeModeIsolateOptions(
+  isolateOptions: IsolateOptions,
+  abortSignal: AbortSignal | undefined,
+): IsolateOptions {
+  return {
+    ...isolateOptions,
+    abortSignal,
+    libraries: {
+      ...isolateOptions.libraries,
+      pdfjs: { specifier: PDFJS_SPECIFIER },
+      pdfjsWorker: {
+        specifier: PDFJS_WORKER_SPECIFIER,
+        globalName: 'pdfjsWorker',
+        inject: false,
+      },
+    },
+  };
 }
 
 export function isErrorResult(result: unknown): result is { error: unknown } {
