@@ -53,4 +53,17 @@ describe('sandbox hardening', () => {
 
     expect(result.result).toEqual({ error: 'dynamic import is not available in the sandbox' });
   });
+
+  test('rejects unsafe library names', async () => {
+    expect(
+      createWorkerSandbox().createContext(
+        {},
+        {
+          libraries: {
+            process: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href },
+          },
+        },
+      ),
+    ).rejects.toThrow('Invalid sandbox library name: process');
+  });
 });

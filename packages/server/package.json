@@ -36,6 +36,7 @@
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "hono": "^4.12.7",
+    "pdfjs-dist": "^5.7.284",
     "pino": "^10.3.1",
     "pino-roll": "^4.0.0",
     "turndown": "^7.2.2",

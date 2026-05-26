@@ -14,6 +14,7 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
+const PDFJS_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.mjs');
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -89,7 +90,10 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         'executing code mode',
       );
 
-      const context = await driver.createContext(bindings, { ...isolateOptions, abortSignal });
+      const context = await driver.createContext(
+        bindings,
+        createCodeModeIsolateOptions(isolateOptions, abortSignal),
+      );
 
       let execResult: { result: unknown; logs: string[] };
       try {
@@ -145,7 +149,21 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
     getSystemPrompt(): string {
       const filteredTools = getFilteredTools();
       const typeInfo = toolsToTypeInfo(filteredTools);
-      return buildCodeModeSystemPrompt(typeInfo);
+      return buildCodeModeSystemPrompt(typeInfo, ['pdfjs']);
+    },
+  };
+}
+
+function createCodeModeIsolateOptions(
+  isolateOptions: IsolateOptions,
+  abortSignal: AbortSignal | undefined,
+): IsolateOptions {
+  return {
+    ...isolateOptions,
+    abortSignal,
+    libraries: {
+      ...isolateOptions.libraries,
+      pdfjs: { specifier: PDFJS_SPECIFIER },
     },
   };
 }

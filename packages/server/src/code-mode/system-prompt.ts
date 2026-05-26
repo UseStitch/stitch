@@ -1,7 +1,10 @@
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
 
-export function buildCodeModeSystemPrompt(bindings: Record<string, ToolTypeInfo>): string {
+export function buildCodeModeSystemPrompt(
+  bindings: Record<string, ToolTypeInfo>,
+  libraries: string[] = [],
+): string {
   const typeStubs = generateTypeStubs(bindings);
 
   const functionList = Object.values(bindings)
@@ -9,6 +12,7 @@ export function buildCodeModeSystemPrompt(bindings: Record<string, ToolTypeInfo>
     .join('\n');
 
   const hasFunctions = Object.keys(bindings).length > 0;
+  const hasLibraries = libraries.length > 0;
 
   const functionsSection = hasFunctions
     ? `
@@ -27,6 +31,16 @@ ${functionList}
 \`\`\`typescript
 ${typeStubs}
 \`\`\`
+`.trim()
+    : '';
+
+  const librariesSection = hasLibraries
+    ? `
+## Available Libraries
+
+The following host-approved libraries are available as globals inside the sandbox:
+
+${libraries.map((name) => `- \`${name}\``).join('\n')}
 `.trim()
     : '';
 
@@ -56,12 +70,15 @@ Do not use \`execute_typescript\` for:
 
 - Write TypeScript code with full type safety
 - Call any available \`external_*\` function — these map directly to real tools
+- Use any available host-approved library globals listed below
 - Each \`external_*\` call may require user permission approval (just like regular tool calls)
-- The sandbox has no filesystem, network, or Node.js access — only the \`external_*\` functions
+- The sandbox has no filesystem, network, or Node.js access — only the \`external_*\` functions and listed library globals
 - \`console.log\` output is captured and returned alongside the result
 - Return a value to pass it back as the tool result
 
 ${functionsSection}
+
+${librariesSection}
 
 ${typeSection}
 
@@ -71,7 +88,7 @@ ${typeSection}
 - Top-level \`return\` is supported — the sandbox wraps your code in an async function
 - Do **not** use top-level \`export\` or \`import\` statements — no modules are available
 - If you define a helper \`async function\`, you **must \`await\`** the call at the top level — returning an un-awaited Promise silently discards the result
-- Do not assume any global variables exist other than \`console\` and the \`external_*\` functions
+- Do not assume any global variables exist other than \`console\`, listed libraries, and the \`external_*\` functions
 - External functions return \`Promise<unknown>\` — use type assertions if needed
 - If \`execute_typescript\` fails once in the current run, do not retry it for the same task unless the error clearly indicates a code mistake you can fix. Fall back to direct tool calls instead.
 - **Always return a structured object, not a plain string.** Include fields like \`found\`, \`processed\`, \`count\`, or \`ids\` so the result is unambiguous. A string like \`"No results found"\` is indistinguishable from a successful no-op — a structured return like \`{ found: 0, query: "...", processed: 0 }\` makes the outcome clear.

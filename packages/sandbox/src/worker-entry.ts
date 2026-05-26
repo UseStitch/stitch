@@ -2,8 +2,10 @@ import { parentPort, workerData } from 'node:worker_threads';
 
 import { SandboxError, SandboxToolError } from './errors.ts';
 import { assertSafeCode, harden } from './hardening.ts';
-import type { WorkerMessage } from './protocol.ts';
 import { ERROR_KEYS } from './types.ts';
+
+import type { WorkerMessage } from './protocol.ts';
+import type { SandboxLibrary } from './types.ts';
 
 type PendingCall = {
   resolve: (value: unknown) => void;
@@ -17,11 +19,18 @@ function getParentPort() {
 
 const port = getParentPort();
 
-const data = workerData as { toolNames?: string[] } | undefined;
+const data = workerData as
+  | { toolNames?: string[]; libraries?: Record<string, SandboxLibrary> }
+  | undefined;
 const toolNames = data?.toolNames ?? [];
+const libraries = data?.libraries ?? {};
 const pendingCalls = new Map<string, PendingCall>();
 let logs: string[] = [];
 const SandboxFunction = Function;
+const importLibrary = new SandboxFunction('specifier', 'return import(specifier);') as (
+  specifier: string,
+) => Promise<Record<string, unknown>>;
+let injectedLibraries: Record<string, unknown> = {};
 
 function stringifyLogValue(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -71,6 +80,17 @@ function registerToolProxies(): void {
   }
 }
 
+async function loadLibraries(): Promise<Record<string, unknown>> {
+  const entries = await Promise.all(
+    Object.entries(libraries).map(async ([name, library]) => {
+      const moduleNamespace = await importLibrary(library.specifier);
+      return [name, Object.freeze({ ...moduleNamespace })] as const;
+    }),
+  );
+
+  return Object.fromEntries(entries);
+}
+
 async function executeCode(code: string): Promise<void> {
   logs = [];
   const sandboxConsole = createConsole();
@@ -93,9 +113,12 @@ async function executeCode(code: string): Promise<void> {
       'eval',
       'Function',
     ];
+    const libraryNames = Object.keys(injectedLibraries);
+    const libraryValues = libraryNames.map((name) => injectedLibraries[name]);
     const execute = new SandboxFunction(
       'console',
       ...hiddenGlobalNames,
+      ...libraryNames,
       `return (async () => {
         try {
           const __result = await (async () => {
@@ -106,9 +129,13 @@ async function executeCode(code: string): Promise<void> {
           return { ${JSON.stringify(ERROR_KEYS.CODE_ERROR)}: e && e.message ? e.message : String(e) };
         }
       })();`,
-    ) as (console: Console, ...hiddenGlobals: undefined[]) => Promise<unknown>;
+    ) as (console: Console, ...args: unknown[]) => Promise<unknown>;
 
-    let result = await execute(sandboxConsole, ...hiddenGlobalNames.map(() => undefined));
+    let result = await execute(
+      sandboxConsole,
+      ...hiddenGlobalNames.map(() => undefined),
+      ...libraryValues,
+    );
     if (result !== null && typeof result === 'object' && ERROR_KEYS.CODE_ERROR in result) {
       result = {
         error: (result as { [ERROR_KEYS.CODE_ERROR]: unknown })[ERROR_KEYS.CODE_ERROR],
@@ -120,12 +147,23 @@ async function executeCode(code: string): Promise<void> {
   }
 }
 
-harden();
-registerToolProxies();
+async function initialize(): Promise<void> {
+  injectedLibraries = await loadLibraries();
+  harden();
+  registerToolProxies();
+}
+
+const initialization = initialize();
 
 port.on('message', (message) => {
   if (message === null || typeof message !== 'object') return;
-  const msg = message as { type?: string; id?: string; result?: unknown; error?: string; code?: string };
+  const msg = message as {
+    type?: string;
+    id?: string;
+    result?: unknown;
+    error?: string;
+    code?: string;
+  };
 
   if (msg.type === 'tool_result' && typeof msg.id === 'string') {
     pendingCalls.get(msg.id)?.resolve(msg.result);
@@ -140,6 +178,10 @@ port.on('message', (message) => {
   }
 
   if (msg.type === 'execute' && typeof msg.code === 'string') {
-    void executeCode(msg.code);
+    void initialization
+      .then(() => executeCode(msg.code as string))
+      .catch((err) => {
+        post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
+      });
   }
 });
