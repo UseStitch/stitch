@@ -88,6 +88,18 @@
               "input": {
                 "type": "number"
               },
+              "inputImage": {
+                "type": "number",
+                "description": "Image input price in USD per image."
+              },
+              "inputAudio": {
+                "type": "number",
+                "description": "Audio input price in USD per second."
+              },
+              "inputVideo": {
+                "type": "number",
+                "description": "Video input price in USD per frame."
+              },
               "output": {
                 "type": "number"
               }

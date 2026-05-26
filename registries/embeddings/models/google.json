@@ -15,7 +15,10 @@
       "inputModalities": ["text", "image", "video", "audio", "pdf"],
       "outputModalities": ["text"],
       "cost": {
-        "input": 0.15,
+        "input": 0.2,
+        "inputImage": 0.45,
+        "inputAudio": 6.5,
+        "inputVideo": 12,
         "output": 0
       }
     },

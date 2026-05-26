@@ -145,6 +145,24 @@ function assertEmbeddingModel(model, filePath) {
   }
   assert(model.cost && typeof model.cost === 'object', `${filePath}: model.cost is required`);
   assert(typeof model.cost.input === 'number', `${filePath}: model.cost.input must be a number`);
+  if (model.cost.inputImage !== undefined) {
+    assert(
+      typeof model.cost.inputImage === 'number',
+      `${filePath}: model.cost.inputImage must be a number`,
+    );
+  }
+  if (model.cost.inputAudio !== undefined) {
+    assert(
+      typeof model.cost.inputAudio === 'number',
+      `${filePath}: model.cost.inputAudio must be a number`,
+    );
+  }
+  if (model.cost.inputVideo !== undefined) {
+    assert(
+      typeof model.cost.inputVideo === 'number',
+      `${filePath}: model.cost.inputVideo must be a number`,
+    );
+  }
   assert(typeof model.cost.output === 'number', `${filePath}: model.cost.output must be a number`);
 }
 
