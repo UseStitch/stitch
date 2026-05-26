@@ -24,6 +24,10 @@ const config: KnipConfig = {
       entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
+    'packages/server': {
+      entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+      project: ['src/**/*.{ts,tsx}'],
+    },
     'packages/audio-capture': {
       entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
