@@ -5,8 +5,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run && bun test",
-    "test:bun": "bun test",
+    "test": "bun test",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile --minify --outfile dist/stitch-server",
     "build:x64": "bun build src/index.ts --compile --minify --target=bun-darwin-x64 --outfile dist/stitch-server",
