@@ -175,9 +175,9 @@
       "version": "0.0.0",
       "devDependencies": {
         "@ai-sdk/provider": "catalog:ai",
+        "@types/bun": "catalog:",
         "ai": "catalog:ai",
         "typescript": "catalog:",
-        "vitest": "catalog:testing",
         "zod": "catalog:",
       },
     },
