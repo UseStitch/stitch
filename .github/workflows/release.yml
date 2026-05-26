@@ -30,8 +30,51 @@ jobs:
             exit 1
           fi
 
-  version:
+  check:
+    name: check (${{ matrix.os }})
     needs: guard
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native
+          shared-key: release-check-${{ runner.os }}
+
+      - name: Cache Turbo artifacts
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('**/bun.lock', 'turbo.json') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Run typecheck
+        run: bun run typecheck
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path native/Cargo.toml --workspace
+
+  version:
+    needs: check
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
@@ -117,55 +160,8 @@ jobs:
           git push origin HEAD:master
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-  check:
-    name: check (${{ matrix.os }})
-    needs: version
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - windows-latest
-          - macos-latest
-    steps:
-      - name: Checkout release commit
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.version.outputs.commit }}
-
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: native
-          shared-key: release-check-${{ runner.os }}
-
-      - name: Cache Turbo artifacts
-        uses: actions/cache@v5
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ hashFiles('**/bun.lock', 'turbo.json') }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Run typecheck
-        run: bun run typecheck
-
-      - name: Run tests
-        run: bun run test
-
-      - name: Run Rust tests
-        run: cargo test --manifest-path native/Cargo.toml --workspace
-
   build:
-    needs:
-      - version
-      - check
+    needs: version
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
