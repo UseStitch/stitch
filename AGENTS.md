@@ -56,9 +56,7 @@ Do not consider a task done until all three commands pass with zero errors.
 ### Test Patterns
 
 - **Unit tests**: Test individual functions/handlers in isolation
-- **Integration tests**: Test full WebSocket flows with mock MongoDB/Valkey
 - File naming: `*.test.ts`
-- Config: `vitest.config.ts` in each workspace (except `packages/server` which uses `bunfig.toml` for bun tests)
 
 ### Test Quality Guidelines
 
