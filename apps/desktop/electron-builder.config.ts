@@ -62,6 +62,7 @@ const config: Configuration = {
       to: 'server-assets',
       filter: [
         'meeting/*.md',
+        'skills/built-ins/**/*.md',
         'lib/browser/instructions/*.md',
         'llm/prompt/base-system-prompt.txt',
       ],

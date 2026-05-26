@@ -21,6 +21,7 @@ import { skills } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { getBuiltInSkillSource, loadBuiltInSkills } from '@/skills/built-in-skills.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 
 const log = Log.create({ service: 'skills' });
@@ -60,6 +61,20 @@ function computeSkillHash(input: SkillCreateInput): string {
       'utf8',
     )
     .digest('hex');
+}
+
+function buildSkillRow(input: SkillCreateInput, now: number, source: string | null): Skill {
+  return {
+    id: createSkillId(),
+    name: input.name,
+    description: input.description.trim(),
+    content: input.content.trim(),
+    hash: computeSkillHash(input),
+    isExternal: false,
+    source,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 function toSourceKey(source: string, slug: string): string {
@@ -110,18 +125,7 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
     return err(`Skill name "${value.name}" already exists`, 409);
   }
 
-  const now = Date.now();
-  const row = {
-    id: createSkillId(),
-    name: value.name,
-    description: value.description.trim(),
-    content: value.content.trim(),
-    hash: computeSkillHash(value),
-    isExternal: false,
-    source: null,
-    createdAt: now,
-    updatedAt: now,
-  } satisfies Skill;
+  const row = buildSkillRow(value, Date.now(), null);
 
   if (await skillHashExists(row.hash)) {
     return err('A skill with the same instructions already exists', 409);
@@ -129,6 +133,58 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
 
   await getDb().insert(skills).values(row);
   return ok(row);
+}
+
+export async function syncBuiltInSkills(builtInSkills?: SkillCreateInput[]): Promise<void> {
+  const loadedSkills = builtInSkills ?? (await loadBuiltInSkills());
+  const parsedSkills = loadedSkills.map((skill) => {
+    const parsed = createSkillSchema.safeParse(skill);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? 'Invalid built-in skill');
+    }
+    return parsed.data;
+  });
+
+  const names = new Set<string>();
+  for (const skill of parsedSkills) {
+    if (names.has(skill.name)) throw new Error(`Duplicate built-in skill name: ${skill.name}`);
+    names.add(skill.name);
+  }
+
+  for (const skill of parsedSkills) {
+    const source = getBuiltInSkillSource(skill.name);
+    const existing = getDb().select().from(skills).where(eq(skills.name, skill.name)).get();
+    const hash = computeSkillHash(skill);
+
+    if (!existing) {
+      await getDb()
+        .insert(skills)
+        .values(buildSkillRow(skill, Date.now(), source));
+      continue;
+    }
+
+    if (
+      existing.description === skill.description.trim() &&
+      existing.content === skill.content.trim() &&
+      existing.hash === hash &&
+      existing.source === source &&
+      existing.isExternal === false
+    ) {
+      continue;
+    }
+
+    await getDb()
+      .update(skills)
+      .set({
+        description: skill.description.trim(),
+        content: skill.content.trim(),
+        hash,
+        isExternal: false,
+        source,
+        updatedAt: Date.now(),
+      })
+      .where(eq(skills.id, existing.id));
+  }
 }
 
 export async function updateSkill(
