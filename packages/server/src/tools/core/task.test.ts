@@ -9,15 +9,6 @@ const buildCompactedHistoryMock = mock();
 const registerMock = mock();
 const cleanupMock = mock();
 const abortMock = mock();
-const valuesMock = mock();
-const insertMock = mock(() => ({ values: valuesMock }));
-const whereMock = mock();
-const fromMock = mock(() => ({ where: whereMock }));
-const selectMock = mock(() => ({ from: fromMock }));
-const getDbMock = mock(() => ({
-  insert: insertMock,
-  select: selectMock,
-}));
 
 mock.module('@/chat/service.js', () => ({
   createSession: createSessionMock,
@@ -41,9 +32,11 @@ mock.module('@/lib/abort-registry.js', () => ({
   abort: abortMock,
 }));
 
-mock.module('@/db/client.js', () => ({
-  getDb: getDbMock,
-}));
+import { getDb } from '@/db/client.js';
+import { messages, sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
+
+setupTestDb();
 
 describe('task tool', () => {
   test('broadcasts child session id before child stream completes', async () => {
@@ -52,6 +45,14 @@ describe('task tool', () => {
     const childSessionId = 'ses_child' as PrefixedString<'ses'>;
     const parentSessionId = 'ses_parent' as PrefixedString<'ses'>;
     const messageId = 'msg_parent' as PrefixedString<'msg'>;
+    const assistantMessageId = 'msg_assistant' as PrefixedString<'msg'>;
+
+    // Seed parent and child sessions so FK constraints pass
+    const db = getDb();
+    await db.insert(sessions).values([
+      { id: parentSessionId, title: 'Parent', activeToolsetIds: [] },
+      { id: childSessionId, title: 'Investigate bug', activeToolsetIds: [] },
+    ]);
 
     createSessionMock.mockResolvedValue({
       data: {
@@ -60,20 +61,25 @@ describe('task tool', () => {
       },
     });
     broadcastMock.mockResolvedValue(undefined);
-    valuesMock.mockResolvedValue(undefined);
     buildCompactedHistoryMock.mockResolvedValue([]);
     registerMock.mockReturnValue(new AbortController().signal);
-    runStreamMock.mockResolvedValue(undefined);
-    whereMock.mockResolvedValue([
-      {
-        parts: [
-          {
-            type: 'text-delta',
-            text: 'Done',
-          },
-        ],
-      },
-    ]);
+
+    // When runStream completes, seed the assistant message the task tool will read
+    runStreamMock.mockImplementation(async (opts: { assistantMessageId: string }) => {
+      await db.insert(messages).values({
+        id: opts.assistantMessageId as PrefixedString<'msg'>,
+        sessionId: childSessionId,
+        role: 'assistant',
+        parts: [{ type: 'text-delta', text: 'Done' }],
+        modelId: 'openai/gpt-5.3-codex',
+        providerId: 'openai',
+        costUsd: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        startedAt: Date.now(),
+        duration: null,
+      });
+    });
 
     const taskTool = createTaskTool(
       {

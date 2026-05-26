@@ -10,30 +10,20 @@ mock.module('@/llm/provider/models.js', () => ({
   isAllowedProvider: isAllowedProviderMock,
 }));
 
-const mockDbWhere = mock(async () => []);
-const mockDbFrom = mock((..._args: unknown[]) => ({ where: mockDbWhere })) as any;
-const mockDbSelect = mock((..._args: unknown[]) => ({ from: mockDbFrom }));
-const getDbMock = mock(() => ({ select: mockDbSelect }));
-
-mock.module('@/db/client.js', () => ({
-  getDb: getDbMock,
-}));
-
+import { getDb } from '@/db/client.js';
+import { providerConfig, userSettings } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { resolveModel } from '@/llm/resolve-model.js';
+
+setupTestDb();
+
+const TEST_CREDENTIALS = {
+  providerId: 'openai' as const,
+  auth: { method: 'api-key' as const, apiKey: 'secret' },
+};
 
 describe('resolveModel', () => {
   beforeEach(() => {
-    mockDbWhere.mockReset();
-    mockDbFrom.mockReset();
-    mockDbSelect.mockReset();
-
-    mockDbWhere.mockResolvedValue([]);
-    mockDbFrom.mockImplementation((..._args: unknown[]) => ({ where: mockDbWhere }) as any);
-    // For the providerConfig select which doesn't have where
-    (mockDbFrom as any).mockResolvedValue([]);
-    mockDbSelect.mockImplementation((..._args: unknown[]) => ({ from: mockDbFrom }) as any);
-    getDbMock.mockImplementation(() => ({ select: mockDbSelect }) as any);
-
     isAllowedProviderMock.mockImplementation(() => true);
     getMock.mockResolvedValue({
       'test-provider': {
@@ -72,25 +62,30 @@ describe('resolveModel', () => {
     });
   });
 
-  function mockDbResponses(settings: { key: string; value: string }[], configs: any[]) {
-    mockDbSelect.mockReturnValueOnce({
-      from: mock((..._args: unknown[]) => ({
-        where: mock(async () => settings),
-      })),
-    } as any);
-    mockDbSelect.mockReturnValueOnce({
-      from: mock(async () => configs),
-    } as any);
+  async function seedSettings(settings: { key: string; value: string }[]) {
+    const db = getDb();
+    if (settings.length > 0) {
+      await db
+        .insert(userSettings)
+        .values(settings.map((s) => ({ key: s.key as any, value: s.value })));
+    }
+  }
+
+  async function seedProviderConfigs(configs: { providerId: string }[]) {
+    const db = getDb();
+    if (configs.length > 0) {
+      await db
+        .insert(providerConfig)
+        .values(configs.map((c) => ({ providerId: c.providerId, credentials: TEST_CREDENTIALS })));
+    }
   }
 
   test('resolves using settings when present', async () => {
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'test-model' },
-      ],
-      [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'test-provider' },
+      { key: 'pref.model', value: 'test-model' },
+    ]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -101,18 +96,15 @@ describe('resolveModel', () => {
     expect((result as any).data).toEqual({
       providerId: 'test-provider',
       modelId: 'test-model',
-      credentials: { apiKey: 'secret' },
+      credentials: TEST_CREDENTIALS,
     });
   });
 
   test('resolves using priorityModelIds when settings are missing', async () => {
-    mockDbResponses(
-      [],
-      [
-        { providerId: 'other-provider', credentials: { apiKey: 'secret2' } },
-        { providerId: 'test-provider', credentials: { apiKey: 'secret' } },
-      ],
-    );
+    await seedProviderConfigs([
+      { providerId: 'other-provider' },
+      { providerId: 'test-provider' },
+    ]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -124,12 +116,12 @@ describe('resolveModel', () => {
     expect((result as any).data).toEqual({
       providerId: 'test-provider',
       modelId: 'audio-model',
-      credentials: { apiKey: 'secret' },
+      credentials: TEST_CREDENTIALS,
     });
   });
 
   test('falls back to fallback keys when priorityModelIds yields no match', async () => {
-    mockDbResponses([], [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -143,12 +135,12 @@ describe('resolveModel', () => {
     expect((result as any).data).toEqual({
       providerId: 'test-provider',
       modelId: 'test-model',
-      credentials: { apiKey: 'secret' },
+      credentials: TEST_CREDENTIALS,
     });
   });
 
   test('returns error when settings missing without fallback', async () => {
-    mockDbResponses([], [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -162,13 +154,10 @@ describe('resolveModel', () => {
 
   test('returns error for invalid provider', async () => {
     isAllowedProviderMock.mockImplementation(() => false);
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'invalid-provider' },
-        { key: 'pref.model', value: 'test-model' },
-      ],
-      [],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'invalid-provider' },
+      { key: 'pref.model', value: 'test-model' },
+    ]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -181,13 +170,11 @@ describe('resolveModel', () => {
   });
 
   test('returns error for invalid model', async () => {
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'invalid-model' },
-      ],
-      [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'test-provider' },
+      { key: 'pref.model', value: 'invalid-model' },
+    ]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -200,13 +187,11 @@ describe('resolveModel', () => {
   });
 
   test('returns error when model filter rejects', async () => {
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'test-model' },
-      ],
-      [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'test-provider' },
+      { key: 'pref.model', value: 'test-model' },
+    ]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -220,13 +205,11 @@ describe('resolveModel', () => {
   });
 
   test('succeeds when model filter passes', async () => {
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'audio-model' },
-      ],
-      [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'test-provider' },
+      { key: 'pref.model', value: 'audio-model' },
+    ]);
+    await seedProviderConfigs([{ providerId: 'test-provider' }]);
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
@@ -238,18 +221,16 @@ describe('resolveModel', () => {
     expect((result as any).data).toEqual({
       providerId: 'test-provider',
       modelId: 'audio-model',
-      credentials: { apiKey: 'secret' },
+      credentials: TEST_CREDENTIALS,
     });
   });
 
   test('returns error when provider is not configured', async () => {
-    mockDbResponses(
-      [
-        { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'test-model' },
-      ],
-      [],
-    );
+    await seedSettings([
+      { key: 'pref.provider', value: 'test-provider' },
+      { key: 'pref.model', value: 'test-model' },
+    ]);
+    // No provider configs seeded
 
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
