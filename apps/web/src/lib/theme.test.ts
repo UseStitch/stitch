@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from 'bun:test';
 
-import { THEMES, THEME_TOKEN_KEYS } from '../src/lib/theme.js';
+import { THEMES, THEME_TOKEN_KEYS } from './theme.js';
 
 const OKLCH_PATTERN = /^oklch\(\s*[\d.]+\s+[\d.]+\s+[\d.]+\s*\)$/;
 

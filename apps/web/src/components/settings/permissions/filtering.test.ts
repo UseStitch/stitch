@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 
 import {
   filterCoreTools,
   filterToolsetsByQuery,
   type KnownToolSummary,
   type KnownToolsetSummary,
-} from '../src/components/settings/permissions/filtering.js';
+} from './filtering.js';
 
 describe('tools settings filtering', () => {
   test('core tools filter matches by displayName and toolName', () => {
