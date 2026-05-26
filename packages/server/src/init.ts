@@ -7,6 +7,7 @@ import * as Log from '@/lib/log.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { startMeetingDetection } from '@/recordings/meeting-detection.js';
 import { startScheduler } from '@/scheduler/runtime.js';
+import { syncBuiltInSkills } from '@/skills/service.js';
 import { registerDefaultToolsets } from '@/tools/toolsets/register-default-toolsets.js';
 
 const log = Log.create({ service: 'init' });
@@ -16,6 +17,7 @@ export async function init() {
 
   await initDb();
   await runPendingMigrations(getDb());
+  await syncBuiltInSkills();
 
   // Register built-in toolsets, then refresh MCP toolsets
   registerDefaultToolsets();
