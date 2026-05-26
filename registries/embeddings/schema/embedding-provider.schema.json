@@ -62,6 +62,24 @@
             "type": "integer",
             "minimum": 1
           },
+          "inputModalities": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["text", "image", "video", "audio", "pdf"]
+            }
+          },
+          "outputModalities": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["text"]
+            }
+          },
           "cost": {
             "type": "object",
             "additionalProperties": false,

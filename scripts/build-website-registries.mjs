@@ -131,6 +131,18 @@ function assertEmbeddingModel(model, filePath) {
     Number.isInteger(model.context) && model.context > 0,
     `${filePath}: model.context must be a positive integer`,
   );
+  if (model.inputModalities !== undefined) {
+    assert(
+      Array.isArray(model.inputModalities) && model.inputModalities.length > 0,
+      `${filePath}: model.inputModalities must be a non-empty array`,
+    );
+  }
+  if (model.outputModalities !== undefined) {
+    assert(
+      Array.isArray(model.outputModalities) && model.outputModalities.length > 0,
+      `${filePath}: model.outputModalities must be a non-empty array`,
+    );
+  }
   assert(model.cost && typeof model.cost === 'object', `${filePath}: model.cost is required`);
   assert(typeof model.cost.input === 'number', `${filePath}: model.cost.input must be a number`);
   assert(typeof model.cost.output === 'number', `${filePath}: model.cost.output must be a number`);
