@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { globPaths } from '@/tools/core/glob.js';
 
@@ -48,7 +48,7 @@ describe('glob tool helpers', () => {
   });
 
   test('rejects non-absolute path', async () => {
-    await expect(
+    expect(
       globPaths({
         pattern: '*.ts',
         path: 'relative/path',

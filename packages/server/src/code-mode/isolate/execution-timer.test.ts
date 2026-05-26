@@ -125,7 +125,7 @@ describe('createAbortRace', () => {
     controller.abort();
 
     const caught = await createAbortRace(controller.signal, 'already aborted')!.catch((e) => e);
-    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'already aborted');
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && e.message === 'already aborted');
   });
 
   test('rejects when signal is aborted', async () => {
@@ -134,7 +134,7 @@ describe('createAbortRace', () => {
 
     controller.abort();
     const caught = await promise!.catch((e) => e);
-    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'was aborted');
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && e.message === 'was aborted');
   });
 });
 
@@ -157,7 +157,9 @@ describe('createExecutionTimeoutRace', () => {
     jest.advanceTimersByTime(1100);
     const caught = await rejection;
 
-    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message.includes('timed out after 1000ms'));
+    expect(caught).toSatisfy(
+      (e: unknown) => e instanceof Error && e.message.includes('timed out after 1000ms'),
+    );
     expect(race.isTimedOut()).toBe(true);
     race.cleanup();
   });
@@ -217,7 +219,7 @@ describe('wrapWithPausableTimeout', () => {
     const wrapped = wrapWithPausableTimeout(execute, timer, 5000);
     const caught = await wrapped({}).catch((e) => e);
 
-    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'failed');
+    expect(caught).toSatisfy((e: unknown) => e instanceof Error && e.message === 'failed');
     expect(timer.getPausedAt()).toBeNull();
   });
 
@@ -231,7 +233,9 @@ describe('wrapWithPausableTimeout', () => {
     jest.advanceTimersByTime(1000);
     const caught = await rejection;
 
-    expect(caught).toSatisfy((e: unknown) => e instanceof Error && (e as Error).message === 'Tool call timed out after 1000ms');
+    expect(caught).toSatisfy(
+      (e: unknown) => e instanceof Error && e.message === 'Tool call timed out after 1000ms',
+    );
     expect(timer.getPausedAt()).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { editFileContent, MULTIPLE_MATCHES_ERROR } from '@/tools/core/edit.js';
 
@@ -55,7 +55,7 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'alpha beta gamma', 'utf8');
 
-    await expect(
+    expect(
       editFileContent({
         filePath,
         oldString: 'not-here',
@@ -70,7 +70,7 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'foo foo foo', 'utf8');
 
-    await expect(
+    expect(
       editFileContent({
         filePath,
         oldString: 'foo',
@@ -80,7 +80,7 @@ describe('edit tool helpers', () => {
   });
 
   test('rejects non-absolute paths', async () => {
-    await expect(
+    expect(
       editFileContent({
         filePath: 'relative/file.txt',
         oldString: 'x',
@@ -95,7 +95,7 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'alpha', 'utf8');
 
-    await expect(
+    expect(
       editFileContent({
         filePath,
         oldString: 'alpha',
@@ -110,7 +110,7 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]));
 
-    await expect(
+    expect(
       editFileContent({
         filePath,
         oldString: 'x',

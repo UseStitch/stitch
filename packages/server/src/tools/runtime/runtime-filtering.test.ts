@@ -9,21 +9,20 @@ const mockGetDisabledToolIdentifiers = mock<(scope: ToolEnabledScope) => Promise
   async () => new Set<string>(),
 );
 
-mock.module('@/db/client.js', () => ({
+void mock.module('@/db/client.js', () => ({
   isDbInitialized: () => false,
 }));
 
-mock.module('@/tools/enabled-service.js', () => ({
+void mock.module('@/tools/enabled-service.js', () => ({
   isToolEnabled: (opts: { scope: ToolEnabledScope; identifier: string }) => mockIsToolEnabled(opts),
   getDisabledToolIdentifiers: (scope: ToolEnabledScope) => mockGetDisabledToolIdentifiers(scope),
 }));
-
-import type { Tool } from 'ai';
 
 import { createTools } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
+import type { Tool } from 'ai';
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {

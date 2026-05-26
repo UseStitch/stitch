@@ -79,20 +79,20 @@ describe('waitForUserDecision / resolveDecision', () => {
   test('resolveDecision resolves the pending promise with continue', async () => {
     const promise = waitForUserDecision('ses_1');
     resolveDecision('ses_1', 'continue');
-    await expect(promise).resolves.toBe('continue');
+    expect(promise).resolves.toBe('continue');
   });
 
   test('resolveDecision resolves the pending promise with stop', async () => {
     const promise = waitForUserDecision('ses_2');
     resolveDecision('ses_2', 'stop');
-    await expect(promise).resolves.toBe('stop');
+    expect(promise).resolves.toBe('stop');
   });
 
   test('auto-stops after timeout when user does not respond', async () => {
     const promise = waitForUserDecision('ses_3');
     jest.advanceTimersByTime(5 * 60 * 1000);
     await Promise.resolve();
-    await expect(promise).resolves.toBe('stop');
+    expect(promise).resolves.toBe('stop');
   });
 
   test('second call for same session cancels the first with stop', async () => {
@@ -100,10 +100,10 @@ describe('waitForUserDecision / resolveDecision', () => {
     const second = waitForUserDecision('ses_4');
 
     // First promise should have been resolved with 'stop' by the second call
-    await expect(first).resolves.toBe('stop');
+    expect(first).resolves.toBe('stop');
 
     // Second promise is still pending — resolve it normally
     resolveDecision('ses_4', 'continue');
-    await expect(second).resolves.toBe('continue');
+    expect(second).resolves.toBe('continue');
   });
 });

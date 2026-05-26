@@ -314,7 +314,7 @@ describe('StreamAccumulator', () => {
     test('throws StreamPartError for error parts with Error cause', async () => {
       const acc = createAccumulator();
 
-      await expect(
+      expect(
         acc.handlePart({
           type: 'error',
           error: new Error('stream broke'),
@@ -325,7 +325,7 @@ describe('StreamAccumulator', () => {
     test('throws StreamPartError for non-Error error parts', async () => {
       const acc = createAccumulator();
 
-      await expect(
+      expect(
         acc.handlePart({
           type: 'error',
           error: 'string error message',
@@ -360,7 +360,7 @@ describe('StreamAccumulator', () => {
     test('throws StreamAbortedError on abort part', async () => {
       const acc = createAccumulator();
 
-      await expect(acc.handlePart({ type: 'abort' })).rejects.toBeInstanceOf(StreamAbortedError);
+      expect(acc.handlePart({ type: 'abort' })).rejects.toBeInstanceOf(StreamAbortedError);
     });
   });
 

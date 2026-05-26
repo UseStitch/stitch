@@ -155,7 +155,7 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    await expect(
+    expect(
       tools.list_toolsets.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
     ).rejects.toThrow('Unknown toolset');
   });
@@ -164,7 +164,7 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    await expect(
+    expect(
       tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
     ).rejects.toThrow('Unknown toolset');
   });

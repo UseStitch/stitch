@@ -234,7 +234,7 @@ describe('executeStepWithRetry', () => {
       tools: { webfetch: failingTool } as unknown as StepOptions['tools'],
     });
 
-    await expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
+    expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
 
     const errorResult = accumulatedParts.find(
       (p): p is StoredPart & { type: 'tool-result' } =>
@@ -313,6 +313,6 @@ describe('executeStepWithRetry', () => {
       abortSignal: abortController.signal,
     });
 
-    await expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(StreamAbortedError);
+    expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(StreamAbortedError);
   });
 });

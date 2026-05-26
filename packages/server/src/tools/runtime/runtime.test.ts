@@ -14,12 +14,15 @@ const context = {
 describe('tool runtime', () => {
   test('executes middleware in declaration order', async () => {
     const events: string[] = [];
-    const middleware = (name: string): ToolMiddleware => (next) => async (input) => {
-      events.push(`${name}:before`);
-      const result = await next(input);
-      events.push(`${name}:after`);
-      return result;
-    };
+    const middleware =
+      (name: string): ToolMiddleware =>
+      (next) =>
+      async (input) => {
+        events.push(`${name}:before`);
+        const result = await next(input);
+        events.push(`${name}:after`);
+        return result;
+      };
 
     const wrapped = createToolRuntime(context)
       .use(middleware('a'))
@@ -36,7 +39,7 @@ describe('tool runtime', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ ok: true });
+    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ ok: true });
     expect(events).toEqual(['a:before', 'b:before', 'execute', 'b:after', 'a:after']);
   });
 
@@ -54,6 +57,6 @@ describe('tool runtime', () => {
     ]);
 
     expect(Object.keys(tools)).toEqual(['example']);
-    await expect(tools.example?.execute?.({}, {} as never)).resolves.toBe('ok');
+    expect(tools.example?.execute?.({}, {} as never)).resolves.toBe('ok');
   });
 });

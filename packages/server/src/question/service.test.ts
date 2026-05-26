@@ -4,7 +4,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 const broadcastMock = mock(async () => {});
 
-mock.module('@/lib/sse.js', () => ({
+void mock.module('@/lib/sse.js', () => ({
   broadcast: broadcastMock,
 }));
 
@@ -83,7 +83,7 @@ describe('question service interactions', () => {
     const replyResult = await replyQuestion(questionId, [['A']]);
     expect(replyResult).toEqual({ data: null });
 
-    await expect(promise).resolves.toEqual([['A']]);
+    expect(promise).resolves.toEqual([['A']]);
 
     expect(broadcastMock).toHaveBeenCalledWith('question-replied', {
       questionId,
@@ -116,7 +116,7 @@ describe('question service interactions', () => {
     const rejectResult = await rejectQuestion(questionId);
     expect(rejectResult).toEqual({ data: null });
 
-    await expect(promise).rejects.toThrow('Question rejected by user');
+    expect(promise).rejects.toThrow('Question rejected by user');
 
     expect(broadcastMock).toHaveBeenCalledWith('question-rejected', {
       questionId,
@@ -152,12 +152,16 @@ describe('question service interactions', () => {
     type AskedCall = [string, { question: { id: PrefixedString<'quest'>; sessionId: string } }];
     const calls = broadcastMock.mock.calls as unknown as AskedCall[];
 
-    const firstId = calls.find((c) => c[0] === 'question-asked' && c[1].question.sessionId === sessionId)?.[1].question.id;
-    const secondId = calls.find((c) => c[0] === 'question-asked' && c[1].question.sessionId === otherSessionId)?.[1].question.id;
+    const firstId = calls.find(
+      (c) => c[0] === 'question-asked' && c[1].question.sessionId === sessionId,
+    )?.[1].question.id;
+    const secondId = calls.find(
+      (c) => c[0] === 'question-asked' && c[1].question.sessionId === otherSessionId,
+    )?.[1].question.id;
 
     await abortQuestions(sessionId);
 
-    await expect(first).rejects.toThrow('Question aborted by session abort');
+    expect(first).rejects.toThrow('Question aborted by session abort');
 
     expect(broadcastMock).toHaveBeenCalledWith('question-rejected', {
       questionId: firstId,
@@ -166,6 +170,6 @@ describe('question service interactions', () => {
 
     // Second question (different session) is unaffected - still resolvable
     await replyQuestion(secondId!, [['ok']]);
-    await expect(second).resolves.toEqual([['ok']]);
+    expect(second).resolves.toEqual([['ok']]);
   });
 });

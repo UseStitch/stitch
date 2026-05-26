@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { writeFileContent } from '@/tools/core/write.js';
 import { validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
@@ -58,7 +58,7 @@ describe('writeFileContent', () => {
     const dir = await createTempDir();
     const filePath = path.join(dir, 'nonexistent', 'nested', 'file.txt');
 
-    await expect(writeFileContent(filePath, 'content')).rejects.toThrow();
+    expect(writeFileContent(filePath, 'content')).rejects.toThrow();
   });
 
   test('handles empty content', async () => {
@@ -107,11 +107,11 @@ describe('writeFileContent', () => {
     const subDir = path.join(dir, 'subdir');
     await fs.mkdir(subDir);
 
-    await expect(writeFileContent(subDir, 'content')).rejects.toThrow();
+    expect(writeFileContent(subDir, 'content')).rejects.toThrow();
   });
 
   test('rejects relative path via validation', async () => {
-    await expect(writeFileContent('relative/path.txt', 'content')).rejects.toThrow(
+    expect(writeFileContent('relative/path.txt', 'content')).rejects.toThrow(
       'filePath must be an absolute path',
     );
   });

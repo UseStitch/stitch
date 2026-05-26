@@ -4,7 +4,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 const broadcastMock = mock(async () => {});
 
-mock.module('@/lib/sse.js', () => ({
+void mock.module('@/lib/sse.js', () => ({
   broadcast: broadcastMock,
 }));
 
@@ -83,8 +83,8 @@ describe('permission service interactions', () => {
     const [[, { permissionResponse }]] = broadcastMock.mock.calls as unknown as RequestedCall[];
     const permissionResponseId = permissionResponse.id;
 
-    await expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null });
-    await expect(promise).resolves.toEqual({ decision: 'allow' });
+    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null });
+    expect(promise).resolves.toEqual({ decision: 'allow' });
 
     expect(broadcastMock).toHaveBeenCalledWith('permission-response-resolved', {
       permissionResponseId,
@@ -118,10 +118,10 @@ describe('permission service interactions', () => {
     const [[, { permissionResponse }]] = broadcastMock.mock.calls as unknown as RequestedCall[];
     const permissionResponseId = permissionResponse.id;
 
-    await expect(
+    expect(
       alternativePermissionResponse(permissionResponseId, 'Use read instead'),
     ).resolves.toEqual({ data: null });
-    await expect(promise).resolves.toEqual({
+    expect(promise).resolves.toEqual({
       decision: 'alternative',
       entry: 'Use read instead',
     });
@@ -160,19 +160,25 @@ describe('permission service interactions', () => {
 
     await waitForBroadcasts(2);
 
-    type RequestedCall = [string, { permissionResponse: { id: PrefixedString<'permres'>; sessionId: string } }];
+    type RequestedCall = [
+      string,
+      { permissionResponse: { id: PrefixedString<'permres'>; sessionId: string } },
+    ];
     const calls = broadcastMock.mock.calls as unknown as RequestedCall[];
 
     const firstId = calls.find(
-      (c) => c[0] === 'permission-response-requested' && c[1].permissionResponse.sessionId === sessionId,
+      (c) =>
+        c[0] === 'permission-response-requested' && c[1].permissionResponse.sessionId === sessionId,
     )?.[1].permissionResponse.id;
     const secondId = calls.find(
-      (c) => c[0] === 'permission-response-requested' && c[1].permissionResponse.sessionId === otherSessionId,
+      (c) =>
+        c[0] === 'permission-response-requested' &&
+        c[1].permissionResponse.sessionId === otherSessionId,
     )?.[1].permissionResponse.id;
 
     await abortPermissionResponses(sessionId);
 
-    await expect(first).rejects.toThrow('Permission response aborted by session abort');
+    expect(first).rejects.toThrow('Permission response aborted by session abort');
 
     expect(broadcastMock).toHaveBeenCalledWith('permission-response-resolved', {
       permissionResponseId: firstId,
@@ -181,7 +187,7 @@ describe('permission service interactions', () => {
 
     // Second permission (different session) is unaffected - still resolvable
     await rejectPermissionResponse(secondId!);
-    await expect(second).resolves.toEqual({ decision: 'reject' });
+    expect(second).resolves.toEqual({ decision: 'reject' });
   });
 });
 

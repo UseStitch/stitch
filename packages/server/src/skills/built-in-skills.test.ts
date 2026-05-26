@@ -26,7 +26,7 @@ describe('loadBuiltInSkills', () => {
       bundledPath: 'unused-in-tests/test-skill.md',
     };
 
-    await expect(loadBuiltInSkills([file, file])).rejects.toThrow(
+    expect(loadBuiltInSkills([file, file])).rejects.toThrow(
       'Duplicate built-in skill name: test-skill',
     );
   });

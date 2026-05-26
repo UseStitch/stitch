@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { grepContent } from '@/tools/core/grep.js';
 
@@ -49,7 +49,7 @@ describe('grep tool helpers', () => {
   test('rejects invalid regex pattern', async () => {
     const dir = await createTempDir();
 
-    await expect(
+    expect(
       grepContent({
         pattern: '[unterminated',
         path: dir,
@@ -58,7 +58,7 @@ describe('grep tool helpers', () => {
   });
 
   test('rejects non-absolute path', async () => {
-    await expect(
+    expect(
       grepContent({
         pattern: 'x',
         path: 'relative/path',

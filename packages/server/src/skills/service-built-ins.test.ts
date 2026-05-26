@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import { getDb } from '@/db/client.js';
-import { setupTestDb } from '@/db/test-helpers.js';
 import { skills } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { buildSkillsSystemPrompt, syncBuiltInSkills } from '@/skills/service.js';
 
 setupTestDb();
@@ -68,7 +68,7 @@ describe('syncBuiltInSkills', () => {
     await syncBuiltInSkills([skill]);
     const [after] = await getDb().select().from(skills);
 
-    expect(after!.updatedAt).toBe(before!.updatedAt);
+    expect(after.updatedAt).toBe(before.updatedAt);
   });
 });
 

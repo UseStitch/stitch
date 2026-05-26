@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { readPathContent } from '@/tools/core/read.js';
 
@@ -73,7 +73,7 @@ describe('read tool helpers', () => {
   });
 
   test('rejects non-absolute paths', async () => {
-    await expect(readPathContent({ filePath: 'relative/file.txt' })).rejects.toThrow(
+    expect(readPathContent({ filePath: 'relative/file.txt' })).rejects.toThrow(
       'filePath must be an absolute path',
     );
   });
@@ -82,7 +82,7 @@ describe('read tool helpers', () => {
     const dir = await createTempDir();
     const filePath = path.join(dir, 'missing.txt');
 
-    await expect(readPathContent({ filePath })).rejects.toThrow();
+    expect(readPathContent({ filePath })).rejects.toThrow();
   });
 
   test('rejects non-text files', async () => {
@@ -90,7 +90,7 @@ describe('read tool helpers', () => {
     const filePath = path.join(dir, 'image.png');
     await fs.writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]));
 
-    await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
+    expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
   });
 
   test('rejects known binary file extensions', async () => {
@@ -98,7 +98,7 @@ describe('read tool helpers', () => {
     const filePath = path.join(dir, 'module.wasm');
     await fs.writeFile(filePath, 'plain bytes that would otherwise decode as utf8', 'utf8');
 
-    await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
+    expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
   });
 
   test('rejects files with too many non-printable characters', async () => {
@@ -106,6 +106,6 @@ describe('read tool helpers', () => {
     const filePath = path.join(dir, 'control.txt');
     await fs.writeFile(filePath, Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 65, 66]));
 
-    await expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
+    expect(readPathContent({ filePath })).rejects.toThrow('Only text files are supported');
   });
 });

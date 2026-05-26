@@ -21,7 +21,7 @@ describe('InteractionBroker', () => {
     });
 
     expect(broker.resolve('permres_1', 'allow')).toBe(true);
-    await expect(promise).resolves.toBe('allow');
+    expect(promise).resolves.toBe('allow');
   });
 
   test('rejects a pending interaction', async () => {
@@ -32,7 +32,7 @@ describe('InteractionBroker', () => {
     });
 
     expect(broker.reject('quest_1', new Error('No'))).toBe(true);
-    await expect(promise).rejects.toThrow('No');
+    expect(promise).rejects.toThrow('No');
   });
 
   test('abort signal rejects and cleans up', async () => {
@@ -47,7 +47,7 @@ describe('InteractionBroker', () => {
 
     controller.abort();
 
-    await expect(promise).rejects.toThrow('Aborted');
+    expect(promise).rejects.toThrow('Aborted');
     expect(broker.resolve('quest_2', 'answer')).toBe(false);
   });
 
@@ -61,10 +61,10 @@ describe('InteractionBroker', () => {
     });
 
     expect(aborted.map((entry) => entry.id)).toEqual(['a']);
-    await expect(first).rejects.toThrow('Session aborted');
+    expect(first).rejects.toThrow('Session aborted');
 
     expect(broker.resolve('b', 'ok')).toBe(true);
-    await expect(second).resolves.toBe('ok');
+    expect(second).resolves.toBe('ok');
   });
 
   test('timeout resolves with configured decision', async () => {
@@ -77,7 +77,7 @@ describe('InteractionBroker', () => {
     });
 
     await Bun.sleep(20);
-    await expect(promise).resolves.toBe('stop');
+    expect(promise).resolves.toBe('stop');
   });
 
   test('duplicate wait resolves previous interaction with configured decision', async () => {
@@ -94,8 +94,8 @@ describe('InteractionBroker', () => {
       onDuplicate: () => 'stop',
     });
 
-    await expect(first).resolves.toBe('stop');
+    expect(first).resolves.toBe('stop');
     expect(broker.resolve('doom_loop:ses_1', 'continue')).toBe(true);
-    await expect(second).resolves.toBe('continue');
+    expect(second).resolves.toBe('continue');
   });
 });

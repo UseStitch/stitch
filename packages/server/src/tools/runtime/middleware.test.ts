@@ -1,6 +1,6 @@
 import { tool } from 'ai';
-import fs from 'node:fs/promises';
 import { describe, expect, test } from 'bun:test';
+import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { PATHS } from '@/lib/paths.js';
@@ -36,7 +36,11 @@ describe('truncationMiddleware', () => {
     if (!result || typeof result !== 'object' || !('__stitchToolResultMeta' in result)) {
       throw new Error('expected truncation metadata in wrapped tool result');
     }
-    const typed = result as { output: string; title: string; __stitchToolResultMeta: { truncated: boolean; outputPath: string } };
+    const typed = result as {
+      output: string;
+      title: string;
+      __stitchToolResultMeta: { truncated: boolean; outputPath: string };
+    };
     const outputPath = typed.__stitchToolResultMeta.outputPath;
     const output = typed.output;
     const title = typed.title;
@@ -89,7 +93,7 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).rejects.toThrow('boom');
+    expect(wrapped.execute?.({}, {} as never)).rejects.toThrow('boom');
   });
 
   test('unwraps data result payloads', async () => {
@@ -104,7 +108,7 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).resolves.toMatchObject({ ok: true });
+    expect(wrapped.execute?.({}, {} as never)).resolves.toMatchObject({ ok: true });
   });
 
   test('preserves plain legacy results', async () => {
@@ -119,7 +123,7 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ output: 'hello' });
+    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ output: 'hello' });
   });
 
   test('does not treat generic objects containing error as tool failures', async () => {
@@ -134,7 +138,7 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({
+    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({
       error: 'non-fatal',
       matches: [],
       total: 0,
