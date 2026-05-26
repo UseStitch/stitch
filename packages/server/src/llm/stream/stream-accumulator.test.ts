@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -11,7 +11,7 @@ import {
 } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 
-const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
+const broadcastMock = mock(async (..._args: unknown[]) => {});
 
 function getBroadcastCalls(eventType: string): unknown[][] {
   return broadcastMock.mock.calls.filter((call: unknown[]) => call[0] === eventType);
@@ -34,7 +34,7 @@ function createAccumulator(
 
 describe('StreamAccumulator', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    broadcastMock.mockClear();
     broadcastMock.mockResolvedValue(undefined);
   });
 

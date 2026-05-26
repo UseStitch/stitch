@@ -1,28 +1,29 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import type { ToolEnabledScope } from '@stitch/shared/tools/types';
+
+const mockIsToolEnabled = mock<
+  (opts: { scope: ToolEnabledScope; identifier: string }) => Promise<boolean>
+>(async () => true);
+const mockGetDisabledToolIdentifiers = mock<(scope: ToolEnabledScope) => Promise<Set<string>>>(
+  async () => new Set<string>(),
+);
+
+mock.module('@/db/client.js', () => ({
+  isDbInitialized: () => false,
+}));
+
+mock.module('@/tools/enabled-service.js', () => ({
+  isToolEnabled: (opts: { scope: ToolEnabledScope; identifier: string }) => mockIsToolEnabled(opts),
+  getDisabledToolIdentifiers: (scope: ToolEnabledScope) => mockGetDisabledToolIdentifiers(scope),
+}));
+
+import type { Tool } from 'ai';
 
 import { createTools } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
-import type { Tool } from 'ai';
-
-const mockIsToolEnabled = vi.fn<
-  (opts: { scope: ToolEnabledScope; identifier: string }) => Promise<boolean>
->(async () => true);
-const mockGetDisabledToolIdentifiers = vi.fn<(scope: ToolEnabledScope) => Promise<Set<string>>>(
-  async () => new Set<string>(),
-);
-
-vi.mock('@/db/client.js', () => ({
-  isDbInitialized: () => false,
-}));
-
-vi.mock('@/tools/enabled-service.js', () => ({
-  isToolEnabled: (opts: { scope: ToolEnabledScope; identifier: string }) => mockIsToolEnabled(opts),
-  getDisabledToolIdentifiers: (scope: ToolEnabledScope) => mockGetDisabledToolIdentifiers(scope),
-}));
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {

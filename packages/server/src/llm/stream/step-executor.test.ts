@@ -1,6 +1,6 @@
 import { simulateReadableStream, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -8,7 +8,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 
-const broadcastMock = vi.fn(async (..._args: unknown[]) => {});
+const broadcastMock = mock(async (..._args: unknown[]) => {});
 
 const FINISH_STOP = {
   type: 'finish' as const,
@@ -60,7 +60,7 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
 
 describe('executeStepWithRetry', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    broadcastMock.mockClear();
     broadcastMock.mockResolvedValue(undefined);
   });
 

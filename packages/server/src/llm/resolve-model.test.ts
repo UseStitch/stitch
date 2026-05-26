@@ -1,42 +1,41 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
-import { getDb } from '@/db/client.js';
-import * as Models from '@/llm/provider/models.js';
-import { resolveModel } from '@/llm/resolve-model.js';
+import type * as Models from '@/llm/provider/models.js';
 
-vi.mock('@/db/client.js', () => ({
-  getDb: vi.fn(),
+const getMock = mock<typeof Models.get>(async () => ({}));
+const isAllowedProviderMock = mock<typeof Models.isAllowedProvider>(() => true);
+
+mock.module('@/llm/provider/models.js', () => ({
+  get: getMock,
+  isAllowedProvider: isAllowedProviderMock,
 }));
 
-vi.mock('@/llm/provider/models.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof Models>();
-  return {
-    ...actual,
-    get: vi.fn(),
-    isAllowedProvider: vi.fn(),
-  };
-});
+const mockDbWhere = mock(async () => []);
+const mockDbFrom = mock((..._args: unknown[]) => ({ where: mockDbWhere })) as any;
+const mockDbSelect = mock((..._args: unknown[]) => ({ from: mockDbFrom }));
+const getDbMock = mock(() => ({ select: mockDbSelect }));
+
+mock.module('@/db/client.js', () => ({
+  getDb: getDbMock,
+}));
+
+import { resolveModel } from '@/llm/resolve-model.js';
 
 describe('resolveModel', () => {
-  let mockDbSelect: any;
-  let mockDbFrom: any;
-  let mockDbWhere: any;
-
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockDbWhere.mockReset();
+    mockDbFrom.mockReset();
+    mockDbSelect.mockReset();
 
-    mockDbWhere = vi.fn().mockResolvedValue([]);
-    mockDbFrom = vi.fn().mockReturnValue({ where: mockDbWhere });
-    mockDbSelect = vi.fn().mockReturnValue({ from: mockDbFrom });
-
+    mockDbWhere.mockResolvedValue([]);
+    mockDbFrom.mockImplementation((..._args: unknown[]) => ({ where: mockDbWhere }) as any);
     // For the providerConfig select which doesn't have where
-    mockDbFrom.mockResolvedValue([]);
+    (mockDbFrom as any).mockResolvedValue([]);
+    mockDbSelect.mockImplementation((..._args: unknown[]) => ({ from: mockDbFrom }) as any);
+    getDbMock.mockImplementation(() => ({ select: mockDbSelect }) as any);
 
-    const mockDb = { select: mockDbSelect };
-    vi.mocked(getDb).mockReturnValue(mockDb as any);
-
-    vi.mocked(Models.isAllowedProvider).mockReturnValue(true);
-    vi.mocked(Models.get).mockResolvedValue({
+    isAllowedProviderMock.mockImplementation(() => true);
+    getMock.mockResolvedValue({
       'test-provider': {
         id: 'test-provider',
         name: 'Test Provider',
@@ -74,15 +73,14 @@ describe('resolveModel', () => {
   });
 
   function mockDbResponses(settings: { key: string; value: string }[], configs: any[]) {
-    // The query first calls db.select() for settings, then db.select() for configs
     mockDbSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(settings),
-      }),
-    });
+      from: mock((..._args: unknown[]) => ({
+        where: mock(async () => settings),
+      })),
+    } as any);
     mockDbSelect.mockReturnValueOnce({
-      from: vi.fn().mockResolvedValue(configs),
-    });
+      from: mock(async () => configs),
+    } as any);
   }
 
   test('resolves using settings when present', async () => {
@@ -119,7 +117,7 @@ describe('resolveModel', () => {
     const result = await resolveModel({
       providerIdKey: 'pref.provider' as any,
       modelIdKey: 'pref.model' as any,
-      priorityModelIds: ['missing-model', 'audio-model'], // test-provider has audio-model
+      priorityModelIds: ['missing-model', 'audio-model'],
     });
 
     expect('error' in result).toBe(false);
@@ -163,7 +161,7 @@ describe('resolveModel', () => {
   });
 
   test('returns error for invalid provider', async () => {
-    vi.mocked(Models.isAllowedProvider).mockReturnValue(false);
+    isAllowedProviderMock.mockImplementation(() => false);
     mockDbResponses(
       [
         { key: 'pref.provider', value: 'invalid-provider' },
@@ -205,7 +203,7 @@ describe('resolveModel', () => {
     mockDbResponses(
       [
         { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'test-model' }, // Note: test-model does not have audio modality
+        { key: 'pref.model', value: 'test-model' },
       ],
       [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
     );
@@ -225,7 +223,7 @@ describe('resolveModel', () => {
     mockDbResponses(
       [
         { key: 'pref.provider', value: 'test-provider' },
-        { key: 'pref.model', value: 'audio-model' }, // audio-model has audio modality
+        { key: 'pref.model', value: 'audio-model' },
       ],
       [{ providerId: 'test-provider', credentials: { apiKey: 'secret' } }],
     );
@@ -250,7 +248,7 @@ describe('resolveModel', () => {
         { key: 'pref.provider', value: 'test-provider' },
         { key: 'pref.model', value: 'test-model' },
       ],
-      [], // No configs
+      [],
     );
 
     const result = await resolveModel({
