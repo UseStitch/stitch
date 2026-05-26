@@ -26,7 +26,7 @@
     "oxlint-tsgolint": "^0.16.0",
     "turbo": "latest"
   },
-  "packageManager": "bun@1.3.8",
+  "packageManager": "bun@1.3.14",
   "catalog": {
     "typescript": "latest",
     "@types/bun": "latest",
