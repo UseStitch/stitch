@@ -1,20 +1,18 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, mock, test } from 'bun:test';
 
-import { GoogleClient } from '../client.js';
-import { resetGoogleRateLimitCoordinatorForTests } from '../rate-limit.js';
+import { GoogleClient } from './client.js';
+import { resetGoogleRateLimitCoordinatorForTests } from './rate-limit.js';
+
+const originalFetch = globalThis.fetch;
 
 describe('GoogleClient', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
+    globalThis.fetch = originalFetch;
     resetGoogleRateLimitCoordinatorForTests();
   });
 
-  it('retries with Retry-After when Google returns rate-limit errors', async () => {
-    vi.useFakeTimers();
-
-    const fetchMock = vi
-      .fn()
+  test('retries with Retry-After when Google returns rate-limit errors', async () => {
+    const fetchMock = mock<typeof fetch>()
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -27,7 +25,7 @@ describe('GoogleClient', () => {
           {
             status: 429,
             statusText: 'Too Many Requests',
-            headers: { 'Content-Type': 'application/json', 'Retry-After': '1' },
+            headers: { 'Content-Type': 'application/json', 'Retry-After': '0' },
           },
         ),
       )
@@ -38,25 +36,23 @@ describe('GoogleClient', () => {
         }),
       );
 
-    vi.stubGlobal('fetch', fetchMock);
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const client = new GoogleClient({
       getAccessToken: async () => 'token',
       quotaAccountKey: 'retry-test-account',
     });
 
-    const pending = client.request<{ ok: boolean }>('https://www.googleapis.com/drive/v3/files');
-
-    await vi.advanceTimersByTimeAsync(1000);
-    const result = await pending;
+    const result = await client.request<{ ok: boolean }>(
+      'https://www.googleapis.com/drive/v3/files',
+    );
 
     expect(result.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('forces one token refresh retry after a 401 response', async () => {
-    const fetchMock = vi
-      .fn()
+  test('forces one token refresh retry after a 401 response', async () => {
+    const fetchMock = mock<typeof fetch>()
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -79,12 +75,11 @@ describe('GoogleClient', () => {
         }),
       );
 
-    const getAccessToken = vi
-      .fn<(options?: { forceRefresh?: boolean }) => Promise<string>>()
+    const getAccessToken = mock<(options?: { forceRefresh?: boolean }) => Promise<string>>()
       .mockResolvedValueOnce('stale-token')
       .mockResolvedValueOnce('fresh-token');
 
-    vi.stubGlobal('fetch', fetchMock);
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const client = new GoogleClient({
       getAccessToken,

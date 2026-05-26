@@ -1,14 +1,18 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, test } from 'bun:test';
 
 import {
   DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
   GoogleRateLimitCoordinator,
   resetGoogleRateLimitCoordinatorForTests,
   resolveGoogleQuotaOperation,
-} from '../rate-limit.js';
+} from './rate-limit.js';
+
+afterEach(() => {
+  resetGoogleRateLimitCoordinatorForTests();
+});
 
 describe('resolveGoogleQuotaOperation', () => {
-  it('maps Gmail endpoints to method-specific quota units', () => {
+  test('maps Gmail endpoints to method-specific quota units', () => {
     expect(
       resolveGoogleQuotaOperation('https://gmail.googleapis.com/gmail/v1/users/me/messages', 'GET'),
     ).toEqual({ service: 'gmail', quotaCost: 5 });
@@ -42,7 +46,7 @@ describe('resolveGoogleQuotaOperation', () => {
     ).toEqual({ service: 'gmail', quotaCost: 10 });
   });
 
-  it('maps Gmail settings.filters endpoints to correct quota costs', () => {
+  test('maps Gmail settings.filters endpoints to correct quota costs', () => {
     expect(
       resolveGoogleQuotaOperation(
         'https://gmail.googleapis.com/gmail/v1/users/me/settings/filters',
@@ -72,7 +76,7 @@ describe('resolveGoogleQuotaOperation', () => {
     ).toEqual({ service: 'gmail', quotaCost: 5 });
   });
 
-  it('maps non-Gmail services to request-count quota units', () => {
+  test('maps non-Gmail services to request-count quota units', () => {
     expect(
       resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files?q=test', 'GET'),
     ).toEqual({ service: 'drive', quotaCost: 1 });
@@ -98,19 +102,18 @@ describe('resolveGoogleQuotaOperation', () => {
 });
 
 describe('GoogleRateLimitCoordinator', () => {
-  it('queues requests when account quota is saturated', async () => {
-    vi.useFakeTimers();
+  test('queues requests when account quota is saturated', async () => {
     resetGoogleRateLimitCoordinatorForTests();
 
     const coordinator = new GoogleRateLimitCoordinator(
       {
         ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
-        maxQueueWaitMs: 2000,
+        maxQueueWaitMs: 100,
         services: {
           ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services,
           drive: {
-            project: { capacity: 100, windowMs: 1000 },
-            account: { capacity: 1, windowMs: 1000 },
+            project: { capacity: 100, windowMs: 5 },
+            account: { capacity: 1, windowMs: 5 },
           },
         },
       },
@@ -126,13 +129,10 @@ describe('GoogleRateLimitCoordinator', () => {
         settled = true;
       });
 
-    await vi.advanceTimersByTimeAsync(999);
+    await Promise.resolve();
     expect(settled).toBe(false);
 
-    await vi.advanceTimersByTimeAsync(1);
     await queued;
     expect(settled).toBe(true);
-
-    vi.useRealTimers();
   });
 });

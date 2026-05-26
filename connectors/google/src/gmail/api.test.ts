@@ -1,10 +1,9 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { downloadAttachments } from '../gmail/api.js';
+import { downloadAttachments } from './api.js';
 
 import type { GoogleClient } from '../client.js';
 
@@ -22,10 +21,10 @@ describe('gmail api', () => {
     }
   });
 
-  it('downloads message attachments to the configured temp path', async () => {
+  test('downloads message attachments to the configured temp path', async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gmail-attachments-test-'));
     tempRoot = root;
-    const request = vi.fn(async (url: string) => {
+    const request = async (url: string) => {
       if (url.includes('/messages/msg-1?format=FULL')) {
         return {
           id: 'msg-1',
@@ -36,7 +35,9 @@ describe('gmail api', () => {
             parts: [
               {
                 mimeType: 'application/pdf',
-                headers: [{ name: 'Content-Disposition', value: 'attachment; filename="report.pdf"' }],
+                headers: [
+                  { name: 'Content-Disposition', value: 'attachment; filename="report.pdf"' },
+                ],
                 body: { size: 11, attachmentId: 'att-1' },
               },
             ],
@@ -49,7 +50,7 @@ describe('gmail api', () => {
       }
 
       throw new Error(`Unexpected URL: ${url}`);
-    });
+    };
     const client = { request } as unknown as GoogleClient;
 
     const result = await downloadAttachments(client, 'msg-1', root);
@@ -64,6 +65,6 @@ describe('gmail api', () => {
     expect(result.attachments[0]?.path).toBe(
       path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'),
     );
-    await expect(fs.readFile(result.attachments[0]?.path ?? '', 'utf8')).resolves.toBe('hello world');
+    expect(fs.readFile(result.attachments[0]?.path ?? '', 'utf8')).resolves.toBe('hello world');
   });
 });
