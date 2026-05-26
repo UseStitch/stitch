@@ -12,18 +12,22 @@ interface LibraryInstruction {
   guidelines: string[];
 }
 
-const pdfjsInstruction: LibraryInstruction = {
-  name: 'pdfjs',
+const libpdfInstruction: LibraryInstruction = {
+  name: 'libpdf',
   sectionTitle: 'PDF Handling',
   guidelines: [
-    'Use `pdfjs` in code mode when a PDF must be parsed, summarized, or inspected from bytes/base64.',
-    'Do not use `external_read` for PDFs; it only supports text files.',
-    'Avoid sending a whole PDF/base64 string through one tool call if it may exceed message limits; read or produce smaller chunks.',
-    'If `getTextContent()` returns no items, report that the PDF has no extractable text instead of retrying the same parse.',
+    'Use `libpdf` in code mode when a PDF must be parsed, merged, split, or manipulated from bytes.',
+    'Load a PDF with `const pdf = await libpdf.PDF.load(bytes)` where `bytes` is a `Uint8Array`.',
+    'Do not use `external_read` for PDFs; read the file bytes via `await import("node:fs/promises")` then wrap in `new Uint8Array(buffer)`.',
+    'Extract text per-page: `const text = pdf.getPage(0).extractText()` (0-indexed).',
+    'Merge multiple PDFs: `const merged = await libpdf.PDF.merge([bytes1, bytes2])`; save with `await merged.save()`.',
+    'Split pages: `const part = await pdf.extractPages([0, 1, 2])`; save with `await part.save()`.',
+    'If `extractText()` returns an empty string, report that the page has no extractable text instead of retrying.',
+    'If you need detailed usage examples, load the `pdf` skill with the skill tool before writing code.',
   ],
 };
 
-const LIBRARY_INSTRUCTIONS: LibraryInstruction[] = [pdfjsInstruction];
+const LIBRARY_INSTRUCTIONS: LibraryInstruction[] = [libpdfInstruction];
 
 /**
  * Render the unified libraries section. Lists all active libraries and

@@ -14,8 +14,7 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
-const PDFJS_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.mjs');
-const PDFJS_WORKER_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+const LIBPDF_SPECIFIER = import.meta.resolve('@libpdf/core');
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -150,7 +149,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
     getSystemPrompt(): string {
       const filteredTools = getFilteredTools();
       const typeInfo = toolsToTypeInfo(filteredTools);
-      return buildCodeModeSystemPrompt(typeInfo, ['pdfjs']);
+      return buildCodeModeSystemPrompt(typeInfo, ['libpdf']);
     },
   };
 }
@@ -164,12 +163,7 @@ function createCodeModeIsolateOptions(
     abortSignal,
     libraries: {
       ...isolateOptions.libraries,
-      pdfjs: { specifier: PDFJS_SPECIFIER },
-      pdfjsWorker: {
-        specifier: PDFJS_WORKER_SPECIFIER,
-        globalName: 'pdfjsWorker',
-        inject: false,
-      },
+      libpdf: { specifier: LIBPDF_SPECIFIER },
     },
   };
 }
