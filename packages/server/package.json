@@ -29,6 +29,7 @@
     "@stitch-connectors/google": "workspace:*",
     "@stitch-connectors/sdk": "workspace:*",
     "@stitch/audio-capture": "workspace:*",
+    "@stitch/sandbox": "workspace:*",
     "@stitch/scheduler": "workspace:*",
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
