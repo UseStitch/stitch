@@ -14,7 +14,7 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
-const LIBPDF_SPECIFIER = import.meta.resolve('@libpdf/core');
+const SANDBOX_WORKER_URL = new URL('./sandbox-worker.ts', import.meta.url);
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -30,7 +30,7 @@ type CodeModeToolResult = {
 };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
-  const driver = options.driver ?? createWorkerSandbox();
+  const driver = options.driver ?? createWorkerSandbox({ workerUrl: SANDBOX_WORKER_URL });
   const filter = options.filter ?? {};
   const isolateOptions = options.isolateOptions ?? {};
 
@@ -163,7 +163,7 @@ function createCodeModeIsolateOptions(
     abortSignal,
     libraries: {
       ...isolateOptions.libraries,
-      libpdf: { specifier: LIBPDF_SPECIFIER },
+      libpdf: { specifier: '@libpdf/core' },
     },
   };
 }

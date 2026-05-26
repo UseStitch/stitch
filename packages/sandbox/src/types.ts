@@ -21,6 +21,11 @@ export type SandboxLibrary = {
   inject?: boolean;
 };
 
+export type SandboxDriverOptions = {
+  /** Override the worker entry URL. Defaults to the built-in worker-entry.ts. */
+  workerUrl?: URL;
+};
+
 export type IsolateOptions = {
   /** Memory limit in MB (default: 128) */
   memoryLimit?: number;
