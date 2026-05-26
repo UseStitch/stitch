@@ -7,8 +7,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { markSessionUnread } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
 import { createProvider } from '@/llm/provider/provider.js';
@@ -79,7 +79,7 @@ async function saveAssistantMessage(opts: {
     duration: finishedAt - startedAt,
   });
 
-  await Sse.broadcast('stream-finish', {
+  Events.emit('stream-finish', {
     sessionId,
     messageId: assistantMessageId,
     finishReason: finalFinishReason,
@@ -127,7 +127,6 @@ type StreamRunnerDeps = {
   compact: typeof compact;
   saveAssistantMessage: typeof saveAssistantMessage;
   markSessionUnread: typeof markSessionUnread;
-  broadcast: typeof Sse.broadcast;
   now: () => number;
 };
 
@@ -179,7 +178,6 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   compact,
   saveAssistantMessage,
   markSessionUnread,
-  broadcast: Sse.broadcast,
   now: Date.now,
 };
 
@@ -238,7 +236,7 @@ class StreamRunner {
 
   async run(): Promise<void> {
     this.logStart();
-    await this.deps.broadcast('stream-start', {
+    Events.emit('stream-start', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
     });
@@ -693,18 +691,16 @@ class StreamRunner {
       } as StoredPart);
     }
 
-    await Promise.all(
-      unresolvedParts.map((part) =>
-        this.deps.broadcast('stream-tool-state', {
-          sessionId: this.ctx.sessionId,
-          messageId: this.ctx.assistantMessageId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          status: 'error',
-          error: 'Aborted',
-        }),
-      ),
-    );
+    for (const part of unresolvedParts) {
+      Events.emit('stream-tool-state', {
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        status: 'error',
+        error: 'Aborted',
+      });
+    }
   }
 
   private async handlePermissionRejected(error: unknown): Promise<void> {
@@ -742,18 +738,16 @@ class StreamRunner {
         p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
     );
 
-    await Promise.all(
-      unresolvedToolCalls.map((call) =>
-        this.deps.broadcast('stream-tool-state', {
-          sessionId: this.ctx.sessionId,
-          messageId: this.ctx.assistantMessageId,
-          toolCallId: call.toolCallId,
-          toolName: call.toolName,
-          status: 'error',
-          error: 'Blocked before completion',
-        }),
-      ),
-    );
+    for (const call of unresolvedToolCalls) {
+      Events.emit('stream-tool-state', {
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        status: 'error',
+        error: 'Blocked before completion',
+      });
+    }
   }
 
   private handleContextOverflow(): void {
@@ -808,7 +802,7 @@ class StreamRunner {
       endedAt: this.deps.now(),
     } as StoredPart);
 
-    await this.deps.broadcast('stream-error', {
+    Events.emit('stream-error', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
       error: mappedError.message,

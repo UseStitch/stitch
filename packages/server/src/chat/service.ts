@@ -10,10 +10,10 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { messages, providerConfig, sessions } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { broadcast } from '@/lib/sse.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
 import * as Models from '@/llm/provider/models.js';
 import { listProviders } from '@/llm/provider/service.js';
@@ -242,7 +242,7 @@ async function maybeGenerateTitle(input: {
         .set({ title: generatedTitle.title, updatedAt: Date.now() })
         .where(eq(sessions.id, input.sessionId));
 
-      await broadcast('session-title-update', {
+      Events.emit('session-title-update', {
         sessionId: input.sessionId,
         title: generatedTitle.title,
       });

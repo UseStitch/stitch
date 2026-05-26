@@ -1,21 +1,26 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-
-import type { PrefixedString } from '@stitch/shared/id';
-
-const broadcastMock = mock(async () => {});
-
-void mock.module('@/lib/sse.js', () => ({
-  broadcast: broadcastMock,
-}));
-
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { questions, sessions } from '@/db/schema.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { interactionBroker } from '@/interactions/broker.js';
+import * as Events from '@/lib/events.js';
 
 setupTestDb();
+
+type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+let emittedEvents: EmittedEvent[] = [];
+let cleanups: Array<() => void> = [];
+
+function captureEvents(...names: SseEventName[]): void {
+  for (const name of names) {
+    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+  }
+}
 
 const sessionId = 'ses_question' as PrefixedString<'ses'>;
 const otherSessionId = 'ses_other' as PrefixedString<'ses'>;
@@ -29,26 +34,23 @@ async function seedSessions(): Promise<void> {
   ]);
 }
 
-// Poll until broadcast has been called at least `count` times, then yield
-async function waitForBroadcasts(count: number): Promise<void> {
-  while (broadcastMock.mock.calls.length < count) {
+async function waitForEvents(count: number): Promise<void> {
+  while (emittedEvents.length < count) {
     await new Promise((r) => setTimeout(r, 5));
   }
 }
 
 describe('question service interactions', () => {
   beforeEach(async () => {
-    broadcastMock.mockReset();
-    broadcastMock.mockResolvedValue(undefined);
+    emittedEvents = [];
+    for (const cleanup of cleanups) cleanup();
+    cleanups = [];
+    captureEvents('question-asked', 'question-replied', 'question-rejected');
     await seedSessions();
   });
 
   afterEach(() => {
     interactionBroker.clear();
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 
   test('askQuestion broadcasts and resolves through replyQuestion', async () => {
@@ -62,30 +64,28 @@ describe('question service interactions', () => {
       questions: [{ question: 'Pick one', header: 'Choice', options: [], multiple: false }],
     });
 
-    await waitForBroadcasts(1);
+    await waitForEvents(1);
 
-    expect(broadcastMock).toHaveBeenCalledWith(
-      'question-asked',
-      expect.objectContaining({
-        question: expect.objectContaining({
-          sessionId,
-          messageId,
-          toolCallId: 'call_question',
-          status: 'pending',
-        }),
-      }),
-    );
+    const askedEvent = emittedEvents.find(([name]) => name === 'question-asked');
+    expect(askedEvent).toBeDefined();
+    const askedData = askedEvent![1] as SseEventPayloadMap['question-asked'];
+    expect(askedData.question).toMatchObject({
+      sessionId,
+      messageId,
+      toolCallId: 'call_question',
+      status: 'pending',
+    });
 
-    type AskedCall = [string, { question: { id: PrefixedString<'quest'> } }];
-    const [[, { question }]] = broadcastMock.mock.calls as unknown as AskedCall[];
-    const questionId = question.id;
+    const questionId = askedData.question.id;
 
     const replyResult = await replyQuestion(questionId, [['A']]);
     expect(replyResult).toEqual({ data: null });
 
     expect(promise).resolves.toEqual([['A']]);
 
-    expect(broadcastMock).toHaveBeenCalledWith('question-replied', {
+    const repliedEvent = emittedEvents.find(([name]) => name === 'question-replied');
+    expect(repliedEvent).toBeDefined();
+    expect(repliedEvent![1]).toEqual({
       questionId,
       sessionId,
       answers: [['A']],
@@ -107,18 +107,21 @@ describe('question service interactions', () => {
       questions: [{ question: 'Continue?', header: 'Confirm', options: [], multiple: false }],
     });
 
-    await waitForBroadcasts(1);
+    await waitForEvents(1);
 
-    type AskedCall = [string, { question: { id: PrefixedString<'quest'> } }];
-    const [[, { question }]] = broadcastMock.mock.calls as unknown as AskedCall[];
-    const questionId = question.id;
+    const askedData = emittedEvents.find(
+      ([name]) => name === 'question-asked',
+    )![1] as SseEventPayloadMap['question-asked'];
+    const questionId = askedData.question.id;
 
     const rejectResult = await rejectQuestion(questionId);
     expect(rejectResult).toEqual({ data: null });
 
     expect(promise).rejects.toThrow('Question rejected by user');
 
-    expect(broadcastMock).toHaveBeenCalledWith('question-rejected', {
+    const rejectedEvent = emittedEvents.find(([name]) => name === 'question-rejected');
+    expect(rejectedEvent).toBeDefined();
+    expect(rejectedEvent![1]).toEqual({
       questionId,
       sessionId,
     });
@@ -147,26 +150,28 @@ describe('question service interactions', () => {
     });
 
     // Wait for both askQuestion broadcasts to fire
-    await waitForBroadcasts(2);
+    await waitForEvents(2);
 
-    type AskedCall = [string, { question: { id: PrefixedString<'quest'>; sessionId: string } }];
-    const calls = broadcastMock.mock.calls as unknown as AskedCall[];
+    const askedEvents = emittedEvents.filter(([name]) => name === 'question-asked') as Array<
+      [string, SseEventPayloadMap['question-asked']]
+    >;
 
-    const firstId = calls.find(
-      (c) => c[0] === 'question-asked' && c[1].question.sessionId === sessionId,
-    )?.[1].question.id;
-    const secondId = calls.find(
-      (c) => c[0] === 'question-asked' && c[1].question.sessionId === otherSessionId,
-    )?.[1].question.id;
+    const firstId = askedEvents.find(([, data]) => data.question.sessionId === sessionId)?.[1]
+      .question.id;
+    const secondId = askedEvents.find(([, data]) => data.question.sessionId === otherSessionId)?.[1]
+      .question.id;
 
     await abortQuestions(sessionId);
 
     expect(first).rejects.toThrow('Question aborted by session abort');
 
-    expect(broadcastMock).toHaveBeenCalledWith('question-rejected', {
-      questionId: firstId,
-      sessionId,
-    });
+    const rejectedEvents = emittedEvents.filter(([name]) => name === 'question-rejected');
+    expect(
+      rejectedEvents.some(([, data]) => {
+        const d = data as SseEventPayloadMap['question-rejected'];
+        return d.questionId === firstId && d.sessionId === sessionId;
+      }),
+    ).toBe(true);
 
     // Second question (different session) is unaffected - still resolvable
     await replyQuestion(secondId!, [['ok']]);

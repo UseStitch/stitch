@@ -1,7 +1,7 @@
 import { createMeetingDetector } from '@stitch/audio-capture';
 
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 
 const log = Log.create({ service: 'meeting-detection' });
 
@@ -22,14 +22,14 @@ export function startMeetingDetection(): void {
   started = true;
   unsubscribe = detector.subscribe((event) => {
     if (event.type === 'ended') {
-      void Sse.broadcast('meeting-call-ended', {
+      Events.emit('meeting-call-ended', {
         key: event.key,
         endedAt: event.endedAt,
       });
       return;
     }
 
-    void Sse.broadcast('meeting-call-detected', {
+    Events.emit('meeting-call-detected', {
       key: event.detection.key,
       platform: event.detection.platform,
       kind: event.detection.kind,

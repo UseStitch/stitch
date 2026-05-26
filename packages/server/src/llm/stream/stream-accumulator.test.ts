@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import * as Events from '@/lib/events.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   PermissionRejectedError,
@@ -11,10 +13,18 @@ import {
 } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 
-const broadcastMock = mock(async (..._args: unknown[]) => {});
+type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+let emittedEvents: EmittedEvent[] = [];
+let cleanups: Array<() => void> = [];
 
-function getBroadcastCalls(eventType: string): unknown[][] {
-  return broadcastMock.mock.calls.filter((call: unknown[]) => call[0] === eventType);
+function captureEvents(...names: SseEventName[]): void {
+  for (const name of names) {
+    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+  }
+}
+
+function getEmittedCalls(eventType: string): unknown[] {
+  return emittedEvents.filter(([name]) => name === eventType).map(([, data]) => data);
 }
 
 function createAccumulator(
@@ -28,14 +38,15 @@ function createAccumulator(
     accumulatedParts ?? [],
     toolCalls ?? [],
     'run_1',
-    broadcastMock as never,
   );
 }
 
 describe('StreamAccumulator', () => {
   beforeEach(() => {
-    broadcastMock.mockClear();
-    broadcastMock.mockResolvedValue(undefined);
+    emittedEvents = [];
+    for (const cleanup of cleanups) cleanup();
+    cleanups = [];
+    captureEvents('stream-part-update', 'stream-part-delta', 'stream-tool-state', 'stream-error');
   });
 
   // ─── Text accumulation ──────────────────────────────────────────────
@@ -197,11 +208,11 @@ describe('StreamAccumulator', () => {
         output: { content: '# Hello' },
       });
 
-      const toolStateCalls = getBroadcastCalls('stream-tool-state');
+      const toolStateCalls = getEmittedCalls('stream-tool-state');
 
       expect(toolStateCalls).toHaveLength(2);
-      expect(toolStateCalls[0][1]).toMatchObject({ status: 'in-progress' });
-      expect(toolStateCalls[1][1]).toMatchObject({ status: 'completed' });
+      expect(toolStateCalls[0]).toMatchObject({ status: 'in-progress' });
+      expect(toolStateCalls[1]).toMatchObject({ status: 'completed' });
     });
 
     test('broadcasts error status when a tool-result contains an error payload', async () => {
@@ -215,9 +226,9 @@ describe('StreamAccumulator', () => {
         output: { error: 'Navigation failed' },
       });
 
-      const toolStateCalls = getBroadcastCalls('stream-tool-state');
+      const toolStateCalls = getEmittedCalls('stream-tool-state');
       expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0][1]).toMatchObject({
+      expect(toolStateCalls[0]).toMatchObject({
         status: 'error',
         toolName: 'browser',
         error: 'Navigation failed',
@@ -233,9 +244,9 @@ describe('StreamAccumulator', () => {
         toolName: 'bash',
       });
 
-      const toolStateCalls = getBroadcastCalls('stream-tool-state');
+      const toolStateCalls = getEmittedCalls('stream-tool-state');
       expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0][1]).toMatchObject({ status: 'pending', toolName: 'bash' });
+      expect(toolStateCalls[0]).toMatchObject({ status: 'pending', toolName: 'bash' });
     });
   });
 
@@ -299,9 +310,9 @@ describe('StreamAccumulator', () => {
         error: 'something went wrong',
       });
 
-      const toolStateCalls = getBroadcastCalls('stream-tool-state');
+      const toolStateCalls = getEmittedCalls('stream-tool-state');
       expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0][1]).toMatchObject({
+      expect(toolStateCalls[0]).toMatchObject({
         status: 'error',
         toolName: 'bash',
       });
@@ -345,9 +356,9 @@ describe('StreamAccumulator', () => {
         // expected to throw
       }
 
-      const errorCalls = getBroadcastCalls('stream-error');
+      const errorCalls = getEmittedCalls('stream-error');
       expect(errorCalls).toHaveLength(1);
-      expect(errorCalls[0][1]).toMatchObject({
+      expect(errorCalls[0]).toMatchObject({
         sessionId: 'ses_1',
         messageId: 'msg_1',
       });
@@ -440,7 +451,7 @@ describe('StreamAccumulator', () => {
       await acc.handlePart({ type: 'text-delta', text: 'Hi' });
       await acc.handlePart({ type: 'text-end' });
 
-      const updateCalls = getBroadcastCalls('stream-part-update');
+      const updateCalls = getEmittedCalls('stream-part-update');
       expect(updateCalls).toHaveLength(2);
     });
 
@@ -451,7 +462,7 @@ describe('StreamAccumulator', () => {
       await acc.handlePart({ type: 'text-delta', text: 'A' });
       await acc.handlePart({ type: 'text-delta', text: 'B' });
 
-      const deltaCalls = getBroadcastCalls('stream-part-delta');
+      const deltaCalls = getEmittedCalls('stream-part-delta');
       expect(deltaCalls).toHaveLength(2);
     });
   });

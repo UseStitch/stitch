@@ -1,9 +1,30 @@
 import { simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test, mock } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+
+import * as Events from '@/lib/events.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
+
+type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+let emittedEvents: EmittedEvent[] = [];
+let cleanups: Array<() => void> = [];
+
+function captureAllEvents(): void {
+  const names: SseEventName[] = [
+    'stream-start',
+    'stream-finish',
+    'stream-part-update',
+    'stream-part-delta',
+    'stream-tool-state',
+    'stream-error',
+  ];
+  for (const name of names) {
+    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+  }
+}
 
 const CREDENTIALS: ProviderCredentials = {
   providerId: 'openai',
@@ -36,12 +57,14 @@ function createTextModel(text: string): MockLanguageModelV3 {
 
 describe('runStream integration', () => {
   beforeEach(() => {
-    mock.restore();
+    emittedEvents = [];
+    for (const cleanup of cleanups) cleanup();
+    cleanups = [];
+    captureAllEvents();
   });
 
   test('streams text and persists assistant payload through injected persistence deps', async () => {
     const savedMessages: Array<{ finishReason: string; parts: unknown[] }> = [];
-    const broadcastMock = mock(async (..._args: unknown[]) => {});
 
     await runStream({
       sessionId: 'ses_integration_1' as never,
@@ -56,7 +79,6 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason, parts: accumulatedParts });
         },
         markSessionUnread: async () => {},
-        broadcast: broadcastMock,
         getCompactionSettings: async () => ({ auto: false, prune: false }),
       },
     });
@@ -69,7 +91,7 @@ describe('runStream integration', () => {
       ]),
     );
 
-    const events = broadcastMock.mock.calls.map((call) => String(call[0]));
+    const events = emittedEvents.map(([name]) => name);
     expect(events).toContain('stream-start');
   });
 
@@ -91,7 +113,6 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason });
         },
         markSessionUnread: async () => {},
-        broadcast: async () => {},
         getCompactionSettings: async () => ({ auto: false, prune: false }),
       },
     });

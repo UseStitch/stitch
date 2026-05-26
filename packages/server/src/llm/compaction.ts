@@ -8,9 +8,9 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions, userSettings } from '@/db/schema.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
-import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import * as Models from '@/llm/provider/models.js';
@@ -289,7 +289,7 @@ export async function compact(input: {
       getSessionTodosPromptBlock(sessionId),
     ]);
 
-    await Sse.broadcast('compaction-start', { sessionId, messageId: summaryMessageId });
+    Events.emit('compaction-start', { sessionId, messageId: summaryMessageId });
 
     const db = getDb();
     const now = Date.now();
@@ -451,8 +451,8 @@ export async function compact(input: {
       'compaction complete',
     );
 
-    await Sse.broadcast('compaction-complete', { sessionId, summaryMessageId });
-    await Sse.broadcast('data-change', { queryKey: ['sessions', sessionId] });
+    Events.emit('compaction-complete', { sessionId, summaryMessageId });
+    Events.emit('data-change', { queryKey: ['sessions', sessionId] });
 
     return 'continue';
   } catch (error) {
@@ -467,7 +467,7 @@ export async function compact(input: {
       'compaction failed',
     );
 
-    await Sse.broadcast('stream-error', {
+    Events.emit('stream-error', {
       sessionId,
       messageId: summaryMessageId,
       error: `Compaction failed: ${mappedError.message}`,

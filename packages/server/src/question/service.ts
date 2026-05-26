@@ -7,10 +7,10 @@ import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/typ
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';
 import { interactionBroker } from '@/interactions/broker.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { broadcast } from '@/lib/sse.js';
 import { QuestionAbortedError } from '@/llm/stream/errors.js';
 
 const log = Log.create({ service: 'question-service' });
@@ -93,7 +93,7 @@ export async function askQuestion(opts: {
     throw new Error(`Question not found after create: ${id}`);
   }
 
-  await broadcast('question-asked', {
+  Events.emit('question-asked', {
     question: toQuestionRequest(row),
   });
 
@@ -128,7 +128,7 @@ export async function replyQuestion(
     return err(`Question not found: ${questionId}`, 404);
   }
 
-  await broadcast('question-replied', {
+  Events.emit('question-replied', {
     questionId,
     sessionId: question.sessionId,
     answers,
@@ -171,7 +171,7 @@ export async function rejectQuestion(
     })
     .where(eq(questions.id, questionId));
 
-  await broadcast('question-rejected', {
+  Events.emit('question-rejected', {
     questionId,
     sessionId: question.sessionId,
   });
@@ -236,7 +236,7 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
   await Promise.all(
     pendingRows.map(async (q) => {
       const streamRunId = streamRunIds.get(q.id);
-      await broadcast('question-rejected', { questionId: q.id, sessionId });
+      Events.emit('question-rejected', { questionId: q.id, sessionId });
 
       log.info(
         {

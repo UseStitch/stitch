@@ -14,10 +14,10 @@ import type {
 import { getDb } from '@/db/client.js';
 import { permissionResponses, toolPermissions } from '@/db/schema.js';
 import { interactionBroker } from '@/interactions/broker.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { broadcast } from '@/lib/sse.js';
 import { PermissionResponseAbortedError } from '@/llm/stream/errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
 
@@ -129,7 +129,7 @@ export async function requestPermissionResponse(opts: {
 
   if (!row) throw new Error('Permission response not found after create');
 
-  await broadcast('permission-response-requested', {
+  Events.emit('permission-response-requested', {
     permissionResponse: toPermissionResponse(row),
   });
 
@@ -193,7 +193,7 @@ async function resolvePermissionResponse(opts: {
     .where(eq(permissionResponses.id, opts.permissionResponseId))
     .returning();
 
-  await broadcast('permission-response-resolved', {
+  Events.emit('permission-response-resolved', {
     permissionResponseId: opts.permissionResponseId,
     sessionId: permissionResponse?.sessionId ?? existing.sessionId,
   });
@@ -297,7 +297,7 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
       const id = row.id;
       const streamRunId = streamRunIds.get(id);
 
-      await broadcast('permission-response-resolved', {
+      Events.emit('permission-response-resolved', {
         permissionResponseId: row.id,
         sessionId,
       });

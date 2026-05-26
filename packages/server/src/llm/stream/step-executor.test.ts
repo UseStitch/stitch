@@ -1,14 +1,31 @@
 import { simulateReadableStream, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 
+import * as Events from '@/lib/events.js';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 
-const broadcastMock = mock(async (..._args: unknown[]) => {});
+type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+let emittedEvents: EmittedEvent[] = [];
+let cleanups: Array<() => void> = [];
+
+function captureAllEvents(): void {
+  const names: SseEventName[] = [
+    'stream-part-update',
+    'stream-part-delta',
+    'stream-tool-state',
+    'stream-error',
+    'stream-retry',
+  ];
+  for (const name of names) {
+    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+  }
+}
 
 const FINISH_STOP = {
   type: 'finish' as const,
@@ -53,15 +70,16 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
     tools: {} as StepOptions['tools'],
     abortSignal: new AbortController().signal,
     streamRunId: 'run_1',
-    broadcast: broadcastMock as StepOptions['broadcast'],
     ...overrides,
   };
 }
 
 describe('executeStepWithRetry', () => {
   beforeEach(() => {
-    broadcastMock.mockClear();
-    broadcastMock.mockResolvedValue(undefined);
+    emittedEvents = [];
+    for (const cleanup of cleanups) cleanup();
+    cleanups = [];
+    captureAllEvents();
   });
 
   test('completes a simple text stream and returns stop finish reason', async () => {
@@ -292,7 +310,7 @@ describe('executeStepWithRetry', () => {
     const opts = getDefaultOpts(model);
     await executeStepWithRetry(opts);
 
-    const eventTypes = broadcastMock.mock.calls.map((call: unknown[]) => String(call[0]));
+    const eventTypes = emittedEvents.map(([name]) => name);
     expect(eventTypes).toContain('stream-part-update');
     expect(eventTypes).toContain('stream-part-delta');
   });

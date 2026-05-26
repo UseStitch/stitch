@@ -6,8 +6,8 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
 import { getDb } from '@/db/client.js';
 import { sessionTodos, sessions } from '@/db/schema.js';
+import * as Events from '@/lib/events.js';
 import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
-import { broadcast } from '@/lib/sse.js';
 
 type TodoRow = typeof sessionTodos.$inferSelect;
 
@@ -60,7 +60,7 @@ export async function replaceSessionTodos(input: {
   });
 
   if (input.broadcastUpdate ?? true) {
-    await broadcast('session-todos-updated', { sessionId: input.sessionId });
+    Events.emit('session-todos-updated', { sessionId: input.sessionId });
   }
 
   return ok(updated.map(toSessionTodo));

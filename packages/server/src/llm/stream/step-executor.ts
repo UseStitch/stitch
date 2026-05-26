@@ -7,9 +7,9 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
-import * as Sse from '@/lib/sse.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import {
@@ -44,7 +44,6 @@ export type StepOptions = {
   tools: Record<string, Tool>;
   abortSignal: AbortSignal;
   streamRunId: string;
-  broadcast?: typeof Sse.broadcast;
   onAttemptFailure?: (input: {
     step: number;
     attempt: number;
@@ -135,7 +134,6 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     accumulatedParts,
     toolCalls,
     opts.streamRunId,
-    opts.broadcast,
   );
 
   const resolveResponseMessages = async (phase: 'finish' | 'unknown'): Promise<ModelMessage[]> => {
@@ -323,7 +321,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       }
 
       if (!retryMessage || attempt >= MAX_RETRIES) {
-        await (opts.broadcast ?? Sse.broadcast)('stream-error', {
+        Events.emit('stream-error', {
           sessionId: opts.sessionId,
           messageId: opts.messageId,
           error: errorInfo.message,
@@ -353,7 +351,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         'retrying step',
       );
 
-      await (opts.broadcast ?? Sse.broadcast)('stream-retry', {
+      Events.emit('stream-retry', {
         sessionId: opts.sessionId,
         messageId: opts.messageId,
         attempt,

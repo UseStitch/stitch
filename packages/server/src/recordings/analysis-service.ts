@@ -17,11 +17,11 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import * as Sse from '@/lib/sse.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { listEnabledProviderAudioModels } from '@/llm/provider/service.js';
@@ -214,7 +214,7 @@ async function broadcastRecordingAnalysisUpdated(input: {
   status: RecordingAnalysis['status'];
   title: string | null;
 }): Promise<void> {
-  await Sse.broadcast('recording-analysis-updated', {
+  Events.emit('recording-analysis-updated', {
     recordingId: input.recordingId,
     status: input.status,
     title: input.title,

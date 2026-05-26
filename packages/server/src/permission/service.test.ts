@@ -1,21 +1,26 @@
-import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-
-import type { PrefixedString } from '@stitch/shared/id';
-
-const broadcastMock = mock(async () => {});
-
-void mock.module('@/lib/sse.js', () => ({
-  broadcast: broadcastMock,
-}));
-
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq, isNull } from 'drizzle-orm';
+
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { permissionResponses, sessions, toolPermissions } from '@/db/schema.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { interactionBroker } from '@/interactions/broker.js';
+import * as Events from '@/lib/events.js';
 
 setupTestDb();
+
+type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+let emittedEvents: EmittedEvent[] = [];
+let cleanups: Array<() => void> = [];
+
+function captureEvents(...names: SseEventName[]): void {
+  for (const name of names) {
+    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+  }
+}
 
 const sessionId = 'ses_permission' as PrefixedString<'ses'>;
 const otherSessionId = 'ses_other' as PrefixedString<'ses'>;
@@ -29,25 +34,23 @@ async function seedSessions(): Promise<void> {
   ]);
 }
 
-async function waitForBroadcasts(count: number): Promise<void> {
-  while (broadcastMock.mock.calls.length < count) {
+async function waitForEvents(count: number): Promise<void> {
+  while (emittedEvents.length < count) {
     await new Promise((r) => setTimeout(r, 5));
   }
 }
 
 describe('permission service interactions', () => {
   beforeEach(async () => {
-    broadcastMock.mockReset();
-    broadcastMock.mockResolvedValue(undefined);
+    emittedEvents = [];
+    for (const cleanup of cleanups) cleanup();
+    cleanups = [];
+    captureEvents('permission-response-requested', 'permission-response-resolved');
     await seedSessions();
   });
 
   afterEach(() => {
     interactionBroker.clear();
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 
   test('requestPermissionResponse broadcasts and resolves through allowPermissionResponse', async () => {
@@ -64,29 +67,27 @@ describe('permission service interactions', () => {
       systemReminder: 'Tool execution requires user approval',
     });
 
-    await waitForBroadcasts(1);
+    await waitForEvents(1);
 
-    expect(broadcastMock).toHaveBeenCalledWith(
-      'permission-response-requested',
-      expect.objectContaining({
-        permissionResponse: expect.objectContaining({
-          sessionId,
-          messageId,
-          toolCallId: 'call_permission',
-          toolName: 'bash',
-          status: 'pending',
-        }),
-      }),
-    );
+    const requestedEvent = emittedEvents.find(([name]) => name === 'permission-response-requested');
+    expect(requestedEvent).toBeDefined();
+    const requestedData = requestedEvent![1] as SseEventPayloadMap['permission-response-requested'];
+    expect(requestedData.permissionResponse).toMatchObject({
+      sessionId,
+      messageId,
+      toolCallId: 'call_permission',
+      toolName: 'bash',
+      status: 'pending',
+    });
 
-    type RequestedCall = [string, { permissionResponse: { id: PrefixedString<'permres'> } }];
-    const [[, { permissionResponse }]] = broadcastMock.mock.calls as unknown as RequestedCall[];
-    const permissionResponseId = permissionResponse.id;
+    const permissionResponseId = requestedData.permissionResponse.id;
 
     expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null });
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
-    expect(broadcastMock).toHaveBeenCalledWith('permission-response-resolved', {
+    const resolvedEvent = emittedEvents.find(([name]) => name === 'permission-response-resolved');
+    expect(resolvedEvent).toBeDefined();
+    expect(resolvedEvent![1]).toEqual({
       permissionResponseId,
       sessionId,
     });
@@ -112,11 +113,12 @@ describe('permission service interactions', () => {
       systemReminder: 'Tool execution requires user approval',
     });
 
-    await waitForBroadcasts(1);
+    await waitForEvents(1);
 
-    type RequestedCall = [string, { permissionResponse: { id: PrefixedString<'permres'> } }];
-    const [[, { permissionResponse }]] = broadcastMock.mock.calls as unknown as RequestedCall[];
-    const permissionResponseId = permissionResponse.id;
+    const requestedData = emittedEvents.find(
+      ([name]) => name === 'permission-response-requested',
+    )![1] as SseEventPayloadMap['permission-response-requested'];
+    const permissionResponseId = requestedData.permissionResponse.id;
 
     expect(
       alternativePermissionResponse(permissionResponseId, 'Use read instead'),
@@ -158,32 +160,32 @@ describe('permission service interactions', () => {
       systemReminder: 'Tool execution requires user approval',
     });
 
-    await waitForBroadcasts(2);
+    await waitForEvents(2);
 
-    type RequestedCall = [
-      string,
-      { permissionResponse: { id: PrefixedString<'permres'>; sessionId: string } },
-    ];
-    const calls = broadcastMock.mock.calls as unknown as RequestedCall[];
+    const requestedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-requested',
+    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
 
-    const firstId = calls.find(
-      (c) =>
-        c[0] === 'permission-response-requested' && c[1].permissionResponse.sessionId === sessionId,
+    const firstId = requestedEvents.find(
+      ([, data]) => data.permissionResponse.sessionId === sessionId,
     )?.[1].permissionResponse.id;
-    const secondId = calls.find(
-      (c) =>
-        c[0] === 'permission-response-requested' &&
-        c[1].permissionResponse.sessionId === otherSessionId,
+    const secondId = requestedEvents.find(
+      ([, data]) => data.permissionResponse.sessionId === otherSessionId,
     )?.[1].permissionResponse.id;
 
     await abortPermissionResponses(sessionId);
 
     expect(first).rejects.toThrow('Permission response aborted by session abort');
 
-    expect(broadcastMock).toHaveBeenCalledWith('permission-response-resolved', {
-      permissionResponseId: firstId,
-      sessionId,
-    });
+    const resolvedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-resolved',
+    );
+    expect(
+      resolvedEvents.some(([, data]) => {
+        const d = data as SseEventPayloadMap['permission-response-resolved'];
+        return d.permissionResponseId === firstId && d.sessionId === sessionId;
+      }),
+    ).toBe(true);
 
     // Second permission (different session) is unaffected - still resolvable
     await rejectPermissionResponse(secondId!);
@@ -192,10 +194,6 @@ describe('permission service interactions', () => {
 });
 
 describe('upsertPerm', () => {
-  beforeEach(async () => {
-    broadcastMock.mockReset();
-  });
-
   test('deletes existing global rule before inserting when pattern is null', async () => {
     const { upsertPerm } = await import('@/permission/service.js');
     const db = getDb();

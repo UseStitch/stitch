@@ -10,9 +10,9 @@ import { createSession } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
-import * as Sse from '@/lib/sse.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
@@ -75,7 +75,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
 
       const childSessionId = childSession.id;
 
-      await Sse.broadcast('stream-tool-state', {
+      Events.emit('stream-tool-state', {
         sessionId: context.sessionId,
         messageId: context.messageId,
         toolCallId,
