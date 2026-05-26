@@ -151,39 +151,6 @@ export async function getAudioModels(): Promise<Record<string, RawProvider>> {
   return audioProviders;
 }
 
-function isEmbeddingModel(model: RawModel): boolean {
-  return model.id.toLowerCase().includes('embed') || model.name.toLowerCase().includes('embed');
-}
-
-/** Returns only embedding models per provider, preserving the allowed-provider filter. */
-export async function getEmbeddingModels(): Promise<Record<string, RawProvider>> {
-  const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
-  const raw: Record<string, RawProvider> = cached
-    ? (JSON.parse(cached) as Record<string, RawProvider>)
-    : await fetch(`${URL}/api.json`).then((x) => x.json() as Promise<Record<string, RawProvider>>);
-
-  const embeddingProviders: Record<string, RawProvider> = {};
-
-  for (const [key, provider] of Object.entries(raw)) {
-    if (!isAllowedProvider(key)) continue;
-
-    const embeddingModels = Object.fromEntries(
-      Object.entries(provider.models).filter(([, model]) => isEmbeddingModel(model)),
-    );
-
-    if (Object.keys(embeddingModels).length === 0) continue;
-
-    embeddingProviders[key] = { ...provider, models: embeddingModels };
-  }
-
-  return embeddingProviders;
-}
-
-/** Returns the output dimension of an embedding model, or undefined if unknown. */
-export function getEmbeddingDimensions(model: RawModel): number | undefined {
-  return model.limit?.output;
-}
-
 export async function refresh() {
   const result = await fetch(`${URL}/api.json`, {
     signal: AbortSignal.timeout(10 * 1000),

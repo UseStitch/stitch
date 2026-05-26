@@ -4,6 +4,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig, ollamaModels } from '@/db/schema.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import * as EmbeddingModels from '@/llm/provider/embedding-models.js';
 import * as ProviderLogos from '@/llm/provider/logos.js';
 import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';
@@ -168,7 +169,9 @@ export async function listProviderModels(
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
 }
 
-export async function listEnabledProviderAudioModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
+export async function listEnabledProviderAudioModels(): Promise<
+  ServiceResult<ProviderModelsSummary[]>
+> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     Models.getAudioModels(),
@@ -187,10 +190,12 @@ export async function listEnabledProviderAudioModels(): Promise<ServiceResult<Pr
   );
 }
 
-export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResult<ProviderModelsSummary[]>> {
+export async function listEnabledProviderEmbeddingModels(): Promise<
+  ServiceResult<ProviderModelsSummary[]>
+> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
-    Models.getEmbeddingModels(),
+    EmbeddingModels.getEmbeddingModels(),
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
@@ -210,10 +215,10 @@ export async function getEmbeddingModelDimensions(
   providerId: string,
   modelId: string,
 ): Promise<number | undefined> {
-  const providers = await Models.getEmbeddingModels();
+  const providers = await EmbeddingModels.getEmbeddingModels();
   const model = providers[providerId]?.models[modelId];
   if (!model) return undefined;
-  return Models.getEmbeddingDimensions(model);
+  return EmbeddingModels.getEmbeddingDimensions(model);
 }
 
 export async function getProviderModel(
