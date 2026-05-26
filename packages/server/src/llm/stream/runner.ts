@@ -88,10 +88,6 @@ async function saveAssistantMessage(opts: {
 }
 
 async function safeRecordUsageEvent(input: Parameters<typeof recordUsageEvent>[0]): Promise<void> {
-  if (process.env.VITEST === 'true') {
-    return;
-  }
-
   try {
     await recordUsageEvent(input);
   } catch (error) {
