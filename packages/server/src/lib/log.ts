@@ -36,6 +36,13 @@ interface Options {
   level?: Level;
 }
 
+function formatDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // Silent by default until init() is called — nothing goes to stdout/stderr before then
 let rootLogger: pino.Logger = pino({ level: 'silent' });
 const loggers = new Map<string, Logger>();
@@ -47,27 +54,13 @@ export async function init(options: Options): Promise<void> {
 
   await fs.mkdir(PATHS.logDir, { recursive: true });
 
-  const fileBase = path.join(PATHS.logDir, options.dev ? 'dev' : 'app');
+  const prefix = options.dev ? 'dev' : 'app';
+  const logFile = path.join(PATHS.logDir, `${prefix}.${formatDate(new Date())}.1.log`);
 
-  rootLogger = pino(
-    { level },
-    pino.transport({
-      target: 'pino-roll',
-      options: {
-        file: fileBase,
-        extension: '.log',
-        frequency: 'daily',
-        dateFormat: 'yyyy-MM-dd',
-        mkdir: true,
-        limit: { count: 9 },
-        // SonicBoom flushes synchronously on process exit — no lost entries on crash
-        sync: false,
-      },
-    }),
-  );
+  rootLogger = pino({ level }, pino.destination({ dest: logFile, mkdir: true, sync: false }));
 }
 
-// Matches pino-roll's "Extension Last" filename format: <name>.<date>.<count>.log
+// Log filename format: <prefix>.<date>.<count>.log
 // e.g. app.2025-08-19.1.log or dev.2025-08-19.1.log
 const LOG_FILE_PATTERN = /^.+\.\d{4}-\d{2}-\d{2}\.\d+\.log$/;
 
