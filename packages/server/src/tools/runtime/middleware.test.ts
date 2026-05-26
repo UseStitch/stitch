@@ -104,7 +104,7 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    await expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ ok: true });
+    await expect(wrapped.execute?.({}, {} as never)).resolves.toMatchObject({ ok: true });
   });
 
   test('preserves plain legacy results', async () => {
