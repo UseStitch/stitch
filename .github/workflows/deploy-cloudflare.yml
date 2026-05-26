@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Build MCP registry artifact
-        run: node scripts/build-mcp-registry.mjs
+        run: node scripts/build-website-registries.mjs
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
