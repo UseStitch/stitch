@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "vitest run",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -49,13 +49,13 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/router-plugin": "1.166.7",
+    "@types/bun": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "4.2.1",
     "typescript": "catalog:",
-    "vite": "8.0.0",
-    "vitest": "catalog:testing"
+    "vite": "8.0.0"
   }
 }

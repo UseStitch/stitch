@@ -1,10 +1,11 @@
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
+import type { PartDelta, PartUpdate } from '@stitch/shared/chat/realtime';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
 import { isToolErrorResult } from '@stitch/shared/tools/types';
 
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
@@ -32,7 +33,6 @@ export class StreamAccumulator {
     private readonly accumulatedParts: StoredPart[],
     private readonly toolCalls: ToolCallRecord[],
     private readonly streamRunId: string,
-    private readonly broadcast: typeof Sse.broadcast = Sse.broadcast,
   ) {}
 
   getProtocolViolationCount(): number {
@@ -71,21 +71,21 @@ export class StreamAccumulator {
     return clone;
   }
 
-  private broadcastPartUpdate(partId: PartId, part: unknown): Promise<void> {
-    return this.broadcast('stream-part-update', {
+  private broadcastPartUpdate(partId: PartId, part: unknown): void {
+    Events.emit('stream-part-update', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
-      part: part as Parameters<typeof Sse.broadcast<'stream-part-update'>>[1]['part'],
+      part: part as PartUpdate,
     });
   }
 
-  private broadcastPartDelta(partId: PartId, delta: unknown): Promise<void> {
-    return this.broadcast('stream-part-delta', {
+  private broadcastPartDelta(partId: PartId, delta: unknown): void {
+    Events.emit('stream-part-delta', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
-      delta: delta as Parameters<typeof Sse.broadcast<'stream-part-delta'>>[1]['delta'],
+      delta: delta as PartDelta,
     });
   }
 
@@ -95,7 +95,7 @@ export class StreamAccumulator {
   ): Promise<void> {
     const partId = createPartId();
     this[field] = { id: partId, text: '', startedAt: Date.now() };
-    await this.broadcastPartUpdate(partId, part);
+    this.broadcastPartUpdate(partId, part);
   }
 
   private async handleTextualDelta(
@@ -106,7 +106,7 @@ export class StreamAccumulator {
     const current = this[field];
     if (current) {
       current.text += part.text;
-      await this.broadcastPartDelta(current.id, part);
+      this.broadcastPartDelta(current.id, part);
     } else {
       this.protocolViolationCount++;
       log.warn(
@@ -138,7 +138,7 @@ export class StreamAccumulator {
         startedAt: current.startedAt,
         endedAt: now,
       } as StoredPart);
-      await this.broadcastPartUpdate(current.id, part);
+      this.broadcastPartUpdate(current.id, part);
       this[field] = null;
     }
   }
@@ -191,7 +191,7 @@ export class StreamAccumulator {
         const now = Date.now();
         const partId = createPartId();
         this.accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await this.broadcastPartUpdate(partId, part);
+        this.broadcastPartUpdate(partId, part);
         break;
       }
 
@@ -199,12 +199,12 @@ export class StreamAccumulator {
         const partId = createPartId();
         const now = Date.now();
         this.accumulatedParts.push({ ...part, id: partId, startedAt: now, endedAt: now });
-        await this.broadcastPartUpdate(partId, part);
+        this.broadcastPartUpdate(partId, part);
         break;
       }
 
       case 'tool-input-start':
-        await this.broadcast('stream-tool-state', {
+        Events.emit('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.id,
@@ -227,7 +227,7 @@ export class StreamAccumulator {
           inputJson: stableStringify(part.input),
         });
 
-        await this.broadcast('stream-tool-state', {
+        Events.emit('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -261,7 +261,7 @@ export class StreamAccumulator {
           (sanitizedOutput as { failed?: unknown }).failed === true;
         const isError = Boolean(fallbackError) || isBashFailure;
 
-        await this.broadcast('stream-tool-state', {
+        Events.emit('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -291,7 +291,7 @@ export class StreamAccumulator {
         const partId = createPartId();
         const errorText = String(part.error);
 
-        await this.broadcast('stream-tool-state', {
+        Events.emit('stream-tool-state', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
@@ -351,7 +351,7 @@ export class StreamAccumulator {
           },
           'stream part error',
         );
-        await this.broadcast('stream-error', {
+        Events.emit('stream-error', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           error: errorText,

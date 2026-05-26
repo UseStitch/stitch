@@ -3,7 +3,8 @@ import { eq, and, isNotNull, lt } from 'drizzle-orm';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
+import { refreshAccessToken as refreshAccessTokenDefault, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
+import type { refreshAccessToken as RefreshAccessTokenFn } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
@@ -13,7 +14,9 @@ const log = Log.create({ service: 'token-refresh' });
 
 const REFRESH_BUFFER_MS = 5 * 60_000; // Refresh 5 minutes before expiry
 
-export async function refreshExpiringTokens(): Promise<void> {
+export async function refreshExpiringTokens(deps?: {
+  refreshAccessToken?: typeof RefreshAccessTokenFn;
+}): Promise<void> {
   const db = getDb();
   const now = Date.now();
   const threshold = now + REFRESH_BUFFER_MS;
@@ -47,7 +50,7 @@ export async function refreshExpiringTokens(): Promise<void> {
         `Refreshing token for ${instance.label}`,
       );
 
-      const tokens = await refreshAccessToken(
+      const tokens = await (deps?.refreshAccessToken ?? refreshAccessTokenDefault)(
         config.tokenUrl,
         credentials.clientId,
         credentials.clientSecret,

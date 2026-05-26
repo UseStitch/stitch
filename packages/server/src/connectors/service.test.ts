@@ -1,0 +1,295 @@
+import { beforeEach, describe, expect, test } from 'bun:test';
+
+import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
+
+import {
+  authorizeOAuthInstance,
+  createApiKeyConnectorInstance,
+  createOAuthConnectorInstance,
+  upgradeConnectorInstance,
+} from '@/connectors/service.js';
+import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
+import { getDb } from '@/db/client.js';
+import { connectorInstances } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
+import { isServiceError } from '@/lib/service-result.js';
+import { eq } from 'drizzle-orm';
+
+setupTestDb();
+
+function oauthDefinition(overrides: Partial<ConnectorDefinition> = {}): ConnectorDefinition {
+  return {
+    id: 'example',
+    name: 'Example OAuth',
+    description: 'Example',
+    icon: { type: 'simpleIcons', slug: 'example' },
+    enabled: true,
+    currentVersion: 3,
+    versionHistory: [
+      {
+        version: 1,
+        title: 'Base',
+        description: 'Base',
+        action: 'none',
+        capabilities: ['example.read'],
+      },
+      {
+        version: 2,
+        title: 'Rotate key',
+        description: 'Rotate key',
+        action: 'rotate_api_key',
+        capabilities: ['example.write'],
+      },
+      {
+        version: 3,
+        title: 'Scope upgrade',
+        description: 'Needs reauth',
+        action: 'reauthorize',
+        capabilities: ['example.admin'],
+        requiredScopes: ['scope:admin'],
+      },
+    ],
+    authType: 'oauth2',
+    authConfig: {
+      authUrl: 'https://example.com/auth',
+      tokenUrl: 'https://example.com/token',
+      defaultScopes: ['scope:read'],
+      scopeDescriptions: { 'scope:read': 'Read' },
+    },
+    setupInstructions: [],
+    ...overrides,
+  };
+}
+
+describe('connector service', () => {
+  beforeEach(() => {
+    unregisterConnector('example');
+    unregisterConnector('disabled-oauth');
+    unregisterConnector('disabled-api-key');
+  });
+
+  test('upgrade requires api key when rotate action is present', async () => {
+    const definition = oauthDefinition();
+    registerConnector(definition);
+
+    // Create an instance at v1 so upgrade sees rotate + reauthorize actions
+    const db = getDb();
+    const instanceId = 'conn_test_upgrade' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example',
+      appliedVersion: 1,
+      capabilities: ['example.read'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: 'old-key',
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      tokenExpiresAt: Date.now() + 60_000,
+      scopes: ['scope:read'],
+      status: 'connected',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    const result = await upgradeConnectorInstance(instanceId, {});
+
+    expect(isServiceError(result)).toBe(true);
+    if (isServiceError(result)) {
+      expect(result.status).toBe(400);
+      expect(result.error).toContain('API key is required');
+    }
+
+    // Row should be unchanged
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    expect(row?.appliedVersion).toBe(1);
+  });
+
+  test('upgrade handles mixed rotate + reauthorize actions', async () => {
+    const definition = oauthDefinition();
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_test_mixed' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example',
+      appliedVersion: 1,
+      capabilities: ['example.read'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: 'old-key',
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      tokenExpiresAt: Date.now() + 60_000,
+      scopes: ['scope:read'],
+      status: 'connected',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    const fakeStartOAuthFlow = async () => ({
+      authUrl: 'https://example.com/authorize',
+      waitForTokens: async () => ({
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        expiresIn: 3600,
+      }),
+    });
+
+    const result = await upgradeConnectorInstance(
+      instanceId,
+      { apiKey: '  new-key  ' },
+      { startOAuthFlow: fakeStartOAuthFlow },
+    );
+
+    expect(isServiceError(result)).toBe(false);
+    if (!isServiceError(result)) {
+      expect(result.data).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
+    }
+
+    // Wait for the background waitForTokens to complete
+    await new Promise((r) => setTimeout(r, 50));
+
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    // After token exchange the instance should be connected with the new key and merged scopes
+    expect(row?.apiKey).toBe('new-key');
+    expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
+  });
+
+  test('disabled connectors cannot be created', async () => {
+    registerConnector(oauthDefinition({ id: 'disabled-oauth', enabled: false }));
+    registerConnector({
+      id: 'disabled-api-key',
+      name: 'Disabled API key',
+      description: 'Disabled',
+      icon: { type: 'simpleIcons', slug: 'api' },
+      enabled: false,
+      currentVersion: 1,
+      versionHistory: [{ version: 1, title: 'Initial', description: 'Initial', action: 'none', capabilities: ['example.api.read'] }],
+      authType: 'api_key',
+      authConfig: { keyLabel: 'API Key' },
+      setupInstructions: [],
+    });
+
+    const oauthResult = await createOAuthConnectorInstance({
+      connectorId: 'disabled-oauth',
+      label: 'Disabled OAuth',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      scopes: ['scope:read'],
+    });
+
+    const apiKeyResult = await createApiKeyConnectorInstance({
+      connectorId: 'disabled-api-key',
+      label: 'Disabled API key',
+      apiKey: 'secret',
+    });
+
+    expect(isServiceError(oauthResult)).toBe(true);
+    expect(isServiceError(apiKeyResult)).toBe(true);
+    if (isServiceError(oauthResult)) expect(oauthResult.error).toBe('Connector is currently disabled');
+    if (isServiceError(apiKeyResult)) expect(apiKeyResult.error).toBe('Connector is currently disabled');
+
+    // Nothing written to DB
+    const rows = await getDb().select().from(connectorInstances);
+    expect(rows).toHaveLength(0);
+  });
+
+  test('authorizeOAuthInstance marks connector as error when token exchange fails', async () => {
+    const definition = oauthDefinition({ currentVersion: 1, versionHistory: oauthDefinition().versionHistory.slice(0, 1) });
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_auth_fail' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example OAuth',
+      appliedVersion: 1,
+      capabilities: ['example.read'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+      accessToken: null,
+      refreshToken: null,
+      tokenExpiresAt: null,
+      scopes: ['scope:read'],
+      status: 'awaiting_auth',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    const fakeStartOAuthFlow = async () => ({
+      authUrl: 'https://example.com/authorize',
+      waitForTokens: async () => { throw new Error('token exchange failed'); },
+    });
+
+    const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
+
+    expect(isServiceError(result)).toBe(false);
+    if (isServiceError(result)) return;
+
+    let threw = false;
+    try { await result.data.waitForTokens(); } catch { threw = true; }
+    expect(threw).toBe(true);
+
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    expect(row?.status).toBe('error');
+  });
+
+  test('authorizeOAuthInstance stores tokens and marks connector connected on success', async () => {
+    const definition = oauthDefinition();
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_auth_success' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example OAuth',
+      appliedVersion: 1,
+      capabilities: ['example.read'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+      accessToken: null,
+      refreshToken: null,
+      tokenExpiresAt: null,
+      scopes: ['scope:read'],
+      status: 'awaiting_auth',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    const fakeStartOAuthFlow = async () => ({
+      authUrl: 'https://example.com/authorize',
+      waitForTokens: async () => ({
+        accessToken: 'access-token-123',
+        refreshToken: 'refresh-token-123',
+        expiresIn: 3600,
+      }),
+    });
+
+    const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
+
+    expect(isServiceError(result)).toBe(false);
+    if (isServiceError(result)) return;
+
+    await result.data.waitForTokens();
+
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    expect(row?.status).toBe('connected');
+    expect(row?.accessToken).toBe('access-token-123');
+    expect(row?.refreshToken).toBe('refresh-token-123');
+    expect(row?.appliedVersion).toBe(definition.currentVersion);
+    expect(row?.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
+    expect(typeof row?.tokenExpiresAt).toBe('number');
+  });
+});

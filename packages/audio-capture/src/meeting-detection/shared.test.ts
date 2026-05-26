@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, jest, test } from 'bun:test';
 
 import { createPollingMeetingDetector } from './shared.js';
 
@@ -8,13 +8,24 @@ function waitForAsyncTick(): Promise<void> {
   return Promise.resolve();
 }
 
+async function advancePollingTime(ms: number): Promise<void> {
+  let remainingMs = ms;
+  while (remainingMs > 0) {
+    const stepMs = Math.min(remainingMs, 100);
+    jest.advanceTimersByTime(stepMs);
+    await waitForAsyncTick();
+    await waitForAsyncTick();
+    remainingMs -= stepMs;
+  }
+}
+
 describe('createPollingMeetingDetector', () => {
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 
   test('emits detected only after activation threshold', async () => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     let active = true;
     const events: MeetingDetectionEvent[] = [];
 
@@ -41,19 +52,17 @@ describe('createPollingMeetingDetector', () => {
 
     detector.subscribe((event) => events.push(event));
     detector.start();
-
-    await vi.advanceTimersByTimeAsync(250);
     await waitForAsyncTick();
+
+    await advancePollingTime(250);
     expect(events).toHaveLength(0);
 
-    await vi.advanceTimersByTimeAsync(150);
-    await waitForAsyncTick();
+    await advancePollingTime(150);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ type: 'detected' });
 
     active = false;
-    await vi.advanceTimersByTimeAsync(300);
-    await waitForAsyncTick();
+    await advancePollingTime(300);
 
     expect(events).toHaveLength(2);
     expect(events[1]).toMatchObject({ type: 'ended', key: 'desktop:zoom' });
@@ -62,7 +71,7 @@ describe('createPollingMeetingDetector', () => {
   });
 
   test('does not re-emit detected while in cooldown', async () => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
     let active = false;
     const events: MeetingDetectionEvent[] = [];
 
@@ -89,26 +98,23 @@ describe('createPollingMeetingDetector', () => {
 
     detector.subscribe((event) => events.push(event));
     detector.start();
+    await waitForAsyncTick();
 
     active = true;
-    await vi.advanceTimersByTimeAsync(300);
-    await waitForAsyncTick();
+    await advancePollingTime(300);
 
     active = false;
-    await vi.advanceTimersByTimeAsync(200);
-    await waitForAsyncTick();
+    await advancePollingTime(200);
 
     expect(events.filter((event) => event.type === 'detected')).toHaveLength(1);
     expect(events.filter((event) => event.type === 'ended')).toHaveLength(1);
 
     active = true;
-    await vi.advanceTimersByTimeAsync(600);
-    await waitForAsyncTick();
+    await advancePollingTime(600);
 
     expect(events.filter((event) => event.type === 'detected')).toHaveLength(1);
 
-    await vi.advanceTimersByTimeAsync(300);
-    await waitForAsyncTick();
+    await advancePollingTime(300);
 
     expect(events.filter((event) => event.type === 'detected')).toHaveLength(2);
 

@@ -14,7 +14,6 @@ const PROVIDER_LOGO_ALIASES: Record<string, string> = {
 
 type GetProviderLogoOptions = {
   cacheDir?: string;
-  fetchImpl?: typeof fetch;
 };
 
 function getLogoPath(providerId: string, cacheDir: string): string {
@@ -34,8 +33,7 @@ export async function get(
   const cached = await fs.readFile(filePath, 'utf8').catch(() => undefined);
   if (cached) return cached;
 
-  const fetchImpl = options.fetchImpl ?? fetch;
-  const result = await fetchImpl(`${LOGO_BASE_URL}/${logoId}.svg`, {
+  const result = await fetch(`${LOGO_BASE_URL}/${logoId}.svg`, {
     signal: AbortSignal.timeout(10 * 1000),
   }).catch((error) => {
     log.warn({ error, providerId }, 'failed to fetch provider logo');

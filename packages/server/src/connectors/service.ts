@@ -16,8 +16,9 @@ import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js'
 import {
   refreshAccessToken,
   requiresOAuthReauth,
-  startOAuthFlow,
+  startOAuthFlow as startOAuthFlowDefault,
 } from '@/connectors/auth/oauth2.js';
+import type { startOAuthFlow as StartOAuthFlowFn } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
@@ -189,6 +190,7 @@ export async function createApiKeyConnectorInstance(input: {
 
 export async function authorizeOAuthInstance(
   instanceId: string,
+  deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
 ): Promise<ServiceResult<{ authUrl: string; waitForTokens: () => Promise<void> }>> {
   const db = getDb();
   const [instance] = await db
@@ -211,7 +213,7 @@ export async function authorizeOAuthInstance(
   const config = definition.authConfig as OAuthConfig;
   const scopes = (instance.scopes as string[]) ?? config.defaultScopes;
 
-  const { authUrl, waitForTokens } = await startOAuthFlow(
+  const { authUrl, waitForTokens } = await (deps?.startOAuthFlow ?? startOAuthFlowDefault)(
     config,
     resolvedOAuthCredentials.clientId,
     resolvedOAuthCredentials.clientSecret,
@@ -312,6 +314,7 @@ export async function updateConnectorInstance(
 export async function upgradeConnectorInstance(
   instanceId: string,
   input: { apiKey?: string },
+  deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
 ): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
   const db = getDb();
   const typedInstanceId = instanceId as PrefixedString<'conn'>;
@@ -407,7 +410,7 @@ export async function upgradeConnectorInstance(
       .set(setValues)
       .where(eq(connectorInstances.id, typedInstanceId));
 
-    const auth = await authorizeOAuthInstance(instanceId);
+    const auth = await authorizeOAuthInstance(instanceId, deps);
     if (isServiceError(auth)) {
       return auth;
     }
