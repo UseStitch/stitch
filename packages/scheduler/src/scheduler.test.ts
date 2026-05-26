@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, jest, mock, test } from 'bun:test';
 
-import { createScheduler } from '../src/scheduler.js';
+import { createScheduler } from './scheduler.js';
 
 import type {
   JobSchedule,
@@ -8,7 +8,22 @@ import type {
   PersistedJobRun,
   SchedulerLogger,
   SchedulerStore,
-} from '../src/types.js';
+} from './types.js';
+
+const BASE_TIME = new Date('2026-01-01T00:00:00.000Z').getTime();
+let mockNow = BASE_TIME;
+const originalDateNow = Date.now;
+
+async function advanceTime(ms: number, step = 10): Promise<void> {
+  let remaining = ms;
+  while (remaining > 0) {
+    const tick = Math.min(step, remaining);
+    mockNow += tick;
+    jest.advanceTimersByTime(tick);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    remaining -= tick;
+  }
+}
 
 function makeLogger(): SchedulerLogger {
   const noop = () => {};
@@ -159,17 +174,19 @@ class MemoryStore implements SchedulerStore {
 
 describe('scheduler', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    mockNow = BASE_TIME;
+    Date.now = () => mockNow;
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    jest.useRealTimers();
+    Date.now = originalDateNow;
   });
 
   test('runs queued interval jobs and updates status', async () => {
     const store = new MemoryStore();
-    const callback = vi.fn();
+    const callback = mock();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 25 });
 
     await scheduler.registerJob({
@@ -182,7 +199,7 @@ describe('scheduler', () => {
     });
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(240);
+    await advanceTime(240, 25);
     await scheduler.stop();
 
     expect(callback).toHaveBeenCalledTimes(3);
@@ -196,8 +213,8 @@ describe('scheduler', () => {
 
   test('respects maxConcurrency and drains queued runs', async () => {
     const store = new MemoryStore();
-    const callback = vi.fn(async () => {
-      await vi.advanceTimersByTimeAsync(120);
+    const callback = mock(async () => {
+      await advanceTime(120);
     });
 
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 20 });
@@ -214,7 +231,7 @@ describe('scheduler', () => {
     });
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(260);
+    await advanceTime(260);
     await scheduler.stop();
 
     const status = await scheduler.getJobStatus('concurrency-job');
@@ -226,7 +243,7 @@ describe('scheduler', () => {
 
   test('catchup none skips replay backlog', async () => {
     const store = new MemoryStore();
-    const callback = vi.fn();
+    const callback = mock();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 1_000 });
 
     await scheduler.registerJob({
@@ -239,13 +256,13 @@ describe('scheduler', () => {
     });
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(1_100);
+    await advanceTime(1_100, 100);
 
     await scheduler.stop();
-    await vi.advanceTimersByTimeAsync(5_000);
+    await advanceTime(5_000, 500);
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(1_100);
+    await advanceTime(1_100, 100);
     await scheduler.stop();
 
     expect(callback).toHaveBeenCalledTimes(2);
@@ -253,7 +270,7 @@ describe('scheduler', () => {
 
   test('catchup all replays backlog up to limit', async () => {
     const store = new MemoryStore();
-    const callback = vi.fn();
+    const callback = mock();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 500 });
 
     await scheduler.registerJob({
@@ -267,13 +284,13 @@ describe('scheduler', () => {
     });
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(600);
+    await advanceTime(600, 50);
     await scheduler.stop();
 
-    await vi.advanceTimersByTimeAsync(5_000);
+    await advanceTime(5_000, 500);
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(600);
+    await advanceTime(600, 50);
     await scheduler.stop();
 
     expect(callback).toHaveBeenCalledTimes(6);
@@ -281,7 +298,7 @@ describe('scheduler', () => {
 
   test('supports cron schedule', async () => {
     const store = new MemoryStore();
-    const callback = vi.fn();
+    const callback = mock();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 5_000 });
 
     await scheduler.registerJob({
@@ -294,7 +311,7 @@ describe('scheduler', () => {
     });
 
     await scheduler.start();
-    await vi.advanceTimersByTimeAsync(130_000);
+    await advanceTime(130_000, 5_000);
     await scheduler.stop();
 
     expect(callback).toHaveBeenCalledTimes(2);
