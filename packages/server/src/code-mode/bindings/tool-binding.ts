@@ -1,4 +1,5 @@
-import type { ToolBinding } from '@/code-mode/isolate/types.js';
+import type { ToolBinding } from '@stitch/sandbox';
+
 import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';

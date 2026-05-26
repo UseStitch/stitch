@@ -43,6 +43,8 @@ export function ToolCallBlock({
   error,
   onAbort,
 }: ToolCallBlockProps) {
+  if (toolName === 'todo') return null;
+
   const hasArgs = args !== undefined && args !== null;
   const isMcp = parseMcpToolName(toolName) !== null;
   const isChildSession = toolName === 'task';

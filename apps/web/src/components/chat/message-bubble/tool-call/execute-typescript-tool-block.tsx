@@ -33,7 +33,7 @@ function ShikiCode({ code }: { code: string }) {
   if (cached !== null) {
     return (
       <div
-        className="chat-markdown-shiki overflow-x-auto text-xs"
+        className="chat-markdown-shiki thin-scrollbar overflow-x-auto text-xs"
         dangerouslySetInnerHTML={{ __html: cached }}
       />
     );
@@ -52,7 +52,7 @@ function ShikiCode({ code }: { code: string }) {
 
   return (
     <div
-      className="chat-markdown-shiki overflow-x-auto text-xs"
+      className="chat-markdown-shiki thin-scrollbar overflow-x-auto text-xs"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -60,7 +60,7 @@ function ShikiCode({ code }: { code: string }) {
 
 function FallbackCode({ code }: { code: string }) {
   return (
-    <pre className="overflow-x-auto font-mono text-xs break-all whitespace-pre-wrap text-muted-foreground">
+    <pre className="thin-scrollbar overflow-x-auto font-mono text-xs break-all whitespace-pre-wrap text-muted-foreground">
       {code}
     </pre>
   );

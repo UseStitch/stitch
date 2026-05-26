@@ -1,14 +1,11 @@
-// Absolute wall-clock ceiling regardless of pause state — last-resort hang guard
+import { SandboxAbsoluteTimeoutError, SandboxAbortError, SandboxTimeoutError } from './errors.js';
+
 const ABSOLUTE_TIMEOUT_MS = 5 * 60 * 1000;
 
-// --- Pausable timer ---
-
-export type PausableTimer = {
+type PausableTimer = {
   pause: () => void;
   resume: () => void;
   getElapsed: (startedAt: number) => number;
-  getPausedAt: () => number | null;
-  getTotalPausedMs: () => number;
 };
 
 export function createPausableTimer(): PausableTimer {
@@ -29,12 +26,8 @@ export function createPausableTimer(): PausableTimer {
       const paused = pausedAt !== null ? Date.now() - pausedAt : 0;
       return Date.now() - startedAt - totalPausedMs - paused;
     },
-    getPausedAt: () => pausedAt,
-    getTotalPausedMs: () => totalPausedMs,
   };
 }
-
-// --- Abort/timeout race utility ---
 
 type RaceGuard = {
   promise: Promise<never>;
@@ -49,10 +42,12 @@ export function createAbortRace(
   if (abortSignal === undefined) return null;
   return new Promise<never>((_, reject) => {
     if (abortSignal.aborted) {
-      reject(new Error(message));
+      reject(new SandboxAbortError(message));
       return;
     }
-    abortSignal.addEventListener('abort', () => reject(new Error(message)), { once: true });
+    abortSignal.addEventListener('abort', () => reject(new SandboxAbortError(message)), {
+      once: true,
+    });
   });
 }
 
@@ -60,6 +55,7 @@ export function createExecutionTimeoutRace(
   timer: PausableTimer,
   startedAt: number,
   timeoutMs: number,
+  onTimeout: () => void,
 ): RaceGuard {
   let pausableTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let absoluteTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -70,7 +66,8 @@ export function createExecutionTimeoutRace(
       const elapsed = timer.getElapsed(startedAt);
       if (elapsed >= timeoutMs) {
         timedOut = true;
-        reject(new Error(`Code mode execution timed out after ${timeoutMs}ms`));
+        onTimeout();
+        reject(new SandboxTimeoutError(timeoutMs));
       } else {
         pausableTimeoutId = setTimeout(checkPausable, 100);
       }
@@ -79,7 +76,8 @@ export function createExecutionTimeoutRace(
 
     absoluteTimeoutId = setTimeout(() => {
       timedOut = true;
-      reject(new Error(`Code mode execution exceeded absolute limit of ${ABSOLUTE_TIMEOUT_MS}ms`));
+      onTimeout();
+      reject(new SandboxAbsoluteTimeoutError(ABSOLUTE_TIMEOUT_MS));
     }, ABSOLUTE_TIMEOUT_MS);
   });
 
@@ -89,35 +87,4 @@ export function createExecutionTimeoutRace(
   };
 
   return { promise, cleanup, isTimedOut: () => timedOut };
-}
-
-// --- Tool timeout wrapper ---
-
-export function wrapWithPausableTimeout(
-  execute: (input: unknown, abortSignal?: AbortSignal) => Promise<unknown>,
-  timer: PausableTimer,
-  toolTimeoutMs: number,
-  abortSignal?: AbortSignal,
-): (input: unknown) => Promise<unknown> {
-  return async (input) => {
-    timer.pause();
-    try {
-      const toolTimeoutPromise = new Promise<never>((_, reject) => {
-        const id = setTimeout(
-          () => reject(new Error(`Tool call timed out after ${toolTimeoutMs}ms`)),
-          toolTimeoutMs,
-        );
-        abortSignal?.addEventListener('abort', () => clearTimeout(id), { once: true });
-      });
-
-      const abortPromise = createAbortRace(abortSignal, 'Tool call aborted');
-
-      const raceTargets: Promise<unknown>[] = [execute(input, abortSignal), toolTimeoutPromise];
-      if (abortPromise !== null) raceTargets.push(abortPromise);
-
-      return await Promise.race(raceTargets);
-    } finally {
-      timer.resume();
-    }
-  };
 }
