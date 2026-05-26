@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ../../scripts/build-mcp-registry.mjs"
+    "build": "bun run ../../scripts/build-website-registries.mjs"
   }
 }

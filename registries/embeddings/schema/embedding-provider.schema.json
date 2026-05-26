@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usestitch.ai/schemas/embedding-provider.schema.json",
+  "title": "Stitch Embedding Provider Registry Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["providerId", "providerName", "models"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor tooling"
+    },
+    "providerId": {
+      "type": "string",
+      "enum": ["google", "openai"]
+    },
+    "providerName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "api": {
+      "type": "string"
+    },
+    "npm": {
+      "type": "string"
+    },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "dimensions", "release_date", "context", "cost"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "release_date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "context": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "inputModalities": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["text", "image", "video", "audio", "pdf"]
+            }
+          },
+          "outputModalities": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["text"]
+            }
+          },
+          "cost": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["input", "output"],
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "inputImage": {
+                "type": "number",
+                "description": "Image input price in USD per image."
+              },
+              "inputAudio": {
+                "type": "number",
+                "description": "Audio input price in USD per second."
+              },
+              "inputVideo": {
+                "type": "number",
+                "description": "Video input price in USD per frame."
+              },
+              "output": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
