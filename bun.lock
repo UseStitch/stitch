@@ -114,7 +114,6 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",
-        "vitest": "catalog:testing",
       },
     },
     "packages/scheduler": {
