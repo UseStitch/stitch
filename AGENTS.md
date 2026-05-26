@@ -41,9 +41,6 @@ Do not consider a task done until all three commands pass with zero errors.
 
 ## Testing
 
-- `packages/server` is being migrated from **Vitest** to **Bun test**. Both runners are active during the migration.
-- Other packages use **Vitest**.
-
 ### Test Locations (packages/server)
 
 - Tests are should be colocated with source files in `src/`
