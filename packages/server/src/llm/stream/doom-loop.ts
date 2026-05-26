@@ -3,8 +3,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
 
 import { interactionBroker } from '@/interactions/broker.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 import * as Usage from '@/utils/usage.js';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
 
@@ -117,7 +117,7 @@ export async function checkAndHandleDoomLoop(opts: {
     'doom loop detected',
   );
 
-  await Sse.broadcast('doom-loop-detected', {
+  Events.emit('doom-loop-detected', {
     sessionId,
     messageId,
     toolName: repeatedTool,

@@ -15,12 +15,12 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { broadcast } from '@/lib/sse.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
@@ -161,9 +161,9 @@ export async function startRecording(
 
     capture.onEvent((event) => {
       if (event.type === 'warning') {
-        void broadcast('recording-warning', { code: event.code, message: event.message });
+        Events.emit('recording-warning', { code: event.code, message: event.message });
       } else if (event.type === 'deviceChanged') {
-        void broadcast('recording-device-changed', {
+        Events.emit('recording-device-changed', {
           kind: event.kind,
           deviceName: event.deviceName,
         });

@@ -36,6 +36,10 @@ export function registerConnector(definition: ConnectorDefinition): void {
   );
 }
 
+export function unregisterConnector(id: string): void {
+  definitions.delete(id);
+}
+
 export function getConnectorDefinition(id: string): ConnectorDefinition | undefined {
   return definitions.get(id);
 }

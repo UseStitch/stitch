@@ -3,7 +3,8 @@ import type { LanceMigrationDefinition } from '@/db/lance-migrations/types.js';
 import * as schema from '@/db/schema.js';
 import { lanceMigrations } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
-import { getConnection } from '@/memory/store/connection.js';
+import { getConnection as getConnectionDefault } from '@/memory/store/connection.js';
+import type { getConnection as GetConnectionFn } from '@/memory/store/connection.js';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
 const log = Log.create({ service: 'lance-migrations' });
@@ -101,7 +102,10 @@ function assertChecksumMatches(
   }
 }
 
-export async function runPendingMigrations(db: Db): Promise<void> {
+export async function runPendingMigrations(
+  db: Db,
+  deps?: { getConnection?: typeof GetConnectionFn },
+): Promise<void> {
   const orderedMigrations = [...MIGRATIONS].sort((a, b) => a.version - b.version);
   ensureMigrationsAreValid(orderedMigrations);
 
@@ -120,7 +124,7 @@ export async function runPendingMigrations(db: Db): Promise<void> {
     }
   }
 
-  const lanceDb = await getConnection();
+  const lanceDb = await (deps?.getConnection ?? getConnectionDefault)();
   const existingTables = new Set(await lanceDb.tableNames());
 
   for (const migration of orderedMigrations) {

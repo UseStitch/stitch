@@ -33,9 +33,6 @@
     "zod": "4.3.6"
   },
   "catalogs": {
-    "testing": {
-      "vitest": "latest"
-    },
     "ai": {
       "ai": "6.0.116",
       "@ai-sdk/provider": "3.0.8",

@@ -82,7 +82,9 @@ export function isDbInitialized(): boolean {
 export async function initDb(): Promise<void> {
   const dbPath = getDatabasePath();
   const migrationsDir = getMigrationsDir();
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  if (dbPath !== ':memory:') {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  }
 
   const [{ Database: BunDatabase }, { drizzle }, { migrate }] = await Promise.all([
     import('bun:sqlite'),

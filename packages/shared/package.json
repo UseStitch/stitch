@@ -33,13 +33,13 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "bun test"
   },
   "devDependencies": {
     "@ai-sdk/provider": "catalog:ai",
+    "@types/bun": "catalog:",
     "ai": "catalog:ai",
     "typescript": "catalog:",
-    "vitest": "catalog:testing",
     "zod": "catalog:"
   }
 }

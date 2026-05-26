@@ -12,7 +12,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "bun test"
   },
   "dependencies": {
     "@stitch-connectors/sdk": "workspace:*",
@@ -22,7 +22,6 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:testing"
+    "typescript": "catalog:"
   }
 }
