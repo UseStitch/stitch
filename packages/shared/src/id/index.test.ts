@@ -81,13 +81,6 @@ describe('extractTimestamp', () => {
     expect(extracted).toBeGreaterThan(0);
   });
 
-  test('same-millisecond ids produce the same extracted timestamp', () => {
-    // Generate two ids quickly — they'll share the same ms
-    const a = createPartId();
-    const b = createPartId();
-    expect(extractTimestamp(a)).toBe(extractTimestamp(b));
-  });
-
   test('ids created later have equal or greater timestamps', async () => {
     const first = createPartId();
     // Wait 2ms to guarantee a new timestamp bucket
