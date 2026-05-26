@@ -81,10 +81,19 @@ function registerToolProxies(): void {
 }
 
 async function loadLibraries(): Promise<Record<string, unknown>> {
-  const entries = await Promise.all(
+  const entries: Array<readonly [string, unknown]> = [];
+  await Promise.all(
     Object.entries(libraries).map(async ([name, library]) => {
       const moduleNamespace = await importLibrary(library.specifier);
-      return [name, Object.freeze({ ...moduleNamespace })] as const;
+      const exposedLibrary = Object.freeze({ ...moduleNamespace });
+      if (library.globalName !== undefined) {
+        Object.defineProperty(globalThis, library.globalName, {
+          value: exposedLibrary,
+          writable: false,
+          configurable: false,
+        });
+      }
+      if (library.inject !== false) entries.push([name, exposedLibrary] as const);
     }),
   );
 

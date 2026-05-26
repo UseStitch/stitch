@@ -30,10 +30,22 @@ describe('sandbox hardening', () => {
     });
   });
 
-  test('does not expose eval or Function', async () => {
-    const result = await run('return { eval: typeof eval, Function: typeof Function };');
+  test('does not expose callable eval or Function', async () => {
+    const result = await run(`
+      return {
+        eval: typeof eval,
+        Function: typeof Function,
+        globalFunction: typeof globalThis.Function,
+        canCallGlobalFunction: typeof globalThis.Function === 'function',
+      };
+    `);
 
-    expect(result.result).toEqual({ eval: 'undefined', Function: 'undefined' });
+    expect(result.result).toEqual({
+      eval: 'undefined',
+      Function: 'undefined',
+      globalFunction: 'object',
+      canCallGlobalFunction: false,
+    });
   });
 
   test('blocks constructor escape paths', async () => {
@@ -48,10 +60,29 @@ describe('sandbox hardening', () => {
     expect(result.result).toEqual({});
   });
 
-  test('rejects dynamic imports', async () => {
-    const result = await run('return await import("node:fs");');
+  test('allows node fs dynamic imports', async () => {
+    const result = await run(`
+      const fs = await import('node:fs/promises');
+      return { readFile: typeof fs.readFile };
+    `);
 
-    expect(result.result).toEqual({ error: 'dynamic import is not available in the sandbox' });
+    expect(result.result).toEqual({ readFile: 'function' });
+  });
+
+  test('rejects non-fs dynamic imports', async () => {
+    const result = await run('return await import("node:child_process");');
+
+    expect(result.result).toEqual({
+      error: 'dynamic import is only available for node:fs and node:fs/promises',
+    });
+  });
+
+  test('rejects non-literal dynamic imports', async () => {
+    const result = await run('const moduleName = "node:fs"; return await import(moduleName);');
+
+    expect(result.result).toEqual({
+      error: 'dynamic import is only available for node:fs and node:fs/promises',
+    });
   });
 
   test('rejects unsafe library names', async () => {
@@ -65,5 +96,21 @@ describe('sandbox hardening', () => {
         },
       ),
     ).rejects.toThrow('Invalid sandbox library name: process');
+  });
+
+  test('rejects unsafe library global names', async () => {
+    expect(
+      createWorkerSandbox().createContext(
+        {},
+        {
+          libraries: {
+            sample: {
+              specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href,
+              globalName: 'process',
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow('Invalid sandbox library global name: process');
   });
 });

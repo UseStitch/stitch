@@ -59,6 +59,11 @@ describe('worker sandbox', () => {
         timeout: 2_000,
         libraries: {
           sample: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href },
+          sampleWorker: {
+            specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href,
+            globalName: 'sampleWorker',
+            inject: false,
+          },
         },
       },
     );
@@ -69,10 +74,20 @@ describe('worker sandbox', () => {
           label: sample.label,
           doubled: sample.double(21),
           frozen: Object.isFrozen(sample),
+          canReadFunctionPrototype: sample.canReadFunctionPrototype(),
+          hasGlobalSampleWorker: sample.hasGlobalSampleWorker(),
+          sampleWorkerType: typeof sampleWorker,
         };
       `);
 
-      expect(result.result).toEqual({ label: 'sample-library', doubled: 42, frozen: true });
+      expect(result.result).toEqual({
+        label: 'sample-library',
+        doubled: 42,
+        frozen: true,
+        canReadFunctionPrototype: true,
+        hasGlobalSampleWorker: true,
+        sampleWorkerType: 'object',
+      });
     } finally {
       context.dispose();
     }

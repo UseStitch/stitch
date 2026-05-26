@@ -72,9 +72,16 @@ function postToWorker(worker: Worker, message: HostMessage): void {
 }
 
 function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
-  for (const name of Object.keys(libraries ?? {})) {
+  for (const [name, library] of Object.entries(libraries ?? {})) {
     if (!IDENTIFIER_PATTERN.test(name) || RESERVED_LIBRARY_NAMES.has(name)) {
       throw new SandboxSecurityError(`Invalid sandbox library name: ${name}`);
+    }
+    if (
+      library.globalName !== undefined &&
+      (!IDENTIFIER_PATTERN.test(library.globalName) ||
+        RESERVED_LIBRARY_NAMES.has(library.globalName))
+    ) {
+      throw new SandboxSecurityError(`Invalid sandbox library global name: ${library.globalName}`);
     }
   }
 }

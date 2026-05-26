@@ -17,6 +17,8 @@ export type IsolateContext = {
 
 export type SandboxLibrary = {
   specifier: string;
+  globalName?: string;
+  inject?: boolean;
 };
 
 export type IsolateOptions = {

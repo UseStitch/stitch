@@ -15,6 +15,7 @@ import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
 const PDFJS_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.mjs');
+const PDFJS_WORKER_SPECIFIER = import.meta.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -164,6 +165,11 @@ function createCodeModeIsolateOptions(
     libraries: {
       ...isolateOptions.libraries,
       pdfjs: { specifier: PDFJS_SPECIFIER },
+      pdfjsWorker: {
+        specifier: PDFJS_WORKER_SPECIFIER,
+        globalName: 'pdfjsWorker',
+        inject: false,
+      },
     },
   };
 }

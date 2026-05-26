@@ -43,6 +43,16 @@ The following host-approved libraries are available as globals inside the sandbo
 ${libraries.map((name) => `- \`${name}\``).join('\n')}
 `.trim()
     : '';
+  const pdfSection = libraries.includes('pdfjs')
+    ? `
+## PDF Handling
+
+- Use \`pdfjs\` in code mode when a PDF must be parsed, summarized, or inspected from bytes/base64.
+- Do not use \`external_read\` for PDFs; it only supports text files.
+- Avoid sending a whole PDF/base64 string through one tool call if it may exceed message limits; read or produce smaller chunks.
+- If \`getTextContent()\` returns no items, report that the PDF has no extractable text instead of retrying the same parse.
+`.trim()
+    : '';
 
   return `
 ---
@@ -71,8 +81,9 @@ Do not use \`execute_typescript\` for:
 - Write TypeScript code with full type safety
 - Call any available \`external_*\` function — these map directly to real tools
 - Use any available host-approved library globals listed below
+- Use sandbox file APIs via \`await import('node:fs/promises')\` when local file bytes are needed
 - Each \`external_*\` call may require user permission approval (just like regular tool calls)
-- The sandbox has no filesystem, network, or Node.js access — only the \`external_*\` functions and listed library globals
+- The sandbox has limited Node.js access: \`node:fs\` and \`node:fs/promises\` dynamic imports, \`external_*\` functions, and listed library globals
 - \`console.log\` output is captured and returned alongside the result
 - Return a value to pass it back as the tool result
 
@@ -80,13 +91,15 @@ ${functionsSection}
 
 ${librariesSection}
 
+${pdfSection}
+
 ${typeSection}
 
 ### Usage rules
 
 - Always \`await\` external function calls — they are all async
 - Top-level \`return\` is supported — the sandbox wraps your code in an async function
-- Do **not** use top-level \`export\` or \`import\` statements — no modules are available
+- Do **not** use top-level \`export\` or static \`import\` statements; use \`await import('node:fs/promises')\` for filesystem access
 - If you define a helper \`async function\`, you **must \`await\`** the call at the top level — returning an un-awaited Promise silently discards the result
 - Do not assume any global variables exist other than \`console\`, listed libraries, and the \`external_*\` functions
 - External functions return \`Promise<unknown>\` — use type assertions if needed

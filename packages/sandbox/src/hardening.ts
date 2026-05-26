@@ -14,7 +14,6 @@ const DANGEROUS_GLOBALS = [
   'navigator',
   'location',
   'eval',
-  'Function',
 ] as const;
 
 const AsyncFunction = async function sandboxAsyncFunction() {
@@ -49,9 +48,23 @@ const CONSTRUCTOR_PROPERTY_TARGETS = [
   Date,
 ] as const;
 
-const FROZEN_PROTOTYPE_CONSTRUCTORS = CONSTRUCTOR_PROPERTY_TARGETS.filter(
-  (ctor) => ctor !== Error,
-);
+const FROZEN_PROTOTYPE_CONSTRUCTORS = CONSTRUCTOR_PROPERTY_TARGETS.filter((ctor) => ctor !== Error);
+const FUNCTION_FACADE = Object.freeze({ prototype: Function.prototype });
+const ALLOWED_DYNAMIC_IMPORTS = new Set(['node:fs', 'node:fs/promises']);
+
+function assertSafeDynamicImports(code: string): void {
+  const dynamicImports = code.matchAll(/\bimport\s*\(([^)]*)\)/g);
+
+  for (const match of dynamicImports) {
+    const specifier = match[1]?.trim();
+    const literal = specifier?.match(/^['"]([^'"]+)['"]$/);
+    if (!literal || !ALLOWED_DYNAMIC_IMPORTS.has(literal[1])) {
+      throw new SandboxSecurityError(
+        'dynamic import is only available for node:fs and node:fs/promises',
+      );
+    }
+  }
+}
 
 function removeGlobal(name: string): void {
   try {
@@ -84,6 +97,11 @@ function removePrototypeConstructor(ctor: { prototype?: object }): void {
 
 export function harden(): void {
   for (const name of DANGEROUS_GLOBALS) removeGlobal(name);
+  Object.defineProperty(globalThis, 'Function', {
+    value: FUNCTION_FACADE,
+    writable: false,
+    configurable: false,
+  });
 
   for (const ctor of CONSTRUCTOR_PROPERTY_TARGETS) {
     removePrototypeConstructor(ctor);
@@ -100,10 +118,11 @@ export function harden(): void {
 
 export function assertSafeCode(code: string): void {
   const forbiddenPatterns: Array<[RegExp, string]> = [
-    [/\bimport\s*\(/, 'dynamic import is not available in the sandbox'],
     [/^\s*import\s/m, 'import declarations are not available in the sandbox'],
     [/^\s*export\s/m, 'export declarations are not available in the sandbox'],
   ];
+
+  assertSafeDynamicImports(code);
 
   for (const [pattern, message] of forbiddenPatterns) {
     if (pattern.test(code)) throw new SandboxSecurityError(message);
