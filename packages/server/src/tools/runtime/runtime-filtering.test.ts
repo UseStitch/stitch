@@ -9,10 +9,6 @@ const mockGetDisabledToolIdentifiers = mock<(scope: ToolEnabledScope) => Promise
   async () => new Set<string>(),
 );
 
-void mock.module('@/db/client.js', () => ({
-  isDbInitialized: () => false,
-}));
-
 void mock.module('@/tools/enabled-service.js', () => ({
   isToolEnabled: (opts: { scope: ToolEnabledScope; identifier: string }) => mockIsToolEnabled(opts),
   getDisabledToolIdentifiers: (scope: ToolEnabledScope) => mockGetDisabledToolIdentifiers(scope),
