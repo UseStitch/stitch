@@ -1,58 +1,16 @@
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
+import { buildLibrariesSection } from '@/code-mode/library-instructions.js';
 
 export function buildCodeModeSystemPrompt(
   bindings: Record<string, ToolTypeInfo>,
   libraries: string[] = [],
 ): string {
-  const typeStubs = generateTypeStubs(bindings);
-
-  const functionList = Object.values(bindings)
-    .map((b) => `- \`${b.name}\`: ${b.description}`)
-    .join('\n');
-
-  const hasFunctions = Object.keys(bindings).length > 0;
-  const hasLibraries = libraries.length > 0;
-
-  const functionsSection = hasFunctions
-    ? `
-## Available External Functions
-
-The following functions are available as globals inside the sandbox:
-
-${functionList}
-`.trim()
-    : '';
-
-  const typeSection = hasFunctions
-    ? `
-## Type Definitions
-
-\`\`\`typescript
-${typeStubs}
-\`\`\`
-`.trim()
-    : '';
-
-  const librariesSection = hasLibraries
-    ? `
-## Available Libraries
-
-The following host-approved libraries are available as globals inside the sandbox:
-
-${libraries.map((name) => `- \`${name}\``).join('\n')}
-`.trim()
-    : '';
-  const pdfSection = libraries.includes('pdfjs')
-    ? `
-## PDF Handling
-
-- Use \`pdfjs\` in code mode when a PDF must be parsed, summarized, or inspected from bytes/base64.
-- Do not use \`external_read\` for PDFs; it only supports text files.
-- Avoid sending a whole PDF/base64 string through one tool call if it may exceed message limits; read or produce smaller chunks.
-- If \`getTextContent()\` returns no items, report that the PDF has no extractable text instead of retrying the same parse.
-`.trim()
-    : '';
+  const sections = [
+    buildFunctionsSection(bindings),
+    buildLibrariesSection(libraries),
+    buildTypeSection(bindings),
+  ].filter(Boolean);
 
   return `
 ---
@@ -87,13 +45,7 @@ Do not use \`execute_typescript\` for:
 - \`console.log\` output is captured and returned alongside the result
 - Return a value to pass it back as the tool result
 
-${functionsSection}
-
-${librariesSection}
-
-${pdfSection}
-
-${typeSection}
+${sections.join('\n\n')}
 
 ### Usage rules
 
@@ -149,4 +101,30 @@ return {
 };
 \`\`\`
 `.trim();
+}
+
+function buildFunctionsSection(bindings: Record<string, ToolTypeInfo>): string {
+  if (Object.keys(bindings).length === 0) return '';
+
+  const functionList = Object.values(bindings)
+    .map((b) => `- \`${b.name}\`: ${b.description}`)
+    .join('\n');
+
+  return `## Available External Functions
+
+The following functions are available as globals inside the sandbox:
+
+${functionList}`;
+}
+
+function buildTypeSection(bindings: Record<string, ToolTypeInfo>): string {
+  if (Object.keys(bindings).length === 0) return '';
+
+  const typeStubs = generateTypeStubs(bindings);
+
+  return `## Type Definitions
+
+\`\`\`typescript
+${typeStubs}
+\`\`\``;
 }
