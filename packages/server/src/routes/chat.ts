@@ -36,6 +36,9 @@ const createSessionSchema = z.object({
 
 const listSessionsQuerySchema = z.object({
   type: z.enum(['chat', 'automation']).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.coerce.number().int().optional(),
+  q: z.string().trim().optional(),
 });
 
 const listMessagesQuerySchema = z.object({
@@ -76,9 +79,9 @@ chatRouter.post('/sessions', zValidator('json', createSessionSchema), async (c) 
 });
 
 chatRouter.get('/sessions', zValidator('query', listSessionsQuerySchema), async (c) => {
-  const { type } = c.req.valid('query');
+  const { type, limit, cursor, q } = c.req.valid('query');
   const sessionType = type === 'automation' ? 'automation' : 'chat';
-  const result = await listSessions(sessionType);
+  const result = await listSessions(sessionType, { limit, cursor, search: q });
   return unwrapResult(c, result);
 });
 

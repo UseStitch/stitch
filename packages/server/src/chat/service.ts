@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -28,6 +28,7 @@ import { calculateMessageCostUsd } from '@/utils/cost.js';
 const log = Log.create({ service: 'chat-service' });
 
 const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_SESSION_PAGE_SIZE = 30;
 
 type CreateSessionInput = {
   title?: string;
@@ -76,14 +77,34 @@ export async function createSession(
 
 export async function listSessions(
   type: 'chat' | 'automation' = 'chat',
-): Promise<ServiceResult<(typeof sessions.$inferSelect)[]>> {
+  options: { limit?: number; cursor?: number; search?: string } = {},
+): Promise<ServiceResult<{ sessions: (typeof sessions.$inferSelect)[]; hasMore: boolean }>> {
   const db = getDb();
+  const pageSize = options.limit
+    ? Math.min(Math.max(options.limit, 1), 100)
+    : DEFAULT_SESSION_PAGE_SIZE;
+
+  const conditions = [eq(sessions.type, type)];
+  if (options.cursor !== undefined) {
+    conditions.push(lt(sessions.createdAt, options.cursor));
+  }
+  if (options.search) {
+    conditions.push(like(sessions.title, `%${options.search}%`));
+  }
+  if (type === 'chat') {
+    conditions.push(isNull(sessions.parentSessionId));
+  }
+
   const rows = await db
     .select()
     .from(sessions)
-    .where(eq(sessions.type, type))
-    .orderBy(asc(sessions.createdAt));
-  return ok(rows);
+    .where(and(...conditions))
+    .orderBy(desc(sessions.createdAt))
+    .limit(pageSize + 1);
+
+  const hasMore = rows.length > pageSize;
+  const page = hasMore ? rows.slice(0, pageSize) : rows;
+  return ok({ sessions: page, hasMore });
 }
 
 export async function getSessionById(sessionId: PrefixedString<'ses'>) {

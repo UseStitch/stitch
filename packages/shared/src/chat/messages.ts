@@ -128,6 +128,11 @@ export type MessagesPage = {
   hasMore: boolean;
 };
 
+export type SessionsPage = {
+  sessions: Session[];
+  hasMore: boolean;
+};
+
 export type SessionStats = {
   sessionTitle: string;
   providerLabel: string;
