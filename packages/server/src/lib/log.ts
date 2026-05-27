@@ -47,10 +47,15 @@ function formatDate(date: Date): string {
 let rootLogger: pino.Logger = pino({ level: 'silent' });
 const loggers = new Map<string, Logger>();
 
+type LoggerState = {
+  tags: Record<string, unknown>;
+  child: pino.Logger;
+};
+
+const loggerStates = new Set<LoggerState>();
+
 export async function init(options: Options): Promise<void> {
   const level = pinoLevel[options.level ?? 'INFO'];
-
-  loggers.clear();
 
   await fs.mkdir(PATHS.logDir, { recursive: true });
 
@@ -58,6 +63,9 @@ export async function init(options: Options): Promise<void> {
   const logFile = path.join(PATHS.logDir, `${prefix}.${formatDate(new Date())}.1.log`);
 
   rootLogger = pino({ level }, pino.destination({ dest: logFile, mkdir: true, sync: false }));
+  for (const state of loggerStates) {
+    state.child = rootLogger.child(state.tags);
+  }
 }
 
 // Log filename format: <prefix>.<date>.<count>.log
@@ -89,7 +97,11 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     if (cached) return cached;
   }
 
-  let child = rootLogger.child(tags);
+  const state: LoggerState = {
+    tags,
+    child: rootLogger.child(tags),
+  };
+  loggerStates.add(state);
 
   function emit(
     lvl: pino.Level,
@@ -97,9 +109,9 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     message?: string,
   ) {
     if (typeof extraOrMessage === 'string') {
-      child[lvl](extraOrMessage);
+      state.child[lvl](extraOrMessage);
     } else {
-      child[lvl](extraOrMessage, message ?? '');
+      state.child[lvl](extraOrMessage, message ?? '');
     }
   }
 
@@ -117,12 +129,12 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
       emit('error', extraOrMessage, message as string | undefined);
     },
     tag(key: string, value: string) {
-      tags = { ...tags, [key]: value };
-      child = rootLogger.child(tags);
+      state.tags = { ...state.tags, [key]: value };
+      state.child = rootLogger.child(state.tags);
       return result;
     },
     clone() {
-      return create({ ...tags }, { skipCache: true });
+      return create({ ...state.tags }, { skipCache: true });
     },
     time(message: string, extra?: Record<string, unknown>) {
       const now = Date.now();

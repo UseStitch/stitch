@@ -28,6 +28,26 @@ async function writeLogFiles(names: string[]) {
   );
 }
 
+async function readLogOutput(): Promise<string> {
+  const entries = await fs.readdir(PATHS.logDir).catch(() => []);
+  const logs = await Promise.all(
+    entries
+      .filter((name) => name.endsWith('.log'))
+      .map((name) => fs.readFile(path.join(PATHS.logDir, name), 'utf-8').catch(() => '')),
+  );
+  return logs.join('\n');
+}
+
+async function waitForLogOutput(message: string): Promise<string> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 1_000) {
+    const output = await readLogOutput();
+    if (output.includes(message)) return output;
+    await Bun.sleep(10);
+  }
+  return readLogOutput();
+}
+
 // Generates filenames matching log format: app.<date>.<count>.log
 function dailyLogNames(count: number, startDate = new Date('2020-01-01')): string[] {
   return Array.from({ length: count }, (_, i) => {
@@ -140,5 +160,21 @@ describe('Log.create', () => {
     expect(() => {
       using _t = log.time('block-op');
     }).not.toThrow();
+  });
+
+  test('loggers created before init write after init', async () => {
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    await clearLogDir();
+
+    const log = Log.create({ service: 'test-pre-init' });
+    await Log.init({});
+
+    log.info('pre-init logger is active');
+
+    const output = await waitForLogOutput('pre-init logger is active');
+    expect(output).toContain('pre-init logger is active');
+    expect(output).toContain('test-pre-init');
+
+    await clearLogDir();
   });
 });
