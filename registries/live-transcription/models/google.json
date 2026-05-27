@@ -1,0 +1,31 @@
+{
+  "$schema": "../schema/live-transcription-provider.schema.json",
+  "providerId": "google",
+  "providerName": "Google",
+  "models": [
+    {
+      "id": "gemini-3.1-flash-live-preview",
+      "name": "Gemini 3.1 Flash Live",
+      "endpoint": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent",
+      "supportedLanguages": ["en", "es", "fr", "de", "it", "pt", "ja", "ko", "zh", "hi", "ar"],
+      "audio": {
+        "sampleRate": 16000,
+        "channels": 1,
+        "encoding": "pcm_s16le"
+      },
+      "connection": {
+        "mode": "per-source",
+        "authMethod": "query-param",
+        "authParam": "key"
+      },
+      "features": {
+        "voiceActivityDetection": true,
+        "partialResults": true
+      },
+      "limits": {
+        "maxSessionDurationMs": 7200000,
+        "maxChunkDurationMs": 200
+      }
+    }
+  ]
+}
