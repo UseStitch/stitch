@@ -12,6 +12,7 @@ import type {
   Session,
   SessionStats,
   MessagesPage,
+  SessionsPage,
   LanguageModelUsage,
   StoredPart,
 } from '@stitch/shared/chat/messages';
@@ -35,20 +36,43 @@ const EMPTY_USAGE: LanguageModelUsage = {
 export const sessionKeys = {
   all: ['sessions'] as const,
   list: () => [...sessionKeys.all, 'list'] as const,
+  infiniteList: (search: string) => [...sessionKeys.list(), 'infinite', search] as const,
   detail: (id: string) => [...sessionKeys.all, 'detail', id] as const,
   messages: (id: string) => [...sessionKeys.all, 'messages', id] as const,
   stats: (id: string) => [...sessionKeys.all, 'stats', id] as const,
 };
 
-export const sessionsQueryOptions = queryOptions({
-  queryKey: sessionKeys.list(),
-  staleTime: Infinity,
-  queryFn: async (): Promise<Session[]> => {
-    const res = await serverFetch('/chat/sessions?type=chat');
-    if (!res.ok) throw new Error('Failed to fetch sessions');
-    return res.json() as Promise<Session[]>;
-  },
-});
+const SESSION_PAGE_SIZE = 30;
+
+export const sessionsInfiniteQueryOptions = (search: string) =>
+  infiniteQueryOptions({
+    queryKey: sessionKeys.infiniteList(search),
+    queryFn: async ({ pageParam }): Promise<SessionsPage> => {
+      const params = new URLSearchParams({
+        type: 'chat',
+        limit: String(SESSION_PAGE_SIZE),
+      });
+      if (search) {
+        params.set('q', search);
+      }
+      if (pageParam !== undefined) {
+        params.set('cursor', String(pageParam));
+      }
+
+      const res = await serverFetch(`/chat/sessions?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch sessions');
+      return res.json() as Promise<SessionsPage>;
+    },
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage.hasMore || lastPage.sessions.length === 0) return undefined;
+      const oldest = lastPage.sessions.at(-1);
+      if (!oldest) return undefined;
+      if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
+      return oldest.createdAt;
+    },
+    staleTime: Infinity,
+  });
 
 export const sessionQueryOptions = (id: string) =>
   queryOptions({

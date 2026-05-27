@@ -10,6 +10,17 @@ Stitch is a ai based tool to help users do work locally.
 | ------------- | ------------------------ |
 | `bun install` | Install all dependencies |
 
+## Think Before Coding
+
+Before implementing anything:
+
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
 ## General Workflow
 
 After completing any task, you **must** run the following checks and fix all issues until the output is fully clean:
@@ -25,6 +36,22 @@ Do not consider a task done until all three commands pass with zero errors.
 - Write a reproducible test case wherever possible before fixing the bug
 - Fix the bug while ensuring the test passes
 - This ensures the bug is well-understood and prevents regressions
+
+Transform bug tasks into verifiable goals:
+
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+
+### Surgical Changes
+
+When editing existing code:
+
+- Don't "improve" adjacent code, comments, or formatting that isn't broken
+- Don't refactor things outside the scope of the task
+- Match existing style, even if you'd do it differently
+- If you notice unrelated dead code, mention it — don't delete it
+
+Every changed line should trace directly to the user's request.
 
 ### Managing Packages
 
@@ -69,6 +96,16 @@ Do not consider a task done until all three commands pass with zero errors.
 
 - Prefer low cyclomatic complexity code - keep functions simple with minimal branching
 - Prefer absolute imports over relative (ie. import x from '@stitch/lib/...' instead of import x from '../../lib/...')
+
+#### Simplicity First
+
+- No features beyond what was asked
+- No abstractions for single-use code
+- No "flexibility" or "configurability" that wasn't requested
+- No error handling for impossible scenarios
+- If you write 200 lines and it could be 50, rewrite it
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
 Naming Conventions
 
