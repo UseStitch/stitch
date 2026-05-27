@@ -11,9 +11,13 @@ const schemaDir = join(registryDir, 'schema');
 const embeddingsRegistryDir = join(rootDir, 'registries', 'embeddings');
 const embeddingModelsDir = join(embeddingsRegistryDir, 'models');
 const embeddingSchemaDir = join(embeddingsRegistryDir, 'schema');
+const liveTranscriptionRegistryDir = join(rootDir, 'registries', 'live-transcription');
+const liveTranscriptionModelsDir = join(liveTranscriptionRegistryDir, 'models');
+const liveTranscriptionSchemaDir = join(liveTranscriptionRegistryDir, 'schema');
 const outputDir = join(rootDir, 'apps', 'website', 'dist');
 const outputFile = join(outputDir, 'mcp-registry.json');
 const embeddingOutputFile = join(outputDir, 'embedding-models.json');
+const liveTranscriptionOutputFile = join(outputDir, 'live-transcription-models.json');
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -189,6 +193,73 @@ function assertEmbeddingProviderConfig(provider, filePath) {
   }
 }
 
+function assertLiveTranscriptionModel(model, filePath) {
+  assert(model && typeof model === 'object', `${filePath}: model must be an object`);
+  assert(typeof model.id === 'string' && model.id.length > 0, `${filePath}: model.id is required`);
+  assert(
+    typeof model.name === 'string' && model.name.length > 0,
+    `${filePath}: model.name is required`,
+  );
+  assert(
+    typeof model.endpoint === 'string' && model.endpoint.startsWith('wss://'),
+    `${filePath}: model.endpoint must be a wss:// URL`,
+  );
+  assert(model.audio && typeof model.audio === 'object', `${filePath}: model.audio is required`);
+  assert(
+    Number.isInteger(model.audio.sampleRate) && model.audio.sampleRate >= 8000,
+    `${filePath}: model.audio.sampleRate must be an integer >= 8000`,
+  );
+  assert(
+    Number.isInteger(model.audio.channels) && model.audio.channels >= 1,
+    `${filePath}: model.audio.channels must be a positive integer`,
+  );
+  assert(
+    model.audio.encoding === 'pcm_s16le',
+    `${filePath}: model.audio.encoding must be pcm_s16le`,
+  );
+  assert(
+    model.connection && typeof model.connection === 'object',
+    `${filePath}: model.connection is required`,
+  );
+  assert(
+    model.connection.mode === 'per-source' || model.connection.mode === 'single',
+    `${filePath}: model.connection.mode must be per-source or single`,
+  );
+  assert(
+    model.connection.authMethod === 'query-param' || model.connection.authMethod === 'header',
+    `${filePath}: model.connection.authMethod must be query-param or header`,
+  );
+  if (model.supportedLanguages !== undefined) {
+    assert(
+      Array.isArray(model.supportedLanguages) && model.supportedLanguages.length > 0,
+      `${filePath}: model.supportedLanguages must be a non-empty array`,
+    );
+  }
+}
+
+function assertLiveTranscriptionProviderConfig(provider, filePath) {
+  assert(provider && typeof provider === 'object', `${filePath}: config must be an object`);
+  assert(
+    provider.providerId === 'google' || provider.providerId === 'openai',
+    `${filePath}: providerId must be google or openai`,
+  );
+  assert(
+    typeof provider.providerName === 'string' && provider.providerName.length > 0,
+    `${filePath}: providerName is required`,
+  );
+  assert(
+    Array.isArray(provider.models) && provider.models.length > 0,
+    `${filePath}: models must be a non-empty array`,
+  );
+
+  const ids = new Set();
+  for (const model of provider.models) {
+    assertLiveTranscriptionModel(model, filePath);
+    assert(!ids.has(model.id), `${filePath}: duplicate model id ${model.id}`);
+    ids.add(model.id);
+  }
+}
+
 function loadServerConfigs() {
   const files = readdirSync(serversDir)
     .filter((name) => name.endsWith('.json'))
@@ -232,7 +303,30 @@ function loadEmbeddingProviderConfigs() {
   return providers.toSorted((a, b) => a.providerName.localeCompare(b.providerName));
 }
 
-function writeOutput(servers, embeddingProviders) {
+function loadLiveTranscriptionProviderConfigs() {
+  const files = readdirSync(liveTranscriptionModelsDir)
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => join(liveTranscriptionModelsDir, name));
+
+  const providers = files.map((filePath) => {
+    const parsed = readJson(filePath);
+    assertLiveTranscriptionProviderConfig(parsed, filePath);
+    return parsed;
+  });
+
+  const ids = new Set();
+  for (const provider of providers) {
+    assert(
+      !ids.has(provider.providerId),
+      `Duplicate live transcription provider id: ${provider.providerId}`,
+    );
+    ids.add(provider.providerId);
+  }
+
+  return providers.toSorted((a, b) => a.providerName.localeCompare(b.providerName));
+}
+
+function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(join(outputDir, 'schemas'), { recursive: true });
 
@@ -244,6 +338,10 @@ function writeOutput(servers, embeddingProviders) {
   cpSync(
     join(embeddingSchemaDir, 'embedding-provider.schema.json'),
     join(outputDir, 'schemas', 'embedding-provider.schema.json'),
+  );
+  cpSync(
+    join(liveTranscriptionSchemaDir, 'live-transcription-provider.schema.json'),
+    join(outputDir, 'schemas', 'live-transcription-provider.schema.json'),
   );
 
   const payload = {
@@ -261,15 +359,31 @@ function writeOutput(servers, embeddingProviders) {
   };
 
   writeFileSync(embeddingOutputFile, `${JSON.stringify(embeddingPayload, null, 2)}\n`, 'utf8');
+
+  const liveTranscriptionPayload = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    providers: liveTranscriptionProviders,
+  };
+
+  writeFileSync(
+    liveTranscriptionOutputFile,
+    `${JSON.stringify(liveTranscriptionPayload, null, 2)}\n`,
+    'utf8',
+  );
 }
 
 function main() {
   const servers = loadServerConfigs();
   const embeddingProviders = loadEmbeddingProviderConfigs();
-  writeOutput(servers, embeddingProviders);
+  const liveTranscriptionProviders = loadLiveTranscriptionProviderConfigs();
+  writeOutput(servers, embeddingProviders, liveTranscriptionProviders);
   console.log(`Built MCP registry with ${servers.length} server(s): ${outputFile}`);
   console.log(
     `Built embedding registry with ${embeddingProviders.length} provider(s): ${embeddingOutputFile}`,
+  );
+  console.log(
+    `Built live transcription registry with ${liveTranscriptionProviders.length} provider(s): ${liveTranscriptionOutputFile}`,
   );
 }
 
