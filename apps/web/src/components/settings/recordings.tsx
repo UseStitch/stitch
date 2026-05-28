@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { audioProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
@@ -307,17 +308,20 @@ function AudioDeviceSettings() {
             Gain multiplier for system audio in the mix. Default is 10.
           </p>
         </div>
-        <div className="flex w-40 shrink-0 items-center gap-2">
-          <span className="text-xs text-muted-foreground tabular-nums">{currentSpeakerGain}</span>
-          <input
-            type="range"
-            min="1"
-            max="30"
-            step="1"
-            value={currentSpeakerGain}
-            onChange={(e) => saveSpeakerGainMutation.mutate(e.target.value)}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+        <div className="flex w-64 shrink-0 items-center gap-3">
+          <Slider
+            value={[currentSpeakerGain]}
+            min={1}
+            max={30}
+            step={1}
+            onValueChange={(value) => {
+              const nextValue = Array.isArray(value) ? value[0] : value;
+              saveSpeakerGainMutation.mutate(String(nextValue ?? currentSpeakerGain));
+            }}
           />
+          <span className="w-6 text-right text-xs text-muted-foreground tabular-nums">
+            {currentSpeakerGain}
+          </span>
         </div>
       </div>
     </div>
