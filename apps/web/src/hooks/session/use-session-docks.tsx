@@ -188,14 +188,14 @@ export function useSessionDocks({
       });
     }
 
-    if (todos.length > 0) {
-      const activeCount = todos.filter(
-        (todo) => todo.status === 'pending' || todo.status === 'in_progress',
-      ).length;
+    const activeCount = todos.filter(
+      (todo) => todo.status === 'pending' || todo.status === 'in_progress',
+    ).length;
 
+    if (todos.length > 0 && activeCount > 0) {
       items.push({
         id: 'todos',
-        title: activeCount > 0 ? `Todos (${activeCount} active)` : 'Todos',
+        title: `Todos (${activeCount} active)`,
         defaultExpanded: todos.some((todo) => todo.status === 'in_progress'),
         variant: 'default',
         children: <TodoDock todos={todos} />,

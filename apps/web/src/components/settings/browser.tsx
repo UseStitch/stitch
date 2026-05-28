@@ -1,5 +1,6 @@
 import { CheckCircleIcon, DownloadIcon, FolderIcon, LoaderIcon, UserIcon } from 'lucide-react';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
@@ -8,7 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { chromeProfilesQueryOptions, importProfileMutationOptions } from '@/lib/queries/browser';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
+import { toolEnabledStatesQueryOptions, useSetToolEnabledState } from '@/lib/queries/tools';
 import { cn } from '@/lib/utils';
+
+const BROWSER_TOOLSET_ID = 'browser';
 
 function formatImportedLabel(raw: string): string {
   const separator = ' — ';
@@ -61,7 +65,7 @@ function ProfileStatus() {
   );
 }
 
-function ProfileList() {
+function ProfileList({ disabled }: { disabled: boolean }) {
   const queryClient = useQueryClient();
   const { data: profiles } = useSuspenseQuery(chromeProfilesQueryOptions);
   const importMutation = useMutation(importProfileMutationOptions(queryClient));
@@ -101,7 +105,7 @@ function ProfileList() {
           <Button
             variant="outline"
             size="sm"
-            disabled={importMutation.isPending}
+            disabled={disabled || importMutation.isPending}
             onClick={() => importMutation.mutate(profile.id)}
           >
             {importMutation.isPending && importMutation.variables === profile.id ? (
@@ -118,6 +122,11 @@ function ProfileList() {
           </Button>
         </div>
       ))}
+      {disabled ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Enable the browser tool to import Chrome profiles.
+        </p>
+      ) : null}
       {importMutation.isPending ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Copying Chrome profile data. This may take a few seconds...
@@ -127,7 +136,7 @@ function ProfileList() {
   );
 }
 
-function HeadlessToggle() {
+function HeadlessToggle({ disabled }: { disabled: boolean }) {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const headless = settings['browser.headless'] !== 'false';
@@ -137,11 +146,12 @@ function HeadlessToggle() {
   );
 
   function handleToggle(checked: boolean) {
+    if (disabled) return;
     saveMutation.mutate(checked ? 'true' : 'false');
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
+    <div className={cn('flex items-center justify-between gap-4 py-3', disabled && 'opacity-60')}>
       <div className="flex min-w-0 flex-col gap-0.5">
         <Label htmlFor="headless-toggle" className="text-sm font-medium">
           Headless mode
@@ -150,13 +160,61 @@ function HeadlessToggle() {
           Run the browser in the background without a visible window
         </p>
       </div>
-      <Switch id="headless-toggle" checked={headless} onCheckedChange={handleToggle} />
+      <Switch
+        id="headless-toggle"
+        checked={headless}
+        onCheckedChange={handleToggle}
+        disabled={disabled || saveMutation.isPending}
+      />
+    </div>
+  );
+}
+
+function BrowserToolsetToggle({
+  enabled,
+  isMutating,
+  onToggle,
+}: {
+  enabled: boolean;
+  isMutating: boolean;
+  onToggle: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <Label htmlFor="browser-toolset-toggle" className="text-sm font-medium">
+          Enable browser tool
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Browser Toolset {enabled ? 'Active' : 'Inactive'}
+        </p>
+      </div>
+      <Switch
+        id="browser-toolset-toggle"
+        checked={enabled}
+        onCheckedChange={onToggle}
+        disabled={isMutating}
+      />
     </div>
   );
 }
 
 export function BrowserSettings() {
   const isMac = window.electron?.platform === 'darwin';
+  const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
+  const setToolEnabledState = useSetToolEnabledState();
+  const browserToolEnabled =
+    enabledStates.find(
+      (state) => state.scope === 'toolset' && state.identifier === BROWSER_TOOLSET_ID,
+    )?.enabled ?? true;
+
+  function handleBrowserToolsetToggle(checked: boolean) {
+    void setToolEnabledState
+      .mutateAsync({ scope: 'toolset', identifier: BROWSER_TOOLSET_ID, enabled: checked })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update browser tool');
+      });
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -166,15 +224,19 @@ export function BrowserSettings() {
       </div>
 
       <section className="space-y-3">
-        <h3 className="text-sm font-medium">Display</h3>
+        <BrowserToolsetToggle
+          enabled={browserToolEnabled}
+          isMutating={setToolEnabledState.isPending}
+          onToggle={handleBrowserToolsetToggle}
+        />
         <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-          <HeadlessToggle />
+          <HeadlessToggle disabled={!browserToolEnabled} />
         </React.Suspense>
       </section>
 
       {isMac ? (
         <>
-          <section className="mt-8 space-y-3">
+          <section className={cn('mt-8 space-y-3', !browserToolEnabled && 'opacity-70')}>
             <h3 className="text-sm font-medium">Chrome Profile</h3>
             <p className="text-xs text-muted-foreground">
               Import your Chrome profile to use your existing logins, cookies, and sessions. This
@@ -193,19 +255,11 @@ export function BrowserSettings() {
             <React.Suspense
               fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
             >
-              <ProfileList />
+              <ProfileList disabled={!browserToolEnabled} />
             </React.Suspense>
           </section>
         </>
-      ) : (
-        <section className="mt-8 space-y-3">
-          <h3 className="text-sm font-medium">Chrome Profile</h3>
-          <p className="text-xs text-muted-foreground">
-            The browser uses a default Chrome profile on Windows. Profile importing is only
-            available on macOS.
-          </p>
-        </section>
-      )}
+      ) : null}
     </div>
   );
 }

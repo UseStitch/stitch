@@ -234,13 +234,8 @@ export function SessionChatPane({
                     streamState.isStreaming && 'is-streaming',
                   )}
                 >
-                  <div className="streaming-border-wrapper-inner">
-                    <div className="streaming-border-wrapper-clip">
-                      <div className="streaming-border-spinner" />
-                    </div>
-                  </div>
                   <div
-                    className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm"
+                    className="streaming-border-content shadow-sm"
                     style={{ viewTransitionName: 'chat-input' }}
                   >
                     <DockContainer docks={docks} />

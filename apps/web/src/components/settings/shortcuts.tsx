@@ -6,10 +6,11 @@ import { useHotkeyRecorder, formatForDisplay } from '@tanstack/react-hotkeys';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
-import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
+import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
   shortcutsQueryOptions,
@@ -316,33 +317,41 @@ function ShortcutsContent() {
         </button>
       </div>
 
-      {groups.size === 0 && (
-        <p className="py-8 text-center text-sm font-medium text-muted-foreground">
-          No shortcuts found matching "{search}"
-        </p>
-      )}
-
-      <div className="flex flex-col gap-8">
-        {Array.from(groups.entries()).map(([category, entries]) => (
-          <div key={category} className="flex flex-col gap-3">
-            <h3 className="px-1 text-[11px] font-bold tracking-widest text-muted-foreground uppercase">
+      <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-4">
+        <TabsList>
+          {SHORTCUT_CATEGORIES.map((category) => (
+            <TabsTrigger key={category} value={category}>
               {category}
-            </h3>
-            <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
-              {entries.map((entry) => (
-                <ShortcutRow
-                  key={entry.actionId}
-                  entry={entry}
-                  isDefault={isDefaultHotkey(entry)}
-                  conflict={conflicts.get(entry.actionId) ?? null}
-                  recordingId={recordingId}
-                  onStartRecording={handleStartRecording}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {SHORTCUT_CATEGORIES.map((category) => {
+          const entries = groups.get(category) ?? [];
+          return (
+            <TabsContent key={category} value={category} className="mt-0">
+              {entries.length > 0 ? (
+                <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+                  {entries.map((entry) => (
+                    <ShortcutRow
+                      key={entry.actionId}
+                      entry={entry}
+                      isDefault={isDefaultHotkey(entry)}
+                      conflict={conflicts.get(entry.actionId) ?? null}
+                      recordingId={recordingId}
+                      onStartRecording={handleStartRecording}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm font-medium text-muted-foreground">
+                  No {category.toLowerCase()} shortcuts match "{search}"
+                </p>
+              )}
+            </TabsContent>
+          );
+        })}
+      </Tabs>
 
       {recordingId && (
         <p className="pt-4 text-center text-xs font-medium text-muted-foreground">

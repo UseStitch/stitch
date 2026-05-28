@@ -6,7 +6,6 @@ import {
   ServerIcon,
   PaletteIcon,
   WrenchIcon,
-  FolderOpenIcon,
   MonitorIcon,
   CpuIcon,
   MicIcon,
@@ -17,7 +16,6 @@ import * as React from 'react';
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { BrowserSettings } from '@/components/settings/browser';
 import { GeneralSettings } from '@/components/settings/general';
-import { KeyLocationsSettings } from '@/components/settings/key-locations';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
 import { MemorySettings } from '@/components/settings/memory';
 import { ModelsSettings } from '@/components/settings/models';
@@ -49,7 +47,6 @@ const SECTIONS: SettingsSection[] = [
     items: [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
-      { id: 'key-locations', label: 'Key Locations', icon: <FolderOpenIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
     ],
   },
@@ -136,8 +133,6 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <RecordingsSettings />;
     case 'shortcuts':
       return <ShortcutsSettings />;
-    case 'key-locations':
-      return <KeyLocationsSettings />;
     case 'providers':
       return <ProvidersSettings />;
     case 'models':
