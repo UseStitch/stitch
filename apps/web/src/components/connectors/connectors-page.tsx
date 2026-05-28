@@ -53,7 +53,7 @@ export function ConnectorsPage() {
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <TabsTrigger value="connected" className="gap-2">
               Connected
-              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[11px]">
                 {instances.length}
               </Badge>
               {pendingUpdates > 0 ? (

@@ -2,9 +2,6 @@ import {
   Trash2Icon,
   RefreshCwIcon,
   ExternalLinkIcon,
-  CheckCircle2Icon,
-  AlertCircleIcon,
-  ClockIcon,
   Loader2Icon,
   ArrowUpCircleIcon,
 } from 'lucide-react';
@@ -19,7 +16,6 @@ import type {
 } from '@stitch/shared/connectors/types';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   useAuthorizeConnector,
@@ -37,29 +33,29 @@ const STATUS_CONFIG: Record<
   ConnectorStatus,
   {
     label: string;
-    icon: React.ReactNode;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    dotClassName: string;
+    textClassName: string;
   }
 > = {
   connected: {
     label: 'Connected',
-    icon: <CheckCircle2Icon className="size-3" />,
-    variant: 'default',
+    dotClassName: 'bg-success shadow-success-glow',
+    textClassName: 'text-success',
   },
   awaiting_auth: {
     label: 'Awaiting Auth',
-    icon: <ClockIcon className="size-3" />,
-    variant: 'outline',
+    dotClassName: 'bg-warning',
+    textClassName: 'text-warning',
   },
   pending_setup: {
     label: 'Pending Setup',
-    icon: <ClockIcon className="size-3" />,
-    variant: 'outline',
+    dotClassName: 'bg-muted-foreground',
+    textClassName: 'text-muted-foreground',
   },
   error: {
     label: 'Error',
-    icon: <AlertCircleIcon className="size-3" />,
-    variant: 'destructive',
+    dotClassName: 'bg-destructive shadow-destructive-glow',
+    textClassName: 'text-destructive',
   },
 };
 
@@ -183,40 +179,52 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/80 px-4 py-3.5 text-sm"
+            className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/80 px-5 py-4 text-sm sm:flex-row sm:items-center"
           >
-            <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">
-              <ConnectorIcon
-                icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
-                className="size-7 rounded-md"
-              />
-            </div>
+            <div className="flex min-w-0 flex-1 items-start gap-4">
+              <div className="shrink-0 rounded-xl border border-border/70 bg-muted/70 p-2">
+                <ConnectorIcon
+                  icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
+                  className="size-8 rounded-lg"
+                />
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{instance.label}</span>
-                <Badge variant={statusConfig.variant} className="gap-1">
-                  {statusConfig.icon}
-                  {statusConfig.label}
-                </Badge>
-                {instance.upgrade?.available && (
-                  <Badge variant="outline" className="gap-1 text-warning">
-                    <ArrowUpCircleIcon className="size-3" />
-                    Upgrade available
-                  </Badge>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="leading-6 font-medium">{instance.label}</span>
+                </div>
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <span
+                    className={`inline-flex items-center gap-1.5 ${statusConfig.textClassName}`}
+                  >
+                    <span className={`size-1.5 rounded-full ${statusConfig.dotClassName}`} />
+                    {statusConfig.label}
+                  </span>
+                  {instance.accountEmail && (
+                    <>
+                      <span className="text-muted-foreground/60">/</span>
+                      <span className="truncate text-muted-foreground">
+                        {instance.accountEmail}
+                      </span>
+                    </>
+                  )}
+                  {instance.upgrade?.available && (
+                    <>
+                      <span className="text-muted-foreground/60">/</span>
+                      <span className="inline-flex items-center gap-1 text-warning">
+                        <ArrowUpCircleIcon className="size-3" />
+                        Upgrade available
+                      </span>
+                    </>
+                  )}
+                </div>
+                {statusConfig.message && (
+                  <p className="text-xs text-muted-foreground">{statusConfig.message}</p>
                 )}
               </div>
-              {instance.accountEmail && (
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {instance.accountEmail}
-                </p>
-              )}
-              {statusConfig.message && (
-                <p className="mt-1 text-xs text-muted-foreground">{statusConfig.message}</p>
-              )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               {instance.upgrade?.available && (
                 <Button
                   variant="outline"
