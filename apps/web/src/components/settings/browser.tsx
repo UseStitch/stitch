@@ -259,15 +259,7 @@ export function BrowserSettings() {
             </React.Suspense>
           </section>
         </>
-      ) : (
-        <section className="mt-8 space-y-3">
-          <h3 className="text-sm font-medium">Chrome Profile</h3>
-          <p className="text-xs text-muted-foreground">
-            The browser uses a default Chrome profile on Windows. Profile importing is only
-            available on macOS.
-          </p>
-        </section>
-      )}
+      ) : null}
     </div>
   );
 }
