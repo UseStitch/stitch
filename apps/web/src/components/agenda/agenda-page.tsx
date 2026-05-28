@@ -1,8 +1,9 @@
 import {
-  CalendarCheckIcon,
+  ActivityIcon,
   CheckCircleIcon,
   CircleAlertIcon,
   GripVerticalIcon,
+  InboxIcon,
   ListTodoIcon,
   PencilIcon,
   PlusIcon,
@@ -338,23 +339,23 @@ export function AgendaPage({ listId }: { listId?: string }) {
         {/* Summary cards */}
         {!listId && (
           <div className="mb-4 flex gap-3">
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background p-3">
-              <CalendarCheckIcon className="size-4 text-muted-foreground" />
-              <div>
+            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
+              <InboxIcon className="absolute top-3 right-3 size-5 text-muted-foreground/25" />
+              <div className="pr-8">
                 <p className="text-xs text-muted-foreground">Open</p>
                 <p className="text-lg font-semibold">{totalOpen}</p>
               </div>
             </div>
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background p-3">
-              <ListTodoIcon className="size-4 text-muted-foreground" />
-              <div>
+            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
+              <ActivityIcon className="absolute top-3 right-3 size-5 text-muted-foreground/25" />
+              <div className="pr-8">
                 <p className="text-xs text-muted-foreground">In Progress</p>
                 <p className="text-lg font-semibold">{totalInProgress}</p>
               </div>
             </div>
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background p-3">
-              <CircleAlertIcon className="size-4 text-destructive" />
-              <div>
+            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
+              <CircleAlertIcon className="absolute top-3 right-3 size-5 text-destructive/35" />
+              <div className="pr-8">
                 <p className="text-xs text-muted-foreground">Overdue</p>
                 <p className="text-lg font-semibold">{totalOverdue}</p>
               </div>
