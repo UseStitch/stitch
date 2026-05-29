@@ -37,6 +37,7 @@ export function createRegisteredTool() {
         `Base directory for this skill: ${base}`,
         'Relative paths in this skill (e.g., scripts/, references/, agents/, assets/) are relative to this base directory.',
         'Use the Read tool to access any file listed below when needed.',
+        'Files in the agents/ directory are sub-agent definitions — execute them using the Task tool (sub task).',
         '',
         '<skill_files>',
         fileList,
