@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { createSkillSchema } from '@stitch/shared/skills/types';
 
+import { SkillInvalidError, SkillNameCollisionError } from '@/skills/errors.js';
 import { collectSkillDirFiles, resolveBuiltInsDir } from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 
@@ -33,7 +34,7 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
       const skillMdPath = path.join(skillDir, SKILL_MD_FILENAME);
 
       if (!existsSync(skillMdPath)) {
-        throw new Error(
+        throw new SkillInvalidError(
           `Built-in skill directory "${skillDirEntry.name}" is missing ${SKILL_MD_FILENAME}`,
         );
       }
@@ -41,14 +42,14 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
       const markdown = await readFile(skillMdPath, 'utf8');
       const parsed = parseSkillMarkdown(markdown);
       if (!parsed) {
-        throw new Error(
+        throw new SkillInvalidError(
           `Invalid built-in skill markdown: ${skillDirEntry.name}/${SKILL_MD_FILENAME}`,
         );
       }
 
       const result = createSkillSchema.safeParse(parsed);
       if (!result.success) {
-        throw new Error(
+        throw new SkillInvalidError(
           `Invalid built-in skill ${skillDirEntry.name}: ${result.error.issues[0]?.message ?? 'validation failed'}`,
         );
       }
@@ -66,7 +67,7 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
 
   const names = new Set<string>();
   for (const skill of skills) {
-    if (names.has(skill.name)) throw new Error(`Duplicate built-in skill name: ${skill.name}`);
+    if (names.has(skill.name)) throw new SkillNameCollisionError(skill.name);
     names.add(skill.name);
   }
 
