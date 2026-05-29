@@ -169,6 +169,13 @@
       "when": 1779570598739,
       "tag": "0023_dedup_tool_permissions_null_pattern",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1780074152703,
+      "tag": "0024_real_kingpin",
+      "breakpoints": true
     }
   ]
 }

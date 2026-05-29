@@ -17,8 +17,8 @@ export async function loadBuiltInSkills(
 ): Promise<SkillCreateInput[]> {
   const skills = await Promise.all(
     files.map(async (file) => {
-      const path = resolveRuntimeAssetPath(file.sourceUrl, file.bundledPath);
-      const markdown = await readFile(path, 'utf8');
+      const filePath = resolveRuntimeAssetPath(file.sourceUrl, file.bundledPath);
+      const markdown = await readFile(filePath, 'utf8');
       const parsed = parseSkillMarkdown(markdown);
       if (!parsed) throw new Error(`Invalid built-in skill markdown: ${file.bundledPath}`);
 

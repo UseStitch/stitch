@@ -1,5 +1,7 @@
-import { and, eq, inArray, ne, or } from 'drizzle-orm';
-import { createHash } from 'node:crypto';
+import { eq, inArray } from 'drizzle-orm';
+import { existsSync } from 'node:fs';
+import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { createSkillId } from '@stitch/shared/id';
 import {
@@ -17,11 +19,26 @@ import type {
 } from '@stitch/shared/skills/types';
 
 import { getDb, isDbInitialized } from '@/db/client.js';
-import { skills } from '@/db/schema.js';
+import { skillMetadata } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { getBuiltInSkillSource, loadBuiltInSkills } from '@/skills/built-in-skills.js';
+import {
+  SkillImportError,
+  SkillInvalidError,
+  SkillNameCollisionError,
+  SkillNotFoundError,
+} from '@/skills/errors.js';
+import {
+  buildSkillMd,
+  ensureSkillsDir,
+  getSkillDir,
+  getSkillMdPath,
+  getSkillsDir,
+  listSkillFiles,
+  readSkillMdFile,
+  writeSkillMdFile,
+} from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 
 const log = Log.create({ service: 'skills' });
@@ -46,34 +63,51 @@ type SkillsDownloadResponse = {
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
 
-function normalizeSkillValue(value: string): string {
-  return value.trim();
-}
+type MetadataRow = {
+  id: SkillId;
+  isExternal: boolean;
+  source: string | null;
+  createdAt: number;
+  updatedAt: number;
+};
 
-function computeSkillHash(input: SkillCreateInput): string {
-  return createHash('sha256')
-    .update(
-      JSON.stringify({
-        name: normalizeSkillValue(input.name),
-        description: normalizeSkillValue(input.description),
-        content: normalizeSkillValue(input.content),
-      }),
-      'utf8',
-    )
-    .digest('hex');
-}
+function getMetadata(name: string): MetadataRow | null {
+  if (!isDbInitialized()) return null;
 
-function buildSkillRow(input: SkillCreateInput, now: number, source: string | null): Skill {
+  const row = getDb().select().from(skillMetadata).where(eq(skillMetadata.name, name)).get();
+  if (!row) return null;
+
   return {
-    id: createSkillId(),
-    name: input.name,
-    description: input.description.trim(),
-    content: input.content.trim(),
-    hash: computeSkillHash(input),
-    isExternal: false,
-    source,
-    createdAt: now,
-    updatedAt: now,
+    id: row.id,
+    isExternal: row.isExternal,
+    source: row.source,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+async function readSkillFromDisk(name: string): Promise<Skill | null> {
+  const markdown = await readSkillMdFile(name);
+  if (!markdown) return null;
+
+  const parsed = parseSkillMarkdown(markdown);
+  if (!parsed) return null;
+
+  const skillDir = getSkillDir(name);
+  const files = await listSkillFiles(skillDir);
+  const metadata = getMetadata(name);
+
+  return {
+    id: metadata?.id ?? createSkillId(),
+    name: parsed.name,
+    description: parsed.description,
+    content: parsed.content,
+    location: getSkillMdPath(name),
+    isExternal: metadata?.isExternal ?? false,
+    source: metadata?.source ?? null,
+    createdAt: metadata?.createdAt ?? Date.now(),
+    updatedAt: metadata?.updatedAt ?? Date.now(),
+    files,
   };
 }
 
@@ -81,39 +115,30 @@ function toSourceKey(source: string, slug: string): string {
   return `${source.trim().toLowerCase()}/${slug.trim().toLowerCase()}`;
 }
 
-async function skillHashExists(hash: string, exceptId?: SkillId): Promise<boolean> {
-  const query = exceptId
-    ? getDb()
-        .select({ id: skills.id })
-        .from(skills)
-        .where(and(eq(skills.hash, hash), ne(skills.id, exceptId)))
-    : getDb().select({ id: skills.id }).from(skills).where(eq(skills.hash, hash));
-
-  const existing = query.get();
-  return !!existing;
-}
-
 export async function listSkills(): Promise<ServiceResult<Skill[]>> {
-  const rows = await getDb().select().from(skills).orderBy(skills.name);
-  return ok(rows);
+  await ensureSkillsDir();
+  const skillsDir = getSkillsDir();
+
+  if (!existsSync(skillsDir)) return ok([]);
+
+  const entries = await readdir(skillsDir, { withFileTypes: true });
+  const dirs = entries.filter((entry) => entry.isDirectory());
+
+  const skills: Skill[] = [];
+  for (const dir of dirs) {
+    const skill = await readSkillFromDisk(dir.name);
+    if (skill) skills.push(skill);
+  }
+
+  skills.sort((a, b) => a.name.localeCompare(b.name));
+  return ok(skills);
 }
 
 export async function getSkillByName(name: string): Promise<ServiceResult<Skill>> {
-  const skill = getDb().select().from(skills).where(eq(skills.name, name)).get();
+  await ensureSkillsDir();
+  const skill = await readSkillFromDisk(name);
   if (!skill) return err(`Skill "${name}" not found`, 404);
   return ok(skill);
-}
-
-async function skillNameExists(name: string, exceptId?: SkillId): Promise<boolean> {
-  const query = exceptId
-    ? getDb()
-        .select({ id: skills.id })
-        .from(skills)
-        .where(and(eq(skills.name, name), ne(skills.id, exceptId)))
-    : getDb().select({ id: skills.id }).from(skills).where(eq(skills.name, name));
-
-  const existing = query.get();
-  return !!existing;
 }
 
 export async function createSkill(input: SkillCreateInput): Promise<ServiceResult<Skill>> {
@@ -121,69 +146,77 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
 
   const value = parsed.data;
-  if (await skillNameExists(value.name)) {
-    return err(`Skill name "${value.name}" already exists`, 409);
+  await ensureSkillsDir();
+
+  const skillDir = getSkillDir(value.name);
+  if (existsSync(skillDir)) {
+    return err(new SkillNameCollisionError(value.name).message, 409);
   }
 
-  const row = buildSkillRow(value, Date.now(), null);
+  await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  if (await skillHashExists(row.hash)) {
-    return err('A skill with the same instructions already exists', 409);
+  const now = Date.now();
+  const id = createSkillId();
+  if (isDbInitialized()) {
+    await getDb().insert(skillMetadata).values({
+      id,
+      name: value.name,
+      isExternal: false,
+      source: null,
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 
-  await getDb().insert(skills).values(row);
-  return ok(row);
+  return ok({
+    id,
+    name: value.name,
+    description: value.description.trim(),
+    content: value.content.trim(),
+    location: getSkillMdPath(value.name),
+    isExternal: false,
+    source: null,
+    createdAt: now,
+    updatedAt: now,
+    files: [],
+  });
 }
 
-export async function syncBuiltInSkills(builtInSkills?: SkillCreateInput[]): Promise<void> {
-  const loadedSkills = builtInSkills ?? (await loadBuiltInSkills());
-  const parsedSkills = loadedSkills.map((skill) => {
-    const parsed = createSkillSchema.safeParse(skill);
-    if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? 'Invalid built-in skill');
+export async function syncBuiltInSkills(builtInSkills: SkillCreateInput[]): Promise<void> {
+  await ensureSkillsDir();
+
+  for (const skill of builtInSkills) {
+    const source = `builtin:${skill.name}`;
+    const existingContent = await readSkillMdFile(skill.name);
+    const newContent = buildSkillMd(skill);
+
+    if (existingContent === newContent) continue;
+
+    await writeSkillMdFile(skill.name, newContent);
+
+    if (isDbInitialized()) {
+      const existing = getDb()
+        .select()
+        .from(skillMetadata)
+        .where(eq(skillMetadata.name, skill.name))
+        .get();
+
+      if (!existing) {
+        await getDb().insert(skillMetadata).values({
+          id: createSkillId(),
+          name: skill.name,
+          isExternal: false,
+          source,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      } else {
+        await getDb()
+          .update(skillMetadata)
+          .set({ source, updatedAt: Date.now() })
+          .where(eq(skillMetadata.name, skill.name));
+      }
     }
-    return parsed.data;
-  });
-
-  const names = new Set<string>();
-  for (const skill of parsedSkills) {
-    if (names.has(skill.name)) throw new Error(`Duplicate built-in skill name: ${skill.name}`);
-    names.add(skill.name);
-  }
-
-  for (const skill of parsedSkills) {
-    const source = getBuiltInSkillSource(skill.name);
-    const existing = getDb().select().from(skills).where(eq(skills.name, skill.name)).get();
-    const hash = computeSkillHash(skill);
-
-    if (!existing) {
-      await getDb()
-        .insert(skills)
-        .values(buildSkillRow(skill, Date.now(), source));
-      continue;
-    }
-
-    if (
-      existing.description === skill.description.trim() &&
-      existing.content === skill.content.trim() &&
-      existing.hash === hash &&
-      existing.source === source &&
-      existing.isExternal === false
-    ) {
-      continue;
-    }
-
-    await getDb()
-      .update(skills)
-      .set({
-        description: skill.description.trim(),
-        content: skill.content.trim(),
-        hash,
-        isExternal: false,
-        source,
-        updatedAt: Date.now(),
-      })
-      .where(eq(skills.id, existing.id));
   }
 }
 
@@ -194,42 +227,73 @@ export async function updateSkill(
   const parsed = updateSkillSchema.safeParse(input);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
 
-  const existing = getDb().select({ id: skills.id }).from(skills).where(eq(skills.id, id)).get();
-  if (!existing) return err('Skill not found', 404);
+  if (!isDbInitialized()) return err('Database not initialized', 500);
 
+  const existing = getDb().select().from(skillMetadata).where(eq(skillMetadata.id, id)).get();
+  if (!existing) return err(new SkillNotFoundError(id).message, 404);
+
+  const currentName = existing.name;
   const value = parsed.data;
-  if (await skillNameExists(value.name, id)) {
-    return err(`Skill name "${value.name}" already exists`, 409);
+
+  await ensureSkillsDir();
+
+  if (value.name !== currentName) {
+    const newDir = getSkillDir(value.name);
+    if (existsSync(newDir)) {
+      return err(new SkillNameCollisionError(value.name).message, 409);
+    }
+
+    const existingDir = getSkillDir(currentName);
+    if (existsSync(existingDir)) {
+      await rename(existingDir, newDir);
+    } else {
+      await mkdir(newDir, { recursive: true });
+    }
+
+    await getDb()
+      .update(skillMetadata)
+      .set({ name: value.name, updatedAt: Date.now() })
+      .where(eq(skillMetadata.id, id));
+  } else {
+    await getDb()
+      .update(skillMetadata)
+      .set({ updatedAt: Date.now() })
+      .where(eq(skillMetadata.id, id));
   }
 
-  const hash = computeSkillHash(value);
-  if (await skillHashExists(hash, id)) {
-    return err('A skill with the same instructions already exists', 409);
-  }
+  await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  const updatedAt = Date.now();
-  const [updated] = await getDb()
-    .update(skills)
-    .set({
-      name: value.name,
-      description: value.description.trim(),
-      content: value.content.trim(),
-      hash,
-      updatedAt,
-    })
-    .where(eq(skills.id, id))
-    .returning();
+  const targetDir = getSkillDir(value.name);
+  const files = await listSkillFiles(targetDir);
+  const metadata = getMetadata(value.name);
 
-  if (!updated) return err('Skill not found', 404);
-  return ok(updated);
+  return ok({
+    id,
+    name: value.name,
+    description: value.description.trim(),
+    content: value.content.trim(),
+    location: getSkillMdPath(value.name),
+    isExternal: metadata?.isExternal ?? false,
+    source: metadata?.source ?? null,
+    createdAt: metadata?.createdAt ?? Date.now(),
+    updatedAt: metadata?.updatedAt ?? Date.now(),
+    files,
+  });
 }
 
 export async function deleteSkill(id: SkillId): Promise<ServiceResult<null>> {
-  const deleted = await getDb()
-    .delete(skills)
-    .where(eq(skills.id, id))
-    .returning({ id: skills.id });
-  if (deleted.length === 0) return err('Skill not found', 404);
+  if (!isDbInitialized()) return err('Database not initialized', 500);
+
+  const existing = getDb().select().from(skillMetadata).where(eq(skillMetadata.id, id)).get();
+  if (!existing) return err(new SkillNotFoundError(id).message, 404);
+
+  const skillDir = getSkillDir(existing.name);
+  if (existsSync(skillDir)) {
+    await rm(skillDir, { recursive: true, force: true });
+  }
+
+  await getDb().delete(skillMetadata).where(eq(skillMetadata.id, id));
+
   return ok(null);
 }
 
@@ -271,16 +335,14 @@ export async function searchSkillsDirectory(
       })
       .sort((a, b) => b.installs - a.installs);
 
-    const sourceKeys = results.map((skill) => toSourceKey(skill.source, skill.slug));
-    if (sourceKeys.length === 0) return ok(results);
+    if (!isDbInitialized() || results.length === 0) return ok(results);
 
+    const sourceKeys = results.map((skill) => toSourceKey(skill.source, skill.slug));
     const existing = await getDb()
-      .select({ source: skills.source })
-      .from(skills)
-      .where(inArray(skills.source, sourceKeys));
-    const importedSources = new Set(
-      existing.flatMap((skill) => (skill.source ? [skill.source] : [])),
-    );
+      .select({ source: skillMetadata.source })
+      .from(skillMetadata)
+      .where(inArray(skillMetadata.source, sourceKeys));
+    const importedSources = new Set(existing.flatMap((row) => (row.source ? [row.source] : [])));
 
     return ok(
       results.map((skill) => ({
@@ -304,8 +366,18 @@ export async function importSkillFromDirectory(
   if (!source.includes('/')) return err('Skill source must be an owner/repo value', 400);
 
   const sourceKey = toSourceKey(source, slug);
-  const existingSource = getDb().select().from(skills).where(eq(skills.source, sourceKey)).get();
-  if (existingSource) return ok(existingSource);
+
+  if (isDbInitialized()) {
+    const existingSource = getDb()
+      .select()
+      .from(skillMetadata)
+      .where(eq(skillMetadata.source, sourceKey))
+      .get();
+    if (existingSource) {
+      const skill = await readSkillFromDisk(existingSource.name);
+      if (skill) return ok(skill);
+    }
+  }
 
   try {
     const encodedSlug = slug.split('/').map(encodeURIComponent).join('/');
@@ -317,11 +389,13 @@ export async function importSkillFromDirectory(
         { url, status: response.status, body, source, slug },
         'skills.sh download request failed',
       );
-      return err('Failed to download skill', 500);
+      return err(new SkillImportError('Failed to download skill').message, 500);
     }
 
     const body = (await response.json()) as SkillsDownloadResponse;
-    const skillFile = (body.files ?? []).find(
+    const downloadedFiles = body.files ?? [];
+
+    const skillFile = downloadedFiles.find(
       (file) => typeof file.path === 'string' && file.path.toLowerCase().endsWith('skill.md'),
     );
     if (!skillFile || typeof skillFile.contents !== 'string') {
@@ -329,12 +403,15 @@ export async function importSkillFromDirectory(
         {
           source,
           slug,
-          fileCount: body.files?.length ?? 0,
-          filePaths: (body.files ?? []).map((f) => f.path),
+          fileCount: downloadedFiles.length,
+          filePaths: downloadedFiles.map((f) => f.path),
         },
         'downloaded skill missing SKILL.md',
       );
-      return err('Downloaded skill did not include a SKILL.md file', 422);
+      return err(
+        new SkillImportError('Downloaded skill did not include a SKILL.md file').message,
+        422,
+      );
     }
 
     const skillInput = parseSkillMarkdown(skillFile.contents);
@@ -343,7 +420,7 @@ export async function importSkillFromDirectory(
         { source, slug, contents: skillFile.contents.slice(0, 500) },
         'SKILL.md frontmatter parse failed',
       );
-      return err('Downloaded skill has invalid frontmatter', 422);
+      return err(new SkillInvalidError('Downloaded skill has invalid frontmatter').message, 422);
     }
 
     const createParsed = createSkillSchema.safeParse(skillInput);
@@ -352,46 +429,72 @@ export async function importSkillFromDirectory(
         { source, slug, issues: createParsed.error.issues },
         'downloaded skill failed schema validation',
       );
-      return err(createParsed.error.issues[0]?.message ?? 'Downloaded skill is invalid', 422);
+      return err(
+        new SkillInvalidError(
+          createParsed.error.issues[0]?.message ?? 'Downloaded skill is invalid',
+        ).message,
+        422,
+      );
     }
 
     const value = createParsed.data;
-    if (await skillNameExists(value.name)) {
-      return err(`Skill name "${value.name}" already exists`, 409);
+    await ensureSkillsDir();
+
+    const skillDir = getSkillDir(value.name);
+    if (existsSync(skillDir)) {
+      return err(new SkillNameCollisionError(value.name).message, 409);
     }
 
-    const hash = computeSkillHash(value);
-    const existingHash = getDb()
-      .select({ id: skills.id })
-      .from(skills)
-      .where(or(eq(skills.hash, hash), eq(skills.source, sourceKey)))
-      .get();
-    if (existingHash) return err('A skill with the same instructions already exists', 409);
+    await mkdir(skillDir, { recursive: true });
+
+    for (const file of downloadedFiles) {
+      if (typeof file.path !== 'string' || typeof file.contents !== 'string') continue;
+
+      const filePath = path.join(skillDir, file.path);
+      const fileDir = path.dirname(filePath);
+      if (!existsSync(fileDir)) {
+        await mkdir(fileDir, { recursive: true });
+      }
+      await writeFile(filePath, file.contents, 'utf8');
+    }
 
     const now = Date.now();
-    const row = {
-      id: createSkillId(),
+    const id = createSkillId();
+    if (isDbInitialized()) {
+      await getDb().insert(skillMetadata).values({
+        id,
+        name: value.name,
+        isExternal: true,
+        source: sourceKey,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    const skillFiles = await listSkillFiles(skillDir);
+
+    return ok({
+      id,
       name: value.name,
       description: value.description.trim(),
       content: value.content.trim(),
-      hash,
+      location: getSkillMdPath(value.name),
       isExternal: true,
       source: sourceKey,
       createdAt: now,
       updatedAt: now,
-    } satisfies Skill;
-
-    await getDb().insert(skills).values(row);
-    return ok(row);
+      files: skillFiles,
+    });
   } catch (error) {
+    if (error instanceof SkillNameCollisionError) {
+      return err(error.message, 409);
+    }
     log.error({ error, source, slug }, 'skills.sh import threw');
-    return err('Failed to import skill', 500);
+    return err(new SkillImportError('Failed to import skill').message, 500);
   }
 }
 
 export async function buildSkillsSystemPrompt(): Promise<string> {
-  if (!isDbInitialized()) return '';
-
   const result = await listSkills();
   if ('error' in result || result.data.length === 0) return '';
 

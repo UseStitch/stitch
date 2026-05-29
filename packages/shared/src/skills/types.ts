@@ -9,11 +9,12 @@ export type Skill = {
   name: string;
   description: string;
   content: string;
-  hash: string;
+  location: string;
   isExternal: boolean;
   source: string | null;
   createdAt: number;
   updatedAt: number;
+  files: string[];
 };
 
 export type SkillSearchResult = {
