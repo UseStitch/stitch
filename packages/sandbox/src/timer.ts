@@ -35,20 +35,36 @@ type RaceGuard = {
   isTimedOut: () => boolean;
 };
 
+type AbortRace = {
+  promise: Promise<never>;
+  cleanup: () => void;
+};
+
 export function createAbortRace(
   abortSignal: AbortSignal | undefined,
   message: string,
-): Promise<never> | null {
+): AbortRace | null {
   if (abortSignal === undefined) return null;
-  return new Promise<never>((_, reject) => {
+
+  let onAbort: (() => void) | null = null;
+
+  const promise = new Promise<never>((_, reject) => {
     if (abortSignal.aborted) {
       reject(new SandboxAbortError(message));
       return;
     }
-    abortSignal.addEventListener('abort', () => reject(new SandboxAbortError(message)), {
-      once: true,
-    });
+    onAbort = () => reject(new SandboxAbortError(message));
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
+
+  const cleanup = () => {
+    if (onAbort !== null) {
+      abortSignal.removeEventListener('abort', onAbort);
+      onAbort = null;
+    }
+  };
+
+  return { promise, cleanup };
 }
 
 export function createExecutionTimeoutRace(

@@ -1,6 +1,6 @@
 import { SandboxSecurityError } from './errors.js';
 
-const DANGEROUS_GLOBALS = [
+export const DANGEROUS_GLOBALS = [
   'Bun',
   'process',
   'require',

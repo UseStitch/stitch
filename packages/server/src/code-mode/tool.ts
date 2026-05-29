@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { createWorkerSandbox } from '@stitch/sandbox';
+import { createProcessSandbox } from '@stitch/sandbox';
 import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
@@ -14,7 +14,21 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
-const SANDBOX_WORKER_URL = new URL('./sandbox-worker.ts', import.meta.url);
+
+function getDefaultDriver(): IsolateDriver {
+  const sandboxExecPath = process.env['SANDBOX_EXEC_PATH'];
+  if (!sandboxExecPath) {
+    return {
+      async createContext() {
+        throw new Error(
+          'SANDBOX_EXEC_PATH environment variable is required. ' +
+            'Set it to the path of the compiled sandbox process binary.',
+        );
+      },
+    };
+  }
+  return createProcessSandbox({ execPath: sandboxExecPath });
+}
 
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
@@ -30,7 +44,7 @@ type CodeModeToolResult = {
 };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
-  const driver = options.driver ?? createWorkerSandbox({ workerUrl: SANDBOX_WORKER_URL });
+  const driver = options.driver ?? getDefaultDriver();
   const filter = options.filter ?? {};
   const isolateOptions = options.isolateOptions ?? {};
 

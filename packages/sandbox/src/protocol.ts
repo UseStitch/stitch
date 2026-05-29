@@ -36,10 +36,27 @@ export type SandboxErrorMessage = {
   logs: string[];
 };
 
-export type WorkerMessage = SandboxToolCallMessage | SandboxCompleteMessage | SandboxErrorMessage;
+export type SandboxMemoryReportMessage = {
+  type: 'memory_report';
+  rss: number;
+};
+
+export type WorkerMessage =
+  | SandboxToolCallMessage
+  | SandboxCompleteMessage
+  | SandboxErrorMessage
+  | SandboxMemoryReportMessage;
 
 export function isWorkerMessage(message: unknown): message is WorkerMessage {
   if (message === null || typeof message !== 'object') return false;
   const type = (message as { type?: unknown }).type;
-  return type === 'tool_call' || type === 'complete' || type === 'error';
+  return (
+    type === 'tool_call' || type === 'complete' || type === 'error' || type === 'memory_report'
+  );
+}
+
+export function isHostMessage(message: unknown): message is HostMessage {
+  if (message === null || typeof message !== 'object') return false;
+  const type = (message as { type?: unknown }).type;
+  return type === 'execute' || type === 'tool_result' || type === 'tool_error';
 }

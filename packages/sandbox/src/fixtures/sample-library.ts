@@ -9,5 +9,5 @@ export function canReadFunctionPrototype(): boolean {
 }
 
 export function hasGlobalSampleWorker(): boolean {
-  return typeof (globalThis as { sampleWorker?: unknown }).sampleWorker === 'object';
+  return typeof (globalThis as { sampleGlobal?: unknown }).sampleGlobal === 'object';
 }

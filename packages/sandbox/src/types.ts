@@ -21,9 +21,11 @@ export type SandboxLibrary = {
   inject?: boolean;
 };
 
-export type SandboxDriverOptions = {
-  /** Override the worker entry URL. Defaults to the built-in worker-entry.ts. */
-  workerUrl?: URL;
+export type SandboxProcessDriverOptions = {
+  /** Path to the compiled sandbox process binary. */
+  execPath: string;
+  /** Memory limit in MB for the sandbox process (default: 512). */
+  memoryLimit?: number;
 };
 
 export type IsolateOptions = {

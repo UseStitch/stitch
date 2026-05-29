@@ -25,7 +25,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/server': {
-      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}', 'src/code-mode/sandbox-process.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/audio-capture': {

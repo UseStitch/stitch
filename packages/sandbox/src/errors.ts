@@ -1,3 +1,7 @@
+export function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export class SandboxError extends Error {
   constructor(message: string) {
     super(message);
@@ -58,5 +62,12 @@ export class SandboxUnknownToolError extends SandboxError {
   constructor(name: string) {
     super(`Unknown tool: ${name}`);
     this.name = 'SandboxUnknownToolError';
+  }
+}
+
+export class SandboxMemoryError extends SandboxError {
+  constructor(limitMB: number) {
+    super(`Sandbox memory limit exceeded (${limitMB}MB)`);
+    this.name = 'SandboxMemoryError';
   }
 }

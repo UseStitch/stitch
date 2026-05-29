@@ -1,7 +1,15 @@
 import { describe, expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
-import { createWorkerSandbox } from '../src/index.js';
+import { createProcessSandbox } from '../src/index.js';
+
 import type { ToolBinding } from '../src/types.js';
+
+const PROCESS_ENTRY = fileURLToPath(new URL('./process-entry.ts', import.meta.url));
+
+function createDriver() {
+  return createProcessSandbox({ execPath: PROCESS_ENTRY });
+}
 
 const echoBinding: ToolBinding = {
   name: 'external_echo',
@@ -12,7 +20,7 @@ const echoBinding: ToolBinding = {
 
 describe('sandbox tools', () => {
   test('propagates tool errors into user code', async () => {
-    const context = await createWorkerSandbox().createContext({
+    const context = await createDriver().createContext({
       external_fail: {
         name: 'external_fail',
         description: 'fail',
@@ -39,7 +47,7 @@ describe('sandbox tools', () => {
   });
 
   test('limits tool call count', async () => {
-    const context = await createWorkerSandbox().createContext(
+    const context = await createDriver().createContext(
       { external_echo: echoBinding },
       { maxToolCalls: 1 },
     );
