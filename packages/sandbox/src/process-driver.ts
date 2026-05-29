@@ -6,7 +6,9 @@ import {
   SandboxToolError,
   SandboxToolLimitError,
   SandboxUnknownToolError,
+  toErrorMessage,
 } from './errors.js';
+import { DANGEROUS_GLOBALS } from './hardening.js';
 import { isWorkerMessage } from './protocol.js';
 import { createAbortRace, createExecutionTimeoutRace, createPausableTimer } from './timer.js';
 
@@ -27,23 +29,8 @@ const DEFAULT_MEMORY_LIMIT_MB = 512;
 const MEMORY_REPORT_INTERVAL_MS = 500;
 const TOOL_TIMEOUT_BUFFER_MS = 5_000;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
-const RESERVED_LIBRARY_NAMES = new Set([
-  'console',
-  'Bun',
-  'process',
-  'require',
-  'fetch',
-  'WebSocket',
-  'Worker',
-  'SharedWorker',
-  'XMLHttpRequest',
-  'EventSource',
-  'importScripts',
-  'navigator',
-  'location',
-  'eval',
-  'Function',
-]);
+const RESERVED_LIBRARY_NAMES = new Set([...DANGEROUS_GLOBALS, 'console', 'Function']);
+const encoder = new TextEncoder();
 
 type ProcessInitMessage = {
   type: 'init';
@@ -52,13 +39,21 @@ type ProcessInitMessage = {
   memoryReportIntervalMs: number;
 };
 
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+type ToolCallContext = {
+  bindings: Record<string, ToolBinding>;
+  maxToolCalls: number;
+  maxMessageBytes: number;
+  toolTimeoutMs: number;
+  abortSignal: AbortSignal | undefined;
+  proc: { send(message: unknown): void };
+  timer: ReturnType<typeof createPausableTimer>;
+  getToolCallCount: () => number;
+  incrementToolCallCount: () => number;
+};
 
 function getMessageSize(message: unknown): number {
   try {
-    return new TextEncoder().encode(JSON.stringify(message)).byteLength;
+    return encoder.encode(JSON.stringify(message)).byteLength;
   } catch {
     return Number.POSITIVE_INFINITY;
   }
@@ -90,6 +85,70 @@ function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
     ) {
       throw new SandboxSecurityError(`Invalid sandbox library global name: ${library.globalName}`);
     }
+  }
+}
+
+async function dispatchToolCall(
+  message: Extract<WorkerMessage, { type: 'tool_call' }>,
+  ctx: ToolCallContext,
+): Promise<void> {
+  ctx.timer.pause();
+  try {
+    const count = ctx.incrementToolCallCount();
+    if (count > ctx.maxToolCalls) {
+      sendToProcess(ctx.proc, {
+        type: 'tool_error',
+        id: message.id,
+        error: new SandboxToolLimitError(ctx.maxToolCalls).message,
+      });
+      return;
+    }
+
+    assertMessageSize(message, ctx.maxMessageBytes);
+
+    const binding = ctx.bindings[message.name];
+    if (!binding) {
+      sendToProcess(ctx.proc, {
+        type: 'tool_error',
+        id: message.id,
+        error: new SandboxUnknownToolError(message.name).message,
+      });
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const toolTimeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new SandboxToolError(`Tool call timed out after ${ctx.toolTimeoutMs}ms`)),
+        ctx.toolTimeoutMs,
+      );
+      ctx.abortSignal?.addEventListener(
+        'abort',
+        () => {
+          if (timeoutId !== null) clearTimeout(timeoutId);
+        },
+        { once: true },
+      );
+    });
+
+    const toolAbort = createAbortRace(ctx.abortSignal, 'Tool call aborted');
+    const raceTargets: Promise<unknown>[] = [
+      binding.execute(message.args, ctx.abortSignal),
+      toolTimeout,
+    ];
+    if (toolAbort !== null) raceTargets.push(toolAbort.promise);
+
+    const result = await Promise.race(raceTargets);
+    if (timeoutId !== null) clearTimeout(timeoutId);
+    toolAbort?.cleanup();
+
+    const response: HostMessage = { type: 'tool_result', id: message.id, result };
+    assertMessageSize(response, ctx.maxMessageBytes);
+    sendToProcess(ctx.proc, response);
+  } catch (err) {
+    sendToProcess(ctx.proc, { type: 'tool_error', id: message.id, error: toErrorMessage(err) });
+  } finally {
+    ctx.timer.resume();
   }
 }
 
@@ -147,7 +206,6 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         }
       };
 
-      // Send initialization data via IPC
       sendToProcess(proc, {
         type: 'init',
         toolNames,
@@ -155,76 +213,29 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS,
       });
 
+      const toolCallCtx: ToolCallContext = {
+        bindings,
+        maxToolCalls,
+        maxMessageBytes,
+        toolTimeoutMs,
+        abortSignal,
+        proc,
+        timer,
+        getToolCallCount: () => toolCallCount,
+        incrementToolCallCount: () => (toolCallCount += 1),
+      };
+
       return {
         async execute(code: string): Promise<IsolateExecuteResult> {
           if (disposed) return { result: { error: 'Sandbox context is disposed' }, logs: [] };
 
           const startedAt = Date.now();
           const timeoutRace = createExecutionTimeoutRace(timer, startedAt, timeoutMs, terminate);
-          const abortPromise = createAbortRace(abortSignal, 'Sandbox execution aborted');
+          const abortRace = createAbortRace(abortSignal, 'Sandbox execution aborted');
 
           const executionPromise = new Promise<IsolateExecuteResult>((resolve, reject) => {
             const cleanup = () => {
               messageHandler = null;
-            };
-
-            const sendToolError = (id: string, error: string) => {
-              sendToProcess(proc, { type: 'tool_error', id, error });
-            };
-
-            const executeToolCall = async (
-              message: Extract<WorkerMessage, { type: 'tool_call' }>,
-            ) => {
-              timer.pause();
-              try {
-                toolCallCount += 1;
-                if (toolCallCount > maxToolCalls) {
-                  sendToolError(message.id, new SandboxToolLimitError(maxToolCalls).message);
-                  return;
-                }
-
-                assertMessageSize(message, maxMessageBytes);
-
-                const binding = bindings[message.name];
-                if (!binding) {
-                  sendToolError(message.id, new SandboxUnknownToolError(message.name).message);
-                  return;
-                }
-
-                let timeoutId: ReturnType<typeof setTimeout> | null = null;
-                const toolTimeout = new Promise<never>((_, rejectTool) => {
-                  timeoutId = setTimeout(
-                    () =>
-                      rejectTool(
-                        new SandboxToolError(`Tool call timed out after ${toolTimeoutMs}ms`),
-                      ),
-                    toolTimeoutMs,
-                  );
-                  abortSignal?.addEventListener(
-                    'abort',
-                    () => {
-                      if (timeoutId !== null) clearTimeout(timeoutId);
-                    },
-                    { once: true },
-                  );
-                });
-                const toolAbort = createAbortRace(abortSignal, 'Tool call aborted');
-                const raceTargets: Promise<unknown>[] = [
-                  binding.execute(message.args, abortSignal),
-                  toolTimeout,
-                ];
-                if (toolAbort !== null) raceTargets.push(toolAbort);
-
-                const result = await Promise.race(raceTargets);
-                if (timeoutId !== null) clearTimeout(timeoutId);
-                const response: HostMessage = { type: 'tool_result', id: message.id, result };
-                assertMessageSize(response, maxMessageBytes);
-                sendToProcess(proc, response);
-              } catch (err) {
-                sendToolError(message.id, toErrorMessage(err));
-              } finally {
-                timer.resume();
-              }
             };
 
             const onMessage = (message: unknown) => {
@@ -254,7 +265,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
                 return;
               }
 
-              void executeToolCall(message);
+              void dispatchToolCall(message, toolCallCtx);
             };
 
             const onExit = () => {
@@ -276,7 +287,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
               executionPromise,
               timeoutRace.promise,
             ];
-            if (abortPromise !== null) raceTargets.push(abortPromise);
+            if (abortRace !== null) raceTargets.push(abortRace.promise);
             return await Promise.race(raceTargets);
           } catch (err) {
             terminate();
@@ -290,6 +301,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
             };
           } finally {
             timeoutRace.cleanup();
+            abortRace?.cleanup();
           }
         },
 

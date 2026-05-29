@@ -1,9 +1,14 @@
-import { SandboxError, SandboxToolError } from './errors.js';
-import { assertSafeCode, harden } from './hardening.js';
+import { SandboxError, SandboxToolError, toErrorMessage } from './errors.js';
+import { assertSafeCode, DANGEROUS_GLOBALS, harden } from './hardening.js';
+import { isHostMessage } from './protocol.js';
 import { ERROR_KEYS } from './types.js';
 
-import type { WorkerMessage } from './protocol.js';
+import type { HostMessage, WorkerMessage } from './protocol.js';
 import type { SandboxLibrary } from './types.js';
+
+/** Global names shadowed as `undefined` in sandbox function params (includes 'Function'). */
+const HIDDEN_GLOBAL_NAMES: readonly string[] = [...DANGEROUS_GLOBALS, 'Function'];
+const HIDDEN_GLOBAL_VALUES: readonly undefined[] = HIDDEN_GLOBAL_NAMES.map(() => undefined);
 
 type PendingCall = {
   resolve: (value: unknown) => void;
@@ -124,27 +129,11 @@ export function startProcessRuntime(
 
     try {
       assertSafeCode(code);
-      const hiddenGlobalNames = [
-        'Bun',
-        'process',
-        'require',
-        'fetch',
-        'WebSocket',
-        'Worker',
-        'SharedWorker',
-        'XMLHttpRequest',
-        'EventSource',
-        'importScripts',
-        'navigator',
-        'location',
-        'eval',
-        'Function',
-      ];
       const libraryNames = Object.keys(injectedLibraries);
       const libraryValues = libraryNames.map((n) => injectedLibraries[n]);
       const execute = new SandboxFunction(
         'console',
-        ...hiddenGlobalNames,
+        ...HIDDEN_GLOBAL_NAMES,
         ...libraryNames,
         `return (async () => {
         try {
@@ -158,11 +147,7 @@ export function startProcessRuntime(
       })();`,
       ) as (console: Console, ...args: unknown[]) => Promise<unknown>;
 
-      let result = await execute(
-        sandboxConsole,
-        ...hiddenGlobalNames.map(() => undefined),
-        ...libraryValues,
-      );
+      let result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
       if (result !== null && typeof result === 'object' && ERROR_KEYS.CODE_ERROR in result) {
         result = {
           error: (result as { [ERROR_KEYS.CODE_ERROR]: unknown })[ERROR_KEYS.CODE_ERROR],
@@ -170,7 +155,7 @@ export function startProcessRuntime(
       }
       post({ type: 'complete', result, logs });
     } catch (err) {
-      post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
+      post({ type: 'error', error: toErrorMessage(err), logs });
     }
   }
 
@@ -196,50 +181,54 @@ export function startProcessRuntime(
 
   let initialization: Promise<void> | null = null;
 
+  function handleInit(data: InitData): void {
+    initialization = initialize(data);
+    initialization.catch((err) => {
+      post({ type: 'error', error: toErrorMessage(err), logs });
+    });
+  }
+
+  function handleToolResult(msg: Extract<HostMessage, { type: 'tool_result' }>): void {
+    pendingCalls.get(msg.id)?.resolve(msg.result);
+    pendingCalls.delete(msg.id);
+  }
+
+  function handleToolError(msg: Extract<HostMessage, { type: 'tool_error' }>): void {
+    pendingCalls.get(msg.id)?.reject(new SandboxToolError(msg.error ?? 'Tool call failed'));
+    pendingCalls.delete(msg.id);
+  }
+
+  function handleExecute(msg: Extract<HostMessage, { type: 'execute' }>): void {
+    const ready = initialization ?? Promise.resolve();
+    void ready
+      .then(() => executeCode(msg.code))
+      .catch((err) => {
+        post({ type: 'error', error: toErrorMessage(err), logs });
+      });
+  }
+
   ipcOn('message', (message) => {
     if (message === null || typeof message !== 'object') return;
-    const msg = message as {
-      type?: string;
-      id?: string;
-      result?: unknown;
-      error?: string;
-      code?: string;
-      toolNames?: string[];
-      libraries?: Record<string, SandboxLibrary>;
-      memoryReportIntervalMs?: number;
-    };
+    const msg = message as { type?: string };
 
+    // Init message is not part of HostMessage protocol (sent only once before execution).
     if (msg.type === 'init') {
-      initialization = initialize({
-        toolNames: msg.toolNames,
-        libraries: msg.libraries,
-        memoryReportIntervalMs: msg.memoryReportIntervalMs,
-      });
-      initialization.catch((err) => {
-        post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
-      });
+      handleInit(message as unknown as InitData);
       return;
     }
 
-    if (msg.type === 'tool_result' && typeof msg.id === 'string') {
-      pendingCalls.get(msg.id)?.resolve(msg.result);
-      pendingCalls.delete(msg.id);
-      return;
-    }
+    if (!isHostMessage(message)) return;
 
-    if (msg.type === 'tool_error' && typeof msg.id === 'string') {
-      pendingCalls.get(msg.id)?.reject(new SandboxToolError(msg.error ?? 'Tool call failed'));
-      pendingCalls.delete(msg.id);
-      return;
-    }
-
-    if (msg.type === 'execute' && typeof msg.code === 'string') {
-      const ready = initialization ?? Promise.resolve();
-      void ready
-        .then(() => executeCode(msg.code as string))
-        .catch((err) => {
-          post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
-        });
+    switch (message.type) {
+      case 'tool_result':
+        handleToolResult(message);
+        break;
+      case 'tool_error':
+        handleToolError(message);
+        break;
+      case 'execute':
+        handleExecute(message);
+        break;
     }
   });
 }

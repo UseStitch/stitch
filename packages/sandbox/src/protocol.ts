@@ -54,3 +54,9 @@ export function isWorkerMessage(message: unknown): message is WorkerMessage {
     type === 'tool_call' || type === 'complete' || type === 'error' || type === 'memory_report'
   );
 }
+
+export function isHostMessage(message: unknown): message is HostMessage {
+  if (message === null || typeof message !== 'object') return false;
+  const type = (message as { type?: unknown }).type;
+  return type === 'execute' || type === 'tool_result' || type === 'tool_error';
+}
