@@ -40,7 +40,7 @@ const config: Configuration = {
     {
       from: '../../packages/server/dist',
       to: '',
-      filter: ['stitch-server*'],
+      filter: ['stitch-server*', 'stitch-sandbox*'],
     },
     {
       from: '../../packages/server/drizzle',
@@ -82,6 +82,7 @@ const config: Configuration = {
     entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
     binaries: [
       'Contents/Resources/stitch-server',
+      'Contents/Resources/stitch-sandbox',
       'Contents/Resources/audio-capture/stitch-audio-capture',
       'Contents/Resources/audio-capture/stitch-meeting-watch',
     ],

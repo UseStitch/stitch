@@ -138,8 +138,14 @@ export async function spawnServer(port: number): Promise<string> {
       'audio-capture',
       `stitch-meeting-watch${suffix}`,
     );
+    const sandboxBin = join(process.resourcesPath, `stitch-sandbox${suffix}`);
     sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = audioCaptureBin;
     sidecarEnv.STITCH_MEETING_WATCH_BIN = meetingWatchBin;
+    sidecarEnv.SANDBOX_EXEC_PATH = sandboxBin;
+  } else {
+    const root = getMonorepoRoot();
+    const sandboxEntry = join(root, 'packages/server/src/code-mode/sandbox-process.ts');
+    sidecarEnv.SANDBOX_EXEC_PATH = sandboxEntry;
   }
 
   serverProcess = spawn(cmd, args, {
