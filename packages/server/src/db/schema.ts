@@ -334,14 +334,11 @@ export const toolEnabled = sqliteTable(
   (table) => [uniqueIndex('tool_enabled_scope_identifier_uidx').on(table.scope, table.identifier)],
 );
 
-export const skills = sqliteTable(
-  'skills',
+export const skillMetadata = sqliteTable(
+  'skill_metadata',
   {
     id: text('id').$type<SkillId>().primaryKey(),
     name: text('name').notNull(),
-    description: text('description').notNull(),
-    content: text('content').notNull(),
-    hash: text('hash').notNull(),
     isExternal: integer('is_external', { mode: 'boolean' }).notNull().default(false),
     source: text('source'),
     createdAt: integer('created_at', { mode: 'number' })
@@ -351,10 +348,7 @@ export const skills = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [
-    uniqueIndex('skills_name_uidx').on(table.name),
-    uniqueIndex('skills_hash_uidx').on(table.hash),
-  ],
+  (table) => [uniqueIndex('skill_metadata_source_uidx').on(table.source)],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {

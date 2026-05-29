@@ -1,41 +1,73 @@
-import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { createSkillSchema } from '@stitch/shared/skills/types';
-import type { SkillCreateInput } from '@stitch/shared/skills/types';
 
-import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
-import { BUILT_IN_SKILL_FILES } from '@/skills/built-ins/manifest.js';
-import type { BuiltInSkillFile } from '@/skills/built-ins/manifest.js';
+import { SkillInvalidError, SkillNameCollisionError } from '@/skills/errors.js';
+import { collectSkillDirFiles, resolveBuiltInsDir } from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
+
+export type BuiltInSkill = {
+  name: string;
+  description: string;
+  content: string;
+  files: Array<{ relativePath: string; content: string }>;
+};
+
+const SKILL_MD_FILENAME = 'SKILL.md';
 
 export function getBuiltInSkillSource(name: string): string {
   return `builtin:${name}`;
 }
 
-export async function loadBuiltInSkills(
-  files: BuiltInSkillFile[] = BUILT_IN_SKILL_FILES,
-): Promise<SkillCreateInput[]> {
-  const skills = await Promise.all(
-    files.map(async (file) => {
-      const path = resolveRuntimeAssetPath(file.sourceUrl, file.bundledPath);
-      const markdown = await readFile(path, 'utf8');
-      const parsed = parseSkillMarkdown(markdown);
-      if (!parsed) throw new Error(`Invalid built-in skill markdown: ${file.bundledPath}`);
+export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSkill[]> {
+  const dir = builtInsDir ?? resolveBuiltInsDir();
+  if (!existsSync(dir)) return [];
 
-      const result = createSkillSchema.safeParse(parsed);
-      if (!result.success) {
-        throw new Error(
-          `Invalid built-in skill ${file.bundledPath}: ${result.error.issues[0]?.message ?? 'validation failed'}`,
+  const entries = await readdir(dir, { withFileTypes: true });
+  const skillDirs = entries.filter((entry) => entry.isDirectory());
+
+  const skills = await Promise.all(
+    skillDirs.map(async (skillDirEntry) => {
+      const skillDir = path.join(dir, skillDirEntry.name);
+      const skillMdPath = path.join(skillDir, SKILL_MD_FILENAME);
+
+      if (!existsSync(skillMdPath)) {
+        throw new SkillInvalidError(
+          `Built-in skill directory "${skillDirEntry.name}" is missing ${SKILL_MD_FILENAME}`,
         );
       }
 
-      return result.data;
+      const markdown = await readFile(skillMdPath, 'utf8');
+      const parsed = parseSkillMarkdown(markdown);
+      if (!parsed) {
+        throw new SkillInvalidError(
+          `Invalid built-in skill markdown: ${skillDirEntry.name}/${SKILL_MD_FILENAME}`,
+        );
+      }
+
+      const result = createSkillSchema.safeParse(parsed);
+      if (!result.success) {
+        throw new SkillInvalidError(
+          `Invalid built-in skill ${skillDirEntry.name}: ${result.error.issues[0]?.message ?? 'validation failed'}`,
+        );
+      }
+
+      const files = await collectSkillDirFiles(skillDir, skillDir);
+
+      return {
+        name: result.data.name,
+        description: result.data.description,
+        content: result.data.content,
+        files,
+      };
     }),
   );
 
   const names = new Set<string>();
   for (const skill of skills) {
-    if (names.has(skill.name)) throw new Error(`Duplicate built-in skill name: ${skill.name}`);
+    if (names.has(skill.name)) throw new SkillNameCollisionError(skill.name);
     names.add(skill.name);
   }
 

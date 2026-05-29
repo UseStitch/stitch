@@ -92,6 +92,7 @@ export const PATHS = {
 
   dirPaths: {
     toolOutput: path.join(paths.data, 'tool-output'),
+    skills: path.join(paths.data, 'skills'),
     providerLogos: path.join(paths.cache, 'provider-logos'),
     mcpIcons: path.join(paths.cache, 'mcp-icons'),
     connectorIcons: path.join(paths.cache, 'connector-icons'),
