@@ -102,7 +102,7 @@ for (let i = 0; i < pdf.getPageCount(); i++) {
 | Load PDF      | `await libpdf.PDF.load(uint8array)`        |
 | Page count    | `pdf.getPageCount()`                       |
 | Get a page    | `pdf.getPage(n)` (0-indexed)               |
-| Extract text     | `page.extractText().text`                  |
+| Extract text  | `page.extractText().text`                  |
 | Get metadata  | `await pdf.getMetadata()`                  |
 | Merge PDFs    | `await libpdf.PDF.merge([bytes1, bytes2])` |
 | Split pages   | `await pdf.extractPages([0, 1, 2])`        |

@@ -23,6 +23,7 @@ import { skillMetadata } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import type { BuiltInSkill } from '@/skills/built-in-skills.js';
 import {
   SkillImportError,
   SkillInvalidError,
@@ -37,6 +38,7 @@ import {
   getSkillsDir,
   listSkillFiles,
   readSkillMdFile,
+  syncCompanionFiles,
   writeSkillMdFile,
 } from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
@@ -182,17 +184,23 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
   });
 }
 
-export async function syncBuiltInSkills(builtInSkills: SkillCreateInput[]): Promise<void> {
+export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<void> {
   await ensureSkillsDir();
 
   for (const skill of builtInSkills) {
     const source = `builtin:${skill.name}`;
+    const skillDir = getSkillDir(skill.name);
     const existingContent = await readSkillMdFile(skill.name);
     const newContent = buildSkillMd(skill);
 
-    if (existingContent === newContent) continue;
+    const skillMdChanged = existingContent !== newContent;
+    const filesChanged = await syncCompanionFiles(skillDir, skill.files);
 
-    await writeSkillMdFile(skill.name, newContent);
+    if (!skillMdChanged && !filesChanged) continue;
+
+    if (skillMdChanged) {
+      await writeSkillMdFile(skill.name, newContent);
+    }
 
     if (isDbInitialized()) {
       const existing = getDb()

@@ -14,7 +14,7 @@ const skillInputSchema = z.object({
 export function createRegisteredTool() {
   return tool({
     description:
-      "Load a specialized skill when the task at hand matches one of the skills listed in the system prompt.\n\nUse this tool to inject the skill's instructions and resources into current conversation. The output may contain detailed workflow guidance as well as references to scripts, files, etc in the same directory as the skill.\n\nThe skill name must match one of the skills listed in your system prompt.",
+      'Load a specialized skill when the task at hand matches one of the skills listed in the system prompt.\n\nUse this tool to inject the skill\'s instructions and resources into current conversation. The output may contain detailed workflow guidance as well as references to scripts, files, etc in the same directory as the skill.\n\nThe skill name must match one of the skills listed in your system prompt.\n\nLoad a specialized skill that provides domain-specific instructions and workflows.\n\nWhen you recognize that a task matches one of the available skills listed below, use this tool to load the full skill instructions.\n\nThe skill will inject detailed instructions, workflows, and access to bundled resources (scripts, references, templates) into the conversation context.\n\nTool output includes a `<skill_content name="...">` block with the loaded content.',
     inputSchema: skillInputSchema,
     execute: async ({ name }) => {
       const result = await getSkillByName(name);
@@ -25,7 +25,6 @@ export function createRegisteredTool() {
       const base = pathToFileURL(dir).href;
 
       const fileList = skill.files
-        .slice(0, 10)
         .map((file) => `<file>${path.resolve(dir, file)}</file>`)
         .join('\n');
 
@@ -36,8 +35,8 @@ export function createRegisteredTool() {
         skill.content.trim(),
         '',
         `Base directory for this skill: ${base}`,
-        'Relative paths in this skill (e.g., scripts/, reference/) are relative to this base directory.',
-        'Note: file list is sampled.',
+        'Relative paths in this skill (e.g., scripts/, references/, agents/, assets/) are relative to this base directory.',
+        'Use the Read tool to access any file listed below when needed.',
         '',
         '<skill_files>',
         fileList,

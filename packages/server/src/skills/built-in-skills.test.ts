@@ -1,34 +1,25 @@
 import { describe, expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
 import { getBuiltInSkillSource, loadBuiltInSkills } from '@/skills/built-in-skills.js';
 
-describe('loadBuiltInSkills', () => {
-  test('loads skills from markdown files', async () => {
-    const skills = await loadBuiltInSkills([
-      {
-        sourceUrl: new URL('./__test__/test-skill.md', import.meta.url),
-        bundledPath: 'unused-in-tests/test-skill.md',
-      },
-    ]);
+const TEST_BUILT_INS_DIR = fileURLToPath(new URL('./__test__', import.meta.url));
 
-    expect(skills).toEqual([
-      {
-        name: 'test-skill',
-        description: 'Use this test skill in loader tests.',
-        content: 'These are test skill instructions.',
-      },
-    ]);
+describe('loadBuiltInSkills', () => {
+  test('loads skills from directories containing SKILL.md', async () => {
+    const skills = await loadBuiltInSkills(TEST_BUILT_INS_DIR);
+
+    expect(skills).toHaveLength(1);
+    expect(skills[0]).toMatchObject({
+      name: 'test-skill',
+      description: 'Use this test skill in loader tests.',
+      content: 'These are test skill instructions.',
+    });
   });
 
-  test('rejects duplicate skill names', async () => {
-    const file = {
-      sourceUrl: new URL('./__test__/test-skill.md', import.meta.url),
-      bundledPath: 'unused-in-tests/test-skill.md',
-    };
-
-    expect(loadBuiltInSkills([file, file])).rejects.toThrow(
-      'Duplicate built-in skill name: test-skill',
-    );
+  test('returns empty array for nonexistent directory', async () => {
+    const skills = await loadBuiltInSkills('/nonexistent/path');
+    expect(skills).toEqual([]);
   });
 });
 
