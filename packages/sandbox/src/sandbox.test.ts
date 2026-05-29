@@ -109,4 +109,23 @@ describe('process sandbox', () => {
       context.dispose();
     }
   });
+
+  test('kills process when memory limit is exceeded', async () => {
+    const driver = createProcessSandbox({ execPath: PROCESS_ENTRY, memoryLimit: 64 });
+    const context = await driver.createContext({}, { timeout: 15_000 });
+    try {
+      const result = await context.execute(`
+        const arrays = [];
+        for (let i = 0; i < 200; i++) {
+          const arr = new Uint8Array(1024 * 1024);
+          arr.fill(1);
+          arrays.push(arr);
+          if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
+        }
+      `);
+      expect(result.result).toEqual({ error: 'Sandbox memory limit exceeded (64MB)' });
+    } finally {
+      context.dispose();
+    }
+  });
 });

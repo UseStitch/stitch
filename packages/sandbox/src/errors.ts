@@ -60,3 +60,10 @@ export class SandboxUnknownToolError extends SandboxError {
     this.name = 'SandboxUnknownToolError';
   }
 }
+
+export class SandboxMemoryError extends SandboxError {
+  constructor(limitMB: number) {
+    super(`Sandbox memory limit exceeded (${limitMB}MB)`);
+    this.name = 'SandboxMemoryError';
+  }
+}

@@ -1,4 +1,5 @@
 import {
+  SandboxMemoryError,
   SandboxMessageTooLargeError,
   SandboxSecurityError,
   SandboxTimeoutError,
@@ -22,6 +23,8 @@ import type {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_TOOL_CALLS = 100;
 const DEFAULT_MAX_MESSAGE_BYTES = 512 * 1024;
+const DEFAULT_MEMORY_LIMIT_MB = 512;
+const MEMORY_REPORT_INTERVAL_MS = 500;
 const TOOL_TIMEOUT_BUFFER_MS = 5_000;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
 const RESERVED_LIBRARY_NAMES = new Set([
@@ -46,6 +49,7 @@ type ProcessInitMessage = {
   type: 'init';
   toolNames: string[];
   libraries: IsolateOptions['libraries'];
+  memoryReportIntervalMs: number;
 };
 
 function toErrorMessage(error: unknown): string {
@@ -101,8 +105,10 @@ function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
  */
 export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions): IsolateDriver {
   const execPath = driverOptions.execPath;
+  const memoryLimitMB = driverOptions.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
+  const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
   const isScript = /\.[mc]?[jt]sx?$/.test(execPath);
-  const cmd = isScript ? [process.execPath, execPath] : [execPath];
+  const cmd = isScript ? [process.execPath, '--smol', execPath] : [execPath];
 
   return {
     async createContext(
@@ -124,7 +130,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
       let messageHandler: ((message: unknown) => void) | null = null;
 
       const proc = Bun.spawn(cmd, {
-        env: {},
+        env: { BUN_JSC_forceRAMSize: String(memoryLimitBytes) },
         ipc(message) {
           messageHandler?.(message);
         },
@@ -142,7 +148,12 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
       };
 
       // Send initialization data via IPC
-      sendToProcess(proc, { type: 'init', toolNames, libraries });
+      sendToProcess(proc, {
+        type: 'init',
+        toolNames,
+        libraries,
+        memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS,
+      });
 
       return {
         async execute(code: string): Promise<IsolateExecuteResult> {
@@ -218,6 +229,18 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
             const onMessage = (message: unknown) => {
               if (!isWorkerMessage(message)) return;
+
+              if (message.type === 'memory_report') {
+                if (message.rss > memoryLimitBytes) {
+                  cleanup();
+                  terminate();
+                  resolve({
+                    result: { error: new SandboxMemoryError(memoryLimitMB).message },
+                    logs: [],
+                  });
+                }
+                return;
+              }
 
               if (message.type === 'complete') {
                 cleanup();

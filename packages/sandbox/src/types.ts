@@ -24,6 +24,8 @@ export type SandboxLibrary = {
 export type SandboxProcessDriverOptions = {
   /** Path to the compiled sandbox process binary. */
   execPath: string;
+  /** Memory limit in MB for the sandbox process (default: 512). */
+  memoryLimit?: number;
 };
 
 export type IsolateOptions = {

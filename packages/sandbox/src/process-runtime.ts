@@ -13,6 +13,7 @@ type PendingCall = {
 type InitData = {
   toolNames?: string[];
   libraries?: Record<string, SandboxLibrary>;
+  memoryReportIntervalMs?: number;
 };
 
 /**
@@ -36,6 +37,7 @@ export function startProcessRuntime(
     event: string,
     listener: (message: unknown) => void,
   ) => void;
+  const getMemoryUsage = process.memoryUsage.bind(process) as () => NodeJS.MemoryUsage;
 
   const pendingCalls = new Map<string, PendingCall>();
   let logs: string[] = [];
@@ -181,6 +183,15 @@ export function startProcessRuntime(
     await importLibrary('node:fs/promises');
     harden();
     registerToolProxies();
+
+    // Start periodic RSS reporting after hardening (uses pre-captured references).
+    const intervalMs = initData.memoryReportIntervalMs;
+    if (intervalMs && intervalMs > 0) {
+      setInterval(() => {
+        const { rss } = getMemoryUsage();
+        ipcSend({ type: 'memory_report', rss });
+      }, intervalMs);
+    }
   }
 
   let initialization: Promise<void> | null = null;
@@ -195,10 +206,15 @@ export function startProcessRuntime(
       code?: string;
       toolNames?: string[];
       libraries?: Record<string, SandboxLibrary>;
+      memoryReportIntervalMs?: number;
     };
 
     if (msg.type === 'init') {
-      initialization = initialize({ toolNames: msg.toolNames, libraries: msg.libraries });
+      initialization = initialize({
+        toolNames: msg.toolNames,
+        libraries: msg.libraries,
+        memoryReportIntervalMs: msg.memoryReportIntervalMs,
+      });
       initialization.catch((err) => {
         post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
       });
