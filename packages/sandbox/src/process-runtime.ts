@@ -1,5 +1,3 @@
-import { parentPort, workerData } from 'node:worker_threads';
-
 import { SandboxError, SandboxToolError } from './errors.js';
 import { assertSafeCode, harden } from './hardening.js';
 import { ERROR_KEYS } from './types.js';
@@ -12,31 +10,33 @@ type PendingCall = {
   reject: (reason: Error) => void;
 };
 
-type WorkerData = {
+type InitData = {
   toolNames?: string[];
   libraries?: Record<string, SandboxLibrary>;
 };
 
 /**
- * Starts the sandbox worker runtime. Call this from a worker entry file.
+ * Starts the sandbox process runtime. Call this from a process entry file.
+ * Communicates with the host via Bun IPC (process.send / process.on("message")).
  *
  * @param preloadedModules - A map of library specifiers to already-imported module namespaces.
- *   When running inside a compiled binary, libraries are statically imported by the worker entry
+ *   When running inside a compiled binary, libraries are statically imported by the entry
  *   and passed here so no dynamic import is needed at runtime.
  */
-export function startWorkerRuntime(
+export function startProcessRuntime(
   preloadedModules: Record<string, Record<string, unknown>> = {},
 ): void {
-  function getParentPort() {
-    if (parentPort === null) throw new SandboxError('sandbox worker requires parentPort');
-    return parentPort;
+  if (typeof process.send !== 'function') {
+    throw new SandboxError('sandbox process requires IPC channel (process.send)');
   }
 
-  const port = getParentPort();
+  // Capture IPC primitives before harden() removes `process` from globalThis.
+  const ipcSend = process.send.bind(process) as (message: unknown) => void;
+  const ipcOn = process.on.bind(process) as (
+    event: string,
+    listener: (message: unknown) => void,
+  ) => void;
 
-  const data = workerData as WorkerData | undefined;
-  const toolNames = data?.toolNames ?? [];
-  const libraries = data?.libraries ?? {};
   const pendingCalls = new Map<string, PendingCall>();
   let logs: string[] = [];
   const SandboxFunction = Function;
@@ -44,6 +44,12 @@ export function startWorkerRuntime(
     specifier: string,
   ) => Promise<Record<string, unknown>>;
   let injectedLibraries: Record<string, unknown> = {};
+  let toolNames: string[] = [];
+  let libraries: Record<string, SandboxLibrary> = {};
+
+  function post(message: WorkerMessage): void {
+    ipcSend(message);
+  }
 
   function stringifyLogValue(value: unknown): string {
     if (typeof value === 'string') return value;
@@ -67,10 +73,6 @@ export function startWorkerRuntime(
       error: (...values: unknown[]) => write('error', values),
       debug: (...values: unknown[]) => write('debug', values),
     } as Console;
-  }
-
-  function post(message: WorkerMessage): void {
-    port.postMessage(message);
   }
 
   function createToolProxy(name: string): (args: unknown) => Promise<unknown> {
@@ -170,15 +172,20 @@ export function startWorkerRuntime(
     }
   }
 
-  async function initialize(): Promise<void> {
+  async function initialize(initData: InitData): Promise<void> {
+    toolNames = initData.toolNames ?? [];
+    libraries = initData.libraries ?? {};
     injectedLibraries = await loadLibraries();
+    // Pre-import allowed modules before hardening freezes globals.
+    await importLibrary('node:fs');
+    await importLibrary('node:fs/promises');
     harden();
     registerToolProxies();
   }
 
-  const initialization = initialize();
+  let initialization: Promise<void> | null = null;
 
-  port.on('message', (message) => {
+  ipcOn('message', (message) => {
     if (message === null || typeof message !== 'object') return;
     const msg = message as {
       type?: string;
@@ -186,7 +193,17 @@ export function startWorkerRuntime(
       result?: unknown;
       error?: string;
       code?: string;
+      toolNames?: string[];
+      libraries?: Record<string, SandboxLibrary>;
     };
+
+    if (msg.type === 'init') {
+      initialization = initialize({ toolNames: msg.toolNames, libraries: msg.libraries });
+      initialization.catch((err) => {
+        post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });
+      });
+      return;
+    }
 
     if (msg.type === 'tool_result' && typeof msg.id === 'string') {
       pendingCalls.get(msg.id)?.resolve(msg.result);
@@ -201,7 +218,8 @@ export function startWorkerRuntime(
     }
 
     if (msg.type === 'execute' && typeof msg.code === 'string') {
-      void initialization
+      const ready = initialization ?? Promise.resolve();
+      void ready
         .then(() => executeCode(msg.code as string))
         .catch((err) => {
           post({ type: 'error', error: err instanceof Error ? err.message : String(err), logs });

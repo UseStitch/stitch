@@ -1,11 +1,18 @@
 import { describe, expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
-import { createWorkerSandbox } from '../src/index.js';
+import { createProcessSandbox } from '../src/index.js';
 
 import type { ToolBinding } from '../src/types.js';
 
+const PROCESS_ENTRY = fileURLToPath(new URL('./process-entry.ts', import.meta.url));
+
+function createDriver() {
+  return createProcessSandbox({ execPath: PROCESS_ENTRY });
+}
+
 async function execute(code: string, bindings: Record<string, ToolBinding> = {}) {
-  const context = await createWorkerSandbox().createContext(bindings, { timeout: 2_000 });
+  const context = await createDriver().createContext(bindings, { timeout: 5_000 });
   try {
     return await context.execute(code);
   } finally {
@@ -13,7 +20,7 @@ async function execute(code: string, bindings: Record<string, ToolBinding> = {})
   }
 }
 
-describe('worker sandbox', () => {
+describe('process sandbox', () => {
   test('executes code and returns the result', async () => {
     const result = await execute('return [1, 2, 3].map((value) => value * 2);');
 
@@ -53,15 +60,15 @@ describe('worker sandbox', () => {
   });
 
   test('injects host-approved libraries', async () => {
-    const context = await createWorkerSandbox().createContext(
+    const context = await createDriver().createContext(
       {},
       {
-        timeout: 2_000,
+        timeout: 5_000,
         libraries: {
           sample: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href },
-          sampleWorker: {
+          sampleGlobal: {
             specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href,
-            globalName: 'sampleWorker',
+            globalName: 'sampleGlobal',
             inject: false,
           },
         },
@@ -76,7 +83,7 @@ describe('worker sandbox', () => {
           frozen: Object.isFrozen(sample),
           canReadFunctionPrototype: sample.canReadFunctionPrototype(),
           hasGlobalSampleWorker: sample.hasGlobalSampleWorker(),
-          sampleWorkerType: typeof sampleWorker,
+          sampleGlobalType: typeof sampleGlobal,
         };
       `);
 
@@ -86,7 +93,7 @@ describe('worker sandbox', () => {
         frozen: true,
         canReadFunctionPrototype: true,
         hasGlobalSampleWorker: true,
-        sampleWorkerType: 'object',
+        sampleGlobalType: 'object',
       });
     } finally {
       context.dispose();
@@ -94,10 +101,10 @@ describe('worker sandbox', () => {
   });
 
   test('terminates infinite loops', async () => {
-    const context = await createWorkerSandbox().createContext({}, { timeout: 100 });
+    const context = await createDriver().createContext({}, { timeout: 200 });
     try {
       const result = await context.execute('while (true) {}');
-      expect(result.result).toEqual({ error: 'Execution timed out after 100ms' });
+      expect(result.result).toEqual({ error: 'Execution timed out after 200ms' });
     } finally {
       context.dispose();
     }

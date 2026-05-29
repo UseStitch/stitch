@@ -1,9 +1,16 @@
 import { describe, expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
-import { createWorkerSandbox } from '../src/index.js';
+import { createProcessSandbox } from '../src/index.js';
+
+const PROCESS_ENTRY = fileURLToPath(new URL('./process-entry.ts', import.meta.url));
+
+function createDriver() {
+  return createProcessSandbox({ execPath: PROCESS_ENTRY });
+}
 
 async function run(code: string) {
-  const context = await createWorkerSandbox().createContext({}, { timeout: 1_000 });
+  const context = await createDriver().createContext({}, { timeout: 2_000 });
   try {
     return await context.execute(code);
   } finally {
@@ -87,7 +94,7 @@ describe('sandbox hardening', () => {
 
   test('rejects unsafe library names', () => {
     expect(
-      createWorkerSandbox().createContext(
+      createDriver().createContext(
         {},
         {
           libraries: {
@@ -100,7 +107,7 @@ describe('sandbox hardening', () => {
 
   test('rejects unsafe library global names', () => {
     expect(
-      createWorkerSandbox().createContext(
+      createDriver().createContext(
         {},
         {
           libraries: {

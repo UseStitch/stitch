@@ -1,5 +1,3 @@
-import { Worker } from 'node:worker_threads';
-
 import {
   SandboxMessageTooLargeError,
   SandboxSecurityError,
@@ -17,11 +15,10 @@ import type {
   IsolateDriver,
   IsolateExecuteResult,
   IsolateOptions,
-  SandboxDriverOptions,
+  SandboxProcessDriverOptions,
   ToolBinding,
 } from './types.js';
 
-const DEFAULT_MEMORY_LIMIT_MB = 128;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_TOOL_CALLS = 100;
 const DEFAULT_MAX_MESSAGE_BYTES = 512 * 1024;
@@ -45,8 +42,10 @@ const RESERVED_LIBRARY_NAMES = new Set([
   'Function',
 ]);
 
-type WorkerWithBunOptions = ConstructorParameters<typeof Worker>[1] & {
-  smol?: boolean;
+type ProcessInitMessage = {
+  type: 'init';
+  toolNames: string[];
+  libraries: IsolateOptions['libraries'];
 };
 
 function toErrorMessage(error: unknown): string {
@@ -68,8 +67,11 @@ function assertMessageSize(message: unknown, maxMessageBytes: number): void {
   }
 }
 
-function postToWorker(worker: Worker, message: HostMessage): void {
-  worker.postMessage(message);
+function sendToProcess(
+  proc: { send(message: unknown): void },
+  message: HostMessage | ProcessInitMessage,
+): void {
+  proc.send(message);
 }
 
 function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
@@ -87,15 +89,26 @@ function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
   }
 }
 
-export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): IsolateDriver {
-  const workerUrl = driverOptions?.workerUrl ?? new URL('./worker-entry.ts', import.meta.url);
+/**
+ * Creates a process-based sandbox driver that spawns a separate Bun process for isolation.
+ * Communicates via Bun's IPC channel (structured clone serialization).
+ *
+ * This provides stronger isolation than Worker threads:
+ * - Completely separate address space (OS process boundary)
+ * - No shared memory or prototype chain
+ * - Reliable kill semantics via process.kill()
+ * - Works consistently across platforms (no import.meta.url resolution issues)
+ */
+export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions): IsolateDriver {
+  const execPath = driverOptions.execPath;
+  const isScript = /\.[mc]?[jt]sx?$/.test(execPath);
+  const cmd = isScript ? [process.execPath, execPath] : [execPath];
 
   return {
     async createContext(
       bindings: Record<string, ToolBinding>,
       options: IsolateOptions = {},
     ): Promise<IsolateContext> {
-      const memoryLimitMb = options.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
       const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
       const maxMessageBytes = options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES;
@@ -104,27 +117,32 @@ export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): Isola
       const toolTimeoutMs = Math.max(1_000, timeoutMs - TOOL_TIMEOUT_BUFFER_MS);
       const toolNames = Object.keys(bindings);
       validateLibraryNames(libraries);
-      const workerOptions: WorkerWithBunOptions = {
-        env: {},
-        resourceLimits: {
-          maxOldGenerationSizeMb: memoryLimitMb,
-          maxYoungGenerationSizeMb: Math.max(1, Math.ceil(memoryLimitMb / 4)),
-          stackSizeMb: 1,
-        },
-        smol: true,
-        workerData: { toolNames, libraries },
-      };
 
-      const worker = new Worker(workerUrl, workerOptions);
       let disposed = false;
       let toolCallCount = 0;
       const timer = createPausableTimer();
+      let messageHandler: ((message: unknown) => void) | null = null;
+
+      const proc = Bun.spawn(cmd, {
+        env: {},
+        ipc(message) {
+          messageHandler?.(message);
+        },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
       const terminate = () => {
         if (disposed) return;
         disposed = true;
-        void worker.terminate();
+        try {
+          proc.kill();
+        } catch {
+          // Process may have already exited.
+        }
       };
+
+      // Send initialization data via IPC
+      sendToProcess(proc, { type: 'init', toolNames, libraries });
 
       return {
         async execute(code: string): Promise<IsolateExecuteResult> {
@@ -136,13 +154,11 @@ export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): Isola
 
           const executionPromise = new Promise<IsolateExecuteResult>((resolve, reject) => {
             const cleanup = () => {
-              worker.off('message', onMessage);
-              worker.off('error', onError);
-              worker.off('exit', onExit);
+              messageHandler = null;
             };
 
             const sendToolError = (id: string, error: string) => {
-              postToWorker(worker, { type: 'tool_error', id, error });
+              sendToProcess(proc, { type: 'tool_error', id, error });
             };
 
             const executeToolCall = async (
@@ -192,7 +208,7 @@ export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): Isola
                 if (timeoutId !== null) clearTimeout(timeoutId);
                 const response: HostMessage = { type: 'tool_result', id: message.id, result };
                 assertMessageSize(response, maxMessageBytes);
-                postToWorker(worker, response);
+                sendToProcess(proc, response);
               } catch (err) {
                 sendToolError(message.id, toErrorMessage(err));
               } finally {
@@ -218,24 +234,18 @@ export function createWorkerSandbox(driverOptions?: SandboxDriverOptions): Isola
               void executeToolCall(message);
             };
 
-            const onError = (error: Error) => {
-              cleanup();
-              reject(error);
-            };
-
-            const onExit = (code: number) => {
+            const onExit = () => {
               cleanup();
               if (disposed) {
                 resolve({ result: { error: 'Sandbox execution terminated' }, logs: [] });
                 return;
               }
-              reject(new Error(`Sandbox worker exited with code ${code}`));
+              reject(new Error('Sandbox process exited unexpectedly'));
             };
 
-            worker.on('message', onMessage);
-            worker.on('error', onError);
-            worker.on('exit', onExit);
-            postToWorker(worker, { type: 'execute', code });
+            messageHandler = onMessage;
+            void proc.exited.then(onExit);
+            sendToProcess(proc, { type: 'execute', code });
           });
 
           try {
