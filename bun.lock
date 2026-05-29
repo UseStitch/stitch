@@ -191,6 +191,9 @@
     "registries/embeddings": {
       "name": "@stitch/registry-embeddings",
     },
+    "registries/live-transcription": {
+      "name": "@stitch/registry-live-transcription",
+    },
     "registries/mcp": {
       "name": "@stitch/registry-mcp",
     },
@@ -904,6 +907,8 @@
     "@stitch/desktop": ["@stitch/desktop@workspace:apps/desktop"],
 
     "@stitch/registry-embeddings": ["@stitch/registry-embeddings@workspace:registries/embeddings"],
+
+    "@stitch/registry-live-transcription": ["@stitch/registry-live-transcription@workspace:registries/live-transcription"],
 
     "@stitch/registry-mcp": ["@stitch/registry-mcp@workspace:registries/mcp"],
 
