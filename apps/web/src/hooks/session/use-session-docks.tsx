@@ -196,7 +196,7 @@ export function useSessionDocks({
       items.push({
         id: 'todos',
         title: `Todos (${activeCount} active)`,
-        defaultExpanded: todos.some((todo) => todo.status === 'in_progress'),
+        defaultExpanded: false,
         variant: 'default',
         children: <TodoDock todos={todos} />,
       });
