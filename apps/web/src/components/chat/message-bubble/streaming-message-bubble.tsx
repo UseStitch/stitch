@@ -6,7 +6,7 @@ import { AssistantBubbleWrapper, FileBlock } from './shared-components';
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
-import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
+import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.js';
 import type { StreamingPart } from '@/stores/stream-store';
 
 function StreamingTextPart({ text }: { text: string }) {
@@ -40,50 +40,82 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
     return null;
   }
 
-  return (
-    <AssistantBubbleWrapper>
-      {visibleIds.map((partId) => {
-        const part = parts[partId];
-        if (!part) return null;
+  const nodes: React.ReactNode[] = [];
+  let toolGroup: { key: string; partIds: string[] } | null = null;
 
-        switch (part.type) {
-          case 'text':
-            return (
-              <div key={partId}>
-                <StreamingTextPart text={part.text} />
-              </div>
-            );
-          case 'reasoning':
-            return (
-              <ReasoningBlock
-                key={partId}
-                text={part.text}
-                isStreaming={part.status === 'streaming'}
-              />
-            );
-          case 'tool-call':
-            return (
-              <ToolCallBlock
-                key={partId}
-                toolName={part.toolName}
-                status={part.status}
-                args={part.input}
-                result={part.output}
-                error={part.error ?? undefined}
-                onAbort={onAbortTool}
-              />
-            );
-          case 'source': {
-            const source = part.source;
-            if (source.sourceType === 'url') {
-              return <SourceChip key={partId} url={source.url} title={source.title} />;
-            }
-            return null;
-          }
-          case 'file':
-            return <FileBlock key={partId} mediaType={part.mediaType} />;
+  function flushToolGroup() {
+    if (!toolGroup) return;
+    const group = toolGroup;
+    toolGroup = null;
+
+    nodes.push(
+      <ToolCallGroup
+        key={group.key}
+        calls={group.partIds.flatMap((partId) => {
+          const part = parts[partId];
+          if (!part || part.type !== 'tool-call' || part.toolName === 'todo') return [];
+          return [
+            {
+              id: part.toolCallId,
+              toolName: part.toolName,
+              status: part.status,
+              args: part.input,
+              result: part.output,
+              error: part.error ?? undefined,
+            },
+          ];
+        })}
+        onAbort={onAbortTool}
+      />,
+    );
+  }
+
+  for (const partId of visibleIds) {
+    const part = parts[partId];
+    if (!part) continue;
+
+    if (part.type === 'tool-call') {
+      if (toolGroup) {
+        toolGroup.partIds.push(partId);
+      } else {
+        toolGroup = { key: `tools-${partId}`, partIds: [partId] };
+      }
+      continue;
+    }
+
+    flushToolGroup();
+
+    switch (part.type) {
+      case 'text':
+        nodes.push(
+          <div key={partId}>
+            <StreamingTextPart text={part.text} />
+          </div>,
+        );
+        break;
+      case 'reasoning':
+        nodes.push(
+          <ReasoningBlock
+            key={partId}
+            text={part.text}
+            isStreaming={part.status === 'streaming'}
+          />,
+        );
+        break;
+      case 'source': {
+        const source = part.source;
+        if (source.sourceType === 'url') {
+          nodes.push(<SourceChip key={partId} url={source.url} title={source.title} />);
         }
-      })}
-    </AssistantBubbleWrapper>
-  );
+        break;
+      }
+      case 'file':
+        nodes.push(<FileBlock key={partId} mediaType={part.mediaType} />);
+        break;
+    }
+  }
+
+  flushToolGroup();
+
+  return <AssistantBubbleWrapper>{nodes}</AssistantBubbleWrapper>;
 });
