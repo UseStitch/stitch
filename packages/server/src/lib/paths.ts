@@ -94,6 +94,7 @@ export const PATHS = {
     toolOutput: path.join(paths.data, 'tool-output'),
     skills: path.join(paths.data, 'skills'),
     providerLogos: path.join(paths.cache, 'provider-logos'),
+    mcpRegistryLogos: path.join(paths.cache, 'mcp-registry-logos'),
     mcpIcons: path.join(paths.cache, 'mcp-icons'),
     connectorIcons: path.join(paths.cache, 'connector-icons'),
     simpleIcons: path.join(paths.cache, 'simple-icons'),

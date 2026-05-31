@@ -24,6 +24,7 @@ import {
 } from './tool-call/card-primitives';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -148,6 +149,8 @@ function ToolCallRow({
         status={call.status}
         kind={summary.kind}
         connectorIconSlug={summary.connectorIconSlug}
+        mcpServerId={summary.mcpServerId}
+        label={summary.label}
       />
       <span className="shrink-0 font-medium text-foreground">{summary.label}</span>
       <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary.preview}</span>
@@ -185,8 +188,9 @@ function getToolSummary(call: ToolCallDisplayItem, displayName: string) {
   const preview = getToolPreview(call, kind);
   const meta = getToolMeta(call);
   const connectorIconSlug = getConnectorIconSlug(call.toolName);
+  const mcpServerId = parseMcpToolName(call.toolName)?.serverId ?? null;
 
-  return { kind, label, preview, meta, connectorIconSlug };
+  return { kind, label, preview, meta, connectorIconSlug, mcpServerId };
 }
 
 function getToolKind(toolName: string): ToolSummaryKind {
@@ -373,10 +377,14 @@ function ToolStatusIcon({
   status,
   kind,
   connectorIconSlug,
+  mcpServerId,
+  label,
 }: {
   status: ToolCallStatus;
   kind: ToolSummaryKind;
   connectorIconSlug: string | null;
+  mcpServerId: string | null;
+  label: string;
 }) {
   if (status === 'pending') {
     return <ClockIcon className="size-3.5 shrink-0 text-muted-foreground" />;
@@ -393,6 +401,10 @@ function ToolStatusIcon({
         className="size-3.5 shrink-0 bg-success"
       />
     );
+  }
+
+  if (mcpServerId) {
+    return <McpServerLogo serverId={mcpServerId} name={label} className="size-3.5" />;
   }
 
   return <ToolKindIcon kind={kind} className="size-3.5 shrink-0 text-success" />;

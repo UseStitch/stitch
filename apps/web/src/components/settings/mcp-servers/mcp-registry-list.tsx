@@ -12,6 +12,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
+import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -97,21 +98,24 @@ export function McpRegistryList({
             key={server.id}
             className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20"
           >
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate text-sm font-medium">{server.name}</p>
-              </div>
-              <p className="line-clamp-2 text-xs text-muted-foreground">{server.description}</p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {server.tags.slice(0, 4).map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+            <div className="flex min-w-0 items-start gap-3">
+              <McpServerLogo registryId={server.id} name={server.name} className="mt-0.5 size-5" />
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-sm font-medium">{server.name}</p>
+                </div>
+                <p className="line-clamp-2 text-xs text-muted-foreground">{server.description}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {server.tags.slice(0, 4).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
 

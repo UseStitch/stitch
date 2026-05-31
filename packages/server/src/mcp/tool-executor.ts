@@ -300,6 +300,7 @@ async function buildServerPresentation(
     scope: `server:${server.id}`,
     icons: liveInfo?.icons,
   });
+  const registryIconPath = registryServer?.logoUrl ? `/mcp/${server.id}/logo` : undefined;
 
   return {
     serverId: server.id,
@@ -307,7 +308,7 @@ async function buildServerPresentation(
     title: registryServer?.name ?? liveInfo?.title,
     description: liveInfo?.description ?? registryServer?.description,
     instructions: liveInfo?.instructions,
-    iconPath,
+    iconPath: iconPath ?? registryIconPath,
     tools: Object.fromEntries(toolPresentations),
   };
 }
