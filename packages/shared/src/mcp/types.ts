@@ -27,6 +27,7 @@ export type McpRegistryServer = {
   description: string;
   homepageUrl?: string;
   docsUrl: string;
+  logoUrl?: string;
   tags: string[];
   install: McpRegistryServerInstall;
 };

@@ -32,6 +32,11 @@
       "type": "string",
       "format": "uri"
     },
+    "logoUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional hosted SVG logo URL added to generated registry payloads"
+    },
     "tags": {
       "type": "array",
       "minItems": 1,
