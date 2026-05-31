@@ -48,7 +48,7 @@ function buildAnalysisMarkdown(
   analysis: RecordingAnalysis | null | undefined,
   recording: Recording | undefined,
 ): string | null {
-  if (!analysis) return null;
+  if (!analysis || analysis.status !== 'completed') return null;
 
   const lines: string[] = [];
   const title = analysis.title || recording?.title || 'Recording analysis';
@@ -152,7 +152,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
     [analysis, recording],
   );
 
-  const isRunning = analysis?.status === 'pending' || analysis?.status === 'processing';
+  const isRunning = analysis?.status === 'processing';
 
   const handleStartAnalysis = () => {
     void startAnalysis.mutateAsync({ recordingId, force: true }).then(

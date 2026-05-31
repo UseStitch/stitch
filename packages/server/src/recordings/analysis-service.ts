@@ -346,7 +346,7 @@ export async function cancelRecordingAnalysis(
     return err('Recording analysis not found', 404);
   }
 
-  if (existing.status !== 'pending' && existing.status !== 'processing') {
+  if (existing.status !== 'processing') {
     return err('Recording analysis is not running', 400);
   }
 

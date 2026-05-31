@@ -188,6 +188,8 @@ export function AnalysisHeader({
   onStopRecording,
 }: AnalysisHeaderProps) {
   const showPlayer = recording?.status === 'completed' && recording.id;
+  const showRecordingControls = isRecording && onStopRecording;
+  const hasCompletedAnalysis = analysis?.status === 'completed';
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -202,18 +204,7 @@ export function AnalysisHeader({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {showPlayer ? (
-          <AudioPlayer recordingId={recording.id} durationMs={recording.durationMs} />
-        ) : null}
-        {analysisMarkdown ? (
-          <CopyButton
-            value={analysisMarkdown}
-            copyLabel="Copy analysis markdown"
-            copiedLabel="Copied analysis"
-            className="shadow-sm"
-          />
-        ) : null}
-        {isRecording && onStopRecording ? (
+        {showRecordingControls ? (
           <Button
             onClick={onStopRecording}
             disabled={isStopping}
@@ -223,11 +214,23 @@ export function AnalysisHeader({
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop
           </Button>
-        ) : (
+        ) : null}
+        {!showRecordingControls && showPlayer ? (
+          <AudioPlayer recordingId={recording.id} durationMs={recording.durationMs} />
+        ) : null}
+        {!showRecordingControls && analysisMarkdown ? (
+          <CopyButton
+            value={analysisMarkdown}
+            copyLabel="Copy analysis markdown"
+            copiedLabel="Copied analysis"
+            className="shadow-sm"
+          />
+        ) : null}
+        {!showRecordingControls ? (
           <Button
             onClick={onStartAnalysis}
             disabled={isStarting || isRunning}
-            variant={analysis ? 'outline' : 'default'}
+            variant={hasCompletedAnalysis ? 'outline' : 'default'}
             className="shadow-sm"
           >
             {isStarting || isRunning ? (
@@ -235,24 +238,26 @@ export function AnalysisHeader({
             ) : (
               <SparklesIcon data-icon="inline-start" className="size-4" />
             )}
-            {analysis ? 'Re-run analysis' : 'Analyze recording'}
+            {hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
           </Button>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onDelete}
-          disabled={isDeleting || isRunning || isRecording}
-          aria-label="Delete recording"
-          className="text-destructive shadow-sm hover:text-destructive"
-        >
-          {isDeleting ? (
-            <Loader2Icon className="size-4 animate-spin" />
-          ) : (
-            <Trash2Icon className="size-4" />
-          )}
-        </Button>
-        {isRunning && (
+        ) : null}
+        {!showRecordingControls ? (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onDelete}
+            disabled={isDeleting || isRunning || isRecording}
+            aria-label="Delete recording"
+            className="text-destructive shadow-sm hover:text-destructive"
+          >
+            {isDeleting ? (
+              <Loader2Icon className="size-4 animate-spin" />
+            ) : (
+              <Trash2Icon className="size-4" />
+            )}
+          </Button>
+        ) : null}
+        {!showRecordingControls && isRunning ? (
           <Button
             variant="destructive"
             onClick={onCancelAnalysis}
@@ -264,7 +269,7 @@ export function AnalysisHeader({
             ) : null}
             Cancel
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );
