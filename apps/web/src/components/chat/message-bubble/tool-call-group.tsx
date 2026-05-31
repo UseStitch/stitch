@@ -1,12 +1,16 @@
 import {
+  BrainIcon,
   CheckIcon,
   ChevronDownIcon,
   ClockIcon,
   FilePenIcon,
+  FilePlusIcon,
   FileTextIcon,
   GlobeIcon,
   HelpCircleIcon,
+  ListTodoIcon,
   LoaderIcon,
+  PencilIcon,
   SearchIcon,
   SquareIcon,
   TerminalIcon,
@@ -32,12 +36,16 @@ const VISIBLE_TOOL_COUNT = 4;
 
 type ToolSummaryKind =
   | 'bash'
-  | 'file'
+  | 'read'
+  | 'edit'
+  | 'write'
   | 'search'
   | 'web'
   | 'task'
   | 'question'
   | 'skill'
+  | 'memory'
+  | 'todo'
   | 'mcp'
   | 'generic';
 
@@ -70,8 +78,6 @@ const STATUS_LABEL: Record<ToolCallStatus, string> = {
 };
 
 const SEARCH_TOOLS = new Set(['gmail_search', 'drive_search', 'grep', 'glob']);
-const FILE_TOOLS = new Set(['read', 'write', 'edit']);
-
 const GOOGLE_SERVICE_ICON_SLUGS = {
   gmail: 'gmail',
   drive: 'googledrive',
@@ -195,12 +201,16 @@ function getToolSummary(call: ToolCallDisplayItem, displayName: string) {
 
 function getToolKind(toolName: string): ToolSummaryKind {
   if (toolName === 'bash' || toolName === 'execute_typescript') return 'bash';
-  if (FILE_TOOLS.has(toolName)) return 'file';
+  if (toolName === 'read') return 'read';
+  if (toolName === 'edit') return 'edit';
+  if (toolName === 'write') return 'write';
   if (SEARCH_TOOLS.has(toolName)) return 'search';
   if (toolName === 'webfetch' || toolName.startsWith('browser_')) return 'web';
   if (toolName === 'task') return 'task';
   if (toolName === 'question') return 'question';
   if (toolName === 'skill') return 'skill';
+  if (toolName === 'memory') return 'memory';
+  if (toolName === 'todo') return 'todo';
   if (parseMcpToolName(toolName)) return 'mcp';
   return 'generic';
 }
@@ -238,8 +248,12 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
   switch (kind) {
     case 'bash':
       return getStringArg(call.args, ['description', 'command', 'code']) ?? 'Running command';
-    case 'file':
+    case 'read':
       return getStringArg(call.args, ['filePath', 'path']) ?? 'Waiting for path';
+    case 'edit':
+      return getStringArg(call.args, ['filePath', 'path']) ?? 'Editing file';
+    case 'write':
+      return getStringArg(call.args, ['filePath', 'path']) ?? 'Writing file';
     case 'search':
       return getStringArg(call.args, ['query', 'pattern', 'q']) ?? 'Searching';
     case 'web':
@@ -250,6 +264,10 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
       return getStringArg(call.args, ['question', 'header']) ?? 'Waiting for response';
     case 'skill':
       return 'Loading skill';
+    case 'memory':
+      return getStringArg(call.args, ['action', 'content']) ?? 'Using memory';
+    case 'todo':
+      return getStringArg(call.args, ['action']) ?? 'Updating todos';
     case 'mcp':
     case 'generic':
       return getBestGenericPreview(call.args, call.result) ?? 'Using tool';
@@ -414,8 +432,12 @@ function ToolKindIcon({ kind, className }: { kind: ToolSummaryKind; className?: 
   switch (kind) {
     case 'bash':
       return <TerminalIcon className={className} />;
-    case 'file':
+    case 'read':
       return <FileTextIcon className={className} />;
+    case 'edit':
+      return <PencilIcon className={className} />;
+    case 'write':
+      return <FilePlusIcon className={className} />;
     case 'search':
       return <SearchIcon className={className} />;
     case 'web':
@@ -426,6 +448,10 @@ function ToolKindIcon({ kind, className }: { kind: ToolSummaryKind; className?: 
       return <HelpCircleIcon className={className} />;
     case 'skill':
       return <CheckIcon className={className} />;
+    case 'memory':
+      return <BrainIcon className={className} />;
+    case 'todo':
+      return <ListTodoIcon className={className} />;
     case 'mcp':
       return <WrenchIcon className={className} />;
     case 'generic':

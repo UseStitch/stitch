@@ -1,9 +1,13 @@
 import {
+  BrainIcon,
   CheckIcon,
   FilePenIcon,
+  FilePlusIcon,
   FileTextIcon,
   GlobeIcon,
   HelpCircleIcon,
+  ListTodoIcon,
+  PencilIcon,
   SearchIcon,
   ServerIcon,
   Settings2Icon,
@@ -203,9 +207,9 @@ function CoreToolIcon({ toolName }: { toolName: string }) {
     return <TerminalIcon className={className} />;
   }
 
-  if (toolName === 'read' || toolName === 'write' || toolName === 'edit') {
-    return <FileTextIcon className={className} />;
-  }
+  if (toolName === 'read') return <FileTextIcon className={className} />;
+  if (toolName === 'edit') return <PencilIcon className={className} />;
+  if (toolName === 'write') return <FilePlusIcon className={className} />;
 
   if (toolName === 'grep' || toolName === 'glob') {
     return <SearchIcon className={className} />;
@@ -218,6 +222,8 @@ function CoreToolIcon({ toolName }: { toolName: string }) {
   if (toolName === 'task') return <WrenchIcon className={className} />;
   if (toolName === 'question') return <HelpCircleIcon className={className} />;
   if (toolName === 'skill') return <CheckIcon className={className} />;
+  if (toolName === 'memory') return <BrainIcon className={className} />;
+  if (toolName === 'todo') return <ListTodoIcon className={className} />;
 
   return <FilePenIcon className={className} />;
 }
