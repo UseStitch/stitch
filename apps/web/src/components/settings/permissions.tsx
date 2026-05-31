@@ -1,12 +1,16 @@
 import {
   BrainIcon,
+  CalendarCheckIcon,
   CheckIcon,
   FilePenIcon,
   FilePlusIcon,
   FileTextIcon,
   GlobeIcon,
   HelpCircleIcon,
+  HistoryIcon,
   ListTodoIcon,
+  MicIcon,
+  PanelTopIcon,
   PencilIcon,
   SearchIcon,
   ServerIcon,
@@ -226,6 +230,17 @@ function CoreToolIcon({ toolName }: { toolName: string }) {
   if (toolName === 'todo') return <ListTodoIcon className={className} />;
 
   return <FilePenIcon className={className} />;
+}
+
+function NativeToolsetIcon({ toolsetId }: { toolsetId: string }) {
+  const className = 'size-4 shrink-0 text-muted-foreground';
+
+  if (toolsetId === 'agenda') return <CalendarCheckIcon className={className} />;
+  if (toolsetId === 'browser') return <PanelTopIcon className={className} />;
+  if (toolsetId === 'recordings') return <MicIcon className={className} />;
+  if (toolsetId === 'session-history') return <HistoryIcon className={className} />;
+
+  return <ServerIcon className={className} />;
 }
 
 function ToolsContent() {
@@ -488,6 +503,7 @@ function ToolsContent() {
                 key={toolset.id}
                 name={toolset.name}
                 description={toolset.description}
+                icon={<NativeToolsetIcon toolsetId={toolset.id} />}
                 enabled={getEnabled('toolset', toolset.id)}
                 settingsAlign="end"
                 onConfigure={() =>

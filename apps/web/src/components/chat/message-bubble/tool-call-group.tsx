@@ -1,5 +1,6 @@
 import {
   BrainIcon,
+  CalendarCheckIcon,
   CheckIcon,
   ChevronDownIcon,
   ClockIcon,
@@ -8,8 +9,11 @@ import {
   FileTextIcon,
   GlobeIcon,
   HelpCircleIcon,
+  HistoryIcon,
   ListTodoIcon,
   LoaderIcon,
+  MicIcon,
+  PanelTopIcon,
   PencilIcon,
   SearchIcon,
   SquareIcon,
@@ -46,6 +50,10 @@ type ToolSummaryKind =
   | 'skill'
   | 'memory'
   | 'todo'
+  | 'agenda'
+  | 'browser'
+  | 'recordings'
+  | 'session-history'
   | 'mcp'
   | 'generic';
 
@@ -205,12 +213,16 @@ function getToolKind(toolName: string): ToolSummaryKind {
   if (toolName === 'edit') return 'edit';
   if (toolName === 'write') return 'write';
   if (SEARCH_TOOLS.has(toolName)) return 'search';
-  if (toolName === 'webfetch' || toolName.startsWith('browser_')) return 'web';
+  if (toolName === 'webfetch') return 'web';
   if (toolName === 'task') return 'task';
   if (toolName === 'question') return 'question';
   if (toolName === 'skill') return 'skill';
   if (toolName === 'memory') return 'memory';
   if (toolName === 'todo') return 'todo';
+  if (toolName.startsWith('agenda_')) return 'agenda';
+  if (toolName === 'browser' || toolName.startsWith('browser_')) return 'browser';
+  if (toolName.startsWith('recordings_')) return 'recordings';
+  if (toolName.startsWith('session_history_')) return 'session-history';
   if (parseMcpToolName(toolName)) return 'mcp';
   return 'generic';
 }
@@ -268,6 +280,14 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
       return getStringArg(call.args, ['action', 'content']) ?? 'Using memory';
     case 'todo':
       return getStringArg(call.args, ['action']) ?? 'Updating todos';
+    case 'agenda':
+      return getBestGenericPreview(call.args, call.result) ?? 'Using agenda';
+    case 'browser':
+      return getStringArg(call.args, ['url', 'action', 'ref']) ?? 'Using browser';
+    case 'recordings':
+      return getBestGenericPreview(call.args, call.result) ?? 'Using recordings';
+    case 'session-history':
+      return getBestGenericPreview(call.args, call.result) ?? 'Searching sessions';
     case 'mcp':
     case 'generic':
       return getBestGenericPreview(call.args, call.result) ?? 'Using tool';
@@ -452,6 +472,14 @@ function ToolKindIcon({ kind, className }: { kind: ToolSummaryKind; className?: 
       return <BrainIcon className={className} />;
     case 'todo':
       return <ListTodoIcon className={className} />;
+    case 'agenda':
+      return <CalendarCheckIcon className={className} />;
+    case 'browser':
+      return <PanelTopIcon className={className} />;
+    case 'recordings':
+      return <MicIcon className={className} />;
+    case 'session-history':
+      return <HistoryIcon className={className} />;
     case 'mcp':
       return <WrenchIcon className={className} />;
     case 'generic':
