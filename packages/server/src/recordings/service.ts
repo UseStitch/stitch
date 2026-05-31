@@ -93,6 +93,7 @@ async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig
   const modelId = map.get('recordings.transcription.modelId')?.trim();
 
   if (!providerId || !modelId) {
+    log.warn({ providerId, modelId }, 'transcription config missing providerId or modelId');
     return null;
   }
 
@@ -102,23 +103,27 @@ async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig
     .where(eq(providerConfig.providerId, providerId));
 
   if (!config) {
+    log.warn({ providerId }, 'no provider config found for transcription provider');
     return null;
   }
 
   const credentials = config.credentials as { auth?: { apiKey?: string } };
   const apiKey = credentials?.auth?.apiKey;
   if (!apiKey) {
+    log.warn({ providerId }, 'transcription provider has no API key configured');
     return null;
   }
 
   const providers = await getTranscriptionModels();
   const provider = providers.find((p) => p.providerId === providerId);
   if (!provider) {
+    log.warn({ providerId }, 'transcription provider not found in registry');
     return null;
   }
 
   const model = provider.models.find((m) => m.id === modelId);
   if (!model) {
+    log.warn({ providerId, modelId }, 'transcription model not found in provider registry');
     return null;
   }
 

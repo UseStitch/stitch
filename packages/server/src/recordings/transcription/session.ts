@@ -6,9 +6,6 @@ import { getTranscriptionProvider } from '@/recordings/transcription/registry.js
 
 const log = Log.create({ service: 'live-transcription' });
 
-const FLUSH_INTERVAL_MS = 200;
-const MAX_BUFFER_SAMPLES = 16_000; // 1 second at 16kHz — flush immediately if exceeded
-
 type LiveTranscriptionSessionConfig = {
   recordingId: string;
   providerId: string;
@@ -44,33 +41,8 @@ export async function startLiveTranscriptionSession(
 
   const transcript: RecordingTranscriptEntry[] = [];
   let stopped = false;
-
-  // Flow control buffers
-  let micBuffer = '';
-  let speakerBuffer = '';
-  let micBufferSamples = 0;
-  let speakerBufferSamples = 0;
-
-  function flushMic(): void {
-    if (micBuffer && micConnection) {
-      micConnection.sendAudio(micBuffer);
-      micBuffer = '';
-      micBufferSamples = 0;
-    }
-  }
-
-  function flushSpeaker(): void {
-    if (speakerBuffer && speakerConnection) {
-      speakerConnection.sendAudio(speakerBuffer);
-      speakerBuffer = '';
-      speakerBufferSamples = 0;
-    }
-  }
-
-  const flushTimer = setInterval(() => {
-    flushMic();
-    flushSpeaker();
-  }, FLUSH_INTERVAL_MS);
+  let micChunkCount = 0;
+  let speakerChunkCount = 0;
 
   function handleTranscript(source: 'mic' | 'speaker', text: string): void {
     if (stopped) return;
@@ -100,22 +72,17 @@ export async function startLiveTranscriptionSession(
   micConnection.onError((err) => handleError('mic', err));
   speakerConnection.onError((err) => handleError('speaker', err));
 
-  // Subscribe to audio chunk events
+  // Send each chunk immediately (no buffering).
+  // Base64 strings cannot be concatenated safely (padding chars would corrupt data).
   const unsubscribe = Events.on('recording-audio-chunk', (payload) => {
     if (stopped || payload.recordingId !== config.recordingId) return;
 
     if (payload.source === 'mic') {
-      micBuffer += payload.samplesB64;
-      micBufferSamples += payload.numSamples;
-      if (micBufferSamples >= MAX_BUFFER_SAMPLES) {
-        flushMic();
-      }
+      micChunkCount += 1;
+      micConnection.sendAudio(payload.samplesB64);
     } else {
-      speakerBuffer += payload.samplesB64;
-      speakerBufferSamples += payload.numSamples;
-      if (speakerBufferSamples >= MAX_BUFFER_SAMPLES) {
-        flushSpeaker();
-      }
+      speakerChunkCount += 1;
+      speakerConnection.sendAudio(payload.samplesB64);
     }
   });
 
@@ -129,19 +96,17 @@ export async function startLiveTranscriptionSession(
       if (stopped) return transcript;
       stopped = true;
 
-      clearInterval(flushTimer);
       unsubscribe();
-
-      // Final flush
-      flushMic();
-      flushSpeaker();
-
-      // Close connections
       micConnection.close();
       speakerConnection.close();
 
       log.info(
-        { recordingId: config.recordingId, entries: transcript.length },
+        {
+          recordingId: config.recordingId,
+          entries: transcript.length,
+          micChunks: micChunkCount,
+          speakerChunks: speakerChunkCount,
+        },
         'live transcription session stopped',
       );
 

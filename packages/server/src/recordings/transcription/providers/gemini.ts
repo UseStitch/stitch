@@ -28,18 +28,17 @@ function createGeminiConnection(
         typeof event.data === 'string' ? event.data : event.data.toString(),
       );
 
-      if (message.usageMetadata) {
-        log.debug({ usage: message.usageMetadata }, 'gemini usage metadata');
-      }
-
       const transcriptionText =
         message.serverContent?.inputTranscription?.text || message.inputTranscription?.text;
 
       if (transcriptionText && transcriptCb) {
         transcriptCb(transcriptionText);
       }
-    } catch {
-      log.warn('failed to parse gemini message');
+    } catch (parseError) {
+      log.warn(
+        { error: parseError instanceof Error ? parseError.message : 'unknown' },
+        'failed to parse gemini message',
+      );
     }
   });
 
@@ -52,10 +51,10 @@ function createGeminiConnection(
 
   ws.addEventListener('close', (event: CloseEvent) => {
     if (event.code !== 1000) {
+      log.warn({ code: event.code, reason: event.reason }, 'gemini websocket closed unexpectedly');
       const err = new Error(
         `Gemini WebSocket closed unexpectedly (code=${event.code}, reason=${event.reason || 'none'})`,
       );
-      log.warn({ code: event.code, reason: event.reason }, 'gemini websocket closed');
       errorCb?.(err);
     }
   });
@@ -105,13 +104,11 @@ export const geminiProvider: LiveTranscriptionProvider = {
       }, 15_000);
 
       ws.addEventListener('open', () => {
-        log.info({ model: config.modelId }, 'gemini websocket connected, sending setup');
-
         const setupMessage = {
           setup: {
             model: `models/${config.modelId}`,
             generationConfig: {
-              responseModalities: ['TEXT'],
+              responseModalities: ['AUDIO'],
             },
             inputAudioTranscription: {},
             systemInstruction: {
