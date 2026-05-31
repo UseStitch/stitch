@@ -404,52 +404,6 @@ export function deleteAgendaItem(id: PrefixedString<'aitm'>): ServiceResult<null
   return ok(null);
 }
 
-// --- Events ---
-
-export function addAgendaItemEvent(
-  itemId: PrefixedString<'aitm'>,
-  input: { content: string; sessionId?: PrefixedString<'ses'> | null },
-): ServiceResult<AgendaItemEvent> {
-  const db = getDb();
-  const item = db
-    .select({ id: agendaItems.id })
-    .from(agendaItems)
-    .where(eq(agendaItems.id, itemId))
-    .get();
-  if (!item) return err('Item not found', 404);
-
-  const id = createAgendaItemEventId();
-  const now = Date.now();
-
-  const eventRow = {
-    id,
-    itemId,
-    type: 'comment' as const,
-    fromStatus: null,
-    toStatus: null,
-    content: input.content,
-    sessionId: input.sessionId ?? null,
-    createdAt: now,
-  };
-
-  db.insert(agendaItemEvents).values(eventRow).run();
-
-  return ok(toAgendaItemEvent(eventRow as AgendaItemEventRow));
-}
-
-export function getAgendaItemEvents(
-  itemId: PrefixedString<'aitm'>,
-): ServiceResult<AgendaItemEvent[]> {
-  const db = getDb();
-  const rows = db
-    .select()
-    .from(agendaItemEvents)
-    .where(eq(agendaItemEvents.itemId, itemId))
-    .orderBy(desc(agendaItemEvents.createdAt))
-    .all();
-  return ok(rows.map(toAgendaItemEvent));
-}
-
 export function reorderAgendaItems(orderedIds: PrefixedString<'aitm'>[]): ServiceResult<null> {
   const db = getDb();
   const now = Date.now();

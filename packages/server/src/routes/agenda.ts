@@ -6,13 +6,11 @@ import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/age
 import type { PrefixedString } from '@stitch/shared/id';
 
 import {
-  addAgendaItemEvent,
   createAgendaItem,
   createAgendaList,
   deleteAgendaItem,
   deleteAgendaList,
   getAgendaItem,
-  getAgendaItemEvents,
   getAgendaItems,
   getAgendaLists,
   mergeAgendaLists,
@@ -57,11 +55,6 @@ const updateItemSchema = z.object({
   priority: z.enum(AGENDA_ITEM_PRIORITIES).optional(),
   dueAt: z.number().nullable().optional(),
   listId: z.string().optional(),
-});
-
-const addEventSchema = z.object({
-  content: z.string().trim().min(1).max(5000),
-  sessionId: z.string().nullable().optional(),
 });
 
 const reorderSchema = z.object({
@@ -169,22 +162,4 @@ agendaRouter.delete('/items/:id', (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const result = deleteAgendaItem(id);
   return unwrapResult(c, result, 204);
-});
-
-// --- Events ---
-
-agendaRouter.get('/items/:id/events', (c) => {
-  const id = c.req.param('id') as PrefixedString<'aitm'>;
-  const result = getAgendaItemEvents(id);
-  return unwrapResult(c, result);
-});
-
-agendaRouter.post('/items/:id/events', zValidator('json', addEventSchema), (c) => {
-  const id = c.req.param('id') as PrefixedString<'aitm'>;
-  const body = c.req.valid('json');
-  const result = addAgendaItemEvent(id, {
-    content: body.content,
-    sessionId: body.sessionId as PrefixedString<'ses'> | null | undefined,
-  });
-  return unwrapResult(c, result, 201);
 });
