@@ -17,11 +17,11 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/shared': {
-      entry: ['src/**/*.ts', '__test__/**/*.test.{ts,tsx}'],
+      entry: ['src/**/*.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.ts'],
     },
     'packages/*': {
-      entry: ['src/index.{ts,tsx}', '__test__/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/server': {
@@ -33,7 +33,7 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'connectors/*': {
-      entry: ['src/index.{ts,tsx}', 'src/__test__/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'connectors/sdk': {
