@@ -177,6 +177,13 @@ export type RecordingAudioChunkPayload = {
   numSamples: number;
 };
 
+export type RecordingTranscriptEntryPayload = {
+  recordingId: string;
+  source: 'mic' | 'speaker';
+  content: string;
+  isFinal: boolean;
+};
+
 export const SSE_EVENT_NAMES = [
   'heartbeat',
   'connected',
@@ -204,6 +211,7 @@ export const SSE_EVENT_NAMES = [
   'recording-warning',
   'recording-device-changed',
   'recording-audio-chunk',
+  'recording-transcript-entry',
 ] as const;
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
@@ -235,6 +243,7 @@ export type SseEventPayloadMap = {
   'recording-warning': RecordingWarningPayload;
   'recording-device-changed': RecordingDeviceChangedPayload;
   'recording-audio-chunk': RecordingAudioChunkPayload;
+  'recording-transcript-entry': RecordingTranscriptEntryPayload;
 };
 
 export type SseHandlers = {

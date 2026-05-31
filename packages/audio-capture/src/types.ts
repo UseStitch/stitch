@@ -51,6 +51,13 @@ export type MeetingDetector = {
   getActive: () => MeetingDetection | null;
 };
 
+export type AudioChunkEncoding = 'f32le' | 'pcm_s16le';
+
+export type AudioChunkConfig = {
+  encoding: AudioChunkEncoding;
+  sampleRateHz: number;
+};
+
 export type NativeCaptureStartCommand = {
   type: 'start';
   outputPath: string;
@@ -61,6 +68,7 @@ export type NativeCaptureStartCommand = {
   micDeviceId: string | null;
   speakerDeviceId: string | null;
   speakerGain: number | null;
+  audioChunkConfig: AudioChunkConfig | null;
 };
 
 export type NativeCaptureStopCommand = {
@@ -214,6 +222,7 @@ export type StartCaptureInput = {
   micDeviceId?: string | null;
   speakerDeviceId?: string | null;
   speakerGain?: number | null;
+  audioChunkConfig?: AudioChunkConfig | null;
 };
 
 export type ActiveCapture = {

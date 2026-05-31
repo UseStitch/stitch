@@ -3,8 +3,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
-import type { AudioDeviceList, AudioPermissionsStatus } from '@stitch/audio-capture';
-import { createRecordingId } from '@stitch/shared/id';
+import type {
+  AudioChunkConfig,
+  AudioDeviceList,
+  AudioPermissionsStatus,
+} from '@stitch/audio-capture';
+import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
 import type {
   ListRecordingsResponse,
   Recording,
@@ -14,20 +18,25 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { providerConfig, recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { getTranscriptionModels } from '@/llm/provider/transcription-models.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import type { LiveTranscriptionSession } from '@/recordings/transcription/session.js';
+import { startLiveTranscriptionSession } from '@/recordings/transcription/session.js';
+import { ZERO_USAGE } from '@/utils/usage.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
 
 type ActiveRecording = {
   id: Recording['id'];
   filePath: string;
+  transcriptionSession: LiveTranscriptionSession | null;
 };
 
 const capture = createAudioCaptureHandle();
@@ -58,6 +67,75 @@ async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
   const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
 
   return { inputDeviceId, outputDeviceId, speakerGain };
+}
+
+type ResolvedTranscriptionConfig = {
+  providerId: string;
+  modelId: string;
+  apiKey: string;
+  endpoint: string;
+  sampleRateHz: number;
+  encoding: string;
+  audioChunkConfig: AudioChunkConfig;
+};
+
+async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ key: userSettings.key, value: userSettings.value })
+    .from(userSettings)
+    .where(
+      sql`${userSettings.key} IN ('recordings.transcription.providerId', 'recordings.transcription.modelId')`,
+    );
+
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  const providerId = map.get('recordings.transcription.providerId')?.trim();
+  const modelId = map.get('recordings.transcription.modelId')?.trim();
+
+  if (!providerId || !modelId) {
+    return null;
+  }
+
+  const [config] = await db
+    .select()
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, providerId));
+
+  if (!config) {
+    return null;
+  }
+
+  const credentials = config.credentials as { auth?: { apiKey?: string } };
+  const apiKey = credentials?.auth?.apiKey;
+  if (!apiKey) {
+    return null;
+  }
+
+  const providers = await getTranscriptionModels();
+  const provider = providers.find((p) => p.providerId === providerId);
+  if (!provider) {
+    return null;
+  }
+
+  const model = provider.models.find((m) => m.id === modelId);
+  if (!model) {
+    return null;
+  }
+
+  const encoding = model.audio.encoding === 'pcm_s16le' ? 'pcm_s16le' : 'f32le';
+
+  return {
+    providerId,
+    modelId,
+    apiKey,
+    endpoint: model.endpoint,
+    sampleRateHz: model.audio.sampleRate,
+    encoding,
+    audioChunkConfig: {
+      encoding: encoding as AudioChunkConfig['encoding'],
+      sampleRateHz: model.audio.sampleRate,
+    },
+  };
 }
 
 function defaultTitle(): string {
@@ -151,12 +229,31 @@ export async function startRecording(
 
   try {
     const settings = await readCaptureSettings();
+    const transcriptionConfig = await resolveTranscriptionConfig();
+
+    if (!transcriptionConfig) {
+      await db
+        .update(recordings)
+        .set({
+          status: 'failed',
+          error: 'No transcription model configured',
+          endedAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+        .where(eq(recordings.id, id));
+      return err(
+        'No transcription model configured. Please configure a transcription model in settings.',
+        400,
+      );
+    }
+
     await capture.start({
       outputPath: filePath,
       channels: 1,
       micDeviceId: settings.inputDeviceId,
       speakerDeviceId: settings.outputDeviceId,
       speakerGain: settings.speakerGain,
+      audioChunkConfig: transcriptionConfig.audioChunkConfig,
     });
 
     capture.onEvent((event) => {
@@ -178,7 +275,28 @@ export async function startRecording(
       }
     });
 
-    activeRecording = { id, filePath };
+    let transcriptionSession: LiveTranscriptionSession | null = null;
+    try {
+      transcriptionSession = await startLiveTranscriptionSession({
+        recordingId: id,
+        providerId: transcriptionConfig.providerId,
+        modelId: transcriptionConfig.modelId,
+        apiKey: transcriptionConfig.apiKey,
+        endpoint: transcriptionConfig.endpoint,
+        sampleRateHz: transcriptionConfig.sampleRateHz,
+      });
+    } catch (transcriptionError) {
+      const message =
+        transcriptionError instanceof Error
+          ? transcriptionError.message
+          : 'Failed to start transcription';
+      log.warn(
+        { recordingId: id, error: message },
+        'live transcription failed to start, recording without transcription',
+      );
+    }
+
+    activeRecording = { id, filePath, transcriptionSession };
     log.info(
       {
         recordingId: id,
@@ -186,6 +304,9 @@ export async function startRecording(
         speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,
+        transcription: transcriptionConfig
+          ? { providerId: transcriptionConfig.providerId, modelId: transcriptionConfig.modelId }
+          : null,
       },
       'recording started',
     );
@@ -241,6 +362,9 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
   activeRecording = null;
 
   try {
+    // Stop transcription session first to get final transcript
+    const transcript = current.transcriptionSession?.stop() ?? [];
+
     const stop = await capture.stop();
     const endedAt = stop?.endedAt ?? Date.now();
     const durationMs = stop?.durationMs ?? null;
@@ -257,12 +381,51 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
 
+    // Save transcript to recording_analyses if we have entries
+    if (transcript.length > 0) {
+      const analysisId = createRecordingAnalysisId();
+      await db
+        .insert(recordingAnalyses)
+        .values({
+          id: analysisId,
+          recordingId: current.id,
+          status: 'pending',
+          transcript,
+          topics: [],
+          topicSections: [],
+          summary: '',
+          title: '',
+          actionItems: [],
+          blockers: [],
+          error: null,
+          transcriptionProviderId: null,
+          transcriptionModelId: null,
+          analysisProviderId: null,
+          analysisModelId: null,
+          usage: ZERO_USAGE,
+          costUsd: 0,
+          startedAt: null,
+          endedAt: null,
+          durationMs: null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+        .onConflictDoUpdate({
+          target: recordingAnalyses.recordingId,
+          set: {
+            transcript,
+            updatedAt: Date.now(),
+          },
+        });
+    }
+
     log.info(
       {
         recordingId: current.id,
         filePath: current.filePath,
         stopped: stop,
         fileSizeBytes: stat?.size ?? null,
+        transcriptEntries: transcript.length,
       },
       'recording stopped',
     );
@@ -272,7 +435,7 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       .from(userSettings)
       .where(eq(userSettings.key, 'recordings.autoAnalyze'));
 
-    if (autoAnalyzeSetting?.value === 'true') {
+    if (autoAnalyzeSetting?.value === 'true' && transcript.length > 0) {
       void startRecordingAnalysis(current.id).then((result) => {
         if ('error' in result) {
           log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');

@@ -152,6 +152,7 @@ function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, {
     micDeviceId: input.micDeviceId ?? null,
     speakerDeviceId: input.speakerDeviceId ?? null,
     speakerGain: input.speakerGain ?? null,
+    audioChunkConfig: input.audioChunkConfig ?? null,
   };
 }
 

@@ -9,7 +9,9 @@ use cpal::{SampleFormat, SizedSample};
 
 use audio_core::error::NativeError;
 use audio_core::output::{emit, emit_audio_chunk, now_ms};
-use audio_core::protocol::{AudioChunkSource, CaptureMode, CaptureStart, Event};
+use audio_core::protocol::{
+  AudioChunkEncoding, AudioChunkSource, CaptureMode, CaptureStart, Event,
+};
 
 use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
@@ -552,6 +554,11 @@ fn write_dual_realtime_output(
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
 
   let (mic_rx, mic_worker) = spawn_mic_source(start, stop_flag.clone())?;
   let (speaker_rx, speaker_worker) =
@@ -572,7 +579,12 @@ fn write_dual_realtime_output(
         use std::sync::mpsc::RecvTimeoutError;
         match mic_rx.recv_timeout(Duration::from_millis(20)) {
           Ok(chunk) => {
-            emit_audio_chunk(AudioChunkSource::Mic, &chunk, target_sample_rate_hz);
+            emit_audio_chunk(
+              AudioChunkSource::Mic,
+              &chunk,
+              target_sample_rate_hz,
+              chunk_encoding,
+            );
             mic_buf.extend_from_slice(&chunk);
           }
           Err(RecvTimeoutError::Disconnected) => {
@@ -584,11 +596,21 @@ fn write_dual_realtime_output(
           Err(RecvTimeoutError::Timeout) => {}
         }
         while let Ok(chunk) = mic_rx.try_recv() {
-          emit_audio_chunk(AudioChunkSource::Mic, &chunk, target_sample_rate_hz);
+          emit_audio_chunk(
+            AudioChunkSource::Mic,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
           mic_buf.extend_from_slice(&chunk);
         }
         while let Ok(chunk) = speaker_rx.try_recv() {
-          emit_audio_chunk(AudioChunkSource::Speaker, &chunk, target_sample_rate_hz);
+          emit_audio_chunk(
+            AudioChunkSource::Speaker,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
           speaker_buf.extend_from_slice(&chunk);
         }
 

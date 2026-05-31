@@ -220,7 +220,12 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
 
         {/* Right Column - Full Height Transcript */}
         <div className="min-h-0 lg:col-span-4 xl:col-span-4 2xl:col-span-3">
-          <TranscriptSidebar analysis={analysis} isRunning={isRunning} />
+          <TranscriptSidebar
+            analysis={analysis}
+            isRunning={isRunning}
+            recordingId={recordingId}
+            isRecording={recording?.status === 'recording'}
+          />
         </div>
       </div>
 
