@@ -68,14 +68,7 @@ Every changed line should trace directly to the user's request.
 
 ## Testing
 
-### Test Locations (packages/server)
-
 - Tests are should be colocated with source files in `src/`
-- When migrating a test, move it from `__test__/` to sit next to its source file in `src/`, then delete the original
-
-### Test Locations (other packages)
-
-- Tests are located in `__test__` directories
 
 ### Test Patterns
 
