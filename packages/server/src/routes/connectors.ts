@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { listConnectorDefinitions, getConnectorDefinition } from '@/connectors/registry.js';
+import { listConnectorDefinitions } from '@/connectors/registry.js';
 import {
   listConnectorInstances,
   getConnectorInstance,
@@ -15,7 +15,7 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 
 export const connectorsRouter = new Hono();
@@ -25,14 +25,6 @@ const log = Log.create({ service: 'connectors-route' });
 connectorsRouter.get('/definitions', (c) => {
   const definitions = listConnectorDefinitions();
   return c.json(definitions);
-});
-
-// Get a specific connector definition
-connectorsRouter.get('/definitions/:id', (c) => {
-  const id = c.req.param('id');
-  const definition = getConnectorDefinition(id);
-  const result = requireFound(definition, 'Connector');
-  return unwrapResult(c, result);
 });
 
 // List all connector instances
