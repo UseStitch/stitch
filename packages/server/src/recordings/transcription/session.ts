@@ -1,22 +1,40 @@
+import { eq } from 'drizzle-orm';
+
 import type { RecordingTranscriptEntry } from '@stitch/shared/recordings/types';
 
+import { getDb } from '@/db/client.js';
+import { recordingAnalyses } from '@/db/schema.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
+import type { TranscriptionPricing } from '@/llm/provider/transcription-schema.js';
+import {
+  calculateDurationCostUsd,
+  calculateTranscriptionCostUsd,
+} from '@/recordings/transcription/cost.js';
+import type { LiveTranscriptionUsage } from '@/recordings/transcription/provider-iface.js';
 import { getTranscriptionProvider } from '@/recordings/transcription/registry.js';
 
 const log = Log.create({ service: 'live-transcription' });
 
 type LiveTranscriptionSessionConfig = {
   recordingId: string;
+  analysisId: string;
   providerId: string;
   modelId: string;
   apiKey: string;
   endpoint: string;
   sampleRateHz: number;
+  pricing: TranscriptionPricing;
+};
+
+export type LiveTranscriptionSessionResult = {
+  transcript: RecordingTranscriptEntry[];
+  costUsd: number;
+  usage: { mic: LiveTranscriptionUsage; speaker: LiveTranscriptionUsage };
 };
 
 export type LiveTranscriptionSession = {
-  stop: () => RecordingTranscriptEntry[];
+  stop: () => LiveTranscriptionSessionResult;
 };
 
 export async function startLiveTranscriptionSession(
@@ -44,6 +62,57 @@ export async function startLiveTranscriptionSession(
   let micChunkCount = 0;
   let speakerChunkCount = 0;
 
+  // Usage tracking — Gemini sends cumulative totals in each usageMetadata message,
+  // so we just keep the latest snapshot per connection.
+  let micUsage: LiveTranscriptionUsage = {};
+  let speakerUsage: LiveTranscriptionUsage = {};
+  let currentCostUsd = 0;
+  const startedAt = Date.now();
+
+  function computeTotalCost(): number {
+    if (config.pricing.type === 'token') {
+      const micCost = calculateTranscriptionCostUsd(micUsage, config.pricing);
+      const speakerCost = calculateTranscriptionCostUsd(speakerUsage, config.pricing);
+      return micCost + speakerCost;
+    }
+    // Duration-based: cost = elapsed minutes * perMinute * 2 (two connections)
+    const elapsedMinutes = (Date.now() - startedAt) / 60_000;
+    return calculateDurationCostUsd(elapsedMinutes * 2, config.pricing.perMinute);
+  }
+
+  function persistCostIncremental(): void {
+    const newCost = computeTotalCost();
+    if (newCost === currentCostUsd) return;
+    currentCostUsd = newCost;
+
+    // Fire-and-forget DB update
+    const db = getDb();
+    db.update(recordingAnalyses)
+      .set({ costUsd: currentCostUsd, updatedAt: Date.now() })
+      .where(eq(recordingAnalyses.id, config.analysisId as never))
+      .catch((dbErr) => {
+        log.warn(
+          {
+            error: dbErr instanceof Error ? dbErr.message : 'unknown',
+            recordingId: config.recordingId,
+          },
+          'failed to persist incremental cost',
+        );
+      });
+  }
+
+  function handleUsage(source: 'mic' | 'speaker', usage: LiveTranscriptionUsage): void {
+    if (stopped) return;
+
+    if (source === 'mic') {
+      micUsage = usage;
+    } else {
+      speakerUsage = usage;
+    }
+
+    persistCostIncremental();
+  }
+
   function handleTranscript(source: 'mic' | 'speaker', text: string): void {
     if (stopped) return;
 
@@ -62,6 +131,9 @@ export async function startLiveTranscriptionSession(
   micConnection.onTranscript((text) => handleTranscript('mic', text));
   speakerConnection.onTranscript((text) => handleTranscript('speaker', text));
 
+  micConnection.onUsage((usage) => handleUsage('mic', usage));
+  speakerConnection.onUsage((usage) => handleUsage('speaker', usage));
+
   function handleError(source: string, error: Error): void {
     log.error(
       { source, error: error.message, recordingId: config.recordingId },
@@ -73,7 +145,6 @@ export async function startLiveTranscriptionSession(
   speakerConnection.onError((err) => handleError('speaker', err));
 
   // Send each chunk immediately (no buffering).
-  // Base64 strings cannot be concatenated safely (padding chars would corrupt data).
   const unsubscribe = Events.on('recording-audio-chunk', (payload) => {
     if (stopped || payload.recordingId !== config.recordingId) return;
 
@@ -92,13 +163,22 @@ export async function startLiveTranscriptionSession(
   );
 
   return {
-    stop(): RecordingTranscriptEntry[] {
-      if (stopped) return transcript;
+    stop(): LiveTranscriptionSessionResult {
+      if (stopped) {
+        return {
+          transcript,
+          costUsd: currentCostUsd,
+          usage: { mic: micUsage, speaker: speakerUsage },
+        };
+      }
       stopped = true;
 
       unsubscribe();
       micConnection.close();
       speakerConnection.close();
+
+      // Final cost computation
+      currentCostUsd = computeTotalCost();
 
       log.info(
         {
@@ -106,11 +186,16 @@ export async function startLiveTranscriptionSession(
           entries: transcript.length,
           micChunks: micChunkCount,
           speakerChunks: speakerChunkCount,
+          costUsd: currentCostUsd,
         },
         'live transcription session stopped',
       );
 
-      return transcript;
+      return {
+        transcript,
+        costUsd: currentCostUsd,
+        usage: { mic: micUsage, speaker: speakerUsage },
+      };
     },
   };
 }

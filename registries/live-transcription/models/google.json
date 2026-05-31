@@ -25,6 +25,15 @@
       "limits": {
         "maxSessionDurationMs": 7200000,
         "maxChunkDurationMs": 200
+      },
+      "pricing": {
+        "type": "token",
+        "perMillionTokens": {
+          "audioInput": 3.0,
+          "textInput": 0.5,
+          "audioOutput": 12.0,
+          "textOutput": 2.0
+        }
       }
     }
   ]

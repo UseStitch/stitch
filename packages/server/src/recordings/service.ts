@@ -26,10 +26,10 @@ import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getTranscriptionModels } from '@/llm/provider/transcription-models.js';
+import type { TranscriptionPricing } from '@/llm/provider/transcription-schema.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import type { LiveTranscriptionSession } from '@/recordings/transcription/session.js';
 import { startLiveTranscriptionSession } from '@/recordings/transcription/session.js';
-import { ZERO_USAGE } from '@/utils/usage.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
 
@@ -76,6 +76,7 @@ type ResolvedTranscriptionConfig = {
   endpoint: string;
   sampleRateHz: number;
   encoding: string;
+  pricing: TranscriptionPricing;
   audioChunkConfig: AudioChunkConfig;
 };
 
@@ -136,6 +137,7 @@ async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig
     endpoint: model.endpoint,
     sampleRateHz: model.audio.sampleRate,
     encoding,
+    pricing: model.pricing,
     audioChunkConfig: {
       encoding: encoding as AudioChunkConfig['encoding'],
       sampleRateHz: model.audio.sampleRate,
@@ -282,13 +284,42 @@ export async function startRecording(
 
     let transcriptionSession: LiveTranscriptionSession | null = null;
     try {
+      // Create recording_analyses row upfront so incremental cost updates can target it
+      const analysisId = createRecordingAnalysisId();
+      await db.insert(recordingAnalyses).values({
+        id: analysisId,
+        recordingId: id,
+        status: 'pending',
+        transcript: [],
+        topics: [],
+        topicSections: [],
+        summary: '',
+        title: '',
+        actionItems: [],
+        blockers: [],
+        error: null,
+        transcriptionProviderId: transcriptionConfig.providerId,
+        transcriptionModelId: transcriptionConfig.modelId,
+        analysisProviderId: null,
+        analysisModelId: null,
+        usage: null,
+        costUsd: 0,
+        startedAt: Date.now(),
+        endedAt: null,
+        durationMs: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
       transcriptionSession = await startLiveTranscriptionSession({
         recordingId: id,
+        analysisId,
         providerId: transcriptionConfig.providerId,
         modelId: transcriptionConfig.modelId,
         apiKey: transcriptionConfig.apiKey,
         endpoint: transcriptionConfig.endpoint,
         sampleRateHz: transcriptionConfig.sampleRateHz,
+        pricing: transcriptionConfig.pricing,
       });
     } catch (transcriptionError) {
       const message =
@@ -367,8 +398,9 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
   activeRecording = null;
 
   try {
-    // Stop transcription session first to get final transcript
-    const transcript = current.transcriptionSession?.stop() ?? [];
+    // Stop transcription session first to get final transcript + cost
+    const sessionResult = current.transcriptionSession?.stop() ?? null;
+    const transcript = sessionResult?.transcript ?? [];
 
     const stop = await capture.stop();
     const endedAt = stop?.endedAt ?? Date.now();
@@ -386,42 +418,18 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
 
-    // Save transcript to recording_analyses if we have entries
+    // Update recording_analyses with final transcript and cost
     if (transcript.length > 0) {
-      const analysisId = createRecordingAnalysisId();
       await db
-        .insert(recordingAnalyses)
-        .values({
-          id: analysisId,
-          recordingId: current.id,
-          status: 'pending',
+        .update(recordingAnalyses)
+        .set({
           transcript,
-          topics: [],
-          topicSections: [],
-          summary: '',
-          title: '',
-          actionItems: [],
-          blockers: [],
-          error: null,
-          transcriptionProviderId: null,
-          transcriptionModelId: null,
-          analysisProviderId: null,
-          analysisModelId: null,
-          usage: ZERO_USAGE,
-          costUsd: 0,
-          startedAt: null,
-          endedAt: null,
-          durationMs: null,
-          createdAt: Date.now(),
+          costUsd: sessionResult?.costUsd ?? 0,
+          endedAt: Date.now(),
+          durationMs: durationMs ?? undefined,
           updatedAt: Date.now(),
         })
-        .onConflictDoUpdate({
-          target: recordingAnalyses.recordingId,
-          set: {
-            transcript,
-            updatedAt: Date.now(),
-          },
-        });
+        .where(eq(recordingAnalyses.recordingId, current.id));
     }
 
     log.info(
@@ -431,6 +439,7 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
         stopped: stop,
         fileSizeBytes: stat?.size ?? null,
         transcriptEntries: transcript.length,
+        costUsd: sessionResult?.costUsd ?? 0,
       },
       'recording stopped',
     );

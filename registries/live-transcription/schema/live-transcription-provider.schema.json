@@ -24,7 +24,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "endpoint", "audio", "connection"],
+        "required": ["id", "name", "endpoint", "audio", "connection", "pricing"],
         "properties": {
           "id": {
             "type": "string",
@@ -137,6 +137,51 @@
                 "type": "integer",
                 "minimum": 1,
                 "description": "Recommended maximum duration per audio chunk in milliseconds"
+              }
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "description": "Cost information for this model",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["token", "duration"],
+                "description": "Whether this model bills by tokens or audio duration"
+              },
+              "perMillionTokens": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Cost in USD per 1M tokens, by modality. Used when type=token.",
+                "properties": {
+                  "audioInput": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Cost per 1M audio input tokens"
+                  },
+                  "textInput": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Cost per 1M text input tokens"
+                  },
+                  "audioOutput": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Cost per 1M audio output tokens"
+                  },
+                  "textOutput": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Cost per 1M text output tokens"
+                  }
+                }
+              },
+              "perMinute": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Cost in USD per minute of audio. Used when type=duration."
               }
             }
           }

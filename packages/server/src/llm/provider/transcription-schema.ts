@@ -2,6 +2,23 @@ import z from 'zod';
 
 const transcriptionProviderIdSchema = z.enum(['google', 'openai']);
 
+const TokenPricingSchema = z.object({
+  type: z.literal('token'),
+  perMillionTokens: z.object({
+    audioInput: z.number().nonnegative(),
+    textInput: z.number().nonnegative(),
+    audioOutput: z.number().nonnegative(),
+    textOutput: z.number().nonnegative(),
+  }),
+});
+
+const DurationPricingSchema = z.object({
+  type: z.literal('duration'),
+  perMinute: z.number().nonnegative(),
+});
+
+const PricingSchema = z.discriminatedUnion('type', [TokenPricingSchema, DurationPricingSchema]);
+
 const TranscriptionModelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -30,6 +47,7 @@ const TranscriptionModelSchema = z.object({
       maxChunkDurationMs: z.number().int().positive().optional(),
     })
     .optional(),
+  pricing: PricingSchema,
 });
 
 export const TranscriptionProviderSchema = z.object({
@@ -45,5 +63,6 @@ export const TranscriptionRegistryPayloadSchema = z.object({
   providers: z.array(TranscriptionProviderSchema).min(1),
 });
 
+export type TranscriptionPricing = z.infer<typeof PricingSchema>;
 export type TranscriptionProvider = z.infer<typeof TranscriptionProviderSchema>;
 export type TranscriptionRegistryPayload = z.infer<typeof TranscriptionRegistryPayloadSchema>;

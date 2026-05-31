@@ -4,7 +4,9 @@ import type {
   LiveTranscriptionConnection,
   LiveTranscriptionConnectionConfig,
   LiveTranscriptionProvider,
+  LiveTranscriptionUsage,
   TranscriptCallback,
+  UsageCallback,
 } from '@/recordings/transcription/provider-iface.js';
 
 const log = Log.create({ service: 'transcription-gemini' });
@@ -20,6 +22,7 @@ function createGeminiConnection(
   config: LiveTranscriptionConnectionConfig,
 ): LiveTranscriptionConnection {
   let transcriptCb: TranscriptCallback | null = null;
+  let usageCb: UsageCallback | null = null;
   let errorCb: ErrorCallback | null = null;
 
   ws.addEventListener('message', (event: MessageEvent) => {
@@ -27,6 +30,18 @@ function createGeminiConnection(
       const message = JSON.parse(
         typeof event.data === 'string' ? event.data : event.data.toString(),
       );
+
+      // Handle usage metadata updates (streamed incrementally by Gemini)
+      if (message.usageMetadata && usageCb) {
+        const usage: LiveTranscriptionUsage = {
+          promptTokenCount: message.usageMetadata.promptTokenCount,
+          responseTokenCount: message.usageMetadata.responseTokenCount,
+          totalTokenCount: message.usageMetadata.totalTokenCount,
+          promptTokensDetails: message.usageMetadata.promptTokensDetails,
+          responseTokensDetails: message.usageMetadata.responseTokensDetails,
+        };
+        usageCb(usage);
+      }
 
       const transcriptionText =
         message.serverContent?.inputTranscription?.text || message.inputTranscription?.text;
@@ -84,6 +99,10 @@ function createGeminiConnection(
 
     onTranscript(cb: TranscriptCallback): void {
       transcriptCb = cb;
+    },
+
+    onUsage(cb: UsageCallback): void {
+      usageCb = cb;
     },
 
     onError(cb: ErrorCallback): void {

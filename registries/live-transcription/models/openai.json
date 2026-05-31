@@ -26,6 +26,10 @@
       "limits": {
         "maxSessionDurationMs": 3600000,
         "maxChunkDurationMs": 200
+      },
+      "pricing": {
+        "type": "duration",
+        "perMinute": 0.017
       }
     }
   ]
