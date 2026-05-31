@@ -1,17 +1,4 @@
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ClockIcon,
-  FilePenIcon,
-  FileTextIcon,
-  GlobeIcon,
-  HelpCircleIcon,
-  LoaderIcon,
-  SearchIcon,
-  SquareIcon,
-  TerminalIcon,
-  WrenchIcon,
-} from 'lucide-react';
+import { ChevronDownIcon, ClockIcon, LoaderIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
@@ -25,21 +12,13 @@ import {
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { getToolIconKind, ToolKindIcon, type ToolIconKind } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
 
-type ToolSummaryKind =
-  | 'bash'
-  | 'file'
-  | 'search'
-  | 'web'
-  | 'task'
-  | 'question'
-  | 'skill'
-  | 'mcp'
-  | 'generic';
+type ToolSummaryKind = ToolIconKind;
 
 type ToolCallDisplayItem = {
   id: string;
@@ -68,9 +47,6 @@ const STATUS_LABEL: Record<ToolCallStatus, string> = {
   completed: 'Done',
   error: 'Error',
 };
-
-const SEARCH_TOOLS = new Set(['gmail_search', 'drive_search', 'grep', 'glob']);
-const FILE_TOOLS = new Set(['read', 'write', 'edit']);
 
 const GOOGLE_SERVICE_ICON_SLUGS = {
   gmail: 'gmail',
@@ -194,15 +170,8 @@ function getToolSummary(call: ToolCallDisplayItem, displayName: string) {
 }
 
 function getToolKind(toolName: string): ToolSummaryKind {
-  if (toolName === 'bash' || toolName === 'execute_typescript') return 'bash';
-  if (FILE_TOOLS.has(toolName)) return 'file';
-  if (SEARCH_TOOLS.has(toolName)) return 'search';
-  if (toolName === 'webfetch' || toolName.startsWith('browser_')) return 'web';
-  if (toolName === 'task') return 'task';
-  if (toolName === 'question') return 'question';
-  if (toolName === 'skill') return 'skill';
   if (parseMcpToolName(toolName)) return 'mcp';
-  return 'generic';
+  return getToolIconKind(toolName);
 }
 
 function getToolLabel(toolName: string, displayName: string, kind: ToolSummaryKind): string {
@@ -238,8 +207,12 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
   switch (kind) {
     case 'bash':
       return getStringArg(call.args, ['description', 'command', 'code']) ?? 'Running command';
-    case 'file':
+    case 'read':
       return getStringArg(call.args, ['filePath', 'path']) ?? 'Waiting for path';
+    case 'edit':
+      return getStringArg(call.args, ['filePath', 'path']) ?? 'Editing file';
+    case 'write':
+      return getStringArg(call.args, ['filePath', 'path']) ?? 'Writing file';
     case 'search':
       return getStringArg(call.args, ['query', 'pattern', 'q']) ?? 'Searching';
     case 'web':
@@ -250,6 +223,18 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
       return getStringArg(call.args, ['question', 'header']) ?? 'Waiting for response';
     case 'skill':
       return 'Loading skill';
+    case 'memory':
+      return getStringArg(call.args, ['action', 'content']) ?? 'Using memory';
+    case 'todo':
+      return getStringArg(call.args, ['action']) ?? 'Updating todos';
+    case 'agenda':
+      return getBestGenericPreview(call.args, call.result) ?? 'Using agenda';
+    case 'browser':
+      return getStringArg(call.args, ['url', 'action', 'ref']) ?? 'Using browser';
+    case 'recordings':
+      return getBestGenericPreview(call.args, call.result) ?? 'Using recordings';
+    case 'session-history':
+      return getBestGenericPreview(call.args, call.result) ?? 'Searching sessions';
     case 'mcp':
     case 'generic':
       return getBestGenericPreview(call.args, call.result) ?? 'Using tool';
@@ -408,29 +393,6 @@ function ToolStatusIcon({
   }
 
   return <ToolKindIcon kind={kind} className="size-3.5 shrink-0 text-success" />;
-}
-
-function ToolKindIcon({ kind, className }: { kind: ToolSummaryKind; className?: string }) {
-  switch (kind) {
-    case 'bash':
-      return <TerminalIcon className={className} />;
-    case 'file':
-      return <FileTextIcon className={className} />;
-    case 'search':
-      return <SearchIcon className={className} />;
-    case 'web':
-      return <GlobeIcon className={className} />;
-    case 'task':
-      return <WrenchIcon className={className} />;
-    case 'question':
-      return <HelpCircleIcon className={className} />;
-    case 'skill':
-      return <CheckIcon className={className} />;
-    case 'mcp':
-      return <WrenchIcon className={className} />;
-    case 'generic':
-      return <FilePenIcon className={className} />;
-  }
 }
 
 function usePrevious(value: number) {

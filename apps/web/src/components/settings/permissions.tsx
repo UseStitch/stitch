@@ -8,10 +8,12 @@ import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
+import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import {
   filterCoreTools,
   filterToolsetsByQuery,
 } from '@/components/settings/permissions/filtering';
+import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -44,6 +46,7 @@ type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 
 type ToolRowProps = {
   name: string;
+  icon?: React.ReactNode;
   subtitle?: string;
   iconPath?: string;
   technicalName?: string;
@@ -68,6 +71,7 @@ type ToolsetRowProps = {
 
 function ToolRow({
   name,
+  icon,
   iconPath,
   enabled,
   onConfigure,
@@ -87,14 +91,15 @@ function ToolRow({
       )}
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        {iconPath && (
-          <RemoteImageIcon
-            path={iconPath}
-            label={`${name} icon`}
-            className="size-4"
-            fallback={null}
-          />
-        )}
+        {icon ??
+          (iconPath && (
+            <RemoteImageIcon
+              path={iconPath}
+              label={`${name} icon`}
+              className="size-4"
+              fallback={null}
+            />
+          ))}
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name}</p>
         </div>
@@ -410,6 +415,12 @@ function ToolsContent() {
               <ToolRow
                 key={tool.toolName}
                 name={tool.displayName}
+                icon={
+                  <ToolNameIcon
+                    toolName={tool.toolName}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                }
                 technicalName={tool.toolName}
                 enabled={getEnabled('tool', tool.toolName)}
                 onConfigure={() =>
@@ -440,6 +451,12 @@ function ToolsContent() {
                 key={toolset.id}
                 name={toolset.name}
                 description={toolset.description}
+                icon={
+                  <NativeToolsetIcon
+                    toolsetId={toolset.id}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                }
                 enabled={getEnabled('toolset', toolset.id)}
                 settingsAlign="end"
                 onConfigure={() =>
@@ -510,16 +527,11 @@ function ToolsContent() {
                 <div key={group.serverId} className="flex flex-col">
                   <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      {group.serverIconPath ? (
-                        <img
-                          src={group.serverIconPath}
-                          alt=""
-                          className="size-4 shrink-0 rounded-sm"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <ServerIcon className="size-4 shrink-0 text-muted-foreground" />
-                      )}
+                      <McpServerLogo
+                        serverId={group.serverId}
+                        name={group.serverName}
+                        className="size-4 shrink-0"
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{group.serverName}</p>
                         <p className="text-xs text-muted-foreground">
