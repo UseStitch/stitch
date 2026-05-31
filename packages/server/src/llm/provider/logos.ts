@@ -1,6 +1,6 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { readCachedText, writeCachedText } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { isAllowedProvider } from '@/llm/provider/models.js';
@@ -30,7 +30,7 @@ export async function get(
   const cacheDir = options.cacheDir ?? PATHS.dirPaths.providerLogos;
   const filePath = getLogoPath(logoId, cacheDir);
 
-  const cached = await fs.readFile(filePath, 'utf8').catch(() => undefined);
+  const cached = await readCachedText(filePath);
   if (cached) return cached;
 
   const result = await fetch(`${LOGO_BASE_URL}/${logoId}.svg`, {
@@ -42,7 +42,6 @@ export async function get(
   if (!result || !result.ok) return undefined;
 
   const svg = await result.text();
-  await fs.mkdir(cacheDir, { recursive: true });
-  await fs.writeFile(filePath, svg, 'utf8');
+  await writeCachedText(filePath, svg);
   return svg;
 }
