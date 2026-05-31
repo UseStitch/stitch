@@ -1,23 +1,4 @@
-import {
-  BrainIcon,
-  CalendarCheckIcon,
-  CheckIcon,
-  FilePenIcon,
-  FilePlusIcon,
-  FileTextIcon,
-  GlobeIcon,
-  HelpCircleIcon,
-  HistoryIcon,
-  ListTodoIcon,
-  MicIcon,
-  PanelTopIcon,
-  PencilIcon,
-  SearchIcon,
-  ServerIcon,
-  Settings2Icon,
-  TerminalIcon,
-  WrenchIcon,
-} from 'lucide-react';
+import { SearchIcon, ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -32,6 +13,7 @@ import {
   filterCoreTools,
   filterToolsetsByQuery,
 } from '@/components/settings/permissions/filtering';
+import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -202,45 +184,6 @@ function SectionCard({
       {children}
     </section>
   );
-}
-
-function CoreToolIcon({ toolName }: { toolName: string }) {
-  const className = 'size-4 shrink-0 text-muted-foreground';
-
-  if (toolName === 'bash' || toolName === 'execute_typescript') {
-    return <TerminalIcon className={className} />;
-  }
-
-  if (toolName === 'read') return <FileTextIcon className={className} />;
-  if (toolName === 'edit') return <PencilIcon className={className} />;
-  if (toolName === 'write') return <FilePlusIcon className={className} />;
-
-  if (toolName === 'grep' || toolName === 'glob') {
-    return <SearchIcon className={className} />;
-  }
-
-  if (toolName === 'webfetch' || toolName.startsWith('browser_')) {
-    return <GlobeIcon className={className} />;
-  }
-
-  if (toolName === 'task') return <WrenchIcon className={className} />;
-  if (toolName === 'question') return <HelpCircleIcon className={className} />;
-  if (toolName === 'skill') return <CheckIcon className={className} />;
-  if (toolName === 'memory') return <BrainIcon className={className} />;
-  if (toolName === 'todo') return <ListTodoIcon className={className} />;
-
-  return <FilePenIcon className={className} />;
-}
-
-function NativeToolsetIcon({ toolsetId }: { toolsetId: string }) {
-  const className = 'size-4 shrink-0 text-muted-foreground';
-
-  if (toolsetId === 'agenda') return <CalendarCheckIcon className={className} />;
-  if (toolsetId === 'browser') return <PanelTopIcon className={className} />;
-  if (toolsetId === 'recordings') return <MicIcon className={className} />;
-  if (toolsetId === 'session-history') return <HistoryIcon className={className} />;
-
-  return <ServerIcon className={className} />;
 }
 
 function ToolsContent() {
@@ -472,7 +415,12 @@ function ToolsContent() {
               <ToolRow
                 key={tool.toolName}
                 name={tool.displayName}
-                icon={<CoreToolIcon toolName={tool.toolName} />}
+                icon={
+                  <ToolNameIcon
+                    toolName={tool.toolName}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                }
                 technicalName={tool.toolName}
                 enabled={getEnabled('tool', tool.toolName)}
                 onConfigure={() =>
@@ -503,7 +451,12 @@ function ToolsContent() {
                 key={toolset.id}
                 name={toolset.name}
                 description={toolset.description}
-                icon={<NativeToolsetIcon toolsetId={toolset.id} />}
+                icon={
+                  <NativeToolsetIcon
+                    toolsetId={toolset.id}
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                }
                 enabled={getEnabled('toolset', toolset.id)}
                 settingsAlign="end"
                 onConfigure={() =>

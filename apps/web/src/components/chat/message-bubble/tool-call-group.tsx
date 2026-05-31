@@ -1,25 +1,4 @@
-import {
-  BrainIcon,
-  CalendarCheckIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  ClockIcon,
-  FilePenIcon,
-  FilePlusIcon,
-  FileTextIcon,
-  GlobeIcon,
-  HelpCircleIcon,
-  HistoryIcon,
-  ListTodoIcon,
-  LoaderIcon,
-  MicIcon,
-  PanelTopIcon,
-  PencilIcon,
-  SearchIcon,
-  SquareIcon,
-  TerminalIcon,
-  WrenchIcon,
-} from 'lucide-react';
+import { ChevronDownIcon, ClockIcon, LoaderIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
@@ -33,29 +12,13 @@ import {
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { getToolIconKind, ToolKindIcon, type ToolIconKind } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
 
-type ToolSummaryKind =
-  | 'bash'
-  | 'read'
-  | 'edit'
-  | 'write'
-  | 'search'
-  | 'web'
-  | 'task'
-  | 'question'
-  | 'skill'
-  | 'memory'
-  | 'todo'
-  | 'agenda'
-  | 'browser'
-  | 'recordings'
-  | 'session-history'
-  | 'mcp'
-  | 'generic';
+type ToolSummaryKind = ToolIconKind;
 
 type ToolCallDisplayItem = {
   id: string;
@@ -85,7 +48,6 @@ const STATUS_LABEL: Record<ToolCallStatus, string> = {
   error: 'Error',
 };
 
-const SEARCH_TOOLS = new Set(['gmail_search', 'drive_search', 'grep', 'glob']);
 const GOOGLE_SERVICE_ICON_SLUGS = {
   gmail: 'gmail',
   drive: 'googledrive',
@@ -208,23 +170,8 @@ function getToolSummary(call: ToolCallDisplayItem, displayName: string) {
 }
 
 function getToolKind(toolName: string): ToolSummaryKind {
-  if (toolName === 'bash' || toolName === 'execute_typescript') return 'bash';
-  if (toolName === 'read') return 'read';
-  if (toolName === 'edit') return 'edit';
-  if (toolName === 'write') return 'write';
-  if (SEARCH_TOOLS.has(toolName)) return 'search';
-  if (toolName === 'webfetch') return 'web';
-  if (toolName === 'task') return 'task';
-  if (toolName === 'question') return 'question';
-  if (toolName === 'skill') return 'skill';
-  if (toolName === 'memory') return 'memory';
-  if (toolName === 'todo') return 'todo';
-  if (toolName.startsWith('agenda_')) return 'agenda';
-  if (toolName === 'browser' || toolName.startsWith('browser_')) return 'browser';
-  if (toolName.startsWith('recordings_')) return 'recordings';
-  if (toolName.startsWith('session_history_')) return 'session-history';
   if (parseMcpToolName(toolName)) return 'mcp';
-  return 'generic';
+  return getToolIconKind(toolName);
 }
 
 function getToolLabel(toolName: string, displayName: string, kind: ToolSummaryKind): string {
@@ -446,45 +393,6 @@ function ToolStatusIcon({
   }
 
   return <ToolKindIcon kind={kind} className="size-3.5 shrink-0 text-success" />;
-}
-
-function ToolKindIcon({ kind, className }: { kind: ToolSummaryKind; className?: string }) {
-  switch (kind) {
-    case 'bash':
-      return <TerminalIcon className={className} />;
-    case 'read':
-      return <FileTextIcon className={className} />;
-    case 'edit':
-      return <PencilIcon className={className} />;
-    case 'write':
-      return <FilePlusIcon className={className} />;
-    case 'search':
-      return <SearchIcon className={className} />;
-    case 'web':
-      return <GlobeIcon className={className} />;
-    case 'task':
-      return <WrenchIcon className={className} />;
-    case 'question':
-      return <HelpCircleIcon className={className} />;
-    case 'skill':
-      return <CheckIcon className={className} />;
-    case 'memory':
-      return <BrainIcon className={className} />;
-    case 'todo':
-      return <ListTodoIcon className={className} />;
-    case 'agenda':
-      return <CalendarCheckIcon className={className} />;
-    case 'browser':
-      return <PanelTopIcon className={className} />;
-    case 'recordings':
-      return <MicIcon className={className} />;
-    case 'session-history':
-      return <HistoryIcon className={className} />;
-    case 'mcp':
-      return <WrenchIcon className={className} />;
-    case 'generic':
-      return <FilePenIcon className={className} />;
-  }
 }
 
 function usePrevious(value: number) {
