@@ -1,12 +1,13 @@
-import fs from 'node:fs/promises';
+import { eq } from 'drizzle-orm';
 import path from 'node:path';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
-import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
 import { mcpServers } from '@/db/schema.js';
+import { isSvgResponse, readCachedText, writeCachedText } from '@/lib/icon-cache.js';
+import type { FetchLike } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -14,8 +15,6 @@ import { findMcpRegistryServerForInstall, listMcpRegistryServers } from '@/mcp/r
 
 const log = Log.create({ service: 'mcp-registry-logos' });
 const REGISTRY_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/i;
-
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 type GetRegistryLogoOptions = {
   cacheDir?: string;
@@ -39,10 +38,6 @@ function isAllowedLogoUrl(logoUrl: string): boolean {
   }
 }
 
-function isSvgResponse(response: Response): boolean {
-  return response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() === 'image/svg+xml';
-}
-
 async function fetchAndCacheLogo(
   server: McpRegistryServer,
   filePath: string,
@@ -59,8 +54,7 @@ async function fetchAndCacheLogo(
   if (!response || !response.ok || !isSvgResponse(response)) return undefined;
 
   const svg = await response.text();
-  await fs.mkdir(cacheDir, { recursive: true });
-  await fs.writeFile(filePath, svg, 'utf8');
+  await writeCachedText(filePath, svg);
   return svg;
 }
 
@@ -72,7 +66,7 @@ export async function getMcpRegistryLogo(
 
   const cacheDir = options.cacheDir ?? PATHS.dirPaths.mcpRegistryLogos;
   const filePath = getLogoPath(registryId, cacheDir);
-  const cached = await fs.readFile(filePath, 'utf8').catch(() => undefined);
+  const cached = await readCachedText(filePath);
   if (cached) return cached;
 
   const result = await listMcpRegistryServers({ cacheFilePath: options.registryCacheFilePath });
@@ -84,7 +78,9 @@ export async function getMcpRegistryLogo(
   return fetchAndCacheLogo(server, filePath, cacheDir, options.fetchImpl ?? fetch);
 }
 
-export async function getMcpInstalledServerRegistryLogo(serverId: string): Promise<string | undefined> {
+export async function getMcpInstalledServerRegistryLogo(
+  serverId: string,
+): Promise<string | undefined> {
   const db = getDb();
   const [server] = await db
     .select()

@@ -1,6 +1,6 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { readCachedText, writeCachedText } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 
@@ -13,7 +13,7 @@ export async function getSimpleIcon(slug: string): Promise<string | undefined> {
   const cacheDir = PATHS.dirPaths.simpleIcons;
   const filePath = path.join(cacheDir, `${slug}.svg`);
 
-  const cached = await fs.readFile(filePath, 'utf8').catch(() => undefined);
+  const cached = await readCachedText(filePath);
   if (cached) return cached;
 
   const result = await fetch(`${SIMPLE_ICONS_CDN}/${slug}`, {
@@ -25,7 +25,6 @@ export async function getSimpleIcon(slug: string): Promise<string | undefined> {
   if (!result || !result.ok) return undefined;
 
   const svg = await result.text();
-  await fs.mkdir(cacheDir, { recursive: true });
-  await fs.writeFile(filePath, svg, 'utf8');
+  await writeCachedText(filePath, svg);
   return svg;
 }

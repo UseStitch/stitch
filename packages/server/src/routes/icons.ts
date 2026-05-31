@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getSimpleIcon } from '@/lib/simple-icons.js';
@@ -12,7 +13,7 @@ iconsRouter.get('/simple-icons/:slug', async (c) => {
   const result = requireFound(svg, 'Icon');
   if (isServiceError(result)) return unwrapResult(c, result);
 
-  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=86400');
+  c.header('Content-Type', SVG_CONTENT_TYPE);
+  c.header('Cache-Control', ICON_CACHE_CONTROL);
   return c.body(result.data, 200);
 });

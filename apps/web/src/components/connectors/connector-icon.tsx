@@ -2,6 +2,7 @@ import { BoxIcon } from 'lucide-react';
 
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
+import { MaskedIcon } from '@/components/icons/masked-icon';
 import { SimpleIcon } from '@/components/ui/simple-icon';
 import { cn } from '@/lib/utils';
 
@@ -24,14 +25,6 @@ export function ConnectorIcon({ icon, className }: ConnectorIconProps) {
   const logoUrl = `data:image/svg+xml;utf8,${encodeURIComponent(icon.svgString)}`;
 
   return (
-    <div
-      role="img"
-      aria-label="connector icon"
-      className={cn('bg-foreground', className)}
-      style={{
-        WebkitMask: `url(${logoUrl}) no-repeat center / contain`,
-        mask: `url(${logoUrl}) no-repeat center / contain`,
-      }}
-    />
+    <MaskedIcon src={logoUrl} label="connector icon" className={cn('bg-foreground', className)} />
   );
 }

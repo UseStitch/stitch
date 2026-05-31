@@ -5,7 +5,8 @@ import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpClient, withMcpClient } from '@/mcp/client.js';
-import { cacheMcpIcon } from '@/mcp/icons.js';
+import { buildServerPresentation } from '@/mcp/presentation.js';
+import type { McpServerLiveInfo, McpServerPresentation } from '@/mcp/presentation.js';
 import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
 import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
@@ -19,21 +20,6 @@ import type { Tool } from 'ai';
 export { evictMcpClient } from '@/mcp/client.js';
 
 const log = Log.create({ service: 'mcp-tool-executor' });
-
-type McpToolPresentation = {
-  title?: string;
-  iconPath?: string;
-};
-
-type McpServerPresentation = {
-  serverId: string;
-  name: string;
-  title?: string;
-  description?: string;
-  instructions?: string;
-  iconPath?: string;
-  tools: Record<string, McpToolPresentation>;
-};
 
 const serverPresentationById = new Map<string, McpServerPresentation>();
 let refreshInFlight: Promise<void> | null = null;
@@ -76,14 +62,6 @@ async function getToolsForServer(
   }
   return prefixed;
 }
-
-type McpServerLiveInfo = {
-  name?: string;
-  title?: string;
-  description?: string;
-  instructions?: string;
-  icons?: McpIcon[];
-};
 
 async function fetchServerInfo(server: McpServerWithTools): Promise<McpServerLiveInfo | null> {
   try {
@@ -222,27 +200,6 @@ function buildMcpInstructions(input: {
   return [exactNameRule, promptRule, liveInstructions].filter(Boolean).join('\n\n') || undefined;
 }
 
-function pickDisplayIcon(icons?: McpIcon[]): McpIcon | undefined {
-  if (!icons || icons.length === 0) return undefined;
-  return icons[0];
-}
-
-async function resolveIconPath(input: {
-  server: McpServerWithTools;
-  scope: string;
-  icons?: McpIcon[];
-}): Promise<string | undefined> {
-  const icon = pickDisplayIcon(input.icons);
-  if (!icon) return undefined;
-  const cached = await cacheMcpIcon({
-    serverUrl: input.server.url,
-    scope: input.scope,
-    icon,
-  });
-  if (!cached) return undefined;
-  return `/mcp/icons/${cached.key}`;
-}
-
 function createMcpToolset(
   server: McpServerWithTools,
   liveInfo: McpServerLiveInfo | null,
@@ -268,48 +225,6 @@ function createMcpToolset(
           `Tool from MCP server "${displayName}". Use this exact prefixed tool name; do not call the unprefixed MCP tool name.`,
       })),
     activate: (context) => getToolsForServer(server, context),
-  };
-}
-
-async function buildServerPresentation(
-  server: McpServerWithTools,
-  liveInfo: McpServerLiveInfo | null,
-  registryServer?: McpRegistryServer | null,
-): Promise<McpServerPresentation> {
-  const tools = server.tools ?? [];
-  const toolPresentations = await Promise.all(
-    tools.map(async (tool) => {
-      const iconPath = await resolveIconPath({
-        server,
-        scope: `tool:${server.id}:${tool.name}`,
-        icons: tool.icons,
-      });
-
-      return [
-        tool.name,
-        {
-          title: tool.title ?? tool.annotations?.title,
-          iconPath,
-        },
-      ] as const;
-    }),
-  );
-
-  const iconPath = await resolveIconPath({
-    server,
-    scope: `server:${server.id}`,
-    icons: liveInfo?.icons,
-  });
-  const registryIconPath = registryServer?.logoUrl ? `/mcp/${server.id}/logo` : undefined;
-
-  return {
-    serverId: server.id,
-    name: registryServer?.name ?? server.name ?? liveInfo?.name,
-    title: registryServer?.name ?? liveInfo?.title,
-    description: liveInfo?.description ?? registryServer?.description,
-    instructions: liveInfo?.instructions,
-    iconPath: iconPath ?? registryIconPath,
-    tools: Object.fromEntries(toolPresentations),
   };
 }
 

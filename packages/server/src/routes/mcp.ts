@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
+import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
@@ -68,8 +69,8 @@ mcpRouter.get('/registry/:registryId/logo', async (c) => {
     return c.json({ error: 'MCP registry logo not found' }, 404);
   }
 
-  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=86400');
+  c.header('Content-Type', SVG_CONTENT_TYPE);
+  c.header('Cache-Control', ICON_CACHE_CONTROL);
   return c.body(logo, 200);
 });
 
@@ -88,8 +89,8 @@ mcpRouter.get('/:id/logo', async (c) => {
     return c.json({ error: 'MCP server logo not found' }, 404);
   }
 
-  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
-  c.header('Cache-Control', 'public, max-age=86400');
+  c.header('Content-Type', SVG_CONTENT_TYPE);
+  c.header('Cache-Control', ICON_CACHE_CONTROL);
   return c.body(logo, 200);
 });
 
@@ -112,7 +113,7 @@ mcpRouter.get('/icons/:key', async (c) => {
   }
 
   c.header('Content-Type', icon.mimeType);
-  c.header('Cache-Control', 'public, max-age=86400');
+  c.header('Cache-Control', ICON_CACHE_CONTROL);
   return c.body(Buffer.from(icon.body), 200);
 });
 
