@@ -24,7 +24,11 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { audioProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import {
+  audioProviderModelsQueryOptions,
+  transcriptionProviderModelsQueryOptions,
+  type ProviderModels,
+} from '@/lib/queries/providers';
 import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
 import {
   deleteSettingMutationOptions,
@@ -141,7 +145,7 @@ function ModelSelect({
               <ComboboxLabel>{group.value}</ComboboxLabel>
               <ComboboxCollection>
                 {(item) => (
-                  <ComboboxItem key={item.value} value={item}>
+                  <ComboboxItem key={`${item.providerId}:${item.modelId}`} value={item}>
                     {item.label}
                   </ComboboxItem>
                 )}
@@ -331,6 +335,9 @@ function AudioDeviceSettings() {
 function RecordingsContent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: transcriptionProviderModels } = useSuspenseQuery(
+    transcriptionProviderModelsQueryOptions,
+  );
   const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
@@ -345,6 +352,14 @@ function RecordingsContent() {
   const canEnableAutoAnalyze = hasTranscriptionModel && hasAnalysisModel;
   const autoAnalyzeDisabled =
     saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
+
+  const providerModelsForPref = (providerIdKey: string): ProviderModels[] => {
+    if (providerIdKey === 'recordings.transcription.providerId') return transcriptionProviderModels;
+    return audioProviderModels;
+  };
+
+  const noModelsAvailable =
+    transcriptionProviderModels.length === 0 && audioProviderModels.length === 0;
 
   return (
     <div className="flex flex-col">
@@ -367,7 +382,7 @@ function RecordingsContent() {
         </p>
       ) : null}
 
-      {audioProviderModels.length === 0 ? (
+      {noModelsAvailable ? (
         <p className="border-t border-border/50 py-3 text-sm text-muted-foreground">
           No audio-capable models are available for recording transcription.
         </p>
@@ -387,7 +402,7 @@ function RecordingsContent() {
                 modelIdKey={pref.modelIdKey}
                 currentProviderId={settings[pref.providerIdKey]}
                 currentModelId={settings[pref.modelIdKey]}
-                providerModels={audioProviderModels}
+                providerModels={providerModelsForPref(pref.providerIdKey)}
               />
             </div>
           </div>
