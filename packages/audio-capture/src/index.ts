@@ -1,8 +1,9 @@
-import { macosDriver } from './macos.js';
 import { createMacosMeetingDetector } from './meeting-detection/macos.js';
-import { createNoopMeetingDetector } from './meeting-detection/noop.js';
 import { createWindowsMeetingDetector } from './meeting-detection/windows.js';
-import { windowsDriver } from './windows.js';
+import { createNativeDriver } from './native-driver.js';
+
+const macosDriver = createNativeDriver('darwin');
+const windowsDriver = createNativeDriver('win32');
 
 import type {
   ActiveCapture,
@@ -13,20 +14,11 @@ import type {
   StartCaptureInput,
   StopCaptureResult,
 } from './types.js';
-import type { MeetingDetectionOptions, MeetingDetector } from './types.js';
+import type { MeetingDetection, MeetingDetectionListener, MeetingDetectionOptions, MeetingDetector } from './types.js';
 
-const DRIVERS: Record<NodeJS.Platform, AudioCaptureDriver | undefined> = {
-  aix: undefined,
-  android: undefined,
+const DRIVERS: Partial<Record<NodeJS.Platform, AudioCaptureDriver>> = {
   darwin: macosDriver,
-  freebsd: undefined,
-  haiku: undefined,
-  linux: undefined,
-  openbsd: undefined,
-  sunos: undefined,
   win32: windowsDriver,
-  cygwin: undefined,
-  netbsd: undefined,
 };
 
 type AudioCaptureHandle = {
@@ -96,7 +88,16 @@ export function createMeetingDetector(
     return createWindowsMeetingDetector(options);
   }
 
-  return createNoopMeetingDetector();
+  return {
+    start(): void {},
+    stop(): void {},
+    subscribe(_listener: MeetingDetectionListener): () => void {
+      return () => {};
+    },
+    getActive(): MeetingDetection | null {
+      return null;
+    },
+  };
 }
 
 export type { AudioChunkConfig, AudioDeviceList, AudioPermissionsStatus } from './types.js';

@@ -1,34 +1,15 @@
+import { mergeObservations } from './observations.js';
 import { createNativeWatcherMeetingDetector } from './watcher.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-import type { MeetingObservation } from './shared.js';
+import type { MeetingObservation } from './engine.js';
 import type { WatchRow } from './watcher.js';
-
-type MacosMeetingRow = WatchRow;
 
 function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase();
 }
 
-function parseRows(stdout: string): MacosMeetingRow[] {
-  const raw = stdout.trim();
-  if (!raw || raw === 'null') {
-    return [];
-  }
-
-  const parsed = JSON.parse(raw) as unknown;
-  if (!parsed) {
-    return [];
-  }
-
-  if (Array.isArray(parsed)) {
-    return parsed as MacosMeetingRow[];
-  }
-
-  return [parsed as MacosMeetingRow];
-}
-
-function toDesktopObservation(row: MacosMeetingRow): MeetingObservation | null {
+function toDesktopObservation(row: WatchRow): MeetingObservation | null {
   const rawProcessName = row.processName?.trim();
   if (!rawProcessName) {
     return null;
@@ -82,7 +63,7 @@ function toDesktopObservation(row: MacosMeetingRow): MeetingObservation | null {
   return null;
 }
 
-function toBrowserObservation(row: MacosMeetingRow): MeetingObservation | null {
+function toBrowserObservation(row: WatchRow): MeetingObservation | null {
   const rawProcessName = row.processName?.trim();
   if (!rawProcessName) {
     return null;
@@ -119,34 +100,13 @@ function toBrowserObservation(row: MacosMeetingRow): MeetingObservation | null {
   return null;
 }
 
-function classifyRow(row: MacosMeetingRow): MeetingObservation[] {
+function classifyRow(row: WatchRow): MeetingObservation[] {
   return [toDesktopObservation(row), toBrowserObservation(row)].filter(
     (value): value is MeetingObservation => Boolean(value),
   );
 }
 
-function mergeObservations(observations: MeetingObservation[]): MeetingObservation[] {
-  const merged = new Map<string, MeetingObservation>();
-
-  for (const observation of observations) {
-    const existing = merged.get(observation.key);
-    if (!existing) {
-      merged.set(observation.key, observation);
-      continue;
-    }
-
-    const processNames = new Set([...existing.processNames, ...observation.processNames]);
-    merged.set(observation.key, {
-      ...existing,
-      processNames: [...processNames],
-      windowTitle: existing.windowTitle ?? observation.windowTitle,
-    });
-  }
-
-  return [...merged.values()];
-}
-
-function classifyMacosRows(rows: MacosMeetingRow[]): MeetingObservation[] {
+function classifyMacosRows(rows: WatchRow[]): MeetingObservation[] {
   const observations = rows.flatMap(classifyRow);
   return mergeObservations(observations);
 }
@@ -156,9 +116,7 @@ export function createMacosMeetingDetector(options: MeetingDetectionOptions = {}
 }
 
 export const internal = {
-  parseRows,
   toDesktopObservation,
   toBrowserObservation,
   classifyRow,
-  mergeObservations,
 };

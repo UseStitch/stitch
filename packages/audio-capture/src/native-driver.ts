@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 
 import { resolveNativeBinaryPath } from './native-binary.js';
+import { createJsonLineBuffer } from './stream-json.js';
 
 import type {
   ActiveCapture,
@@ -70,25 +71,16 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
     pending.clear();
   };
 
-  let stdoutBuffer = '';
+  const stdoutBuffer = createJsonLineBuffer();
   processHandle.stdout.on('data', (chunk: Buffer) => {
-    stdoutBuffer += chunk.toString('utf8');
-    const lines = stdoutBuffer.split('\n');
-    stdoutBuffer = lines.pop() ?? '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-
+    stdoutBuffer.append(chunk, (line) => {
       try {
-        const event = JSON.parse(trimmed) as NativeCaptureEvent;
+        const event = JSON.parse(line) as NativeCaptureEvent;
         signal(event);
       } catch {
         rejectAll(new Error('Native audio capture emitted invalid JSON event'));
       }
-    }
+    });
   });
 
   let stderrBuffer = '';

@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 
 import { resolveMeetingWatcherBinaryPath } from '../native-binary.js';
+import { createJsonLineBuffer } from '../stream-json.js';
 import { createMeetingDetectionEngine } from './engine.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
@@ -34,7 +35,7 @@ export function createNativeWatcherMeetingDetector(
 
   let running = false;
   let child: ChildProcess | null = null;
-  let stdoutBuffer = '';
+  const stdoutBuffer = createJsonLineBuffer();
 
   function handleLine(line: string): void {
     const trimmed = line.trim();
@@ -62,12 +63,7 @@ export function createNativeWatcherMeetingDetector(
     });
 
     child.stdout?.on('data', (chunk: Buffer) => {
-      stdoutBuffer += chunk.toString('utf8');
-      const lines = stdoutBuffer.split('\n');
-      stdoutBuffer = lines.pop() ?? '';
-      for (const line of lines) {
-        handleLine(line);
-      }
+      stdoutBuffer.append(chunk, handleLine);
     });
 
     child.once('exit', (_code, _signal) => {

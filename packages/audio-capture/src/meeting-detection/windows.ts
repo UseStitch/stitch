@@ -1,34 +1,15 @@
+import { mergeObservations } from './observations.js';
 import { createNativeWatcherMeetingDetector } from './watcher.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-import type { MeetingObservation } from './shared.js';
+import type { MeetingObservation } from './engine.js';
 import type { WatchRow } from './watcher.js';
-
-type WindowsProcessRow = WatchRow;
 
 function normalizeProcessName(input: string): string {
   return input
     .trim()
     .toLowerCase()
     .replace(/\.exe$/, '');
-}
-
-function parseRows(stdout: string): WindowsProcessRow[] {
-  const raw = stdout.trim();
-  if (!raw || raw === 'null') {
-    return [];
-  }
-
-  const parsed = JSON.parse(raw) as unknown;
-  if (!parsed) {
-    return [];
-  }
-
-  if (Array.isArray(parsed)) {
-    return parsed as WindowsProcessRow[];
-  }
-
-  return [parsed as WindowsProcessRow];
 }
 
 function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): boolean {
@@ -45,7 +26,7 @@ function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): bo
   return /call|voice|stage/.test(normalized);
 }
 
-function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
+function classifyRow(row: WatchRow): MeetingObservation[] {
   const rawProcessName = row.processName?.trim();
   if (!rawProcessName) {
     return [];
@@ -119,28 +100,7 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
   return observations;
 }
 
-function mergeObservations(observations: MeetingObservation[]): MeetingObservation[] {
-  const merged = new Map<string, MeetingObservation>();
-
-  for (const observation of observations) {
-    const existing = merged.get(observation.key);
-    if (!existing) {
-      merged.set(observation.key, observation);
-      continue;
-    }
-
-    const processNames = new Set([...existing.processNames, ...observation.processNames]);
-    merged.set(observation.key, {
-      ...existing,
-      processNames: [...processNames],
-      windowTitle: existing.windowTitle ?? observation.windowTitle,
-    });
-  }
-
-  return [...merged.values()];
-}
-
-function classifyWindowsRows(rows: WindowsProcessRow[]): MeetingObservation[] {
+function classifyWindowsRows(rows: WatchRow[]): MeetingObservation[] {
   const observations = rows.flatMap(classifyRow);
   return mergeObservations(observations);
 }
@@ -152,7 +112,5 @@ export function createWindowsMeetingDetector(
 }
 
 export const internal = {
-  parseRows,
   classifyRow,
-  mergeObservations,
 };
