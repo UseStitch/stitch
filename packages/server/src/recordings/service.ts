@@ -221,39 +221,18 @@ export async function startRecording(
   const outputDir = path.join(PATHS.dirPaths.recordings, id);
   const filePath = path.join(outputDir, 'raw_audio.ogg');
 
-  await fs.mkdir(outputDir, { recursive: true });
-
-  await db.insert(recordings).values({
-    id,
-    title,
-    source: 'manual',
-    status: 'recording',
-    platform: input.platform ?? 'manual',
-    mimeType: 'audio/ogg',
-    filePath,
-    startedAt: now,
-  });
-
   try {
     const settings = await readCaptureSettings();
     const transcriptionConfig = await resolveTranscriptionConfig();
 
     if (!transcriptionConfig) {
-      await db
-        .update(recordings)
-        .set({
-          status: 'failed',
-          error: 'No transcription model configured',
-          endedAt: Date.now(),
-          updatedAt: Date.now(),
-        })
-        .where(eq(recordings.id, id));
       return err(
         'No transcription model configured. Please configure a transcription model in settings.',
         400,
       );
     }
 
+    await fs.mkdir(outputDir, { recursive: true });
     await capture.start({
       outputPath: filePath,
       channels: 1,
@@ -261,6 +240,17 @@ export async function startRecording(
       speakerDeviceId: settings.outputDeviceId,
       speakerGain: settings.speakerGain,
       audioChunkConfig: transcriptionConfig.audioChunkConfig,
+    });
+
+    await db.insert(recordings).values({
+      id,
+      title,
+      source: 'manual',
+      status: 'recording',
+      platform: input.platform ?? 'manual',
+      mimeType: 'audio/ogg',
+      filePath,
+      startedAt: now,
     });
 
     capture.onEvent((event) => {
@@ -348,17 +338,6 @@ export async function startRecording(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start recording';
-
-    await db
-      .update(recordings)
-      .set({
-        status: 'failed',
-        error: message,
-        endedAt: Date.now(),
-        updatedAt: Date.now(),
-      })
-      .where(eq(recordings.id, id));
-
     return err(message, 400);
   }
 
