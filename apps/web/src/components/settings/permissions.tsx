@@ -1,4 +1,15 @@
-import { SearchIcon, ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
+import {
+  CheckIcon,
+  FilePenIcon,
+  FileTextIcon,
+  GlobeIcon,
+  HelpCircleIcon,
+  SearchIcon,
+  ServerIcon,
+  Settings2Icon,
+  TerminalIcon,
+  WrenchIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -8,6 +19,7 @@ import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
+import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import {
   filterCoreTools,
   filterToolsetsByQuery,
@@ -44,6 +56,7 @@ type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 
 type ToolRowProps = {
   name: string;
+  icon?: React.ReactNode;
   subtitle?: string;
   iconPath?: string;
   technicalName?: string;
@@ -68,6 +81,7 @@ type ToolsetRowProps = {
 
 function ToolRow({
   name,
+  icon,
   iconPath,
   enabled,
   onConfigure,
@@ -87,14 +101,15 @@ function ToolRow({
       )}
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        {iconPath && (
-          <RemoteImageIcon
-            path={iconPath}
-            label={`${name} icon`}
-            className="size-4"
-            fallback={null}
-          />
-        )}
+        {icon ??
+          (iconPath && (
+            <RemoteImageIcon
+              path={iconPath}
+              label={`${name} icon`}
+              className="size-4"
+              fallback={null}
+            />
+          ))}
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name}</p>
         </div>
@@ -179,6 +194,32 @@ function SectionCard({
       {children}
     </section>
   );
+}
+
+function CoreToolIcon({ toolName }: { toolName: string }) {
+  const className = 'size-4 shrink-0 text-muted-foreground';
+
+  if (toolName === 'bash' || toolName === 'execute_typescript') {
+    return <TerminalIcon className={className} />;
+  }
+
+  if (toolName === 'read' || toolName === 'write' || toolName === 'edit') {
+    return <FileTextIcon className={className} />;
+  }
+
+  if (toolName === 'grep' || toolName === 'glob') {
+    return <SearchIcon className={className} />;
+  }
+
+  if (toolName === 'webfetch' || toolName.startsWith('browser_')) {
+    return <GlobeIcon className={className} />;
+  }
+
+  if (toolName === 'task') return <WrenchIcon className={className} />;
+  if (toolName === 'question') return <HelpCircleIcon className={className} />;
+  if (toolName === 'skill') return <CheckIcon className={className} />;
+
+  return <FilePenIcon className={className} />;
 }
 
 function ToolsContent() {
@@ -410,6 +451,7 @@ function ToolsContent() {
               <ToolRow
                 key={tool.toolName}
                 name={tool.displayName}
+                icon={<CoreToolIcon toolName={tool.toolName} />}
                 technicalName={tool.toolName}
                 enabled={getEnabled('tool', tool.toolName)}
                 onConfigure={() =>
@@ -510,16 +552,11 @@ function ToolsContent() {
                 <div key={group.serverId} className="flex flex-col">
                   <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      {group.serverIconPath ? (
-                        <img
-                          src={group.serverIconPath}
-                          alt=""
-                          className="size-4 shrink-0 rounded-sm"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <ServerIcon className="size-4 shrink-0 text-muted-foreground" />
-                      )}
+                      <McpServerLogo
+                        serverId={group.serverId}
+                        name={group.serverName}
+                        className="size-4 shrink-0"
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{group.serverName}</p>
                         <p className="text-xs text-muted-foreground">
