@@ -1,7 +1,6 @@
 import { Output, generateText } from 'ai';
 import { and, eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
-import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { createRecordingAnalysisId, type PrefixedString } from '@stitch/shared/id';
@@ -16,7 +15,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { recordingAnalyses, recordings } from '@/db/schema.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
@@ -24,21 +23,12 @@ import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import { listEnabledProviderAudioModels } from '@/llm/provider/service.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
-import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
+import { ZERO_USAGE } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'recordings-analysis' });
-
-const TRANSCRIPTION_PROMPT_TEMPLATE = readFileSync(
-  resolveRuntimeAssetPath(
-    new URL('../meeting/transcription-system-prompt.md', import.meta.url),
-    'meeting/transcription-system-prompt.md',
-  ),
-  'utf8',
-).trim();
 
 const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   resolveRuntimeAssetPath(
@@ -47,15 +37,6 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   ),
   'utf8',
 ).trim();
-
-const transcriptEntrySchema = z.object({
-  speaker: z.string().min(1),
-  content: z.string().min(1),
-});
-
-const transcriptionOutputSchema = z.object({
-  transcript: z.array(transcriptEntrySchema),
-});
 
 const topicSchema = z.object({
   name: z.string().min(1),
@@ -101,24 +82,11 @@ const analysisOutputSchema = z.object({
 
 const activeRuns = new Map<PrefixedString<'recan'>, AbortController>();
 
-function buildTranscriptionPrompt(localUserLabel: string): string {
-  return TRANSCRIPTION_PROMPT_TEMPLATE.replaceAll(
-    '{{CURRENT_DATE}}',
-    new Date().toISOString().slice(0, 10),
-  ).replaceAll('{{LOCAL_USER_LABEL}}', localUserLabel);
-}
-
 function buildAnalysisPrompt(): string {
   return ANALYSIS_PROMPT_TEMPLATE.replaceAll(
     '{{CURRENT_DATE}}',
     new Date().toISOString().slice(0, 10),
   );
-}
-
-function normalizeTranscript(entries: RecordingTranscriptEntry[]): RecordingTranscriptEntry[] {
-  return entries
-    .map((entry) => ({ speaker: entry.speaker.trim(), content: entry.content.trim() }))
-    .filter((entry) => entry.speaker.length > 0 && entry.content.length > 0);
 }
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
@@ -265,28 +233,14 @@ export async function startRecordingAnalysis(
     return ok({ analysis: toResponse(existing, recordingId) });
   }
 
-  const audioProvidersResult = await listEnabledProviderAudioModels();
-  const audioProviders = isServiceError(audioProvidersResult) ? [] : audioProvidersResult.data;
-  const fallbackProvider = audioProviders[0];
-  const fallbackModel = fallbackProvider?.models[0];
-
-  const transcriptionModel = await resolveModel({
-    providerIdKey: 'recordings.transcription.providerId',
-    modelIdKey: 'recordings.transcription.modelId',
-    fallbackProviderId: fallbackProvider?.providerId,
-    fallbackModelId: fallbackModel?.id,
-    modelFilter: (model) => model.modalities?.input?.includes('audio') ?? false,
-  });
-
-  if (isServiceError(transcriptionModel)) {
-    return transcriptionModel;
+  const transcript: RecordingTranscriptEntry[] = existing?.transcript ?? [];
+  if (transcript.length === 0) {
+    return err('No transcript available for this recording', 400);
   }
 
   const analysisModel = await resolveModel({
     providerIdKey: 'recordings.analysis.providerId',
     modelIdKey: 'recordings.analysis.modelId',
-    fallbackProviderId: transcriptionModel.data.providerId,
-    fallbackModelId: transcriptionModel.data.modelId,
   });
 
   if (isServiceError(analysisModel)) {
@@ -304,7 +258,7 @@ export async function startRecordingAnalysis(
       id,
       recordingId,
       status: 'pending',
-      transcript: [],
+      transcript,
       topics: [],
       topicSections: [],
       summary: '',
@@ -312,8 +266,8 @@ export async function startRecordingAnalysis(
       actionItems: [],
       blockers: [],
       error: null,
-      transcriptionProviderId: transcriptionModel.data.providerId,
-      transcriptionModelId: transcriptionModel.data.modelId,
+      transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+      transcriptionModelId: existing?.transcriptionModelId ?? null,
       analysisProviderId: analysisModel.data.providerId,
       analysisModelId: analysisModel.data.modelId,
       usage: ZERO_USAGE,
@@ -329,7 +283,7 @@ export async function startRecordingAnalysis(
       set: {
         id,
         status: 'pending',
-        transcript: [],
+        transcript,
         topics: [],
         topicSections: [],
         summary: '',
@@ -337,8 +291,8 @@ export async function startRecordingAnalysis(
         actionItems: [],
         blockers: [],
         error: null,
-        transcriptionProviderId: transcriptionModel.data.providerId,
-        transcriptionModelId: transcriptionModel.data.modelId,
+        transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+        transcriptionModelId: existing?.transcriptionModelId ?? null,
         analysisProviderId: analysisModel.data.providerId,
         analysisModelId: analysisModel.data.modelId,
         usage: ZERO_USAGE,
@@ -358,10 +312,7 @@ export async function startRecordingAnalysis(
 
   void runRecordingAnalysis(id, {
     recordingId,
-    filePath: recording.filePath,
-    transcriptionProviderId: transcriptionModel.data.providerId,
-    transcriptionModelId: transcriptionModel.data.modelId,
-    transcriptionCredentials: transcriptionModel.data.credentials,
+    transcript,
     analysisProviderId: analysisModel.data.providerId,
     analysisModelId: analysisModel.data.modelId,
     analysisCredentials: analysisModel.data.credentials,
@@ -434,10 +385,7 @@ async function runRecordingAnalysis(
   analysisId: PrefixedString<'recan'>,
   input: {
     recordingId: PrefixedString<'rec'>;
-    filePath: string;
-    transcriptionProviderId: string;
-    transcriptionModelId: string;
-    transcriptionCredentials: ProviderCredentials;
+    transcript: RecordingTranscriptEntry[];
     analysisProviderId: string;
     analysisModelId: string;
     analysisCredentials: ProviderCredentials;
@@ -471,71 +419,6 @@ async function runRecordingAnalysis(
       title: null,
     });
 
-    const [profileRow, audioData] = await Promise.all([
-      db
-        .select({ value: userSettings.value })
-        .from(userSettings)
-        .where(eq(userSettings.key, 'profile.name'))
-        .then((rows) => rows[0]),
-      fs.readFile(input.filePath),
-    ]);
-
-    const localUserLabel = profileRow?.value.trim() || 'Local User';
-
-    const transcriptionModel = createProvider(input.transcriptionCredentials)(
-      input.transcriptionModelId,
-    );
-    const transcriptionRunId = `${analysisId}:transcription`;
-    const transcriptionStart = Date.now();
-    const transcriptionResult = await generateText({
-      model: transcriptionModel,
-      output: Output.object({ schema: transcriptionOutputSchema }),
-      system: buildTranscriptionPrompt(localUserLabel),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'file', data: audioData, mediaType: 'audio/ogg' },
-            {
-              type: 'text',
-              text: 'Please transcribe this recording. If there is no intelligible speech, return an empty transcript array.',
-            },
-          ],
-        },
-      ],
-      abortSignal: abortController.signal,
-    });
-
-    const transcript = normalizeTranscript(transcriptionResult.output?.transcript ?? []);
-    if (transcript.length === 0) {
-      throw new Error('No intelligible speech detected in recording');
-    }
-
-    const transcriptionUsage = transcriptionResult.usage ?? ZERO_USAGE;
-
-    const transcriptionCost = await calculateMessageCostUsd({
-      providerId: input.transcriptionProviderId,
-      modelId: input.transcriptionModelId,
-      usage: transcriptionUsage,
-    });
-
-    await recordUsageEvent({
-      runId: transcriptionRunId,
-      source: 'transcription_recording',
-      providerId: input.transcriptionProviderId,
-      modelId: input.transcriptionModelId,
-      usage: transcriptionUsage,
-      costUsd: transcriptionCost,
-      metadata: {
-        recordingId: input.recordingId,
-        analysisId,
-        phase: 'transcription',
-      },
-      startedAt: transcriptionStart,
-      endedAt: Date.now(),
-      durationMs: Date.now() - transcriptionStart,
-    });
-
     const analysisModel = createProvider(input.analysisCredentials)(input.analysisModelId);
     const analysisRunId = `${analysisId}:analysis`;
     const analysisStart = Date.now();
@@ -546,7 +429,7 @@ async function runRecordingAnalysis(
       messages: [
         {
           role: 'user',
-          content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(transcript)}`,
+          content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(input.transcript)}`,
         },
       ],
       abortSignal: abortController.signal,
@@ -582,7 +465,6 @@ async function runRecordingAnalysis(
       durationMs: Date.now() - analysisStart,
     });
 
-    const totalUsage = addUsage(transcriptionUsage, analysisUsage);
     const endedAt = Date.now();
     const topicSections = normalizeTopicSections(analysisOutput.topicSections);
     const actionItems = analysisOutput.actionItems
@@ -602,7 +484,7 @@ async function runRecordingAnalysis(
       .update(recordingAnalyses)
       .set({
         status: 'completed',
-        transcript,
+        transcript: input.transcript,
         topics: analysisOutput.topics,
         topicSections,
         title: analysisOutput.title,
@@ -610,8 +492,8 @@ async function runRecordingAnalysis(
         actionItems: actionItems.length > 0 ? actionItems : fallbackActionItems,
         blockers: blockers.length > 0 ? blockers : fallbackBlockers,
         error: null,
-        usage: totalUsage,
-        costUsd: transcriptionCost + analysisCost,
+        usage: analysisUsage,
+        costUsd: analysisCost,
         endedAt,
         durationMs: endedAt - startedAt,
         updatedAt: endedAt,
