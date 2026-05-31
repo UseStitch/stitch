@@ -9,7 +9,7 @@ import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
-import { ToolCallBlock } from '@/components/chat/message-bubble/tool-call-block.js';
+import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.js';
 
 type AssistantMessageBubbleProps = {
   parts: StoredPart[];
@@ -58,41 +58,40 @@ export function AssistantMessageBubble({
             return <ChatMarkdown key={segment.key} text={segment.text} />;
           case 'reasoning':
             return <ReasoningBlock key={segment.key} text={segment.text} />;
+          case 'tool-call-group':
+            return (
+              <ToolCallGroup
+                key={segment.key}
+                calls={segment.parts.filter(isVisibleToolCallPart).map((part) => {
+                  const result = resultsByCallId.get(part.toolCallId);
+                  const output = result && 'output' in result ? result.output : undefined;
+                  const isError = isToolResultError(output);
+                  const missingResult = !result;
+                  const status = missingResult || isError ? 'error' : 'completed';
+
+                  let toolError: string | undefined;
+                  if (isError) {
+                    const rawError = (output as { error?: unknown }).error;
+                    toolError = typeof rawError === 'string' ? rawError : String(rawError);
+                  } else if (missingResult) {
+                    toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
+                  }
+
+                  return {
+                    id: part.toolCallId,
+                    toolName: part.toolName,
+                    status,
+                    args: part.input,
+                    result: output,
+                    error: toolError,
+                  };
+                })}
+                onAbort={onAbortTool}
+              />
+            );
           case 'other': {
             const part = segment.part;
             switch (part.type) {
-              case 'tool-call': {
-                const result = resultsByCallId.get(part.toolCallId);
-                const output = result && 'output' in result ? result.output : undefined;
-                const isError =
-                  output !== null &&
-                  output !== undefined &&
-                  typeof output === 'object' &&
-                  ('error' in (output as object) ||
-                    (output as { failed?: unknown }).failed === true);
-                const missingResult = !result;
-                const status = missingResult || isError ? 'error' : 'completed';
-
-                let toolError: string | undefined;
-                if (isError) {
-                  const rawError = (output as { error?: unknown }).error;
-                  toolError = typeof rawError === 'string' ? rawError : String(rawError);
-                } else if (missingResult) {
-                  toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
-                }
-
-                return (
-                  <ToolCallBlock
-                    key={segment.key}
-                    toolName={part.toolName}
-                    status={status}
-                    args={part.input}
-                    result={output}
-                    error={toolError}
-                    onAbort={onAbortTool}
-                  />
-                );
-              }
               case 'tool-result':
                 return null;
               case 'source':
@@ -112,4 +111,22 @@ export function AssistantMessageBubble({
       {wasAborted && <InterruptedLabel />}
     </AssistantBubbleWrapper>
   );
+}
+
+function isToolResultError(output: unknown): boolean {
+  return (
+    output !== null &&
+    output !== undefined &&
+    typeof output === 'object' &&
+    ('error' in output || (output as { failed?: unknown }).failed === true)
+  );
+}
+
+function isVisibleToolCallPart(part: StoredPart): part is StoredPart & {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+} {
+  return part.type === 'tool-call' && part.toolName !== 'todo';
 }

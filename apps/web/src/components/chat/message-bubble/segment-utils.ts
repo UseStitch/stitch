@@ -3,7 +3,8 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 type TextSegment = { type: 'text'; text: string; key: string };
 type ReasoningSegment = { type: 'reasoning'; text: string; key: string };
 type OtherSegment = { type: 'other'; part: StoredPart; key: string };
-type DisplaySegment = TextSegment | ReasoningSegment | OtherSegment;
+type ToolCallGroupSegment = { type: 'tool-call-group'; parts: StoredPart[]; key: string };
+type DisplaySegment = TextSegment | ReasoningSegment | OtherSegment | ToolCallGroupSegment;
 
 type StoredToolResult = StoredPart & { type: 'tool-result' };
 
@@ -49,6 +50,16 @@ export function buildDisplaySegments(parts: StoredPart[]): DisplaySegment[] {
       part.type === 'reasoning-start' ||
       part.type === 'reasoning-end'
     ) {
+      continue;
+    }
+
+    if (part.type === 'tool-call') {
+      const last = segments.at(-1);
+      if (last?.type === 'tool-call-group') {
+        last.parts.push(part);
+      } else {
+        segments.push({ type: 'tool-call-group', parts: [part], key: `tools-${segments.length}` });
+      }
       continue;
     }
 
