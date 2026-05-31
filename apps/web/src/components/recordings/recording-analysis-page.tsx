@@ -27,6 +27,7 @@ import {
   useCancelRecordingAnalysis,
   useDeleteRecording,
   useStartRecordingAnalysis,
+  useStopRecording,
 } from '@/lib/queries/recordings';
 
 const ACTION_STATUS_LABEL: Record<string, string> = {
@@ -139,11 +140,13 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();
   const deleteRecording = useDeleteRecording();
+  const stopRecording = useStopRecording();
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const analysis = analysisResponse.analysis;
   const recording = recordings.recordings.find((item) => item.id === recordingId);
+  const isActiveRecording = recording?.id === recordings.activeRecordingId;
   const analysisMarkdown = React.useMemo(
     () => buildAnalysisMarkdown(analysis, recording),
     [analysis, recording],
@@ -178,8 +181,17 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         isStarting={startAnalysis.isPending}
         isCancelling={cancelAnalysis.isPending}
         isDeleting={deleteRecording.isPending}
+        isRecording={isActiveRecording}
+        isStopping={stopRecording.isPending}
         onStartAnalysis={handleStartAnalysis}
         onCancelAnalysis={handleCancelAnalysis}
+        onStopRecording={() => {
+          void stopRecording.mutateAsync().then(
+            () => toast.success('Recording stopped'),
+            (error: unknown) =>
+              toast.error(error instanceof Error ? error.message : 'Failed to stop recording'),
+          );
+        }}
         onDelete={() => {
           if (
             recording?.durationMs !== null &&

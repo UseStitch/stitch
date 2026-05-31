@@ -5,6 +5,7 @@ import {
   PlayIcon,
   RotateCcwIcon,
   SparklesIcon,
+  SquareIcon,
   Trash2Icon,
 } from 'lucide-react';
 import * as React from 'react';
@@ -163,9 +164,12 @@ interface AnalysisHeaderProps {
   isStarting: boolean;
   isCancelling: boolean;
   isDeleting: boolean;
+  isRecording?: boolean;
+  isStopping?: boolean;
   onStartAnalysis: () => void;
   onCancelAnalysis: () => void;
   onDelete: () => void;
+  onStopRecording?: () => void;
 }
 
 export function AnalysisHeader({
@@ -176,9 +180,12 @@ export function AnalysisHeader({
   isStarting,
   isCancelling,
   isDeleting,
+  isRecording,
+  isStopping,
   onStartAnalysis,
   onCancelAnalysis,
   onDelete,
+  onStopRecording,
 }: AnalysisHeaderProps) {
   const showPlayer = recording?.status === 'completed' && recording.id;
 
@@ -206,24 +213,36 @@ export function AnalysisHeader({
             className="shadow-sm"
           />
         ) : null}
-        <Button
-          onClick={onStartAnalysis}
-          disabled={isStarting || isRunning}
-          variant={analysis ? 'outline' : 'default'}
-          className="shadow-sm"
-        >
-          {isStarting || isRunning ? (
-            <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" />
-          ) : (
-            <SparklesIcon data-icon="inline-start" className="size-4" />
-          )}
-          {analysis ? 'Re-run analysis' : 'Analyze recording'}
-        </Button>
+        {isRecording && onStopRecording ? (
+          <Button
+            onClick={onStopRecording}
+            disabled={isStopping}
+            variant="destructive"
+            className="shadow-sm"
+          >
+            <SquareIcon data-icon="inline-start" className="size-4" />
+            Stop
+          </Button>
+        ) : (
+          <Button
+            onClick={onStartAnalysis}
+            disabled={isStarting || isRunning}
+            variant={analysis ? 'outline' : 'default'}
+            className="shadow-sm"
+          >
+            {isStarting || isRunning ? (
+              <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" />
+            ) : (
+              <SparklesIcon data-icon="inline-start" className="size-4" />
+            )}
+            {analysis ? 'Re-run analysis' : 'Analyze recording'}
+          </Button>
+        )}
         <Button
           variant="outline"
           size="icon"
           onClick={onDelete}
-          disabled={isDeleting || isRunning}
+          disabled={isDeleting || isRunning || isRecording}
           aria-label="Delete recording"
           className="text-destructive shadow-sm hover:text-destructive"
         >
