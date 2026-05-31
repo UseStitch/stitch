@@ -2,33 +2,89 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/UseStitch/stitch)
 
-Stitch is an AI-powered desktop app that helps users get work done locally.
+**Stitch** is a local-first, AI-powered desktop assistant that runs entirely on your machine — no cloud accounts, no tracking, no data leaving your computer.
+
+Think of it as an AI pair programmer for your entire operating system: it can read and write files, run shell commands, search code, browse the web, manage your calendar and email, record and summarize meetings, and execute recurring automations — all through a natural language chat interface.
 
 ## Status
 
-Stitch is currently in **alpha**. Things will break, behavior may change quickly, and APIs are not stable yet. We still do our best to keep things usable and improve reliability each release.
+Stitch is in **alpha**. Things will break, behavior will change quickly, and APIs are not stable yet. We do our best to keep things usable and improve reliability each release.
 
-## Packages
+## Features
 
-### Apps
+- **AI Chat** — Full conversational interface with an LLM that has tool-use capabilities across your local machine
+- **Tool System** — The AI can read/write files, run bash, search code/glob/grep, browse the web, ask you questions, and delegate subtasks to child sessions
+- **Automations** — Turn any chat into a recurring workflow (daily summaries, cleanup tasks, scheduled reports)
+- **Meeting Analysis** — Records audio from Zoom, Meet, Teams, Slack, or Discord, transcribes it, and generates summaries with action items
+- **Memory System** — Semantic memory using LanceDB vector storage so the AI remembers your preferences, workflows, and key facts across conversations
+- **Connectors** — Integrate with external services (Google: Gmail, Drive, Calendar) via a pluggable connector framework
+- **MCP Support** — Model Context Protocol integration for additional tool ecosystems
+- **100% Local** — SQLite database, local vector store, sidecar server. No accounts, no telemetry, no cloud dependency
 
-- `apps/desktop` (`@stitch/desktop`): Electron desktop shell for Stitch.
-- `apps/web` (`@stitch/web`): React/TanStack web UI used by the desktop app.
+## Architecture
 
-### Core packages
+```
+stitch/
+├── apps/
+│   ├── desktop/        # Electron shell — spawns the server, provides native OS integration
+│   └── web/            # React 19 + TanStack UI (chat, settings, onboarding)
+├── packages/
+│   ├── server/         # Hono-based local backend — LLM orchestration, tool execution, DB
+│   ├── shared/         # Zod schemas, TypeScript interfaces, constants
+│   ├── scheduler/      # Cron-like scheduling for automations
+│   └── audio-capture/  # TypeScript wrapper around native Rust audio recording
+├── native/             # Rust workspace (audio capture, meeting detection)
+│   └── crates/
+│       ├── audio-core/
+│       ├── audio-recording/
+│       ├── audio-meeting-detect/
+│       └── audio-cli/
+├── connectors/
+│   ├── sdk/            # Connector framework and shared types
+│   └── google/         # Google connector (Gmail, Drive, Calendar)
+└── registries/
+    ├── embeddings/
+    ├── live-transcription/
+    └── mcp/
+```
 
-- `packages/server` (`@stitch/server`): Local backend service and AI/runtime orchestration.
-- `packages/shared` (`@stitch/shared`): Shared types and cross-package contracts.
-- `packages/scheduler` (`@stitch/scheduler`): Scheduling utilities and job-related logic.
+## Tech Stack
 
-### Connectors
-
-- `connectors/sdk` (`@stitch-connectors/sdk`): Connector framework and shared connector types.
-- `connectors/google` (`@stitch-connectors/google`): Google connector implementation.
+| Layer | Technology |
+|-------|-----------|
+| Desktop Shell | Electron |
+| Frontend | React 19, TanStack Router, TanStack Query |
+| Backend | Hono (TypeScript), Bun runtime |
+| Database | SQLite via Drizzle ORM |
+| Vector Store | LanceDB |
+| AI SDK | Vercel AI SDK (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter) |
+| Audio Capture | Rust (cpal, WASAPI, CoreAudio) |
+| Monorepo | Bun workspaces, Turborepo |
+| Linting/Formatting | Oxlint, Oxfmt |
 
 ## Development
 
-- Install Bun (required): https://bun.sh/
-- Install dependencies: `bun install`
-- Start the app in development mode: `bun run dev`
-- Run project checks: `bun run check`
+```bash
+# Install Bun (required): https://bun.sh/
+bun install            # Install all dependencies
+bun run dev            # Start the app in development mode
+bun run check          # Run lint, typecheck, test, and format checks
+bun run audio-native:build  # Build native Rust audio binaries
+```
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@stitch/desktop` | Electron desktop shell |
+| `@stitch/web` | React/TanStack web UI |
+| `@stitch/server` | Local backend service and AI orchestration |
+| `@stitch/shared` | Shared types and cross-package contracts |
+| `@stitch/scheduler` | Scheduling utilities and job-related logic |
+| `@stitch/audio-capture` | Native audio recording wrapper |
+| `@stitch-connectors/sdk` | Connector framework |
+| `@stitch-connectors/google` | Google connector implementation |
+
+## License
+
+MIT
