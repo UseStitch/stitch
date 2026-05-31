@@ -158,7 +158,11 @@ function defaultTitle(): string {
   return `${month} ${day} ${year} ${timePart}`;
 }
 
-function toRecording(row: RecordingRow, analysisTitle: string | null = null): Recording {
+function toRecording(
+  row: RecordingRow,
+  analysisTitle: string | null = null,
+  analysisCostUsd: number | null = null,
+): Recording {
   return {
     id: row.id,
     title: row.title,
@@ -170,6 +174,7 @@ function toRecording(row: RecordingRow, analysisTitle: string | null = null): Re
     filePath: row.filePath,
     fileSizeBytes: row.fileSizeBytes,
     durationMs: row.durationMs,
+    costUsd: analysisCostUsd,
     startedAt: row.startedAt,
     endedAt: row.endedAt,
     error: row.error,
@@ -186,7 +191,11 @@ export async function listRecordings(input: {
   const offset = (input.page - 1) * input.pageSize;
   const [rows, countRows] = await Promise.all([
     db
-      .select({ recording: recordings, analysisTitle: recordingAnalyses.title })
+      .select({
+        recording: recordings,
+        analysisTitle: recordingAnalyses.title,
+        analysisCostUsd: recordingAnalyses.costUsd,
+      })
       .from(recordings)
       .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
       .orderBy(desc(recordings.createdAt))
@@ -198,7 +207,9 @@ export async function listRecordings(input: {
   const totalPages = computeTotalPages(total, input.pageSize);
 
   return {
-    recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null)),
+    recordings: rows.map((row) =>
+      toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
+    ),
     activeRecordingId: activeRecording?.id ?? null,
     page: input.page,
     pageSize: input.pageSize,

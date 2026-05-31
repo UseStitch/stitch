@@ -12,15 +12,25 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { Button } from '@/components/ui/button';
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-
-import { formatClockDuration, formatRecordingDate, getRecordingDisplayTitle } from '../shared/formatting';
+import {
+  formatClockDuration,
+  formatRecordingDate,
+  getRecordingDisplayTitle,
+} from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 import { RecordingCopyButton } from '../shared/recording-copy-button';
 
+import { Button } from '@/components/ui/button';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+
 const columnHelper = createColumnHelper<Recording>();
+
+function formatCost(costUsd: number | null): string {
+  if (costUsd === null) return '—';
+  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
+  return `$${costUsd.toFixed(2)}`;
+}
 
 interface RecordingsTableProps {
   recordings: Recording[];
@@ -81,6 +91,14 @@ export function RecordingsTable({
             </span>
           );
         },
+      }),
+      columnHelper.accessor('costUsd', {
+        header: 'Cost',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {formatCost(getValue())}
+          </span>
+        ),
       }),
       columnHelper.display({
         id: 'actions',
@@ -152,7 +170,9 @@ export function RecordingsTable({
                     <MicIcon className="size-10 text-muted-foreground/30" />
                   </EmptyMedia>
                   <EmptyTitle>No recordings yet</EmptyTitle>
-                  <EmptyDescription>Start recording to capture your first meeting audio.</EmptyDescription>
+                  <EmptyDescription>
+                    Start recording to capture your first meeting audio.
+                  </EmptyDescription>
                 </Empty>
               </td>
             </tr>

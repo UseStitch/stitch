@@ -21,6 +21,7 @@ export type Recording = {
   filePath: string;
   fileSizeBytes: number | null;
   durationMs: number | null;
+  costUsd: number | null;
   startedAt: number;
   endedAt: number | null;
   error: string | null;
@@ -103,6 +104,7 @@ export type RecordingAnalysis = {
   transcriptionModelId: string | null;
   analysisProviderId: string | null;
   analysisModelId: string | null;
+  costUsd: number;
   createdAt: number;
   updatedAt: number;
   startedAt: number | null;

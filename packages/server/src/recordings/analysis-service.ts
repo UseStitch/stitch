@@ -169,6 +169,7 @@ function toResponse(
     transcriptionModelId: row.transcriptionModelId,
     analysisProviderId: row.analysisProviderId,
     analysisModelId: row.analysisModelId,
+    costUsd: row.costUsd,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     startedAt: row.startedAt,

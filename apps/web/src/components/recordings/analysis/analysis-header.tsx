@@ -7,6 +7,12 @@ import { AudioPlayer } from './audio-player';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 
+function formatCost(costUsd: number | null | undefined): string | null {
+  if (costUsd === null || costUsd === undefined) return null;
+  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
+  return `$${costUsd.toFixed(2)}`;
+}
+
 interface AnalysisHeaderProps {
   analysis: RecordingAnalysis | null | undefined;
   analysisMarkdown: string | null;
@@ -41,6 +47,7 @@ export function AnalysisHeader({
   const showPlayer = recording?.status === 'completed' && recording.id;
   const showRecordingControls = isRecording && onStopRecording;
   const hasCompletedAnalysis = analysis?.status === 'completed';
+  const costLabel = formatCost(analysis?.costUsd ?? recording?.costUsd);
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -52,6 +59,9 @@ export function AnalysisHeader({
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
             {analysis?.title || recording?.title || 'Recording analysis'}
           </h1>
+          {costLabel ? (
+            <p className="text-xs text-muted-foreground tabular-nums">Recording cost {costLabel}</p>
+          ) : null}
         </div>
       </div>
       <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ export const USAGE_SOURCES = [
   'automation_generation',
   'title_generation',
   'memory_extraction',
+  'transcription',
   'recording_analysis',
 ] as const;
 
