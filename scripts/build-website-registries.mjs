@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,7 @@ const outputDir = join(rootDir, 'apps', 'website', 'dist');
 const outputFile = join(outputDir, 'mcp-registry.json');
 const embeddingOutputFile = join(outputDir, 'embedding-models.json');
 const liveTranscriptionOutputFile = join(outputDir, 'live-transcription-models.json');
+const websiteBaseUrl = 'https://usestitch.ai';
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -84,6 +85,12 @@ function assertServerConfig(server, filePath) {
     typeof server.docsUrl === 'string' && server.docsUrl.length > 0,
     `${filePath}: docsUrl is required`,
   );
+  if (server.logoUrl !== undefined) {
+    assert(
+      typeof server.logoUrl === 'string' && server.logoUrl.length > 0,
+      `${filePath}: logoUrl must be a string`,
+    );
+  }
   assert(
     Array.isArray(server.tags) && server.tags.length > 0,
     `${filePath}: tags must be a non-empty array`,
@@ -261,14 +268,28 @@ function assertLiveTranscriptionProviderConfig(provider, filePath) {
 }
 
 function loadServerConfigs() {
-  const files = readdirSync(serversDir)
-    .filter((name) => name.endsWith('.json'))
-    .map((name) => join(serversDir, name));
+  const entries = readdirSync(serversDir, { withFileTypes: true }).filter((entry) =>
+    entry.isDirectory(),
+  );
 
-  const servers = files.map((filePath) => {
+  const servers = entries.map((entry) => {
+    const serverDir = join(serversDir, entry.name);
+    const filePath = join(serverDir, 'config.json');
+    const logoPath = join(serverDir, 'logo.svg');
+
+    assert(existsSync(filePath), `${serverDir}: config.json is required`);
     const parsed = readJson(filePath);
     assertServerConfig(parsed, filePath);
-    return parsed;
+    assert(parsed.id === entry.name, `${filePath}: id must match directory name ${entry.name}`);
+
+    if (!existsSync(logoPath)) {
+      return parsed;
+    }
+
+    return {
+      ...parsed,
+      logoUrl: `${websiteBaseUrl}/mcp/servers/${parsed.id}/logo.svg`,
+    };
   });
 
   const ids = new Set();
@@ -329,6 +350,7 @@ function loadLiveTranscriptionProviderConfigs() {
 function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(join(outputDir, 'schemas'), { recursive: true });
+  mkdirSync(join(outputDir, 'mcp', 'servers'), { recursive: true });
 
   cpSync(join(rootDir, 'apps', 'website', 'index.html'), join(outputDir, 'index.html'));
   cpSync(
@@ -343,6 +365,14 @@ function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
     join(liveTranscriptionSchemaDir, 'live-transcription-provider.schema.json'),
     join(outputDir, 'schemas', 'live-transcription-provider.schema.json'),
   );
+
+  for (const server of servers) {
+    if (!server.logoUrl) continue;
+    const logoInputPath = join(serversDir, server.id, 'logo.svg');
+    const logoOutputDir = join(outputDir, 'mcp', 'servers', server.id);
+    mkdirSync(logoOutputDir, { recursive: true });
+    cpSync(logoInputPath, join(logoOutputDir, 'logo.svg'));
+  }
 
   const payload = {
     version: 1,

@@ -33,6 +33,7 @@ const mcpRegistryServerSchema = z.object({
   description: z.string().min(1),
   homepageUrl: z.string().url().optional(),
   docsUrl: z.string().url(),
+  logoUrl: z.string().url().optional(),
   tags: z.array(z.string().min(1)).min(1),
   install: z.object({
     name: z.string().min(1),
