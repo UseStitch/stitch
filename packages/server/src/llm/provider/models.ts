@@ -1,13 +1,13 @@
-import fs from 'node:fs/promises';
 import z from 'zod';
 
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { createRegistryCache } from '@/lib/registry-cache.js';
 
 const log = Log.create({ service: 'models.dev' });
-const URL = 'https://models.dev';
+const MODELS_DEV_URL = 'https://models.dev/api.json';
 
 const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
 
@@ -20,10 +20,10 @@ export const ModelSchema = z.object({
   name: z.string(),
   family: z.string().optional(),
   release_date: z.string(),
-  attachment: z.boolean(),
-  reasoning: z.boolean(),
-  temperature: z.boolean(),
-  tool_call: z.boolean(),
+  attachment: z.boolean().optional().default(false),
+  reasoning: z.boolean().optional().default(false),
+  temperature: z.boolean().optional().default(false),
+  tool_call: z.boolean().optional().default(false),
   interleaved: z
     .union([
       z.literal(true),
@@ -61,9 +61,9 @@ export const ModelSchema = z.object({
       output: z.array(z.enum(['text', 'audio', 'image', 'video', 'pdf'])),
     })
     .optional(),
-  experimental: z.boolean().optional(),
+  experimental: z.unknown().optional(),
   status: z.enum(['alpha', 'beta', 'deprecated']).optional(),
-  options: z.record(z.string(), z.any()),
+  options: z.record(z.string(), z.any()).optional().default({}),
   headers: z.record(z.string(), z.string()).optional(),
   provider: z.object({ npm: z.string().optional(), api: z.string().optional() }).optional(),
   variants: z.record(z.string(), z.record(z.string(), z.any())).optional(),
@@ -77,10 +77,10 @@ export const ProviderSchema = z.object({
   models: z.record(z.string(), ModelSchema),
 });
 
+const RegistrySchema = z.record(z.string(), ProviderSchema);
+
 export type RawModel = z.infer<typeof ModelSchema>;
 export type RawProvider = z.infer<typeof ProviderSchema>;
-
-let data: Record<string, RawProvider> | undefined;
 
 function filterModels(models: Record<string, RawModel>): Record<string, RawModel> {
   return Object.fromEntries(
@@ -114,19 +114,14 @@ function filterProviders(raw: Record<string, RawProvider>): Record<string, RawPr
   );
 }
 
+const registryCache = createRegistryCache<Record<string, RawProvider>>({
+  cacheFilePath: PATHS.filePaths.models,
+  url: MODELS_DEV_URL,
+  parse: (raw) => RegistrySchema.parse(raw),
+});
+
 export async function get(): Promise<Record<string, RawProvider>> {
-  if (data) return data;
-  const cached = await fs.readFile(PATHS.filePaths.models, 'utf8').catch(() => undefined);
-
-  if (cached) {
-    data = filterProviders(JSON.parse(cached) as Record<string, RawProvider>);
-    return data;
-  }
-
-  const json = await fetch(`${URL}/api.json`).then((x) => x.text());
-  data = filterProviders(JSON.parse(json) as Record<string, RawProvider>);
-
-  return data;
+  return filterProviders(await registryCache.get());
 }
 
 export async function getAudioModels(): Promise<Record<string, RawProvider>> {
@@ -151,16 +146,7 @@ export async function getAudioModels(): Promise<Record<string, RawProvider>> {
   return audioProviders;
 }
 
-export async function refresh() {
-  const result = await fetch(`${URL}/api.json`, {
-    signal: AbortSignal.timeout(10 * 1000),
-  }).catch((e) => {
-    log.error({ error: e }, 'failed to fetch models.dev');
-  });
-  if (result && result.ok) {
-    const text = await result.text();
-    await fs.mkdir(PATHS.cacheDir, { recursive: true });
-    await fs.writeFile(PATHS.filePaths.models, text, 'utf8');
-    data = undefined;
-  }
+export async function refresh(): Promise<void> {
+  log.info('refreshing models.dev registry');
+  await registryCache.refresh();
 }
