@@ -1,5 +1,9 @@
 # Stitch
 
+<p align="center">
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/UseStitch/stitch)
+</p>
+
 Stitch is an AI-powered desktop app that helps users get work done locally.
 
 ## Status
