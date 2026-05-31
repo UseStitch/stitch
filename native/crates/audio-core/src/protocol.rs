@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::NativeError;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AudioChunkSource {
+  Mic,
+  Speaker,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(
   tag = "type",
@@ -75,6 +82,12 @@ pub enum Event {
   DeviceChanged {
     kind: &'static str,
     device_name: Option<String>,
+  },
+  AudioChunk {
+    source: AudioChunkSource,
+    samples_b64: String,
+    sample_rate_hz: u32,
+    num_samples: u32,
   },
 }
 
@@ -155,7 +168,7 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
 
 #[cfg(test)]
 mod tests {
-  use super::{CaptureMode, Command, Event, parse_start_command};
+  use super::{AudioChunkSource, CaptureMode, Command, Event, parse_start_command};
 
   #[test]
   fn parse_start_command_accepts_valid_payload() {
@@ -279,5 +292,31 @@ mod tests {
       }
       _ => panic!("expected start command variant"),
     }
+  }
+
+  #[test]
+  fn event_serializes_audio_chunk_shape() {
+    let event = Event::AudioChunk {
+      source: AudioChunkSource::Mic,
+      samples_b64: "AAAAAAAAAIA/".to_string(),
+      sample_rate_hz: 16_000,
+      num_samples: 3,
+    };
+
+    let serialized = serde_json::to_string(&event).expect("event should serialize");
+    let value: serde_json::Value = serde_json::from_str(&serialized).expect("valid json");
+    assert_eq!(value["type"], "audioChunk");
+    assert_eq!(value["source"], "mic");
+    assert_eq!(value["sampleRateHz"], 16_000);
+    assert_eq!(value["numSamples"], 3);
+    assert!(value.get("samplesB64").is_some());
+  }
+
+  #[test]
+  fn audio_chunk_source_serializes_as_camel_case() {
+    let mic = serde_json::to_string(&AudioChunkSource::Mic).expect("serialize mic");
+    let speaker = serde_json::to_string(&AudioChunkSource::Speaker).expect("serialize speaker");
+    assert_eq!(mic, "\"mic\"");
+    assert_eq!(speaker, "\"speaker\"");
   }
 }

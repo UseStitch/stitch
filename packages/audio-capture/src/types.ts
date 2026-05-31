@@ -170,6 +170,16 @@ export type NativeCaptureDeviceChangedEvent = {
   deviceName: string | null;
 };
 
+export type AudioChunkSource = 'mic' | 'speaker';
+
+export type NativeCaptureAudioChunkEvent = {
+  type: 'audioChunk';
+  source: AudioChunkSource;
+  samplesB64: string;
+  sampleRateHz: number;
+  numSamples: number;
+};
+
 export type NativeCaptureEvent =
   | NativeCaptureStartedEvent
   | NativeCaptureProgressEvent
@@ -180,10 +190,11 @@ export type NativeCaptureEvent =
   | NativeCaptureDeviceListEvent
   | NativeCaptureCapabilitiesEvent
   | NativeCapturePermissionsStatusEvent
-  | NativeCaptureDeviceChangedEvent;
+  | NativeCaptureDeviceChangedEvent
+  | NativeCaptureAudioChunkEvent;
 
 export type NativeCaptureEventListener = (
-  event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent,
+  event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent | NativeCaptureAudioChunkEvent,
 ) => void;
 
 export type NativeCaptureController = {

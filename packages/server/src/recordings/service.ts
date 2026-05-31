@@ -167,6 +167,14 @@ export async function startRecording(
           kind: event.kind,
           deviceName: event.deviceName,
         });
+      } else if (event.type === 'audioChunk') {
+        Events.emit('recording-audio-chunk', {
+          recordingId: id,
+          source: event.source,
+          samplesB64: event.samplesB64,
+          sampleRateHz: event.sampleRateHz,
+          numSamples: event.numSamples,
+        });
       }
     });
 

@@ -42,7 +42,7 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
       return;
     }
 
-    if (event.type === 'warning' || event.type === 'deviceChanged') {
+    if (event.type === 'warning' || event.type === 'deviceChanged' || event.type === 'audioChunk') {
       eventListener?.(event);
     }
 

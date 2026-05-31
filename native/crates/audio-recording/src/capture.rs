@@ -8,8 +8,8 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
 use audio_core::error::NativeError;
-use audio_core::output::{emit, now_ms};
-use audio_core::protocol::{CaptureMode, CaptureStart, Event};
+use audio_core::output::{emit, emit_audio_chunk, now_ms};
+use audio_core::protocol::{AudioChunkSource, CaptureMode, CaptureStart, Event};
 
 use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
@@ -571,7 +571,10 @@ fn write_dual_realtime_output(
       loop {
         use std::sync::mpsc::RecvTimeoutError;
         match mic_rx.recv_timeout(Duration::from_millis(20)) {
-          Ok(chunk) => mic_buf.extend_from_slice(&chunk),
+          Ok(chunk) => {
+            emit_audio_chunk(AudioChunkSource::Mic, &chunk, target_sample_rate_hz);
+            mic_buf.extend_from_slice(&chunk);
+          }
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
               warnings.push("mic_source_disconnected_early".to_string());
@@ -581,9 +584,11 @@ fn write_dual_realtime_output(
           Err(RecvTimeoutError::Timeout) => {}
         }
         while let Ok(chunk) = mic_rx.try_recv() {
+          emit_audio_chunk(AudioChunkSource::Mic, &chunk, target_sample_rate_hz);
           mic_buf.extend_from_slice(&chunk);
         }
         while let Ok(chunk) = speaker_rx.try_recv() {
+          emit_audio_chunk(AudioChunkSource::Speaker, &chunk, target_sample_rate_hz);
           speaker_buf.extend_from_slice(&chunk);
         }
 
