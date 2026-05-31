@@ -1,6 +1,7 @@
 import type {
   ApiKeyConfig,
   ConnectorAuthType,
+  ConnectorIconSource,
   ConnectorSetupInstruction,
   ConnectorStatus,
   ConnectorUpgradeAction,
@@ -9,9 +10,7 @@ import type {
 } from '@stitch/shared/connectors/types';
 import type { StitchLogger } from '@stitch/shared/logger';
 
-export type ConnectorIconSource =
-  | { type: 'svgString'; svgString: string }
-  | { type: 'simpleIcons'; slug: string };
+export type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 export type ConnectorDefinitionInput = {
   id: string;
@@ -60,7 +59,10 @@ export type ConnectorServiceHooks = {
     logger: StitchLogger;
   }) => Promise<{ accountEmail: string | null; accountInfo: Record<string, unknown> | null }>;
   onDeleted?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
-  testConnection?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
+  testConnection?: (input: {
+    instance: ConnectorInstanceRecord;
+    logger: StitchLogger;
+  }) => Promise<void>;
 };
 
 export type ConnectorModule = {
