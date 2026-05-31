@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { MeetingCallDetectedPayload } from '@stitch/shared/chat/realtime';
 
+import { PLATFORM_CONFIG } from './shared/formatting';
+
 import { Button } from '@/components/ui/button';
 import { useSSE } from '@/hooks/sse/sse-context';
 import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
@@ -29,14 +31,6 @@ export function RecordingEventListener() {
   });
 
   return null;
-}
-
-function platformLabel(platform: MeetingCallDetectedPayload['platform']): string {
-  if (platform === 'google-meet') return 'Google Meet';
-  if (platform === 'teams') return 'Microsoft Teams';
-  if (platform === 'zoom') return 'Zoom';
-  if (platform === 'slack') return 'Slack';
-  return 'Discord';
 }
 
 export function MeetingRecordingBanner() {
@@ -107,7 +101,7 @@ export function MeetingRecordingBanner() {
           <p className="text-sm text-muted-foreground">
             Active call detected in{' '}
             <strong className="font-medium text-foreground">
-              {platformLabel(detection.platform)}
+              {PLATFORM_CONFIG[detection.platform].label}
             </strong>
             . Would you like to start recording?
           </p>

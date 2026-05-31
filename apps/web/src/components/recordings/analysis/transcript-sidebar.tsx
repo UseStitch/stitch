@@ -43,7 +43,7 @@ export function TranscriptSidebar({
         </h2>
       </div>
 
-      <ScrollArea className="flex-1" style={{ height: 0 }}>
+      <ScrollArea className="h-0 flex-1">
         <div className="space-y-4 p-5">
           {showLive ? (
             <>

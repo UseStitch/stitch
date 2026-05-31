@@ -4,6 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
 
 import {
+  formatReadableDuration,
+  formatRecordingShortDate,
+  formatRecordingTime,
+  getRecordingDisplayTitle,
+} from './shared/formatting';
+
+import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -14,39 +21,6 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { recordingsQueryOptions } from '@/lib/queries/recordings';
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-function formatDuration(durationMs: number | null): string {
-  if (durationMs === null) return '--';
-
-  const totalSeconds = Math.floor(durationMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes} mins`;
-  }
-
-  return `${seconds} secs`;
-}
 
 export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
@@ -76,7 +50,7 @@ export function RecordingsSidebarContent() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {recordings.map((recording) => {
-                  const displayTitle = recording.analysisTitle || recording.title;
+                  const displayTitle = getRecordingDisplayTitle(recording);
                   const isAnalyzed = recording.analysisTitle !== null;
                   return (
                     <SidebarMenuItem key={recording.id}>
@@ -96,18 +70,18 @@ export function RecordingsSidebarContent() {
                           <div className="flex items-center justify-between gap-2">
                             <span className="truncate text-sm">{displayTitle}</span>
                             <span className="shrink-0 text-[10px] text-muted-foreground">
-                              {formatDate(recording.startedAt)}
+                              {formatRecordingShortDate(recording.startedAt)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                             <span>
-                              {formatDuration(recording.durationMs)}
+                              {formatReadableDuration(recording.durationMs)}
                               {' · '}
                               <span className={isAnalyzed ? 'text-success' : undefined}>
                                 {isAnalyzed ? 'Analyzed' : 'Not analyzed'}
                               </span>
                             </span>
-                            <span>{formatTime(recording.startedAt)}</span>
+                            <span>{formatRecordingTime(recording.startedAt)}</span>
                           </div>
                         </div>
                       </SidebarMenuButton>
