@@ -2,8 +2,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
 
-import { interactionBroker } from '@/interactions/broker.js';
 import * as Events from '@/lib/events.js';
+import { interactionBroker } from '@/lib/interactions/broker.js';
 import * as Log from '@/lib/log.js';
 import * as Usage from '@/utils/usage.js';
 import type { LanguageModelUsage, ModelMessage } from 'ai';

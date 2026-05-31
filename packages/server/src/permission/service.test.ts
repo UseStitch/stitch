@@ -7,8 +7,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { permissionResponses, sessions, toolPermissions } from '@/db/schema.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import { interactionBroker } from '@/interactions/broker.js';
 import * as Events from '@/lib/events.js';
+import { interactionBroker } from '@/lib/interactions/broker.js';
 
 setupTestDb();
 

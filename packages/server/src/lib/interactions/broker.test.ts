@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
-import { InteractionBroker } from '@/interactions/broker.js';
+import { InteractionBroker } from '@/lib/interactions/broker.js';
 
 describe('InteractionBroker', () => {
   let broker: InteractionBroker;
