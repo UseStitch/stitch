@@ -7,6 +7,7 @@ import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpIconByKey } from '@/mcp/icons.js';
+import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
 import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
 import { evictMcpClient, refreshMcpToolsets } from '@/mcp/tool-executor.js';
@@ -60,12 +61,36 @@ mcpRouter.post('/registry/refresh', async (c) => {
   return unwrapResult(c, result, 204);
 });
 
+mcpRouter.get('/registry/:registryId/logo', async (c) => {
+  const registryId = c.req.param('registryId');
+  const logo = await getMcpRegistryLogo(registryId);
+  if (!logo) {
+    return c.json({ error: 'MCP registry logo not found' }, 404);
+  }
+
+  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=86400');
+  return c.body(logo, 200);
+});
+
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
   if (isServiceError(result)) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return unwrapResult(c, result);
+});
+
+mcpRouter.get('/:id/logo', async (c) => {
+  const id = c.req.param('id');
+  const logo = await getMcpInstalledServerRegistryLogo(id);
+  if (!logo) {
+    return c.json({ error: 'MCP server logo not found' }, 404);
+  }
+
+  c.header('Content-Type', 'image/svg+xml; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=86400');
+  return c.body(logo, 200);
 });
 
 mcpRouter.post('/refresh', async (c) => {

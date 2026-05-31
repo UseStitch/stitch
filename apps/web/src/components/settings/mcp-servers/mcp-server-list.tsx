@@ -1,11 +1,11 @@
 import { EyeIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
-import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { McpServer } from '@stitch/shared/mcp/types';
 
+import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import {
@@ -13,7 +13,6 @@ import {
   useDeleteMcpServer,
   useRefreshMcpServers,
 } from '@/lib/queries/mcp';
-import { knownMcpToolsQueryOptions } from '@/lib/queries/tools';
 
 export function McpServerList({
   onAdd,
@@ -23,19 +22,8 @@ export function McpServerList({
   onPreview: (server: McpServer) => void;
 }) {
   const { data: servers } = useSuspenseQuery(mcpServersQueryOptions);
-  const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
   const deleteServer = useDeleteMcpServer();
   const refreshServers = useRefreshMcpServers();
-
-  const serverIconById = React.useMemo(() => {
-    const map = new Map<string, string>();
-    for (const tool of knownMcpTools) {
-      if (tool.serverIconPath && !map.has(tool.serverId)) {
-        map.set(tool.serverId, tool.serverIconPath);
-      }
-    }
-    return map;
-  }, [knownMcpTools]);
 
   const handleDelete = async (server: McpServer) => {
     try {
@@ -93,14 +81,7 @@ export function McpServerList({
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                {serverIconById.get(server.id) ? (
-                  <img
-                    src={serverIconById.get(server.id)}
-                    alt=""
-                    className="size-4 shrink-0 rounded-sm"
-                    loading="lazy"
-                  />
-                ) : null}
+                <McpServerLogo serverId={server.id} name={server.name} className="size-4" />
                 <p className="truncate text-sm font-medium">{server.name}</p>
               </div>
               <p className="truncate text-xs text-muted-foreground">{server.url}</p>
