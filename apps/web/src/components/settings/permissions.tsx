@@ -7,6 +7,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { RemoteImageIcon } from '@/components/icons/remote-icon';
 import {
   filterCoreTools,
   filterToolsetsByQuery,
@@ -87,7 +88,12 @@ function ToolRow({
     >
       <div className="flex min-w-0 items-center gap-2.5">
         {iconPath && (
-          <img src={iconPath} alt="" className="size-4 shrink-0 rounded-sm" loading="lazy" />
+          <RemoteImageIcon
+            path={iconPath}
+            label={`${name} icon`}
+            className="size-4"
+            fallback={null}
+          />
         )}
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name}</p>
