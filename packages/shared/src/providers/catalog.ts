@@ -175,6 +175,27 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
       },
     ],
   },
+  nvidia: {
+    displayName: 'NVIDIA',
+    description: 'Access to NVIDIA NIM and foundation models',
+    extraFields: [],
+    authMethods: [
+      {
+        method: 'api-key',
+        label: 'API Key',
+        enabled: true,
+        fields: [
+          {
+            key: 'apiKey',
+            label: 'API Key',
+            placeholder: 'nvapi-...',
+            required: true,
+            secret: true,
+          },
+        ],
+      },
+    ],
+  },
   ollama_local: {
     displayName: 'Ollama',
     description: 'Run models locally with Ollama',

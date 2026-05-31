@@ -73,6 +73,11 @@ const VercelCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
 });
 
+const NvidiaCredentialsSchema = z.object({
+  providerId: z.literal('nvidia'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
+
 const OllamaCredentialsSchema = z.object({
   providerId: z.literal('ollama_local'),
   baseURL: z.string().optional(),
@@ -84,6 +89,7 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   AnthropicCredentialsSchema,
   GoogleCredentialsSchema,
   GoogleVertexCredentialsSchema,
+  NvidiaCredentialsSchema,
   OpenAICredentialsSchema,
   OpenRouterCredentialsSchema,
   VercelCredentialsSchema,
@@ -156,6 +162,13 @@ export const createProvider = (credentials: ProviderCredentials) => {
         apiKey: credentials.auth.apiKey,
         organization: credentials.organization,
         project: credentials.project,
+      });
+
+    case 'nvidia':
+      return createOpenAICompatible({
+        name: 'nvidia',
+        baseURL: 'https://integrate.api.nvidia.com/v1',
+        apiKey: credentials.auth.apiKey,
       });
 
     case 'openrouter':
