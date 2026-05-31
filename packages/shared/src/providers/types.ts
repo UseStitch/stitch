@@ -58,6 +58,7 @@ export const PROVIDER_IDS = [
   'anthropic',
   'google',
   'google-vertex',
+  'nvidia',
   'ollama_local',
   'openai',
   'openrouter',

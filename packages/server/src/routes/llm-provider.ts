@@ -13,7 +13,6 @@ import {
   getProvider,
   getProviderCredentials,
   getProviderLogo,
-  getProviderModel,
   listEnabledProviderAudioModels,
   listEnabledProviderEmbeddingModels,
   listEnabledProviderTranscriptionModels,
@@ -25,7 +24,6 @@ import {
 const log = Log.create({ service: 'provider-routes' });
 
 const providerIdSchema = z.enum(PROVIDER_IDS);
-const modelIdSchema = z.string().min(1);
 const providerConfigSchema = z.record(z.string(), z.unknown());
 
 export const providerRouter = new Hono();
@@ -68,18 +66,6 @@ providerRouter.get(
     const { providerId } = c.req.valid('param');
     const result = await listProviderModels(providerId);
     if (isServiceError(result)) log.warn({ providerId }, 'blocked access to provider models');
-    return unwrapResult(c, result);
-  },
-);
-
-providerRouter.get(
-  '/:providerId/models/:modelId',
-  zValidator('param', z.object({ providerId: providerIdSchema, modelId: modelIdSchema })),
-  async (c) => {
-    const { providerId, modelId } = c.req.valid('param');
-    const result = await getProviderModel(providerId, modelId);
-    if (isServiceError(result))
-      log.warn({ providerId, modelId }, 'blocked access to provider model');
     return unwrapResult(c, result);
   },
 );

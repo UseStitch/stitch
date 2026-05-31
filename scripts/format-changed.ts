@@ -16,7 +16,9 @@ const files = result.stdout
 
 if (files.length === 0) process.exit(0);
 
-const cmd = checkOnly ? ['oxfmt', 'check', ...files] : ['oxfmt', 'write', ...files];
+const cmd = checkOnly
+  ? ['oxfmt', 'check', '--no-error-on-unmatched-pattern', ...files]
+  : ['oxfmt', 'write', '--no-error-on-unmatched-pattern', ...files];
 
 const fmt = spawnSync(cmd, { stdout: 'inherit', stderr: 'inherit' });
 process.exit(fmt.exitCode ?? 0);

@@ -254,29 +254,6 @@ export async function getEmbeddingModelDimensions(
   return EmbeddingModels.getEmbeddingDimensions(model);
 }
 
-export async function getProviderModel(
-  providerId: string,
-  modelId: string,
-): Promise<ServiceResult<ModelSummary>> {
-  if (providerId === 'ollama_local') {
-    const result = await OllamaModels.getOllamaModel(modelId);
-    if (isServiceError(result)) return result;
-    return ok(ollamaModelToSummary(result.data));
-  }
-
-  const providerResult = await resolveProvider(providerId);
-  if (isServiceError(providerResult)) {
-    return providerResult;
-  }
-
-  const model = providerResult.data.models[modelId];
-  if (!model) {
-    return err('Model not found', 404);
-  }
-
-  return ok(toModelSummary(model));
-}
-
 export async function getProviderLogo(providerId: string): Promise<ServiceResult<string>> {
   if (!isAllowedProvider(providerId)) {
     return err('Provider not found', 404);

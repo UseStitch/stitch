@@ -54,6 +54,8 @@ export function getCacheConfig(
     case 'vercel':
     // Ollama: local inference, no cache control support
     case 'ollama_local':
+    // NVIDIA: caching handled by API provider
+    case 'nvidia':
       return null;
   }
 }
@@ -152,6 +154,8 @@ export function getProviderOptions(
     // Google, Google Vertex: implicit caching, no session key mechanism
     case 'google':
     case 'google-vertex':
+    // NVIDIA: caching handled by API provider
+    case 'nvidia':
       return undefined;
 
     // Vercel (AI Gateway): automatic caching based on underlying provider
