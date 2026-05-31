@@ -91,10 +91,27 @@ function createGeminiConnection(
       ws.send(JSON.stringify(message));
     },
 
-    close(): void {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close(1000, 'session ended');
+    close(): Promise<void> {
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        return Promise.resolve();
       }
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve();
+        }, 5_000);
+
+        ws.addEventListener(
+          'close',
+          () => {
+            clearTimeout(timeout);
+            resolve();
+          },
+          { once: true },
+        );
+
+        ws.close(1000, 'session ended');
+      });
     },
 
     onTranscript(cb: TranscriptCallback): void {

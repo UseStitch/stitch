@@ -34,7 +34,7 @@ export type LiveTranscriptionSessionResult = {
 };
 
 export type LiveTranscriptionSession = {
-  stop: () => LiveTranscriptionSessionResult;
+  stop: () => Promise<LiveTranscriptionSessionResult>;
 };
 
 export async function startLiveTranscriptionSession(
@@ -163,7 +163,7 @@ export async function startLiveTranscriptionSession(
   );
 
   return {
-    stop(): LiveTranscriptionSessionResult {
+    async stop(): Promise<LiveTranscriptionSessionResult> {
       if (stopped) {
         return {
           transcript,
@@ -174,8 +174,9 @@ export async function startLiveTranscriptionSession(
       stopped = true;
 
       unsubscribe();
-      micConnection.close();
-      speakerConnection.close();
+
+      // Wait for connections to close so the provider can flush final transcripts
+      await Promise.all([micConnection.close(), speakerConnection.close()]);
 
       // Final cost computation
       currentCostUsd = computeTotalCost();

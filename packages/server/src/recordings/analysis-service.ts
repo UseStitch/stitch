@@ -229,7 +229,7 @@ export async function startRecordingAnalysis(
     .from(recordingAnalyses)
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
-  if (existing && existing.status !== 'failed' && !input?.force) {
+  if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input?.force) {
     return ok({ analysis: toResponse(existing, recordingId) });
   }
 
@@ -271,7 +271,7 @@ export async function startRecordingAnalysis(
       analysisProviderId: analysisModel.data.providerId,
       analysisModelId: analysisModel.data.modelId,
       usage: ZERO_USAGE,
-      costUsd: 0,
+      costUsd: existing?.costUsd ?? 0,
       startedAt: null,
       endedAt: null,
       durationMs: null,
@@ -296,7 +296,6 @@ export async function startRecordingAnalysis(
         analysisProviderId: analysisModel.data.providerId,
         analysisModelId: analysisModel.data.modelId,
         usage: ZERO_USAGE,
-        costUsd: 0,
         startedAt: null,
         endedAt: null,
         durationMs: null,
@@ -480,6 +479,13 @@ async function runRecordingAnalysis(
       return;
     }
 
+    // Read existing transcription cost so we can add analysis cost on top
+    const [currentRow] = await db
+      .select({ costUsd: recordingAnalyses.costUsd })
+      .from(recordingAnalyses)
+      .where(eq(recordingAnalyses.id, analysisId));
+    const transcriptionCost = currentRow?.costUsd ?? 0;
+
     await db
       .update(recordingAnalyses)
       .set({
@@ -493,7 +499,7 @@ async function runRecordingAnalysis(
         blockers: blockers.length > 0 ? blockers : fallbackBlockers,
         error: null,
         usage: analysisUsage,
-        costUsd: analysisCost,
+        costUsd: transcriptionCost + analysisCost,
         endedAt,
         durationMs: endedAt - startedAt,
         updatedAt: endedAt,

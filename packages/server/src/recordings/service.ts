@@ -398,8 +398,8 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
   activeRecording = null;
 
   try {
-    // Stop transcription session first to get final transcript + cost
-    const sessionResult = current.transcriptionSession?.stop() ?? null;
+    // Stop transcription session — awaits provider connections closing so final transcripts drain
+    const sessionResult = (await current.transcriptionSession?.stop()) ?? null;
     const transcript = sessionResult?.transcript ?? [];
 
     const stop = await capture.stop();

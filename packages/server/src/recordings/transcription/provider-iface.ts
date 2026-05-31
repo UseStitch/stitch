@@ -25,7 +25,7 @@ export type LiveTranscriptionConnectionConfig = {
 
 export type LiveTranscriptionConnection = {
   sendAudio: (base64Pcm: string) => void;
-  close: () => void;
+  close: () => Promise<void>;
   onTranscript: (cb: TranscriptCallback) => void;
   onUsage: (cb: UsageCallback) => void;
   onError: (cb: ErrorCallback) => void;
