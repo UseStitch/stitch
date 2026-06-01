@@ -457,6 +457,84 @@ fn spawn_mic_source(
   Ok((rx, worker))
 }
 
+fn append_audio_chunk(
+  buffer: &mut Vec<f32>,
+  source: AudioChunkSource,
+  chunk: Vec<f32>,
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+) {
+  emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
+  buffer.extend_from_slice(&chunk);
+}
+
+fn drain_available_audio_chunks(
+  rx: &Receiver<Vec<f32>>,
+  buffer: &mut Vec<f32>,
+  source: AudioChunkSource,
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+) {
+  while let Ok(chunk) = rx.try_recv() {
+    append_audio_chunk(buffer, source, chunk, sample_rate_hz, encoding);
+  }
+}
+
+fn next_mix_len(
+  mic_len: usize,
+  speaker_len: usize,
+  mic_wait_ticks: &mut u32,
+  speaker_wait_ticks: &mut u32,
+  stop_requested: bool,
+) -> usize {
+  if mic_len > 0 && speaker_len > 0 {
+    *mic_wait_ticks = 0;
+    *speaker_wait_ticks = 0;
+    return mic_len.min(speaker_len);
+  }
+
+  if mic_len > 0 {
+    *mic_wait_ticks = mic_wait_ticks.saturating_add(1);
+    if *mic_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_requested {
+      *mic_wait_ticks = 0;
+      return mic_len;
+    }
+  }
+
+  if speaker_len > 0 {
+    *speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
+    if *speaker_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_requested {
+      *speaker_wait_ticks = 0;
+      return speaker_len;
+    }
+  }
+
+  0
+}
+
+fn mix_dual_samples(
+  mic_buf: &[f32],
+  speaker_buf: &[f32],
+  mix_len: usize,
+  speaker_gain: f32,
+) -> Vec<f32> {
+  let mut out = Vec::with_capacity(mix_len);
+  for i in 0..mix_len {
+    let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
+    let speaker_val = speaker_buf.get(i).copied().unwrap_or(0.0);
+    out.push((mic_val * DUAL_MIC_GAIN + speaker_val * speaker_gain).clamp(-1.0, 1.0));
+  }
+  out
+}
+
+fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
+  if buffer.len() <= count {
+    buffer.clear();
+  } else {
+    buffer.drain(..count);
+  }
+}
+
 fn write_dual_realtime_output(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
@@ -489,15 +567,13 @@ fn write_dual_realtime_output(
       loop {
         use std::sync::mpsc::RecvTimeoutError;
         match mic_rx.recv_timeout(Duration::from_millis(20)) {
-          Ok(chunk) => {
-            emit_audio_chunk(
-              AudioChunkSource::Mic,
-              &chunk,
-              target_sample_rate_hz,
-              chunk_encoding,
-            );
-            mic_buf.extend_from_slice(&chunk);
-          }
+          Ok(chunk) => append_audio_chunk(
+            &mut mic_buf,
+            AudioChunkSource::Mic,
+            chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          ),
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
               warnings.push("mic_source_disconnected_early".to_string());
@@ -506,72 +582,35 @@ fn write_dual_realtime_output(
           }
           Err(RecvTimeoutError::Timeout) => {}
         }
-        while let Ok(chunk) = mic_rx.try_recv() {
-          emit_audio_chunk(
-            AudioChunkSource::Mic,
-            &chunk,
-            target_sample_rate_hz,
-            chunk_encoding,
-          );
-          mic_buf.extend_from_slice(&chunk);
-        }
-        while let Ok(chunk) = speaker_rx.try_recv() {
-          emit_audio_chunk(
-            AudioChunkSource::Speaker,
-            &chunk,
-            target_sample_rate_hz,
-            chunk_encoding,
-          );
-          speaker_buf.extend_from_slice(&chunk);
-        }
 
-        let mix_len = if !mic_buf.is_empty() && !speaker_buf.is_empty() {
-          mic_buf.len().min(speaker_buf.len())
-        } else if !mic_buf.is_empty() && speaker_buf.is_empty() {
-          mic_wait_ticks = mic_wait_ticks.saturating_add(1);
-          if mic_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_flag.load(Ordering::Relaxed) {
-            mic_wait_ticks = 0;
-            mic_buf.len()
-          } else {
-            0
-          }
-        } else if !speaker_buf.is_empty() && mic_buf.is_empty() {
-          speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
-          if speaker_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_flag.load(Ordering::Relaxed) {
-            speaker_wait_ticks = 0;
-            speaker_buf.len()
-          } else {
-            0
-          }
-        } else {
-          0
-        };
+        drain_available_audio_chunks(
+          &mic_rx,
+          &mut mic_buf,
+          AudioChunkSource::Mic,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+        drain_available_audio_chunks(
+          &speaker_rx,
+          &mut speaker_buf,
+          AudioChunkSource::Speaker,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+
+        let mix_len = next_mix_len(
+          mic_buf.len(),
+          speaker_buf.len(),
+          &mut mic_wait_ticks,
+          &mut speaker_wait_ticks,
+          stop_flag.load(Ordering::Relaxed),
+        );
 
         if mix_len > 0 {
-          if !mic_buf.is_empty() && !speaker_buf.is_empty() {
-            mic_wait_ticks = 0;
-            speaker_wait_ticks = 0;
-          }
-
-          let mut out = Vec::with_capacity(mix_len);
-          for i in 0..mix_len {
-            let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
-            let spk_val = speaker_buf.get(i).copied().unwrap_or(0.0);
-            let mixed = (mic_val * DUAL_MIC_GAIN + spk_val * speaker_gain).clamp(-1.0, 1.0);
-            out.push(mixed);
-          }
+          let out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
           write_samples(&mut writer, &out)?;
-
-          if mic_buf.len() <= mix_len {
-            mic_buf.clear();
-          } else {
-            mic_buf.drain(..mix_len);
-          }
-          if speaker_buf.len() <= mix_len {
-            speaker_buf.clear();
-          } else {
-            speaker_buf.drain(..mix_len);
-          }
+          drain_mixed_samples(&mut mic_buf, mix_len);
+          drain_mixed_samples(&mut speaker_buf, mix_len);
         }
 
         if stop_flag.load(Ordering::Relaxed) && mic_buf.is_empty() && speaker_buf.is_empty() {
@@ -609,5 +648,64 @@ pub(crate) fn spawn_capture_worker(
       start.sample_rate_hz,
       stop_flag,
     ),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{UNPAIRED_FLUSH_TICKS, drain_mixed_samples, mix_dual_samples, next_mix_len};
+
+  #[test]
+  fn next_mix_len_pairs_available_streams_and_resets_waits() {
+    let mut mic_wait_ticks = 3;
+    let mut speaker_wait_ticks = 2;
+
+    let mix_len = next_mix_len(4, 6, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
+
+    assert_eq!(mix_len, 4);
+    assert_eq!(mic_wait_ticks, 0);
+    assert_eq!(speaker_wait_ticks, 0);
+  }
+
+  #[test]
+  fn next_mix_len_waits_before_flushing_unpaired_mic() {
+    let mut mic_wait_ticks = UNPAIRED_FLUSH_TICKS - 2;
+    let mut speaker_wait_ticks = 0;
+
+    let first = next_mix_len(3, 0, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
+    let second = next_mix_len(3, 0, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
+
+    assert_eq!(first, 0);
+    assert_eq!(second, 3);
+    assert_eq!(mic_wait_ticks, 0);
+    assert_eq!(speaker_wait_ticks, 0);
+  }
+
+  #[test]
+  fn next_mix_len_flushes_unpaired_speaker_on_stop() {
+    let mut mic_wait_ticks = 0;
+    let mut speaker_wait_ticks = 0;
+
+    let mix_len = next_mix_len(0, 2, &mut mic_wait_ticks, &mut speaker_wait_ticks, true);
+
+    assert_eq!(mix_len, 2);
+    assert_eq!(speaker_wait_ticks, 0);
+  }
+
+  #[test]
+  fn mix_dual_samples_uses_missing_stream_as_silence_and_clamps() {
+    let mixed = mix_dual_samples(&[0.75], &[0.5, -0.5], 2, 1.0);
+
+    assert_eq!(mixed, vec![1.0, -0.5]);
+  }
+
+  #[test]
+  fn drain_mixed_samples_removes_consumed_prefix() {
+    let mut buffer = vec![1.0, 2.0, 3.0];
+    drain_mixed_samples(&mut buffer, 2);
+    assert_eq!(buffer, vec![3.0]);
+
+    drain_mixed_samples(&mut buffer, 2);
+    assert!(buffer.is_empty());
   }
 }
