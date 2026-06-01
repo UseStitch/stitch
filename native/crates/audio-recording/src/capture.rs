@@ -685,38 +685,6 @@ fn write_dual_realtime_output(
     .map_err(|error| NativeError::Internal(format!("failed to spawn dual mixer thread: {error}")))
 }
 
-#[cfg(test)]
-fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
-  chunk
-    .iter()
-    .map(|s| (s * weight).clamp(-1.0, 1.0))
-    .collect()
-}
-
-#[cfg(test)]
-fn maybe_take_unpaired_pcm(
-  queue: &mut std::collections::VecDeque<Vec<f32>>,
-  wait_ticks: &mut u32,
-  stop_requested: bool,
-  weight: f32,
-  warning_code: &'static str,
-  warned: &mut bool,
-  warnings: &mut Vec<String>,
-) -> Option<Vec<f32>> {
-  if *wait_ticks < UNPAIRED_FLUSH_TICKS && !stop_requested {
-    return None;
-  }
-
-  let chunk = queue.pop_front()?;
-  if !*warned {
-    warnings.push(warning_code.to_string());
-    *warned = true;
-  }
-
-  *wait_ticks = 0;
-  Some(weighted_f32_chunk(&chunk, weight))
-}
-
 pub(crate) fn spawn_capture_worker(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
@@ -730,63 +698,5 @@ pub(crate) fn spawn_capture_worker(
       start.sample_rate_hz,
       stop_flag,
     ),
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use std::collections::VecDeque;
-
-  use super::{UNPAIRED_FLUSH_TICKS, maybe_take_unpaired_pcm, weighted_f32_chunk};
-
-  #[test]
-  fn weighted_f32_chunk_keeps_signal_for_unpaired_streams() {
-    let samples = weighted_f32_chunk(&[0.5, -0.5, 0.25], 0.6);
-    assert_eq!(samples.len(), 3);
-    assert!(samples.iter().any(|s| *s != 0.0));
-  }
-
-  #[test]
-  fn maybe_take_unpaired_pcm_flushes_after_wait_threshold() {
-    let mut queue = VecDeque::from([vec![0.5, -0.5]]);
-    let mut wait_ticks = UNPAIRED_FLUSH_TICKS;
-    let mut warnings = Vec::new();
-    let mut warned = false;
-
-    let samples = maybe_take_unpaired_pcm(
-      &mut queue,
-      &mut wait_ticks,
-      false,
-      0.6,
-      "dual_fallback_mic_only_chunks",
-      &mut warned,
-      &mut warnings,
-    );
-
-    assert!(samples.is_some());
-    assert!(queue.is_empty());
-    assert_eq!(warnings, vec!["dual_fallback_mic_only_chunks"]);
-    assert!(warned);
-  }
-
-  #[test]
-  fn maybe_take_unpaired_pcm_flushes_on_stop_even_without_threshold() {
-    let mut queue = VecDeque::from([vec![0.5]]);
-    let mut wait_ticks = 0;
-    let mut warnings = Vec::new();
-    let mut warned = false;
-
-    let samples = maybe_take_unpaired_pcm(
-      &mut queue,
-      &mut wait_ticks,
-      true,
-      0.6,
-      "dual_fallback_mic_only_chunks",
-      &mut warned,
-      &mut warnings,
-    );
-
-    assert!(samples.is_some());
-    assert!(queue.is_empty());
   }
 }
