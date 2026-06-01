@@ -396,6 +396,7 @@ fn decode_speaker_frames(
     return Ok(Vec::new());
   }
 
+  // Preserve existing transcription behavior by using the first channel as mono.
   match (sample_type, bits_per_sample) {
     (SampleType::Float, 32) => {
       let frame_size = channels * 4;
@@ -712,7 +713,7 @@ mod tests {
 
   #[cfg(target_os = "windows")]
   #[test]
-  fn decode_wasapi_float32_frames_to_mono() {
+  fn decode_wasapi_float32_frames_uses_first_channel() {
     use super::decode_speaker_frames;
     use wasapi::SampleType;
 
@@ -730,7 +731,7 @@ mod tests {
 
   #[cfg(target_os = "windows")]
   #[test]
-  fn decode_wasapi_i16_frames_to_mono() {
+  fn decode_wasapi_i16_frames_uses_first_channel() {
     use super::decode_speaker_frames;
     use wasapi::SampleType;
 
