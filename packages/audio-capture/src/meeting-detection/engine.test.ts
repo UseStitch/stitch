@@ -74,4 +74,39 @@ describe('createMeetingDetectionEngine', () => {
     engine.ingest([observation], now + 1900);
     expect(events.filter((e) => e.type === 'detected')).toHaveLength(2);
   });
+
+  test('detects meeting even when snapshot interval is slower than activation threshold', () => {
+    const now = 3_000_000;
+    const events: MeetingDetectionEvent[] = [];
+
+    const engine = createMeetingDetectionEngine({
+      activationThresholdMs: 300,
+      cooldownMs: 1_000,
+    });
+
+    engine.subscribe((event) => events.push(event));
+
+    const observation = {
+      key: 'desktop:zoom',
+      platform: 'zoom' as const,
+      kind: 'desktop' as const,
+      displayName: 'Zoom',
+      processNames: ['zoom'] as string[],
+      windowTitle: 'Standup',
+    };
+
+    engine.ingest([observation], now);
+    engine.ingest([observation], now + 400);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: 'detected' });
+  });
+
+  test('throws when staleCandidateThresholdMs < activationThresholdMs', () => {
+    expect(() =>
+      createMeetingDetectionEngine({
+        activationThresholdMs: 500,
+        staleCandidateThresholdMs: 100,
+      }),
+    ).toThrow('staleCandidateThresholdMs');
+  });
 });

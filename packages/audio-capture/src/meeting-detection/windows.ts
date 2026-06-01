@@ -5,6 +5,11 @@ import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 import type { WatchRow } from './watcher.js';
 
+const TEAMS_CALL_HINT_RE = /meeting|call|microsoft teams|teams/;
+const SLACK_CALL_HINT_RE = /huddle|call/;
+const DISCORD_CALL_HINT_RE = /call|voice|stage/;
+const GOOGLE_MEET_TITLE_RE = /google meet|meet\.google\.com|^meet\s+-\s+/;
+
 function normalizeProcessName(input: string): string {
   return input
     .trim()
@@ -16,14 +21,14 @@ function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): bo
   const normalized = title.toLowerCase();
 
   if (platform === 'teams') {
-    return /meeting|call|microsoft teams|teams/.test(normalized);
+    return TEAMS_CALL_HINT_RE.test(normalized);
   }
 
   if (platform === 'slack') {
-    return /huddle|call/.test(normalized);
+    return SLACK_CALL_HINT_RE.test(normalized);
   }
 
-  return /call|voice|stage/.test(normalized);
+  return DISCORD_CALL_HINT_RE.test(normalized);
 }
 
 function classifyRow(row: WatchRow): MeetingObservation[] {
@@ -85,7 +90,7 @@ function classifyRow(row: WatchRow): MeetingObservation[] {
 
   if (
     (processName === 'chrome' || processName === 'msedge') &&
-    /google meet|meet\.google\.com|^meet\s+-\s+/.test(windowTitle.toLowerCase())
+    GOOGLE_MEET_TITLE_RE.test(windowTitle.toLowerCase())
   ) {
     observations.push({
       key: `browser:google-meet:${processName}`,
@@ -108,7 +113,7 @@ function classifyWindowsRows(rows: WatchRow[]): MeetingObservation[] {
 export function createWindowsMeetingDetector(
   options: MeetingDetectionOptions = {},
 ): MeetingDetector {
-  return createNativeWatcherMeetingDetector('windows', classifyWindowsRows, options);
+  return createNativeWatcherMeetingDetector(classifyWindowsRows, options);
 }
 
 export const internal = {

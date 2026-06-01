@@ -5,6 +5,8 @@ import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 import type { WatchRow } from './watcher.js';
 
+const GOOGLE_MEET_TITLE_RE = /google meet|meet\.google\.com/i;
+
 function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase();
 }
@@ -71,7 +73,7 @@ function toBrowserObservation(row: WatchRow): MeetingObservation | null {
 
   const processName = normalizeProcessName(rawProcessName);
   const windowTitle = row.windowTitle?.trim() || '';
-  if (!windowTitle || !/google meet|meet\.google\.com/i.test(windowTitle)) {
+  if (!windowTitle || !GOOGLE_MEET_TITLE_RE.test(windowTitle)) {
     return null;
   }
 
@@ -112,7 +114,7 @@ function classifyMacosRows(rows: WatchRow[]): MeetingObservation[] {
 }
 
 export function createMacosMeetingDetector(options: MeetingDetectionOptions = {}): MeetingDetector {
-  return createNativeWatcherMeetingDetector('macos', classifyMacosRows, options);
+  return createNativeWatcherMeetingDetector(classifyMacosRows, options);
 }
 
 export const internal = {

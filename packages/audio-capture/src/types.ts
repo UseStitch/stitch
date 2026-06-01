@@ -1,5 +1,16 @@
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 
+type StitchLogger = {
+  debug(extra: Record<string, unknown>, message: string): void;
+  debug(message: string): void;
+  info(extra: Record<string, unknown>, message: string): void;
+  info(message: string): void;
+  warn(extra: Record<string, unknown>, message: string): void;
+  warn(message: string): void;
+  error(extra: Record<string, unknown>, message: string): void;
+  error(message: string): void;
+};
+
 export type CapturePlatform = 'darwin' | 'win32';
 
 export type CaptureFormat = 'opus';
@@ -38,10 +49,9 @@ export type MeetingDetectionEvent = MeetingDetectedEvent | MeetingEndedEvent;
 export type MeetingDetectionListener = (event: MeetingDetectionEvent) => void;
 
 export type MeetingDetectionOptions = {
-  pollIntervalMs?: number;
   activationThresholdMs?: number;
   cooldownMs?: number;
-  commandTimeoutMs?: number;
+  logger?: StitchLogger;
 };
 
 export type MeetingDetector = {
@@ -218,6 +228,7 @@ export type NativeCaptureController = {
 export type StartCaptureInput = {
   outputPath: string;
   format?: CaptureFormat;
+  sampleRateHz?: number;
   channels?: number;
   micDeviceId?: string | null;
   speakerDeviceId?: string | null;
