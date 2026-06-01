@@ -240,5 +240,5 @@ pub fn run_macos_meeting_watcher() {
 
 #[cfg(not(target_os = "macos"))]
 pub fn run_macos_meeting_watcher() {
-  // No-op on non-macOS platforms; flag handler returns false on these targets.
+  // No-op on non-macOS platforms.
 }

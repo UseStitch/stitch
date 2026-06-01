@@ -27,6 +27,19 @@ use wasapi::{
   DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat, initialize_mta,
 };
 
+const SPEAKER_SOURCE_QUEUE_CAPACITY: usize = 128;
+const SPEAKER_CAPTURE_RECV_TIMEOUT: Duration = Duration::from_millis(100);
+#[cfg(target_os = "macos")]
+const SPEAKER_CHUNK_SAMPLES: usize = 960;
+#[cfg(target_os = "macos")]
+const SCK_CAPTURE_DIMENSION: usize = 2;
+#[cfg(target_os = "macos")]
+const SCK_SOURCE_POLL_INTERVAL: Duration = Duration::from_millis(10);
+#[cfg(target_os = "windows")]
+const WASAPI_EVENT_WAIT_MS: u32 = 250;
+#[cfg(target_os = "windows")]
+const WASAPI_STOP_SETTLE_DELAY: Duration = Duration::from_millis(50);
+
 #[cfg(target_os = "macos")]
 define_obj_type!(
   SckAudioOutput + sc::StreamOutputImpl,
@@ -98,7 +111,7 @@ impl sc::StreamOutputImpl for SckAudioOutput {
     };
 
     let tx = &self.inner().tx;
-    for chunk in mono.chunks(960) {
+    for chunk in mono.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = tx.try_send(chunk.to_vec());
     }
   }
@@ -121,7 +134,7 @@ fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
     return tap_send_downmixed(ctx, samples);
   };
   if let Ok(chunk) = ctx.resampler.process(mono) {
-    for c in chunk.chunks(960) {
+    for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = ctx.tx.try_send(c.to_vec());
     }
   }
@@ -140,7 +153,7 @@ fn tap_send_downmixed(ctx: &mut TapCtx, samples: &[f32]) {
     mono.push(acc / ctx.channels as f32);
   }
   if let Ok(chunk) = ctx.resampler.process(&mono) {
-    for c in chunk.chunks(960) {
+    for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = ctx.tx.try_send(c.to_vec());
     }
   }
@@ -271,13 +284,13 @@ fn spawn_macos_speaker_source(
   ),
   NativeError,
 > {
-  let (tx, rx) = mpsc::sync_channel(128);
+  let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
   let worker = builder
     .spawn(move || {
-      let (tap_tx, tap_rx) = mpsc::sync_channel::<Vec<f32>>(128);
-      let (sck_tx, sck_rx) = mpsc::sync_channel::<Vec<f32>>(128);
+      let (tap_tx, tap_rx) = mpsc::sync_channel::<Vec<f32>>(SPEAKER_SOURCE_QUEUE_CAPACITY);
+      let (sck_tx, sck_rx) = mpsc::sync_channel::<Vec<f32>>(SPEAKER_SOURCE_QUEUE_CAPACITY);
 
       let _tap_ctx = start_process_tap(tap_tx, target_sample_rate_hz);
 
@@ -297,8 +310,8 @@ fn spawn_macos_speaker_source(
           cfg.set_excludes_current_process_audio(true);
           cfg.set_sample_rate(target_sample_rate_hz as i64);
           cfg.set_channel_count(1);
-          cfg.set_width(2);
-          cfg.set_height(2);
+          cfg.set_width(SCK_CAPTURE_DIMENSION);
+          cfg.set_height(SCK_CAPTURE_DIMENSION);
           cfg.set_minimum_frame_interval(cm::Time::new(1, 1));
 
           let windows = ns::Array::new();
@@ -322,7 +335,7 @@ fn spawn_macos_speaker_source(
         const DECISION_GRACE_TICKS: u32 = 200;
 
         while !stop_flag.load(Ordering::Relaxed) {
-          tokio::time::sleep(Duration::from_millis(10)).await;
+          tokio::time::sleep(SCK_SOURCE_POLL_INTERVAL).await;
 
           let mut tap_has_signal = false;
           while let Ok(chunk) = tap_rx.try_recv() {
@@ -330,7 +343,7 @@ fn spawn_macos_speaker_source(
               tap_has_signal = chunk.iter().any(|&s| s.abs() > 1e-6);
             }
             if use_tap.load(Ordering::Relaxed) {
-              for c in chunk.chunks(960) {
+              for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
                 let _ = tx.try_send(c.to_vec());
               }
             }
@@ -459,7 +472,7 @@ fn spawn_windows_speaker_source(
   ),
   NativeError,
 > {
-  let (tx, rx) = mpsc::sync_channel(128);
+  let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
   let worker = builder
@@ -538,8 +551,8 @@ fn spawn_windows_speaker_source(
       let mut queue = VecDeque::new();
       let mut dropped_chunks = 0u64;
 
-      while !stop_flag.load(Ordering::Acquire) {
-        if event.wait_for_event(250).is_err() {
+      while !stop_flag.load(Ordering::Relaxed) {
+        if event.wait_for_event(WASAPI_EVENT_WAIT_MS).is_err() {
           continue;
         }
 
@@ -575,7 +588,7 @@ fn spawn_windows_speaker_source(
         }
       }
 
-      thread::sleep(Duration::from_millis(50));
+      thread::sleep(WASAPI_STOP_SETTLE_DELAY);
       let _ = audio_client.stop_stream();
 
       let mut warnings = Vec::new();
@@ -642,7 +655,7 @@ pub(crate) fn spawn_speaker_capture(
       let mut writer = OggOpusWriter::create(&output_path)?;
 
       while !stop_flag.load(Ordering::Relaxed) {
-        if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
+        if let Ok(samples) = rx.recv_timeout(SPEAKER_CAPTURE_RECV_TIMEOUT) {
           writer.write_samples(&samples)?;
         }
       }

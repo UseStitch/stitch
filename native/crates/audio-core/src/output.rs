@@ -9,7 +9,7 @@ use crate::protocol::{AudioChunkEncoding, AudioChunkSource, Event};
 pub fn now_ms() -> u64 {
   SystemTime::now()
     .duration_since(UNIX_EPOCH)
-    .unwrap_or_default()
+    .expect("system clock must be after Unix epoch")
     .as_millis() as u64
 }
 

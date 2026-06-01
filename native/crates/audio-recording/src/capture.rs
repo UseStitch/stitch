@@ -19,7 +19,10 @@ use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 
 const INPUT_QUEUE_CAPACITY: usize = 128;
 const UNPAIRED_FLUSH_TICKS: u32 = 5;
-const DUAL_MIC_GAIN: f32 = 1.0;
+const PROGRESS_INTERVAL: Duration = Duration::from_millis(1000);
+const MIC_CAPTURE_RECV_TIMEOUT: Duration = Duration::from_millis(100);
+const MIC_SOURCE_POLL_INTERVAL: Duration = Duration::from_millis(50);
+const DUAL_MIXER_RECV_TIMEOUT: Duration = Duration::from_millis(20);
 const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
 const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
 
@@ -342,7 +345,7 @@ pub(crate) fn start_progress_emitter(
 ) -> thread::JoinHandle<()> {
   thread::spawn(move || {
     while !stop.load(Ordering::Relaxed) {
-      thread::sleep(Duration::from_millis(1000));
+      thread::sleep(PROGRESS_INTERVAL);
       if stop.load(Ordering::Relaxed) {
         break;
       }
@@ -382,7 +385,7 @@ fn spawn_mic_capture(
       warnings.extend(open_warnings);
 
       while !stop_flag.load(Ordering::Relaxed) {
-        if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
+        if let Ok(samples) = rx.recv_timeout(MIC_CAPTURE_RECV_TIMEOUT) {
           write_samples(&mut writer, &samples)?;
           mic_stream.reset_reconnect_attempts();
           continue;
@@ -435,7 +438,7 @@ fn spawn_mic_source(
       warnings.extend(open_warnings);
 
       while !stop_flag.load(Ordering::Relaxed) {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(MIC_SOURCE_POLL_INTERVAL);
 
         let had_stream_error = mic_stream.has_stream_error();
         if mic_stream.reconnect_if_needed(&mut warnings)? {
@@ -522,7 +525,7 @@ fn mix_dual_samples(
   for i in 0..mix_len {
     let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
     let speaker_val = speaker_buf.get(i).copied().unwrap_or(0.0);
-    out.push((mic_val * DUAL_MIC_GAIN + speaker_val * speaker_gain).clamp(-1.0, 1.0));
+    out.push((mic_val + speaker_val * speaker_gain).clamp(-1.0, 1.0));
   }
   out
 }
@@ -566,7 +569,7 @@ fn write_dual_realtime_output(
 
       loop {
         use std::sync::mpsc::RecvTimeoutError;
-        match mic_rx.recv_timeout(Duration::from_millis(20)) {
+        match mic_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
           Ok(chunk) => append_audio_chunk(
             &mut mic_buf,
             AudioChunkSource::Mic,

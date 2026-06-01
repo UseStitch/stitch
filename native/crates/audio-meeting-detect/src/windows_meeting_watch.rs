@@ -18,6 +18,8 @@ pub fn run_windows_meeting_watcher() {
   ];
 
   const RECONCILE_INTERVAL: Duration = Duration::from_secs(10);
+  const SESSION_POLL_INTERVAL: Duration = Duration::from_millis(500);
+  const MAIN_LOOP_INTERVAL: Duration = Duration::from_millis(100);
 
   fn normalize_process_name(input: &str) -> String {
     input.trim().to_lowercase().replace(".exe", "")
@@ -261,7 +263,7 @@ pub fn run_windows_meeting_watcher() {
     // session state changes quickly. This thread runs at ~500ms and marks
     // needs_scan on change, complementing the 10s reconcile in the main loop.
     loop {
-      std::thread::sleep(Duration::from_millis(500));
+      std::thread::sleep(SESSION_POLL_INTERVAL);
 
       let Ok(current_pids) = collect_active_session_pids() else {
         continue;
@@ -285,7 +287,7 @@ pub fn run_windows_meeting_watcher() {
   // reconciliation as a safety net for missed notifications.
   let mut last_reconcile = Instant::now();
   loop {
-    std::thread::sleep(Duration::from_millis(100));
+    std::thread::sleep(MAIN_LOOP_INTERVAL);
 
     let dirty = {
       let mut guard = needs_scan.lock().unwrap_or_else(|e| e.into_inner());
@@ -308,5 +310,5 @@ pub fn run_windows_meeting_watcher() {
 
 #[cfg(not(target_os = "windows"))]
 pub fn run_windows_meeting_watcher() {
-  // No-op on non-Windows platforms; flag handler returns false on these targets.
+  // No-op on non-Windows platforms.
 }
