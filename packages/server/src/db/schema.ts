@@ -34,14 +34,11 @@ import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 /** @deprecated Type field is no longer used but kept for DB compatibility */
 type AgendaItemType = 'todo' | 'reminder' | 'checkup';
 import type {
-  RecordingActionItem,
   RecordingAnalysisTopicSection,
   RecordingAnalysisStatus,
-  RecordingBlocker,
   RecordingPlatform,
   RecordingStatus,
   RecordingTranscriptEntry,
-  RecordingAnalysisTopic,
 } from '@stitch/shared/recordings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
@@ -500,14 +497,11 @@ export const recordingAnalyses = sqliteTable(
       .references(() => recordings.id, { onDelete: 'cascade' }),
     status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
     transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
-    topics: blob('topics', { mode: 'json' }).$type<RecordingAnalysisTopic[]>(),
     topicSections: blob('topic_sections', { mode: 'json' }).$type<
       RecordingAnalysisTopicSection[]
     >(),
     summary: text('summary').notNull().default(''),
     title: text('title').notNull().default(''),
-    actionItems: blob('action_items', { mode: 'json' }).$type<RecordingActionItem[]>(),
-    blockers: blob('blockers', { mode: 'json' }).$type<RecordingBlocker[]>(),
     error: text('error'),
     transcriptionProviderId: text('transcription_provider_id'),
     transcriptionModelId: text('transcription_model_id'),

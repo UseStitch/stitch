@@ -15,7 +15,6 @@ You are analyzing a meeting transcript. Perform the following steps in order:
 
 - Read through the entire transcript and identify all distinct topics discussed.
 - A topic is a coherent subject of conversation (e.g., "Q3 Budget Review", "New Hire Onboarding", "Product Launch Timeline").
-- For each topic, note the transcript turn indices where it is discussed.
 - If a topic is revisited later in the conversation, create a single topic entry that covers all ranges where it appears.
 - Each topic name should be specific and descriptive (e.g., "Q3 OKR Planning" not "Topic 1").
 
@@ -32,7 +31,7 @@ You are analyzing a meeting transcript. Perform the following steps in order:
 - For each topic identified in Step 1, you will extract granular details into the `topicSections` output array.
 - This includes:
   - Decisions (include rationale when stated)
-  - Action Items (task, assignee, due date, status)
+  - Action Items (task, due date)
   - Risks & Blockers (with enough detail to understand impact)
   - Open Questions (unresolved questions, noting who raised it if known)
   - Next Steps (agreed-upon next steps)
@@ -47,19 +46,15 @@ You are analyzing a meeting transcript. Perform the following steps in order:
 
 # Output Contract
 
-- Output must conform to the schema fields exactly: `title`, `summary`, `topics`, `topicSections`, `actionItems`, `blockers`.
-- `topics` must list every identified topic with `{ name, startTurn, endTurn }`.
-- `topicSections` must contain one object per topic with matching `name`, `startTurn`, and `endTurn`.
+- Output must conform to the schema fields exactly: `title`, `summary`, `topicSections`.
+- `topicSections` must contain one object per identified topic with `name`.
 - Each `topicSections[]` object must include:
   - `analysis`: 1-2 sentence plain text analysis for the topic
   - `decisions`: string[]
-  - `actionItems`: `{ task, assignee, dueDate, status, topicName }[]`
+  - `actionItems`: `{ task, dueDate, topicName }[]`
   - `blockers`: `{ description, assignee, impact, topicName }[]`
   - `openQuestions`: string[]
   - `nextSteps`: string[]
 - `topicName` in nested action items/blockers must equal the parent topic name.
-- `actionItems` must be a flattened list containing all action items from all topics.
-- `blockers` must be a flattened list containing all blockers from all topics.
-- Allowed action item statuses: `todo`, `in_progress`, `done`, `unknown`.
-- Use `null` for unknown assignee, dueDate, or impact values.
-- Never fabricate decisions, assignees, due dates, blockers, or numbers.
+- Use `null` for unknown dueDate, assignee, or impact values.
+- Never fabricate decisions, due dates, blocker assignees, blockers, or numbers.

@@ -69,6 +69,7 @@ export async function startLiveTranscriptionSession(
   let micUsage: LiveTranscriptionUsage = {};
   let speakerUsage: LiveTranscriptionUsage = {};
   let currentCostUsd = 0;
+  let persistTranscriptPromise: Promise<void> = Promise.resolve();
   const startedAt = Date.now();
 
   function computeTotalCost(): number {
@@ -103,6 +104,28 @@ export async function startLiveTranscriptionSession(
       });
   }
 
+  function persistTranscriptIncremental(): void {
+    const transcriptSnapshot = [...transcript];
+
+    persistTranscriptPromise = persistTranscriptPromise
+      .then(async () => {
+        const db = getDb();
+        await db
+          .update(recordingAnalyses)
+          .set({ transcript: transcriptSnapshot, updatedAt: Date.now() })
+          .where(eq(recordingAnalyses.id, config.analysisId as never));
+      })
+      .catch((dbErr) => {
+        log.warn(
+          {
+            error: dbErr instanceof Error ? dbErr.message : 'unknown',
+            recordingId: config.recordingId,
+          },
+          'failed to persist incremental transcript',
+        );
+      });
+  }
+
   function handleUsage(source: 'mic' | 'speaker', usage: LiveTranscriptionUsage): void {
     if (stopped) return;
 
@@ -121,13 +144,13 @@ export async function startLiveTranscriptionSession(
     const speaker = source === 'mic' ? (config.userName ?? 'You') : 'Them';
     const entry: RecordingTranscriptEntry = { speaker, content: text };
     transcript.push(entry);
+    persistTranscriptIncremental();
 
     Events.emit('recording-transcript-entry', {
       recordingId: config.recordingId,
       source,
       speaker,
       content: text,
-      isFinal: true,
     });
   }
 
@@ -182,6 +205,7 @@ export async function startLiveTranscriptionSession(
       await Promise.all([micConnection.close(), speakerConnection.close()]);
       stopped = true;
       stopping = false;
+      await persistTranscriptPromise;
 
       // Final cost computation
       currentCostUsd = computeTotalCost();

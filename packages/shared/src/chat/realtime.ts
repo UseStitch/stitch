@@ -182,7 +182,6 @@ export type RecordingTranscriptEntryPayload = {
   source: 'mic' | 'speaker';
   speaker: string;
   content: string;
-  isFinal: boolean;
 };
 
 export const SSE_EVENT_NAMES = [

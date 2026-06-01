@@ -176,6 +176,13 @@
       "when": 1780074152703,
       "tag": "0024_real_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1780349118310,
+      "tag": "0025_lean_gorilla_man",
+      "breakpoints": true
     }
   ]
 }

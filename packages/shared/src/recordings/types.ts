@@ -56,17 +56,9 @@ export type RecordingTranscriptEntry = {
   content: string;
 };
 
-export type RecordingAnalysisTopic = {
-  name: string;
-  startTurn: number;
-  endTurn: number;
-};
-
 export type RecordingActionItem = {
   task: string;
-  assignee: string | null;
   dueDate: string | null;
-  status: 'todo' | 'in_progress' | 'done' | 'unknown';
   topicName: string | null;
 };
 
@@ -79,8 +71,6 @@ export type RecordingBlocker = {
 
 export type RecordingAnalysisTopicSection = {
   name: string;
-  startTurn: number;
-  endTurn: number;
   analysis: string;
   decisions: string[];
   actionItems: RecordingActionItem[];
@@ -93,12 +83,9 @@ export type RecordingAnalysis = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
   transcript: RecordingTranscriptEntry[];
-  topics: RecordingAnalysisTopic[];
   topicSections: RecordingAnalysisTopicSection[];
   summary: string;
   title: string;
-  actionItems: RecordingActionItem[];
-  blockers: RecordingBlocker[];
   error: string | null;
   transcriptionProviderId: string | null;
   transcriptionModelId: string | null;

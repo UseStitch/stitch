@@ -99,16 +99,16 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         }}
       />
 
-      {analysis?.error && analysis.error !== 'Analysis cancelled by user' ? (
+      {analysis?.error ? (
         <div className="shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {analysis.error}
         </div>
       ) : null}
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col lg:col-span-8 xl:col-span-8 2xl:col-span-9">
+        <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-2 xl:col-span-8 2xl:col-span-9">
           <ScrollArea className="h-0 flex-1 rounded-xl">
-            <div className="space-y-8 pr-2 pb-12">
+            <div className="space-y-8 pr-6 pb-12">
               <SummarySection analysis={analysis} isRunning={isRunning} />
               <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
             </div>

@@ -305,12 +305,9 @@ export async function startRecording(
         recordingId: id,
         status: 'pending',
         transcript: [],
-        topics: [],
         topicSections: [],
         summary: '',
         title: '',
-        actionItems: [],
-        blockers: [],
         error: null,
         transcriptionProviderId: transcriptionConfig.providerId,
         transcriptionModelId: transcriptionConfig.modelId,
@@ -422,19 +419,16 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
 
-    // Update recording_analyses with final transcript and cost
-    if (transcript.length > 0) {
-      await db
-        .update(recordingAnalyses)
-        .set({
-          transcript,
-          costUsd: sessionResult?.costUsd ?? 0,
-          endedAt: Date.now(),
-          durationMs: durationMs ?? undefined,
-          updatedAt: Date.now(),
-        })
-        .where(eq(recordingAnalyses.recordingId, current.id));
-    }
+    await db
+      .update(recordingAnalyses)
+      .set({
+        transcript,
+        costUsd: sessionResult?.costUsd ?? 0,
+        endedAt: Date.now(),
+        durationMs: durationMs ?? undefined,
+        updatedAt: Date.now(),
+      })
+      .where(eq(recordingAnalyses.recordingId, current.id));
 
     log.info(
       {

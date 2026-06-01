@@ -29,6 +29,7 @@ import { calculateMessageCostUsd } from '@/utils/cost.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'recordings-analysis' });
+const NOT_SPECIFIED_TEXT = 'not specified';
 
 const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   resolveRuntimeAssetPath(
@@ -38,17 +39,9 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   'utf8',
 ).trim();
 
-const topicSchema = z.object({
-  name: z.string().min(1),
-  startTurn: z.number().int().min(0),
-  endTurn: z.number().int().min(0),
-});
-
 const actionItemSchema = z.object({
   task: z.string().min(1),
-  assignee: z.string().min(1).nullable(),
   dueDate: z.string().min(1).nullable(),
-  status: z.enum(['todo', 'in_progress', 'done', 'unknown']),
   topicName: z.string().min(1).nullable(),
 });
 
@@ -61,8 +54,6 @@ const blockerSchema = z.object({
 
 const topicSectionSchema = z.object({
   name: z.string().min(1),
-  startTurn: z.number().int().min(0),
-  endTurn: z.number().int().min(0),
   analysis: z.string().min(1),
   decisions: z.array(z.string().min(1)).default([]),
   actionItems: z.array(actionItemSchema).default([]),
@@ -74,10 +65,7 @@ const topicSectionSchema = z.object({
 const analysisOutputSchema = z.object({
   title: z.string().max(60),
   summary: z.string(),
-  topics: z.array(topicSchema),
   topicSections: z.array(topicSectionSchema).default([]),
-  actionItems: z.array(actionItemSchema).default([]),
-  blockers: z.array(blockerSchema).default([]),
 });
 
 const activeRuns = new Map<PrefixedString<'recan'>, AbortController>();
@@ -97,7 +85,7 @@ function normalizeNullableText(value: string | null): string | null {
   if (!value) return null;
   const normalized = value.trim();
   if (!normalized) return null;
-  if (normalized.toLowerCase() === 'not specified') return null;
+  if (normalized.toLowerCase() === NOT_SPECIFIED_TEXT) return null;
   return normalized;
 }
 
@@ -106,13 +94,10 @@ function normalizeActionItem(
   topicName: string | null,
 ): RecordingActionItem {
   const task = item.task.trim();
-  const status = item.status;
 
   return {
     task,
-    assignee: normalizeNullableText(item.assignee),
     dueDate: normalizeNullableText(item.dueDate),
-    status,
     topicName: normalizeNullableText(item.topicName) ?? normalizeNullableText(topicName),
   };
 }
@@ -129,25 +114,11 @@ function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): 
 function normalizeTopicSections(
   sections: RecordingAnalysisTopicSection[],
 ): RecordingAnalysisTopicSection[] {
-  return sections
-    .map((section) => {
-      const normalizedTopicName = section.name.trim();
-      return {
-        ...section,
-        name: normalizedTopicName,
-        analysis: section.analysis.trim(),
-        decisions: section.decisions.map((decision) => decision.trim()).filter(Boolean),
-        actionItems: section.actionItems
-          .map((item) => normalizeActionItem(item, normalizedTopicName))
-          .filter((item) => item.task.length > 0),
-        blockers: section.blockers
-          .map((blocker) => normalizeBlocker(blocker, normalizedTopicName))
-          .filter((blocker) => blocker.description.length > 0),
-        openQuestions: section.openQuestions.map((question) => question.trim()).filter(Boolean),
-        nextSteps: section.nextSteps.map((step) => step.trim()).filter(Boolean),
-      };
-    })
-    .filter((section) => section.name.length > 0);
+  return sections.map((section) => ({
+    ...section,
+    actionItems: section.actionItems.map((item) => normalizeActionItem(item, section.name)),
+    blockers: section.blockers.map((blocker) => normalizeBlocker(blocker, section.name)),
+  }));
 }
 
 function toResponse(
@@ -158,12 +129,9 @@ function toResponse(
     recordingId: row.recordingId ?? fallbackRecordingId,
     status: row.status,
     transcript: row.transcript ?? [],
-    topics: row.topics ?? [],
     topicSections: row.topicSections ?? [],
     summary: row.summary,
     title: row.title,
-    actionItems: row.actionItems ?? [],
-    blockers: row.blockers ?? [],
     error: row.error,
     transcriptionProviderId: row.transcriptionProviderId,
     transcriptionModelId: row.transcriptionModelId,
@@ -178,11 +146,11 @@ function toResponse(
   };
 }
 
-async function broadcastRecordingAnalysisUpdated(input: {
+function broadcastRecordingAnalysisUpdated(input: {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysis['status'];
   title: string | null;
-}): Promise<void> {
+}): void {
   Events.emit('recording-analysis-updated', {
     recordingId: input.recordingId,
     status: input.status,
@@ -260,12 +228,9 @@ export async function startRecordingAnalysis(
       recordingId,
       status: 'pending',
       transcript,
-      topics: [],
       topicSections: [],
       summary: '',
       title: '',
-      actionItems: [],
-      blockers: [],
       error: null,
       transcriptionProviderId: existing?.transcriptionProviderId ?? null,
       transcriptionModelId: existing?.transcriptionModelId ?? null,
@@ -285,12 +250,9 @@ export async function startRecordingAnalysis(
         id,
         status: 'pending',
         transcript,
-        topics: [],
         topicSections: [],
         summary: '',
         title: '',
-        actionItems: [],
-        blockers: [],
         error: null,
         transcriptionProviderId: existing?.transcriptionProviderId ?? null,
         transcriptionModelId: existing?.transcriptionModelId ?? null,
@@ -304,7 +266,7 @@ export async function startRecordingAnalysis(
       },
     });
 
-  await broadcastRecordingAnalysisUpdated({
+  broadcastRecordingAnalysisUpdated({
     recordingId,
     status: 'pending',
     title: null,
@@ -360,7 +322,7 @@ export async function cancelRecordingAnalysis(
     .update(recordingAnalyses)
     .set({
       status: 'failed',
-      error: 'Analysis cancelled by user',
+      error: null,
       endedAt,
       durationMs: existing.startedAt ? endedAt - existing.startedAt : null,
       updatedAt: endedAt,
@@ -368,7 +330,7 @@ export async function cancelRecordingAnalysis(
     .where(eq(recordingAnalyses.id, existing.id))
     .returning();
 
-  await broadcastRecordingAnalysisUpdated({
+  broadcastRecordingAnalysisUpdated({
     recordingId,
     status: 'failed',
     title: null,
@@ -413,7 +375,7 @@ async function runRecordingAnalysis(
         ),
       );
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'processing',
       title: null,
@@ -467,14 +429,6 @@ async function runRecordingAnalysis(
 
     const endedAt = Date.now();
     const topicSections = normalizeTopicSections(analysisOutput.topicSections);
-    const actionItems = analysisOutput.actionItems
-      .map((item) => normalizeActionItem(item, null))
-      .filter((item) => item.task.length > 0);
-    const blockers = analysisOutput.blockers
-      .map((blocker) => normalizeBlocker(blocker, null))
-      .filter((blocker) => blocker.description.length > 0);
-    const fallbackActionItems = topicSections.flatMap((section) => section.actionItems);
-    const fallbackBlockers = topicSections.flatMap((section) => section.blockers);
 
     if (activeRuns.get(analysisId) !== abortController) {
       return;
@@ -492,12 +446,9 @@ async function runRecordingAnalysis(
       .set({
         status: 'completed',
         transcript: input.transcript,
-        topics: analysisOutput.topics,
         topicSections,
         title: analysisOutput.title,
         summary: analysisOutput.summary,
-        actionItems: actionItems.length > 0 ? actionItems : fallbackActionItems,
-        blockers: blockers.length > 0 ? blockers : fallbackBlockers,
         error: null,
         usage: analysisUsage,
         costUsd: transcriptionCost + analysisCost,
@@ -507,7 +458,7 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'completed',
       title: analysisOutput.title,
@@ -533,7 +484,7 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'failed',
       title: null,

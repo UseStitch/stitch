@@ -7,6 +7,12 @@ interface TopicListProps {
   isRunning: boolean;
 }
 
+function occurrenceKey(value: string, counts: Map<string, number>): string {
+  const count = counts.get(value) ?? 0;
+  counts.set(value, count + 1);
+  return count === 0 ? value : `${value}-${count}`;
+}
+
 export function TopicList({ sections, isRunning }: TopicListProps) {
   if (!sections?.length) {
     return (
@@ -18,14 +24,16 @@ export function TopicList({ sections, isRunning }: TopicListProps) {
     );
   }
 
+  const keyCounts = new Map<string, number>();
+
   return (
     <div className="space-y-6">
       <h2 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">
         Topic Analysis
       </h2>
       <div className="flex flex-col gap-6">
-        {sections.map((section, index) => (
-          <TopicCard key={`${section.name}-${index}`} section={section} />
+        {sections.map((section) => (
+          <TopicCard key={occurrenceKey(section.name, keyCounts)} section={section} />
         ))}
       </div>
     </div>

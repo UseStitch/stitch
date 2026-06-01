@@ -1,12 +1,5 @@
 import type { Recording, RecordingAnalysis } from '@stitch/shared/recordings/types';
 
-const ACTION_STATUS_LABEL: Record<string, string> = {
-  todo: 'To do',
-  in_progress: 'In progress',
-  done: 'Done',
-  unknown: 'Unknown',
-};
-
 function pushList(lines: string[], title: string, items: string[]): void {
   if (!items.length) return;
   lines.push(`**${title}**`);
@@ -40,8 +33,6 @@ export function buildAnalysisMarkdown(
     analysis.topicSections.forEach((section, index) => {
       lines.push(`### ${index + 1}. ${section.name}`);
       lines.push('');
-      lines.push(`**Turns:** ${section.startTurn + 1}-${section.endTurn + 1}`);
-      lines.push('');
 
       if (section.analysis.trim()) {
         lines.push(section.analysis.trim());
@@ -52,13 +43,9 @@ export function buildAnalysisMarkdown(
 
       if (section.actionItems.length) {
         const actionItems = section.actionItems.map((item) => {
-          const metadata = [
-            `assignee: ${item.assignee ?? 'Unassigned'}`,
-            item.dueDate ? `due: ${item.dueDate}` : null,
-            `status: ${ACTION_STATUS_LABEL[item.status] ?? item.status}`,
-          ].filter(Boolean);
+          const metadata = [item.dueDate ? `due: ${item.dueDate}` : null].filter(Boolean);
 
-          return `${item.task} (${metadata.join('; ')})`;
+          return metadata.length > 0 ? `${item.task} (${metadata.join('; ')})` : item.task;
         });
 
         pushList(lines, 'Action Items', actionItems);
@@ -79,22 +66,6 @@ export function buildAnalysisMarkdown(
       pushList(lines, 'Open Questions', section.openQuestions);
       pushList(lines, 'Next Steps', section.nextSteps);
     });
-  }
-
-  if (analysis.blockers.length) {
-    const blockers = analysis.blockers.map((blocker) => {
-      const metadata = [
-        `assignee: ${blocker.assignee ?? 'Unassigned'}`,
-        `impact: ${blocker.impact ?? 'Unknown'}`,
-      ];
-
-      return `${blocker.description} (${metadata.join('; ')})`;
-    });
-
-    lines.push('## Overall Risks & Blockers');
-    lines.push('');
-    lines.push(...blockers.map((blocker) => `- ${blocker}`));
-    lines.push('');
   }
 
   return lines
