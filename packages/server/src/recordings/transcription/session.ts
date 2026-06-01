@@ -19,6 +19,7 @@ const log = Log.create({ service: 'live-transcription' });
 type LiveTranscriptionSessionConfig = {
   recordingId: string;
   analysisId: string;
+  userName: string | null;
   providerId: string;
   modelId: string;
   apiKey: string;
@@ -117,13 +118,14 @@ export async function startLiveTranscriptionSession(
   function handleTranscript(source: 'mic' | 'speaker', text: string): void {
     if (stopped) return;
 
-    const speaker = source === 'mic' ? 'You' : 'Them';
+    const speaker = source === 'mic' ? (config.userName ?? 'You') : 'Them';
     const entry: RecordingTranscriptEntry = { speaker, content: text };
     transcript.push(entry);
 
     Events.emit('recording-transcript-entry', {
       recordingId: config.recordingId,
       source,
+      speaker,
       content: text,
       isFinal: true,
     });

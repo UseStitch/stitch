@@ -7,6 +7,7 @@ import { useSSE } from '@/hooks/sse/sse-context';
 type LiveTranscriptEntry = {
   id: number;
   source: 'mic' | 'speaker';
+  speaker: string;
   content: string;
   timestamp: number;
 };
@@ -30,6 +31,7 @@ export function useLiveTranscript(activeRecordingId: string | null) {
       const entry: LiveTranscriptEntry = {
         id: counterRef.current,
         source: data.source,
+        speaker: data.speaker,
         content: data.content,
         timestamp: Date.now(),
       };

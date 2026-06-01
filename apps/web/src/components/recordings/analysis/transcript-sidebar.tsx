@@ -56,7 +56,7 @@ export function TranscriptSidebar({
                 >
                   <div className="mb-1.5 flex items-center justify-between">
                     <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">
-                      {entry.source === 'mic' ? 'You' : 'Them'}
+                      {entry.speaker}
                     </p>
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/90">{entry.content}</p>

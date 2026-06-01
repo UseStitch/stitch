@@ -49,6 +49,16 @@ type RecordingCaptureSettings = {
   speakerGain: number;
 };
 
+async function readUserName(): Promise<string | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({ value: userSettings.value })
+    .from(userSettings)
+    .where(eq(userSettings.key, 'profile.name'));
+
+  return row?.value.trim() || null;
+}
+
 async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
   const db = getDb();
   const rows = await db
@@ -233,8 +243,11 @@ export async function startRecording(
   const filePath = path.join(outputDir, 'raw_audio.ogg');
 
   try {
-    const settings = await readCaptureSettings();
-    const transcriptionConfig = await resolveTranscriptionConfig();
+    const [settings, transcriptionConfig, userName] = await Promise.all([
+      readCaptureSettings(),
+      resolveTranscriptionConfig(),
+      readUserName(),
+    ]);
 
     if (!transcriptionConfig) {
       return err(
@@ -315,6 +328,7 @@ export async function startRecording(
       transcriptionSession = await startLiveTranscriptionSession({
         recordingId: id,
         analysisId,
+        userName,
         providerId: transcriptionConfig.providerId,
         modelId: transcriptionConfig.modelId,
         apiKey: transcriptionConfig.apiKey,

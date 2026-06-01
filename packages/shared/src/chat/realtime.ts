@@ -180,6 +180,7 @@ export type RecordingAudioChunkPayload = {
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
   source: 'mic' | 'speaker';
+  speaker: string;
   content: string;
   isFinal: boolean;
 };
