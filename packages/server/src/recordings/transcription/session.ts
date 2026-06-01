@@ -59,6 +59,7 @@ export async function startLiveTranscriptionSession(
 
   const transcript: RecordingTranscriptEntry[] = [];
   let stopped = false;
+  let stopping = false;
   let micChunkCount = 0;
   let speakerChunkCount = 0;
 
@@ -146,7 +147,7 @@ export async function startLiveTranscriptionSession(
 
   // Send each chunk immediately (no buffering).
   const unsubscribe = Events.on('recording-audio-chunk', (payload) => {
-    if (stopped || payload.recordingId !== config.recordingId) return;
+    if (stopped || stopping || payload.recordingId !== config.recordingId) return;
 
     if (payload.source === 'mic') {
       micChunkCount += 1;
@@ -164,19 +165,21 @@ export async function startLiveTranscriptionSession(
 
   return {
     async stop(): Promise<LiveTranscriptionSessionResult> {
-      if (stopped) {
+      if (stopped || stopping) {
         return {
           transcript,
           costUsd: currentCostUsd,
           usage: { mic: micUsage, speaker: speakerUsage },
         };
       }
-      stopped = true;
+      stopping = true;
 
       unsubscribe();
 
       // Wait for connections to close so the provider can flush final transcripts
       await Promise.all([micConnection.close(), speakerConnection.close()]);
+      stopped = true;
+      stopping = false;
 
       // Final cost computation
       currentCostUsd = computeTotalCost();
