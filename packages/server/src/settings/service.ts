@@ -56,6 +56,16 @@ function isEmbeddingKey(key: string): boolean {
   return key === 'memory.embedding.providerId' || key === 'memory.embedding.modelId';
 }
 
+async function runSettingSideEffects(key: string): Promise<void> {
+  if (isTimezoneKey(key)) {
+    await syncAllAutomationSchedules();
+  }
+
+  if (isEmbeddingKey(key)) {
+    resetEmbedder();
+  }
+}
+
 export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
   const schema = SETTINGS_SCHEMAS[key as SettingsKey];
   if (!schema) {
@@ -70,7 +80,7 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
 
   if (key === 'memory.enabled' && value === 'true') {
     const prereqResult = await checkMemoryEnablePrerequisites();
-    if ('error' in prereqResult) return prereqResult;
+    if (isServiceError(prereqResult)) return prereqResult;
   }
 
   const db = getDb();
@@ -82,13 +92,7 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
       set: { value, updatedAt: Date.now() },
     });
 
-  if (isTimezoneKey(key)) {
-    await syncAllAutomationSchedules();
-  }
-
-  if (isEmbeddingKey(key)) {
-    resetEmbedder();
-  }
+  await runSettingSideEffects(key);
 
   return ok(null);
 }
@@ -107,13 +111,7 @@ export async function deleteSetting(key: string): Promise<ServiceResult<null>> {
     return err('Setting not found', 404);
   }
 
-  if (isTimezoneKey(key)) {
-    await syncAllAutomationSchedules();
-  }
-
-  if (isEmbeddingKey(key)) {
-    resetEmbedder();
-  }
+  await runSettingSideEffects(key);
 
   return ok(null);
 }

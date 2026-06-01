@@ -2,7 +2,7 @@ import type {
   AbortSessionOptions,
   InteractionWaitOptions,
   PendingInteractionSnapshot,
-} from '@/interactions/types.js';
+} from '@/lib/interactions/types.js';
 
 type PendingInteraction = PendingInteractionSnapshot & {
   resolve: (decision: unknown) => void;

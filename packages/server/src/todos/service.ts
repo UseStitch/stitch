@@ -9,12 +9,6 @@ import { sessionTodos, sessions } from '@/db/schema.js';
 import * as Events from '@/lib/events.js';
 import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
 
-type TodoRow = typeof sessionTodos.$inferSelect;
-
-function toSessionTodo(row: TodoRow): SessionTodo {
-  return row;
-}
-
 export async function listSessionTodos(
   sessionId: PrefixedString<'ses'>,
 ): Promise<ServiceResult<SessionTodo[]>> {
@@ -25,7 +19,7 @@ export async function listSessionTodos(
     .where(eq(sessionTodos.sessionId, sessionId))
     .orderBy(asc(sessionTodos.sortOrder), asc(sessionTodos.createdAt));
 
-  return ok(rows.map(toSessionTodo));
+  return ok(rows);
 }
 
 export async function replaceSessionTodos(input: {
@@ -63,7 +57,7 @@ export async function replaceSessionTodos(input: {
     Events.emit('session-todos-updated', { sessionId: input.sessionId });
   }
 
-  return ok(updated.map(toSessionTodo));
+  return ok(updated);
 }
 
 export async function getSessionTodosPromptBlock(

@@ -6,8 +6,8 @@ import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/typ
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema.js';
-import { interactionBroker } from '@/interactions/broker.js';
 import * as Events from '@/lib/events.js';
+import { interactionBroker } from '@/lib/interactions/broker.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
