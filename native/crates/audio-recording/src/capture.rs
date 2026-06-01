@@ -191,97 +191,31 @@ fn open_mic_stream(
 
   let stream_config = default_config.config();
   let rate = Some(target_sample_rate_hz);
+  macro_rules! build_stream {
+    ($sample:ty, $convert:expr) => {
+      build_input_stream::<$sample>(
+        device,
+        &stream_config,
+        tx,
+        stop_flag,
+        rate,
+        stream_error_flag,
+        $convert,
+      )?
+    };
+  }
+
   let stream = match default_config.sample_format() {
-    SampleFormat::I8 => build_input_stream::<i8>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i8::MAX as f32,
-    )?,
-    SampleFormat::I16 => build_input_stream::<i16>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i16::MAX as f32,
-    )?,
-    SampleFormat::I32 => build_input_stream::<i32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i32::MAX as f32,
-    )?,
-    SampleFormat::I64 => build_input_stream::<i64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i64::MAX as f32,
-    )?,
-    SampleFormat::U8 => build_input_stream::<u8>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U16 => build_input_stream::<u16>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U32 => build_input_stream::<u32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U64 => build_input_stream::<u64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::F32 => build_input_stream::<f32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s,
-    )?,
-    SampleFormat::F64 => build_input_stream::<f64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32,
-    )?,
+    SampleFormat::I8 => build_stream!(i8, |s| s as f32 / i8::MAX as f32),
+    SampleFormat::I16 => build_stream!(i16, |s| s as f32 / i16::MAX as f32),
+    SampleFormat::I32 => build_stream!(i32, |s| s as f32 / i32::MAX as f32),
+    SampleFormat::I64 => build_stream!(i64, |s| s as f32 / i64::MAX as f32),
+    SampleFormat::U8 => build_stream!(u8, |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U16 => build_stream!(u16, |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U32 => build_stream!(u32, |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U64 => build_stream!(u64, |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::F32 => build_stream!(f32, |s| s),
+    SampleFormat::F64 => build_stream!(f64, |s| s as f32),
     other => {
       return Err(NativeError::StreamFailed(format!(
         "unsupported microphone sample format: {other:?}"
