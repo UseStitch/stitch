@@ -1,5 +1,11 @@
 use cpal::traits::DeviceTrait;
 
+const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
+
+pub fn is_tap_device(name: &str) -> bool {
+  name.contains(TAP_DEVICE_NAME)
+}
+
 /// Returns a display name for a device.
 ///
 /// On Windows, prefers `DEVPKEY_Device_FriendlyName` (e.g. "Microphone (Realtek Audio)") over

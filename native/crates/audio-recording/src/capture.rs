@@ -26,12 +26,6 @@ const DUAL_MIXER_RECV_TIMEOUT: Duration = Duration::from_millis(20);
 const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
 const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
 
-const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
-
-fn is_tap_device(name: &str) -> bool {
-  name.contains(TAP_DEVICE_NAME)
-}
-
 fn device_name(device: &cpal::Device) -> Option<String> {
   crate::device::device_display_name(device)
 }
@@ -46,8 +40,8 @@ fn choose_input_device(
       NativeError::StreamFailed(format!("failed to enumerate input devices: {error}"))
     })?;
 
-    if let Some(device) =
-      devices.find(|d| device_name(d).as_deref() == Some(name) && !is_tap_device(name))
+    if let Some(device) = devices
+      .find(|d| device_name(d).as_deref() == Some(name) && !crate::device::is_tap_device(name))
     {
       return Ok(device);
     }
@@ -61,7 +55,7 @@ fn choose_input_device(
 
   // Try the default input device (if it's not our tap)
   if let Some(device) = host.default_input_device() {
-    if !device_name(&device).map_or(false, |n| is_tap_device(&n)) {
+    if !device_name(&device).map_or(false, |n| crate::device::is_tap_device(&n)) {
       return Ok(device);
     }
   }
@@ -72,7 +66,7 @@ fn choose_input_device(
   })?;
 
   devices
-    .find(|d| !device_name(d).map_or(false, |n| is_tap_device(&n)))
+    .find(|d| !device_name(d).map_or(false, |n| crate::device::is_tap_device(&n)))
     .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
 }
 
@@ -167,10 +161,6 @@ where
     .map_err(|error| {
       NativeError::StreamFailed(format!("failed to build microphone stream: {error}"))
     })
-}
-
-fn write_samples(writer: &mut OggOpusWriter, samples: &[f32]) -> Result<(), NativeError> {
-  writer.write_samples(samples)
 }
 
 fn open_mic_stream(
@@ -386,7 +376,7 @@ fn spawn_mic_capture(
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(MIC_CAPTURE_RECV_TIMEOUT) {
-          write_samples(&mut writer, &samples)?;
+          writer.write_samples(&samples)?;
           mic_stream.reset_reconnect_attempts();
           continue;
         }
@@ -397,7 +387,7 @@ fn spawn_mic_capture(
       }
 
       while let Ok(samples) = rx.try_recv() {
-        write_samples(&mut writer, &samples)?;
+        writer.write_samples(&samples)?;
       }
 
       drop(mic_stream);
@@ -611,7 +601,7 @@ fn write_dual_realtime_output(
 
         if mix_len > 0 {
           let out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
-          write_samples(&mut writer, &out)?;
+          writer.write_samples(&out)?;
           drain_mixed_samples(&mut mic_buf, mix_len);
           drain_mixed_samples(&mut speaker_buf, mix_len);
         }

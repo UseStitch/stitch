@@ -126,33 +126,37 @@ struct TapCtx {
 }
 
 #[cfg(target_os = "macos")]
-fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
-  let mono = if ctx.channels <= 1 {
-    samples
-  } else {
-    // downmix inline — borrow-friendly
-    return tap_send_downmixed(ctx, samples);
-  };
-  if let Ok(chunk) = ctx.resampler.process(mono) {
-    for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
-      let _ = ctx.tx.try_send(c.to_vec());
-    }
-  }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SpeakerSourceChoice {
+  Pending,
+  ProcessTap,
+  ScreenCaptureKit,
 }
 
 #[cfg(target_os = "macos")]
-fn tap_send_downmixed(ctx: &mut TapCtx, samples: &[f32]) {
-  let frames = samples.len() / ctx.channels;
-  let mut mono = Vec::with_capacity(frames);
-  for frame in 0..frames {
-    let start = frame * ctx.channels;
-    let mut acc = 0.0f32;
-    for sample in &samples[start..start + ctx.channels] {
-      acc += *sample;
-    }
-    mono.push(acc / ctx.channels as f32);
+fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
+  if ctx.channels <= 1 {
+    tap_send_resampled(ctx, samples);
+    return;
   }
-  if let Ok(chunk) = ctx.resampler.process(&mono) {
+
+  let frame_count = samples.len() / ctx.channels;
+  let mut mono = Vec::with_capacity(frame_count);
+  for frame in 0..frame_count {
+    let start = frame * ctx.channels;
+    let mut sum = 0.0f32;
+    for sample in &samples[start..start + ctx.channels] {
+      sum += *sample;
+    }
+    mono.push(sum / ctx.channels as f32);
+  }
+
+  tap_send_resampled(ctx, &mono);
+}
+
+#[cfg(target_os = "macos")]
+fn tap_send_resampled(ctx: &mut TapCtx, mono: &[f32]) {
+  if let Ok(chunk) = ctx.resampler.process(mono) {
     for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = ctx.tx.try_send(c.to_vec());
     }
@@ -328,8 +332,7 @@ fn spawn_macos_speaker_source(
         }
         .await;
 
-        let use_tap = std::sync::atomic::AtomicBool::new(true);
-        let decided = std::sync::atomic::AtomicBool::new(false);
+        let mut source_choice = SpeakerSourceChoice::Pending;
         let mut decision_ticks: u32 = 0;
         // Allow ~2 seconds (200 ticks at 10ms) for audio to start flowing
         const DECISION_GRACE_TICKS: u32 = 200;
@@ -342,7 +345,10 @@ fn spawn_macos_speaker_source(
             if !tap_has_signal {
               tap_has_signal = chunk.iter().any(|&s| s.abs() > 1e-6);
             }
-            if use_tap.load(Ordering::Relaxed) {
+            if matches!(
+              source_choice,
+              SpeakerSourceChoice::Pending | SpeakerSourceChoice::ProcessTap
+            ) {
               for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
                 let _ = tx.try_send(c.to_vec());
               }
@@ -352,40 +358,33 @@ fn spawn_macos_speaker_source(
           let mut got_sck = false;
           while let Ok(chunk) = sck_rx.try_recv() {
             got_sck = true;
-            if !use_tap.load(Ordering::Relaxed) {
+            if source_choice == SpeakerSourceChoice::ScreenCaptureKit {
               let _ = tx.try_send(chunk);
             }
           }
 
-          if !decided.load(Ordering::Relaxed) {
+          if source_choice == SpeakerSourceChoice::Pending {
             decision_ticks += 1;
 
             if tap_has_signal {
-              // Tap is producing real audio — use it
-              use_tap.store(true, Ordering::Relaxed);
-              decided.store(true, Ordering::Relaxed);
+              source_choice = SpeakerSourceChoice::ProcessTap;
             } else if got_sck && decision_ticks >= DECISION_GRACE_TICKS {
-              // Tap silent after grace period, SCK has data — switch to SCK
-              use_tap.store(false, Ordering::Relaxed);
-              decided.store(true, Ordering::Relaxed);
-            } else if sck_ok.is_some() && got_sck {
-              // SCK started and is producing data, but still in grace period — buffer SCK
-              // data by not deciding yet (tap may still start producing signal)
+              source_choice = SpeakerSourceChoice::ScreenCaptureKit;
             } else if decision_ticks >= DECISION_GRACE_TICKS {
-              // Grace period elapsed, tap silent, SCK either failed or has no data.
-              // If SCK started, use it even without data yet. Otherwise stick with tap.
-              if sck_ok.is_some() {
-                use_tap.store(false, Ordering::Relaxed);
-              }
-              decided.store(true, Ordering::Relaxed);
+              source_choice = if sck_ok.is_some() {
+                SpeakerSourceChoice::ScreenCaptureKit
+              } else {
+                SpeakerSourceChoice::ProcessTap
+              };
             }
           }
         }
 
-        Ok(vec![if use_tap.load(Ordering::Relaxed) {
-          "speaker_source_process_tap".to_string()
-        } else {
-          "speaker_source_screencapturekit".to_string()
+        Ok(vec![match source_choice {
+          SpeakerSourceChoice::Pending | SpeakerSourceChoice::ProcessTap => {
+            "speaker_source_process_tap".to_string()
+          }
+          SpeakerSourceChoice::ScreenCaptureKit => "speaker_source_screencapturekit".to_string(),
         }])
       })
     })

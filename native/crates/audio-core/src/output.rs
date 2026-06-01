@@ -24,8 +24,10 @@ pub fn emit(event: Event) -> io::Result<()> {
 }
 
 pub fn encode_samples_f32_b64(samples: &[f32]) -> String {
-  let bytes: &[u8] =
-    unsafe { std::slice::from_raw_parts(samples.as_ptr() as *const u8, samples.len() * 4) };
+  let mut bytes = Vec::with_capacity(samples.len() * 4);
+  for sample in samples {
+    bytes.extend_from_slice(&sample.to_le_bytes());
+  }
   BASE64.encode(bytes)
 }
 
