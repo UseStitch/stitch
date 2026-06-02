@@ -3,14 +3,18 @@ import {
   SandboxMessageTooLargeError,
   SandboxSecurityError,
   SandboxTimeoutError,
-  SandboxToolError,
   SandboxToolLimitError,
   SandboxUnknownToolError,
   toErrorMessage,
 } from './errors.js';
 import { DANGEROUS_GLOBALS } from './hardening.js';
 import { isWorkerMessage } from './protocol.js';
-import { createAbortRace, createExecutionTimeoutRace, createPausableTimer } from './timer.js';
+import {
+  createAbortRace,
+  createExecutionTimeoutRace,
+  createPausableTimer,
+  createToolTimeoutRace,
+} from './timer.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
 import type {
@@ -32,13 +36,6 @@ const IDENTIFIER_PATTERN = /^[A-Za-z_$][\w$]*$/;
 const RESERVED_LIBRARY_NAMES = new Set([...DANGEROUS_GLOBALS, 'console', 'Function']);
 const encoder = new TextEncoder();
 
-type ProcessInitMessage = {
-  type: 'init';
-  toolNames: string[];
-  libraries: IsolateOptions['libraries'];
-  memoryReportIntervalMs: number;
-};
-
 type ToolCallContext = {
   bindings: Record<string, ToolBinding>;
   maxToolCalls: number;
@@ -47,30 +44,20 @@ type ToolCallContext = {
   abortSignal: AbortSignal | undefined;
   proc: { send(message: unknown): void };
   timer: ReturnType<typeof createPausableTimer>;
-  getToolCallCount: () => number;
   incrementToolCallCount: () => number;
 };
 
-function getMessageSize(message: unknown): number {
-  try {
-    return encoder.encode(JSON.stringify(message)).byteLength;
-  } catch {
-    return Number.POSITIVE_INFINITY;
-  }
-}
-
 function assertMessageSize(message: unknown, maxMessageBytes: number): void {
-  const size = getMessageSize(message);
+  // Serialization failure counts as oversized — can't trust it won't blow up the IPC channel.
+  let size: number;
+  try {
+    size = encoder.encode(JSON.stringify(message)).byteLength;
+  } catch {
+    size = Number.POSITIVE_INFINITY;
+  }
   if (size > maxMessageBytes) {
     throw new SandboxMessageTooLargeError(maxMessageBytes);
   }
-}
-
-function sendToProcess(
-  proc: { send(message: unknown): void },
-  message: HostMessage | ProcessInitMessage,
-): void {
-  proc.send(message);
 }
 
 function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
@@ -96,7 +83,7 @@ async function dispatchToolCall(
   try {
     const count = ctx.incrementToolCallCount();
     if (count > ctx.maxToolCalls) {
-      sendToProcess(ctx.proc, {
+      ctx.proc.send({
         type: 'tool_error',
         id: message.id,
         error: new SandboxToolLimitError(ctx.maxToolCalls).message,
@@ -108,7 +95,7 @@ async function dispatchToolCall(
 
     const binding = ctx.bindings[message.name];
     if (!binding) {
-      sendToProcess(ctx.proc, {
+      ctx.proc.send({
         type: 'tool_error',
         id: message.id,
         error: new SandboxUnknownToolError(message.name).message,
@@ -116,37 +103,25 @@ async function dispatchToolCall(
       return;
     }
 
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const toolTimeout = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(
-        () => reject(new SandboxToolError(`Tool call timed out after ${ctx.toolTimeoutMs}ms`)),
-        ctx.toolTimeoutMs,
-      );
-      ctx.abortSignal?.addEventListener(
-        'abort',
-        () => {
-          if (timeoutId !== null) clearTimeout(timeoutId);
-        },
-        { once: true },
-      );
-    });
+    const timeoutRace = createToolTimeoutRace(
+      ctx.toolTimeoutMs,
+      ctx.abortSignal,
+      `Tool call timed out after ${ctx.toolTimeoutMs}ms`,
+    );
+    try {
+      const result = await Promise.race([
+        binding.execute(message.args, ctx.abortSignal),
+        timeoutRace.promise,
+      ]);
 
-    const toolAbort = createAbortRace(ctx.abortSignal, 'Tool call aborted');
-    const raceTargets: Promise<unknown>[] = [
-      binding.execute(message.args, ctx.abortSignal),
-      toolTimeout,
-    ];
-    if (toolAbort !== null) raceTargets.push(toolAbort.promise);
-
-    const result = await Promise.race(raceTargets);
-    if (timeoutId !== null) clearTimeout(timeoutId);
-    toolAbort?.cleanup();
-
-    const response: HostMessage = { type: 'tool_result', id: message.id, result };
-    assertMessageSize(response, ctx.maxMessageBytes);
-    sendToProcess(ctx.proc, response);
+      const response: HostMessage = { type: 'tool_result', id: message.id, result };
+      assertMessageSize(response, ctx.maxMessageBytes);
+      ctx.proc.send(response);
+    } finally {
+      timeoutRace.cleanup();
+    }
   } catch (err) {
-    sendToProcess(ctx.proc, { type: 'tool_error', id: message.id, error: toErrorMessage(err) });
+    ctx.proc.send({ type: 'tool_error', id: message.id, error: toErrorMessage(err) });
   } finally {
     ctx.timer.resume();
   }
@@ -206,7 +181,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         }
       };
 
-      sendToProcess(proc, {
+      proc.send({
         type: 'init',
         toolNames,
         libraries,
@@ -221,8 +196,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         abortSignal,
         proc,
         timer,
-        getToolCallCount: () => toolCallCount,
-        incrementToolCallCount: () => (toolCallCount += 1),
+        incrementToolCallCount: () => ++toolCallCount,
       };
 
       return {
@@ -233,9 +207,15 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
           const timeoutRace = createExecutionTimeoutRace(timer, startedAt, timeoutMs, terminate);
           const abortRace = createAbortRace(abortSignal, 'Sandbox execution aborted');
 
+          let settled = false;
           const executionPromise = new Promise<IsolateExecuteResult>((resolve, reject) => {
             const cleanup = () => {
               messageHandler = null;
+            };
+
+            const settle = (value: IsolateExecuteResult) => {
+              settled = true;
+              resolve(value);
             };
 
             const onMessage = (message: unknown) => {
@@ -245,7 +225,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
                 if (message.rss > memoryLimitBytes) {
                   cleanup();
                   terminate();
-                  resolve({
+                  settle({
                     result: { error: new SandboxMemoryError(memoryLimitMB).message },
                     logs: [],
                   });
@@ -255,13 +235,13 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
               if (message.type === 'complete') {
                 cleanup();
-                resolve({ result: message.result, logs: message.logs });
+                settle({ result: message.result, logs: message.logs });
                 return;
               }
 
               if (message.type === 'error') {
                 cleanup();
-                resolve({ result: { error: message.error }, logs: message.logs });
+                settle({ result: { error: message.error }, logs: message.logs });
                 return;
               }
 
@@ -270,8 +250,9 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
             const onExit = () => {
               cleanup();
+              if (settled) return;
               if (disposed) {
-                resolve({ result: { error: 'Sandbox execution terminated' }, logs: [] });
+                settle({ result: { error: 'Sandbox execution terminated' }, logs: [] });
                 return;
               }
               reject(new Error('Sandbox process exited unexpectedly'));
@@ -279,16 +260,11 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
             messageHandler = onMessage;
             void proc.exited.then(onExit);
-            sendToProcess(proc, { type: 'execute', code });
+            proc.send({ type: 'execute', code });
           });
 
           try {
-            const raceTargets: Promise<IsolateExecuteResult>[] = [
-              executionPromise,
-              timeoutRace.promise,
-            ];
-            if (abortRace !== null) raceTargets.push(abortRace.promise);
-            return await Promise.race(raceTargets);
+            return await Promise.race([executionPromise, timeoutRace.promise, abortRace.promise]);
           } catch (err) {
             terminate();
             return {
@@ -301,7 +277,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
             };
           } finally {
             timeoutRace.cleanup();
-            abortRace?.cleanup();
+            abortRace.cleanup();
           }
         },
 
