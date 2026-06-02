@@ -29,8 +29,6 @@ export type SandboxProcessDriverOptions = {
 };
 
 export type IsolateOptions = {
-  /** Memory limit in MB (default: 128) */
-  memoryLimit?: number;
   /** Execution timeout in ms, excluding time spent waiting for tool calls (default: 30_000) */
   timeout?: number;
   /** AbortSignal to cancel execution and all in-flight tool calls */
@@ -49,8 +47,3 @@ export type IsolateDriver = {
     options?: IsolateOptions,
   ): Promise<IsolateContext>;
 };
-
-export const ERROR_KEYS = {
-  TOOL_ERROR: '__error',
-  CODE_ERROR: '__codeError',
-} as const;

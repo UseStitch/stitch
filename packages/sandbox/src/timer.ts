@@ -1,4 +1,9 @@
-import { SandboxAbsoluteTimeoutError, SandboxAbortError, SandboxTimeoutError } from './errors.js';
+import {
+  SandboxAbsoluteTimeoutError,
+  SandboxAbortError,
+  SandboxTimeoutError,
+  SandboxToolError,
+} from './errors.js';
 
 const ABSOLUTE_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -40,11 +45,8 @@ type AbortRace = {
   cleanup: () => void;
 };
 
-export function createAbortRace(
-  abortSignal: AbortSignal | undefined,
-  message: string,
-): AbortRace | null {
-  if (abortSignal === undefined) return null;
+export function createAbortRace(abortSignal: AbortSignal | undefined, message: string): AbortRace {
+  if (abortSignal === undefined) return emptyRace();
 
   let onAbort: (() => void) | null = null;
 
@@ -65,6 +67,48 @@ export function createAbortRace(
   };
 
   return { promise, cleanup };
+}
+
+export function createToolTimeoutRace(
+  timeoutMs: number,
+  abortSignal: AbortSignal | undefined,
+  message: string,
+): AbortRace {
+  if (abortSignal?.aborted)
+    return {
+      promise: Promise.reject(new SandboxAbortError('Tool call aborted')),
+      cleanup: () => {},
+    };
+
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const promise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new SandboxToolError(message)), timeoutMs);
+
+    if (abortSignal) {
+      abortSignal.addEventListener(
+        'abort',
+        () => {
+          if (timeoutId !== null) clearTimeout(timeoutId);
+          reject(new SandboxAbortError('Tool call aborted'));
+        },
+        { once: true },
+      );
+    }
+  });
+
+  const cleanup = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+
+  return { promise, cleanup };
+}
+
+function emptyRace(): AbortRace {
+  return { promise: new Promise<never>(() => {}), cleanup: () => {} };
 }
 
 export function createExecutionTimeoutRace(

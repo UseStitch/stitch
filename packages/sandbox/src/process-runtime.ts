@@ -1,10 +1,11 @@
 import { SandboxError, SandboxToolError, toErrorMessage } from './errors.js';
 import { assertSafeCode, DANGEROUS_GLOBALS, harden } from './hardening.js';
 import { isHostMessage } from './protocol.js';
-import { ERROR_KEYS } from './types.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
 import type { SandboxLibrary } from './types.js';
+
+const CODE_ERROR_KEY = '__codeError';
 
 /** Global names shadowed as `undefined` in sandbox function params (includes 'Function'). */
 const HIDDEN_GLOBAL_NAMES: readonly string[] = [...DANGEROUS_GLOBALS, 'Function'];
@@ -142,15 +143,15 @@ export function startProcessRuntime(
           })();
           return __result;
         } catch (e) {
-          return { ${JSON.stringify(ERROR_KEYS.CODE_ERROR)}: e && e.message ? e.message : String(e) };
+          return { ${JSON.stringify(CODE_ERROR_KEY)}: e && e.message ? e.message : String(e) };
         }
       })();`,
       ) as (console: Console, ...args: unknown[]) => Promise<unknown>;
 
       let result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
-      if (result !== null && typeof result === 'object' && ERROR_KEYS.CODE_ERROR in result) {
+      if (result !== null && typeof result === 'object' && CODE_ERROR_KEY in result) {
         result = {
-          error: (result as { [ERROR_KEYS.CODE_ERROR]: unknown })[ERROR_KEYS.CODE_ERROR],
+          error: (result as Record<string, unknown>)[CODE_ERROR_KEY],
         };
       }
       post({ type: 'complete', result, logs });
