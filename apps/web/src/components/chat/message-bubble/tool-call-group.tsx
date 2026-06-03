@@ -1,5 +1,7 @@
-import { ChevronDownIcon, ClockIcon, LoaderIcon, SquareIcon } from 'lucide-react';
+import { ChevronDownIcon, ClockIcon, ExternalLinkIcon, LoaderIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
+
+import { Link } from '@tanstack/react-router';
 
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
@@ -101,6 +103,18 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   );
 }
 
+const CHILD_SESSION_TOOLS = new Set(['task', 'inspect_image']);
+
+function isChildSessionTool(toolName: string): boolean {
+  return CHILD_SESSION_TOOLS.has(toolName);
+}
+
+function getChildSessionId(result: unknown): string | null {
+  if (!result || typeof result !== 'object') return null;
+  const id = (result as Record<string, unknown>).childSessionId;
+  return typeof id === 'string' ? id : null;
+}
+
 function ToolCallRow({
   call,
   onAbort,
@@ -109,6 +123,65 @@ function ToolCallRow({
   call: ToolCallDisplayItem;
   onAbort?: () => void;
   animateIn: boolean;
+}) {
+  if (isChildSessionTool(call.toolName)) {
+    return <ChildSessionToolCallRow call={call} onAbort={onAbort} animateIn={animateIn} />;
+  }
+
+  return <DefaultToolCallRow call={call} onAbort={onAbort} animateIn={animateIn} />;
+}
+
+function DefaultToolCallRow({
+  call,
+  onAbort,
+  animateIn,
+}: {
+  call: ToolCallDisplayItem;
+  onAbort?: () => void;
+  animateIn: boolean;
+}) {
+  return <ToolCallRowBase call={call} onAbort={onAbort} animateIn={animateIn} />;
+}
+
+function ChildSessionToolCallRow({
+  call,
+  onAbort,
+  animateIn,
+}: {
+  call: ToolCallDisplayItem;
+  onAbort?: () => void;
+  animateIn: boolean;
+}) {
+  const childSessionId = getChildSessionId(call.result);
+
+  return (
+    <ToolCallRowBase call={call} onAbort={onAbort} animateIn={animateIn}>
+      {childSessionId ? (
+        <Button
+          variant="ghost"
+          size="xs"
+          className="h-5 px-1.5 text-[11px] text-muted-foreground"
+          title="Open child session"
+          render={<Link to="/session/$id" params={{ id: childSessionId }} />}
+        >
+          <ExternalLinkIcon className="size-2.5" />
+          Open
+        </Button>
+      ) : null}
+    </ToolCallRowBase>
+  );
+}
+
+function ToolCallRowBase({
+  call,
+  onAbort,
+  animateIn,
+  children,
+}: {
+  call: ToolCallDisplayItem;
+  onAbort?: () => void;
+  animateIn: boolean;
+  children?: React.ReactNode;
 }) {
   const displayName = useStitchToolDisplayName(call.toolName);
   const summary = getToolSummary(call, displayName);
@@ -147,13 +220,14 @@ function ToolCallRow({
           variant="ghost"
           size="xs"
           onClick={onAbort}
-          className="h-5 px-1.5 text-[11px] text-muted-foreground"
+          className="h-5 px-1.5 text-[11px] text-destructive hover:text-destructive"
           title="Stop running tool"
         >
           <SquareIcon className="size-2.5" />
           Stop
         </Button>
       ) : null}
+      {children}
     </div>
   );
 }
@@ -235,6 +309,8 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
       return getBestGenericPreview(call.args, call.result) ?? 'Using recordings';
     case 'session-history':
       return getBestGenericPreview(call.args, call.result) ?? 'Searching sessions';
+    case 'inspect-image':
+      return getStringArg(call.args, ['prompt', 'imagePath']) ?? 'Inspecting image';
     case 'mcp':
     case 'generic':
       return getBestGenericPreview(call.args, call.result) ?? 'Using tool';

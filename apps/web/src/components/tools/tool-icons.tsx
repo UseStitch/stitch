@@ -8,6 +8,7 @@ import {
   GlobeIcon,
   HelpCircleIcon,
   HistoryIcon,
+  ImageIcon,
   ListTodoIcon,
   MicIcon,
   PanelTopIcon,
@@ -34,6 +35,7 @@ export type ToolIconKind =
   | 'browser'
   | 'recordings'
   | 'session-history'
+  | 'inspect-image'
   | 'mcp'
   | 'generic';
 
@@ -51,6 +53,7 @@ export function getToolIconKind(toolName: string): ToolIconKind {
   if (toolName === 'skill') return 'skill';
   if (toolName === 'memory') return 'memory';
   if (toolName === 'todo') return 'todo';
+  if (toolName === 'inspect_image') return 'inspect-image';
   if (toolName.startsWith('agenda_')) return 'agenda';
   if (toolName === 'browser' || toolName.startsWith('browser_')) return 'browser';
   if (toolName.startsWith('recordings_')) return 'recordings';
@@ -88,6 +91,8 @@ export function ToolKindIcon({ kind, className }: { kind: ToolIconKind; classNam
       return <PanelTopIcon className={className} />;
     case 'recordings':
       return <MicIcon className={className} />;
+    case 'inspect-image':
+      return <ImageIcon className={className} />;
     case 'session-history':
       return <HistoryIcon className={className} />;
     case 'mcp':
