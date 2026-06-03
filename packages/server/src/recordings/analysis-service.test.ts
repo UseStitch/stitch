@@ -1,3 +1,4 @@
+import { MockLanguageModelV3 } from 'ai/test';
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
@@ -10,21 +11,22 @@ import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
 
-void mock.module('ai', () => ({
-  Output: { object: (input: unknown) => input },
-  generateText: (input: { abortSignal?: AbortSignal }) => {
-    generateTextCalls++;
+function createHangingAnalysisModel(): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    doGenerate: async ({ abortSignal }) => {
+      generateTextCalls++;
 
-    return new Promise((_, reject) => {
-      input.abortSignal?.addEventListener('abort', () => reject(new Error('Aborted')), {
-        once: true,
+      return new Promise((_, reject) => {
+        abortSignal?.addEventListener('abort', () => reject(new Error('Aborted')), {
+          once: true,
+        });
       });
-    });
-  },
-}));
+    },
+  });
+}
 
 void mock.module('@/llm/provider/provider.js', () => ({
-  createProvider: () => () => ({}),
+  createProvider: () => () => createHangingAnalysisModel(),
 }));
 
 void mock.module('@/llm/resolve-model.js', () => ({
@@ -32,7 +34,10 @@ void mock.module('@/llm/resolve-model.js', () => ({
     data: {
       providerId: 'test-provider',
       modelId: 'test-model',
-      credentials: {},
+      credentials: {
+        providerId: 'openai',
+        auth: { method: 'api-key', apiKey: 'test-key' },
+      },
     },
   }),
 }));
@@ -98,6 +103,14 @@ async function readAnalysis() {
   return analysis;
 }
 
+async function waitForAnalysisModelCall(): Promise<void> {
+  const startedAt = Date.now();
+
+  while (generateTextCalls === 0 && Date.now() - startedAt < 1_000) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
 describe('recording analysis reruns', () => {
   beforeEach(async () => {
     generateTextCalls = 0;
@@ -105,11 +118,12 @@ describe('recording analysis reruns', () => {
   });
 
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
-    const { cancelRecordingAnalysis, startRecordingAnalysis } = await import(
-      '@/recordings/analysis-service.js'
-    );
+    const { cancelRecordingAnalysis, startRecordingAnalysis } =
+      await import('@/recordings/analysis-service.js');
 
     const startResult = await startRecordingAnalysis(recordingId, { force: true });
+
+    await waitForAnalysisModelCall();
 
     expect('data' in startResult).toBe(true);
     expect(generateTextCalls).toBe(1);
