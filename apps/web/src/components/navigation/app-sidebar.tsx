@@ -7,8 +7,11 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
+import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useParams, useRouterState } from '@tanstack/react-router';
+
+import type { SessionsPage } from '@stitch/shared/chat/messages';
 
 import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
 import { AnimatedTitle } from '@/components/animated-title';
@@ -30,6 +33,22 @@ import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions } from '@/lib/queries/chat';
 import { cn } from '@/lib/utils';
+
+type SidebarSession = {
+  id: string;
+  title: string | null;
+  isUnread: boolean;
+};
+
+const selectSidebarSessions = (data: InfiniteData<SessionsPage>) => ({
+  ...data,
+  pages: data.pages.map((page) => ({
+    ...page,
+    sessions: page.sessions.map(
+      ({ id, title, isUnread }) => ({ id, title, isUnread }) as SidebarSession,
+    ),
+  })),
+});
 
 const SessionStatusIcon = React.memo(function SessionStatusIcon({
   isStreaming,
@@ -61,9 +80,10 @@ function ChatSidebarContent() {
   const [search, setSearch] = React.useState('');
   const deferredSearch = React.useDeferredValue(search.trim());
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
-    sessionsInfiniteQueryOptions(deferredSearch),
-  );
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    ...sessionsInfiniteQueryOptions(deferredSearch),
+    select: selectSidebarSessions,
+  });
   useSessionTitleUpdates();
   const streamingIds = useStreamingSessionIds();
   const streamingIdSet = React.useMemo(() => new Set(streamingIds), [streamingIds]);
