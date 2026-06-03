@@ -461,7 +461,7 @@ export function UsageDashboardPage() {
   const hasData = !!usageData && usageData.buckets.length > 0;
 
   return (
-    <div className="flex h-full flex-col gap-6 overflow-auto p-6 pb-10">
+    <div className="thin-scrollbar flex h-full flex-col gap-6 overflow-auto p-6 pb-10">
       {/* Page header */}
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Usage</h1>
