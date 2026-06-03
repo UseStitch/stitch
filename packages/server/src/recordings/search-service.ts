@@ -1,7 +1,13 @@
 import { desc, eq, inArray } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
+import type {
+  RecordingActionItem,
+  RecordingAnalysisTopicSection,
+  RecordingBlocker,
+  RecordingPlatform,
+  RecordingStatus,
+} from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings } from '@/db/schema.js';
@@ -85,7 +91,9 @@ function buildSnippet(candidates: string[], queryLower: string): string {
   return merged.slice(start, start + MAX_SNIPPET_CHARS);
 }
 
-export async function searchRecordings(input: SearchRecordingsInput): Promise<RecordingSearchHit[]> {
+export async function searchRecordings(
+  input: SearchRecordingsInput,
+): Promise<RecordingSearchHit[]> {
   const db = getDb();
 
   const baseRows = await db
@@ -192,20 +200,9 @@ export async function getRecordingAnalysesByIds(recordingIds: PrefixedString<'re
     status: 'pending' | 'processing' | 'completed' | 'failed';
     title: string;
     summary: string;
-    topics: Array<{ name: string; startTurn: number; endTurn: number }>;
-    actionItems: Array<{
-      task: string;
-      assignee: string | null;
-      dueDate: string | null;
-      status: 'todo' | 'in_progress' | 'done' | 'unknown';
-      topicName: string | null;
-    }>;
-    blockers: Array<{
-      description: string;
-      assignee: string | null;
-      impact: string | null;
-      topicName: string | null;
-    }>;
+    topicSections: RecordingAnalysisTopicSection[];
+    actionItems: RecordingActionItem[];
+    blockers: RecordingBlocker[];
     error: string | null;
     updatedAt: number;
   }>
@@ -220,15 +217,19 @@ export async function getRecordingAnalysesByIds(recordingIds: PrefixedString<'re
     .from(recordingAnalyses)
     .where(inArray(recordingAnalyses.recordingId, recordingIds));
 
-  return rows.map((row) => ({
-    recordingId: row.recordingId,
-    status: row.status,
-    title: row.title,
-    summary: row.summary,
-    topics: row.topics ?? [],
-    actionItems: row.actionItems ?? [],
-    blockers: row.blockers ?? [],
-    error: row.error,
-    updatedAt: row.updatedAt,
-  }));
+  return rows.map((row) => {
+    const topicSections = row.topicSections ?? [];
+
+    return {
+      recordingId: row.recordingId,
+      status: row.status,
+      title: row.title,
+      summary: row.summary,
+      topicSections,
+      actionItems: topicSections.flatMap((section) => section.actionItems),
+      blockers: topicSections.flatMap((section) => section.blockers),
+      error: row.error,
+      updatedAt: row.updatedAt,
+    };
+  });
 }

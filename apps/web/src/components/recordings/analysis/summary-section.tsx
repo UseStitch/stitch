@@ -11,7 +11,7 @@ interface SummarySectionProps {
 
 export function SummarySection({ analysis, isRunning }: SummarySectionProps) {
   const allDecisions = analysis?.topicSections.flatMap((s) => s.decisions) ?? [];
-  const allBlockers = analysis?.blockers ?? [];
+  const allBlockers = analysis?.topicSections.flatMap((s) => s.blockers) ?? [];
   const allActionItems = analysis?.topicSections.flatMap((s) => s.actionItems) ?? [];
   const allOpenQuestions = analysis?.topicSections.flatMap((s) => s.openQuestions) ?? [];
 

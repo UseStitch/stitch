@@ -6,14 +6,10 @@ use std::time::Duration;
 
 use audio_core::output::emit;
 use audio_core::protocol::{Command, Event, parse_start_command};
-use audio_recording::{ActiveSession, device_display_name, start_session, stop_session};
+use audio_recording::{
+  ActiveSession, device_display_name, is_tap_device, start_session, stop_session,
+};
 use cpal::traits::{DeviceTrait, HostTrait};
-
-const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
-
-fn is_tap_device(name: &str) -> bool {
-  name.contains(TAP_DEVICE_NAME)
-}
 
 fn list_microphone_devices() -> Vec<String> {
   let host = cpal::default_host();

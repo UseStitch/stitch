@@ -21,6 +21,7 @@ export type Recording = {
   filePath: string;
   fileSizeBytes: number | null;
   durationMs: number | null;
+  costUsd: number | null;
   startedAt: number;
   endedAt: number | null;
   error: string | null;
@@ -55,31 +56,20 @@ export type RecordingTranscriptEntry = {
   content: string;
 };
 
-export type RecordingAnalysisTopic = {
-  name: string;
-  startTurn: number;
-  endTurn: number;
-};
-
 export type RecordingActionItem = {
   task: string;
-  assignee: string | null;
   dueDate: string | null;
-  status: 'todo' | 'in_progress' | 'done' | 'unknown';
   topicName: string | null;
 };
 
 export type RecordingBlocker = {
   description: string;
-  assignee: string | null;
   impact: string | null;
   topicName: string | null;
 };
 
 export type RecordingAnalysisTopicSection = {
   name: string;
-  startTurn: number;
-  endTurn: number;
   analysis: string;
   decisions: string[];
   actionItems: RecordingActionItem[];
@@ -92,17 +82,15 @@ export type RecordingAnalysis = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
   transcript: RecordingTranscriptEntry[];
-  topics: RecordingAnalysisTopic[];
   topicSections: RecordingAnalysisTopicSection[];
   summary: string;
   title: string;
-  actionItems: RecordingActionItem[];
-  blockers: RecordingBlocker[];
   error: string | null;
   transcriptionProviderId: string | null;
   transcriptionModelId: string | null;
   analysisProviderId: string | null;
   analysisModelId: string | null;
+  costUsd: number;
   createdAt: number;
   updatedAt: number;
   startedAt: number | null;

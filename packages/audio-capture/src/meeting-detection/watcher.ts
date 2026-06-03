@@ -1,12 +1,16 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 
 import { resolveMeetingWatcherBinaryPath } from '../native-binary.js';
+import { createJsonLineBuffer } from '../stream-json.js';
 import { createMeetingDetectionEngine } from './engine.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 
-/** Raw row shape emitted by the native watcher on stdout. */
+const RESTART_DELAY_MS = 2_000;
+
+const noopLogger = { debug() {}, info() {}, warn() {}, error() {} };
+
 export type WatchRow = {
   pid?: number;
   processName?: string;
@@ -16,25 +20,19 @@ export type WatchRow = {
 /** Discriminated union of native watcher events. */
 type WatchEvent = { type: 'snapshot'; rows: WatchRow[] } | { type: 'error'; message: string };
 
-type WatchPlatform = 'macos' | 'windows';
-
 /** Minimal re-use of per-platform row classification from the scanner files. */
 type RowClassifier = (rows: WatchRow[]) => MeetingObservation[];
 
-/**
- * Spawns the native watcher binary and wires its snapshot stream into the
- * MeetingDetectionEngine. Returns a full MeetingDetector handle.
- */
 export function createNativeWatcherMeetingDetector(
-  platform: WatchPlatform,
   classify: RowClassifier,
   options: MeetingDetectionOptions = {},
 ): MeetingDetector {
   const engine = createMeetingDetectionEngine(options);
+  const log = options.logger ?? noopLogger;
 
   let running = false;
   let child: ChildProcess | null = null;
-  let stdoutBuffer = '';
+  const stdoutBuffer = createJsonLineBuffer();
 
   function handleLine(line: string): void {
     const trimmed = line.trim();
@@ -50,8 +48,15 @@ export function createNativeWatcherMeetingDetector(
     if (event.type === 'snapshot') {
       const observations = classify(event.rows);
       engine.ingest(observations);
+    } else if (event.type === 'error') {
+      log.error({ message: event.message }, 'native watcher error');
     }
-    // 'error' events are non-fatal; the watcher keeps running.
+  }
+
+  function scheduleRestart(): void {
+    setTimeout(() => {
+      if (running) startProcess();
+    }, RESTART_DELAY_MS);
   }
 
   function startProcess(): void {
@@ -62,36 +67,17 @@ export function createNativeWatcherMeetingDetector(
     });
 
     child.stdout?.on('data', (chunk: Buffer) => {
-      stdoutBuffer += chunk.toString('utf8');
-      const lines = stdoutBuffer.split('\n');
-      stdoutBuffer = lines.pop() ?? '';
-      for (const line of lines) {
-        handleLine(line);
-      }
+      stdoutBuffer.append(chunk, handleLine);
     });
 
     child.once('exit', (_code, _signal) => {
       child = null;
-      // Restart unless we're shutting down intentionally.
-      if (running) {
-        const delay = 2_000;
-        setTimeout(() => {
-          if (running) {
-            startProcess();
-          }
-        }, delay);
-      }
+      if (running) scheduleRestart();
     });
 
     child.once('error', () => {
       child = null;
-      if (running) {
-        setTimeout(() => {
-          if (running) {
-            startProcess();
-          }
-        }, 2_000);
-      }
+      if (running) scheduleRestart();
     });
   }
 

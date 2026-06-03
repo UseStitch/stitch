@@ -45,8 +45,8 @@ const SOURCE_LABELS: Record<string, string> = {
   automation: 'Automation',
   automation_generation: 'Automation Generation',
   title_generation: 'Title Generation',
-  transcription: 'Transcription',
   memory_extraction: 'Memory',
+  transcription: 'Transcription',
   recording_analysis: 'Recording Analysis',
 };
 

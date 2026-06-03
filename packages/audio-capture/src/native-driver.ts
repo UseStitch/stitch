@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 
 import { resolveNativeBinaryPath } from './native-binary.js';
+import { createJsonLineBuffer } from './stream-json.js';
 
 import type {
   ActiveCapture,
@@ -22,8 +23,7 @@ import type {
 
 const START_TIMEOUT_MS = 10_000;
 const STOP_TIMEOUT_MS = 10_000;
-const LIST_DEVICES_TIMEOUT_MS = 5_000;
-const CHECK_PERMISSIONS_TIMEOUT_MS = 5_000;
+const ONE_SHOT_TIMEOUT_MS = 5_000;
 
 function createController(processHandle: ActiveCapture['process']): NativeCaptureController {
   const pending = new Map<
@@ -37,27 +37,27 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
 
   let eventListener: NativeCaptureEventListener | null = null;
 
-  const signal = (event: NativeCaptureEvent): void => {
-    if (event.type === 'progress') {
-      return;
-    }
-
-    if (event.type === 'warning' || event.type === 'deviceChanged') {
+  function dispatchToListener(event: NativeCaptureEvent): void {
+    if (event.type === 'warning' || event.type === 'deviceChanged' || event.type === 'audioChunk') {
       eventListener?.(event);
     }
+  }
 
+  function resolvePending(event: NativeCaptureEvent): void {
     const listeners = pending.get(event.type);
-    if (!listeners || listeners.length === 0) {
-      return;
-    }
+    if (!listeners || listeners.length === 0) return;
 
     const listener = listeners.shift();
-    if (!listener) {
-      return;
-    }
+    if (!listener) return;
 
     clearTimeout(listener.timeout);
     listener.resolve(event);
+  }
+
+  const signal = (event: NativeCaptureEvent): void => {
+    if (event.type === 'progress') return;
+    dispatchToListener(event);
+    resolvePending(event);
   };
 
   const rejectAll = (error: Error): void => {
@@ -70,25 +70,16 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
     pending.clear();
   };
 
-  let stdoutBuffer = '';
+  const stdoutBuffer = createJsonLineBuffer();
   processHandle.stdout.on('data', (chunk: Buffer) => {
-    stdoutBuffer += chunk.toString('utf8');
-    const lines = stdoutBuffer.split('\n');
-    stdoutBuffer = lines.pop() ?? '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-
+    stdoutBuffer.append(chunk, (line) => {
       try {
-        const event = JSON.parse(trimmed) as NativeCaptureEvent;
+        const event = JSON.parse(line) as NativeCaptureEvent;
         signal(event);
       } catch {
         rejectAll(new Error('Native audio capture emitted invalid JSON event'));
       }
-    }
+    });
   });
 
   let stderrBuffer = '';
@@ -141,17 +132,50 @@ function createController(processHandle: ActiveCapture['process']): NativeCaptur
   };
 }
 
+function spawnBinary() {
+  const binaryPath = resolveNativeBinaryPath();
+  return spawn(binaryPath, [], { stdio: 'pipe', windowsHide: true });
+}
+
+async function runOneShot<TSuccess extends NativeCaptureEvent['type']>(
+  command: NativeCaptureCommand,
+  successType: TSuccess,
+): Promise<Extract<NativeCaptureEvent, { type: TSuccess }>> {
+  const processHandle = spawnBinary();
+  const controller = createController(processHandle);
+
+  try {
+    controller.send(command);
+    const result = (await Promise.race([
+      controller.waitFor(successType, ONE_SHOT_TIMEOUT_MS),
+      controller.waitFor('error', ONE_SHOT_TIMEOUT_MS),
+    ])) as NativeCaptureEvent;
+
+    if (result.type === 'error') {
+      throw toCaptureError(result);
+    }
+
+    return result as Extract<NativeCaptureEvent, { type: TSuccess }>;
+  } catch (error) {
+    throw toSpawnError(error);
+  } finally {
+    controller.close();
+    processHandle.kill('SIGTERM');
+  }
+}
+
 function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, { type: 'start' }> {
   return {
     type: 'start',
     outputPath: input.outputPath,
     format: input.format ?? 'opus',
     mode: 'dual',
-    sampleRateHz: 16_000,
+    sampleRateHz: input.sampleRateHz ?? 16_000,
     channels: input.channels ?? 1,
     micDeviceId: input.micDeviceId ?? null,
     speakerDeviceId: input.speakerDeviceId ?? null,
     speakerGain: input.speakerGain ?? null,
+    audioChunkConfig: input.audioChunkConfig ?? null,
   };
 }
 
@@ -180,7 +204,7 @@ function toPermissionsStatus(event: NativeCapturePermissionsStatusEvent): AudioP
   };
 }
 
-function toStartError(event: NativeCaptureErrorEvent): Error {
+function toCaptureError(event: NativeCaptureErrorEvent): Error {
   return new Error(`Native audio capture failed (${event.code}): ${event.message}`);
 }
 
@@ -208,12 +232,7 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
     platform,
 
     async start(input): Promise<ActiveCapture> {
-      const binaryPath = resolveNativeBinaryPath();
-      const processHandle = spawn(binaryPath, [], {
-        stdio: 'pipe',
-        windowsHide: true,
-      });
-
+      const processHandle = spawnBinary();
       const controller = createController(processHandle);
       let startedOrError:
         | Extract<NativeCaptureEvent, { type: 'started' }>
@@ -234,7 +253,7 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
       if (startedOrError.type === 'error') {
         controller.close();
         processHandle.kill('SIGTERM');
-        throw toStartError(startedOrError);
+        throw toCaptureError(startedOrError);
       }
 
       const started = startedOrError;
@@ -259,68 +278,20 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
       capture.process.kill('SIGTERM');
 
       if (stoppedOrError.type === 'error') {
-        throw toStartError(stoppedOrError);
+        throw toCaptureError(stoppedOrError);
       }
 
       return toStopResult(stoppedOrError);
     },
 
     async listDevices(): Promise<AudioDeviceList> {
-      const binaryPath = resolveNativeBinaryPath();
-      const processHandle = spawn(binaryPath, [], {
-        stdio: 'pipe',
-        windowsHide: true,
-      });
-
-      const controller = createController(processHandle);
-
-      try {
-        controller.send({ type: 'listDevices' });
-        const deviceListOrError = await Promise.race([
-          controller.waitFor('deviceList', LIST_DEVICES_TIMEOUT_MS),
-          controller.waitFor('error', LIST_DEVICES_TIMEOUT_MS),
-        ]);
-
-        if (deviceListOrError.type === 'error') {
-          throw toStartError(deviceListOrError);
-        }
-
-        return toDeviceList(deviceListOrError);
-      } catch (error) {
-        throw toSpawnError(error);
-      } finally {
-        controller.close();
-        processHandle.kill('SIGTERM');
-      }
+      const event = await runOneShot({ type: 'listDevices' }, 'deviceList');
+      return toDeviceList(event);
     },
 
     async checkPermissions(): Promise<AudioPermissionsStatus> {
-      const binaryPath = resolveNativeBinaryPath();
-      const processHandle = spawn(binaryPath, [], {
-        stdio: 'pipe',
-        windowsHide: true,
-      });
-
-      const controller = createController(processHandle);
-
-      try {
-        controller.send({ type: 'checkPermissions' });
-        const permissionsOrError = await Promise.race([
-          controller.waitFor('permissionsStatus', CHECK_PERMISSIONS_TIMEOUT_MS),
-          controller.waitFor('error', CHECK_PERMISSIONS_TIMEOUT_MS),
-        ]);
-
-        if (permissionsOrError.type === 'error') {
-          throw toStartError(permissionsOrError);
-        }
-
-        return toPermissionsStatus(permissionsOrError);
-      } catch (error) {
-        throw toSpawnError(error);
-      } finally {
-        controller.close();
-        processHandle.kill('SIGTERM');
-      }
+      const event = await runOneShot({ type: 'checkPermissions' }, 'permissionsStatus');
+      return toPermissionsStatus(event);
     },
   };
 }

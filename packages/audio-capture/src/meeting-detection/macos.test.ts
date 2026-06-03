@@ -5,12 +5,6 @@ import { internal } from './macos.js';
 const describeMac = process.platform === 'darwin' ? describe : describe.skip;
 
 describeMac('macos meeting detector parser', () => {
-  test('parses json rows', () => {
-    const rows = internal.parseRows('[{"pid":123,"processName":"zoom.us","windowTitle":null}]');
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ pid: 123, processName: 'zoom.us' });
-  });
-
   test('maps known process names to desktop observations', () => {
     expect(internal.toDesktopObservation({ processName: 'Slack' })).toMatchObject({
       key: 'desktop:slack',

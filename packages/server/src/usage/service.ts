@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lt } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 
 import {
   USAGE_SOURCES,
@@ -10,7 +10,7 @@ import {
 } from '@stitch/shared/usage/types';
 
 import { getDb } from '@/db/client.js';
-import { llmUsageEvents, sessions } from '@/db/schema.js';
+import { llmUsageEvents, recordingAnalyses, sessions } from '@/db/schema.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';
@@ -242,7 +242,14 @@ async function getEarliestUsageTimestamp(): Promise<number | null> {
     .orderBy(asc(llmUsageEvents.createdAt))
     .limit(1);
 
-  const timestamps = [firstEvent[0]?.createdAt].filter(
+  const firstRecordingAnalysis = await db
+    .select({ createdAt: recordingAnalyses.startedAt })
+    .from(recordingAnalyses)
+    .where(isNotNull(recordingAnalyses.startedAt))
+    .orderBy(asc(recordingAnalyses.startedAt))
+    .limit(1);
+
+  const timestamps = [firstEvent[0]?.createdAt, firstRecordingAnalysis[0]?.createdAt].filter(
     (value): value is number => typeof value === 'number',
   );
 
@@ -352,6 +359,7 @@ export async function getUsageDashboard(
       usage: llmUsageEvents.usage,
       providerId: llmUsageEvents.providerId,
       modelId: llmUsageEvents.modelId,
+      metadata: llmUsageEvents.metadata,
       source: llmUsageEvents.source,
       sessionType: sessions.type,
     })
@@ -361,6 +369,7 @@ export async function getUsageDashboard(
 
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
+  const recordingAnalysisCostByRecordingId = new Map<string, number>();
 
   const addUsageRow = (args: {
     createdAt: number;
@@ -404,11 +413,63 @@ export async function getUsageDashboard(
     usedProviderIds.add(row.providerId);
     usedModelKeys.add(`${row.providerId}::${row.modelId}`);
 
+    if (row.source === 'recording_analysis') {
+      const recordingId = row.metadata?.recordingId;
+      if (typeof recordingId === 'string') {
+        recordingAnalysisCostByRecordingId.set(
+          recordingId,
+          (recordingAnalysisCostByRecordingId.get(recordingId) ?? 0) + (row.costUsd ?? 0),
+        );
+      }
+    }
+
     addUsageRow({
       createdAt: row.createdAt,
       source: normalizeEventSource(row.source, row.sessionType ?? null),
       usage: row.usage,
       costUsd: row.costUsd,
+    });
+  }
+
+  const transcriptionConditions = [
+    gte(recordingAnalyses.startedAt, window.from),
+    lt(recordingAnalyses.startedAt, window.to),
+    isNotNull(recordingAnalyses.transcriptionProviderId),
+    isNotNull(recordingAnalyses.transcriptionModelId),
+  ];
+  if (input.providerId) {
+    transcriptionConditions.push(eq(recordingAnalyses.transcriptionProviderId, input.providerId));
+  }
+  if (input.modelId) {
+    transcriptionConditions.push(eq(recordingAnalyses.transcriptionModelId, input.modelId));
+  }
+
+  const transcriptionRows = await db
+    .select({
+      recordingId: recordingAnalyses.recordingId,
+      createdAt: recordingAnalyses.startedAt,
+      providerId: recordingAnalyses.transcriptionProviderId,
+      modelId: recordingAnalyses.transcriptionModelId,
+      costUsd: recordingAnalyses.costUsd,
+    })
+    .from(recordingAnalyses)
+    .where(and(...transcriptionConditions));
+
+  for (const row of transcriptionRows) {
+    if (!row.createdAt || !row.providerId || !row.modelId) continue;
+
+    usedProviderIds.add(row.providerId);
+    usedModelKeys.add(`${row.providerId}::${row.modelId}`);
+
+    const analysisCost = recordingAnalysisCostByRecordingId.get(row.recordingId) ?? 0;
+    const transcriptionCost = Math.max(0, row.costUsd - analysisCost);
+    if (transcriptionCost === 0) continue;
+
+    addUsageRow({
+      createdAt: row.createdAt,
+      source: 'transcription',
+      usage: null,
+      costUsd: transcriptionCost,
     });
   }
 

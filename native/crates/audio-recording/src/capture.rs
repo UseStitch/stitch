@@ -8,8 +8,10 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
 
 use audio_core::error::NativeError;
-use audio_core::output::{emit, now_ms};
-use audio_core::protocol::{CaptureMode, CaptureStart, Event};
+use audio_core::output::{emit, emit_audio_chunk, now_ms};
+use audio_core::protocol::{
+  AudioChunkEncoding, AudioChunkSource, CaptureMode, CaptureStart, Event,
+};
 
 use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
@@ -17,15 +19,12 @@ use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 
 const INPUT_QUEUE_CAPACITY: usize = 128;
 const UNPAIRED_FLUSH_TICKS: u32 = 5;
-const DUAL_MIC_GAIN: f32 = 1.0;
+const PROGRESS_INTERVAL: Duration = Duration::from_millis(1000);
+const MIC_CAPTURE_RECV_TIMEOUT: Duration = Duration::from_millis(100);
+const MIC_SOURCE_POLL_INTERVAL: Duration = Duration::from_millis(50);
+const DUAL_MIXER_RECV_TIMEOUT: Duration = Duration::from_millis(20);
 const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
 const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
-
-const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
-
-fn is_tap_device(name: &str) -> bool {
-  name.contains(TAP_DEVICE_NAME)
-}
 
 fn device_name(device: &cpal::Device) -> Option<String> {
   crate::device::device_display_name(device)
@@ -41,8 +40,8 @@ fn choose_input_device(
       NativeError::StreamFailed(format!("failed to enumerate input devices: {error}"))
     })?;
 
-    if let Some(device) =
-      devices.find(|d| device_name(d).as_deref() == Some(name) && !is_tap_device(name))
+    if let Some(device) = devices
+      .find(|d| device_name(d).as_deref() == Some(name) && !crate::device::is_tap_device(name))
     {
       return Ok(device);
     }
@@ -56,7 +55,7 @@ fn choose_input_device(
 
   // Try the default input device (if it's not our tap)
   if let Some(device) = host.default_input_device() {
-    if !device_name(&device).map_or(false, |n| is_tap_device(&n)) {
+    if !device_name(&device).map_or(false, |n| crate::device::is_tap_device(&n)) {
       return Ok(device);
     }
   }
@@ -67,7 +66,7 @@ fn choose_input_device(
   })?;
 
   devices
-    .find(|d| !device_name(d).map_or(false, |n| is_tap_device(&n)))
+    .find(|d| !device_name(d).map_or(false, |n| crate::device::is_tap_device(&n)))
     .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
 }
 
@@ -164,10 +163,6 @@ where
     })
 }
 
-fn write_samples(writer: &mut OggOpusWriter, samples: &[f32]) -> Result<(), NativeError> {
-  writer.write_samples(samples)
-}
-
 fn open_mic_stream(
   device: &cpal::Device,
   tx: SyncSender<Vec<f32>>,
@@ -189,97 +184,31 @@ fn open_mic_stream(
 
   let stream_config = default_config.config();
   let rate = Some(target_sample_rate_hz);
+  macro_rules! build_stream {
+    ($sample:ty, $convert:expr) => {
+      build_input_stream::<$sample>(
+        device,
+        &stream_config,
+        tx,
+        stop_flag,
+        rate,
+        stream_error_flag,
+        $convert,
+      )?
+    };
+  }
+
   let stream = match default_config.sample_format() {
-    SampleFormat::I8 => build_input_stream::<i8>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i8::MAX as f32,
-    )?,
-    SampleFormat::I16 => build_input_stream::<i16>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i16::MAX as f32,
-    )?,
-    SampleFormat::I32 => build_input_stream::<i32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i32::MAX as f32,
-    )?,
-    SampleFormat::I64 => build_input_stream::<i64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32 / i64::MAX as f32,
-    )?,
-    SampleFormat::U8 => build_input_stream::<u8>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U16 => build_input_stream::<u16>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U32 => build_input_stream::<u32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::U64 => build_input_stream::<u64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0,
-    )?,
-    SampleFormat::F32 => build_input_stream::<f32>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s,
-    )?,
-    SampleFormat::F64 => build_input_stream::<f64>(
-      &device,
-      &stream_config,
-      tx,
-      stop_flag,
-      rate,
-      stream_error_flag,
-      |s| s as f32,
-    )?,
+    SampleFormat::I8 => build_stream!(i8, |s| s as f32 / i8::MAX as f32),
+    SampleFormat::I16 => build_stream!(i16, |s| s as f32 / i16::MAX as f32),
+    SampleFormat::I32 => build_stream!(i32, |s| s as f32 / i32::MAX as f32),
+    SampleFormat::I64 => build_stream!(i64, |s| s as f32 / i64::MAX as f32),
+    SampleFormat::U8 => build_stream!(u8, |s| (s as f32 / u8::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U16 => build_stream!(u16, |s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U32 => build_stream!(u32, |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::U64 => build_stream!(u64, |s| (s as f32 / u64::MAX as f32) * 2.0 - 1.0),
+    SampleFormat::F32 => build_stream!(f32, |s| s),
+    SampleFormat::F64 => build_stream!(f64, |s| s as f32),
     other => {
       return Err(NativeError::StreamFailed(format!(
         "unsupported microphone sample format: {other:?}"
@@ -294,13 +223,119 @@ fn open_mic_stream(
   Ok((stream, warnings))
 }
 
+struct MicStreamRuntime {
+  host: cpal::Host,
+  tx: SyncSender<Vec<f32>>,
+  stop_flag: Arc<AtomicBool>,
+  sample_rate_hz: u32,
+  stream_error_flag: Arc<AtomicBool>,
+  active_stream: Option<cpal::Stream>,
+  reconnect_attempts: u32,
+}
+
+impl MicStreamRuntime {
+  fn new(tx: SyncSender<Vec<f32>>, stop_flag: Arc<AtomicBool>, sample_rate_hz: u32) -> Self {
+    Self {
+      host: cpal::default_host(),
+      tx,
+      stop_flag,
+      sample_rate_hz,
+      stream_error_flag: Arc::new(AtomicBool::new(false)),
+      active_stream: None,
+      reconnect_attempts: 0,
+    }
+  }
+
+  fn open_initial(&mut self, preferred_device: Option<&str>) -> Result<Vec<String>, NativeError> {
+    let device = choose_input_device(&self.host, preferred_device)?;
+    let (stream, warnings) = open_mic_stream(
+      &device,
+      self.tx.clone(),
+      self.stop_flag.clone(),
+      self.sample_rate_hz,
+      self.stream_error_flag.clone(),
+    )?;
+    self.active_stream = Some(stream);
+    Ok(warnings)
+  }
+
+  fn reset_reconnect_attempts(&mut self) {
+    self.reconnect_attempts = 0;
+  }
+
+  fn has_stream_error(&self) -> bool {
+    self.stream_error_flag.load(Ordering::Relaxed)
+  }
+
+  fn reconnect_if_needed(&mut self, warnings: &mut Vec<String>) -> Result<bool, NativeError> {
+    if !self.stream_error_flag.load(Ordering::Relaxed) {
+      return Ok(false);
+    }
+
+    self.active_stream.take();
+    self.stream_error_flag.store(false, Ordering::Relaxed);
+
+    self.reconnect_attempts += 1;
+    if self.reconnect_attempts > MIC_MAX_RECONNECT_ATTEMPTS {
+      warnings.push("mic_reconnect_attempts_exhausted".to_string());
+      let _ = emit(Event::Warning {
+        code: "mic_reconnect_failed".to_string(),
+        message: "Microphone reconnection failed after maximum attempts".to_string(),
+      });
+      return Ok(true);
+    }
+
+    let _ = emit(Event::Warning {
+      code: "mic_reconnecting".to_string(),
+      message: format!(
+        "Microphone stream error detected, reconnection attempt {}/{MIC_MAX_RECONNECT_ATTEMPTS}",
+        self.reconnect_attempts
+      ),
+    });
+
+    thread::sleep(MIC_RECONNECT_DELAY);
+
+    if self.stop_flag.load(Ordering::Relaxed) {
+      return Ok(true);
+    }
+
+    let new_device = match choose_input_device(&self.host, None) {
+      Ok(device) => device,
+      Err(_) => return Ok(false),
+    };
+
+    let Ok((new_stream, new_warnings)) = open_mic_stream(
+      &new_device,
+      self.tx.clone(),
+      self.stop_flag.clone(),
+      self.sample_rate_hz,
+      self.stream_error_flag.clone(),
+    ) else {
+      return Ok(false);
+    };
+
+    self.active_stream = Some(new_stream);
+    warnings.extend(new_warnings);
+
+    let new_name = device_name(&new_device).unwrap_or_default();
+    warnings.push(format!("mic_reconnected_to_{new_name}"));
+
+    let _ = emit(Event::DeviceChanged {
+      kind: "input",
+      device_name: Some(new_name),
+    });
+
+    Ok(false)
+  }
+}
+
 pub(crate) fn start_progress_emitter(
   started_at: u64,
   stop: Arc<AtomicBool>,
 ) -> thread::JoinHandle<()> {
   thread::spawn(move || {
     while !stop.load(Ordering::Relaxed) {
-      thread::sleep(Duration::from_millis(1000));
+      thread::sleep(PROGRESS_INTERVAL);
       if stop.load(Ordering::Relaxed) {
         break;
       }
@@ -324,7 +359,6 @@ fn spawn_mic_capture(
   let builder = thread::Builder::new().name("stitch-audio-mic-capture".to_string());
   builder
     .spawn(move || {
-      let host = cpal::default_host();
       let mut warnings = Vec::new();
 
       if requested_channels != 1 {
@@ -336,92 +370,27 @@ fn spawn_mic_capture(
       let (tx, rx): (SyncSender<Vec<f32>>, Receiver<Vec<f32>>) =
         mpsc::sync_channel(INPUT_QUEUE_CAPACITY);
 
-      let stream_error_flag = Arc::new(AtomicBool::new(false));
-
-      let device = choose_input_device(&host, mic_device_id.as_deref())?;
-      let (initial_stream, open_warnings) = open_mic_stream(
-        &device,
-        tx.clone(),
-        stop_flag.clone(),
-        sample_rate_hz,
-        stream_error_flag.clone(),
-      )?;
+      let mut mic_stream = MicStreamRuntime::new(tx, stop_flag.clone(), sample_rate_hz);
+      let open_warnings = mic_stream.open_initial(mic_device_id.as_deref())?;
       warnings.extend(open_warnings);
 
-      let mut active_stream: Option<cpal::Stream> = Some(initial_stream);
-      let mut reconnect_attempts = 0u32;
-
       while !stop_flag.load(Ordering::Relaxed) {
-        if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
-          write_samples(&mut writer, &samples)?;
-          reconnect_attempts = 0;
+        if let Ok(samples) = rx.recv_timeout(MIC_CAPTURE_RECV_TIMEOUT) {
+          writer.write_samples(&samples)?;
+          mic_stream.reset_reconnect_attempts();
           continue;
         }
 
-        if !stream_error_flag.load(Ordering::Relaxed) {
-          continue;
-        }
-
-        // Stream errored — attempt reconnect
-        active_stream.take();
-        stream_error_flag.store(false, Ordering::Relaxed);
-
-        reconnect_attempts += 1;
-        if reconnect_attempts > MIC_MAX_RECONNECT_ATTEMPTS {
-          warnings.push("mic_reconnect_attempts_exhausted".to_string());
-          let _ = emit(Event::Warning {
-            code: "mic_reconnect_failed".to_string(),
-            message: "Microphone reconnection failed after maximum attempts".to_string(),
-          });
+        if mic_stream.reconnect_if_needed(&mut warnings)? {
           break;
-        }
-
-        let _ = emit(Event::Warning {
-          code: "mic_reconnecting".to_string(),
-          message: format!(
-            "Microphone stream error detected, reconnection attempt {reconnect_attempts}/{MIC_MAX_RECONNECT_ATTEMPTS}"
-          ),
-        });
-
-        thread::sleep(MIC_RECONNECT_DELAY);
-
-        if stop_flag.load(Ordering::Relaxed) {
-          break;
-        }
-
-        let new_device = match choose_input_device(&host, None) {
-          Ok(d) => d,
-          Err(_) => continue,
-        };
-
-        match open_mic_stream(
-          &new_device,
-          tx.clone(),
-          stop_flag.clone(),
-          sample_rate_hz,
-          stream_error_flag.clone(),
-        ) {
-          Ok((new_stream, new_warnings)) => {
-            active_stream = Some(new_stream);
-            warnings.extend(new_warnings);
-
-            let new_name = device_name(&new_device).unwrap_or_default();
-            warnings.push(format!("mic_reconnected_to_{new_name}"));
-
-            let _ = emit(Event::DeviceChanged {
-              kind: "input",
-              device_name: Some(new_name),
-            });
-          }
-          Err(_) => continue,
         }
       }
 
       while let Ok(samples) = rx.try_recv() {
-        write_samples(&mut writer, &samples)?;
+        writer.write_samples(&samples)?;
       }
 
-      drop(active_stream);
+      drop(mic_stream);
       writer.finalize()?;
 
       Ok(warnings)
@@ -448,93 +417,30 @@ fn spawn_mic_source(
   let builder = thread::Builder::new().name("stitch-audio-mic-source".to_string());
   let worker = builder
     .spawn(move || {
-      let host = cpal::default_host();
       let mut warnings = Vec::new();
 
       if requested_channels != 1 {
         warnings.push("channels_forced_to_mono".to_string());
       }
 
-      let stream_error_flag = Arc::new(AtomicBool::new(false));
-
-      let device = choose_input_device(&host, mic_device_id.as_deref())?;
-      let (initial_stream, open_warnings) = open_mic_stream(
-        &device,
-        tx.clone(),
-        stop_flag.clone(),
-        desired_rate,
-        stream_error_flag.clone(),
-      )?;
+      let mut mic_stream = MicStreamRuntime::new(tx, stop_flag.clone(), desired_rate);
+      let open_warnings = mic_stream.open_initial(mic_device_id.as_deref())?;
       warnings.extend(open_warnings);
 
-      let mut active_stream = Some(initial_stream);
-      let mut reconnect_attempts = 0u32;
-
       while !stop_flag.load(Ordering::Relaxed) {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(MIC_SOURCE_POLL_INTERVAL);
 
-        if !stream_error_flag.load(Ordering::Relaxed) {
-          reconnect_attempts = 0;
-          continue;
-        }
-
-        // Stream errored — attempt reconnect
-        active_stream.take();
-        stream_error_flag.store(false, Ordering::Relaxed);
-
-        reconnect_attempts += 1;
-        if reconnect_attempts > MIC_MAX_RECONNECT_ATTEMPTS {
-          warnings.push("mic_reconnect_attempts_exhausted".to_string());
-          let _ = emit(Event::Warning {
-            code: "mic_reconnect_failed".to_string(),
-            message: "Microphone reconnection failed after maximum attempts".to_string(),
-          });
+        let had_stream_error = mic_stream.has_stream_error();
+        if mic_stream.reconnect_if_needed(&mut warnings)? {
           break;
         }
 
-        let _ = emit(Event::Warning {
-          code: "mic_reconnecting".to_string(),
-          message: format!(
-            "Microphone stream error detected, reconnection attempt {reconnect_attempts}/{MIC_MAX_RECONNECT_ATTEMPTS}"
-          ),
-        });
-
-        thread::sleep(MIC_RECONNECT_DELAY);
-
-        if stop_flag.load(Ordering::Relaxed) {
-          break;
-        }
-
-        // Try to reconnect — fall back to system default
-        let new_device = match choose_input_device(&host, None) {
-          Ok(d) => d,
-          Err(_) => continue,
-        };
-
-        match open_mic_stream(
-          &new_device,
-          tx.clone(),
-          stop_flag.clone(),
-          desired_rate,
-          stream_error_flag.clone(),
-        ) {
-          Ok((new_stream, new_warnings)) => {
-            active_stream = Some(new_stream);
-            warnings.extend(new_warnings);
-
-            let new_name = device_name(&new_device).unwrap_or_default();
-            warnings.push(format!("mic_reconnected_to_{new_name}"));
-
-            let _ = emit(Event::DeviceChanged {
-              kind: "input",
-              device_name: Some(new_name),
-            });
-          }
-          Err(_) => continue,
+        if !had_stream_error {
+          mic_stream.reset_reconnect_attempts();
         }
       }
 
-      drop(active_stream);
+      drop(mic_stream);
       Ok(warnings)
     })
     .map_err(|error| {
@@ -542,6 +448,84 @@ fn spawn_mic_source(
     })?;
 
   Ok((rx, worker))
+}
+
+fn append_audio_chunk(
+  buffer: &mut Vec<f32>,
+  source: AudioChunkSource,
+  chunk: Vec<f32>,
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+) {
+  emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
+  buffer.extend_from_slice(&chunk);
+}
+
+fn drain_available_audio_chunks(
+  rx: &Receiver<Vec<f32>>,
+  buffer: &mut Vec<f32>,
+  source: AudioChunkSource,
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+) {
+  while let Ok(chunk) = rx.try_recv() {
+    append_audio_chunk(buffer, source, chunk, sample_rate_hz, encoding);
+  }
+}
+
+fn next_mix_len(
+  mic_len: usize,
+  speaker_len: usize,
+  mic_wait_ticks: &mut u32,
+  speaker_wait_ticks: &mut u32,
+  stop_requested: bool,
+) -> usize {
+  if mic_len > 0 && speaker_len > 0 {
+    *mic_wait_ticks = 0;
+    *speaker_wait_ticks = 0;
+    return mic_len.min(speaker_len);
+  }
+
+  if mic_len > 0 {
+    *mic_wait_ticks = mic_wait_ticks.saturating_add(1);
+    if *mic_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_requested {
+      *mic_wait_ticks = 0;
+      return mic_len;
+    }
+  }
+
+  if speaker_len > 0 {
+    *speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
+    if *speaker_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_requested {
+      *speaker_wait_ticks = 0;
+      return speaker_len;
+    }
+  }
+
+  0
+}
+
+fn mix_dual_samples(
+  mic_buf: &[f32],
+  speaker_buf: &[f32],
+  mix_len: usize,
+  speaker_gain: f32,
+) -> Vec<f32> {
+  let mut out = Vec::with_capacity(mix_len);
+  for i in 0..mix_len {
+    let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
+    let speaker_val = speaker_buf.get(i).copied().unwrap_or(0.0);
+    out.push((mic_val + speaker_val * speaker_gain).clamp(-1.0, 1.0));
+  }
+  out
+}
+
+fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
+  if buffer.len() <= count {
+    buffer.clear();
+  } else {
+    buffer.drain(..count);
+  }
 }
 
 fn write_dual_realtime_output(
@@ -552,6 +536,11 @@ fn write_dual_realtime_output(
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
 
   let (mic_rx, mic_worker) = spawn_mic_source(start, stop_flag.clone())?;
   let (speaker_rx, speaker_worker) =
@@ -570,8 +559,14 @@ fn write_dual_realtime_output(
 
       loop {
         use std::sync::mpsc::RecvTimeoutError;
-        match mic_rx.recv_timeout(Duration::from_millis(20)) {
-          Ok(chunk) => mic_buf.extend_from_slice(&chunk),
+        match mic_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
+          Ok(chunk) => append_audio_chunk(
+            &mut mic_buf,
+            AudioChunkSource::Mic,
+            chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          ),
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
               warnings.push("mic_source_disconnected_early".to_string());
@@ -580,60 +575,35 @@ fn write_dual_realtime_output(
           }
           Err(RecvTimeoutError::Timeout) => {}
         }
-        while let Ok(chunk) = mic_rx.try_recv() {
-          mic_buf.extend_from_slice(&chunk);
-        }
-        while let Ok(chunk) = speaker_rx.try_recv() {
-          speaker_buf.extend_from_slice(&chunk);
-        }
 
-        let mix_len = if !mic_buf.is_empty() && !speaker_buf.is_empty() {
-          mic_buf.len().min(speaker_buf.len())
-        } else if !mic_buf.is_empty() && speaker_buf.is_empty() {
-          mic_wait_ticks = mic_wait_ticks.saturating_add(1);
-          if mic_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_flag.load(Ordering::Relaxed) {
-            mic_wait_ticks = 0;
-            mic_buf.len()
-          } else {
-            0
-          }
-        } else if !speaker_buf.is_empty() && mic_buf.is_empty() {
-          speaker_wait_ticks = speaker_wait_ticks.saturating_add(1);
-          if speaker_wait_ticks >= UNPAIRED_FLUSH_TICKS || stop_flag.load(Ordering::Relaxed) {
-            speaker_wait_ticks = 0;
-            speaker_buf.len()
-          } else {
-            0
-          }
-        } else {
-          0
-        };
+        drain_available_audio_chunks(
+          &mic_rx,
+          &mut mic_buf,
+          AudioChunkSource::Mic,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+        drain_available_audio_chunks(
+          &speaker_rx,
+          &mut speaker_buf,
+          AudioChunkSource::Speaker,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+
+        let mix_len = next_mix_len(
+          mic_buf.len(),
+          speaker_buf.len(),
+          &mut mic_wait_ticks,
+          &mut speaker_wait_ticks,
+          stop_flag.load(Ordering::Relaxed),
+        );
 
         if mix_len > 0 {
-          if !mic_buf.is_empty() && !speaker_buf.is_empty() {
-            mic_wait_ticks = 0;
-            speaker_wait_ticks = 0;
-          }
-
-          let mut out = Vec::with_capacity(mix_len);
-          for i in 0..mix_len {
-            let mic_val = mic_buf.get(i).copied().unwrap_or(0.0);
-            let spk_val = speaker_buf.get(i).copied().unwrap_or(0.0);
-            let mixed = (mic_val * DUAL_MIC_GAIN + spk_val * speaker_gain).clamp(-1.0, 1.0);
-            out.push(mixed);
-          }
-          write_samples(&mut writer, &out)?;
-
-          if mic_buf.len() <= mix_len {
-            mic_buf.clear();
-          } else {
-            mic_buf.drain(..mix_len);
-          }
-          if speaker_buf.len() <= mix_len {
-            speaker_buf.clear();
-          } else {
-            speaker_buf.drain(..mix_len);
-          }
+          let out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
+          writer.write_samples(&out)?;
+          drain_mixed_samples(&mut mic_buf, mix_len);
+          drain_mixed_samples(&mut speaker_buf, mix_len);
         }
 
         if stop_flag.load(Ordering::Relaxed) && mic_buf.is_empty() && speaker_buf.is_empty() {
@@ -658,38 +628,6 @@ fn write_dual_realtime_output(
     .map_err(|error| NativeError::Internal(format!("failed to spawn dual mixer thread: {error}")))
 }
 
-#[cfg(test)]
-fn weighted_f32_chunk(chunk: &[f32], weight: f32) -> Vec<f32> {
-  chunk
-    .iter()
-    .map(|s| (s * weight).clamp(-1.0, 1.0))
-    .collect()
-}
-
-#[cfg(test)]
-fn maybe_take_unpaired_pcm(
-  queue: &mut std::collections::VecDeque<Vec<f32>>,
-  wait_ticks: &mut u32,
-  stop_requested: bool,
-  weight: f32,
-  warning_code: &'static str,
-  warned: &mut bool,
-  warnings: &mut Vec<String>,
-) -> Option<Vec<f32>> {
-  if *wait_ticks < UNPAIRED_FLUSH_TICKS && !stop_requested {
-    return None;
-  }
-
-  let chunk = queue.pop_front()?;
-  if !*warned {
-    warnings.push(warning_code.to_string());
-    *warned = true;
-  }
-
-  *wait_ticks = 0;
-  Some(weighted_f32_chunk(&chunk, weight))
-}
-
 pub(crate) fn spawn_capture_worker(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
@@ -708,58 +646,59 @@ pub(crate) fn spawn_capture_worker(
 
 #[cfg(test)]
 mod tests {
-  use std::collections::VecDeque;
-
-  use super::{UNPAIRED_FLUSH_TICKS, maybe_take_unpaired_pcm, weighted_f32_chunk};
+  use super::{UNPAIRED_FLUSH_TICKS, drain_mixed_samples, mix_dual_samples, next_mix_len};
 
   #[test]
-  fn weighted_f32_chunk_keeps_signal_for_unpaired_streams() {
-    let samples = weighted_f32_chunk(&[0.5, -0.5, 0.25], 0.6);
-    assert_eq!(samples.len(), 3);
-    assert!(samples.iter().any(|s| *s != 0.0));
+  fn next_mix_len_pairs_available_streams_and_resets_waits() {
+    let mut mic_wait_ticks = 3;
+    let mut speaker_wait_ticks = 2;
+
+    let mix_len = next_mix_len(4, 6, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
+
+    assert_eq!(mix_len, 4);
+    assert_eq!(mic_wait_ticks, 0);
+    assert_eq!(speaker_wait_ticks, 0);
   }
 
   #[test]
-  fn maybe_take_unpaired_pcm_flushes_after_wait_threshold() {
-    let mut queue = VecDeque::from([vec![0.5, -0.5]]);
-    let mut wait_ticks = UNPAIRED_FLUSH_TICKS;
-    let mut warnings = Vec::new();
-    let mut warned = false;
+  fn next_mix_len_waits_before_flushing_unpaired_mic() {
+    let mut mic_wait_ticks = UNPAIRED_FLUSH_TICKS - 2;
+    let mut speaker_wait_ticks = 0;
 
-    let samples = maybe_take_unpaired_pcm(
-      &mut queue,
-      &mut wait_ticks,
-      false,
-      0.6,
-      "dual_fallback_mic_only_chunks",
-      &mut warned,
-      &mut warnings,
-    );
+    let first = next_mix_len(3, 0, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
+    let second = next_mix_len(3, 0, &mut mic_wait_ticks, &mut speaker_wait_ticks, false);
 
-    assert!(samples.is_some());
-    assert!(queue.is_empty());
-    assert_eq!(warnings, vec!["dual_fallback_mic_only_chunks"]);
-    assert!(warned);
+    assert_eq!(first, 0);
+    assert_eq!(second, 3);
+    assert_eq!(mic_wait_ticks, 0);
+    assert_eq!(speaker_wait_ticks, 0);
   }
 
   #[test]
-  fn maybe_take_unpaired_pcm_flushes_on_stop_even_without_threshold() {
-    let mut queue = VecDeque::from([vec![0.5]]);
-    let mut wait_ticks = 0;
-    let mut warnings = Vec::new();
-    let mut warned = false;
+  fn next_mix_len_flushes_unpaired_speaker_on_stop() {
+    let mut mic_wait_ticks = 0;
+    let mut speaker_wait_ticks = 0;
 
-    let samples = maybe_take_unpaired_pcm(
-      &mut queue,
-      &mut wait_ticks,
-      true,
-      0.6,
-      "dual_fallback_mic_only_chunks",
-      &mut warned,
-      &mut warnings,
-    );
+    let mix_len = next_mix_len(0, 2, &mut mic_wait_ticks, &mut speaker_wait_ticks, true);
 
-    assert!(samples.is_some());
-    assert!(queue.is_empty());
+    assert_eq!(mix_len, 2);
+    assert_eq!(speaker_wait_ticks, 0);
+  }
+
+  #[test]
+  fn mix_dual_samples_uses_missing_stream_as_silence_and_clamps() {
+    let mixed = mix_dual_samples(&[0.75], &[0.5, -0.5], 2, 1.0);
+
+    assert_eq!(mixed, vec![1.0, -0.5]);
+  }
+
+  #[test]
+  fn drain_mixed_samples_removes_consumed_prefix() {
+    let mut buffer = vec![1.0, 2.0, 3.0];
+    drain_mixed_samples(&mut buffer, 2);
+    assert_eq!(buffer, vec![3.0]);
+
+    drain_mixed_samples(&mut buffer, 2);
+    assert!(buffer.is_empty());
   }
 }

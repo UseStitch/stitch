@@ -1,7 +1,6 @@
 import { Output, generateText } from 'ai';
 import { and, eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
-import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { createRecordingAnalysisId, type PrefixedString } from '@stitch/shared/id';
@@ -16,7 +15,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { recordingAnalyses, recordings } from '@/db/schema.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
@@ -24,21 +23,13 @@ import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import { listEnabledProviderAudioModels } from '@/llm/provider/service.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
-import { addUsage, ZERO_USAGE } from '@/utils/usage.js';
+import { ZERO_USAGE } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'recordings-analysis' });
-
-const TRANSCRIPTION_PROMPT_TEMPLATE = readFileSync(
-  resolveRuntimeAssetPath(
-    new URL('../meeting/transcription-system-prompt.md', import.meta.url),
-    'meeting/transcription-system-prompt.md',
-  ),
-  'utf8',
-).trim();
+const NOT_SPECIFIED_TEXT = 'not specified';
 
 const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   resolveRuntimeAssetPath(
@@ -48,40 +39,20 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   'utf8',
 ).trim();
 
-const transcriptEntrySchema = z.object({
-  speaker: z.string().min(1),
-  content: z.string().min(1),
-});
-
-const transcriptionOutputSchema = z.object({
-  transcript: z.array(transcriptEntrySchema),
-});
-
-const topicSchema = z.object({
-  name: z.string().min(1),
-  startTurn: z.number().int().min(0),
-  endTurn: z.number().int().min(0),
-});
-
 const actionItemSchema = z.object({
   task: z.string().min(1),
-  assignee: z.string().min(1).nullable(),
   dueDate: z.string().min(1).nullable(),
-  status: z.enum(['todo', 'in_progress', 'done', 'unknown']),
   topicName: z.string().min(1).nullable(),
 });
 
 const blockerSchema = z.object({
   description: z.string().min(1),
-  assignee: z.string().min(1).nullable(),
   impact: z.string().min(1).nullable(),
   topicName: z.string().min(1).nullable(),
 });
 
 const topicSectionSchema = z.object({
   name: z.string().min(1),
-  startTurn: z.number().int().min(0),
-  endTurn: z.number().int().min(0),
   analysis: z.string().min(1),
   decisions: z.array(z.string().min(1)).default([]),
   actionItems: z.array(actionItemSchema).default([]),
@@ -93,32 +64,21 @@ const topicSectionSchema = z.object({
 const analysisOutputSchema = z.object({
   title: z.string().max(60),
   summary: z.string(),
-  topics: z.array(topicSchema),
   topicSections: z.array(topicSectionSchema).default([]),
-  actionItems: z.array(actionItemSchema).default([]),
-  blockers: z.array(blockerSchema).default([]),
 });
 
-const activeRuns = new Map<PrefixedString<'recan'>, AbortController>();
+type ActiveRun = {
+  controller: AbortController;
+  preserveExistingUntilComplete: boolean;
+};
 
-function buildTranscriptionPrompt(localUserLabel: string): string {
-  return TRANSCRIPTION_PROMPT_TEMPLATE.replaceAll(
-    '{{CURRENT_DATE}}',
-    new Date().toISOString().slice(0, 10),
-  ).replaceAll('{{LOCAL_USER_LABEL}}', localUserLabel);
-}
+const activeRuns = new Map<PrefixedString<'recan'>, ActiveRun>();
 
 function buildAnalysisPrompt(): string {
   return ANALYSIS_PROMPT_TEMPLATE.replaceAll(
     '{{CURRENT_DATE}}',
     new Date().toISOString().slice(0, 10),
   );
-}
-
-function normalizeTranscript(entries: RecordingTranscriptEntry[]): RecordingTranscriptEntry[] {
-  return entries
-    .map((entry) => ({ speaker: entry.speaker.trim(), content: entry.content.trim() }))
-    .filter((entry) => entry.speaker.length > 0 && entry.content.length > 0);
 }
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
@@ -129,7 +89,7 @@ function normalizeNullableText(value: string | null): string | null {
   if (!value) return null;
   const normalized = value.trim();
   if (!normalized) return null;
-  if (normalized.toLowerCase() === 'not specified') return null;
+  if (normalized.toLowerCase() === NOT_SPECIFIED_TEXT) return null;
   return normalized;
 }
 
@@ -138,13 +98,10 @@ function normalizeActionItem(
   topicName: string | null,
 ): RecordingActionItem {
   const task = item.task.trim();
-  const status = item.status;
 
   return {
     task,
-    assignee: normalizeNullableText(item.assignee),
     dueDate: normalizeNullableText(item.dueDate),
-    status,
     topicName: normalizeNullableText(item.topicName) ?? normalizeNullableText(topicName),
   };
 }
@@ -152,7 +109,6 @@ function normalizeActionItem(
 function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): RecordingBlocker {
   return {
     description: blocker.description.trim(),
-    assignee: normalizeNullableText(blocker.assignee),
     impact: normalizeNullableText(blocker.impact),
     topicName: normalizeNullableText(blocker.topicName) ?? normalizeNullableText(topicName),
   };
@@ -161,25 +117,11 @@ function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): 
 function normalizeTopicSections(
   sections: RecordingAnalysisTopicSection[],
 ): RecordingAnalysisTopicSection[] {
-  return sections
-    .map((section) => {
-      const normalizedTopicName = section.name.trim();
-      return {
-        ...section,
-        name: normalizedTopicName,
-        analysis: section.analysis.trim(),
-        decisions: section.decisions.map((decision) => decision.trim()).filter(Boolean),
-        actionItems: section.actionItems
-          .map((item) => normalizeActionItem(item, normalizedTopicName))
-          .filter((item) => item.task.length > 0),
-        blockers: section.blockers
-          .map((blocker) => normalizeBlocker(blocker, normalizedTopicName))
-          .filter((blocker) => blocker.description.length > 0),
-        openQuestions: section.openQuestions.map((question) => question.trim()).filter(Boolean),
-        nextSteps: section.nextSteps.map((step) => step.trim()).filter(Boolean),
-      };
-    })
-    .filter((section) => section.name.length > 0);
+  return sections.map((section) => ({
+    ...section,
+    actionItems: section.actionItems.map((item) => normalizeActionItem(item, section.name)),
+    blockers: section.blockers.map((blocker) => normalizeBlocker(blocker, section.name)),
+  }));
 }
 
 function toResponse(
@@ -190,17 +132,15 @@ function toResponse(
     recordingId: row.recordingId ?? fallbackRecordingId,
     status: row.status,
     transcript: row.transcript ?? [],
-    topics: row.topics ?? [],
     topicSections: row.topicSections ?? [],
     summary: row.summary,
     title: row.title,
-    actionItems: row.actionItems ?? [],
-    blockers: row.blockers ?? [],
     error: row.error,
     transcriptionProviderId: row.transcriptionProviderId,
     transcriptionModelId: row.transcriptionModelId,
     analysisProviderId: row.analysisProviderId,
     analysisModelId: row.analysisModelId,
+    costUsd: row.costUsd,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     startedAt: row.startedAt,
@@ -209,11 +149,11 @@ function toResponse(
   };
 }
 
-async function broadcastRecordingAnalysisUpdated(input: {
+function broadcastRecordingAnalysisUpdated(input: {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysis['status'];
   title: string | null;
-}): Promise<void> {
+}): void {
   Events.emit('recording-analysis-updated', {
     recordingId: input.recordingId,
     status: input.status,
@@ -261,32 +201,18 @@ export async function startRecordingAnalysis(
     .from(recordingAnalyses)
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
-  if (existing && existing.status !== 'failed' && !input?.force) {
+  if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input?.force) {
     return ok({ analysis: toResponse(existing, recordingId) });
   }
 
-  const audioProvidersResult = await listEnabledProviderAudioModels();
-  const audioProviders = isServiceError(audioProvidersResult) ? [] : audioProvidersResult.data;
-  const fallbackProvider = audioProviders[0];
-  const fallbackModel = fallbackProvider?.models[0];
-
-  const transcriptionModel = await resolveModel({
-    providerIdKey: 'recordings.transcription.providerId',
-    modelIdKey: 'recordings.transcription.modelId',
-    fallbackProviderId: fallbackProvider?.providerId,
-    fallbackModelId: fallbackModel?.id,
-    modelFilter: (model) => model.modalities?.input?.includes('audio') ?? false,
-  });
-
-  if (isServiceError(transcriptionModel)) {
-    return transcriptionModel;
+  const transcript: RecordingTranscriptEntry[] = existing?.transcript ?? [];
+  if (transcript.length === 0) {
+    return err('No transcript available for this recording', 400);
   }
 
   const analysisModel = await resolveModel({
     providerIdKey: 'recordings.analysis.providerId',
     modelIdKey: 'recordings.analysis.modelId',
-    fallbackProviderId: transcriptionModel.data.providerId,
-    fallbackModelId: transcriptionModel.data.modelId,
   });
 
   if (isServiceError(analysisModel)) {
@@ -295,62 +221,58 @@ export async function startRecordingAnalysis(
 
   const now = Date.now();
   const id = existing?.id ?? createRecordingAnalysisId();
+  const preserveExistingUntilComplete = existing?.status === 'completed' && input?.force === true;
 
-  activeRuns.get(id)?.abort();
+  activeRuns.get(id)?.controller.abort();
 
-  await db
-    .insert(recordingAnalyses)
-    .values({
-      id,
-      recordingId,
-      status: 'pending',
-      transcript: [],
-      topics: [],
-      topicSections: [],
-      summary: '',
-      title: '',
-      actionItems: [],
-      blockers: [],
-      error: null,
-      transcriptionProviderId: transcriptionModel.data.providerId,
-      transcriptionModelId: transcriptionModel.data.modelId,
-      analysisProviderId: analysisModel.data.providerId,
-      analysisModelId: analysisModel.data.modelId,
-      usage: ZERO_USAGE,
-      costUsd: 0,
-      startedAt: null,
-      endedAt: null,
-      durationMs: null,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: recordingAnalyses.recordingId,
-      set: {
+  if (!preserveExistingUntilComplete) {
+    await db
+      .insert(recordingAnalyses)
+      .values({
         id,
+        recordingId,
         status: 'pending',
-        transcript: [],
-        topics: [],
+        transcript,
         topicSections: [],
         summary: '',
         title: '',
-        actionItems: [],
-        blockers: [],
         error: null,
-        transcriptionProviderId: transcriptionModel.data.providerId,
-        transcriptionModelId: transcriptionModel.data.modelId,
+        transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+        transcriptionModelId: existing?.transcriptionModelId ?? null,
         analysisProviderId: analysisModel.data.providerId,
         analysisModelId: analysisModel.data.modelId,
         usage: ZERO_USAGE,
-        costUsd: 0,
+        costUsd: existing?.costUsd ?? 0,
         startedAt: null,
         endedAt: null,
         durationMs: null,
+        createdAt: existing?.createdAt ?? now,
         updatedAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: recordingAnalyses.recordingId,
+        set: {
+          id,
+          status: 'pending',
+          transcript,
+          topicSections: [],
+          summary: '',
+          title: '',
+          error: null,
+          transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+          transcriptionModelId: existing?.transcriptionModelId ?? null,
+          analysisProviderId: analysisModel.data.providerId,
+          analysisModelId: analysisModel.data.modelId,
+          usage: ZERO_USAGE,
+          startedAt: null,
+          endedAt: null,
+          durationMs: null,
+          updatedAt: now,
+        },
+      });
+  }
 
-  await broadcastRecordingAnalysisUpdated({
+  broadcastRecordingAnalysisUpdated({
     recordingId,
     status: 'pending',
     title: null,
@@ -358,13 +280,11 @@ export async function startRecordingAnalysis(
 
   void runRecordingAnalysis(id, {
     recordingId,
-    filePath: recording.filePath,
-    transcriptionProviderId: transcriptionModel.data.providerId,
-    transcriptionModelId: transcriptionModel.data.modelId,
-    transcriptionCredentials: transcriptionModel.data.credentials,
+    transcript,
     analysisProviderId: analysisModel.data.providerId,
     analysisModelId: analysisModel.data.modelId,
     analysisCredentials: analysisModel.data.credentials,
+    preserveExistingUntilComplete,
   });
 
   const [created] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id));
@@ -396,20 +316,30 @@ export async function cancelRecordingAnalysis(
     return err('Recording analysis not found', 404);
   }
 
-  if (existing.status !== 'pending' && existing.status !== 'processing') {
+  const activeRun = activeRuns.get(existing.id);
+  if (!activeRun && existing.status !== 'processing') {
     return err('Recording analysis is not running', 400);
   }
 
-  const controller = activeRuns.get(existing.id);
   activeRuns.delete(existing.id);
-  controller?.abort();
+  activeRun?.controller.abort();
+
+  if (activeRun?.preserveExistingUntilComplete) {
+    broadcastRecordingAnalysisUpdated({
+      recordingId,
+      status: existing.status,
+      title: existing.title || null,
+    });
+
+    return ok(null);
+  }
 
   const endedAt = Date.now();
   const [updated] = await db
     .update(recordingAnalyses)
     .set({
       status: 'failed',
-      error: 'Analysis cancelled by user',
+      error: null,
       endedAt,
       durationMs: existing.startedAt ? endedAt - existing.startedAt : null,
       updatedAt: endedAt,
@@ -417,7 +347,7 @@ export async function cancelRecordingAnalysis(
     .where(eq(recordingAnalyses.id, existing.id))
     .returning();
 
-  await broadcastRecordingAnalysisUpdated({
+  broadcastRecordingAnalysisUpdated({
     recordingId,
     status: 'failed',
     title: null,
@@ -434,106 +364,44 @@ async function runRecordingAnalysis(
   analysisId: PrefixedString<'recan'>,
   input: {
     recordingId: PrefixedString<'rec'>;
-    filePath: string;
-    transcriptionProviderId: string;
-    transcriptionModelId: string;
-    transcriptionCredentials: ProviderCredentials;
+    transcript: RecordingTranscriptEntry[];
     analysisProviderId: string;
     analysisModelId: string;
     analysisCredentials: ProviderCredentials;
+    preserveExistingUntilComplete: boolean;
   },
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
   const abortController = new AbortController();
-  activeRuns.set(analysisId, abortController);
+  activeRuns.set(analysisId, {
+    controller: abortController,
+    preserveExistingUntilComplete: input.preserveExistingUntilComplete,
+  });
 
   try {
-    await db
-      .update(recordingAnalyses)
-      .set({
-        status: 'processing',
-        startedAt,
-        endedAt: null,
-        durationMs: null,
-        updatedAt: Date.now(),
-      })
-      .where(
-        and(
-          eq(recordingAnalyses.id, analysisId),
-          eq(recordingAnalyses.recordingId, input.recordingId),
-        ),
-      );
+    if (!input.preserveExistingUntilComplete) {
+      await db
+        .update(recordingAnalyses)
+        .set({
+          status: 'processing',
+          startedAt,
+          endedAt: null,
+          durationMs: null,
+          updatedAt: Date.now(),
+        })
+        .where(
+          and(
+            eq(recordingAnalyses.id, analysisId),
+            eq(recordingAnalyses.recordingId, input.recordingId),
+          ),
+        );
+    }
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'processing',
       title: null,
-    });
-
-    const [profileRow, audioData] = await Promise.all([
-      db
-        .select({ value: userSettings.value })
-        .from(userSettings)
-        .where(eq(userSettings.key, 'profile.name'))
-        .then((rows) => rows[0]),
-      fs.readFile(input.filePath),
-    ]);
-
-    const localUserLabel = profileRow?.value.trim() || 'Local User';
-
-    const transcriptionModel = createProvider(input.transcriptionCredentials)(
-      input.transcriptionModelId,
-    );
-    const transcriptionRunId = `${analysisId}:transcription`;
-    const transcriptionStart = Date.now();
-    const transcriptionResult = await generateText({
-      model: transcriptionModel,
-      output: Output.object({ schema: transcriptionOutputSchema }),
-      system: buildTranscriptionPrompt(localUserLabel),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'file', data: audioData, mediaType: 'audio/ogg' },
-            {
-              type: 'text',
-              text: 'Please transcribe this recording. If there is no intelligible speech, return an empty transcript array.',
-            },
-          ],
-        },
-      ],
-      abortSignal: abortController.signal,
-    });
-
-    const transcript = normalizeTranscript(transcriptionResult.output?.transcript ?? []);
-    if (transcript.length === 0) {
-      throw new Error('No intelligible speech detected in recording');
-    }
-
-    const transcriptionUsage = transcriptionResult.usage ?? ZERO_USAGE;
-
-    const transcriptionCost = await calculateMessageCostUsd({
-      providerId: input.transcriptionProviderId,
-      modelId: input.transcriptionModelId,
-      usage: transcriptionUsage,
-    });
-
-    await recordUsageEvent({
-      runId: transcriptionRunId,
-      source: 'transcription_recording',
-      providerId: input.transcriptionProviderId,
-      modelId: input.transcriptionModelId,
-      usage: transcriptionUsage,
-      costUsd: transcriptionCost,
-      metadata: {
-        recordingId: input.recordingId,
-        analysisId,
-        phase: 'transcription',
-      },
-      startedAt: transcriptionStart,
-      endedAt: Date.now(),
-      durationMs: Date.now() - transcriptionStart,
     });
 
     const analysisModel = createProvider(input.analysisCredentials)(input.analysisModelId);
@@ -546,7 +414,7 @@ async function runRecordingAnalysis(
       messages: [
         {
           role: 'user',
-          content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(transcript)}`,
+          content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(input.transcript)}`,
         },
       ],
       abortSignal: abortController.signal,
@@ -582,43 +450,41 @@ async function runRecordingAnalysis(
       durationMs: Date.now() - analysisStart,
     });
 
-    const totalUsage = addUsage(transcriptionUsage, analysisUsage);
     const endedAt = Date.now();
     const topicSections = normalizeTopicSections(analysisOutput.topicSections);
-    const actionItems = analysisOutput.actionItems
-      .map((item) => normalizeActionItem(item, null))
-      .filter((item) => item.task.length > 0);
-    const blockers = analysisOutput.blockers
-      .map((blocker) => normalizeBlocker(blocker, null))
-      .filter((blocker) => blocker.description.length > 0);
-    const fallbackActionItems = topicSections.flatMap((section) => section.actionItems);
-    const fallbackBlockers = topicSections.flatMap((section) => section.blockers);
 
-    if (activeRuns.get(analysisId) !== abortController) {
+    if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
     }
+
+    // Read existing transcription cost so we can add analysis cost on top
+    const [currentRow] = await db
+      .select({ costUsd: recordingAnalyses.costUsd })
+      .from(recordingAnalyses)
+      .where(eq(recordingAnalyses.id, analysisId));
+    const transcriptionCost = currentRow?.costUsd ?? 0;
 
     await db
       .update(recordingAnalyses)
       .set({
         status: 'completed',
-        transcript,
-        topics: analysisOutput.topics,
+        transcript: input.transcript,
         topicSections,
         title: analysisOutput.title,
         summary: analysisOutput.summary,
-        actionItems: actionItems.length > 0 ? actionItems : fallbackActionItems,
-        blockers: blockers.length > 0 ? blockers : fallbackBlockers,
         error: null,
-        usage: totalUsage,
+        analysisProviderId: input.analysisProviderId,
+        analysisModelId: input.analysisModelId,
+        usage: analysisUsage,
         costUsd: transcriptionCost + analysisCost,
+        startedAt,
         endedAt,
         durationMs: endedAt - startedAt,
         updatedAt: endedAt,
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'completed',
       title: analysisOutput.title,
@@ -626,11 +492,20 @@ async function runRecordingAnalysis(
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');
   } catch (error) {
-    if (activeRuns.get(analysisId) !== abortController) {
+    if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
     }
 
     const message = error instanceof Error ? error.message : 'Failed to analyze recording';
+
+    if (input.preserveExistingUntilComplete) {
+      log.error(
+        { analysisId, recordingId: input.recordingId, error: message },
+        'recording analysis rerun failed',
+      );
+      return;
+    }
+
     const endedAt = Date.now();
 
     await db
@@ -644,7 +519,7 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    await broadcastRecordingAnalysisUpdated({
+    broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'failed',
       title: null,
@@ -655,7 +530,7 @@ async function runRecordingAnalysis(
       'recording analysis failed',
     );
   } finally {
-    if (activeRuns.get(analysisId) === abortController) {
+    if (activeRuns.get(analysisId)?.controller === abortController) {
       activeRuns.delete(analysisId);
     }
   }

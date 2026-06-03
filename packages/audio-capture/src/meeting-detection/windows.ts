@@ -1,10 +1,14 @@
+import { mergeObservations } from './observations.js';
 import { createNativeWatcherMeetingDetector } from './watcher.js';
 
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
-import type { MeetingObservation } from './shared.js';
+import type { MeetingObservation } from './engine.js';
 import type { WatchRow } from './watcher.js';
 
-type WindowsProcessRow = WatchRow;
+const TEAMS_CALL_HINT_RE = /meeting|call|microsoft teams|teams/;
+const SLACK_CALL_HINT_RE = /huddle|call/;
+const DISCORD_CALL_HINT_RE = /call|voice|stage/;
+const GOOGLE_MEET_TITLE_RE = /google meet|meet\.google\.com|^meet\s+-\s+/;
 
 function normalizeProcessName(input: string): string {
   return input
@@ -13,39 +17,21 @@ function normalizeProcessName(input: string): string {
     .replace(/\.exe$/, '');
 }
 
-function parseRows(stdout: string): WindowsProcessRow[] {
-  const raw = stdout.trim();
-  if (!raw || raw === 'null') {
-    return [];
-  }
-
-  const parsed = JSON.parse(raw) as unknown;
-  if (!parsed) {
-    return [];
-  }
-
-  if (Array.isArray(parsed)) {
-    return parsed as WindowsProcessRow[];
-  }
-
-  return [parsed as WindowsProcessRow];
-}
-
 function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): boolean {
   const normalized = title.toLowerCase();
 
   if (platform === 'teams') {
-    return /meeting|call|microsoft teams|teams/.test(normalized);
+    return TEAMS_CALL_HINT_RE.test(normalized);
   }
 
   if (platform === 'slack') {
-    return /huddle|call/.test(normalized);
+    return SLACK_CALL_HINT_RE.test(normalized);
   }
 
-  return /call|voice|stage/.test(normalized);
+  return DISCORD_CALL_HINT_RE.test(normalized);
 }
 
-function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
+function classifyRow(row: WatchRow): MeetingObservation[] {
   const rawProcessName = row.processName?.trim();
   if (!rawProcessName) {
     return [];
@@ -104,7 +90,7 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
 
   if (
     (processName === 'chrome' || processName === 'msedge') &&
-    /google meet|meet\.google\.com|^meet\s+-\s+/.test(windowTitle.toLowerCase())
+    GOOGLE_MEET_TITLE_RE.test(windowTitle.toLowerCase())
   ) {
     observations.push({
       key: `browser:google-meet:${processName}`,
@@ -119,28 +105,7 @@ function classifyRow(row: WindowsProcessRow): MeetingObservation[] {
   return observations;
 }
 
-function mergeObservations(observations: MeetingObservation[]): MeetingObservation[] {
-  const merged = new Map<string, MeetingObservation>();
-
-  for (const observation of observations) {
-    const existing = merged.get(observation.key);
-    if (!existing) {
-      merged.set(observation.key, observation);
-      continue;
-    }
-
-    const processNames = new Set([...existing.processNames, ...observation.processNames]);
-    merged.set(observation.key, {
-      ...existing,
-      processNames: [...processNames],
-      windowTitle: existing.windowTitle ?? observation.windowTitle,
-    });
-  }
-
-  return [...merged.values()];
-}
-
-function classifyWindowsRows(rows: WindowsProcessRow[]): MeetingObservation[] {
+function classifyWindowsRows(rows: WatchRow[]): MeetingObservation[] {
   const observations = rows.flatMap(classifyRow);
   return mergeObservations(observations);
 }
@@ -148,11 +113,9 @@ function classifyWindowsRows(rows: WindowsProcessRow[]): MeetingObservation[] {
 export function createWindowsMeetingDetector(
   options: MeetingDetectionOptions = {},
 ): MeetingDetector {
-  return createNativeWatcherMeetingDetector('windows', classifyWindowsRows, options);
+  return createNativeWatcherMeetingDetector(classifyWindowsRows, options);
 }
 
 export const internal = {
-  parseRows,
   classifyRow,
-  mergeObservations,
 };

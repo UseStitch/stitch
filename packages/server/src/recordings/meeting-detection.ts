@@ -8,7 +8,7 @@ const log = Log.create({ service: 'meeting-detection' });
 const detector = createMeetingDetector(process.platform, {
   activationThresholdMs: 5_000,
   cooldownMs: 10 * 60_000,
-  commandTimeoutMs: 3_000,
+  logger: log,
 });
 
 let unsubscribe: (() => void) | null = null;

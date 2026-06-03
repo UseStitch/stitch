@@ -18,6 +18,8 @@ pub fn run_windows_meeting_watcher() {
   ];
 
   const RECONCILE_INTERVAL: Duration = Duration::from_secs(10);
+  const SESSION_POLL_INTERVAL: Duration = Duration::from_millis(500);
+  const MAIN_LOOP_INTERVAL: Duration = Duration::from_millis(100);
 
   fn normalize_process_name(input: &str) -> String {
     input.trim().to_lowercase().replace(".exe", "")
@@ -96,14 +98,9 @@ pub fn run_windows_meeting_watcher() {
     titles.iter().max_by_key(|t| t.len()).cloned()
   }
 
-  fn build_watch_rows() -> Vec<WatchRow> {
-    let enumerator = match DeviceEnumerator::new() {
-      Ok(e) => e,
-      Err(e) => {
-        emit_watch_error(format!("WASAPI DeviceEnumerator failed: {e}"));
-        return Vec::new();
-      }
-    };
+  fn collect_active_session_pids() -> Result<HashSet<u32>, String> {
+    let enumerator = DeviceEnumerator::new()
+      .map_err(|error| format!("WASAPI DeviceEnumerator failed: {error}"))?;
 
     let mut devices = Vec::new();
     if let Ok(collection) = enumerator.get_device_collection(&Direction::Capture) {
@@ -150,6 +147,18 @@ pub fn run_windows_meeting_watcher() {
         }
       }
     }
+
+    Ok(pids)
+  }
+
+  fn build_watch_rows() -> Vec<WatchRow> {
+    let pids = match collect_active_session_pids() {
+      Ok(pids) => pids,
+      Err(error) => {
+        emit_watch_error(error);
+        return Vec::new();
+      }
+    };
 
     let window_titles = list_all_window_titles();
 
@@ -254,59 +263,11 @@ pub fn run_windows_meeting_watcher() {
     // session state changes quickly. This thread runs at ~500ms and marks
     // needs_scan on change, complementing the 10s reconcile in the main loop.
     loop {
-      std::thread::sleep(Duration::from_millis(500));
+      std::thread::sleep(SESSION_POLL_INTERVAL);
 
-      let enumerator = match DeviceEnumerator::new() {
-        Ok(e) => e,
-        Err(_) => continue,
+      let Ok(current_pids) = collect_active_session_pids() else {
+        continue;
       };
-
-      let mut current_pids: HashSet<u32> = HashSet::new();
-
-      let mut devices = Vec::new();
-      if let Ok(collection) = enumerator.get_device_collection(&Direction::Capture) {
-        if let Ok(count) = collection.get_nbr_devices() {
-          for i in 0..count {
-            if let Ok(device) = collection.get_device_at_index(i) {
-              devices.push(device);
-            }
-          }
-        }
-      }
-      if devices.is_empty() {
-        if let Ok(default_device) = enumerator.get_default_device(&Direction::Capture) {
-          devices.push(default_device);
-        }
-      }
-
-      for device in devices {
-        let Ok(sm) = device.get_iaudiosessionmanager() else {
-          continue;
-        };
-        let Ok(se) = sm.get_audiosessionenumerator() else {
-          continue;
-        };
-        let Ok(count) = se.get_count() else {
-          continue;
-        };
-        for idx in 0..count {
-          let Ok(session) = se.get_session(idx) else {
-            continue;
-          };
-          let Ok(state) = session.get_state() else {
-            continue;
-          };
-          if state != SessionState::Active {
-            continue;
-          }
-          let Ok(pid) = session.get_process_id() else {
-            continue;
-          };
-          if pid > 0 {
-            current_pids.insert(pid);
-          }
-        }
-      }
 
       let mut last = last_active_clone.lock().unwrap_or_else(|e| e.into_inner());
       if *last != current_pids {
@@ -326,7 +287,7 @@ pub fn run_windows_meeting_watcher() {
   // reconciliation as a safety net for missed notifications.
   let mut last_reconcile = Instant::now();
   loop {
-    std::thread::sleep(Duration::from_millis(100));
+    std::thread::sleep(MAIN_LOOP_INTERVAL);
 
     let dirty = {
       let mut guard = needs_scan.lock().unwrap_or_else(|e| e.into_inner());
@@ -349,5 +310,5 @@ pub fn run_windows_meeting_watcher() {
 
 #[cfg(not(target_os = "windows"))]
 pub fn run_windows_meeting_watcher() {
-  // No-op on non-Windows platforms; flag handler returns false on these targets.
+  // No-op on non-Windows platforms.
 }

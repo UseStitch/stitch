@@ -8,6 +8,7 @@ const RESAMPLE_CHUNK_SIZE: usize = 256;
 pub(crate) struct StreamResampler {
   passthrough: bool,
   input_buffer: Vec<f32>,
+  chunk_buffer: Vec<f32>,
   inner: Option<rubato::Fft<f32>>,
 }
 
@@ -23,6 +24,7 @@ impl StreamResampler {
       return Ok(Self {
         passthrough: true,
         input_buffer: Vec::new(),
+        chunk_buffer: Vec::new(),
         inner: None,
       });
     }
@@ -44,6 +46,7 @@ impl StreamResampler {
     Ok(Self {
       passthrough: false,
       input_buffer: Vec::new(),
+      chunk_buffer: Vec::with_capacity(RESAMPLE_CHUNK_SIZE),
       inner: Some(inner),
     })
   }
@@ -57,10 +60,16 @@ impl StreamResampler {
     let mut output = Vec::new();
 
     while self.input_buffer.len() >= RESAMPLE_CHUNK_SIZE {
-      let chunk: Vec<f32> = self.input_buffer.drain(..RESAMPLE_CHUNK_SIZE).collect();
-      let adapter = InterleavedSlice::new(&chunk, 1, chunk.len()).map_err(|error| {
-        NativeError::StreamFailed(format!("failed to create input adapter: {error}"))
-      })?;
+      self.chunk_buffer.clear();
+      self
+        .chunk_buffer
+        .extend_from_slice(&self.input_buffer[..RESAMPLE_CHUNK_SIZE]);
+      self.input_buffer.drain(..RESAMPLE_CHUNK_SIZE);
+
+      let adapter =
+        InterleavedSlice::new(&self.chunk_buffer, 1, self.chunk_buffer.len()).map_err(|error| {
+          NativeError::StreamFailed(format!("failed to create input adapter: {error}"))
+        })?;
 
       let resampled = self
         .inner

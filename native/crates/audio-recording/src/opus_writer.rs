@@ -41,7 +41,7 @@ impl OggOpusWriter {
     let mut packet_writer = PacketWriter::new(BufWriter::new(file));
 
     // Write the OpusHead identification header (required by OGG Opus spec RFC 7845)
-    let opus_head = build_opus_head(SAMPLE_RATE as u32);
+    let opus_head = build_opus_head();
     packet_writer
       .write_packet(
         opus_head,
@@ -76,7 +76,9 @@ impl OggOpusWriter {
     self.pcm_buffer.extend_from_slice(samples);
 
     while self.pcm_buffer.len() >= FRAME_SAMPLES {
-      let frame: Vec<f32> = self.pcm_buffer.drain(..FRAME_SAMPLES).collect();
+      let mut frame = [0.0f32; FRAME_SAMPLES];
+      frame.copy_from_slice(&self.pcm_buffer[..FRAME_SAMPLES]);
+      self.pcm_buffer.drain(..FRAME_SAMPLES);
       self.encode_frame(&frame)?;
     }
 
@@ -142,13 +144,13 @@ impl OggOpusWriter {
 }
 
 /// Build the 19-byte OpusHead binary header per RFC 7845 §5.1
-fn build_opus_head(input_sample_rate: u32) -> Vec<u8> {
+fn build_opus_head() -> Vec<u8> {
   let mut head = Vec::with_capacity(19);
   head.extend_from_slice(b"OpusHead");
   head.push(1); // version
   head.push(1); // channel count (mono)
   head.extend_from_slice(&0u16.to_le_bytes()); // pre-skip
-  head.extend_from_slice(&input_sample_rate.to_le_bytes()); // input sample rate
+  head.extend_from_slice(&(SAMPLE_RATE as u32).to_le_bytes()); // input sample rate
   head.extend_from_slice(&0u16.to_le_bytes()); // output gain
   head.push(0); // channel mapping family (mono/stereo)
   head
@@ -171,7 +173,7 @@ mod tests {
 
   #[test]
   fn opus_head_has_correct_magic_and_fields() {
-    let head = build_opus_head(SAMPLE_RATE as u32);
+    let head = build_opus_head();
     assert_eq!(&head[..8], b"OpusHead");
     assert_eq!(head[8], 1, "version must be 1");
     assert_eq!(head[9], 1, "channel count must be 1 (mono)");

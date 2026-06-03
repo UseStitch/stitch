@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./models/google.json": "./models/google.json",
-    "./models/openai.json": "./models/openai.json"
+    "./models/google.json": "./models/google.json"
   }
 }

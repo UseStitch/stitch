@@ -28,11 +28,8 @@ type MeetingEngineOptions = {
   staleCandidateThresholdMs?: number;
 };
 
-const DEFAULT_ENGINE_OPTIONS = {
-  activationThresholdMs: 15_000,
-  cooldownMs: 10 * 60_000,
-  staleCandidateThresholdMs: 10_000,
-} as const;
+const DEFAULT_ACTIVATION_THRESHOLD_MS = 15_000;
+const DEFAULT_COOLDOWN_MS = 10 * 60_000;
 
 const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = [
   'zoom',
@@ -64,25 +61,21 @@ function toDetection(candidate: Candidate): MeetingDetection {
   };
 }
 
-/**
- * Pure state machine that tracks meeting candidates, applies activation
- * threshold / cooldown, and emits detected/ended events.
- *
- * Consumers feed snapshots via `ingest()`. The engine is transport-agnostic:
- * the same logic is shared by the polling adapter and the new event-driven
- * watcher path.
- */
 export function createMeetingDetectionEngine(options: MeetingEngineOptions = {}): Pick<
   MeetingDetector,
   'subscribe' | 'getActive'
 > & {
   ingest: (observations: MeetingObservation[], now?: number) => void;
 } {
-  const activationThresholdMs =
-    options.activationThresholdMs ?? DEFAULT_ENGINE_OPTIONS.activationThresholdMs;
-  const cooldownMs = options.cooldownMs ?? DEFAULT_ENGINE_OPTIONS.cooldownMs;
-  const staleCandidateThresholdMs =
-    options.staleCandidateThresholdMs ?? DEFAULT_ENGINE_OPTIONS.staleCandidateThresholdMs;
+  const activationThresholdMs = options.activationThresholdMs ?? DEFAULT_ACTIVATION_THRESHOLD_MS;
+  const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
+  const staleCandidateThresholdMs = options.staleCandidateThresholdMs ?? activationThresholdMs * 2;
+
+  if (staleCandidateThresholdMs < activationThresholdMs) {
+    throw new Error(
+      `staleCandidateThresholdMs (${staleCandidateThresholdMs}) must be >= activationThresholdMs (${activationThresholdMs})`,
+    );
+  }
 
   const listeners = new Set<MeetingDetectionListener>();
   const candidates = new Map<string, Candidate>();

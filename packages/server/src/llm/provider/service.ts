@@ -10,6 +10,7 @@ import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';
 import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { ProviderCredentialsSchema } from '@/llm/provider/provider.js';
+import * as TranscriptionModels from '@/llm/provider/transcription-models.js';
 
 type ProviderSummary = {
   id: string;
@@ -186,6 +187,38 @@ export async function listEnabledProviderAudioModels(): Promise<
         providerId: provider.id,
         providerName: provider.name,
         models: Object.values(provider.models).map(toModelSummary),
+      })),
+  );
+}
+
+type TranscriptionModelSummary = {
+  id: string;
+  name: string;
+};
+
+type TranscriptionProviderSummary = {
+  providerId: string;
+  providerName: string;
+  models: TranscriptionModelSummary[];
+};
+
+export async function listEnabledProviderTranscriptionModels(): Promise<
+  ServiceResult<TranscriptionProviderSummary[]>
+> {
+  const db = getDb();
+  const [providers, configs] = await Promise.all([
+    TranscriptionModels.getTranscriptionModels(),
+    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+  ]);
+  const enabledIds = new Set(configs.map((row) => row.providerId));
+
+  return ok(
+    providers
+      .filter((provider) => enabledIds.has(provider.providerId))
+      .map((provider) => ({
+        providerId: provider.providerId,
+        providerName: provider.providerName,
+        models: provider.models.map((m) => ({ id: m.id, name: m.name })),
       })),
   );
 }

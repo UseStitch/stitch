@@ -105,7 +105,7 @@ Use this first to find relevant recording IDs before fetching detailed analysis.
                     summary: analysis.summary.slice(0, 400),
                     actionItemCount: analysis.actionItems.length,
                     blockerCount: analysis.blockers.length,
-                    topicCount: analysis.topics.length,
+                    topicCount: analysis.topicSections.length,
                     updatedAt: analysis.updatedAt,
                   };
                 })()
@@ -118,7 +118,7 @@ Use this first to find relevant recording IDs before fetching detailed analysis.
   const recordings_get_analysis = tool({
     description: `Get structured recording analysis for one recording ID.
 
-Returns status, summary, topics, action items, and blockers.`,
+Returns status, summary, topic sections, action items, and blockers.`,
     inputSchema: z.object({
       recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
     }),
@@ -142,16 +142,18 @@ Returns status, summary, topics, action items, and blockers.`,
       }
 
       const analysis = result.data.analysis;
+      const actionItems = analysis.topicSections.flatMap((section) => section.actionItems);
+      const blockers = analysis.topicSections.flatMap((section) => section.blockers);
+
       return {
         recordingId: input.recordingId,
         found: true,
         status: analysis.status,
         title: analysis.title,
         summary: analysis.summary,
-        topics: analysis.topics,
         topicSections: analysis.topicSections,
-        actionItems: analysis.actionItems,
-        blockers: analysis.blockers,
+        actionItems,
+        blockers,
         error: analysis.error,
         updatedAt: analysis.updatedAt,
       };

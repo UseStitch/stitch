@@ -198,7 +198,7 @@ export function recordingAnalysisQueryOptions(recordingId: string) {
     },
     refetchInterval: (query) => {
       const status = query.state.data?.analysis?.status;
-      return status === 'pending' || status === 'processing' ? 1_000 : false;
+      return status === 'processing' ? 1_000 : false;
     },
   });
 }

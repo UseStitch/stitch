@@ -27,6 +27,19 @@ use wasapi::{
   DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat, initialize_mta,
 };
 
+const SPEAKER_SOURCE_QUEUE_CAPACITY: usize = 128;
+const SPEAKER_CAPTURE_RECV_TIMEOUT: Duration = Duration::from_millis(100);
+#[cfg(target_os = "macos")]
+const SPEAKER_CHUNK_SAMPLES: usize = 960;
+#[cfg(target_os = "macos")]
+const SCK_CAPTURE_DIMENSION: usize = 2;
+#[cfg(target_os = "macos")]
+const SCK_SOURCE_POLL_INTERVAL: Duration = Duration::from_millis(10);
+#[cfg(target_os = "windows")]
+const WASAPI_EVENT_WAIT_MS: u32 = 250;
+#[cfg(target_os = "windows")]
+const WASAPI_STOP_SETTLE_DELAY: Duration = Duration::from_millis(50);
+
 #[cfg(target_os = "macos")]
 define_obj_type!(
   SckAudioOutput + sc::StreamOutputImpl,
@@ -98,7 +111,7 @@ impl sc::StreamOutputImpl for SckAudioOutput {
     };
 
     let tx = &self.inner().tx;
-    for chunk in mono.chunks(960) {
+    for chunk in mono.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = tx.try_send(chunk.to_vec());
     }
   }
@@ -113,34 +126,38 @@ struct TapCtx {
 }
 
 #[cfg(target_os = "macos")]
-fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
-  let mono = if ctx.channels <= 1 {
-    samples
-  } else {
-    // downmix inline — borrow-friendly
-    return tap_send_downmixed(ctx, samples);
-  };
-  if let Ok(chunk) = ctx.resampler.process(mono) {
-    for c in chunk.chunks(960) {
-      let _ = ctx.tx.try_send(c.to_vec());
-    }
-  }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SpeakerSourceChoice {
+  Pending,
+  ProcessTap,
+  ScreenCaptureKit,
 }
 
 #[cfg(target_os = "macos")]
-fn tap_send_downmixed(ctx: &mut TapCtx, samples: &[f32]) {
-  let frames = samples.len() / ctx.channels;
-  let mut mono = Vec::with_capacity(frames);
-  for frame in 0..frames {
-    let start = frame * ctx.channels;
-    let mut acc = 0.0f32;
-    for sample in &samples[start..start + ctx.channels] {
-      acc += *sample;
-    }
-    mono.push(acc / ctx.channels as f32);
+fn tap_send_mono(ctx: &mut TapCtx, samples: &[f32]) {
+  if ctx.channels <= 1 {
+    tap_send_resampled(ctx, samples);
+    return;
   }
-  if let Ok(chunk) = ctx.resampler.process(&mono) {
-    for c in chunk.chunks(960) {
+
+  let frame_count = samples.len() / ctx.channels;
+  let mut mono = Vec::with_capacity(frame_count);
+  for frame in 0..frame_count {
+    let start = frame * ctx.channels;
+    let mut sum = 0.0f32;
+    for sample in &samples[start..start + ctx.channels] {
+      sum += *sample;
+    }
+    mono.push(sum / ctx.channels as f32);
+  }
+
+  tap_send_resampled(ctx, &mono);
+}
+
+#[cfg(target_os = "macos")]
+fn tap_send_resampled(ctx: &mut TapCtx, mono: &[f32]) {
+  if let Ok(chunk) = ctx.resampler.process(mono) {
+    for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
       let _ = ctx.tx.try_send(c.to_vec());
     }
   }
@@ -271,13 +288,13 @@ fn spawn_macos_speaker_source(
   ),
   NativeError,
 > {
-  let (tx, rx) = mpsc::sync_channel(128);
+  let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
   let worker = builder
     .spawn(move || {
-      let (tap_tx, tap_rx) = mpsc::sync_channel::<Vec<f32>>(128);
-      let (sck_tx, sck_rx) = mpsc::sync_channel::<Vec<f32>>(128);
+      let (tap_tx, tap_rx) = mpsc::sync_channel::<Vec<f32>>(SPEAKER_SOURCE_QUEUE_CAPACITY);
+      let (sck_tx, sck_rx) = mpsc::sync_channel::<Vec<f32>>(SPEAKER_SOURCE_QUEUE_CAPACITY);
 
       let _tap_ctx = start_process_tap(tap_tx, target_sample_rate_hz);
 
@@ -297,8 +314,8 @@ fn spawn_macos_speaker_source(
           cfg.set_excludes_current_process_audio(true);
           cfg.set_sample_rate(target_sample_rate_hz as i64);
           cfg.set_channel_count(1);
-          cfg.set_width(2);
-          cfg.set_height(2);
+          cfg.set_width(SCK_CAPTURE_DIMENSION);
+          cfg.set_height(SCK_CAPTURE_DIMENSION);
           cfg.set_minimum_frame_interval(cm::Time::new(1, 1));
 
           let windows = ns::Array::new();
@@ -315,22 +332,24 @@ fn spawn_macos_speaker_source(
         }
         .await;
 
-        let use_tap = std::sync::atomic::AtomicBool::new(true);
-        let decided = std::sync::atomic::AtomicBool::new(false);
+        let mut source_choice = SpeakerSourceChoice::Pending;
         let mut decision_ticks: u32 = 0;
         // Allow ~2 seconds (200 ticks at 10ms) for audio to start flowing
         const DECISION_GRACE_TICKS: u32 = 200;
 
         while !stop_flag.load(Ordering::Relaxed) {
-          tokio::time::sleep(Duration::from_millis(10)).await;
+          tokio::time::sleep(SCK_SOURCE_POLL_INTERVAL).await;
 
           let mut tap_has_signal = false;
           while let Ok(chunk) = tap_rx.try_recv() {
             if !tap_has_signal {
               tap_has_signal = chunk.iter().any(|&s| s.abs() > 1e-6);
             }
-            if use_tap.load(Ordering::Relaxed) {
-              for c in chunk.chunks(960) {
+            if matches!(
+              source_choice,
+              SpeakerSourceChoice::Pending | SpeakerSourceChoice::ProcessTap
+            ) {
+              for c in chunk.chunks(SPEAKER_CHUNK_SAMPLES) {
                 let _ = tx.try_send(c.to_vec());
               }
             }
@@ -339,40 +358,33 @@ fn spawn_macos_speaker_source(
           let mut got_sck = false;
           while let Ok(chunk) = sck_rx.try_recv() {
             got_sck = true;
-            if !use_tap.load(Ordering::Relaxed) {
+            if source_choice == SpeakerSourceChoice::ScreenCaptureKit {
               let _ = tx.try_send(chunk);
             }
           }
 
-          if !decided.load(Ordering::Relaxed) {
+          if source_choice == SpeakerSourceChoice::Pending {
             decision_ticks += 1;
 
             if tap_has_signal {
-              // Tap is producing real audio — use it
-              use_tap.store(true, Ordering::Relaxed);
-              decided.store(true, Ordering::Relaxed);
+              source_choice = SpeakerSourceChoice::ProcessTap;
             } else if got_sck && decision_ticks >= DECISION_GRACE_TICKS {
-              // Tap silent after grace period, SCK has data — switch to SCK
-              use_tap.store(false, Ordering::Relaxed);
-              decided.store(true, Ordering::Relaxed);
-            } else if sck_ok.is_some() && got_sck {
-              // SCK started and is producing data, but still in grace period — buffer SCK
-              // data by not deciding yet (tap may still start producing signal)
+              source_choice = SpeakerSourceChoice::ScreenCaptureKit;
             } else if decision_ticks >= DECISION_GRACE_TICKS {
-              // Grace period elapsed, tap silent, SCK either failed or has no data.
-              // If SCK started, use it even without data yet. Otherwise stick with tap.
-              if sck_ok.is_some() {
-                use_tap.store(false, Ordering::Relaxed);
-              }
-              decided.store(true, Ordering::Relaxed);
+              source_choice = if sck_ok.is_some() {
+                SpeakerSourceChoice::ScreenCaptureKit
+              } else {
+                SpeakerSourceChoice::ProcessTap
+              };
             }
           }
         }
 
-        Ok(vec![if use_tap.load(Ordering::Relaxed) {
-          "speaker_source_process_tap".to_string()
-        } else {
-          "speaker_source_screencapturekit".to_string()
+        Ok(vec![match source_choice {
+          SpeakerSourceChoice::Pending | SpeakerSourceChoice::ProcessTap => {
+            "speaker_source_process_tap".to_string()
+          }
+          SpeakerSourceChoice::ScreenCaptureKit => "speaker_source_screencapturekit".to_string(),
         }])
       })
     })
@@ -396,6 +408,7 @@ fn decode_speaker_frames(
     return Ok(Vec::new());
   }
 
+  // Preserve existing transcription behavior by using the first channel as mono.
   match (sample_type, bits_per_sample) {
     (SampleType::Float, 32) => {
       let frame_size = channels * 4;
@@ -458,7 +471,7 @@ fn spawn_windows_speaker_source(
   ),
   NativeError,
 > {
-  let (tx, rx) = mpsc::sync_channel(128);
+  let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
   let worker = builder
@@ -537,8 +550,8 @@ fn spawn_windows_speaker_source(
       let mut queue = VecDeque::new();
       let mut dropped_chunks = 0u64;
 
-      while !stop_flag.load(Ordering::Acquire) {
-        if event.wait_for_event(250).is_err() {
+      while !stop_flag.load(Ordering::Relaxed) {
+        if event.wait_for_event(WASAPI_EVENT_WAIT_MS).is_err() {
           continue;
         }
 
@@ -574,7 +587,7 @@ fn spawn_windows_speaker_source(
         }
       }
 
-      thread::sleep(Duration::from_millis(50));
+      thread::sleep(WASAPI_STOP_SETTLE_DELAY);
       let _ = audio_client.stop_stream();
 
       let mut warnings = Vec::new();
@@ -641,7 +654,7 @@ pub(crate) fn spawn_speaker_capture(
       let mut writer = OggOpusWriter::create(&output_path)?;
 
       while !stop_flag.load(Ordering::Relaxed) {
-        if let Ok(samples) = rx.recv_timeout(Duration::from_millis(100)) {
+        if let Ok(samples) = rx.recv_timeout(SPEAKER_CAPTURE_RECV_TIMEOUT) {
           writer.write_samples(&samples)?;
         }
       }
@@ -712,7 +725,7 @@ mod tests {
 
   #[cfg(target_os = "windows")]
   #[test]
-  fn decode_wasapi_float32_frames_to_mono() {
+  fn decode_wasapi_float32_frames_uses_first_channel() {
     use super::decode_speaker_frames;
     use wasapi::SampleType;
 
@@ -730,7 +743,7 @@ mod tests {
 
   #[cfg(target_os = "windows")]
   #[test]
-  fn decode_wasapi_i16_frames_to_mono() {
+  fn decode_wasapi_i16_frames_uses_first_channel() {
     use super::decode_speaker_frames;
     use wasapi::SampleType;
 
