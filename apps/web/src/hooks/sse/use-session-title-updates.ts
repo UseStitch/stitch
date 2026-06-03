@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
 
-import type { Session } from '@stitch/shared/chat/messages';
+import type { Session, SessionsPage } from '@stitch/shared/chat/messages';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
@@ -14,9 +15,19 @@ export function useSessionTitleUpdates(
     'session-title-update': (data) => {
       const { sessionId, title } = data;
 
-      // Update the session list cache
-      queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev) =>
-        prev?.map((s) => (s.id === sessionId ? { ...s, title } : s)),
+      // Update all session list caches (including infinite queries used by sidebar)
+      queryClient.setQueriesData<InfiniteData<SessionsPage>>(
+        { queryKey: sessionKeys.list() },
+        (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pages: prev.pages.map((page) => ({
+              ...page,
+              sessions: page.sessions.map((s) => (s.id === sessionId ? { ...s, title } : s)),
+            })),
+          };
+        },
       );
 
       // Update the session detail cache if present
