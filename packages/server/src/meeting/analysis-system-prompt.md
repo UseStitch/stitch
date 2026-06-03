@@ -52,9 +52,9 @@ You are analyzing a meeting transcript. Perform the following steps in order:
   - `analysis`: 1-2 sentence plain text analysis for the topic
   - `decisions`: string[]
   - `actionItems`: `{ task, dueDate, topicName }[]`
-  - `blockers`: `{ description, assignee, impact, topicName }[]`
+  - `blockers`: `{ description, impact, topicName }[]`
   - `openQuestions`: string[]
   - `nextSteps`: string[]
 - `topicName` in nested action items/blockers must equal the parent topic name.
-- Use `null` for unknown dueDate, assignee, or impact values.
-- Never fabricate decisions, due dates, blocker assignees, blockers, or numbers.
+- Use `null` for unknown dueDate or impact values.
+- Never fabricate decisions, due dates, blockers, or numbers.

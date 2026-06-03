@@ -101,21 +101,11 @@ function BlockersSection({ blockers }: { blockers: TopicBlocker[] }) {
       <ul className="space-y-3">
         {blockers.map((blocker) => (
           <li
-            key={occurrenceKey(
-              `${blocker.description}:${blocker.assignee ?? ''}:${blocker.impact ?? ''}`,
-              keyCounts,
-            )}
+            key={occurrenceKey(`${blocker.description}:${blocker.impact ?? ''}`, keyCounts)}
             className="flex flex-col gap-2 rounded-lg border border-l-4 border-border/50 border-l-destructive bg-background px-4 py-3 shadow-sm"
           >
             <p className="text-sm font-medium text-foreground">{blocker.description}</p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                Assignee:{' '}
-                <span className="font-medium text-foreground/80">
-                  {blocker.assignee ?? 'Unassigned'}
-                </span>
-              </span>
-              <span className="size-1 rounded-full bg-border" />
               <span className="flex items-center gap-1.5">
                 Impact:{' '}
                 <span className="font-medium text-foreground/80">

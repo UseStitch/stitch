@@ -47,7 +47,6 @@ const actionItemSchema = z.object({
 
 const blockerSchema = z.object({
   description: z.string().min(1),
-  assignee: z.string().min(1).nullable(),
   impact: z.string().min(1).nullable(),
   topicName: z.string().min(1).nullable(),
 });
@@ -105,7 +104,6 @@ function normalizeActionItem(
 function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): RecordingBlocker {
   return {
     description: blocker.description.trim(),
-    assignee: normalizeNullableText(blocker.assignee),
     impact: normalizeNullableText(blocker.impact),
     topicName: normalizeNullableText(blocker.topicName) ?? normalizeNullableText(topicName),
   };

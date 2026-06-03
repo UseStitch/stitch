@@ -53,10 +53,7 @@ export function buildAnalysisMarkdown(
 
       if (section.blockers.length) {
         const blockers = section.blockers.map((blocker) => {
-          const metadata = [
-            `assignee: ${blocker.assignee ?? 'Unassigned'}`,
-            `impact: ${blocker.impact ?? 'Unknown'}`,
-          ];
+          const metadata = [`impact: ${blocker.impact ?? 'Unknown'}`];
           return `${blocker.description} (${metadata.join('; ')})`;
         });
 

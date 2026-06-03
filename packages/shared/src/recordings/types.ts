@@ -64,7 +64,6 @@ export type RecordingActionItem = {
 
 export type RecordingBlocker = {
   description: string;
-  assignee: string | null;
   impact: string | null;
   topicName: string | null;
 };
