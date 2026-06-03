@@ -16,6 +16,8 @@ import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { getToolIconKind, ToolKindIcon, type ToolIconKind } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
@@ -34,6 +36,12 @@ type ToolCallDisplayItem = {
 type ToolCallGroupProps = {
   calls: ToolCallDisplayItem[];
   onAbort?: () => void;
+};
+
+type ToolErrorDetails = {
+  toolName: string;
+  label: string;
+  error: string;
 };
 
 const STATUS_CLASS: Record<ToolCallStatus, string> = {
@@ -60,6 +68,7 @@ const GOOGLE_SERVICE_ICON_SLUGS = {
 
 export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   const [expanded, setExpanded] = React.useState(false);
+  const [errorDetails, setErrorDetails] = React.useState<ToolErrorDetails | null>(null);
   const hiddenCount = Math.max(0, calls.length - VISIBLE_TOOL_COUNT);
   const visibleCalls = expanded ? calls : calls.slice(hiddenCount);
   const previousHiddenCount = usePrevious(hiddenCount);
@@ -95,10 +104,13 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
             key={call.id}
             call={call}
             onAbort={onAbort}
+            onViewErrorDetails={setErrorDetails}
             animateIn={index === visibleCalls.length - 1}
           />
         ))}
       </div>
+
+      <ToolErrorDetailsDialog details={errorDetails} onOpenChange={setErrorDetails} />
     </div>
   );
 }
@@ -118,44 +130,76 @@ function getChildSessionId(result: unknown): string | null {
 function ToolCallRow({
   call,
   onAbort,
+  onViewErrorDetails,
   animateIn,
 }: {
   call: ToolCallDisplayItem;
   onAbort?: () => void;
+  onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
 }) {
   if (isChildSessionTool(call.toolName)) {
-    return <ChildSessionToolCallRow call={call} onAbort={onAbort} animateIn={animateIn} />;
+    return (
+      <ChildSessionToolCallRow
+        call={call}
+        onAbort={onAbort}
+        onViewErrorDetails={onViewErrorDetails}
+        animateIn={animateIn}
+      />
+    );
   }
 
-  return <DefaultToolCallRow call={call} onAbort={onAbort} animateIn={animateIn} />;
+  return (
+    <DefaultToolCallRow
+      call={call}
+      onAbort={onAbort}
+      onViewErrorDetails={onViewErrorDetails}
+      animateIn={animateIn}
+    />
+  );
 }
 
 function DefaultToolCallRow({
   call,
   onAbort,
+  onViewErrorDetails,
   animateIn,
 }: {
   call: ToolCallDisplayItem;
   onAbort?: () => void;
+  onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
 }) {
-  return <ToolCallRowBase call={call} onAbort={onAbort} animateIn={animateIn} />;
+  return (
+    <ToolCallRowBase
+      call={call}
+      onAbort={onAbort}
+      onViewErrorDetails={onViewErrorDetails}
+      animateIn={animateIn}
+    />
+  );
 }
 
 function ChildSessionToolCallRow({
   call,
   onAbort,
+  onViewErrorDetails,
   animateIn,
 }: {
   call: ToolCallDisplayItem;
   onAbort?: () => void;
+  onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
 }) {
   const childSessionId = getChildSessionId(call.result);
 
   return (
-    <ToolCallRowBase call={call} onAbort={onAbort} animateIn={animateIn}>
+    <ToolCallRowBase
+      call={call}
+      onAbort={onAbort}
+      onViewErrorDetails={onViewErrorDetails}
+      animateIn={animateIn}
+    >
       {childSessionId ? (
         <Button
           variant="ghost"
@@ -175,17 +219,27 @@ function ChildSessionToolCallRow({
 function ToolCallRowBase({
   call,
   onAbort,
+  onViewErrorDetails,
   animateIn,
   children,
 }: {
   call: ToolCallDisplayItem;
   onAbort?: () => void;
+  onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
   children?: React.ReactNode;
 }) {
   const displayName = useStitchToolDisplayName(call.toolName);
   const summary = getToolSummary(call, displayName);
   const isActive = call.status === 'pending' || call.status === 'in-progress';
+  const errorDetails =
+    call.status === 'error' && call.error
+      ? { toolName: call.toolName, label: summary.label, error: call.error }
+      : null;
+  const viewErrorDetails = () => {
+    if (!errorDetails) return;
+    onViewErrorDetails(errorDetails);
+  };
 
   return (
     <div
@@ -202,18 +256,43 @@ function ToolCallRowBase({
         label={summary.label}
       />
       <span className="shrink-0 font-medium text-foreground">{summary.label}</span>
-      <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary.preview}</span>
+      {errorDetails ? (
+        <button
+          type="button"
+          onClick={viewErrorDetails}
+          className="min-w-0 flex-1 cursor-pointer truncate text-left text-muted-foreground hover:text-destructive"
+          title="View full error"
+        >
+          {summary.preview}
+        </button>
+      ) : (
+        <span className="min-w-0 flex-1 truncate text-muted-foreground">{summary.preview}</span>
+      )}
       <span className="hidden h-5 w-44 shrink-0 items-center justify-end truncate text-right text-[11px] leading-none text-muted-foreground/80 sm:flex">
         {summary.meta}
       </span>
-      <span
-        className={cn(
-          'flex h-5 w-12 shrink-0 items-center justify-end text-right text-[11px] leading-none font-medium',
-          STATUS_CLASS[call.status],
-        )}
-      >
-        {STATUS_LABEL[call.status]}
-      </span>
+      {errorDetails ? (
+        <button
+          type="button"
+          onClick={viewErrorDetails}
+          className={cn(
+            'flex h-5 w-12 shrink-0 cursor-pointer items-center justify-end text-right text-[11px] leading-none font-medium hover:underline',
+            STATUS_CLASS[call.status],
+          )}
+          title="View full error"
+        >
+          {STATUS_LABEL[call.status]}
+        </button>
+      ) : (
+        <span
+          className={cn(
+            'flex h-5 w-12 shrink-0 items-center justify-end text-right text-[11px] leading-none font-medium',
+            STATUS_CLASS[call.status],
+          )}
+        >
+          {STATUS_LABEL[call.status]}
+        </span>
+      )}
       {isActive && onAbort ? (
         <Button
           type="button"
@@ -229,6 +308,37 @@ function ToolCallRowBase({
       ) : null}
       {children}
     </div>
+  );
+}
+
+function ToolErrorDetailsDialog({
+  details,
+  onOpenChange,
+}: {
+  details: ToolErrorDetails | null;
+  onOpenChange: (details: ToolErrorDetails | null) => void;
+}) {
+  return (
+    <Dialog open={details !== null} onOpenChange={(open) => !open && onOpenChange(null)}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] gap-3 overflow-hidden sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="pr-16">Tool error</DialogTitle>
+        </DialogHeader>
+        {details ? (
+          <CopyButton
+            value={details.error}
+            copyLabel="Copy full error"
+            copiedLabel="Copied error"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-2 right-9"
+          />
+        ) : null}
+        <pre className="max-h-[min(28rem,60vh)] overflow-auto rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap text-foreground">
+          {details?.error}
+        </pre>
+      </DialogContent>
+    </Dialog>
   );
 }
 
