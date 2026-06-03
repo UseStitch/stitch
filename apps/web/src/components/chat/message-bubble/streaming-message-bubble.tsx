@@ -6,6 +6,7 @@ import { AssistantBubbleWrapper, FileBlock } from './shared-components';
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
+import { buildStreamingToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
 import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.js';
 import type { StreamingPart } from '@/stores/stream-store';
 
@@ -51,20 +52,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
     nodes.push(
       <ToolCallGroup
         key={group.key}
-        calls={group.partIds.flatMap((partId) => {
-          const part = parts[partId];
-          if (!part || part.type !== 'tool-call' || part.toolName === 'todo') return [];
-          return [
-            {
-              id: part.toolCallId,
-              toolName: part.toolName,
-              status: part.status,
-              args: part.input,
-              result: part.output,
-              error: part.error ?? undefined,
-            },
-          ];
-        })}
+        calls={buildStreamingToolCallDisplayItems(group.partIds, parts)}
         onAbort={onAbortTool}
       />,
     );
