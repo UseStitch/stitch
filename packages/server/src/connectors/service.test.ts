@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 
+import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import {
   authorizeOAuthInstance,
   createApiKeyConnectorInstance,
   createOAuthConnectorInstance,
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
-import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
-import { eq } from 'drizzle-orm';
 
 setupTestDb();
 
@@ -103,7 +103,10 @@ describe('connector service', () => {
     }
 
     // Row should be unchanged
-    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
     expect(row?.appliedVersion).toBe(1);
   });
 
@@ -149,13 +152,19 @@ describe('connector service', () => {
 
     expect(isServiceError(result)).toBe(false);
     if (!isServiceError(result)) {
-      expect(result.data).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
+      expect(result.data).toEqual({
+        type: 'reauthorize',
+        authUrl: 'https://example.com/authorize',
+      });
     }
 
     // Wait for the background waitForTokens to complete
     await new Promise((r) => setTimeout(r, 50));
 
-    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
     // After token exchange the instance should be connected with the new key and merged scopes
     expect(row?.apiKey).toBe('new-key');
     expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
@@ -170,7 +179,15 @@ describe('connector service', () => {
       icon: { type: 'simpleIcons', slug: 'api' },
       enabled: false,
       currentVersion: 1,
-      versionHistory: [{ version: 1, title: 'Initial', description: 'Initial', action: 'none', capabilities: ['example.api.read'] }],
+      versionHistory: [
+        {
+          version: 1,
+          title: 'Initial',
+          description: 'Initial',
+          action: 'none',
+          capabilities: ['example.api.read'],
+        },
+      ],
       authType: 'api_key',
       authConfig: { keyLabel: 'API Key' },
       setupInstructions: [],
@@ -192,8 +209,10 @@ describe('connector service', () => {
 
     expect(isServiceError(oauthResult)).toBe(true);
     expect(isServiceError(apiKeyResult)).toBe(true);
-    if (isServiceError(oauthResult)) expect(oauthResult.error).toBe('Connector is currently disabled');
-    if (isServiceError(apiKeyResult)) expect(apiKeyResult.error).toBe('Connector is currently disabled');
+    if (isServiceError(oauthResult))
+      expect(oauthResult.error).toBe('Connector is currently disabled');
+    if (isServiceError(apiKeyResult))
+      expect(apiKeyResult.error).toBe('Connector is currently disabled');
 
     // Nothing written to DB
     const rows = await getDb().select().from(connectorInstances);
@@ -201,7 +220,10 @@ describe('connector service', () => {
   });
 
   test('authorizeOAuthInstance marks connector as error when token exchange fails', async () => {
-    const definition = oauthDefinition({ currentVersion: 1, versionHistory: oauthDefinition().versionHistory.slice(0, 1) });
+    const definition = oauthDefinition({
+      currentVersion: 1,
+      versionHistory: oauthDefinition().versionHistory.slice(0, 1),
+    });
     registerConnector(definition);
 
     const db = getDb();
@@ -227,7 +249,9 @@ describe('connector service', () => {
 
     const fakeStartOAuthFlow = async () => ({
       authUrl: 'https://example.com/authorize',
-      waitForTokens: async () => { throw new Error('token exchange failed'); },
+      waitForTokens: async () => {
+        throw new Error('token exchange failed');
+      },
     });
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
@@ -236,10 +260,17 @@ describe('connector service', () => {
     if (isServiceError(result)) return;
 
     let threw = false;
-    try { await result.data.waitForTokens(); } catch { threw = true; }
+    try {
+      await result.data.waitForTokens();
+    } catch {
+      threw = true;
+    }
     expect(threw).toBe(true);
 
-    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
     expect(row?.status).toBe('error');
   });
 
@@ -284,12 +315,65 @@ describe('connector service', () => {
 
     await result.data.waitForTokens();
 
-    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
     expect(row?.status).toBe('connected');
     expect(row?.accessToken).toBe('access-token-123');
     expect(row?.refreshToken).toBe('refresh-token-123');
     expect(row?.appliedVersion).toBe(definition.currentVersion);
     expect(row?.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
     expect(typeof row?.tokenExpiresAt).toBe('number');
+  });
+
+  test('authorizeOAuthInstance preserves existing refresh token when provider omits one', async () => {
+    const definition = oauthDefinition();
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_auth_preserve_refresh' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example OAuth',
+      appliedVersion: 1,
+      capabilities: ['example.read'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+      accessToken: 'old-access-token',
+      refreshToken: 'existing-refresh-token',
+      tokenExpiresAt: Date.now() - 1_000,
+      scopes: ['scope:read'],
+      status: 'connected',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    const fakeStartOAuthFlow = async () => ({
+      authUrl: 'https://example.com/authorize',
+      waitForTokens: async () => ({
+        accessToken: 'new-access-token',
+        refreshToken: null,
+        expiresIn: 3600,
+      }),
+    });
+
+    const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
+
+    expect(isServiceError(result)).toBe(false);
+    if (isServiceError(result)) return;
+
+    await result.data.waitForTokens();
+
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
+    expect(row?.status).toBe('connected');
+    expect(row?.accessToken).toBe('new-access-token');
+    expect(row?.refreshToken).toBe('existing-refresh-token');
   });
 });
