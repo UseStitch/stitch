@@ -67,7 +67,12 @@ const analysisOutputSchema = z.object({
   topicSections: z.array(topicSectionSchema).default([]),
 });
 
-const activeRuns = new Map<PrefixedString<'recan'>, AbortController>();
+type ActiveRun = {
+  controller: AbortController;
+  preserveExistingUntilComplete: boolean;
+};
+
+const activeRuns = new Map<PrefixedString<'recan'>, ActiveRun>();
 
 function buildAnalysisPrompt(): string {
   return ANALYSIS_PROMPT_TEMPLATE.replaceAll(
@@ -216,36 +221,16 @@ export async function startRecordingAnalysis(
 
   const now = Date.now();
   const id = existing?.id ?? createRecordingAnalysisId();
+  const preserveExistingUntilComplete = existing?.status === 'completed' && input?.force === true;
 
-  activeRuns.get(id)?.abort();
+  activeRuns.get(id)?.controller.abort();
 
-  await db
-    .insert(recordingAnalyses)
-    .values({
-      id,
-      recordingId,
-      status: 'pending',
-      transcript,
-      topicSections: [],
-      summary: '',
-      title: '',
-      error: null,
-      transcriptionProviderId: existing?.transcriptionProviderId ?? null,
-      transcriptionModelId: existing?.transcriptionModelId ?? null,
-      analysisProviderId: analysisModel.data.providerId,
-      analysisModelId: analysisModel.data.modelId,
-      usage: ZERO_USAGE,
-      costUsd: existing?.costUsd ?? 0,
-      startedAt: null,
-      endedAt: null,
-      durationMs: null,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: recordingAnalyses.recordingId,
-      set: {
+  if (!preserveExistingUntilComplete) {
+    await db
+      .insert(recordingAnalyses)
+      .values({
         id,
+        recordingId,
         status: 'pending',
         transcript,
         topicSections: [],
@@ -257,12 +242,35 @@ export async function startRecordingAnalysis(
         analysisProviderId: analysisModel.data.providerId,
         analysisModelId: analysisModel.data.modelId,
         usage: ZERO_USAGE,
+        costUsd: existing?.costUsd ?? 0,
         startedAt: null,
         endedAt: null,
         durationMs: null,
+        createdAt: existing?.createdAt ?? now,
         updatedAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: recordingAnalyses.recordingId,
+        set: {
+          id,
+          status: 'pending',
+          transcript,
+          topicSections: [],
+          summary: '',
+          title: '',
+          error: null,
+          transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+          transcriptionModelId: existing?.transcriptionModelId ?? null,
+          analysisProviderId: analysisModel.data.providerId,
+          analysisModelId: analysisModel.data.modelId,
+          usage: ZERO_USAGE,
+          startedAt: null,
+          endedAt: null,
+          durationMs: null,
+          updatedAt: now,
+        },
+      });
+  }
 
   broadcastRecordingAnalysisUpdated({
     recordingId,
@@ -276,6 +284,7 @@ export async function startRecordingAnalysis(
     analysisProviderId: analysisModel.data.providerId,
     analysisModelId: analysisModel.data.modelId,
     analysisCredentials: analysisModel.data.credentials,
+    preserveExistingUntilComplete,
   });
 
   const [created] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id));
@@ -307,13 +316,23 @@ export async function cancelRecordingAnalysis(
     return err('Recording analysis not found', 404);
   }
 
-  if (existing.status !== 'processing') {
+  const activeRun = activeRuns.get(existing.id);
+  if (!activeRun && existing.status !== 'processing') {
     return err('Recording analysis is not running', 400);
   }
 
-  const controller = activeRuns.get(existing.id);
   activeRuns.delete(existing.id);
-  controller?.abort();
+  activeRun?.controller.abort();
+
+  if (activeRun?.preserveExistingUntilComplete) {
+    broadcastRecordingAnalysisUpdated({
+      recordingId,
+      status: existing.status,
+      title: existing.title || null,
+    });
+
+    return ok(null);
+  }
 
   const endedAt = Date.now();
   const [updated] = await db
@@ -349,29 +368,35 @@ async function runRecordingAnalysis(
     analysisProviderId: string;
     analysisModelId: string;
     analysisCredentials: ProviderCredentials;
+    preserveExistingUntilComplete: boolean;
   },
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
   const abortController = new AbortController();
-  activeRuns.set(analysisId, abortController);
+  activeRuns.set(analysisId, {
+    controller: abortController,
+    preserveExistingUntilComplete: input.preserveExistingUntilComplete,
+  });
 
   try {
-    await db
-      .update(recordingAnalyses)
-      .set({
-        status: 'processing',
-        startedAt,
-        endedAt: null,
-        durationMs: null,
-        updatedAt: Date.now(),
-      })
-      .where(
-        and(
-          eq(recordingAnalyses.id, analysisId),
-          eq(recordingAnalyses.recordingId, input.recordingId),
-        ),
-      );
+    if (!input.preserveExistingUntilComplete) {
+      await db
+        .update(recordingAnalyses)
+        .set({
+          status: 'processing',
+          startedAt,
+          endedAt: null,
+          durationMs: null,
+          updatedAt: Date.now(),
+        })
+        .where(
+          and(
+            eq(recordingAnalyses.id, analysisId),
+            eq(recordingAnalyses.recordingId, input.recordingId),
+          ),
+        );
+    }
 
     broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
@@ -428,7 +453,7 @@ async function runRecordingAnalysis(
     const endedAt = Date.now();
     const topicSections = normalizeTopicSections(analysisOutput.topicSections);
 
-    if (activeRuns.get(analysisId) !== abortController) {
+    if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
     }
 
@@ -448,8 +473,11 @@ async function runRecordingAnalysis(
         title: analysisOutput.title,
         summary: analysisOutput.summary,
         error: null,
+        analysisProviderId: input.analysisProviderId,
+        analysisModelId: input.analysisModelId,
         usage: analysisUsage,
         costUsd: transcriptionCost + analysisCost,
+        startedAt,
         endedAt,
         durationMs: endedAt - startedAt,
         updatedAt: endedAt,
@@ -464,11 +492,20 @@ async function runRecordingAnalysis(
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');
   } catch (error) {
-    if (activeRuns.get(analysisId) !== abortController) {
+    if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
     }
 
     const message = error instanceof Error ? error.message : 'Failed to analyze recording';
+
+    if (input.preserveExistingUntilComplete) {
+      log.error(
+        { analysisId, recordingId: input.recordingId, error: message },
+        'recording analysis rerun failed',
+      );
+      return;
+    }
+
     const endedAt = Date.now();
 
     await db
@@ -493,7 +530,7 @@ async function runRecordingAnalysis(
       'recording analysis failed',
     );
   } finally {
-    if (activeRuns.get(analysisId) === abortController) {
+    if (activeRuns.get(analysisId)?.controller === abortController) {
       activeRuns.delete(analysisId);
     }
   }
