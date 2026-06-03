@@ -10,7 +10,6 @@ import {
   CONFIDENCE_LABELS,
 } from '@/components/memories/constants';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -38,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Table } from '@/components/ui/table';
 import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
 import {
   bulkDeleteMemoriesMutationOptions,
@@ -49,14 +49,6 @@ import {
   runMaintenanceMutationOptions,
 } from '@/lib/queries/memories';
 import { cn } from '@/lib/utils';
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 type FilterSource = MemorySource | 'all';
 type FilterCategory = MemoryCategory | 'all';
@@ -289,70 +281,83 @@ export function MemoriesPage() {
           )}
         </div>
 
-        {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-border bg-background">
-          {/* Column headers */}
-          <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-            <div className="flex w-6 items-center justify-center">
-              <Checkbox
-                checked={allSelected}
-                data-indeterminate={someSelected || undefined}
-                onCheckedChange={toggleSelectAll}
-                aria-label="Select all"
-              />
-            </div>
-            <div className="flex w-6 items-center justify-center">
-              <PinIcon className="size-3" />
-            </div>
-            <span className="flex-1">Content</span>
-            <span className="w-28 text-center">Category</span>
-            <span className="w-24 text-center">Confidence</span>
-            <span className="w-24 text-center">Source</span>
-            <span className="w-24 text-right">Created</span>
-          </div>
+        <Table.Container>
+          <Table.Scroller>
+            <Table.Root className="min-w-200">
+              <Table.Header>
+                <Table.Row className="hover:bg-transparent">
+                  <Table.Head className="w-14 text-center">
+                    <Checkbox
+                      checked={allSelected}
+                      data-indeterminate={someSelected || undefined}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </Table.Head>
+                  <Table.Head className="w-10 text-center">
 
-          {/* Rows */}
-          {isLoading ? (
-            <div className="flex flex-col divide-y divide-border">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-6" />
-                  <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-24 animate-pulse rounded-full bg-muted" />
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                </div>
-              ))}
-            </div>
-          ) : memories.length === 0 ? (
-            <Empty>
-              <EmptyMedia>
-                <BrainIcon className="size-10 text-muted-foreground/30" />
-              </EmptyMedia>
-              <EmptyTitle>
-                {isSearching ? 'No memories match your search' : 'No memories yet'}
-              </EmptyTitle>
-              {!isSearching && (
-                <EmptyDescription>
-                  Memories are automatically extracted from your conversations when memory is
-                  enabled in settings.
-                </EmptyDescription>
-              )}
-            </Empty>
-          ) : (
-            <div className="flex flex-col divide-y divide-border">
-              {memories.map((memory) => (
-                <MemoryRow
-                  key={memory.id}
-                  memory={memory}
-                  selected={selectedIds.has(memory.id)}
-                  onToggleSelect={() => toggleSelect(memory.id)}
-                  onClick={() => openMemory(memory)}
-                />
-              ))}
-            </div>
-          )}
+                  </Table.Head>
+                  <Table.Head className="w-full min-w-75">Content</Table.Head>
+                  <Table.Head className="w-28 text-center">Category</Table.Head>
+                  <Table.Head className="w-28 text-center">Confidence</Table.Head>
+                  <Table.Head className="w-24 text-center">Source</Table.Head>
+                  <Table.Head className="w-24 text-right">Created</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <Table.Row key={i} className="hover:bg-transparent">
+                      <Table.Cell className="w-14" />
+                      <Table.Cell className="w-10" />
+                      <Table.Cell className="w-full min-w-75">
+                        <div className="h-4 animate-pulse rounded bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-28">
+                        <div className="mx-auto h-5 w-24 animate-pulse rounded-full bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-28">
+                        <div className="mx-auto h-4 w-20 animate-pulse rounded bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-24">
+                        <div className="mx-auto h-5 w-20 animate-pulse rounded-full bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-24">
+                        <div className="ml-auto h-4 w-20 animate-pulse rounded bg-muted" />
+                      </Table.Cell>
+                    </Table.Row>
+                  ))
+                ) : memories.length === 0 ? (
+                  <Table.EmptyRow colSpan={7}>
+                    <Empty>
+                      <EmptyMedia>
+                        <BrainIcon className="size-10 text-muted-foreground/30" />
+                      </EmptyMedia>
+                      <EmptyTitle>
+                        {isSearching ? 'No memories match your search' : 'No memories yet'}
+                      </EmptyTitle>
+                      {!isSearching && (
+                        <EmptyDescription>
+                          Memories are automatically extracted from your conversations when memory
+                          is enabled in settings.
+                        </EmptyDescription>
+                      )}
+                    </Empty>
+                  </Table.EmptyRow>
+                ) : (
+                  memories.map((memory) => (
+                    <MemoryRow
+                      key={memory.id}
+                      memory={memory}
+                      selected={selectedIds.has(memory.id)}
+                      onToggleSelect={() => toggleSelect(memory.id)}
+                      onClick={() => openMemory(memory)}
+                    />
+                  ))
+                )}
+              </Table.Body>
+            </Table.Root>
+          </Table.Scroller>
 
           {totalPages > 1 ? (
             <div className="border-t border-border px-3 py-3">
@@ -413,7 +418,7 @@ export function MemoriesPage() {
               </Pagination>
             </div>
           ) : null}
-        </div>
+        </Table.Container>
       </div>
 
       {/* Detail sheet */}
@@ -460,25 +465,18 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
   const pinMutation = useMutation(pinMemoryMutationOptions(queryClient));
 
   return (
-    <div
-      className={cn(
-        'group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40',
-        selected && 'bg-muted/40',
-      )}
-      onClick={onClick}
-    >
-      <div
-        className="flex w-6 items-center justify-center"
+    <Table.Row className={cn('cursor-pointer', selected && 'bg-muted/40')} onClick={onClick}>
+      <Table.Cell
+        className="w-14 text-center"
         onClick={(e) => {
           e.stopPropagation();
-          onToggleSelect();
         }}
       >
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
-      </div>
+      </Table.Cell>
 
-      <div
-        className="flex w-6 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
+      <Table.Cell
+        className="w-10 cursor-pointer text-center text-muted-foreground hover:text-foreground"
         onClick={(e) => {
           e.stopPropagation();
           pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
@@ -489,31 +487,31 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
         ) : (
           <PinIcon className="h-4 w-4 opacity-30 hover:opacity-100" />
         )}
-      </div>
+      </Table.Cell>
 
-      <p className="flex-1 truncate text-sm">{memory.content}</p>
+      <Table.Cell className="w-full min-w-75">
+        <Table.Title>{memory.content}</Table.Title>
+      </Table.Cell>
 
-      <div className="flex w-28 justify-center">
-        <Badge variant={CATEGORY_VARIANTS[memory.category]}>
+      <Table.Cell className="w-28 text-center">
+        <Table.Badge variant={CATEGORY_VARIANTS[memory.category]}>
           {CATEGORY_LABELS[memory.category]}
-        </Badge>
-      </div>
+        </Table.Badge>
+      </Table.Cell>
 
-      <div className="flex w-24 justify-center">
-        <span className="text-xs text-muted-foreground">
-          {CONFIDENCE_LABELS[memory.confidence]}
-        </span>
-      </div>
+      <Table.Cell className="w-28 text-center">
+        <Table.Status className="normal-case">{CONFIDENCE_LABELS[memory.confidence]}</Table.Status>
+      </Table.Cell>
 
-      <div className="flex w-24 justify-center">
-        <Badge variant="outline" className="text-xs capitalize">
+      <Table.Cell className="w-24 text-center">
+        <Table.Badge variant="outline" className="capitalize">
           {memory.source}
-        </Badge>
-      </div>
+        </Table.Badge>
+      </Table.Cell>
 
-      <span className="w-24 text-right text-xs text-muted-foreground">
-        {formatDate(memory.createdAt)}
-      </span>
-    </div>
+      <Table.Cell className="w-24 text-right">
+        <Table.Time value={memory.createdAt} />
+      </Table.Cell>
+    </Table.Row>
   );
 }

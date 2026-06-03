@@ -3,9 +3,10 @@ import * as React from 'react';
 
 import type { RecordingPlatform } from '@stitch/shared/recordings/types';
 
-import { SimpleIcon } from '@/components/ui/simple-icon';
-
 import { PLATFORM_CONFIG } from './formatting';
+
+import { SimpleIcon } from '@/components/ui/simple-icon';
+import { Table } from '@/components/ui/table';
 
 export const PlatformBadge = React.memo(function PlatformBadge({
   platform,
@@ -15,7 +16,7 @@ export const PlatformBadge = React.memo(function PlatformBadge({
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <Table.IconText>
       {config.slug ? (
         <SimpleIcon
           slug={config.slug}
@@ -26,6 +27,6 @@ export const PlatformBadge = React.memo(function PlatformBadge({
         <VideoIcon className="size-3.5 shrink-0" />
       )}
       <span>{config.label}</span>
-    </div>
+    </Table.IconText>
   );
 });
