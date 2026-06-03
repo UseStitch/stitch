@@ -5,6 +5,7 @@ import * as Log from '@/lib/log.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
+import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
@@ -75,18 +76,21 @@ export class ToolAssembler {
   }
 
   async assemble(): Promise<AssembledTools> {
-    const persistedToolsetIds = this.opts.activeToolsetIds ?? getSessionActiveToolsetIds(this.opts.sessionId);
+    const persistedToolsetIds =
+      this.opts.activeToolsetIds ?? getSessionActiveToolsetIds(this.opts.sessionId);
     const toolsetManager = new ToolsetManager(this.toolContext, persistedToolsetIds);
     await this.restoreToolsets(toolsetManager, persistedToolsetIds);
 
     const coreTools = await createTools(this.toolContext);
     const metaTools = this.buildToolsetMetaTools(toolsetManager);
     const taskTool = this.buildTaskTool(toolsetManager);
+    const inspectImageTool = this.buildInspectImageTool();
     const codeModeResult = createCodeModeTool({
       getTools: () =>
         this.mergeTools({
           staticTools: { ...coreTools, ...metaTools },
           taskTool,
+          inspectImageTool,
           dynamicTools: toolsetManager.getActiveTools(),
         }),
       abortSignal: this.opts.abortSignal,
@@ -99,12 +103,15 @@ export class ToolAssembler {
         ...this.mergeTools({
           staticTools: { ...coreTools, ...metaTools },
           taskTool,
+          inspectImageTool,
           dynamicTools: {},
         }),
         execute_typescript: codeModeResult.tool,
       },
       toolsetManager,
-      promptAdditions: [codeModeResult.getSystemPrompt(), toolsetsPrompt, skillsPrompt].filter(Boolean),
+      promptAdditions: [codeModeResult.getSystemPrompt(), toolsetsPrompt, skillsPrompt].filter(
+        Boolean,
+      ),
     };
   }
 
@@ -152,14 +159,31 @@ export class ToolAssembler {
     );
   }
 
+  private buildInspectImageTool(): Tool {
+    const runtime = createToolRuntime(this.toolContext).use(resultNormalizationMiddleware());
+    return runtime.wrapTool(
+      'inspect_image',
+      createInspectImageTool(this.toolContext, {
+        parentSessionId: this.opts.sessionId,
+        parentAbortSignal: this.opts.abortSignal,
+        credentials: this.opts.credentials,
+        modelId: this.opts.modelId,
+        providerId: this.opts.credentials.providerId,
+      }),
+      { source: 'core' },
+    );
+  }
+
   private mergeTools(parts: {
     staticTools: Record<string, Tool>;
     taskTool: Tool | null;
+    inspectImageTool: Tool;
     dynamicTools: Record<string, Tool>;
   }): Record<string, Tool> {
     return {
       ...parts.staticTools,
       ...(parts.taskTool ? { task: parts.taskTool } : {}),
+      inspect_image: parts.inspectImageTool,
       ...parts.dynamicTools,
     };
   }

@@ -235,6 +235,8 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
       return getBestGenericPreview(call.args, call.result) ?? 'Using recordings';
     case 'session-history':
       return getBestGenericPreview(call.args, call.result) ?? 'Searching sessions';
+    case 'inspect-image':
+      return getStringArg(call.args, ['prompt', 'imagePath']) ?? 'Inspecting image';
     case 'mcp':
     case 'generic':
       return getBestGenericPreview(call.args, call.result) ?? 'Using tool';
