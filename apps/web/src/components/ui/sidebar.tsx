@@ -347,6 +347,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <ScrollArea
       className={cn('min-h-0 flex-1 group-data-[collapsible=icon]:overflow-hidden', className)}
+      viewportClassName="thin-scrollbar"
     >
       <div
         data-slot="sidebar-content"

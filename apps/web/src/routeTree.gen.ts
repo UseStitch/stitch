@@ -10,28 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsageRouteImport } from './routes/usage'
-import { Route as RecordingsRouteImport } from './routes/recordings'
 import { Route as MemoriesRouteImport } from './routes/memories'
 import { Route as ConnectorsRouteImport } from './routes/connectors'
-import { Route as AutomationsRouteImport } from './routes/automations'
+import { Route as RecordingsRouteRouteImport } from './routes/recordings/route'
+import { Route as AutomationsRouteRouteImport } from './routes/automations/route'
+import { Route as AgendaRouteRouteImport } from './routes/agenda/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings/index'
-import { Route as AutomationsIndexRouteImport } from './routes/automations.index'
-import { Route as AgendaIndexRouteImport } from './routes/agenda.index'
+import { Route as AutomationsIndexRouteImport } from './routes/automations/index'
+import { Route as AgendaIndexRouteImport } from './routes/agenda/index'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
-import { Route as AutomationsAutomationIdRouteImport } from './routes/automations.$automationId'
-import { Route as AgendaListIdRouteImport } from './routes/agenda.$listId'
-import { Route as AutomationsSessionsIdRouteImport } from './routes/automations.sessions.$id'
+import { Route as AutomationsAutomationIdRouteImport } from './routes/automations/$automationId'
+import { Route as AgendaListIdRouteImport } from './routes/agenda/$listId'
+import { Route as AutomationsSessionsIdRouteImport } from './routes/automations/sessions/$id'
 
 const UsageRoute = UsageRouteImport.update({
   id: '/usage',
   path: '/usage',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecordingsRoute = RecordingsRouteImport.update({
-  id: '/recordings',
-  path: '/recordings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MemoriesRoute = MemoriesRouteImport.update({
@@ -44,9 +40,19 @@ const ConnectorsRoute = ConnectorsRouteImport.update({
   path: '/connectors',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AutomationsRoute = AutomationsRouteImport.update({
+const RecordingsRouteRoute = RecordingsRouteRouteImport.update({
+  id: '/recordings',
+  path: '/recordings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsRouteRoute = AutomationsRouteRouteImport.update({
   id: '/automations',
   path: '/automations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaRouteRoute = AgendaRouteRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -57,17 +63,17 @@ const IndexRoute = IndexRouteImport.update({
 const RecordingsIndexRoute = RecordingsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => RecordingsRoute,
+  getParentRoute: () => RecordingsRouteRoute,
 } as any)
 const AutomationsIndexRoute = AutomationsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AutomationsRoute,
+  getParentRoute: () => AutomationsRouteRoute,
 } as any)
 const AgendaIndexRoute = AgendaIndexRouteImport.update({
-  id: '/agenda/',
-  path: '/agenda/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgendaRouteRoute,
 } as any)
 const SessionIdRoute = SessionIdRouteImport.update({
   id: '/session/$id',
@@ -77,30 +83,31 @@ const SessionIdRoute = SessionIdRouteImport.update({
 const RecordingsIdRoute = RecordingsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => RecordingsRoute,
+  getParentRoute: () => RecordingsRouteRoute,
 } as any)
 const AutomationsAutomationIdRoute = AutomationsAutomationIdRouteImport.update({
   id: '/$automationId',
   path: '/$automationId',
-  getParentRoute: () => AutomationsRoute,
+  getParentRoute: () => AutomationsRouteRoute,
 } as any)
 const AgendaListIdRoute = AgendaListIdRouteImport.update({
-  id: '/agenda/$listId',
-  path: '/agenda/$listId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$listId',
+  path: '/$listId',
+  getParentRoute: () => AgendaRouteRoute,
 } as any)
 const AutomationsSessionsIdRoute = AutomationsSessionsIdRouteImport.update({
   id: '/sessions/$id',
   path: '/sessions/$id',
-  getParentRoute: () => AutomationsRoute,
+  getParentRoute: () => AutomationsRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/automations': typeof AutomationsRouteWithChildren
+  '/agenda': typeof AgendaRouteRouteWithChildren
+  '/automations': typeof AutomationsRouteRouteWithChildren
+  '/recordings': typeof RecordingsRouteRouteWithChildren
   '/connectors': typeof ConnectorsRoute
   '/memories': typeof MemoriesRoute
-  '/recordings': typeof RecordingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/agenda/$listId': typeof AgendaListIdRoute
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
@@ -128,10 +135,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/automations': typeof AutomationsRouteWithChildren
+  '/agenda': typeof AgendaRouteRouteWithChildren
+  '/automations': typeof AutomationsRouteRouteWithChildren
+  '/recordings': typeof RecordingsRouteRouteWithChildren
   '/connectors': typeof ConnectorsRoute
   '/memories': typeof MemoriesRoute
-  '/recordings': typeof RecordingsRouteWithChildren
   '/usage': typeof UsageRoute
   '/agenda/$listId': typeof AgendaListIdRoute
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
@@ -146,10 +154,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agenda'
     | '/automations'
+    | '/recordings'
     | '/connectors'
     | '/memories'
-    | '/recordings'
     | '/usage'
     | '/agenda/$listId'
     | '/automations/$automationId'
@@ -176,10 +185,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/agenda'
     | '/automations'
+    | '/recordings'
     | '/connectors'
     | '/memories'
-    | '/recordings'
     | '/usage'
     | '/agenda/$listId'
     | '/automations/$automationId'
@@ -193,14 +203,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AutomationsRoute: typeof AutomationsRouteWithChildren
+  AgendaRouteRoute: typeof AgendaRouteRouteWithChildren
+  AutomationsRouteRoute: typeof AutomationsRouteRouteWithChildren
+  RecordingsRouteRoute: typeof RecordingsRouteRouteWithChildren
   ConnectorsRoute: typeof ConnectorsRoute
   MemoriesRoute: typeof MemoriesRoute
-  RecordingsRoute: typeof RecordingsRouteWithChildren
   UsageRoute: typeof UsageRoute
-  AgendaListIdRoute: typeof AgendaListIdRoute
   SessionIdRoute: typeof SessionIdRoute
-  AgendaIndexRoute: typeof AgendaIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -210,13 +219,6 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/usage'
       preLoaderRoute: typeof UsageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recordings': {
-      id: '/recordings'
-      path: '/recordings'
-      fullPath: '/recordings'
-      preLoaderRoute: typeof RecordingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/memories': {
@@ -233,11 +235,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConnectorsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recordings': {
+      id: '/recordings'
+      path: '/recordings'
+      fullPath: '/recordings'
+      preLoaderRoute: typeof RecordingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/automations': {
       id: '/automations'
       path: '/automations'
       fullPath: '/automations'
-      preLoaderRoute: typeof AutomationsRouteImport
+      preLoaderRoute: typeof AutomationsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -252,21 +268,21 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/recordings/'
       preLoaderRoute: typeof RecordingsIndexRouteImport
-      parentRoute: typeof RecordingsRoute
+      parentRoute: typeof RecordingsRouteRoute
     }
     '/automations/': {
       id: '/automations/'
       path: '/'
       fullPath: '/automations/'
       preLoaderRoute: typeof AutomationsIndexRouteImport
-      parentRoute: typeof AutomationsRoute
+      parentRoute: typeof AutomationsRouteRoute
     }
     '/agenda/': {
       id: '/agenda/'
-      path: '/agenda'
+      path: '/'
       fullPath: '/agenda/'
       preLoaderRoute: typeof AgendaIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AgendaRouteRoute
     }
     '/session/$id': {
       id: '/session/$id'
@@ -280,72 +296,84 @@ declare module '@tanstack/react-router' {
       path: '/$id'
       fullPath: '/recordings/$id'
       preLoaderRoute: typeof RecordingsIdRouteImport
-      parentRoute: typeof RecordingsRoute
+      parentRoute: typeof RecordingsRouteRoute
     }
     '/automations/$automationId': {
       id: '/automations/$automationId'
       path: '/$automationId'
       fullPath: '/automations/$automationId'
       preLoaderRoute: typeof AutomationsAutomationIdRouteImport
-      parentRoute: typeof AutomationsRoute
+      parentRoute: typeof AutomationsRouteRoute
     }
     '/agenda/$listId': {
       id: '/agenda/$listId'
-      path: '/agenda/$listId'
+      path: '/$listId'
       fullPath: '/agenda/$listId'
       preLoaderRoute: typeof AgendaListIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AgendaRouteRoute
     }
     '/automations/sessions/$id': {
       id: '/automations/sessions/$id'
       path: '/sessions/$id'
       fullPath: '/automations/sessions/$id'
       preLoaderRoute: typeof AutomationsSessionsIdRouteImport
-      parentRoute: typeof AutomationsRoute
+      parentRoute: typeof AutomationsRouteRoute
     }
   }
 }
 
-interface AutomationsRouteChildren {
+interface AgendaRouteRouteChildren {
+  AgendaListIdRoute: typeof AgendaListIdRoute
+  AgendaIndexRoute: typeof AgendaIndexRoute
+}
+
+const AgendaRouteRouteChildren: AgendaRouteRouteChildren = {
+  AgendaListIdRoute: AgendaListIdRoute,
+  AgendaIndexRoute: AgendaIndexRoute,
+}
+
+const AgendaRouteRouteWithChildren = AgendaRouteRoute._addFileChildren(
+  AgendaRouteRouteChildren,
+)
+
+interface AutomationsRouteRouteChildren {
   AutomationsAutomationIdRoute: typeof AutomationsAutomationIdRoute
   AutomationsIndexRoute: typeof AutomationsIndexRoute
   AutomationsSessionsIdRoute: typeof AutomationsSessionsIdRoute
 }
 
-const AutomationsRouteChildren: AutomationsRouteChildren = {
+const AutomationsRouteRouteChildren: AutomationsRouteRouteChildren = {
   AutomationsAutomationIdRoute: AutomationsAutomationIdRoute,
   AutomationsIndexRoute: AutomationsIndexRoute,
   AutomationsSessionsIdRoute: AutomationsSessionsIdRoute,
 }
 
-const AutomationsRouteWithChildren = AutomationsRoute._addFileChildren(
-  AutomationsRouteChildren,
-)
+const AutomationsRouteRouteWithChildren =
+  AutomationsRouteRoute._addFileChildren(AutomationsRouteRouteChildren)
 
-interface RecordingsRouteChildren {
+interface RecordingsRouteRouteChildren {
   RecordingsIdRoute: typeof RecordingsIdRoute
   RecordingsIndexRoute: typeof RecordingsIndexRoute
 }
 
-const RecordingsRouteChildren: RecordingsRouteChildren = {
+const RecordingsRouteRouteChildren: RecordingsRouteRouteChildren = {
   RecordingsIdRoute: RecordingsIdRoute,
   RecordingsIndexRoute: RecordingsIndexRoute,
 }
 
-const RecordingsRouteWithChildren = RecordingsRoute._addFileChildren(
-  RecordingsRouteChildren,
+const RecordingsRouteRouteWithChildren = RecordingsRouteRoute._addFileChildren(
+  RecordingsRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AutomationsRoute: AutomationsRouteWithChildren,
+  AgendaRouteRoute: AgendaRouteRouteWithChildren,
+  AutomationsRouteRoute: AutomationsRouteRouteWithChildren,
+  RecordingsRouteRoute: RecordingsRouteRouteWithChildren,
   ConnectorsRoute: ConnectorsRoute,
   MemoriesRoute: MemoriesRoute,
-  RecordingsRoute: RecordingsRouteWithChildren,
   UsageRoute: UsageRoute,
-  AgendaListIdRoute: AgendaListIdRoute,
   SessionIdRoute: SessionIdRoute,
-  AgendaIndexRoute: AgendaIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
