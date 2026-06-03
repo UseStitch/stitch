@@ -7,7 +7,7 @@ export const Route = createFileRoute('/automations')({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(automationsQueryOptions),
-      context.queryClient.ensureQueryData(automationsPageQueryOptions({ page: 1, pageSize: 10 })),
+      context.queryClient.ensureQueryData(automationsPageQueryOptions({ page: 1, pageSize: 15 })),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
     ]),
   component: Outlet,
