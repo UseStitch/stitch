@@ -19,6 +19,7 @@ import type {
 } from '@/components/session/session-page-types';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
+import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { useCreateAutomation } from '@/lib/queries/automations';
 import { useGenerateAutomationDraft, useMarkSessionRead } from '@/lib/queries/chat';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
@@ -36,12 +37,14 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const createAutomation = useCreateAutomation();
   const generateAutomation = useGenerateAutomationDraft();
   const details = useSessionDetailsStats(sessionId);
+  const streamState = useSessionStreamState(sessionId);
   const [rightPanel, setRightPanel] = React.useState<RightPanel>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
   const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
   const sendQueuedRef = React.useRef<SendQueuedMessageFn | null>(null);
+  const lastReadCompletedMessageIdRef = React.useRef<string | null>(null);
   const timezone =
     settings?.['profile.timezone']?.trim() ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -62,8 +65,34 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   }, []);
 
   React.useEffect(() => {
+    lastReadCompletedMessageIdRef.current = null;
     markReadMutate(sessionId);
   }, [sessionId, markReadMutate]);
+
+  React.useEffect(() => {
+    if (
+      streamState.isStreaming ||
+      streamState.activeMessageId === null ||
+      streamState.finishReason === null ||
+      streamState.error !== null
+    ) {
+      return;
+    }
+
+    if (lastReadCompletedMessageIdRef.current === streamState.activeMessageId) {
+      return;
+    }
+
+    lastReadCompletedMessageIdRef.current = streamState.activeMessageId;
+    markReadMutate(sessionId);
+  }, [
+    sessionId,
+    markReadMutate,
+    streamState.isStreaming,
+    streamState.activeMessageId,
+    streamState.finishReason,
+    streamState.error,
+  ]);
 
   const handleGenerateAutomation = React.useCallback(async () => {
     const toastId = toast.loading('Generating automation draft...');
@@ -112,7 +141,11 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
                 {rightPanel === 'details' ? (
-                  <SessionDetailsSheet {...details} sessionId={sessionId} className="hidden lg:block" />
+                  <SessionDetailsSheet
+                    {...details}
+                    sessionId={sessionId}
+                    className="hidden lg:block"
+                  />
                 ) : (
                   <MessageQueuePanel
                     sessionId={sessionId}

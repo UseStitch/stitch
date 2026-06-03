@@ -28,7 +28,7 @@ export function useSessionStream({ sessionId }: UseSessionStreamOptions): void {
       streamState.error === null
     ) {
       void Promise.all([
-        queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) }),
         queryClient.invalidateQueries({ queryKey: sessionKeys.stats(sessionId) }),
       ]).then(() => resetSession(sessionId));
     }
