@@ -13,7 +13,6 @@ import {
 
 import type { Automation } from '@stitch/shared/automations/types';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -25,6 +24,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Table } from '@/components/ui/table';
 import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
 import type { ProviderModels } from '@/lib/queries/providers';
 
@@ -42,14 +42,6 @@ type AutomationsTableProps = {
 };
 
 const columnHelper = createColumnHelper<Automation>();
-
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
 export function AutomationsTable({
   automations,
@@ -80,13 +72,15 @@ export function AutomationsTable({
       columnHelper.accessor('title', {
         header: 'Title',
         cell: ({ row }) => (
-          <Link
-            to="/automations/$automationId"
-            params={{ automationId: row.original.id }}
-            className="truncate font-medium text-foreground hover:underline"
-          >
-            {row.original.title}
-          </Link>
+          <Table.Title className="block">
+            <Link
+              to="/automations/$automationId"
+              params={{ automationId: row.original.id }}
+              className="text-foreground hover:underline"
+            >
+              {row.original.title}
+            </Link>
+          </Table.Title>
         ),
       }),
       columnHelper.display({
@@ -97,37 +91,29 @@ export function AutomationsTable({
           const label =
             modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ??
             automation.modelId;
-          return (
-            <Badge variant="secondary" className="text-[11px]">
-              {label}
-            </Badge>
-          );
+          return <Table.Badge>{label}</Table.Badge>;
         },
       }),
       columnHelper.accessor('runCount', {
         header: 'Runs',
-        cell: ({ getValue }) => <span className="text-sm tabular-nums">{getValue()}</span>,
+        cell: ({ getValue }) => <Table.Number value={getValue()} />,
       }),
       columnHelper.display({
         id: 'schedule',
         header: 'Schedule',
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {getAutomationScheduleLabel(row.original.schedule)}
-          </span>
+          <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>
         ),
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
-        cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground">{formatDate(getValue())}</span>
-        ),
+        cell: ({ getValue }) => <Table.Time value={getValue()} />,
       }),
       columnHelper.display({
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1">
+          <Table.Actions>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -154,7 +140,7 @@ export function AutomationsTable({
             >
               <Trash2Icon className="size-3.5 text-destructive" />
             </Button>
-          </div>
+          </Table.Actions>
         ),
       }),
     ],
@@ -190,54 +176,49 @@ export function AutomationsTable({
   }, [currentPage, totalPages]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-background">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-225 text-left text-sm">
-          <thead className="border-b border-border bg-muted/40">
+    <Table.Container>
+      <Table.Scroller>
+        <Table.Root className="min-w-225">
+          <Table.Header>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <Table.Row key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-4 py-2 text-xs font-medium text-muted-foreground"
-                  >
+                  <Table.Head key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
+                  </Table.Head>
                 ))}
-              </tr>
+              </Table.Row>
             ))}
-          </thead>
-          <tbody className="divide-y divide-border">
+          </Table.Header>
+          <Table.Body>
             {table.getRowModel().rows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length}>
-                  <Empty>
-                    <EmptyMedia>
-                      <BotIcon className="size-10 text-muted-foreground/30" />
-                    </EmptyMedia>
-                    <EmptyTitle>No automations yet</EmptyTitle>
-                    <EmptyDescription>
-                      Create your first automation to speed up recurring workflows.
-                    </EmptyDescription>
-                  </Empty>
-                </td>
-              </tr>
+              <Table.EmptyRow colSpan={columns.length}>
+                <Empty>
+                  <EmptyMedia>
+                    <BotIcon className="size-10 text-muted-foreground/30" />
+                  </EmptyMedia>
+                  <EmptyTitle>No automations yet</EmptyTitle>
+                  <EmptyDescription>
+                    Create your first automation to speed up recurring workflows.
+                  </EmptyDescription>
+                </Empty>
+              </Table.EmptyRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="group transition-colors hover:bg-muted/40">
+                <Table.Row key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 align-middle">
+                    <Table.Cell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                    </Table.Cell>
                   ))}
-                </tr>
+                </Table.Row>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </Table.Body>
+        </Table.Root>
+      </Table.Scroller>
 
       {totalPages > 1 ? (
         <div className="border-t border-border px-3 py-3">
@@ -298,6 +279,6 @@ export function AutomationsTable({
           </Pagination>
         </div>
       ) : null}
-    </div>
+    </Table.Container>
   );
 }

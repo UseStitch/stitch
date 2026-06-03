@@ -13,14 +13,6 @@ export function getRecordingDisplayTitle(recording: Recording): string {
   return recording.analysisTitle || recording.title;
 }
 
-export function formatRecordingDate(ts: number): string {
-  return new Date(ts).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export function formatRecordingShortDate(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, {
     month: 'short',

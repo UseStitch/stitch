@@ -12,25 +12,16 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import {
-  formatClockDuration,
-  formatRecordingDate,
-  getRecordingDisplayTitle,
-} from '../shared/formatting';
+import { formatClockDuration, getRecordingDisplayTitle } from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 import { RecordingCopyButton } from '../shared/recording-copy-button';
 
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Table } from '@/components/ui/table';
 
 const columnHelper = createColumnHelper<Recording>();
-
-function formatCost(costUsd: number | null): string {
-  if (costUsd === null) return '—';
-  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
-  return `$${costUsd.toFixed(2)}`;
-}
 
 interface RecordingsTableProps {
   recordings: Recording[];
@@ -55,9 +46,7 @@ export function RecordingsTable({
         header: 'Title',
         cell: ({ row }) => (
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium">
-              {getRecordingDisplayTitle(row.original)}
-            </span>
+            <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
           </div>
         ),
       }),
@@ -67,15 +56,11 @@ export function RecordingsTable({
       }),
       columnHelper.accessor('status', {
         header: 'Capturing',
-        cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground capitalize">{getValue()}</span>
-        ),
+        cell: ({ getValue }) => <Table.Status>{getValue()}</Table.Status>,
       }),
       columnHelper.accessor('startedAt', {
         header: 'Date',
-        cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground">{formatRecordingDate(getValue())}</span>
-        ),
+        cell: ({ getValue }) => <Table.Time value={getValue()} />,
       }),
       columnHelper.display({
         id: 'duration',
@@ -85,26 +70,18 @@ export function RecordingsTable({
           if (recording.id === activeRecordingId) {
             return <LiveDuration startedAt={recording.startedAt} />;
           }
-          return (
-            <span className="text-xs text-muted-foreground">
-              {formatClockDuration(recording.durationMs)}
-            </span>
-          );
+          return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
         },
       }),
       columnHelper.accessor('costUsd', {
         header: 'Cost',
-        cell: ({ getValue }) => (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {formatCost(getValue())}
-          </span>
-        ),
+        cell: ({ getValue }) => <Table.Money value={getValue()} />,
       }),
       columnHelper.display({
         id: 'actions',
         header: () => <div className="pr-1 text-right">Actions</div>,
         cell: ({ row }) => (
-          <div className="-mr-1.5 flex items-center justify-end gap-1">
+          <Table.Actions className="-mr-1.5">
             <RecordingCopyButton value={row.original.filePath} />
             <Button
               type="button"
@@ -121,7 +98,7 @@ export function RecordingsTable({
             >
               <Trash2Icon className="size-4" />
             </Button>
-          </div>
+          </Table.Actions>
         ),
       }),
     ],
@@ -139,13 +116,13 @@ export function RecordingsTable({
   });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground">
+    <Table.Scroller>
+      <Table.Root>
+        <Table.Header>
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
+            <Table.Row key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header) => (
-                <th
+                <Table.Head
                   key={header.id}
                   className={
                     header.column.id === 'title'
@@ -156,35 +133,33 @@ export function RecordingsTable({
                   {header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
+                </Table.Head>
               ))}
-            </tr>
+            </Table.Row>
           ))}
-        </thead>
-        <tbody className="divide-y divide-border">
+        </Table.Header>
+        <Table.Body>
           {table.getRowModel().rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length}>
-                <Empty>
-                  <EmptyMedia>
-                    <MicIcon className="size-10 text-muted-foreground/30" />
-                  </EmptyMedia>
-                  <EmptyTitle>No recordings yet</EmptyTitle>
-                  <EmptyDescription>
-                    Start recording to capture your first meeting audio.
-                  </EmptyDescription>
-                </Empty>
-              </td>
-            </tr>
+            <Table.EmptyRow colSpan={columns.length}>
+              <Empty>
+                <EmptyMedia>
+                  <MicIcon className="size-10 text-muted-foreground/30" />
+                </EmptyMedia>
+                <EmptyTitle>No recordings yet</EmptyTitle>
+                <EmptyDescription>
+                  Start recording to capture your first meeting audio.
+                </EmptyDescription>
+              </Empty>
+            </Table.EmptyRow>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <tr
+              <Table.Row
                 key={row.id}
-                className="group cursor-pointer align-middle transition-colors hover:bg-muted/40"
+                className="cursor-pointer"
                 onClick={() => onNavigate(row.original.id)}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td
+                  <Table.Cell
                     key={cell.id}
                     className={
                       cell.column.id === 'title'
@@ -193,13 +168,13 @@ export function RecordingsTable({
                     }
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </Table.Cell>
                 ))}
-              </tr>
+              </Table.Row>
             ))
           )}
-        </tbody>
-      </table>
-    </div>
+        </Table.Body>
+      </Table.Root>
+    </Table.Scroller>
   );
 }
