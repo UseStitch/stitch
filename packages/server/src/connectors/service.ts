@@ -242,7 +242,7 @@ export async function authorizeOAuthInstance(
         .update(connectorInstances)
         .set({
           accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
+          refreshToken: tokens.refreshToken ?? instance.refreshToken,
           tokenExpiresAt: tokens.expiresIn ? now + tokens.expiresIn * 1000 : null,
           status: 'connected' as ConnectorStatus,
           authIssue: null,

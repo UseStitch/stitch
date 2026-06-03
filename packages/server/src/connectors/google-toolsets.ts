@@ -103,20 +103,10 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           );
         }
 
-        let cachedToken: string | null = null;
-        let cachedTokenExpiresAt: number | null = null;
-
         const client = new GoogleClient({
           getAccessToken: async (options) => {
             const forceRefresh = options?.forceRefresh === true;
             const now = Date.now();
-            if (
-              !forceRefresh &&
-              cachedToken &&
-              (!cachedTokenExpiresAt || cachedTokenExpiresAt > now + REFRESH_BUFFER_MS)
-            ) {
-              return cachedToken;
-            }
 
             const [latest] = await db
               .select({
@@ -151,8 +141,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                 if (creds && latest.refreshToken) {
                   const inFlight = refreshInFlight.get(chosen.id);
                   if (inFlight) {
-                    cachedToken = await inFlight;
-                    return cachedToken;
+                    return await inFlight;
                   }
 
                   const config = definition.authConfig as OAuthConfig;
@@ -184,11 +173,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                       })
                       .where(eq(connectorInstances.id, chosen.id));
 
-                    cachedToken = refreshed.accessToken;
-                    cachedTokenExpiresAt = refreshed.expiresIn
-                      ? now + refreshed.expiresIn * 1000
-                      : null;
-                    return cachedToken;
+                    return refreshed.accessToken;
                   } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
                     const requiresReauth = requiresOAuthReauth(error);
@@ -229,9 +214,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               );
             }
 
-            cachedToken = latest.accessToken;
-            cachedTokenExpiresAt = latest.tokenExpiresAt;
-            return cachedToken;
+            return latest.accessToken;
           },
           logger: log,
           quotaAccountKey: chosen.id,

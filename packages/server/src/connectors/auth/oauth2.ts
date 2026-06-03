@@ -23,11 +23,13 @@ export class OAuthRefreshError extends Error {
   readonly status: number;
   readonly errorCode: string | undefined;
   readonly errorDescription: string | undefined;
+  readonly clockSkewMs: number | undefined;
 
-  constructor(status: number, bodyText: string) {
+  constructor(status: number, bodyText: string, clockSkewMs?: number) {
     super(`Token refresh failed (${status}): ${bodyText}`);
     this.name = 'OAuthRefreshError';
     this.status = status;
+    this.clockSkewMs = clockSkewMs;
 
     let parsed: OAuthErrorPayload | null = null;
     try {
@@ -41,12 +43,32 @@ export class OAuthRefreshError extends Error {
   }
 }
 
+/** Clock skew beyond this magnitude can itself cause Google to reject a valid refresh token. */
+const CLOCK_SKEW_THRESHOLD_MS = 5 * 60_000;
+
+/**
+ * Detects whether an OAuth refresh failure represents a permanently invalid
+ * grant (revoked/expired refresh token) that requires the user to reauthorize.
+ *
+ * An `invalid_grant` accompanied by significant client/server clock skew is
+ * treated as transient: large skew alone causes Google to reject otherwise
+ * valid tokens, and flagging reauthorization in that case produces a needless
+ * reconnect loop. Such failures should resolve once the clock is corrected.
+ */
 export function requiresOAuthReauth(error: unknown): boolean {
-  return (
-    error instanceof OAuthRefreshError &&
-    error.status === 400 &&
-    error.errorCode === 'invalid_grant'
-  );
+  if (
+    !(error instanceof OAuthRefreshError) ||
+    error.status !== 400 ||
+    error.errorCode !== 'invalid_grant'
+  ) {
+    return false;
+  }
+
+  if (error.clockSkewMs !== undefined && Math.abs(error.clockSkewMs) >= CLOCK_SKEW_THRESHOLD_MS) {
+    return false;
+  }
+
+  return true;
 }
 
 function generateCodeVerifier(): string {
@@ -265,11 +287,12 @@ export async function refreshAccessToken(
 
   if (!response.ok) {
     const errorBody = await response.text();
+    const clockSkewMs = computeClockSkewMs(response.headers.get('date'));
     log.error(
-      { event: 'oauth.refresh.failed', status: response.status, errorBody },
+      { event: 'oauth.refresh.failed', status: response.status, errorBody, clockSkewMs },
       'Token refresh failed',
     );
-    throw new OAuthRefreshError(response.status, errorBody);
+    throw new OAuthRefreshError(response.status, errorBody, clockSkewMs);
   }
 
   const data = (await response.json()) as {
@@ -283,6 +306,18 @@ export async function refreshAccessToken(
     refreshToken: data.refresh_token ?? null,
     expiresIn: data.expires_in ?? null,
   };
+}
+
+/**
+ * Computes the difference between the local clock and the server's `Date`
+ * header, in milliseconds. Positive values mean the local clock is ahead.
+ * Returns undefined when the header is missing or unparseable.
+ */
+function computeClockSkewMs(dateHeader: string | null): number | undefined {
+  if (!dateHeader) return undefined;
+  const serverTime = Date.parse(dateHeader);
+  if (Number.isNaN(serverTime)) return undefined;
+  return Date.now() - serverTime;
 }
 
 function buildHtmlResponse(title: string, message: string, success: boolean): string {

@@ -166,6 +166,11 @@ export const googleConnectorModule: ConnectorModule = {
         href: 'https://console.cloud.google.com/auth/audience',
         hrefLabel: 'OAuth Audience Page',
       },
+      {
+        text: 'On the Audience page, click Publish app to move it to production.',
+        href: 'https://console.cloud.google.com/auth/audience',
+        hrefLabel: 'OAuth Audience Page',
+      },
     ],
   },
   hooks: {
