@@ -78,7 +78,7 @@ type ResolvedTranscriptionConfig = {
   apiKey: string;
   endpoint: string;
   sampleRateHz: number;
-  encoding: string;
+  encoding: StartRecordingResponse['audioChunkConfig']['encoding'];
   pricing: TranscriptionPricing;
   audioChunkConfig: StartRecordingResponse['audioChunkConfig'];
 };
@@ -483,19 +483,4 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   await db.delete(recordings).where(eq(recordings.id, recordingId));
 
   return ok(null);
-}
-
-export async function listAudioDevices(): Promise<
-  ServiceResult<{ microphoneDevices: string[]; speakerDevices: string[] }>
-> {
-  return err('Audio devices are only available from the desktop app', 500);
-}
-
-export async function checkAudioPermissions(): Promise<
-  ServiceResult<{
-    microphone: 'granted' | 'denied' | 'unknown';
-    screenCapture: 'granted' | 'denied' | 'unknown';
-  }>
-> {
-  return err('Audio permissions are only available from the desktop app', 500);
 }

@@ -1,10 +1,10 @@
-import type { createNodeWebSocket } from '@hono/node-ws';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { RecordingIngestMessage } from '@stitch/shared/chat/realtime';
 
 import * as Events from '@/lib/events.js';
+import type { createNodeWebSocket } from '@hono/node-ws';
 
 type UpgradeWebSocket = ReturnType<typeof createNodeWebSocket>['upgradeWebSocket'];
 
@@ -48,27 +48,44 @@ export function createRecordingsIngestRouter(upgradeWebSocket: UpgradeWebSocket)
 
   router.get(
     '/ingest',
-    upgradeWebSocket(() => ({
-      onMessage(event, ws) {
-        const message = parseIngestMessage(event.data);
-        if (!message) {
-          ws.close(1003, 'Invalid recording ingest message');
-          return;
-        }
+    upgradeWebSocket(() => {
+      let recordingId: string | null = null;
 
-        if (message.type !== 'chunk') {
-          return;
-        }
+      return {
+        onMessage(event, ws) {
+          const message = parseIngestMessage(event.data);
+          if (!message) {
+            ws.close(1003, 'Invalid recording ingest message');
+            return;
+          }
 
-        Events.emit('recording-audio-chunk', {
-          recordingId: message.recordingId,
-          source: message.source,
-          samplesB64: message.samplesB64,
-          sampleRateHz: message.sampleRateHz,
-          numSamples: message.numSamples,
-        });
-      },
-    })),
+          if (message.type === 'start') {
+            recordingId = message.recordingId;
+            return;
+          }
+
+          if (message.type === 'stop') {
+            recordingId = null;
+            return;
+          }
+
+          // Chunks are only accepted once the connection has been bound to a
+          // recording via `start`, and only for that recording.
+          if (recordingId === null || message.recordingId !== recordingId) {
+            ws.close(1008, 'Recording ingest chunk does not match an active recording');
+            return;
+          }
+
+          Events.emit('recording-audio-chunk', {
+            recordingId: message.recordingId,
+            source: message.source,
+            samplesB64: message.samplesB64,
+            sampleRateHz: message.sampleRateHz,
+            numSamples: message.numSamples,
+          });
+        },
+      };
+    }),
   );
 
   return router;

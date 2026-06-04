@@ -38,7 +38,9 @@ async function createTestServer(): Promise<{ url: string; server: TestServer }> 
 function waitForOpen(ws: WebSocket): Promise<void> {
   return new Promise((resolve, reject) => {
     ws.addEventListener('open', () => resolve(), { once: true });
-    ws.addEventListener('error', () => reject(new Error('WebSocket failed to open')), { once: true });
+    ws.addEventListener('error', () => reject(new Error('WebSocket failed to open')), {
+      once: true,
+    });
   });
 }
 
@@ -72,7 +74,7 @@ test('emits recording audio chunks from WebSocket ingest messages', async () => 
     }),
   );
 
-   expect(payloadPromise).resolves.toEqual({
+  expect(payloadPromise).resolves.toEqual({
     recordingId: 'rec_test',
     source: 'mic',
     samplesB64: 'AAAA',
@@ -81,4 +83,36 @@ test('emits recording audio chunks from WebSocket ingest messages', async () => 
   });
 
   ws.close();
+});
+
+test('rejects chunks that arrive before a start message', async () => {
+  const { url } = await createTestServer();
+
+  let emitted = false;
+  const unsubscribe = Events.on('recording-audio-chunk', () => {
+    emitted = true;
+  });
+
+  const ws = new WebSocket(url);
+  await waitForOpen(ws);
+
+  const closePromise = new Promise<void>((resolve) => {
+    ws.addEventListener('close', () => resolve(), { once: true });
+  });
+
+  ws.send(
+    JSON.stringify({
+      type: 'chunk',
+      recordingId: 'rec_test',
+      source: 'mic',
+      samplesB64: 'AAAA',
+      sampleRateHz: 16_000,
+      numSamples: 512,
+    }),
+  );
+
+  await closePromise;
+  unsubscribe();
+
+  expect(emitted).toBe(false);
 });

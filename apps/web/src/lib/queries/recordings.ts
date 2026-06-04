@@ -50,13 +50,11 @@ type AudioPermissionsStatus = {
 export const audioDevicesQueryOptions = queryOptions({
   queryKey: recordingsKeys.devices(),
   queryFn: async (): Promise<AudioDeviceList> => {
-    if (window.api?.recording?.listDevices) {
-      return window.api.recording.listDevices();
+    if (!window.api?.recording?.listDevices) {
+      throw new Error('Audio devices are only available from the desktop app');
     }
 
-    const res = await serverFetch('/recordings/devices');
-    if (!res.ok) throw new Error('Failed to fetch audio devices');
-    return res.json() as Promise<AudioDeviceList>;
+    return window.api.recording.listDevices();
   },
   refetchInterval: 5_000,
   staleTime: 2_000,
@@ -65,13 +63,11 @@ export const audioDevicesQueryOptions = queryOptions({
 export const audioPermissionsQueryOptions = queryOptions({
   queryKey: ['recordings', 'permissions'] as const,
   queryFn: async (): Promise<AudioPermissionsStatus> => {
-    if (window.api?.recording?.checkPermissions) {
-      return window.api.recording.checkPermissions();
+    if (!window.api?.recording?.checkPermissions) {
+      throw new Error('Audio permissions are only available from the desktop app');
     }
 
-    const res = await serverFetch('/recordings/permissions');
-    if (!res.ok) throw new Error('Failed to check audio permissions');
-    return res.json() as Promise<AudioPermissionsStatus>;
+    return window.api.recording.checkPermissions();
   },
   staleTime: 10_000,
 });
@@ -104,33 +100,23 @@ async function preflightPermissionCheck(): Promise<void> {
       if (permissions.microphone === 'granted' && permissions.screenCapture === 'granted') {
         return;
       }
-    }
 
-    // Fallback for non-Electron (dev server): use the server permission route
-    const res = await serverFetch('/recordings/permissions');
-    if (!res.ok) return;
+      const issues: string[] = [];
 
-    const permissions = (await res.json()) as AudioPermissionsStatus;
+      if (permissions.microphone !== 'granted') {
+        issues.push(
+          'Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.',
+        );
+      }
+      if (permissions.screenCapture !== 'granted') {
+        issues.push(
+          'Audio capture permission is needed. Toggle on Stitch under "Screen & System Audio Recording" in System Settings > Privacy & Security.',
+        );
+      }
 
-    if (permissions.microphone === 'granted' && permissions.screenCapture === 'granted') {
-      return;
-    }
-
-    const issues: string[] = [];
-
-    if (permissions.microphone !== 'granted') {
-      issues.push(
-        'Microphone access is denied. Grant microphone permission in System Settings > Privacy & Security > Microphone.',
-      );
-    }
-    if (permissions.screenCapture !== 'granted') {
-      issues.push(
-        'Audio capture permission is needed. Toggle on Stitch under "Screen & System Audio Recording" in System Settings > Privacy & Security.',
-      );
-    }
-
-    if (issues.length > 0) {
-      throw new Error(issues.join('\n'));
+      if (issues.length > 0) {
+        throw new Error(issues.join('\n'));
+      }
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes('permission is needed')) {

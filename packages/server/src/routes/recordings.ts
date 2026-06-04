@@ -16,10 +16,8 @@ import {
   startRecordingAnalysis,
 } from '@/recordings/analysis-service.js';
 import {
-  checkAudioPermissions,
   deleteRecording,
   getRecordingAudioFile,
-  listAudioDevices,
   listRecordings,
   startRecording,
   stopRecording,
@@ -64,16 +62,6 @@ recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async 
 recordingsRouter.post('/stop', zValidator('json', stopRecordingSchema), async (c) => {
   const body = c.req.valid('json') as StopRecordingInput;
   const result = await stopRecording(body);
-  return unwrapResult(c, result);
-});
-
-recordingsRouter.get('/devices', async (c) => {
-  const result = await listAudioDevices();
-  return unwrapResult(c, result);
-});
-
-recordingsRouter.get('/permissions', async (c) => {
-  const result = await checkAudioPermissions();
   return unwrapResult(c, result);
 });
 

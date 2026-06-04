@@ -47,6 +47,9 @@ export function MeetingRecordingBanner() {
   const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
   activeRecordingIdRef.current = data?.activeRecordingId ?? null;
 
+  const dismissedKeysRef = React.useRef(dismissedKeys);
+  dismissedKeysRef.current = dismissedKeys;
+
   React.useEffect(() => {
     const unsubscribeDetected = window.api?.meeting?.onCallDetected((payload) => {
       if (activeRecordingIdRef.current) {
@@ -54,7 +57,7 @@ export function MeetingRecordingBanner() {
       }
 
       setDetection((current) => {
-        if (dismissedKeys.has(payload.key)) {
+        if (dismissedKeysRef.current.has(payload.key)) {
           return current;
         }
 
@@ -84,7 +87,7 @@ export function MeetingRecordingBanner() {
       unsubscribeDetected?.();
       unsubscribeEnded?.();
     };
-  }, [dismissedKeys]);
+  }, []);
 
   React.useEffect(() => {
     if (data?.activeRecordingId) {
