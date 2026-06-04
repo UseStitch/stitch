@@ -31,7 +31,13 @@ import {
   stopRecordingCapture,
 } from './recording-capture';
 import { resolveResourcePath } from './resources';
-import { findAvailablePort, killServer, spawnServer } from './sidecar';
+import {
+  normalizeRemoteUrl,
+  readServerConnectionConfig,
+  writeServerConnectionConfig,
+  type ServerConnectionConfig,
+} from './server-config';
+import { checkHealth, findAvailablePort, killServer, spawnServer } from './sidecar';
 import { destroyTray, initTray } from './tray';
 import { createUpdater } from './updater';
 
@@ -101,8 +107,25 @@ if (!gotTheLock) {
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
+let serverConnectionConfig: ServerConnectionConfig = { mode: 'local', remoteUrl: null };
 let isQuitting = false;
 let isShuttingDown = false;
+
+async function startLocalServer(): Promise<string> {
+  const port = await findAvailablePort();
+  return spawnServer(port);
+}
+
+async function resolveServerUrl(): Promise<string> {
+  serverConnectionConfig = await readServerConnectionConfig();
+
+  if (serverConnectionConfig.mode === 'remote' && serverConnectionConfig.remoteUrl) {
+    return serverConnectionConfig.remoteUrl;
+  }
+
+  serverConnectionConfig = { mode: 'local', remoteUrl: serverConnectionConfig.remoteUrl };
+  return startLocalServer();
+}
 
 async function shutdownRuntime(): Promise<void> {
   if (isShuttingDown) return;
@@ -260,7 +283,56 @@ ipcMain.handle('window:isFullScreen', () => {
   return mainWindow?.isFullScreen() ?? false;
 });
 
-ipcMain.handle('get-server-config', () => ({ url: serverUrl }));
+ipcMain.handle('get-server-config', () => ({
+  url: serverUrl,
+  mode: serverConnectionConfig.mode,
+  remoteUrl: serverConnectionConfig.remoteUrl,
+}));
+
+ipcMain.handle('server:test-remote', async (_event, rawUrl: string) => {
+  try {
+    const url = normalizeRemoteUrl(rawUrl);
+    const ok = await checkHealth(url);
+    return ok ? { ok: true, url } : { ok: false, error: 'Server health check failed' };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Invalid server URL' };
+  }
+});
+
+ipcMain.handle('server:set-config', async (_event, config: ServerConnectionConfig) => {
+  let nextConfig: ServerConnectionConfig;
+
+  if (config.mode === 'remote') {
+    const remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
+    if (!(await checkHealth(remoteUrl))) {
+      throw new Error('Remote server health check failed');
+    }
+    nextConfig = { mode: 'remote', remoteUrl };
+  } else {
+    nextConfig = { mode: 'local', remoteUrl: config.remoteUrl?.trim() || null };
+  }
+
+  await stopRecordingCapture().catch(() => null);
+  await killServer();
+
+  const nextUrl = nextConfig.mode === 'remote' ? nextConfig.remoteUrl! : await startLocalServer();
+
+  serverConnectionConfig = nextConfig;
+  serverUrl = nextUrl;
+  await writeServerConnectionConfig(nextConfig);
+
+  mainWindow?.webContents.send('server:config-changed', {
+    url: serverUrl,
+    mode: serverConnectionConfig.mode,
+    remoteUrl: serverConnectionConfig.remoteUrl,
+  });
+
+  return {
+    url: serverUrl,
+    mode: serverConnectionConfig.mode,
+    remoteUrl: serverConnectionConfig.remoteUrl,
+  };
+});
 
 ipcMain.handle('devtools:toggle', () => {
   mainWindow?.webContents.toggleDevTools();
@@ -385,8 +457,7 @@ void app.whenReady().then(async () => {
       }
     });
 
-    const port = await findAvailablePort();
-    serverUrl = await spawnServer(port);
+    serverUrl = await resolveServerUrl();
 
     const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
 

@@ -41,6 +41,14 @@ export type DesktopUpdaterState = {
   error?: string;
 };
 
+export type ServerMode = 'local' | 'remote';
+
+export type ServerConnectionConfig = {
+  url: string;
+  mode: ServerMode;
+  remoteUrl: string | null;
+};
+
 declare global {
   interface Window {
     electron?: {
@@ -49,7 +57,15 @@ declare global {
       on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
     };
     api?: {
-      getServerConfig: () => Promise<{ url: string }>;
+      getServerConfig: () => Promise<ServerConnectionConfig>;
+      server?: {
+        testRemote: (url: string) => Promise<{ ok: boolean; url?: string; error?: string }>;
+        setConfig: (config: {
+          mode: ServerMode;
+          remoteUrl: string | null;
+        }) => Promise<ServerConnectionConfig>;
+        onConfigChanged: (callback: (config: ServerConnectionConfig) => void) => () => void;
+      };
       window?: {
         minimize: () => Promise<void>;
         maximize: () => Promise<void>;
@@ -110,6 +126,10 @@ let cachedUrl: string | null = null;
 
 export function getServerUrlSync(): string | null {
   return cachedUrl;
+}
+
+export function resetServerUrlCache(url?: string): void {
+  cachedUrl = url ?? null;
 }
 
 export async function getServerUrl(): Promise<string> {

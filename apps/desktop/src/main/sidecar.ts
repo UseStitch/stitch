@@ -48,7 +48,7 @@ export async function findAvailablePort(): Promise<number> {
   });
 }
 
-async function checkHealth(url: string): Promise<boolean> {
+export async function checkHealth(url: string): Promise<boolean> {
   try {
     const res = await fetch(`${url}/health`, {
       method: 'GET',
