@@ -368,11 +368,12 @@ ipcMain.handle('updater:install', () => {
 
 void app.whenReady().then(async () => {
   try {
+    configureMeetingDetectionEnv();
+    configureRecordingCaptureEnv();
+
     // Register launch at startup for packaged builds only.
     if (app.isPackaged) {
       app.setLoginItemSettings({ openAtLogin: true });
-      configureMeetingDetectionEnv();
-      configureRecordingCaptureEnv();
     }
 
     // When a second instance attempts to launch, focus the existing window.
