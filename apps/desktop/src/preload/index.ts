@@ -6,11 +6,17 @@ import type {
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
 } from '@stitch/shared/chat/realtime';
+
 import type {
+  RecordingDevicesPayload,
+  RecordingPermissionsPayload,
+  ServerConfigPayload,
+  ServerTestRemoteResult,
   StartRecordingInput,
   StartRecordingResponse,
   StopRecordingResponse,
-} from '@stitch/shared/recordings/types';
+  UpdaterStatePayload,
+} from '../main/ipc-types.js';
 
 function onIpc<TPayload>(channel: string, callback: (payload: TPayload) => void): () => void {
   const subscription = (_event: Electron.IpcRendererEvent, payload: TPayload) => callback(payload);
@@ -30,32 +36,14 @@ contextBridge.exposeInMainWorld('electron', {
 });
 
 contextBridge.exposeInMainWorld('api', {
-  getServerConfig: () =>
-    ipcRenderer.invoke('get-server-config') as Promise<{
-      url: string;
-      mode: 'local' | 'remote';
-      remoteUrl: string | null;
-    }>,
+  getServerConfig: () => ipcRenderer.invoke('get-server-config') as Promise<ServerConfigPayload>,
   server: {
     testRemote: (url: string) =>
-      ipcRenderer.invoke('server:test-remote', url) as Promise<{
-        ok: boolean;
-        url?: string;
-        error?: string;
-      }>,
+      ipcRenderer.invoke('server:test-remote', url) as Promise<ServerTestRemoteResult>,
     setConfig: (config: { mode: 'local' | 'remote'; remoteUrl: string | null }) =>
-      ipcRenderer.invoke('server:set-config', config) as Promise<{
-        url: string;
-        mode: 'local' | 'remote';
-        remoteUrl: string | null;
-      }>,
-    onConfigChanged: (
-      callback: (config: {
-        url: string;
-        mode: 'local' | 'remote';
-        remoteUrl: string | null;
-      }) => void,
-    ) => onIpc('server:config-changed', callback),
+      ipcRenderer.invoke('server:set-config', config) as Promise<ServerConfigPayload>,
+    onConfigChanged: (callback: (config: ServerConfigPayload) => void) =>
+      onIpc('server:config-changed', callback),
   },
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
@@ -77,20 +65,8 @@ contextBridge.exposeInMainWorld('api', {
     openPath: () => ipcRenderer.invoke('dialog:openPath') as Promise<string[]>,
   },
   updater: {
-    check: () =>
-      ipcRenderer.invoke('updater:check') as Promise<{
-        status: string;
-        version?: string;
-        progress?: number;
-        error?: string;
-      }>,
-    getState: () =>
-      ipcRenderer.invoke('updater:getState') as Promise<{
-        status: string;
-        version?: string;
-        progress?: number;
-        error?: string;
-      }>,
+    check: () => ipcRenderer.invoke('updater:check') as Promise<UpdaterStatePayload>,
+    getState: () => ipcRenderer.invoke('updater:getState') as Promise<UpdaterStatePayload>,
     install: () => ipcRenderer.invoke('updater:install') as Promise<boolean>,
   },
   spellcheck: {
@@ -116,15 +92,9 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('recording:start', input) as Promise<StartRecordingResponse>,
     stop: () => ipcRenderer.invoke('recording:stop') as Promise<StopRecordingResponse>,
     listDevices: () =>
-      ipcRenderer.invoke('recording:listDevices') as Promise<{
-        microphoneDevices: string[];
-        speakerDevices: string[];
-      }>,
+      ipcRenderer.invoke('recording:listDevices') as Promise<RecordingDevicesPayload>,
     checkPermissions: () =>
-      ipcRenderer.invoke('recording:checkPermissions') as Promise<{
-        microphone: 'granted' | 'denied' | 'unknown';
-        screenCapture: 'granted' | 'denied' | 'unknown';
-      }>,
+      ipcRenderer.invoke('recording:checkPermissions') as Promise<RecordingPermissionsPayload>,
     onWarning: (callback: (payload: RecordingWarningPayload) => void) =>
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>

@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-updater';
 
-import type { BrowserWindow } from 'electron';
+import type { UpdaterStatePayload } from './ipc-types.js';
 
 const NETWORK_ERROR_CODES = [
   'ERR_INTERNET_DISCONNECTED',
@@ -17,50 +17,29 @@ function isNetworkError(error: Error): boolean {
   return NETWORK_ERROR_CODES.some((code) => error.message.includes(code));
 }
 
-type UpdaterStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'downloading'
-  | 'downloaded'
-  | 'no-update'
-  | 'error';
-
-type UpdaterState = {
-  status: UpdaterStatus;
-  version?: string;
-  progress?: number;
-  error?: string;
-};
-
 type UpdaterOptions = {
-  getWindow: () => BrowserWindow | null;
   prepareForInstall: () => void | Promise<void>;
 };
 
-const UPDATER_EVENT_CHANNEL = 'updater:event';
-
 export function createUpdater(options: UpdaterOptions) {
   let initialized = false;
-  let state: UpdaterState = { status: 'idle' };
+  let state: UpdaterStatePayload = { status: 'idle' };
+  let eventListener: ((state: UpdaterStatePayload) => void) | null = null;
 
-  function emit(next: UpdaterState): void {
+  function emit(next: UpdaterStatePayload): void {
     state = next;
-    const win = options.getWindow();
-    if (!win || win.isDestroyed()) return;
-    win.webContents.send(UPDATER_EVENT_CHANNEL, state);
+    eventListener?.(state);
   }
 
-  function toVersionState(status: UpdaterStatus, info: UpdateInfo): UpdaterState {
+  function toVersionState(
+    status: UpdaterStatePayload['status'],
+    info: UpdateInfo,
+  ): UpdaterStatePayload {
     return { status, version: info.version };
   }
 
-  function toDownloadingState(progress: ProgressInfo): UpdaterState {
-    return {
-      status: 'downloading',
-      version: state.version,
-      progress: progress.percent,
-    };
+  function toDownloadingState(progress: ProgressInfo): UpdaterStatePayload {
+    return { status: 'downloading', version: state.version, progress: progress.percent };
   }
 
   function init(): void {
@@ -75,36 +54,17 @@ export function createUpdater(options: UpdaterOptions) {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = false;
 
-    autoUpdater.on('checking-for-update', () => {
-      emit({ status: 'checking' });
-    });
-
-    autoUpdater.on('update-available', (info) => {
-      emit(toVersionState('available', info));
-    });
-
-    autoUpdater.on('download-progress', (progress) => {
-      emit(toDownloadingState(progress));
-    });
-
-    autoUpdater.on('update-downloaded', (info) => {
-      emit(toVersionState('downloaded', info));
-    });
-
-    autoUpdater.on('update-not-available', (info) => {
-      emit(toVersionState('no-update', info));
-    });
-
+    autoUpdater.on('checking-for-update', () => emit({ status: 'checking' }));
+    autoUpdater.on('update-available', (info) => emit(toVersionState('available', info)));
+    autoUpdater.on('download-progress', (progress) => emit(toDownloadingState(progress)));
+    autoUpdater.on('update-downloaded', (info) => emit(toVersionState('downloaded', info)));
+    autoUpdater.on('update-not-available', (info) => emit(toVersionState('no-update', info)));
     autoUpdater.on('error', (error) => {
-      if (isNetworkError(error)) {
-        emit({ status: 'idle' });
-        return;
-      }
-      emit({ status: 'error', error: error.message });
+      emit(isNetworkError(error) ? { status: 'idle' } : { status: 'error', error: error.message });
     });
   }
 
-  async function checkForUpdates(): Promise<UpdaterState> {
+  async function checkForUpdates(): Promise<UpdaterStatePayload> {
     if (!app.isPackaged) {
       emit({ status: 'idle' });
       return state;
@@ -124,8 +84,12 @@ export function createUpdater(options: UpdaterOptions) {
     }
   }
 
-  function getState(): UpdaterState {
+  function getState(): UpdaterStatePayload {
     return state;
+  }
+
+  function onEvent(listener: (state: UpdaterStatePayload) => void): void {
+    eventListener = listener;
   }
 
   async function installUpdate(): Promise<boolean> {
@@ -138,10 +102,5 @@ export function createUpdater(options: UpdaterOptions) {
     return true;
   }
 
-  return {
-    init,
-    checkForUpdates,
-    getState,
-    installUpdate,
-  };
+  return { init, checkForUpdates, getState, onEvent, installUpdate };
 }

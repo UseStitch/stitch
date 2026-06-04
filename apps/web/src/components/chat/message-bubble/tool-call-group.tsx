@@ -274,6 +274,7 @@ function ToolCallRowActions({ actions }: { actions: ToolCallAction[] }) {
             size="xs"
             className="h-5 px-1.5 text-[11px] leading-3 text-muted-foreground"
             title="Open child session"
+            nativeButton={false}
             render={<Link to="/session/$id" params={{ id: action.sessionId }} />}
           >
             <ExternalLinkIcon className="size-3" />

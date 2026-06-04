@@ -1,100 +1,34 @@
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  nativeImage,
-  shell,
-  systemPreferences,
-} from 'electron';
-import { randomUUID } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { app, dialog, type BrowserWindow } from 'electron';
 
-import type {
-  StartRecordingInput,
-  StartRecordingResponse,
-  StopRecordingResponse,
-} from '@stitch/shared/recordings/types';
-
+import { registerDevtoolsHandlers } from './ipc/devtools.js';
+import { registerFilesHandlers } from './ipc/files.js';
+import { registerPermissionsHandlers } from './ipc/permissions.js';
+import { registerRecordingHandlers } from './ipc/recording.js';
+import { registerServerHandlers } from './ipc/server.js';
+import { registerShellHandlers } from './ipc/shell.js';
+import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
+import { registerUpdaterHandlers } from './ipc/updater.js';
+import { registerWindowHandlers } from './ipc/window.js';
 import {
   configureMeetingDetectionEnv,
   startMeetingDetection,
   stopMeetingDetection,
-} from './meeting-detection';
-import {
-  checkRecordingPermissions,
-  configureRecordingCaptureEnv,
-  listRecordingDevices,
-  startRecordingCapture,
-  stopRecordingCapture,
-} from './recording-capture';
-import { resolveResourcePath } from './resources';
-import {
-  normalizeRemoteUrl,
-  readServerConnectionConfig,
-  writeServerConnectionConfig,
-  type ServerConnectionConfig,
-} from './server-config';
-import { checkHealth, findAvailablePort, killServer, spawnServer } from './sidecar';
-import { destroyTray, initTray } from './tray';
-import { createUpdater } from './updater';
+} from './meeting-detection.js';
+import { configureRecordingCaptureEnv, stopRecordingCapture } from './recording-capture.js';
+import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
+import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
+import { resetTccPermissionsIfVersionChanged } from './tcc-permissions.js';
+import { destroyTray, initTray } from './tray.js';
+import { createUpdater } from './updater.js';
+import { createWindow } from './window.js';
 
-const WEB_DEV_URL = 'http://localhost:5173';
-const WINDOW_ICON_NAME = 'icon.png';
-const DEV_SERVER_POLL_MS = 200;
-const DEV_SERVER_TIMEOUT_MS = 30_000;
 const DEV_APP_NAME = 'stitch-dev';
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
 
-/**
- * With adhoc code signing, macOS ties TCC permissions to the exact code signature hash.
- * After an app update the hash changes but old TCC entries remain, causing permissions
- * to appear granted in System Settings while being silently rejected at runtime.
- * This detects version changes and resets TCC so macOS will re-prompt.
- */
-async function resetTccPermissionsIfVersionChanged(): Promise<boolean> {
-  if (process.platform !== 'darwin' || !app.isPackaged) return false;
-
-  const versionFile = join(app.getPath('userData'), '.last-tcc-version');
-  const currentVersion = app.getVersion();
-
-  try {
-    const lastVersion = (await readFile(versionFile, 'utf-8')).trim();
-    if (lastVersion === currentVersion) return false;
-  } catch {
-    // File doesn't exist — first run or upgrade from before this logic
-  }
-
-  const { execSync } = await import('node:child_process');
-  const bundleId = 'com.stitch.desktop';
-
-  for (const service of ['Microphone', 'ScreenCapture']) {
-    try {
-      execSync(`tccutil reset ${service} ${bundleId}`, { timeout: 5_000 });
-    } catch {
-      // tccutil may fail if no entry exists
-    }
-  }
-
-  await mkdir(join(app.getPath('userData')), { recursive: true });
-  await writeFile(versionFile, currentVersion, 'utf-8');
-
-  return true;
-}
-
 function configureAppIdentityForEnvironment(): void {
-  if (app.isPackaged) {
-    return;
-  }
-
+  if (app.isPackaged) return;
   app.setName('Stitch Dev');
-  app.setPath('userData', join(app.getPath('appData'), DEV_APP_NAME));
-}
-
-function getPackagedWebDistPath(): string {
-  return join(process.resourcesPath, 'web/dist/index.html');
+  app.setPath('userData', app.getPath('appData') + '/' + DEV_APP_NAME);
 }
 
 // Enforce single instance before any other initialization.
@@ -106,10 +40,14 @@ if (!gotTheLock) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let serverUrl: string | null = null;
-let serverConnectionConfig: ServerConnectionConfig = { mode: 'local', remoteUrl: null };
 let isQuitting = false;
 let isShuttingDown = false;
+
+// Shared mutable server state — passed by reference to IPC handlers that own it.
+const serverState = {
+  serverUrl: '',
+  serverConnectionConfig: { mode: 'local', remoteUrl: null } as ServerConnectionConfig,
+};
 
 async function startLocalServer(): Promise<string> {
   const port = await findAvailablePort();
@@ -117,13 +55,19 @@ async function startLocalServer(): Promise<string> {
 }
 
 async function resolveServerUrl(): Promise<string> {
-  serverConnectionConfig = await readServerConnectionConfig();
+  serverState.serverConnectionConfig = await readServerConnectionConfig();
 
-  if (serverConnectionConfig.mode === 'remote' && serverConnectionConfig.remoteUrl) {
-    return serverConnectionConfig.remoteUrl;
+  if (
+    serverState.serverConnectionConfig.mode === 'remote' &&
+    serverState.serverConnectionConfig.remoteUrl
+  ) {
+    return serverState.serverConnectionConfig.remoteUrl;
   }
 
-  serverConnectionConfig = { mode: 'local', remoteUrl: serverConnectionConfig.remoteUrl };
+  serverState.serverConnectionConfig = {
+    mode: 'local',
+    remoteUrl: serverState.serverConnectionConfig.remoteUrl,
+  };
   return startLocalServer();
 }
 
@@ -137,318 +81,56 @@ async function shutdownRuntime(): Promise<void> {
 }
 
 const updater = createUpdater({
-  getWindow: () => mainWindow,
   prepareForInstall: async () => {
     isQuitting = true;
     await shutdownRuntime();
   },
 });
 
-async function waitForDevServer(url: string): Promise<void> {
-  const deadline = Date.now() + DEV_SERVER_TIMEOUT_MS;
+function registerAllIpcHandlers(): void {
+  const getWindow = () => mainWindow;
+  const getServerUrl = () => serverState.serverUrl;
 
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) return;
-    } catch {
-      // server not ready yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, DEV_SERVER_POLL_MS));
-  }
-
-  throw new Error(`Dev server at ${url} failed to start within ${DEV_SERVER_TIMEOUT_MS}ms`);
+  registerWindowHandlers(getWindow);
+  registerDevtoolsHandlers(getWindow);
+  registerSpellcheckHandlers(getWindow);
+  registerShellHandlers();
+  registerFilesHandlers();
+  registerPermissionsHandlers();
+  registerRecordingHandlers(getServerUrl, getWindow);
+  registerServerHandlers(serverState, startLocalServer, getWindow);
+  registerUpdaterHandlers(updater, getWindow);
 }
 
-async function createWindow() {
-  const isMac = process.platform === 'darwin';
-  const iconCandidates = process.platform === 'win32' ? ['icon.png', 'icon.ico'] : ['icon.png'];
-  const windowIcon = iconCandidates
-    .map((name) => nativeImage.createFromPath(resolveResourcePath(name)))
-    .find((image) => !image.isEmpty());
-
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    ...(windowIcon ? { icon: windowIcon } : { icon: resolveResourcePath(WINDOW_ICON_NAME) }),
-    frame: false,
-    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
-    minWidth: 800,
-    minHeight: 600,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+function onContextMenu(params: Electron.ContextMenuParams): void {
+  mainWindow?.webContents.send('context-menu', {
+    x: params.x,
+    y: params.y,
+    misspelledWord: params.misspelledWord,
+    dictionarySuggestions: params.dictionarySuggestions,
+    selectionText: params.selectionText,
+    isEditable: params.isEditable,
+    editFlags: params.editFlags,
   });
-
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
-    return { action: 'deny' };
-  });
-
-  if (windowIcon) {
-    mainWindow.setIcon(windowIcon);
-  }
-
-  mainWindow.webContents.on(
-    'did-fail-load',
-    (_event, errorCode, errorDescription, validatedURL) => {
-      dialog.showErrorBox(
-        'Failed to load Stitch UI',
-        `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
-      );
-    },
-  );
-
-  // Hide to tray on close instead of quitting, unless the app is actually quitting.
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      mainWindow?.hide();
-    }
-  });
-
-  mainWindow.webContents.on('context-menu', (_e, params) => {
-    mainWindow?.webContents.send('context-menu', {
-      x: params.x,
-      y: params.y,
-      misspelledWord: params.misspelledWord,
-      dictionarySuggestions: params.dictionarySuggestions,
-      selectionText: params.selectionText,
-      isEditable: params.isEditable,
-      editFlags: params.editFlags,
-    });
-  });
-
-  mainWindow.on('enter-full-screen', () => {
-    mainWindow?.webContents.send('window:fullscreen-changed', true);
-  });
-
-  mainWindow.on('leave-full-screen', () => {
-    mainWindow?.webContents.send('window:fullscreen-changed', false);
-  });
-
-  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    await waitForDevServer(process.env['ELECTRON_RENDERER_URL']);
-    void mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
-  } else if (!app.isPackaged) {
-    await waitForDevServer(WEB_DEV_URL);
-    void mainWindow.loadURL(WEB_DEV_URL);
-  } else {
-    void mainWindow.loadFile(getPackagedWebDistPath());
-  }
-
-  if (!app.isPackaged) {
-    mainWindow.webContents.openDevTools();
-  }
 }
 
-async function serverJson<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!serverUrl) {
-    throw new Error('Server is not ready');
-  }
-
-  const res = await fetch(`${serverUrl}${path}`, init);
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `Server request failed: ${path}`);
-  }
-
-  return res.json() as Promise<T>;
+async function spawnMainWindow(): Promise<BrowserWindow> {
+  return createWindow(onContextMenu, () => {
+    if (!isQuitting) mainWindow?.hide();
+  });
 }
-
-ipcMain.handle('window:minimize', () => {
-  mainWindow?.minimize();
-});
-
-ipcMain.handle('window:maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
-});
-
-ipcMain.handle('window:close', () => {
-  // Hide to tray instead of closing so notifications and tray keep working
-  mainWindow?.hide();
-});
-
-ipcMain.handle('window:isMaximized', () => {
-  return mainWindow?.isMaximized() ?? false;
-});
-
-ipcMain.handle('window:isFullScreen', () => {
-  return mainWindow?.isFullScreen() ?? false;
-});
-
-ipcMain.handle('get-server-config', () => ({
-  url: serverUrl,
-  mode: serverConnectionConfig.mode,
-  remoteUrl: serverConnectionConfig.remoteUrl,
-}));
-
-ipcMain.handle('server:test-remote', async (_event, rawUrl: string) => {
-  try {
-    const url = normalizeRemoteUrl(rawUrl);
-    const ok = await checkHealth(url);
-    return ok ? { ok: true, url } : { ok: false, error: 'Server health check failed' };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'Invalid server URL' };
-  }
-});
-
-ipcMain.handle('server:set-config', async (_event, config: ServerConnectionConfig) => {
-  let nextConfig: ServerConnectionConfig;
-
-  if (config.mode === 'remote') {
-    const remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
-    if (!(await checkHealth(remoteUrl))) {
-      throw new Error('Remote server health check failed');
-    }
-    nextConfig = { mode: 'remote', remoteUrl };
-  } else {
-    nextConfig = { mode: 'local', remoteUrl: config.remoteUrl?.trim() || null };
-  }
-
-  await stopRecordingCapture().catch(() => null);
-  await killServer();
-
-  const nextUrl = nextConfig.mode === 'remote' ? nextConfig.remoteUrl! : await startLocalServer();
-
-  serverConnectionConfig = nextConfig;
-  serverUrl = nextUrl;
-  await writeServerConnectionConfig(nextConfig);
-
-  mainWindow?.webContents.send('server:config-changed', {
-    url: serverUrl,
-    mode: serverConnectionConfig.mode,
-    remoteUrl: serverConnectionConfig.remoteUrl,
-  });
-
-  return {
-    url: serverUrl,
-    mode: serverConnectionConfig.mode,
-    remoteUrl: serverConnectionConfig.remoteUrl,
-  };
-});
-
-ipcMain.handle('devtools:toggle', () => {
-  mainWindow?.webContents.toggleDevTools();
-});
-
-ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
-  mainWindow?.webContents.inspectElement(x, y);
-});
-
-ipcMain.handle('spellcheck:replaceMisspelling', (_event, word: string) => {
-  mainWindow?.webContents.replaceMisspelling(word);
-});
-
-ipcMain.handle('spellcheck:addToDictionary', (_event, word: string) => {
-  mainWindow?.webContents.session.addWordToSpellCheckerDictionary(word);
-});
-
-ipcMain.handle('shell:openExternal', (_event, url: string) => {
-  void shell.openExternal(url);
-});
-
-ipcMain.handle('files:writeTmp', async (_event, data: ArrayBuffer, ext: string) => {
-  const dir = join(tmpdir(), 'stitch-paste');
-  await mkdir(dir, { recursive: true });
-  const filename = `${randomUUID()}.${ext}`;
-  const filePath = join(dir, filename);
-  await writeFile(filePath, Buffer.from(data));
-  return filePath;
-});
-
-ipcMain.handle('dialog:openPath', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile', 'openDirectory', 'multiSelections'],
-  });
-  return result.canceled ? [] : result.filePaths;
-});
-
-ipcMain.handle('permissions:requestMicrophone', async () => {
-  if (process.platform !== 'darwin') return true;
-  return systemPreferences.askForMediaAccess('microphone');
-});
-
-ipcMain.handle('permissions:getScreenCaptureStatus', () => {
-  if (process.platform !== 'darwin') return 'granted';
-  return systemPreferences.getMediaAccessStatus('screen');
-});
-
-ipcMain.handle('permissions:openScreenCaptureSettings', () => {
-  if (process.platform === 'darwin') {
-    void shell.openExternal(
-      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
-    );
-  }
-});
-
-ipcMain.handle('recording:start', async (_event, input: StartRecordingInput) => {
-  const startResponse = await serverJson<StartRecordingResponse>('/recordings/start', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  });
-
-  try {
-    await startRecordingCapture({ ...startResponse, serverUrl: serverUrl! }, () => mainWindow);
-  } catch (error) {
-    await serverJson('/recordings/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ durationMs: null, fileSizeBytes: null }),
-    }).catch(() => null);
-    throw error;
-  }
-
-  return startResponse;
-});
-
-ipcMain.handle('recording:stop', async () => {
-  const stopInput = await stopRecordingCapture();
-  return serverJson<StopRecordingResponse>('/recordings/stop', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(stopInput),
-  });
-});
-
-ipcMain.handle('recording:listDevices', () => {
-  return listRecordingDevices();
-});
-
-ipcMain.handle('recording:checkPermissions', () => {
-  return checkRecordingPermissions();
-});
-
-ipcMain.handle('updater:check', () => {
-  return updater.checkForUpdates();
-});
-
-ipcMain.handle('updater:getState', () => {
-  return updater.getState();
-});
-
-ipcMain.handle('updater:install', () => {
-  return updater.installUpdate();
-});
 
 void app.whenReady().then(async () => {
   try {
     configureMeetingDetectionEnv();
     configureRecordingCaptureEnv();
 
-    // Register launch at startup for packaged builds only.
+    registerAllIpcHandlers();
+
     if (app.isPackaged) {
       app.setLoginItemSettings({ openAtLogin: true });
     }
 
-    // When a second instance attempts to launch, focus the existing window.
     app.on('second-instance', () => {
       if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
@@ -457,14 +139,14 @@ void app.whenReady().then(async () => {
       }
     });
 
-    serverUrl = await resolveServerUrl();
+    serverState.serverUrl = await resolveServerUrl();
 
     const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
 
-    await createWindow();
+    mainWindow = await spawnMainWindow();
     startMeetingDetection(() => mainWindow);
 
-    if (permissionsWereReset && mainWindow) {
+    if (permissionsWereReset) {
       void dialog.showMessageBox(mainWindow, {
         type: 'info',
         title: 'Permissions Required',
@@ -477,24 +159,20 @@ void app.whenReady().then(async () => {
 
     if (process.platform !== 'darwin') {
       updater.init();
-      setTimeout(() => {
-        void updater.checkForUpdates();
-      }, 15_000);
-      setInterval(() => {
-        void updater.checkForUpdates();
-      }, UPDATE_CHECK_INTERVAL_MS);
+      setTimeout(() => void updater.checkForUpdates(), 15_000);
+      setInterval(() => void updater.checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
     }
 
-    // Initialize system tray
-    const getWindow = () => mainWindow;
-    initTray(getWindow);
+    initTray(() => mainWindow);
 
     app.on('activate', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.show();
         mainWindow.focus();
       } else {
-        void createWindow();
+        void spawnMainWindow().then((win) => {
+          mainWindow = win;
+        });
       }
     });
   } catch (error) {
