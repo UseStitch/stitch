@@ -1,16 +1,29 @@
 import { HardDrive, Check } from 'lucide-react';
+import * as React from 'react';
 import { useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useSSE } from '@/hooks/sse/sse-context';
-import { serverFetch } from '@/lib/api';
+import { serverFetch, type ServerConnectionConfig } from '@/lib/api';
 
 type Tab = 'servers' | 'info';
 
+function useServerConfig() {
+  const [config, setConfig] = React.useState<ServerConnectionConfig | null>(null);
+
+  React.useEffect(() => {
+    void window.api?.getServerConfig().then(setConfig);
+    return window.api?.server?.onConfigChanged(setConfig);
+  }, []);
+
+  return config;
+}
+
 export function ServerStatus() {
   const [activeTab, setActiveTab] = useState<Tab>('servers');
+  const serverConfig = useServerConfig();
 
   const { data: isHealthy } = useQuery({
     queryKey: ['health'],
@@ -25,6 +38,9 @@ export function ServerStatus() {
   const { isConnected: isSseConnected, lastHeartbeat } = useSSE();
 
   const overallHealthy = isHealthy && isSseConnected;
+
+  const serverLabel = serverConfig?.mode === 'remote' ? 'Remote Server' : 'Local Server';
+  const serverSubtitle = serverConfig?.mode === 'remote' ? serverConfig.url : undefined;
 
   return (
     <Popover>
@@ -60,7 +76,7 @@ export function ServerStatus() {
         <div className="flex flex-col gap-4 bg-popover p-4">
           {activeTab === 'servers' ? (
             <>
-              <StatusItem active={!!isHealthy} label="Local Server" />
+              <StatusItem active={!!isHealthy} label={serverLabel} subtitle={serverSubtitle} />
               <StatusItem
                 active={isSseConnected}
                 label="Event Bus"
