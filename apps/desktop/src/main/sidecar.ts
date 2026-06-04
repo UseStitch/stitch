@@ -4,8 +4,6 @@ import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import treeKill from 'tree-kill';
 
-import { resolveNativeBinaryPath } from '@stitch/audio-capture';
-
 const HEALTH_POLL_INTERVAL_MS = 100;
 const HEALTH_TIMEOUT_MS = 30_000;
 const HOSTNAME = '127.0.0.1';
@@ -131,7 +129,6 @@ export async function spawnServer(port: number): Promise<string> {
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
     const sandboxBin = join(process.resourcesPath, `stitch-sandbox${suffix}`);
-    sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = resolveNativeBinaryPath();
     sidecarEnv.SANDBOX_EXEC_PATH = sandboxBin;
   } else {
     const root = getMonorepoRoot();

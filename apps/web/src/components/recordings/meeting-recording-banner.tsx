@@ -9,7 +9,6 @@ import type { MeetingCallDetectedPayload } from '@stitch/shared/chat/realtime';
 import { PLATFORM_CONFIG } from './shared/formatting';
 
 import { Button } from '@/components/ui/button';
-import { useSSE } from '@/hooks/sse/sse-context';
 import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
@@ -19,16 +18,21 @@ const WARNING_LABELS: Record<string, string> = {
 };
 
 export function RecordingEventListener() {
-  useSSE({
-    'recording-warning': (payload) => {
+  React.useEffect(() => {
+    const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
       const label = WARNING_LABELS[payload.code] ?? payload.message;
       toast.warning(label);
-    },
-    'recording-device-changed': (payload) => {
+    });
+    const unsubscribeDeviceChanged = window.api?.recording?.onDeviceChanged((payload) => {
       const deviceLabel = payload.deviceName ?? 'unknown device';
       toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`);
-    },
-  });
+    });
+
+    return () => {
+      unsubscribeWarning?.();
+      unsubscribeDeviceChanged?.();
+    };
+  }, []);
 
   return null;
 }

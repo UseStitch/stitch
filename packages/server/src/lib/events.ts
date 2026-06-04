@@ -1,22 +1,31 @@
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { RecordingAudioChunkPayload, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 
-type Listener<K extends SseEventName> = (data: SseEventPayloadMap[K]) => void;
+type InternalEventPayloadMap = SseEventPayloadMap & {
+  'recording-audio-chunk': RecordingAudioChunkPayload;
+};
 
-const listeners = new Map<SseEventName, Set<Listener<SseEventName>>>();
+type InternalEventName = keyof InternalEventPayloadMap;
 
-export function on<K extends SseEventName>(event: K, listener: Listener<K>): () => void {
+type Listener<K extends InternalEventName> = (data: InternalEventPayloadMap[K]) => void;
+
+const listeners = new Map<InternalEventName, Set<Listener<InternalEventName>>>();
+
+export function on<K extends InternalEventName>(event: K, listener: Listener<K>): () => void {
   let set = listeners.get(event);
   if (!set) {
     set = new Set();
     listeners.set(event, set);
   }
-  set.add(listener as Listener<SseEventName>);
+  set.add(listener as Listener<InternalEventName>);
   return () => {
-    set.delete(listener as Listener<SseEventName>);
+    set.delete(listener as Listener<InternalEventName>);
   };
 }
 
-export function emit<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void {
+export function emit<K extends InternalEventName>(
+  event: K,
+  data: InternalEventPayloadMap[K],
+): void {
   const set = listeners.get(event);
   if (!set) return;
   for (const listener of set) {

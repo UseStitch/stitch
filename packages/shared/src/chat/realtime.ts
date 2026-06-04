@@ -177,6 +177,31 @@ export type RecordingAudioChunkPayload = {
   numSamples: number;
 };
 
+export type RecordingIngestAudioChunkConfig = {
+  encoding: 'f32le' | 'pcm_s16le';
+  sampleRateHz: number;
+};
+
+export type RecordingIngestStartMessage = {
+  type: 'start';
+  recordingId: string;
+  audioChunkConfig: RecordingIngestAudioChunkConfig;
+};
+
+export type RecordingIngestChunkMessage = {
+  type: 'chunk';
+} & RecordingAudioChunkPayload;
+
+export type RecordingIngestStopMessage = {
+  type: 'stop';
+  recordingId: string;
+};
+
+export type RecordingIngestMessage =
+  | RecordingIngestStartMessage
+  | RecordingIngestChunkMessage
+  | RecordingIngestStopMessage;
+
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
   source: 'mic' | 'speaker';
@@ -206,9 +231,6 @@ export const SSE_EVENT_NAMES = [
   'permission-response-resolved',
   'session-todos-updated',
   'recording-analysis-updated',
-  'recording-warning',
-  'recording-device-changed',
-  'recording-audio-chunk',
   'recording-transcript-entry',
 ] as const;
 
@@ -236,9 +258,6 @@ export type SseEventPayloadMap = {
   'permission-response-resolved': PermissionResponseResolvedPayload;
   'session-todos-updated': SessionTodosUpdatedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
-  'recording-warning': RecordingWarningPayload;
-  'recording-device-changed': RecordingDeviceChangedPayload;
-  'recording-audio-chunk': RecordingAudioChunkPayload;
   'recording-transcript-entry': RecordingTranscriptEntryPayload;
 };
 

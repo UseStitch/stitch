@@ -36,6 +36,20 @@ export type StartRecordingInput = {
 
 export type StartRecordingResponse = {
   recording: Recording;
+  recordingId: PrefixedString<'rec'>;
+  outputPath: string;
+  micDeviceId: string | null;
+  speakerDeviceId: string | null;
+  speakerGain: number;
+  audioChunkConfig: {
+    encoding: 'f32le' | 'pcm_s16le';
+    sampleRateHz: number;
+  };
+};
+
+export type StopRecordingInput = {
+  durationMs: number | null;
+  fileSizeBytes: number | null;
 };
 
 export type StopRecordingResponse = {

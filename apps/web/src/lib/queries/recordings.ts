@@ -50,6 +50,10 @@ type AudioPermissionsStatus = {
 export const audioDevicesQueryOptions = queryOptions({
   queryKey: recordingsKeys.devices(),
   queryFn: async (): Promise<AudioDeviceList> => {
+    if (window.api?.recording?.listDevices) {
+      return window.api.recording.listDevices();
+    }
+
     const res = await serverFetch('/recordings/devices');
     if (!res.ok) throw new Error('Failed to fetch audio devices');
     return res.json() as Promise<AudioDeviceList>;
@@ -61,6 +65,10 @@ export const audioDevicesQueryOptions = queryOptions({
 export const audioPermissionsQueryOptions = queryOptions({
   queryKey: ['recordings', 'permissions'] as const,
   queryFn: async (): Promise<AudioPermissionsStatus> => {
+    if (window.api?.recording?.checkPermissions) {
+      return window.api.recording.checkPermissions();
+    }
+
     const res = await serverFetch('/recordings/permissions');
     if (!res.ok) throw new Error('Failed to check audio permissions');
     return res.json() as Promise<AudioPermissionsStatus>;
@@ -91,7 +99,14 @@ async function preflightPermissionCheck(): Promise<void> {
       return;
     }
 
-    // Fallback for non-Electron (dev server): use the native binary check
+    if (window.api?.recording?.checkPermissions) {
+      const permissions = await window.api.recording.checkPermissions();
+      if (permissions.microphone === 'granted' && permissions.screenCapture === 'granted') {
+        return;
+      }
+    }
+
+    // Fallback for non-Electron (dev server): use the server permission route
     const res = await serverFetch('/recordings/permissions');
     if (!res.ok) return;
 
@@ -134,6 +149,10 @@ export function useStartRecording() {
     mutationFn: async (input: StartRecordingInput): Promise<StartRecordingResponse> => {
       await preflightPermissionCheck();
 
+      if (window.api?.recording?.start) {
+        return window.api.recording.start(input);
+      }
+
       const res = await serverFetch('/recordings/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -158,7 +177,15 @@ export function useStopRecording() {
 
   return useMutation({
     mutationFn: async (): Promise<StopRecordingResponse> => {
-      const res = await serverFetch('/recordings/stop', { method: 'POST' });
+      if (window.api?.recording?.stop) {
+        return window.api.recording.stop();
+      }
+
+      const res = await serverFetch('/recordings/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ durationMs: null, fileSizeBytes: null }),
+      });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(err.error ?? 'Failed to stop recording');
