@@ -15,6 +15,7 @@ import * as React from 'react';
 
 import { AppearanceSettings } from '@/components/settings/appearance';
 import { BrowserSettings } from '@/components/settings/browser';
+import { ConnectionSettings } from '@/components/settings/connection';
 import { GeneralSettings } from '@/components/settings/general';
 import { McpServersSettings } from '@/components/settings/mcp-servers';
 import { MemorySettings } from '@/components/settings/memory';
@@ -46,6 +47,7 @@ const SECTIONS: SettingsSection[] = [
     label: 'Desktop',
     items: [
       { id: 'general', label: 'General', icon: <MonitorIcon className="size-4" /> },
+      { id: 'connection', label: 'Connection', icon: <ServerIcon className="size-4" /> },
       { id: 'appearance', label: 'Appearance', icon: <PaletteIcon className="size-4" /> },
       { id: 'shortcuts', label: 'Shortcuts', icon: <KeyboardIcon className="size-4" /> },
     ],
@@ -127,6 +129,8 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
       return <GeneralSettings />;
     case 'appearance':
       return <AppearanceSettings />;
+    case 'connection':
+      return <ConnectionSettings />;
     case 'browser':
       return <BrowserSettings />;
     case 'recordings':

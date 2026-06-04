@@ -1,7 +1,8 @@
+import * as React from 'react';
 import { z } from 'zod';
 
 import type { QueryClient } from '@tanstack/react-query';
-import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
+import { createRootRouteWithContext, Outlet, useRouter } from '@tanstack/react-router';
 
 import { TitleBar } from '@/components/layout/title-bar';
 import { ActivityBar } from '@/components/navigation/activity-bar';
@@ -25,6 +26,7 @@ import { UnreadSync } from '@/hooks/sse/use-unread-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { UpdaterSync } from '@/hooks/ui/use-updater-sync';
 import { useActions } from '@/lib/actions';
+import { resetServerUrlCache } from '@/lib/api';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
@@ -40,6 +42,7 @@ const settingsSearchSchema = z.object({
   settings: z
     .enum([
       'general',
+      'connection',
       'appearance',
       'browser',
       'recordings',
@@ -93,6 +96,7 @@ function RootLayout() {
                 <RecordingAnalysisSync />
                 <RecordingEventListener />
                 <UpdaterSync />
+                <ServerConnectionSync />
                 <MeetingRecordingBanner />
                 <Outlet />
               </SidebarInset>
@@ -107,6 +111,21 @@ function RootLayout() {
       <Toaster position="bottom-right" />
     </SidebarProvider>
   );
+}
+
+function ServerConnectionSync() {
+  const router = useRouter();
+
+  React.useEffect(() => {
+    return window.api?.server?.onConfigChanged((config) => {
+      resetServerUrlCache(config.url);
+      router.options.context.queryClient.clear();
+      void router.invalidate();
+      window.dispatchEvent(new Event('server-config-changed'));
+    });
+  }, [router]);
+
+  return null;
 }
 
 function RootComponent() {

@@ -43,9 +43,16 @@ type AnyHandler = (data: SseEventPayloadMap[SseEventName]) => void;
 export function SseProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = React.useState(false);
   const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
+  const [connectionVersion, setConnectionVersion] = React.useState(0);
 
   // Map from event name → set of handlers so multiple subscribers can coexist per event.
   const handlersRef = React.useRef<Map<SseEventName, Set<AnyHandler>>>(new Map());
+
+  React.useEffect(() => {
+    const reconnect = () => setConnectionVersion((version) => version + 1);
+    window.addEventListener('server-config-changed', reconnect);
+    return () => window.removeEventListener('server-config-changed', reconnect);
+  }, []);
 
   React.useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -84,7 +91,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
       eventSource?.close();
       setIsConnected(false);
     };
-  }, []);
+  }, [connectionVersion]);
 
   const subscribe = React.useCallback((handlers: SseHandlers) => {
     const entries = Object.entries(handlers) as [SseEventName, AnyHandler][];
