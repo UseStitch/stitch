@@ -4,6 +4,8 @@ import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import treeKill from 'tree-kill';
 
+import { resolveMeetingWatcherBinaryPath, resolveNativeBinaryPath } from '@stitch/audio-capture';
+
 const HEALTH_POLL_INTERVAL_MS = 100;
 const HEALTH_TIMEOUT_MS = 30_000;
 const HOSTNAME = '127.0.0.1';
@@ -128,19 +130,9 @@ export async function spawnServer(port: number): Promise<string> {
 
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
-    const audioCaptureBin = join(
-      process.resourcesPath,
-      'audio-capture',
-      `stitch-audio-capture${suffix}`,
-    );
-    const meetingWatchBin = join(
-      process.resourcesPath,
-      'audio-capture',
-      `stitch-meeting-watch${suffix}`,
-    );
     const sandboxBin = join(process.resourcesPath, `stitch-sandbox${suffix}`);
-    sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = audioCaptureBin;
-    sidecarEnv.STITCH_MEETING_WATCH_BIN = meetingWatchBin;
+    sidecarEnv.STITCH_AUDIO_CAPTURE_BIN = resolveNativeBinaryPath();
+    sidecarEnv.STITCH_MEETING_WATCH_BIN = resolveMeetingWatcherBinaryPath();
     sidecarEnv.SANDBOX_EXEC_PATH = sandboxBin;
   } else {
     const root = getMonorepoRoot();
