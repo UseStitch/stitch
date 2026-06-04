@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet, useRouter } from '@tanstack/react-router';
 
+import type { AppearanceMode } from '@stitch/shared/appearance/types';
+
 import { TitleBar } from '@/components/layout/title-bar';
 import { ActivityBar } from '@/components/navigation/activity-bar';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
@@ -32,6 +34,13 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 import { skillsQueryOptions } from '@/lib/queries/skills';
 import { knownToolsQueryOptions } from '@/lib/queries/tools';
+import {
+  applyAppearanceMode,
+  DEFAULT_MODE,
+  DEFAULT_THEME,
+  getTheme,
+  injectThemeCss,
+} from '@/lib/theme';
 import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
 interface RouterContext {
@@ -119,10 +128,18 @@ function ServerConnectionSync() {
   React.useEffect(() => {
     return window.api?.server?.onConfigChanged((config) => {
       resetServerUrlCache(config.url);
-      void router.navigate({ to: '/', search: { settings: 'connection' } }).then(() => {
+
+      void router.navigate({ to: '/', search: { settings: 'connection' } }).then(async () => {
         router.options.context.queryClient.clear();
+        const settings =
+          await router.options.context.queryClient.ensureQueryData(settingsQueryOptions);
+        injectThemeCss(getTheme(settings['appearance.theme'] ?? DEFAULT_THEME));
+        applyAppearanceMode(
+          (settings['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE,
+        );
         void router.invalidate();
       });
+
       window.dispatchEvent(new Event('server-config-changed'));
     });
   }, [router]);
