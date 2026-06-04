@@ -12,11 +12,24 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type {
+  StartRecordingInput,
+  StartRecordingResponse,
+  StopRecordingResponse,
+} from '@stitch/shared/recordings/types';
+
 import {
   configureMeetingDetectionEnv,
   startMeetingDetection,
   stopMeetingDetection,
 } from './meeting-detection';
+import {
+  checkRecordingPermissions,
+  configureRecordingCaptureEnv,
+  listRecordingDevices,
+  startRecordingCapture,
+  stopRecordingCapture,
+} from './recording-capture';
 import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 import { destroyTray, initTray } from './tray';
@@ -96,6 +109,7 @@ async function shutdownRuntime(): Promise<void> {
   isShuttingDown = true;
   destroyTray();
   stopMeetingDetection();
+  await stopRecordingCapture().catch(() => null);
   await killServer();
 }
 
@@ -207,6 +221,20 @@ async function createWindow() {
   }
 }
 
+async function serverJson<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!serverUrl) {
+    throw new Error('Server is not ready');
+  }
+
+  const res = await fetch(`${serverUrl}${path}`, init);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Server request failed: ${path}`);
+  }
+
+  return res.json() as Promise<T>;
+}
+
 ipcMain.handle('window:minimize', () => {
   mainWindow?.minimize();
 });
@@ -288,6 +316,44 @@ ipcMain.handle('permissions:openScreenCaptureSettings', () => {
   }
 });
 
+ipcMain.handle('recording:start', async (_event, input: StartRecordingInput) => {
+  const startResponse = await serverJson<StartRecordingResponse>('/recordings/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  try {
+    await startRecordingCapture({ ...startResponse, serverUrl: serverUrl! }, () => mainWindow);
+  } catch (error) {
+    await serverJson('/recordings/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ durationMs: null, fileSizeBytes: null }),
+    }).catch(() => null);
+    throw error;
+  }
+
+  return startResponse;
+});
+
+ipcMain.handle('recording:stop', async () => {
+  const stopInput = await stopRecordingCapture();
+  return serverJson<StopRecordingResponse>('/recordings/stop', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(stopInput),
+  });
+});
+
+ipcMain.handle('recording:listDevices', () => {
+  return listRecordingDevices();
+});
+
+ipcMain.handle('recording:checkPermissions', () => {
+  return checkRecordingPermissions();
+});
+
 ipcMain.handle('updater:check', () => {
   return updater.checkForUpdates();
 });
@@ -306,6 +372,7 @@ void app.whenReady().then(async () => {
     if (app.isPackaged) {
       app.setLoginItemSettings({ openAtLogin: true });
       configureMeetingDetectionEnv();
+      configureRecordingCaptureEnv();
     }
 
     // When a second instance attempts to launch, focus the existing window.

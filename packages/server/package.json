@@ -29,7 +29,6 @@
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "@stitch-connectors/google": "workspace:*",
     "@stitch-connectors/sdk": "workspace:*",
-    "@stitch/audio-capture": "workspace:*",
     "@stitch/registry-embeddings": "workspace:*",
     "@stitch/sandbox": "workspace:*",
     "@stitch/scheduler": "workspace:*",

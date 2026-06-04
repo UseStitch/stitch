@@ -3,7 +3,14 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
+  RecordingDeviceChangedPayload,
+  RecordingWarningPayload,
 } from '@stitch/shared/chat/realtime';
+import type {
+  StartRecordingInput,
+  StartRecordingResponse,
+  StopRecordingResponse,
+} from '@stitch/shared/recordings/types';
 
 function onIpc<TPayload>(channel: string, callback: (payload: TPayload) => void): () => void {
   const subscription = (_event: Electron.IpcRendererEvent, payload: TPayload) => callback(payload);
@@ -77,5 +84,24 @@ contextBridge.exposeInMainWorld('api', {
       onIpc('meeting:call-detected', callback),
     onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) =>
       onIpc('meeting:call-ended', callback),
+  },
+  recording: {
+    start: (input: StartRecordingInput) =>
+      ipcRenderer.invoke('recording:start', input) as Promise<StartRecordingResponse>,
+    stop: () => ipcRenderer.invoke('recording:stop') as Promise<StopRecordingResponse>,
+    listDevices: () =>
+      ipcRenderer.invoke('recording:listDevices') as Promise<{
+        microphoneDevices: string[];
+        speakerDevices: string[];
+      }>,
+    checkPermissions: () =>
+      ipcRenderer.invoke('recording:checkPermissions') as Promise<{
+        microphone: 'granted' | 'denied' | 'unknown';
+        screenCapture: 'granted' | 'denied' | 'unknown';
+      }>,
+    onWarning: (callback: (payload: RecordingWarningPayload) => void) =>
+      onIpc('recording:warning', callback),
+    onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>
+      onIpc('recording:device-changed', callback),
   },
 });

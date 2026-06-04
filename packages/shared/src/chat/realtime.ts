@@ -231,9 +231,6 @@ export const SSE_EVENT_NAMES = [
   'permission-response-resolved',
   'session-todos-updated',
   'recording-analysis-updated',
-  'recording-warning',
-  'recording-device-changed',
-  'recording-audio-chunk',
   'recording-transcript-entry',
 ] as const;
 
@@ -261,9 +258,6 @@ export type SseEventPayloadMap = {
   'permission-response-resolved': PermissionResponseResolvedPayload;
   'session-todos-updated': SessionTodosUpdatedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
-  'recording-warning': RecordingWarningPayload;
-  'recording-device-changed': RecordingDeviceChangedPayload;
-  'recording-audio-chunk': RecordingAudioChunkPayload;
   'recording-transcript-entry': RecordingTranscriptEntryPayload;
 };
 

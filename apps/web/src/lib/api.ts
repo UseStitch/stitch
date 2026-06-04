@@ -1,7 +1,14 @@
 import type {
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
+  RecordingDeviceChangedPayload,
+  RecordingWarningPayload,
 } from '@stitch/shared/chat/realtime';
+import type {
+  StartRecordingInput,
+  StartRecordingResponse,
+  StopRecordingResponse,
+} from '@stitch/shared/recordings/types';
 
 export type ContextMenuParams = {
   x: number;
@@ -78,6 +85,20 @@ declare global {
       meeting?: {
         onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) => () => void;
         onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) => () => void;
+      };
+      recording?: {
+        start: (input: StartRecordingInput) => Promise<StartRecordingResponse>;
+        stop: () => Promise<StopRecordingResponse>;
+        listDevices: () => Promise<{
+          microphoneDevices: string[];
+          speakerDevices: string[];
+        }>;
+        checkPermissions: () => Promise<{
+          microphone: 'granted' | 'denied' | 'unknown';
+          screenCapture: 'granted' | 'denied' | 'unknown';
+        }>;
+        onWarning: (callback: (payload: RecordingWarningPayload) => void) => () => void;
+        onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) => () => void;
       };
     };
   }

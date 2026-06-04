@@ -9,7 +9,7 @@ const log = Log.create({ service: 'shutdown' });
 async function shutdown(signal: string) {
   log.info({ signal }, 'shutting down');
   await stopScheduler();
-  await stopRecording().catch((error) => {
+  await stopRecording({ durationMs: null, fileSizeBytes: null }).catch((error) => {
     log.warn({ error }, 'failed to stop recording during shutdown');
   });
   await shutdownConnectorRuntime();

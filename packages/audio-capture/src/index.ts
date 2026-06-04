@@ -105,5 +105,3 @@ export function createMeetingDetector(
     },
   };
 }
-
-export type { AudioChunkConfig, AudioDeviceList, AudioPermissionsStatus } from './types.js';
