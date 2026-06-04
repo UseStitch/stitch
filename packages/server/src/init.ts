@@ -7,7 +7,6 @@ import * as Log from '@/lib/log.js';
 import { initSseBridge } from '@/lib/sse.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { syncDefaultPermissions } from '@/permission/default-permissions.js';
-import { startMeetingDetection } from '@/recordings/meeting-detection.js';
 import { startScheduler } from '@/scheduler/runtime.js';
 import { loadBuiltInSkills } from '@/skills/built-in-skills.js';
 import { syncBuiltInSkills } from '@/skills/service.js';
@@ -36,7 +35,6 @@ export async function init() {
   await initConnectorRuntime();
 
   await startScheduler();
-  startMeetingDetection();
   await syncAllAutomationSchedules();
 
   log.info('server initialized');

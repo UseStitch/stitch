@@ -43,8 +43,8 @@ export function MeetingRecordingBanner() {
   const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
   activeRecordingIdRef.current = data?.activeRecordingId ?? null;
 
-  useSSE({
-    'meeting-call-detected': (payload) => {
+  React.useEffect(() => {
+    const unsubscribeDetected = window.api?.meeting?.onCallDetected((payload) => {
       if (activeRecordingIdRef.current) {
         return;
       }
@@ -56,8 +56,8 @@ export function MeetingRecordingBanner() {
 
         return payload;
       });
-    },
-    'meeting-call-ended': ({ key }) => {
+    });
+    const unsubscribeEnded = window.api?.meeting?.onCallEnded(({ key }) => {
       setDetection((current) => {
         if (!current || current.key !== key) {
           return current;
@@ -74,8 +74,13 @@ export function MeetingRecordingBanner() {
         next.delete(key);
         return next;
       });
-    },
-  });
+    });
+
+    return () => {
+      unsubscribeDetected?.();
+      unsubscribeEnded?.();
+    };
+  }, [dismissedKeys]);
 
   React.useEffect(() => {
     if (data?.activeRecordingId) {

@@ -1,6 +1,12 @@
 import { defineConfig } from 'electron-vite';
 
 export default defineConfig({
-  main: {},
+  main: {
+    build: {
+      externalizeDeps: {
+        exclude: ['@stitch/audio-capture'],
+      },
+    },
+  },
   preload: {},
 });

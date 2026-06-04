@@ -12,6 +12,11 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  configureMeetingDetectionEnv,
+  startMeetingDetection,
+  stopMeetingDetection,
+} from './meeting-detection';
 import { resolveResourcePath } from './resources';
 import { findAvailablePort, killServer, spawnServer } from './sidecar';
 import { destroyTray, initTray } from './tray';
@@ -90,6 +95,7 @@ async function shutdownRuntime(): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
   destroyTray();
+  stopMeetingDetection();
   await killServer();
 }
 
@@ -299,6 +305,7 @@ void app.whenReady().then(async () => {
     // Register launch at startup for packaged builds only.
     if (app.isPackaged) {
       app.setLoginItemSettings({ openAtLogin: true });
+      configureMeetingDetectionEnv();
     }
 
     // When a second instance attempts to launch, focus the existing window.
@@ -316,6 +323,7 @@ void app.whenReady().then(async () => {
     const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
 
     await createWindow();
+    startMeetingDetection(() => mainWindow);
 
     if (permissionsWereReset && mainWindow) {
       void dialog.showMessageBox(mainWindow, {

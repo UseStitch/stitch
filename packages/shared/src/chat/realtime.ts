@@ -205,8 +205,6 @@ export const SSE_EVENT_NAMES = [
   'permission-response-requested',
   'permission-response-resolved',
   'session-todos-updated',
-  'meeting-call-detected',
-  'meeting-call-ended',
   'recording-analysis-updated',
   'recording-warning',
   'recording-device-changed',
@@ -237,8 +235,6 @@ export type SseEventPayloadMap = {
   'permission-response-requested': PermissionResponseRequestedPayload;
   'permission-response-resolved': PermissionResponseResolvedPayload;
   'session-todos-updated': SessionTodosUpdatedPayload;
-  'meeting-call-detected': MeetingCallDetectedPayload;
-  'meeting-call-ended': MeetingCallEndedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
   'recording-warning': RecordingWarningPayload;
   'recording-device-changed': RecordingDeviceChangedPayload;

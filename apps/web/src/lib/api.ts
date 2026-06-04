@@ -1,3 +1,8 @@
+import type {
+  MeetingCallDetectedPayload,
+  MeetingCallEndedPayload,
+} from '@stitch/shared/chat/realtime';
+
 export type ContextMenuParams = {
   x: number;
   y: number;
@@ -69,6 +74,10 @@ declare global {
         requestMicrophone: () => Promise<boolean>;
         getScreenCaptureStatus: () => Promise<string>;
         openScreenCaptureSettings: () => Promise<void>;
+      };
+      meeting?: {
+        onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) => () => void;
+        onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) => () => void;
       };
     };
   }
