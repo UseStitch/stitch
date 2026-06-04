@@ -254,11 +254,11 @@ function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
       variant="ghost"
       size="xs"
       onClick={onAbort}
-      className="h-5 px-1.5 text-[11px] text-destructive hover:text-destructive"
+      className="h-5 pr-0 pl-1.5 text-[11px] leading-none text-destructive hover:text-destructive"
       title="Stop running response"
     >
       <SquareIcon className="size-2.5" />
-      Stop
+      <span className="leading-none">Stop</span>
     </Button>
   );
 }
