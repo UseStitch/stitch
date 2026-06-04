@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { z } from 'zod';
 
-import type { StartRecordingInput } from '@stitch/shared/recordings/types';
+import type { StartRecordingInput, StopRecordingInput } from '@stitch/shared/recordings/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
@@ -16,10 +16,8 @@ import {
   startRecordingAnalysis,
 } from '@/recordings/analysis-service.js';
 import {
-  checkAudioPermissions,
   deleteRecording,
   getRecordingAudioFile,
-  listAudioDevices,
   listRecordings,
   startRecording,
   stopRecording,
@@ -28,6 +26,11 @@ import {
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
+});
+
+const stopRecordingSchema = z.object({
+  durationMs: z.number().int().nonnegative().nullable(),
+  fileSizeBytes: z.number().int().nonnegative().nullable(),
 });
 
 const recordingIdParamSchema = z.object({
@@ -56,18 +59,9 @@ recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async 
   return unwrapResult(c, result, 201);
 });
 
-recordingsRouter.post('/stop', async (c) => {
-  const result = await stopRecording();
-  return unwrapResult(c, result);
-});
-
-recordingsRouter.get('/devices', async (c) => {
-  const result = await listAudioDevices();
-  return unwrapResult(c, result);
-});
-
-recordingsRouter.get('/permissions', async (c) => {
-  const result = await checkAudioPermissions();
+recordingsRouter.post('/stop', zValidator('json', stopRecordingSchema), async (c) => {
+  const body = c.req.valid('json') as StopRecordingInput;
+  const result = await stopRecording(body);
   return unwrapResult(c, result);
 });
 

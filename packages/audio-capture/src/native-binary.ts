@@ -19,6 +19,10 @@ function getRepoCandidatePaths(binary: NativeBinary): string[] {
   return [
     path.join(sourceDir, '../../../native/target/release', binaryName),
     path.join(sourceDir, '../../../native/target/debug', binaryName),
+    path.join(sourceDir, '../../../../native/target/release', binaryName),
+    path.join(sourceDir, '../../../../native/target/debug', binaryName),
+    path.resolve(process.cwd(), '../../native/target/release', binaryName),
+    path.resolve(process.cwd(), '../../native/target/debug', binaryName),
   ];
 }
 

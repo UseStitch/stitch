@@ -2,24 +2,18 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createAudioCaptureHandle } from '@stitch/audio-capture';
-import type {
-  AudioChunkConfig,
-  AudioDeviceList,
-  AudioPermissionsStatus,
-} from '@stitch/audio-capture';
 import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
 import type {
   ListRecordingsResponse,
   Recording,
   StartRecordingInput,
   StartRecordingResponse,
+  StopRecordingInput,
   StopRecordingResponse,
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig, recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
-import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
@@ -39,7 +33,6 @@ type ActiveRecording = {
   transcriptionSession: LiveTranscriptionSession | null;
 };
 
-const capture = createAudioCaptureHandle();
 let activeRecording: ActiveRecording | null = null;
 const log = Log.create({ service: 'recordings' });
 
@@ -85,9 +78,9 @@ type ResolvedTranscriptionConfig = {
   apiKey: string;
   endpoint: string;
   sampleRateHz: number;
-  encoding: string;
+  encoding: StartRecordingResponse['audioChunkConfig']['encoding'];
   pricing: TranscriptionPricing;
-  audioChunkConfig: AudioChunkConfig;
+  audioChunkConfig: StartRecordingResponse['audioChunkConfig'];
 };
 
 async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig | null> {
@@ -149,7 +142,7 @@ async function resolveTranscriptionConfig(): Promise<ResolvedTranscriptionConfig
     encoding,
     pricing: model.pricing,
     audioChunkConfig: {
-      encoding: encoding as AudioChunkConfig['encoding'],
+      encoding: encoding,
       sampleRateHz: model.audio.sampleRate,
     },
   };
@@ -231,7 +224,7 @@ export async function listRecordings(input: {
 export async function startRecording(
   input: StartRecordingInput,
 ): Promise<ServiceResult<StartRecordingResponse>> {
-  if (activeRecording !== null || capture.getActive() !== null) {
+  if (activeRecording !== null) {
     return err('Recording already in progress', 400);
   }
 
@@ -241,30 +234,27 @@ export async function startRecording(
   const title = input.title?.trim() || defaultTitle();
   const outputDir = path.join(PATHS.dirPaths.recordings, id);
   const filePath = path.join(outputDir, 'raw_audio.ogg');
+  let settings: RecordingCaptureSettings;
+  let transcriptionConfig: ResolvedTranscriptionConfig;
 
   try {
-    const [settings, transcriptionConfig, userName] = await Promise.all([
+    const [resolvedSettings, resolvedTranscriptionConfig, userName] = await Promise.all([
       readCaptureSettings(),
       resolveTranscriptionConfig(),
       readUserName(),
     ]);
 
-    if (!transcriptionConfig) {
+    if (!resolvedTranscriptionConfig) {
       return err(
         'No transcription model configured. Please configure a transcription model in settings.',
         400,
       );
     }
 
+    settings = resolvedSettings;
+    transcriptionConfig = resolvedTranscriptionConfig;
+
     await fs.mkdir(outputDir, { recursive: true });
-    await capture.start({
-      outputPath: filePath,
-      channels: 1,
-      micDeviceId: settings.inputDeviceId,
-      speakerDeviceId: settings.outputDeviceId,
-      speakerGain: settings.speakerGain,
-      audioChunkConfig: transcriptionConfig.audioChunkConfig,
-    });
 
     await db.insert(recordings).values({
       id,
@@ -275,25 +265,6 @@ export async function startRecording(
       mimeType: 'audio/ogg',
       filePath,
       startedAt: now,
-    });
-
-    capture.onEvent((event) => {
-      if (event.type === 'warning') {
-        Events.emit('recording-warning', { code: event.code, message: event.message });
-      } else if (event.type === 'deviceChanged') {
-        Events.emit('recording-device-changed', {
-          kind: event.kind,
-          deviceName: event.deviceName,
-        });
-      } else if (event.type === 'audioChunk') {
-        Events.emit('recording-audio-chunk', {
-          recordingId: id,
-          source: event.source,
-          samplesB64: event.samplesB64,
-          sampleRateHz: event.sampleRateHz,
-          numSamples: event.numSamples,
-        });
-      }
     });
 
     let transcriptionSession: LiveTranscriptionSession | null = null;
@@ -368,7 +339,15 @@ export async function startRecording(
     return err('Recording not found', 404);
   }
 
-  return ok({ recording: toRecording(row) });
+  return ok({
+    recording: toRecording(row),
+    recordingId: id,
+    outputPath: filePath,
+    micDeviceId: settings.inputDeviceId,
+    speakerDeviceId: settings.outputDeviceId,
+    speakerGain: settings.speakerGain,
+    audioChunkConfig: transcriptionConfig.audioChunkConfig,
+  });
 }
 
 export async function getRecordingAudioFile(
@@ -389,7 +368,9 @@ export async function getRecordingAudioFile(
   return ok({ filePath: row.filePath, mimeType: row.mimeType });
 }
 
-export async function stopRecording(): Promise<ServiceResult<StopRecordingResponse>> {
+export async function stopRecording(
+  input: StopRecordingInput,
+): Promise<ServiceResult<StopRecordingResponse>> {
   const current = activeRecording;
   if (!current) {
     return err('No active recording', 400);
@@ -403,10 +384,8 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
     const sessionResult = (await current.transcriptionSession?.stop()) ?? null;
     const transcript = sessionResult?.transcript ?? [];
 
-    const stop = await capture.stop();
-    const endedAt = stop?.endedAt ?? Date.now();
-    const durationMs = stop?.durationMs ?? null;
-    const stat = await fs.stat(current.filePath).catch(() => null);
+    const endedAt = Date.now();
+    const durationMs = input.durationMs;
 
     await db
       .update(recordings)
@@ -414,7 +393,7 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
         status: 'completed',
         endedAt,
         durationMs,
-        fileSizeBytes: stat?.size ?? null,
+        fileSizeBytes: input.fileSizeBytes,
         updatedAt: Date.now(),
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
@@ -434,8 +413,7 @@ export async function stopRecording(): Promise<ServiceResult<StopRecordingRespon
       {
         recordingId: current.id,
         filePath: current.filePath,
-        stopped: stop,
-        fileSizeBytes: stat?.size ?? null,
+        fileSizeBytes: input.fileSizeBytes,
         transcriptEntries: transcript.length,
         costUsd: sessionResult?.costUsd ?? 0,
       },
@@ -505,26 +483,4 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   await db.delete(recordings).where(eq(recordings.id, recordingId));
 
   return ok(null);
-}
-
-export async function listAudioDevices(): Promise<ServiceResult<AudioDeviceList>> {
-  try {
-    const devices = await capture.listDevices();
-    return ok(devices);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to list audio devices';
-    log.warn({ error: message }, 'failed to list audio devices');
-    return err(message, 500);
-  }
-}
-
-export async function checkAudioPermissions(): Promise<ServiceResult<AudioPermissionsStatus>> {
-  try {
-    const permissions = await capture.checkPermissions();
-    return ok(permissions);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to check audio permissions';
-    log.warn({ error: message }, 'failed to check audio permissions');
-    return err(message, 500);
-  }
 }

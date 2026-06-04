@@ -9,7 +9,6 @@ import type { MeetingCallDetectedPayload } from '@stitch/shared/chat/realtime';
 import { PLATFORM_CONFIG } from './shared/formatting';
 
 import { Button } from '@/components/ui/button';
-import { useSSE } from '@/hooks/sse/sse-context';
 import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
@@ -19,16 +18,21 @@ const WARNING_LABELS: Record<string, string> = {
 };
 
 export function RecordingEventListener() {
-  useSSE({
-    'recording-warning': (payload) => {
+  React.useEffect(() => {
+    const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
       const label = WARNING_LABELS[payload.code] ?? payload.message;
       toast.warning(label);
-    },
-    'recording-device-changed': (payload) => {
+    });
+    const unsubscribeDeviceChanged = window.api?.recording?.onDeviceChanged((payload) => {
       const deviceLabel = payload.deviceName ?? 'unknown device';
       toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`);
-    },
-  });
+    });
+
+    return () => {
+      unsubscribeWarning?.();
+      unsubscribeDeviceChanged?.();
+    };
+  }, []);
 
   return null;
 }
@@ -43,21 +47,24 @@ export function MeetingRecordingBanner() {
   const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
   activeRecordingIdRef.current = data?.activeRecordingId ?? null;
 
-  useSSE({
-    'meeting-call-detected': (payload) => {
+  const dismissedKeysRef = React.useRef(dismissedKeys);
+  dismissedKeysRef.current = dismissedKeys;
+
+  React.useEffect(() => {
+    const unsubscribeDetected = window.api?.meeting?.onCallDetected((payload) => {
       if (activeRecordingIdRef.current) {
         return;
       }
 
       setDetection((current) => {
-        if (dismissedKeys.has(payload.key)) {
+        if (dismissedKeysRef.current.has(payload.key)) {
           return current;
         }
 
         return payload;
       });
-    },
-    'meeting-call-ended': ({ key }) => {
+    });
+    const unsubscribeEnded = window.api?.meeting?.onCallEnded(({ key }) => {
       setDetection((current) => {
         if (!current || current.key !== key) {
           return current;
@@ -74,8 +81,13 @@ export function MeetingRecordingBanner() {
         next.delete(key);
         return next;
       });
-    },
-  });
+    });
+
+    return () => {
+      unsubscribeDetected?.();
+      unsubscribeEnded?.();
+    };
+  }, []);
 
   React.useEffect(() => {
     if (data?.activeRecordingId) {

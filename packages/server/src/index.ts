@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
@@ -21,6 +22,7 @@ import { ollamaModelsRouter } from '@/routes/ollama-models.js';
 import { permissionsRouter } from '@/routes/permissions.js';
 import { questionsRouter } from '@/routes/questions.js';
 import { queueRouter } from '@/routes/queue.js';
+import { createRecordingsIngestRouter } from '@/routes/recordings-ingest.js';
 import { recordingsRouter } from '@/routes/recordings.js';
 import { settingsRouter } from '@/routes/settings.js';
 import { shortcutsRouter } from '@/routes/shortcuts.js';
@@ -50,6 +52,7 @@ const { port, hostname } = parseArgs();
 const log = Log.create({ service: 'server' });
 
 const app = new Hono();
+const nodeWebSocket = createNodeWebSocket({ app });
 
 app.use(cors());
 app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
@@ -69,6 +72,7 @@ app.route('/llm/provider', providerRouter);
 app.route('/llm/ollama/models', ollamaModelsRouter);
 app.route('/settings', settingsRouter);
 app.route('/skills', skillsRouter);
+app.route('/recordings', createRecordingsIngestRouter(nodeWebSocket.upgradeWebSocket));
 app.route('/recordings', recordingsRouter);
 app.route('/shortcuts', shortcutsRouter);
 app.route('/usage', usageRouter);
@@ -78,6 +82,7 @@ app.route('/agenda', agendaRouter);
 registerShutdownHandlers();
 await init();
 
-serve({ fetch: app.fetch, port, hostname }, (info) => {
+const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
   log.info({ address: info.address, port: info.port }, 'server ready');
 });
+nodeWebSocket.injectWebSocket(server);
