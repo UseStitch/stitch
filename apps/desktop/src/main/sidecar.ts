@@ -6,6 +6,7 @@ import treeKill from 'tree-kill';
 
 const HEALTH_POLL_INTERVAL_MS = 100;
 const HEALTH_TIMEOUT_MS = 30_000;
+const KILL_TIMEOUT_MS = 5_000;
 const HOSTNAME = '127.0.0.1';
 
 let serverProcess: ChildProcess | null = null;
@@ -71,48 +72,52 @@ async function waitForHealthy(url: string): Promise<void> {
   throw new Error(`Server failed to become healthy within ${HEALTH_TIMEOUT_MS}ms`);
 }
 
-function killStaleServers(): Promise<void> {
+function findStalePids(): number[] {
   try {
-    const cmd =
-      process.platform === 'win32'
-        ? 'tasklist /FI "IMAGENAME eq stitch-server.exe" /FO CSV /NH'
-        : 'pgrep -f stitch-server';
-
-    const output = execSync(cmd, { encoding: 'utf8', timeout: 3_000 }).trim();
-    if (!output) return Promise.resolve();
-
-    const pids =
-      process.platform === 'win32'
-        ? output
-            .split('\n')
-            .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
-            .filter(Number.isFinite)
-        : output
-            .split('\n')
-            .map((s) => parseInt(s, 10))
-            .filter(Number.isFinite);
-
-    for (const pid of pids) {
-      try {
-        process.kill(pid, 'SIGTERM');
-      } catch {
-        // already dead or not owned
-      }
+    if (process.platform === 'win32') {
+      const output = execSync('tasklist /FI "IMAGENAME eq stitch-server.exe" /FO CSV /NH', {
+        encoding: 'utf8',
+        timeout: 3_000,
+      }).trim();
+      if (!output) return [];
+      return output
+        .split('\n')
+        .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
+        .filter(Number.isFinite);
     }
 
-    if (pids.length > 0) {
-      console.log(`[sidecar] killed ${pids.length} stale stitch-server process(es)`);
-    }
+    const output = execSync('pgrep -f stitch-server', {
+      encoding: 'utf8',
+      timeout: 3_000,
+    }).trim();
+    if (!output) return [];
+    return output
+      .split('\n')
+      .map((s) => parseInt(s, 10))
+      .filter(Number.isFinite);
   } catch {
-    // pgrep returns exit code 1 when no matches — ignore
+    // pgrep returns exit code 1 when no matches; tasklist may fail — ignore
+    return [];
   }
+}
 
-  return Promise.resolve();
+function killStaleServers(): void {
+  const pids = findStalePids();
+  for (const pid of pids) {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      // already dead or not owned
+    }
+  }
+  if (pids.length > 0) {
+    console.log(`[sidecar] killed ${pids.length} stale stitch-server process(es)`);
+  }
 }
 
 export async function spawnServer(port: number): Promise<string> {
   if (app.isPackaged) {
-    await killStaleServers();
+    killStaleServers();
   }
 
   const { cmd, args, cwd } = getSidecarCommand(port);
@@ -128,12 +133,10 @@ export async function spawnServer(port: number): Promise<string> {
 
   if (app.isPackaged) {
     const suffix = process.platform === 'win32' ? '.exe' : '';
-    const sandboxBin = join(process.resourcesPath, `stitch-sandbox${suffix}`);
-    sidecarEnv.SANDBOX_EXEC_PATH = sandboxBin;
+    sidecarEnv.SANDBOX_EXEC_PATH = join(process.resourcesPath, `stitch-sandbox${suffix}`);
   } else {
     const root = getMonorepoRoot();
-    const sandboxEntry = join(root, 'packages/server/src/code-mode/sandbox-process.ts');
-    sidecarEnv.SANDBOX_EXEC_PATH = sandboxEntry;
+    sidecarEnv.SANDBOX_EXEC_PATH = join(root, 'packages/server/src/code-mode/sandbox-process.ts');
   }
 
   serverProcess = spawn(cmd, args, {
@@ -164,8 +167,6 @@ export async function spawnServer(port: number): Promise<string> {
 
   return url;
 }
-
-const KILL_TIMEOUT_MS = 5_000;
 
 export async function killServer(): Promise<void> {
   const proc = serverProcess;
