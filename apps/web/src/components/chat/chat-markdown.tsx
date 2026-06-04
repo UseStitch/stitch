@@ -289,10 +289,15 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
   }, [isStreaming]);
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
-  const remarkPlugins = useMemo(
-    () => (isStreaming ? [remarkGfm] : [remarkGfm, remarkMath]),
-    [isStreaming],
-  );
+  const remarkPlugins = useMemo(() => {
+    if (isStreaming) return [remarkGfm];
+
+    const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
+      typeof remarkMath,
+      { singleDollarTextMath: false },
+    ];
+    return [remarkGfm, remarkMathWithoutSingleDollar];
+  }, [isStreaming]);
   const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
   return (
