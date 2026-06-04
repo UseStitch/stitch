@@ -119,8 +119,10 @@ function ServerConnectionSync() {
   React.useEffect(() => {
     return window.api?.server?.onConfigChanged((config) => {
       resetServerUrlCache(config.url);
-      router.options.context.queryClient.clear();
-      void router.invalidate();
+      void router.navigate({ to: '/', search: { settings: 'connection' } }).then(() => {
+        router.options.context.queryClient.clear();
+        void router.invalidate();
+      });
       window.dispatchEvent(new Event('server-config-changed'));
     });
   }, [router]);
