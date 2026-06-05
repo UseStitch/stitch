@@ -97,12 +97,11 @@ function getSourceLabel(source: string): string {
 }
 
 function formatCost(costUsd: number): string {
-  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
   return `$${costUsd.toFixed(2)}`;
 }
 
 function formatTokens(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(
+  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 0 }).format(
     value,
   );
 }
@@ -411,8 +410,11 @@ export function UsageDashboardPage() {
         legend: baseLegend,
         tooltip: {
           callbacks: {
-            label: (ctx: TooltipItem<'bar'>) =>
-              `${ctx.dataset.label}: ${formatCost(Number(ctx.raw ?? 0))}`,
+            label: (ctx: TooltipItem<'bar'>) => {
+              const value = Number(ctx.raw ?? 0);
+              if (value === 0) return null;
+              return `${ctx.dataset.label}: ${formatCost(value)}`;
+            },
           },
         },
       },
