@@ -8,12 +8,14 @@ type CopyButtonProps = Omit<React.ComponentProps<typeof Button>, 'children' | 'o
   value: string;
   copyLabel?: string;
   copiedLabel?: string;
+  showLabel?: boolean;
 };
 
 export function CopyButton({
   value,
   copyLabel = 'Copy',
   copiedLabel = 'Copied',
+  showLabel = false,
   className,
   variant = 'outline',
   size = 'icon-xs',
@@ -40,7 +42,7 @@ export function CopyButton({
       aria-label={copied ? copiedLabel : copyLabel}
       {...props}
     >
-      <span className="relative inline-flex size-3">
+      <span className="relative inline-flex size-3 shrink-0">
         <CopyIcon
           className={cn(
             'absolute inset-0 size-3 transition-all duration-200',
@@ -54,6 +56,7 @@ export function CopyButton({
           )}
         />
       </span>
+      {showLabel ? <span>{copied ? copiedLabel : copyLabel}</span> : null}
     </Button>
   );
 }

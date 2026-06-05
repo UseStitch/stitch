@@ -2,8 +2,14 @@ import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
+import { extractTextFromParts } from './extract-text';
 import { buildDisplaySegments, collectToolResults } from './segment-utils';
-import { AssistantBubbleWrapper, FileBlock, InterruptedLabel } from './shared-components';
+import {
+  AssistantBubbleWrapper,
+  FileBlock,
+  InterruptedLabel,
+  MessageCopyButton,
+} from './shared-components';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
@@ -25,6 +31,7 @@ export function AssistantMessageBubble({
 }: AssistantMessageBubbleProps) {
   const segments = buildDisplaySegments(parts);
   const resultsByCallId = collectToolResults(parts);
+  const text = extractTextFromParts(parts);
   const wasAborted = finishReason === 'aborted';
   const hadError = finishReason === 'error';
 
@@ -87,6 +94,12 @@ export function AssistantMessageBubble({
       })}
 
       {wasAborted && <InterruptedLabel />}
+
+      {text && (
+        <div className="flex items-center justify-start opacity-0 transition-opacity group-hover:opacity-100">
+          <MessageCopyButton text={text} />
+        </div>
+      )}
     </AssistantBubbleWrapper>
   );
 }
