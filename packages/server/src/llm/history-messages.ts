@@ -279,6 +279,7 @@ export function buildHistoryMessages(
         memoryContext: promptConfig?.memoryContext ?? null,
         todoContext: promptConfig?.todoContext ?? null,
         codeModePrompt: promptConfig?.codeModePrompt ?? null,
+        liquidUiPromptSection: null,
       }),
     });
   }

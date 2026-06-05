@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 
+import { buildLiquidUiCatalogPrompt } from '@stitch/shared/liquid-ui/catalog';
+
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { buildPromptEnvironment } from '@/llm/prompt/env.js';
 
@@ -20,6 +22,59 @@ const BASE_SYSTEM_PROMPT = readFileSync(
   'utf8',
 ).trim();
 
+function buildLiquidUiPromptSection(): string {
+  return `<liquid_ui>
+You may call render_ui without the user explicitly asking when a visual dashboard would make the answer easier to scan.
+
+Use render_ui when the response contains comparisons, rankings, multiple entities, statuses, risks, metrics, dates, percentages, polling, financial figures, or chartable quantitative data. Good fits include briefings, reports, market maps, political race overviews, company snapshots, travel comparisons, and research summaries.
+
+Do not use render_ui for simple explanations, single facts, short conversational answers, code/debugging tasks, or when the UI would merely repeat clear prose. Never invent data to fill a chart or stat. If data is uncertain or conflicting, mark it clearly with text or an info/warning badge.
+
+Response pattern:
+1. Complete ALL research and tool calls first (web searches, file reads, data fetches, etc.).
+2. Once you have all the data you need, write 1-3 sentences of plain text.
+3. Call render_ui LAST, after all other tool calls are finished. Never call render_ui mid-research.
+4. End with a short conclusion or caveat only if useful.
+
+Never duplicate information between the dashboard and the text. The dashboard is the primary surface for the data — once a metric, status, comparison, or figure is shown in the UI, do NOT restate it in prose. Text should only frame the dashboard (e.g. what it shows, how it was sourced) or add caveats the UI cannot express. Do not write a textual summary, list, or table that repeats what the render_ui call already displays.
+
+Component selection:
+- Stat for headline metrics.
+- Badge for status, confidence, risk, category, or trend.
+- Card for one entity/theme.
+- Grid for comparing peer entities.
+- KeyValue for factual rows.
+- Chart only for real quantitative data.
+- Text only for short annotations inside the dashboard.
+
+Dashboard quality:
+- Keep dashboards compact.
+- Use at most one chart by default.
+- Prefer 2-6 cards.
+- Keep labels and badge text short.
+- Use unique node IDs and only catalog components/props.
+
+The render_ui tool input is a single flat graph: { root, nodes }. Nodes use a discriminated component field, unique ids, and child id refs. Never invent components or props. Use one render_ui call per logical UI block.
+
+Critical rules to avoid schema rejection:
+- Put ALL props DIRECTLY on each node object. NEVER use a nested "props" key.
+- Enum-like numeric fields MUST be strings: "columns" is "1"/"2"/"3"/"4", not 1/2/3/4.
+- Required nullable fields MUST be present: include "caption": null and "trend": null on every Stat node if unused.
+- Never reference a node's own id in its children array.
+
+Minimal valid example:
+{ "root": "s1", "nodes": [
+  { "id": "s1", "component": "Stack", "spacing": "sm", "children": ["g1"] },
+  { "id": "g1", "component": "Grid",  "columns": "2", "gap": "sm", "children": ["st1", "b1"] },
+  { "id": "st1", "component": "Stat",     "label": "Revenue", "value": "$4.2k", "caption": null, "trend": "up" },
+  { "id": "b1",  "component": "Badge",    "variant": "success", "text": "On track" }
+]}
+
+Catalog:
+${buildLiquidUiCatalogPrompt()}
+</liquid_ui>`;
+}
+
 export function buildSystemPrompt(input: {
   useBasePrompt: boolean;
   systemPrompt: string | null;
@@ -28,6 +83,7 @@ export function buildSystemPrompt(input: {
   memoryContext?: string | null;
   todoContext?: string | null;
   codeModePrompt?: string | null;
+  liquidUiPromptSection?: string | null;
 }): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
   const userName = input.userName?.trim() || null;
@@ -45,6 +101,10 @@ export function buildSystemPrompt(input: {
 
   if (input.codeModePrompt?.trim()) {
     result = `${result}\n\n${input.codeModePrompt.trim()}`;
+  }
+
+  if (!input.codeModePrompt?.trim()) {
+    result = `${result}\n\n${input.liquidUiPromptSection?.trim() || buildLiquidUiPromptSection()}`;
   }
 
   if (input.memoryContext) {

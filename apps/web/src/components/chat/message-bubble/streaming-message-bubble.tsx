@@ -1,9 +1,12 @@
 import * as React from 'react';
 import { useDeferredValue } from 'react';
 
+import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
+
 import { AssistantBubbleWrapper, FileBlock } from './shared-components';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { LiquidUi } from '@/components/chat/liquid-ui/renderer.js';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { buildStreamingToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
@@ -63,6 +66,14 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
     if (!part) continue;
 
     if (part.type === 'tool-call') {
+      if (part.toolName === LIQUID_UI_TOOL_NAME) {
+        flushToolGroup();
+        if (part.status !== 'error' && part.error === null) {
+          nodes.push(<LiquidUi key={partId} spec={part.input} />);
+        }
+        continue;
+      }
+
       if (toolGroup) {
         toolGroup.partIds.push(partId);
       } else {

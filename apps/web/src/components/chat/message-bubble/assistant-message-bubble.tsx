@@ -13,6 +13,7 @@ import {
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
+import { LiquidUi } from '@/components/chat/liquid-ui/renderer.js';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { buildStoredToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
@@ -74,6 +75,17 @@ export function AssistantMessageBubble({
                 onAbort={onAbortTool}
               />
             );
+          case 'liquid-ui': {
+            const liquidUiResult = resultsByCallId.get(segment.part.toolCallId);
+            const hasError =
+              liquidUiResult &&
+              'output' in liquidUiResult &&
+              liquidUiResult.output !== null &&
+              typeof liquidUiResult.output === 'object' &&
+              'error' in (liquidUiResult.output as object);
+            if (hasError) return null;
+            return <LiquidUi key={segment.key} spec={segment.part.input} />;
+          }
           case 'other': {
             const part = segment.part;
             switch (part.type) {
