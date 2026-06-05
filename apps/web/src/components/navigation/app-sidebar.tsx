@@ -14,7 +14,6 @@ import { Link, useParams, useRouterState } from '@tanstack/react-router';
 import type { SessionsPage } from '@stitch/shared/chat/messages';
 
 import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
-import { AnimatedTitle } from '@/components/animated-title';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import {
@@ -149,10 +148,9 @@ function ChatSidebarContent() {
                         }
                       >
                         <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
-                        <AnimatedTitle
-                          title={session.title ?? 'New conversation'}
-                          className={cn('truncate', isUnread && 'font-semibold')}
-                        />
+                        <span className={cn('truncate', isUnread && 'font-semibold')}>
+                          {session.title ?? 'New conversation'}
+                        </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
