@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
+import { SettingRowLayout, SliderSettingRow } from '@/components/settings/setting-rows';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import {
   audioProviderModelsQueryOptions,
@@ -104,9 +104,6 @@ function AudioDeviceSettings() {
   const saveOutputDeviceMutation = useMutation(
     saveSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
   );
-  const saveSpeakerGainMutation = useMutation(
-    saveSettingMutationOptions('recordings.speakerGain', queryClient, { silent: true }),
-  );
   const deleteInputDeviceMutation = useMutation(
     deleteSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
   );
@@ -136,11 +133,7 @@ function AudioDeviceSettings() {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Input Device</Label>
-          <p className="text-xs text-muted-foreground">Microphone used for recording.</p>
-        </div>
+      <SettingRowLayout label="Input Device" description="Microphone used for recording.">
         <div className="w-64 shrink-0">
           <Select
             value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
@@ -159,15 +152,12 @@ function AudioDeviceSettings() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </SettingRowLayout>
 
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Output Device</Label>
-          <p className="text-xs text-muted-foreground">
-            Speaker or system audio source for recording.
-          </p>
-        </div>
+      <SettingRowLayout
+        label="Output Device"
+        description="Speaker or system audio source for recording."
+      >
         <div className="w-64 shrink-0">
           <Select
             value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
@@ -186,31 +176,19 @@ function AudioDeviceSettings() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </SettingRowLayout>
 
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Speaker Volume</Label>
-          <p className="text-xs text-muted-foreground">
-            Gain multiplier for system audio in the mix. Default is 10.
-          </p>
-        </div>
-        <div className="flex w-64 shrink-0 items-center gap-3">
-          <Slider
-            value={[currentSpeakerGain]}
-            min={1}
-            max={30}
-            step={1}
-            onValueChange={(value) => {
-              const nextValue = Array.isArray(value) ? value[0] : value;
-              saveSpeakerGainMutation.mutate(String(nextValue ?? currentSpeakerGain));
-            }}
-          />
-          <span className="w-6 text-right text-xs text-muted-foreground tabular-nums">
-            {currentSpeakerGain}
-          </span>
-        </div>
-      </div>
+      <SliderSettingRow
+        settingKey="recordings.speakerGain"
+        label="Speaker Volume"
+        description="Gain multiplier for system audio in the mix. Default is 10."
+        currentValue={currentSpeakerGain}
+        min={1}
+        max={30}
+        step={1}
+        precision={0}
+        borderBottom={false}
+      />
     </div>
   );
 }

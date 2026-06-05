@@ -1,14 +1,14 @@
 import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
+import { SwitchSettingRow } from '@/components/settings/setting-rows';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
 
 const MODEL_PREFERENCES = [
@@ -203,30 +203,15 @@ function AutoUpdatesContent() {
 }
 
 function NotificationsContent() {
-  const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const soundEnabled = settings['notifications.sound.enabled'] !== 'false';
-
-  const saveMutation = useMutation(
-    saveSettingMutationOptions('notifications.sound.enabled', queryClient, { silent: true }),
-  );
-
-  function handleSoundToggle(checked: boolean) {
-    saveMutation.mutate(checked ? 'true' : 'false');
-  }
-
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor="sound-toggle" className="text-sm font-medium">
-          Sound alerts
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          Play an attention sound when the AI needs your input
-        </p>
-      </div>
-      <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
-    </div>
+    <SwitchSettingRow
+      settingKey="notifications.sound.enabled"
+      label="Sound alerts"
+      description="Play an attention sound when the AI needs your input"
+      checked={settings['notifications.sound.enabled'] !== 'false'}
+      borderBottom={false}
+    />
   );
 }

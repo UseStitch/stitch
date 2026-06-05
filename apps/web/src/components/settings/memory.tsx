@@ -7,6 +7,12 @@ import {
   flattenGroups,
   type ModelOption,
 } from '@/components/settings/model-select';
+import {
+  NumberSettingRow,
+  SettingRowLayout,
+  SliderSettingRow,
+  SwitchSettingRow,
+} from '@/components/settings/setting-rows';
 import { Button } from '@/components/ui/button';
 import {
   Combobox,
@@ -28,7 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -37,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
@@ -244,82 +248,37 @@ function ExtractionSettings() {
     CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ??
     'Select confidence filter';
 
-  const initialImportanceScore = Math.max(
-    0,
-    Math.min(1, Number.parseFloat(settings['memory.extraction.importanceMinScore'] ?? '0.7')),
-  );
-  const [importanceScoreValue, setImportanceScoreValue] = React.useState(initialImportanceScore);
-
-  React.useEffect(() => {
-    setImportanceScoreValue(initialImportanceScore);
-  }, [initialImportanceScore]);
-
-  const saveMaxFacts = useMutation(
-    saveSettingMutationOptions('memory.extraction.maxFactsPerTurn', queryClient, { silent: true }),
-  );
-  const saveMinMessageLength = useMutation(
-    saveSettingMutationOptions('memory.extraction.minMessageLength', queryClient, { silent: true }),
-  );
   const saveConfidenceFilter = useMutation(
     saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }),
   );
-  const saveImportanceMinScore = useMutation(
-    saveSettingMutationOptions('memory.extraction.importanceMinScore', queryClient, {
-      silent: true,
-    }),
-  );
-  const saveMaxFactsPerSession = useMutation(
-    saveSettingMutationOptions('memory.extraction.maxFactsPerSession', queryClient, {
-      silent: true,
-    }),
-  );
-  const saveMinTurnsBetweenWrites = useMutation(
-    saveSettingMutationOptions('memory.extraction.minTurnsBetweenWrites', queryClient, {
-      silent: true,
-    }),
+
+  const importanceScore = Math.max(
+    0,
+    Math.min(1, Number.parseFloat(settings['memory.extraction.importanceMinScore'] ?? '0.7')),
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Max Facts Per Turn</Label>
-          <p className="text-xs text-muted-foreground">
-            Maximum number of memories extracted in a single response.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="1"
-            max="10"
-            defaultValue={settings['memory.extraction.maxFactsPerTurn']}
-            onBlur={(e) => saveMaxFacts.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Min Message Length</Label>
-          <p className="text-xs text-muted-foreground">
-            Skip extraction if user message is shorter than this (characters).
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="0"
-            max="500"
-            defaultValue={settings['memory.extraction.minMessageLength']}
-            onBlur={(e) => saveMinMessageLength.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Confidence Filter</Label>
-          <p className="text-xs text-muted-foreground">Which types of extracted facts to store.</p>
-        </div>
+      <NumberSettingRow
+        settingKey="memory.extraction.maxFactsPerTurn"
+        label="Max Facts Per Turn"
+        description="Maximum number of memories extracted in a single response."
+        currentValue={settings['memory.extraction.maxFactsPerTurn']}
+        min={1}
+        max={10}
+      />
+      <NumberSettingRow
+        settingKey="memory.extraction.minMessageLength"
+        label="Min Message Length"
+        description="Skip extraction if user message is shorter than this (characters)."
+        currentValue={settings['memory.extraction.minMessageLength']}
+        min={0}
+        max={500}
+      />
+      <SettingRowLayout
+        label="Confidence Filter"
+        description="Which types of extracted facts to store."
+      >
         <div className="w-52">
           <Select
             value={confidenceFilter}
@@ -339,219 +298,100 @@ function ExtractionSettings() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Min Importance Score</Label>
-          <p className="text-xs text-muted-foreground">
-            Facts below this threshold (0–1) are discarded. Higher = stricter capture.
-          </p>
-        </div>
-        <div className="w-52 shrink-0">
-          <div className="flex items-center gap-3">
-            <Slider
-              value={[importanceScoreValue]}
-              min={0}
-              max={1}
-              step={0.05}
-              onValueChange={(value) => {
-                const rawValue = Array.isArray(value) ? value[0] : value;
-                const nextValue = Math.max(0, Math.min(1, rawValue ?? 0));
-                setImportanceScoreValue(nextValue);
-                saveImportanceMinScore.mutate(nextValue.toFixed(2));
-              }}
-            />
-            <span className="w-10 text-right text-xs font-medium text-muted-foreground tabular-nums">
-              {importanceScoreValue.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Max Facts Per Session</Label>
-          <p className="text-xs text-muted-foreground">
-            Hard cap on total auto-extracted memories written per session.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="1"
-            max="200"
-            defaultValue={settings['memory.extraction.maxFactsPerSession']}
-            onBlur={(e) => saveMaxFactsPerSession.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Min Turns Between Writes</Label>
-          <p className="text-xs text-muted-foreground">
-            Cooldown: minimum user turns between consecutive auto-memory writes.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="0"
-            max="20"
-            defaultValue={settings['memory.extraction.minTurnsBetweenWrites']}
-            onBlur={(e) => saveMinTurnsBetweenWrites.mutate(e.target.value)}
-          />
-        </div>
-      </div>
+      </SettingRowLayout>
+      <SliderSettingRow
+        settingKey="memory.extraction.importanceMinScore"
+        label="Min Importance Score"
+        description="Facts below this threshold (0-1) are discarded. Higher = stricter capture."
+        currentValue={importanceScore}
+        min={0}
+        max={1}
+        step={0.05}
+      />
+      <NumberSettingRow
+        settingKey="memory.extraction.maxFactsPerSession"
+        label="Max Facts Per Session"
+        description="Hard cap on total auto-extracted memories written per session."
+        currentValue={settings['memory.extraction.maxFactsPerSession']}
+        min={1}
+        max={200}
+      />
+      <NumberSettingRow
+        settingKey="memory.extraction.minTurnsBetweenWrites"
+        label="Min Turns Between Writes"
+        description="Cooldown: minimum user turns between consecutive auto-memory writes."
+        currentValue={settings['memory.extraction.minTurnsBetweenWrites']}
+        min={0}
+        max={20}
+      />
     </div>
   );
 }
 
 function RetentionSettings() {
-  const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-
-  const saveMaxMemories = useMutation(
-    saveSettingMutationOptions('memory.retention.maxMemories', queryClient, { silent: true }),
-  );
-  const saveStaleDays = useMutation(
-    saveSettingMutationOptions('memory.retention.staleDays', queryClient, { silent: true }),
-  );
-  const saveAutoPrune = useMutation(
-    saveSettingMutationOptions('memory.retention.autoprune', queryClient, { silent: true }),
-  );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Max Memories</Label>
-          <p className="text-xs text-muted-foreground">
-            Hard cap on total stored memories. Oldest low-value memories are pruned first.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="10"
-            max="5000"
-            defaultValue={settings['memory.retention.maxMemories']}
-            onBlur={(e) => saveMaxMemories.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Stale Days</Label>
-          <p className="text-xs text-muted-foreground">
-            Memories not accessed in this many days are candidates for pruning.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="1"
-            max="365"
-            defaultValue={settings['memory.retention.staleDays']}
-            onBlur={(e) => saveStaleDays.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Auto-prune</Label>
-          <p className="text-xs text-muted-foreground">
-            Run automatic pruning after extraction to stay within limits.
-          </p>
-        </div>
-        <Switch
-          checked={settings['memory.retention.autoprune'] === 'true'}
-          onCheckedChange={(checked) => saveAutoPrune.mutate(checked ? 'true' : 'false')}
-        />
-      </div>
+      <NumberSettingRow
+        settingKey="memory.retention.maxMemories"
+        label="Max Memories"
+        description="Hard cap on total stored memories. Oldest low-value memories are pruned first."
+        currentValue={settings['memory.retention.maxMemories']}
+        min={10}
+        max={5000}
+      />
+      <NumberSettingRow
+        settingKey="memory.retention.staleDays"
+        label="Stale Days"
+        description="Memories not accessed in this many days are candidates for pruning."
+        currentValue={settings['memory.retention.staleDays']}
+        min={1}
+        max={365}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retention.autoprune"
+        label="Auto-prune"
+        description="Run automatic pruning after extraction to stay within limits."
+        checked={settings['memory.retention.autoprune'] === 'true'}
+      />
     </div>
   );
 }
 
 function RetrievalSettings() {
-  const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const initialMinScore = Math.max(
+
+  const minScore = Math.max(
     0,
     Math.min(1, Number.parseFloat(settings['memory.retrieval.minScore'] ?? '0')),
-  );
-  const [minScoreValue, setMinScoreValue] = React.useState(initialMinScore);
-
-  React.useEffect(() => {
-    setMinScoreValue(initialMinScore);
-  }, [initialMinScore]);
-
-  const saveMaxResults = useMutation(
-    saveSettingMutationOptions('memory.retrieval.maxResults', queryClient, { silent: true }),
-  );
-  const saveMinScore = useMutation(
-    saveSettingMutationOptions('memory.retrieval.minScore', queryClient, { silent: true }),
-  );
-  const saveRecencyBoost = useMutation(
-    saveSettingMutationOptions('memory.retrieval.recencyBoost', queryClient, { silent: true }),
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Max Context Results</Label>
-          <p className="text-xs text-muted-foreground">
-            Maximum memories injected into context per turn.
-          </p>
-        </div>
-        <div className="w-32">
-          <Input
-            type="number"
-            min="1"
-            max="20"
-            defaultValue={settings['memory.retrieval.maxResults']}
-            onBlur={(e) => saveMaxResults.mutate(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Min Relevance Score</Label>
-          <p className="text-xs text-muted-foreground">
-            Minimum score (0.0 to 1.0) to include a memory.
-          </p>
-        </div>
-        <div className="w-52 shrink-0">
-          <div className="flex items-center gap-3">
-            <Slider
-              value={[minScoreValue]}
-              min={0}
-              max={1}
-              step={0.05}
-              onValueChange={(value) => {
-                const rawValue = Array.isArray(value) ? value[0] : value;
-                const nextValue = Math.max(0, Math.min(1, rawValue ?? 0));
-                setMinScoreValue(nextValue);
-                saveMinScore.mutate(nextValue.toFixed(2));
-              }}
-            />
-            <span className="w-10 text-right text-xs font-medium text-muted-foreground tabular-nums">
-              {minScoreValue.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Recency Boost</Label>
-          <p className="text-xs text-muted-foreground">
-            Boost recently-accessed memories in ranking.
-          </p>
-        </div>
-        <Switch
-          checked={settings['memory.retrieval.recencyBoost'] === 'true'}
-          onCheckedChange={(checked) => saveRecencyBoost.mutate(checked ? 'true' : 'false')}
-        />
-      </div>
+      <NumberSettingRow
+        settingKey="memory.retrieval.maxResults"
+        label="Max Context Results"
+        description="Maximum memories injected into context per turn."
+        currentValue={settings['memory.retrieval.maxResults']}
+        min={1}
+        max={20}
+      />
+      <SliderSettingRow
+        settingKey="memory.retrieval.minScore"
+        label="Min Relevance Score"
+        description="Minimum score (0.0 to 1.0) to include a memory."
+        currentValue={minScore}
+        min={0}
+        max={1}
+        step={0.05}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retrieval.recencyBoost"
+        label="Recency Boost"
+        description="Boost recently-accessed memories in ranking."
+        checked={settings['memory.retrieval.recencyBoost'] === 'true'}
+      />
     </div>
   );
 }
