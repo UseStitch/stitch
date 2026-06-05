@@ -9,6 +9,7 @@ const ALWAYS_EXCLUDED_TOOLS = new Set([
   'activate_toolset',
   'deactivate_toolset',
   'memory',
+  'render_ui',
 ]);
 
 const ALWAYS_EXCLUDED_TOOLSETS = new Set(['browser', 'agenda']);

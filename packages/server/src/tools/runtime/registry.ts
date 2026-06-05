@@ -34,6 +34,10 @@ import {
   DISPLAY_NAME as READ_DISPLAY_NAME,
 } from '@/tools/core/read.js';
 import {
+  createRegisteredTool as createRenderUiRegisteredTool,
+  DISPLAY_NAME as RENDER_UI_DISPLAY_NAME,
+} from '@/tools/core/render-ui.js';
+import {
   createRegisteredTool as createSkillRegisteredTool,
   DISPLAY_NAME as SKILL_DISPLAY_NAME,
 } from '@/tools/core/skill.js';
@@ -100,6 +104,11 @@ const STITCH_TOOL_MODULES = {
   todo: {
     displayName: TODO_DISPLAY_NAME,
     createRegisteredTool: createTodoRegisteredTool,
+  },
+  render_ui: {
+    displayName: RENDER_UI_DISPLAY_NAME,
+    createRegisteredTool: createRenderUiRegisteredTool,
+    alwaysActive: true,
   },
   skill: {
     displayName: SKILL_DISPLAY_NAME,

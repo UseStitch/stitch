@@ -80,4 +80,11 @@ describe('applyToolFilter', () => {
 
     expect(Object.keys(result)).toEqual(['mcp_abcdefghijklmnopqrstuvwxyz_fetch', 'read']);
   });
+
+  test('always excludes tools without a code-mode surface', () => {
+    const input = buildTools(['render_ui', 'question', 'read']);
+    const result = applyToolFilter(input);
+
+    expect(Object.keys(result)).toEqual(['read']);
+  });
 });
