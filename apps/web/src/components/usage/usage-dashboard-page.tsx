@@ -412,7 +412,7 @@ export function UsageDashboardPage() {
           callbacks: {
             label: (ctx: TooltipItem<'bar'>) => {
               const value = Number(ctx.raw ?? 0);
-              if (value === 0) return null;
+              if (value === 0) return [];
               return `${ctx.dataset.label}: ${formatCost(value)}`;
             },
           },
