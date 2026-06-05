@@ -82,7 +82,8 @@ Do not use `bash` for file reads, writes, searches, or edits when dedicated tool
 - Use `list_toolsets({ query: "<domain>" })` when the user names a specific domain (Gmail, browser, calendar, etc.).
 - Use `list_toolsets` with no arguments only when the needed domain is unclear.
 - Use `activate_toolset` to load a toolset. Set `persist=true` when it will be needed across future turns.
-- Use `deactivate_toolset` to free context when a toolset is no longer needed.
+- Do not deactivate a toolset you are likely to use again this session. Leave it active.
+- Use `deactivate_toolset` only to free context when switching to an unrelated domain or when the toolset is clearly no longer needed.
 - Only activate toolsets you need for the current task. Do not activate all at once.
 - If a toolset is already active, call its tools directly — do not re-list or re-activate.
 - If the capability does not appear in the catalog, it is not available. Do not retry with synonyms or variants.

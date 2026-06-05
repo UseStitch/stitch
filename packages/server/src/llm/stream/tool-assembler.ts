@@ -54,7 +54,7 @@ async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<st
   return [
     '## Available Toolsets',
     '',
-    'Use `activate_toolset` when a listed toolset clearly matches the task. Prefer matching domain-specific data toolsets over generic web search: financial data for stock prices, earnings, and financials; email for email; calendar for calendar; GitHub/repository-knowledge for GitHub repository questions; databases for database questions. Use web search only when no specialized toolset can provide the needed facts. Do not activate unrelated toolsets.',
+    'Use `activate_toolset` when a listed toolset clearly matches the task. Prefer matching domain-specific data toolsets over generic web search: financial data for stock prices, earnings, and financials; email for email; calendar for calendar; GitHub/repository-knowledge for GitHub repository questions; databases for database questions. Use web search only when no specialized toolset can provide the needed facts. Do not activate unrelated toolsets. If a toolset is already active, call its tools directly; do not re-activate it. Do not deactivate a toolset you are likely to use again this session; only deactivate to free context when switching to an unrelated domain.',
     '',
     ...lines,
   ].join('\n');
