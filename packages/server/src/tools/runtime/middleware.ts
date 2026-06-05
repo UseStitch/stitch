@@ -3,10 +3,20 @@ import { isToolDataResult, isToolErrorResult } from '@stitch/shared/tools/types'
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
 import { getPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
+import type { ToolExecutionInput, ToolMiddleware } from '@/tools/runtime/runtime.js';
 import { truncateOutput } from '@/tools/runtime/truncation.js';
-import type { ToolMiddleware } from '@/tools/runtime/runtime.js';
 
 const log = Log.create({ service: 'tools' });
+
+function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: string[]): string {
+  return JSON.stringify([
+    input.context.sessionId,
+    input.context.messageId,
+    input.context.streamRunId,
+    input.toolName,
+    [...patternTargets].sort(),
+  ]);
+}
 
 type TruncationMeta = {
   __stitchToolResultMeta: {
@@ -46,7 +56,10 @@ export function resultNormalizationMiddleware(): ToolMiddleware {
   };
 }
 
-export function truncationMiddleware(options?: { maxLines?: number; maxBytes?: number }): ToolMiddleware {
+export function truncationMiddleware(options?: {
+  maxLines?: number;
+  maxBytes?: number;
+}): ToolMiddleware {
   return (next) => async (input) => {
     const execOptions = input.executeOptions as Record<string, unknown> | undefined;
     if (execOptions?.['skipTruncation'] === true) {
@@ -114,7 +127,9 @@ export function permissionMiddleware(): ToolMiddleware {
       throw new PermissionRejectedError(input.toolName);
     }
 
-    const meta = input.executeOptions as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
+    const meta = input.executeOptions as
+      | { toolCallId: string; abortSignal?: AbortSignal }
+      | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
       log.error(
@@ -141,6 +156,7 @@ export function permissionMiddleware(): ToolMiddleware {
       toolInput: input.args,
       systemReminder: 'Tool execution requires user approval',
       suggestion: behavior.getSuggestion(input.args),
+      dedupeKey: createPermissionDedupeKey(input, patternTargets),
       abortSignal: meta?.abortSignal,
     });
 

@@ -22,6 +22,7 @@ import { PermissionResponseAbortedError } from '@/llm/stream/errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
 
 const log = Log.create({ service: 'permission-service' });
+const pendingPermissionRequests = new Map<string, Promise<PermissionDecisionResult>>();
 
 type PermissionResponseRow = typeof permissionResponses.$inferSelect;
 
@@ -96,7 +97,7 @@ export async function getPermissionDecision(opts: {
   return resolvePermissionFromRules(rows, opts.patternTargets ?? []);
 }
 
-export async function requestPermissionResponse(opts: {
+type RequestPermissionResponseOptions = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId?: string;
@@ -105,8 +106,13 @@ export async function requestPermissionResponse(opts: {
   toolInput: unknown;
   systemReminder: string;
   suggestion?: PermissionSuggestion | null;
+  dedupeKey?: string;
   abortSignal?: AbortSignal;
-}): Promise<PermissionDecisionResult> {
+};
+
+async function createPermissionResponse(
+  opts: RequestPermissionResponseOptions,
+): Promise<PermissionDecisionResult> {
   const db = getDb();
   const id = createPermissionResponseId();
   const now = Date.now();
@@ -154,6 +160,23 @@ export async function requestPermissionResponse(opts: {
     abortSignal: opts.abortSignal,
     abortError: () => new PermissionResponseAbortedError(),
   });
+}
+
+export async function requestPermissionResponse(
+  opts: RequestPermissionResponseOptions,
+): Promise<PermissionDecisionResult> {
+  if (!opts.dedupeKey) {
+    return createPermissionResponse(opts);
+  }
+
+  const existing = pendingPermissionRequests.get(opts.dedupeKey);
+  if (existing) return existing;
+
+  const promise = createPermissionResponse(opts).finally(() => {
+    pendingPermissionRequests.delete(opts.dedupeKey!);
+  });
+  pendingPermissionRequests.set(opts.dedupeKey, promise);
+  return promise;
 }
 
 async function resolvePermissionResponse(opts: {
