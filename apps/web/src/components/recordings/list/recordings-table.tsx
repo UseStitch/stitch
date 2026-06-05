@@ -12,7 +12,7 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { formatClockDuration, getRecordingDisplayTitle } from '../shared/formatting';
+import { formatClockDuration, getRecordingDisplayTitle, STATUS_LABELS, STATUS_VARIANTS } from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 import { RecordingCopyButton } from '../shared/recording-copy-button';
@@ -56,7 +56,11 @@ export function RecordingsTable({
       }),
       columnHelper.accessor('status', {
         header: 'Capturing',
-        cell: ({ getValue }) => <Table.Status>{getValue()}</Table.Status>,
+        cell: ({ getValue }) => (
+          <Table.Badge variant={STATUS_VARIANTS[getValue()]}>
+            {STATUS_LABELS[getValue()]}
+          </Table.Badge>
+        ),
       }),
       columnHelper.accessor('startedAt', {
         header: 'Date',
@@ -126,7 +130,7 @@ export function RecordingsTable({
                   key={header.id}
                   className={
                     header.column.id === 'title'
-                      ? 'w-full min-w-62.5 px-4 py-2 font-medium'
+                      ? 'w-full min-w-48 max-w-xs px-4 py-2 font-medium'
                       : 'px-4 py-2 font-medium whitespace-nowrap'
                   }
                 >
@@ -163,7 +167,7 @@ export function RecordingsTable({
                     key={cell.id}
                     className={
                       cell.column.id === 'title'
-                        ? 'w-full min-w-62.5 px-4 py-3'
+                        ? 'w-full min-w-48 max-w-xs px-4 py-3'
                         : 'px-4 py-3 whitespace-nowrap'
                     }
                   >

@@ -1,27 +1,22 @@
-import { ArrowLeftIcon, WrenchIcon } from 'lucide-react';
+import { WrenchIcon } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
 
 import type { McpServer } from '@stitch/shared/mcp/types';
 
-import { Button } from '@/components/ui/button';
+import { SettingSubPage } from '@/components/settings/settings-ui';
 import { mcpToolsQueryOptions } from '@/lib/queries/mcp';
 
 export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack: () => void }) {
   const { data: tools, isLoading, isError, error } = useQuery(mcpToolsQueryOptions(server.id));
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to MCP servers">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-base font-bold">{server.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Available tools</p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title={server.name}
+      description="Available tools"
+      onBack={onBack}
+      backLabel="Back to MCP servers"
+    >
       {isLoading && <p className="text-sm text-muted-foreground">Connecting to server...</p>}
 
       {isError && (
@@ -52,6 +47,6 @@ export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack:
           ))}
         </ul>
       )}
-    </div>
+    </SettingSubPage>
   );
 }

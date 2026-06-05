@@ -1,6 +1,7 @@
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
+import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
@@ -23,14 +24,8 @@ export function AppearanceSettings() {
       : mode;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-base font-bold">Appearance</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Customize how Stitch looks</p>
-      </div>
-
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Mode</h3>
+    <SettingPage title="Appearance" description="Customize how Stitch looks">
+      <SettingSection title="Mode">
         <div className="flex gap-2">
           {APPEARANCE_MODES.map((m) => (
             <button
@@ -47,10 +42,9 @@ export function AppearanceSettings() {
             </button>
           ))}
         </div>
-      </section>
+      </SettingSection>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Theme</h3>
+      <SettingSection title="Theme">
         <div className="grid grid-cols-4 gap-3">
           {THEMES.map((t) => (
             <button
@@ -68,8 +62,8 @@ export function AppearanceSettings() {
             </button>
           ))}
         </div>
-      </section>
-    </div>
+      </SettingSection>
+    </SettingPage>
   );
 }
 

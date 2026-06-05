@@ -1,4 +1,20 @@
-import type { Recording, RecordingPlatform } from '@stitch/shared/recordings/types';
+import type { Recording, RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
+import type { badgeVariants } from '@/components/ui/badge';
+import type { VariantProps } from 'class-variance-authority';
+
+type BadgeVariant = VariantProps<typeof badgeVariants>['variant'];
+
+export const STATUS_LABELS: Record<RecordingStatus, string> = {
+  recording: 'Recording',
+  completed: 'Completed',
+  failed: 'Failed',
+};
+
+export const STATUS_VARIANTS: Record<RecordingStatus, BadgeVariant> = {
+  recording: 'default',
+  completed: 'secondary',
+  failed: 'destructive',
+};
 
 export const PLATFORM_CONFIG: Record<RecordingPlatform, { label: string; slug: string | null }> = {
   manual: { label: 'Manual', slug: null },

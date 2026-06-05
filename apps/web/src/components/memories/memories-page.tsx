@@ -22,6 +22,15 @@ import {
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
+import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -179,23 +188,22 @@ export function MemoriesPage() {
   const selectedCategoryLabel = CATEGORY_FILTER_LABELS[filterCategory];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
-        {/* Page header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <Page>
+      <PageContent width="full">
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
               <BrainIcon className="size-5" />
-            </div>
+            </PageIcon>
             <div>
-              <h1 className="text-xl font-semibold">Memories</h1>
-              <p className="text-sm text-muted-foreground">
+              <PageTitle>Memories</PageTitle>
+              <PageDescription>
                 {isLoading
                   ? 'Loading…'
                   : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
-              </p>
+              </PageDescription>
             </div>
-          </div>
+          </PageHeaderContent>
           {stats && !isSearching && (
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>
@@ -227,7 +235,7 @@ export function MemoriesPage() {
               </Button>
             </div>
           )}
-        </div>
+        </PageHeader>
 
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -294,9 +302,7 @@ export function MemoriesPage() {
                       aria-label="Select all"
                     />
                   </Table.Head>
-                  <Table.Head className="w-10 text-center">
-
-                  </Table.Head>
+                  <Table.Head className="w-10 text-center"></Table.Head>
                   <Table.Head className="w-full min-w-75">Content</Table.Head>
                   <Table.Head className="w-28 text-center">Category</Table.Head>
                   <Table.Head className="w-28 text-center">Confidence</Table.Head>
@@ -419,7 +425,7 @@ export function MemoriesPage() {
             </div>
           ) : null}
         </Table.Container>
-      </div>
+      </PageContent>
 
       {/* Detail sheet */}
       <MemoryDetailSheet memory={sheetMemory} open={sheetOpen} onOpenChange={setSheetOpen} />
@@ -449,7 +455,7 @@ export function MemoriesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 

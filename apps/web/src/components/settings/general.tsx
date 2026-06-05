@@ -1,41 +1,22 @@
 import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { SettingsModelSelect } from '@/components/settings/model-select';
+import {
+  SettingLoading,
+  SettingPage,
+  SettingRow,
+  SettingRowControl,
+  SettingRows,
+  SettingSection,
+  SwitchSettingRow,
+} from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-  settingsQueryOptions,
-} from '@/lib/queries/settings';
+import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
-
-type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
 
 const MODEL_PREFERENCES = [
   {
@@ -58,173 +39,71 @@ const MODEL_PREFERENCES = [
   },
 ] as const;
 
-function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
-
-function ModelSelect({
-  providerIdKey,
-  modelIdKey,
-  currentProviderId,
-  currentModelId,
-  providerModels,
-}: {
-  providerIdKey: string;
-  modelIdKey: string;
-  currentProviderId: string | undefined;
-  currentModelId: string | undefined;
-  providerModels: ProviderModels[];
-}) {
-  const queryClient = useQueryClient();
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
-
-  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-  const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient),
-  );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-
-  function handleValueChange(value: ModelOption | null) {
-    if (!value) {
-      if (currentProviderId) deleteProviderMutation.mutate();
-      if (currentModelId) deleteModelMutation.mutate();
-      return;
-    }
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
-  }
-
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
-  return (
-    <Combobox<ModelOption>
-      value={selectedOption}
-      onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput
-        placeholder="Search models..."
-        showClear={!!(currentProviderId && currentModelId)}
-      />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={item.value} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
-
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
 
+  if (providerModels.length === 0) {
+    return (
+      <p className="py-3 text-sm text-muted-foreground">
+        No providers are connected. Configure a provider first to select preferred models.
+      </p>
+    );
+  }
+
   return (
-    <div className="flex flex-col">
-      {providerModels.length === 0 ? (
-        <p className="py-3 text-sm text-muted-foreground">
-          No providers are connected. Configure a provider first to select preferred models.
-        </p>
-      ) : (
-        MODEL_PREFERENCES.map((pref, index) => (
-          <div
-            key={pref.providerIdKey}
-            className={`flex items-center justify-between gap-4 py-3 ${index < MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-          >
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Label className="text-sm font-medium">{pref.label}</Label>
-              <p className="text-xs text-muted-foreground">{pref.description}</p>
-            </div>
-            <div className="w-52 shrink-0">
-              <ModelSelect
-                providerIdKey={pref.providerIdKey}
-                modelIdKey={pref.modelIdKey}
-                currentProviderId={settings[pref.providerIdKey]}
-                currentModelId={settings[pref.modelIdKey]}
-                providerModels={providerModels}
-              />
-            </div>
-          </div>
-        ))
-      )}
-    </div>
+    <SettingRows>
+      {MODEL_PREFERENCES.map((pref) => (
+        <SettingRow key={pref.providerIdKey} label={pref.label} description={pref.description}>
+          <SettingRowControl>
+            <SettingsModelSelect
+              providerIdKey={pref.providerIdKey}
+              modelIdKey={pref.modelIdKey}
+              currentProviderId={settings[pref.providerIdKey]}
+              currentModelId={settings[pref.modelIdKey]}
+              providerModels={providerModels}
+            />
+          </SettingRowControl>
+        </SettingRow>
+      ))}
+    </SettingRows>
   );
 }
 
 export function GeneralSettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">General</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Configure models for different tasks</p>
-      </div>
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Models</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+    <SettingPage title="General" description="Configure models for different tasks">
+      <SettingSection title="Models">
+        <React.Suspense fallback={<SettingLoading />}>
           <ModelsContent />
         </React.Suspense>
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">App Updates</h3>
+      </SettingSection>
+      <SettingSection title="App Updates">
         <AppUpdatesContent />
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Notifications</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Notifications">
+        <React.Suspense fallback={<SettingLoading />}>
           <NotificationsContent />
         </React.Suspense>
-      </section>
-    </div>
+      </SettingSection>
+    </SettingPage>
   );
 }
 
+const UPDATER_STATUS_LABELS: Record<string, string> = {
+  checking: 'Checking for updates...',
+  available: 'Update available. Downloading in background...',
+  downloaded: 'Update ready. Restart Stitch to install.',
+  'no-update': 'You are up to date.',
+  error: 'Could not check for updates.',
+  installing: 'Installing update and restarting...',
+};
+
 function updaterStatusLabel(status: string, progress?: number): string {
-  if (status === 'checking') return 'Checking for updates...';
-  if (status === 'available') return 'Update available. Downloading in background...';
-  if (status === 'downloading')
+  if (status === 'downloading') {
     return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
-  if (status === 'downloaded') return 'Update ready. Restart Stitch to install.';
-  if (status === 'no-update') return 'You are up to date.';
-  if (status === 'error') return 'Could not check for updates.';
-  if (status === 'installing') return 'Installing update and restarting...';
-  return 'Check for updates manually.';
+  }
+  return UPDATER_STATUS_LABELS[status] ?? 'Check for updates manually.';
 }
 
 const RELEASES_URL = 'https://github.com/UseStitch/stitch/releases/latest';
@@ -234,24 +113,22 @@ function AppUpdatesContent() {
 
   if (isMac) {
     return (
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Desktop app updates</Label>
-          <p className="text-xs text-muted-foreground">
-            Auto-updates are not available on macOS. Download the latest version from the releases
-            page.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => void window.api?.shell?.openExternal(RELEASES_URL)}
+      <SettingRows>
+        <SettingRow
+          label="Desktop app updates"
+          description="Auto-updates are not available on macOS. Download the latest version from the releases page."
         >
-          Download update
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => void window.api?.shell?.openExternal(RELEASES_URL)}
+          >
+            Download update
+          </Button>
+        </SettingRow>
+      </SettingRows>
     );
   }
 
@@ -289,64 +166,46 @@ function AutoUpdatesContent() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label className="text-sm font-medium">Desktop app updates</Label>
-        <p className="text-xs text-muted-foreground">{statusText}</p>
-        {updater.error ? <p className="text-xs text-destructive">{updater.error}</p> : null}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleCheckUpdates}
-          disabled={!canCheck}
-        >
-          {checkPending ? (
-            <>
-              <LoaderIcon className="size-3.5 animate-spin" />
-              Checking...
-            </>
-          ) : (
-            'Check for updates'
-          )}
-        </Button>
-        {canInstall ? (
-          <Button type="button" size="sm" onClick={handleInstallUpdate}>
-            Restart to update
+    <SettingRows>
+      <SettingRow label="Desktop app updates" description={statusText}>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCheckUpdates}
+            disabled={!canCheck}
+          >
+            {checkPending ? (
+              <>
+                <LoaderIcon className="size-3.5 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              'Check for updates'
+            )}
           </Button>
-        ) : null}
-      </div>
-    </div>
+          {canInstall ? (
+            <Button type="button" size="sm" onClick={handleInstallUpdate}>
+              Restart to update
+            </Button>
+          ) : null}
+        </div>
+      </SettingRow>
+      {updater.error ? <p className="pb-2 text-xs text-destructive">{updater.error}</p> : null}
+    </SettingRows>
   );
 }
 
 function NotificationsContent() {
-  const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const soundEnabled = settings['notifications.sound.enabled'] !== 'false';
-
-  const saveMutation = useMutation(
-    saveSettingMutationOptions('notifications.sound.enabled', queryClient, { silent: true }),
-  );
-
-  function handleSoundToggle(checked: boolean) {
-    saveMutation.mutate(checked ? 'true' : 'false');
-  }
-
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor="sound-toggle" className="text-sm font-medium">
-          Sound alerts
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          Play an attention sound when the AI needs your input
-        </p>
-      </div>
-      <Switch id="sound-toggle" checked={soundEnabled} onCheckedChange={handleSoundToggle} />
-    </div>
+    <SwitchSettingRow
+      settingKey="notifications.sound.enabled"
+      label="Sound alerts"
+      description="Play an attention sound when the AI needs your input"
+      checked={settings['notifications.sound.enabled'] !== 'false'}
+    />
   );
 }

@@ -1,11 +1,13 @@
-import { ArrowLeftIcon, DownloadIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Skill } from '@stitch/shared/skills/types';
 
+import { SettingPage, SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,19 +59,12 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="flex h-[36rem] max-h-[36rem] flex-col overflow-hidden">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-sm font-semibold">Import Skill</h2>
-          <p className="text-xs text-muted-foreground">
-            Search the public agent skills directory and import into Stitch.
-          </p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title="Import Skill"
+      description="Search the public agent skills directory and import into Stitch."
+      onBack={onBack}
+      backLabel="Back to skills"
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <Input
           autoFocus
@@ -111,7 +106,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
           )}
         </div>
       </div>
-    </div>
+    </SettingSubPage>
   );
 }
 
@@ -148,19 +143,12 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
   }
 
   return (
-    <div className="flex h-[36rem] max-h-[36rem] flex-col overflow-hidden">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-sm font-semibold">{isEditing ? 'Edit Skill' : 'Add Skill'}</h2>
-          <p className="text-xs text-muted-foreground">
-            Markdown instructions the agent can load when a task matches the description.
-          </p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title={isEditing ? 'Edit Skill' : 'Add Skill'}
+      description="Markdown instructions the agent can load when a task matches the description."
+      onBack={onBack}
+      backLabel="Back to skills"
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div className="grid gap-2">
           <Label htmlFor="skill-name">Name</Label>
@@ -192,7 +180,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
             id="skill-content"
             value={draft.content}
             placeholder="# Skill Instructions\n\nDescribe the workflow, constraints, examples, and expected behavior."
-            className="min-h-0 resize-none overflow-auto font-mono text-xs"
+            className="thin-scrollbar min-h-0 resize-none overflow-auto font-mono text-xs"
             onChange={(event) => setDraft((prev) => ({ ...prev, content: event.target.value }))}
           />
         </div>
@@ -206,7 +194,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
           </Button>
         </div>
       </div>
-    </div>
+    </SettingSubPage>
   );
 }
 
@@ -238,14 +226,10 @@ export function SkillsSettings() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Skills</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add reusable Markdown instructions the agent can load as a default tool.
-          </p>
-        </div>
+    <SettingPage
+      title="Skills"
+      description="Add reusable Markdown instructions the agent can load as a default tool."
+      actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
             <DownloadIcon className="size-4" />
@@ -256,8 +240,8 @@ export function SkillsSettings() {
             Add Skill
           </Button>
         </div>
-      </div>
-
+      }
+    >
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
         {skills.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
@@ -272,29 +256,35 @@ export function SkillsSettings() {
               key={skill.id}
               className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0"
             >
-              <button
-                type="button"
-                onClick={() => handleEdit(skill)}
-                className="min-w-0 flex-1 text-left"
-              >
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{skill.name}</p>
                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                   {skill.description}
                 </p>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(skill)}
-                disabled={deleteSkill.isPending}
-                aria-label={`Delete ${skill.name}`}
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
+              </div>
+              <ButtonGroup>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleEdit(skill)}
+                  aria-label={`View ${skill.name}`}
+                >
+                  <EyeIcon className="size-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDelete(skill)}
+                  disabled={deleteSkill.isPending}
+                  aria-label={`Delete ${skill.name}`}
+                >
+                  <Trash2Icon className="size-4" />
+                </Button>
+              </ButtonGroup>
             </div>
           ))
         )}
       </div>
-    </div>
+    </SettingPage>
   );
 }

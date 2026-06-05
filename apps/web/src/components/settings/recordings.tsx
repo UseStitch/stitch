@@ -2,19 +2,16 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SettingsModelSelect } from '@/components/settings/model-select';
 import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
-import { Label } from '@/components/ui/label';
+  SettingLoading,
+  SettingPage,
+  SettingRow,
+  SettingRowControl,
+  SettingRows,
+  SettingSection,
+  SliderSettingRow,
+} from '@/components/settings/settings-ui';
 import {
   Select,
   SelectContent,
@@ -22,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import {
   audioProviderModelsQueryOptions,
@@ -35,17 +31,6 @@ import {
   saveSettingMutationOptions,
   settingsQueryOptions,
 } from '@/lib/queries/settings';
-
-type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
 
 const RECORDING_MODEL_PREFERENCES = [
   {
@@ -63,101 +48,6 @@ const RECORDING_MODEL_PREFERENCES = [
 ] as const;
 
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
-
-function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
-
-function ModelSelect({
-  providerIdKey,
-  modelIdKey,
-  currentProviderId,
-  currentModelId,
-  providerModels,
-}: {
-  providerIdKey: string;
-  modelIdKey: string;
-  currentProviderId: string | undefined;
-  currentModelId: string | undefined;
-  providerModels: ProviderModels[];
-}) {
-  const queryClient = useQueryClient();
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
-
-  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-  const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient),
-  );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-
-  function handleValueChange(value: ModelOption | null) {
-    if (!value) {
-      if (currentProviderId) deleteProviderMutation.mutate();
-      if (currentModelId) deleteModelMutation.mutate();
-      return;
-    }
-
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
-  }
-
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
-  return (
-    <Combobox<ModelOption>
-      value={selectedOption}
-      onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput
-        placeholder="Search models..."
-        showClear={!!(currentProviderId && currentModelId)}
-      />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={`${item.providerId}:${item.modelId}`} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
 
 function PermissionStatus() {
   const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
@@ -221,9 +111,6 @@ function AudioDeviceSettings() {
   const saveOutputDeviceMutation = useMutation(
     saveSettingMutationOptions('recordings.outputDeviceId', queryClient, { silent: true }),
   );
-  const saveSpeakerGainMutation = useMutation(
-    saveSettingMutationOptions('recordings.speakerGain', queryClient, { silent: true }),
-  );
   const deleteInputDeviceMutation = useMutation(
     deleteSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
   );
@@ -252,13 +139,9 @@ function AudioDeviceSettings() {
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Input Device</Label>
-          <p className="text-xs text-muted-foreground">Microphone used for recording.</p>
-        </div>
-        <div className="w-64 shrink-0">
+    <SettingRows>
+      <SettingRow label="Input Device" description="Microphone used for recording.">
+        <SettingRowControl size="lg">
           <Select
             value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
             onValueChange={handleInputDeviceChange}
@@ -275,17 +158,11 @@ function AudioDeviceSettings() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </SettingRowControl>
+      </SettingRow>
 
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Output Device</Label>
-          <p className="text-xs text-muted-foreground">
-            Speaker or system audio source for recording.
-          </p>
-        </div>
-        <div className="w-64 shrink-0">
+      <SettingRow label="Output Device" description="Speaker or system audio source for recording.">
+        <SettingRowControl size="lg">
           <Select
             value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
             onValueChange={handleOutputDeviceChange}
@@ -302,33 +179,20 @@ function AudioDeviceSettings() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </SettingRowControl>
+      </SettingRow>
 
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Speaker Volume</Label>
-          <p className="text-xs text-muted-foreground">
-            Gain multiplier for system audio in the mix. Default is 10.
-          </p>
-        </div>
-        <div className="flex w-64 shrink-0 items-center gap-3">
-          <Slider
-            value={[currentSpeakerGain]}
-            min={1}
-            max={30}
-            step={1}
-            onValueChange={(value) => {
-              const nextValue = Array.isArray(value) ? value[0] : value;
-              saveSpeakerGainMutation.mutate(String(nextValue ?? currentSpeakerGain));
-            }}
-          />
-          <span className="w-6 text-right text-xs text-muted-foreground tabular-nums">
-            {currentSpeakerGain}
-          </span>
-        </div>
-      </div>
-    </div>
+      <SliderSettingRow
+        settingKey="recordings.speakerGain"
+        label="Speaker Volume"
+        description="Gain multiplier for system audio in the mix. Default is 10."
+        currentValue={currentSpeakerGain}
+        min={1}
+        max={30}
+        step={1}
+        precision={0}
+      />
+    </SettingRows>
   );
 }
 
@@ -362,78 +226,66 @@ function RecordingsContent() {
     transcriptionProviderModels.length === 0 && audioProviderModels.length === 0;
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Auto analyze recordings</Label>
-          <p className="text-xs text-muted-foreground">
-            Automatically run transcription and analysis after a recording ends.
+    <>
+      <SettingRows>
+        <SettingRow
+          label="Auto analyze recordings"
+          description="Automatically run transcription and analysis after a recording ends."
+        >
+          <Switch
+            checked={autoAnalyzeEnabled}
+            onCheckedChange={(checked) =>
+              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
+            }
+            disabled={autoAnalyzeDisabled}
+          />
+        </SettingRow>
+        {noModelsAvailable ? (
+          <p className="py-3 text-sm text-muted-foreground">
+            No audio-capable models are available for recording transcription.
           </p>
-        </div>
-        <Switch
-          checked={autoAnalyzeEnabled}
-          onCheckedChange={(checked) => saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')}
-          disabled={autoAnalyzeDisabled}
-        />
-      </div>
+        ) : (
+          RECORDING_MODEL_PREFERENCES.map((pref) => (
+            <SettingRow key={pref.providerIdKey} label={pref.label} description={pref.description}>
+              <SettingRowControl>
+                <SettingsModelSelect
+                  providerIdKey={pref.providerIdKey}
+                  modelIdKey={pref.modelIdKey}
+                  currentProviderId={settings[pref.providerIdKey]}
+                  currentModelId={settings[pref.modelIdKey]}
+                  providerModels={providerModelsForPref(pref.providerIdKey)}
+                />
+              </SettingRowControl>
+            </SettingRow>
+          ))
+        )}
+      </SettingRows>
       {!canEnableAutoAnalyze ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           Select both a transcription model and an analysis model to enable auto analyze.
         </p>
       ) : null}
-
-      {noModelsAvailable ? (
-        <p className="border-t border-border/50 py-3 text-sm text-muted-foreground">
-          No audio-capable models are available for recording transcription.
-        </p>
-      ) : (
-        RECORDING_MODEL_PREFERENCES.map((pref, index) => (
-          <div
-            key={pref.providerIdKey}
-            className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-          >
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Label className="text-sm font-medium">{pref.label}</Label>
-              <p className="text-xs text-muted-foreground">{pref.description}</p>
-            </div>
-            <div className="w-52 shrink-0">
-              <ModelSelect
-                providerIdKey={pref.providerIdKey}
-                modelIdKey={pref.modelIdKey}
-                currentProviderId={settings[pref.providerIdKey]}
-                currentModelId={settings[pref.modelIdKey]}
-                providerModels={providerModelsForPref(pref.providerIdKey)}
-              />
-            </div>
-          </div>
-        ))
-      )}
-    </div>
+    </>
   );
 }
 
 export function RecordingsSettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Recordings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure audio devices, capture settings, and analysis behavior for recordings.
-        </p>
-      </div>
+    <SettingPage
+      title="Recordings"
+      description="Configure audio devices, capture settings, and analysis behavior for recordings."
+    >
       <PermissionStatus />
-      <section className="mt-4 space-y-3">
-        <h3 className="text-sm font-medium">Audio Devices</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      <SettingSection title="Audio Devices" className="mt-4">
+        <React.Suspense fallback={<SettingLoading />}>
           <AudioDeviceSettings />
         </React.Suspense>
-      </section>
-      <section className="mt-6 space-y-3">
-        <h3 className="text-sm font-medium">Analysis</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Analysis">
+        <React.Suspense fallback={<SettingLoading />}>
           <RecordingsContent />
         </React.Suspense>
-      </section>
-    </div>
+      </SettingSection>
+    </SettingPage>
   );
 }

@@ -39,6 +39,14 @@ import {
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+} from '@/components/ui/page';
+import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -279,14 +287,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const totalOverdue = lists.reduce((sum, l) => sum + l.itemCounts.overdue, 0);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
-        {/* Page header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <Page>
+      <PageContent>
+        <PageHeader className="mb-0">
+          <PageHeaderContent>
+            <PageIcon>
               <ListTodoIcon className="size-5" />
-            </div>
+            </PageIcon>
             <div>
               {editingTitle ? (
                 <input
@@ -312,11 +319,11 @@ export function AgendaPage({ listId }: { listId?: string }) {
               ) : (
                 <h1 className="text-xl font-semibold">Agenda</h1>
               )}
-              <p className="text-sm text-muted-foreground">
+              <PageDescription>
                 {isLoading ? 'Loading...' : `${total} item${total === 1 ? '' : 's'}`}
-              </p>
+              </PageDescription>
             </div>
-          </div>
+          </PageHeaderContent>
           <div className="flex items-center gap-2">
             {currentList && (
               <Button
@@ -334,7 +341,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
               New Item
             </Button>
           </div>
-        </div>
+        </PageHeader>
 
         {/* Summary cards */}
         {!listId && (
@@ -553,7 +560,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </div>
           ) : null}
         </div>
-      </div>
+      </PageContent>
 
       {/* Detail sheet */}
       <AgendaItemDetailSheet item={sheetItem} open={sheetOpen} onOpenChange={setSheetOpen} />
@@ -632,7 +639,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 

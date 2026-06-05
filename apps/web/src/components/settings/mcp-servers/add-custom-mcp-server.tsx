@@ -1,4 +1,3 @@
-import { ArrowLeftIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -7,6 +6,7 @@ import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 import { HeaderRows } from './header-rows';
 import { AUTH_TYPE_LABELS, type AddFormState, buildAuthConfig } from './shared';
 
+import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,17 +67,12 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to MCP servers">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-base font-bold">Add Custom MCP Server</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Connect a remote MCP server manually</p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title="Add Custom MCP Server"
+      description="Connect a remote MCP server manually."
+      onBack={onBack}
+      backLabel="Back to MCP servers"
+    >
       <div className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Name</Label>
@@ -150,6 +145,6 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           </Button>
         </div>
       </div>
-    </div>
+    </SettingSubPage>
   );
 }

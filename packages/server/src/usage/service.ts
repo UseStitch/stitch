@@ -322,21 +322,19 @@ export async function getUsageDashboard(
     end: range.end,
     label: formatBucketLabel(range, granularity),
     costUsdBySource: {} as Record<string, number>,
-    tokensBySource: {} as Record<string, number>,
-    tokenMetricsBySource: {} as Record<string, UsageTokenMetrics>,
   }));
 
   const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
 
-  const totalsBySource: Record<string, { costUsd: number; tokenMetrics: UsageTokenMetrics }> = {};
+  const totalsByCostSource: Record<string, number> = {};
+  const totalTokenMetrics = cloneEmptyTokenMetrics();
   const sourceSet = new Set<string>(USAGE_SOURCES);
 
   const ensureSource = (source: string) => {
-    if (!totalsBySource[source]) {
-      totalsBySource[source] = { costUsd: 0, tokenMetrics: cloneEmptyTokenMetrics() };
+    if (!totalsByCostSource[source]) {
+      totalsByCostSource[source] = 0;
     }
     sourceSet.add(source);
-    return totalsBySource[source];
   };
 
   const eventConditions = [
@@ -377,36 +375,20 @@ export async function getUsageDashboard(
     usage: LanguageModelUsage | null | undefined;
     costUsd: number | null | undefined;
   }) => {
-    const sourceTotals = ensureSource(args.source);
+    ensureSource(args.source);
     const costUsd = args.costUsd ?? 0;
 
-    sourceTotals.costUsd += costUsd;
-    addTokenMetrics(sourceTotals.tokenMetrics, args.usage);
+    totalsByCostSource[args.source] = (totalsByCostSource[args.source] ?? 0) + costUsd;
+    addTokenMetrics(totalTokenMetrics, args.usage);
 
     const bucketStart = floorToGranularity(args.createdAt, granularity);
     const bucketIndex = bucketIndexByStart.get(bucketStart);
-    if (bucketIndex === undefined) {
-      return;
-    }
+    if (bucketIndex === undefined) return;
 
     const bucket = buckets[bucketIndex];
-    if (!bucket) {
-      return;
-    }
+    if (!bucket) return;
 
     bucket.costUsdBySource[args.source] = (bucket.costUsdBySource[args.source] ?? 0) + costUsd;
-    bucket.tokensBySource[args.source] =
-      (bucket.tokensBySource[args.source] ?? 0) +
-      (args.usage
-        ? (args.usage.totalTokens ??
-          (args.usage.inputTokens ?? 0) +
-            (args.usage.outputTokens ?? 0) +
-            (args.usage.outputTokenDetails?.reasoningTokens ?? 0))
-        : 0);
-
-    const bucketMetrics = bucket.tokenMetricsBySource[args.source] ?? cloneEmptyTokenMetrics();
-    addTokenMetrics(bucketMetrics, args.usage);
-    bucket.tokenMetricsBySource[args.source] = bucketMetrics;
   };
 
   for (const row of eventRows) {
@@ -487,19 +469,7 @@ export async function getUsageDashboard(
     ensureSource(source);
   }
 
-  const totals = Object.values(totalsBySource).reduce(
-    (acc, entry) => {
-      acc.costUsd += entry.costUsd;
-      acc.tokenMetrics.inputTokens += entry.tokenMetrics.inputTokens;
-      acc.tokenMetrics.outputTokens += entry.tokenMetrics.outputTokens;
-      acc.tokenMetrics.reasoningTokens += entry.tokenMetrics.reasoningTokens;
-      acc.tokenMetrics.cacheReadTokens += entry.tokenMetrics.cacheReadTokens;
-      acc.tokenMetrics.cacheWriteTokens += entry.tokenMetrics.cacheWriteTokens;
-      acc.tokenMetrics.totalTokens += entry.tokenMetrics.totalTokens;
-      return acc;
-    },
-    { costUsd: 0, tokenMetrics: cloneEmptyTokenMetrics() },
-  );
+  const totalCostUsd = Object.values(totalsByCostSource).reduce((sum, cost) => sum + cost, 0);
 
   return ok({
     range: {
@@ -526,9 +496,8 @@ export async function getUsageDashboard(
       ),
     sources,
     totals: {
-      costUsd: totals.costUsd,
-      tokenMetrics: totals.tokenMetrics,
-      bySource: totalsBySource,
+      costUsd: totalCostUsd,
+      tokenMetrics: totalTokenMetrics,
     },
     buckets,
   });

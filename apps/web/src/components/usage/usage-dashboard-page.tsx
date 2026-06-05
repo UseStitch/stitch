@@ -18,13 +18,21 @@ import { USAGE_DATE_RANGES, USAGE_SOURCES, type UsageDateRange } from '@stitch/s
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { usageDashboardQueryOptions } from '@/lib/queries/usage';
 
@@ -50,24 +58,7 @@ const SOURCE_LABELS: Record<string, string> = {
   recording_analysis: 'Recording Analysis',
 };
 
-const TOKEN_TYPE_KEYS = [
-  'inputTokens',
-  'outputTokens',
-  'cacheReadTokens',
-  'cacheWriteTokens',
-] as const;
-
-type TokenTypeKey = (typeof TOKEN_TYPE_KEYS)[number];
-
-const TOKEN_TYPE_LABELS: Record<TokenTypeKey, string> = {
-  inputTokens: 'Input',
-  outputTokens: 'Output',
-  cacheReadTokens: 'Cache Read',
-  cacheWriteTokens: 'Cache Write',
-};
-
 const FALLBACK_SOURCE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-const FALLBACK_TOKEN_TYPE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#14b8a6'];
 
 const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> = {
   chat: { cssVar: '--chart-1', fallback: '#f97316' },
@@ -79,30 +70,16 @@ const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> 
   recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
 };
 
-const TOKEN_TYPE_COLOR_CONFIG: Record<TokenTypeKey, { cssVar: string; fallback: string }> = {
-  inputTokens: { cssVar: '--chart-1', fallback: FALLBACK_TOKEN_TYPE_COLORS[0] ?? '#3b82f6' },
-  outputTokens: { cssVar: '--chart-2', fallback: FALLBACK_TOKEN_TYPE_COLORS[1] ?? '#22c55e' },
-  cacheReadTokens: {
-    cssVar: '--chart-3',
-    fallback: FALLBACK_TOKEN_TYPE_COLORS[2] ?? '#f59e0b',
-  },
-  cacheWriteTokens: {
-    cssVar: '--chart-4',
-    fallback: FALLBACK_TOKEN_TYPE_COLORS[3] ?? '#14b8a6',
-  },
-};
-
 function getSourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source.replaceAll('_', ' ');
 }
 
 function formatCost(costUsd: number): string {
-  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
   return `$${costUsd.toFixed(2)}`;
 }
 
 function formatTokens(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(
+  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 0 }).format(
     value,
   );
 }
@@ -142,15 +119,6 @@ function getSourceColor(source: string): string {
 
   const fallback = FALLBACK_SOURCE_COLORS[hashSource(source) % FALLBACK_SOURCE_COLORS.length];
   return fallback ?? '#6b7280';
-}
-
-function getTokenTypeColors(): Record<TokenTypeKey, string> {
-  return Object.fromEntries(
-    TOKEN_TYPE_KEYS.map((key) => [
-      key,
-      resolveCssVar(TOKEN_TYPE_COLOR_CONFIG[key].cssVar, TOKEN_TYPE_COLOR_CONFIG[key].fallback),
-    ]),
-  ) as Record<TokenTypeKey, string>;
 }
 
 function getNumericValue(value: unknown): number {
@@ -220,7 +188,6 @@ export function UsageDashboardPage() {
   const [providerFilter, setProviderFilter] = React.useState<string>(ALL_FILTER);
   const [modelFilter, setModelFilter] = React.useState<string>(ALL_FILTER);
   const [rangeFilter, setRangeFilter] = React.useState<UsageDateRange>('30d');
-  const [usageTab, setUsageTab] = React.useState<'cost' | 'tokens'>('cost');
 
   const { data: usageRangeData } = useQuery({
     ...usageDashboardQueryOptions({ range: rangeFilter }),
@@ -325,7 +292,6 @@ export function UsageDashboardPage() {
     () => Object.fromEntries(sources.map((source) => [source, getSourceColor(source)])),
     [sources],
   );
-  const tokenTypeColors = React.useMemo(() => getTokenTypeColors(), []);
   const { tickColor, gridColor } = useChartTheme();
 
   const selectedProviderLabel =
@@ -351,23 +317,6 @@ export function UsageDashboardPage() {
     }),
     [sourceColors, sources, usageData],
   );
-
-  const tokenTypeChartsBySource = React.useMemo(() => {
-    const labels = usageData?.buckets.map((b) => b.label) ?? [];
-    return Object.fromEntries(
-      sources.map((source) => {
-        const datasets = TOKEN_TYPE_KEYS.map((key) => ({
-          label: TOKEN_TYPE_LABELS[key],
-          data: usageData?.buckets.map((b) => b.tokenMetricsBySource[source]?.[key] ?? 0) ?? [],
-          backgroundColor: tokenTypeColors[key],
-          borderRadius: (ctx: ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-          borderSkipped: false,
-          inflateAmount: 0,
-        }));
-        return [source, { labels, datasets }];
-      }),
-    );
-  }, [sources, tokenTypeColors, usageData]);
 
   const baseScales = React.useMemo(
     () => ({
@@ -411,8 +360,11 @@ export function UsageDashboardPage() {
         legend: baseLegend,
         tooltip: {
           callbacks: {
-            label: (ctx: TooltipItem<'bar'>) =>
-              `${ctx.dataset.label}: ${formatCost(Number(ctx.raw ?? 0))}`,
+            label: (ctx: TooltipItem<'bar'>) => {
+              const value = Number(ctx.raw ?? 0);
+              if (value === 0) return [];
+              return `${ctx.dataset.label}: ${formatCost(value)}`;
+            },
           },
         },
       },
@@ -430,214 +382,129 @@ export function UsageDashboardPage() {
     [baseScales, baseLegend],
   );
 
-  const tokenTypeChartOptions = React.useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index' as const, intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx: TooltipItem<'bar'>) =>
-              `${ctx.dataset.label}: ${formatTokens(Number(ctx.raw ?? 0))} tokens`,
-          },
-        },
-      },
-      scales: {
-        ...baseScales,
-        y: {
-          ...baseScales.y,
-          ticks: {
-            ...baseScales.y.ticks,
-            callback: (value: string | number) => formatTokens(Number(value)),
-          },
-        },
-      },
-    }),
-    [baseScales],
-  );
-
   const hasData = !!usageData && usageData.buckets.length > 0;
 
   return (
-    <div className="thin-scrollbar flex h-full flex-col gap-6 overflow-auto p-6 pb-10">
-      {/* Page header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Usage</h1>
-        <p className="text-sm text-muted-foreground">
-          Cost and token analytics across providers, models, and sources.
-        </p>
-      </div>
+    <Page className="thin-scrollbar">
+      <PageContent width="full" className="pb-10">
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
+              <BarChart3Icon className="size-5" />
+            </PageIcon>
+            <div>
+              <PageTitle>Usage</PageTitle>
+              <PageDescription>
+                Cost and token analytics across providers, models, and sources.
+              </PageDescription>
+            </div>
+          </PageHeaderContent>
+        </PageHeader>
 
-      {/* Filter toolbar */}
-      <div className="rounded-xl bg-muted/40 p-3">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Select
-            value={providerFilter}
-            onValueChange={(value) => setProviderFilter(value ?? ALL_FILTER)}
-          >
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Filter by provider">{selectedProviderLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER}>All providers</SelectItem>
-              {availableProviders.map((provider) => (
-                <SelectItem key={provider.providerId} value={provider.providerId}>
-                  {provider.providerName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={modelFilter}
-            onValueChange={(value) => setModelFilter(value ?? ALL_FILTER)}
-          >
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Filter by model">{selectedModelLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER}>All models</SelectItem>
-              {availableModels.map((model) => (
-                <SelectItem
-                  key={`${model.providerId}:${model.modelId}`}
-                  value={encodeModelFilter(model.providerId, model.modelId)}
-                >
-                  {model.providerName} · {model.modelName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center gap-2">
-            <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value ?? '30d')}>
+        {/* Filter toolbar */}
+        <div className="rounded-xl bg-muted/40 p-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Select
+              value={providerFilter}
+              onValueChange={(value) => setProviderFilter(value ?? ALL_FILTER)}
+            >
               <SelectTrigger className="w-full bg-background">
-                <SelectValue placeholder="Select date range">{selectedRangeLabel}</SelectValue>
+                <SelectValue placeholder="Filter by provider">{selectedProviderLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {USAGE_DATE_RANGES.map((range) => (
-                  <SelectItem key={range} value={range}>
-                    {RANGE_LABELS[range]}
+                <SelectItem value={ALL_FILTER}>All providers</SelectItem>
+                {availableProviders.map((provider) => (
+                  <SelectItem key={provider.providerId} value={provider.providerId}>
+                    {provider.providerName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {isFetching ? (
-              <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-            ) : null}
+            <Select
+              value={modelFilter}
+              onValueChange={(value) => setModelFilter(value ?? ALL_FILTER)}
+            >
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue placeholder="Filter by model">{selectedModelLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All models</SelectItem>
+                {availableModels.map((model) => (
+                  <SelectItem
+                    key={`${model.providerId}:${model.modelId}`}
+                    value={encodeModelFilter(model.providerId, model.modelId)}
+                  >
+                    {model.providerName} · {model.modelName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2">
+              <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value ?? '30d')}>
+                <SelectTrigger className="w-full bg-background">
+                  <SelectValue placeholder="Select date range">{selectedRangeLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {USAGE_DATE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {RANGE_LABELS[range]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {isFetching ? (
+                <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardDescription>Total Cost</CardDescription>
-            <CardTitle className="text-3xl font-bold tabular-nums">
-              {formatCost(usageData?.totals.costUsd ?? 0)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground capitalize">
-              {selectedRangeLabel} · {granularityLabel} buckets
-            </p>
-          </CardHeader>
-        </Card>
+        {/* KPI cards */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardDescription>Total Cost</CardDescription>
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {formatCost(usageData?.totals.costUsd ?? 0)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground capitalize">
+                {selectedRangeLabel} · {granularityLabel} buckets
+              </p>
+            </CardHeader>
+          </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardDescription>Total Tokens</CardDescription>
-            <CardTitle className="text-3xl font-bold tabular-nums">
-              {formatTokens(usageData?.totals.tokenMetrics.totalTokens ?? 0)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {formatTokens(usageData?.totals.tokenMetrics.inputTokens ?? 0)} in ·{' '}
-              {formatTokens(usageData?.totals.tokenMetrics.outputTokens ?? 0)} out
-            </p>
-          </CardHeader>
-        </Card>
-      </div>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardDescription>Total Tokens</CardDescription>
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {formatTokens(usageData?.totals.tokenMetrics.totalTokens ?? 0)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {formatTokens(usageData?.totals.tokenMetrics.inputTokens ?? 0)} in ·{' '}
+                {formatTokens(usageData?.totals.tokenMetrics.outputTokens ?? 0)} out
+              </p>
+            </CardHeader>
+          </Card>
+        </div>
 
-      {/* Charts */}
-      <Tabs
-        value={usageTab}
-        onValueChange={(value) => setUsageTab((value as 'cost' | 'tokens') ?? 'cost')}
-      >
-        <TabsList>
-          <TabsTrigger value="cost">Cost</TabsTrigger>
-          <TabsTrigger value="tokens">Tokens</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cost" className="pt-4">
-          <div className="rounded-xl bg-muted/20 p-4">
-            <div className="mb-4">
-              <p className="text-sm font-medium">Cost over time</p>
-              <p className="text-xs text-muted-foreground">Stacked by source</p>
-            </div>
-            <div className="h-64 md:h-96">
-              {hasData ? (
-                <Bar data={costChartData} options={costChartOptions} />
-              ) : (
-                <EmptyChart message="No usage data for the selected filters." />
-              )}
-            </div>
+        {/* Cost chart */}
+        <div className="rounded-xl bg-muted/20 p-4">
+          <div className="mb-4">
+            <p className="text-sm font-medium">Cost over time</p>
+            <p className="text-xs text-muted-foreground">Stacked by source</p>
           </div>
-        </TabsContent>
-
-        <TabsContent value="tokens" className="pt-4">
-          {hasData ? (
-            <div className="space-y-4">
-              {/* Token type legend */}
-              <div className="flex flex-wrap items-center gap-4">
-                {TOKEN_TYPE_KEYS.map((key) => (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-                  >
-                    <span
-                      className="inline-block size-2.5 rounded-sm"
-                      style={{ backgroundColor: tokenTypeColors[key] }}
-                    />
-                    {TOKEN_TYPE_LABELS[key]}
-                  </span>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {sources.map((source) => {
-                  const sourceTotals = usageData?.totals.bySource[source]?.tokenMetrics;
-                  const chartData = tokenTypeChartsBySource[source];
-
-                  return (
-                    <div key={source} className="rounded-xl bg-muted/20 p-4">
-                      <div className="mb-4">
-                        <p className="text-sm font-medium">{getSourceLabel(source)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatTokens(sourceTotals?.totalTokens ?? 0)} total tokens
-                        </p>
-                      </div>
-                      <div className="h-56">
-                        {chartData ? (
-                          <Bar data={chartData} options={tokenTypeChartOptions} />
-                        ) : (
-                          <EmptyChart message="No token data for this source." />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl bg-muted/20 p-4">
-              <div className="h-72">
-                <EmptyChart message="No token data for the selected filters." />
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          <div className="h-64 md:h-96">
+            {hasData ? (
+              <Bar data={costChartData} options={costChartOptions} />
+            ) : (
+              <EmptyChart message="No usage data for the selected filters." />
+            )}
+          </div>
+        </div>
+      </PageContent>
+    </Page>
   );
 }

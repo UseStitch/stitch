@@ -20,6 +20,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
+import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
@@ -145,23 +154,23 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     : [];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <Page>
+      <PageContent>
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
               <BotIcon className="size-5" />
-            </div>
+            </PageIcon>
             <div>
-              <h1 className="text-xl font-semibold">{pageTitle}</h1>
-              <p className="text-sm text-muted-foreground">{pageDescription}</p>
+              <PageTitle>{pageTitle}</PageTitle>
+              <PageDescription>{pageDescription}</PageDescription>
             </div>
-          </div>
+          </PageHeaderContent>
           <Button onClick={openCreateDialog}>
             <PlusIcon data-icon="inline-start" className="size-4" />
             New automation
           </Button>
-        </div>
+        </PageHeader>
 
         {automationsPage.total === 0 ? (
           <AutomationsTable
@@ -272,7 +281,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             onDelete={(automation) => handleDelete(automation)}
           />
         )}
-      </div>
+      </PageContent>
 
       <AutomationDialog
         open={createDialogOpen}
@@ -348,6 +357,6 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

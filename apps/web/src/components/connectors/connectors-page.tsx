@@ -10,6 +10,15 @@ import { ConnectorInstanceList } from '@/components/connectors/connector-instanc
 import { SetupWizard } from '@/components/connectors/setup-wizard';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   connectorDefinitionsQueryOptions,
@@ -34,19 +43,21 @@ export function ConnectorsPage() {
   }, [definitions, search]);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-4xl px-6 py-8">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <PlugIcon className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold">Connectors</h1>
-            <p className="text-sm text-muted-foreground">
-              Connect your third-party services. Bring your own credentials.
-            </p>
-          </div>
-        </div>
+    <Page>
+      <PageContent width="full">
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
+              <PlugIcon className="size-5" />
+            </PageIcon>
+            <div>
+              <PageTitle>Connectors</PageTitle>
+              <PageDescription>
+                Connect your third-party services. Bring your own credentials.
+              </PageDescription>
+            </div>
+          </PageHeaderContent>
+        </PageHeader>
 
         <Tabs defaultValue="marketplace" className="gap-4">
           <TabsList>
@@ -112,11 +123,11 @@ export function ConnectorsPage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContent>
 
       {setupConnector && (
         <SetupWizard definition={setupConnector} onClose={() => setSetupConnector(null)} />
       )}
-    </div>
+    </Page>
   );
 }

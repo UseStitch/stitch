@@ -8,6 +8,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -366,18 +367,13 @@ function ShortcutsContent() {
 
 export function ShortcutsSettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-8">
-        <h2 className="text-lg font-bold tracking-tight">Keyboard shortcuts</h2>
-        <p className="mt-1.5 text-sm font-medium text-muted-foreground">
-          Customize keyboard shortcuts for quick actions
-        </p>
-      </div>
-      <React.Suspense
-        fallback={<div className="text-sm font-medium text-muted-foreground">Loading...</div>}
-      >
+    <SettingPage
+      title="Keyboard shortcuts"
+      description="Customize keyboard shortcuts for quick actions"
+    >
+      <React.Suspense fallback={<SettingLoading />}>
         <ShortcutsContent />
       </React.Suspense>
-    </div>
+    </SettingPage>
   );
 }
