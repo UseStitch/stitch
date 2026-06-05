@@ -133,7 +133,7 @@ function ShortcutRow({
       <button
         onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
-          'text-sm rounded-md px-2 py-1.5 transition-colors min-w-32 text-right',
+          'text-sm rounded-md px-2 py-1.5 transition-colors',
           isLeaderShortcut
             ? 'cursor-default'
             : isRecording
@@ -305,7 +305,7 @@ function ShortcutsContent() {
         <button
           onClick={handleStartLeaderKeyRecording}
           className={cn(
-            'text-sm rounded-md px-2 py-1.5 transition-colors min-w-32 text-right hover:bg-accent/60 cursor-pointer',
+            'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
             recordingId === LEADER_KEY_RECORDING_ID &&
               'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
           )}
