@@ -25,6 +25,37 @@ function toQuestionRequest(row: QuestionRow): QuestionRequest {
   };
 }
 
+function validateQuestionAnswers(question: QuestionRow, answers: string[][]): ServiceResult<null> {
+  if (question.status !== 'pending') {
+    return err('Question has already been resolved', 409);
+  }
+
+  if (answers.length !== question.questions.length) {
+    return err('Answer count does not match question count', 400);
+  }
+
+  for (const [index, questionInfo] of question.questions.entries()) {
+    const answer = answers[index] ?? [];
+    const normalized = answer.map((value) => value.trim()).filter(Boolean);
+
+    if (normalized.length === 0) {
+      return err(`Question ${index + 1} requires an answer`, 400);
+    }
+
+    if (!questionInfo.multiple && normalized.length > 1) {
+      return err(`Question ${index + 1} only accepts one answer`, 400);
+    }
+
+    if (questionInfo.custom === false) {
+      const labels = new Set(questionInfo.options.map((option) => option.label));
+      const invalid = normalized.find((value) => !labels.has(value));
+      if (invalid) return err(`Question ${index + 1} received an invalid answer`, 400);
+    }
+  }
+
+  return ok(null);
+}
+
 export async function createQuestion(opts: {
   sessionId: PrefixedString<'ses'>;
   questions: QuestionInfo[];
@@ -114,6 +145,14 @@ export async function replyQuestion(
   const db = getDb();
   const now = Date.now();
 
+  const [existingQuestion] = await db.select().from(questions).where(eq(questions.id, questionId));
+  if (!existingQuestion) {
+    return err(`Question not found: ${questionId}`, 404);
+  }
+
+  const validation = validateQuestionAnswers(existingQuestion, answers);
+  if ('error' in validation) return validation;
+
   const [question] = await db
     .update(questions)
     .set({
@@ -123,10 +162,6 @@ export async function replyQuestion(
     })
     .where(eq(questions.id, questionId))
     .returning();
-
-  if (!question) {
-    return err(`Question not found: ${questionId}`, 404);
-  }
 
   Events.emit('question-replied', {
     questionId,

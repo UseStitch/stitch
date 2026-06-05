@@ -21,10 +21,6 @@ function emptyText(items: QuestionRequest['questions']) {
   return items.map(() => '');
 }
 
-function emptyFlags(items: QuestionRequest['questions']) {
-  return items.map(() => false);
-}
-
 export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) {
   const items = request.questions;
   const total = items.length;
@@ -32,13 +28,11 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
   const [tab, setTab] = React.useState(0);
   const [answers, setAnswers] = React.useState<string[][]>(() => emptyAnswers(items));
   const [customAnswers, setCustomAnswers] = React.useState<string[]>(() => emptyText(items));
-  const [customOn, setCustomOn] = React.useState<boolean[]>(() => emptyFlags(items));
 
   React.useEffect(() => {
     setTab(0);
     setAnswers(emptyAnswers(items));
     setCustomAnswers(emptyText(items));
-    setCustomOn(emptyFlags(items));
   }, [request.id, items]);
 
   function handleSelect(idx: number, optionLabel: string) {
@@ -58,22 +52,18 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
     setAnswers(newAnswers);
   }
 
-  function handleCustomToggle(idx: number) {
-    const newCustomOn = [...customOn];
-    newCustomOn[idx] = !newCustomOn[idx];
-    setCustomOn(newCustomOn);
-  }
-
   function handleCustomChange(idx: number, value: string) {
     const newCustomAnswers = [...customAnswers];
     newCustomAnswers[idx] = value;
     setCustomAnswers(newCustomAnswers);
   }
 
-  function handleSubmit() {
+  function handleSubmit(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     const finalAnswers = answers.map((a, i) => {
-      if (customOn[i] && customAnswers[i]?.trim()) {
-        return [...a, customAnswers[i].trim()];
+      const customAnswer = customAnswers[i]?.trim();
+      if (customAnswer) {
+        return items[i]?.multiple ? [...a, customAnswer] : [customAnswer];
       }
       return a;
     });
@@ -82,14 +72,14 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
 
   const isAnswered = (idx: number): boolean => {
     const hasOption = (answers[idx]?.length ?? 0) > 0;
-    const hasCustom = customOn[idx] && (customAnswers[idx]?.trim()?.length ?? 0) > 0;
+    const hasCustom = (customAnswers[idx]?.trim()?.length ?? 0) > 0;
     return hasOption || hasCustom;
   };
 
   const allAnswered = items.every((_, idx) => isAnswered(idx));
 
   return (
-    <div className="flex flex-col gap-2">
+    <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
       <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>
         {total > 1 && (
           <TabsList variant="line" className="w-full justify-start">
@@ -125,23 +115,13 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
                   </Dock.Selectable>
                 ))}
 
-                <Dock.Selectable
-                  onClick={() => handleCustomToggle(idx)}
-                  selected={customOn[idx] ?? false}
-                >
-                  Custom answer
-                </Dock.Selectable>
-
-                {customOn[idx] && (
-                  <Dock.Input
-                    type="text"
-                    value={customAnswers[idx] ?? ''}
-                    onChange={(e) => handleCustomChange(idx, e.target.value)}
-                    placeholder="Type your answer..."
-                    className="h-auto w-full border-primary p-2 text-foreground placeholder:text-muted-foreground"
-                    autoFocus
-                  />
-                )}
+                <Dock.Input
+                  type="text"
+                  value={customAnswers[idx] ?? ''}
+                  onChange={(e) => handleCustomChange(idx, e.target.value)}
+                  placeholder="Type a custom answer..."
+                  className="h-auto w-full p-2 text-foreground placeholder:text-muted-foreground"
+                />
               </div>
             </TabsContent>
           );
@@ -153,16 +133,10 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
           <XIcon className="mr-1 size-3" />
           Dismiss
         </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleSubmit}
-          disabled={!allAnswered}
-          className="h-7"
-        >
+        <Button variant="default" size="sm" type="submit" disabled={!allAnswered} className="h-7">
           Submit
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
