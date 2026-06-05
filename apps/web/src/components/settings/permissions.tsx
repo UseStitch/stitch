@@ -1,4 +1,4 @@
-import { SearchIcon, WrenchIcon } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -23,6 +23,7 @@ import {
   useMcpToolsetGroups,
 } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,8 @@ import {
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 
 function ToolsContent() {
+  const page = SETTINGS_PAGE_BY_ID.tools;
+  const Icon = page.icon;
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
   const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
   const { data: knownToolsets } = useSuspenseQuery(knownToolsetsQueryOptions);
@@ -113,9 +116,9 @@ function ToolsContent() {
 
   return (
     <SettingPage
-      title="Tools"
-      description="Keep only the tools you need enabled, then open settings for permission behavior."
-      icon={<WrenchIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <div className="space-y-5">
         <div className="relative">

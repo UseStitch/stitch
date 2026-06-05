@@ -1,4 +1,3 @@
-import { ServerIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
@@ -59,15 +59,17 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
 }
 
 export function ProvidersSettings() {
+  const page = SETTINGS_PAGE_BY_ID.providers;
+  const Icon = page.icon;
   const [selected, setSelected] = React.useState<ProviderSummary | null>(null);
 
   return (
     <div className="flex h-full flex-col">
       {!selected && (
         <SettingPage
-          title="Providers"
-          description="Connect your AI providers and API keys"
-          icon={<ServerIcon className="size-5" />}
+          title={page.title}
+          description={page.description}
+          icon={<Icon className="size-5" />}
         >
           <ProviderList onSelect={setSelected} />
         </SettingPage>

@@ -1,4 +1,3 @@
-import { BrainIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import {
   flattenGroups,
   type ModelOption,
 } from '@/components/settings/model-select';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   NumberSettingRow,
   SettingPage,
@@ -425,11 +425,14 @@ function EmbeddingModelContent() {
 }
 
 export function MemorySettings() {
+  const page = SETTINGS_PAGE_BY_ID.memory;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Memory"
-      description="Configure how Stitch remembers information across sessions"
-      icon={<BrainIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <Tabs defaultValue="general" className="space-y-5">
         <TabsList variant="line">

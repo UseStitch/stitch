@@ -1,8 +1,7 @@
-import { PaletteIcon } from 'lucide-react';
-
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
@@ -16,6 +15,8 @@ const MODE_LABELS: Record<AppearanceMode, string> = {
 };
 
 export function AppearanceSettings() {
+  const page = SETTINGS_PAGE_BY_ID.appearance;
+  const Icon = page.icon;
   const { mode, themeName, setMode, setTheme } = useTheme();
 
   const effectiveMode =
@@ -27,9 +28,9 @@ export function AppearanceSettings() {
 
   return (
     <SettingPage
-      title="Appearance"
-      description="Customize how Stitch looks"
-      icon={<PaletteIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <SettingSection title="Mode">
         <div className="flex gap-2">

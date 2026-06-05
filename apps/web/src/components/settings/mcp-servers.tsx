@@ -1,4 +1,3 @@
-import { NetworkIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { AddCustomMcpServer } from './mcp-servers/add-custom-mcp-server';
@@ -8,6 +7,7 @@ import { McpServerList } from './mcp-servers/mcp-server-list';
 import { McpToolsPreview } from './mcp-servers/mcp-tools-preview';
 
 import type { View } from './mcp-servers/shared';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -23,6 +23,8 @@ function McpTabSwitcher() {
 }
 
 function McpServersContent() {
+  const page = SETTINGS_PAGE_BY_ID['mcp-servers'];
+  const Icon = page.icon;
   const [view, setView] = React.useState<View>({ type: 'home', tab: 'configured' });
 
   if (view.type === 'add-custom') {
@@ -51,9 +53,9 @@ function McpServersContent() {
   return (
     <Tabs value={view.tab} onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })}>
       <SettingPage
-        title="MCP Servers"
-        description="Connect external tools and services via the Model Context Protocol."
-        icon={<NetworkIcon className="size-5" />}
+        title={page.title}
+        description={page.description}
+        icon={<Icon className="size-5" />}
         actions={<McpTabSwitcher />}
       >
         <TabsContent value="configured">

@@ -1,9 +1,9 @@
-import { MicIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   SettingPage,
   SettingRow,
@@ -270,11 +270,14 @@ function RecordingsContent() {
 }
 
 export function RecordingsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.recordings;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Recordings"
-      description="Configure audio devices, capture settings, and analysis behavior for recordings."
-      icon={<MicIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <PermissionStatus />
       <SettingSection title="Audio Devices" className="mt-4">

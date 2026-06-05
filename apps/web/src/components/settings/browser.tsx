@@ -1,16 +1,9 @@
-import {
-  CheckCircleIcon,
-  DownloadIcon,
-  FolderIcon,
-  GlobeIcon,
-  LoaderIcon,
-  UserIcon,
-} from 'lucide-react';
-import * as React from 'react';
+import { CheckCircleIcon, DownloadIcon, FolderIcon, LoaderIcon, UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   SettingPage,
   SettingRow,
@@ -198,6 +191,8 @@ function BrowserToolsetToggle({
 }
 
 export function BrowserSettings() {
+  const page = SETTINGS_PAGE_BY_ID.browser;
+  const Icon = page.icon;
   const isMac = window.electron?.platform === 'darwin';
   const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
   const setToolEnabledState = useSetToolEnabledState();
@@ -216,9 +211,9 @@ export function BrowserSettings() {
 
   return (
     <SettingPage
-      title="Browser"
-      description="Configure the browser used by Stitch"
-      icon={<GlobeIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <SettingSection>
         <SettingRows>

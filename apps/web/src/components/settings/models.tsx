@@ -1,4 +1,3 @@
-import { CpuIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -6,6 +5,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
 import {
@@ -187,11 +187,14 @@ function ModelsListContent() {
 }
 
 export function ModelsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.models;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Models"
-      description="Choose which models appear in the model selector"
-      icon={<CpuIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <ModelsListContent />
     </SettingPage>

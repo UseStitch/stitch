@@ -1,9 +1,10 @@
-import { LoaderIcon, MonitorIcon } from 'lucide-react';
+import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   SettingPage,
   SettingRow,
@@ -70,11 +71,14 @@ function ModelsContent() {
 }
 
 export function GeneralSettings() {
+  const page = SETTINGS_PAGE_BY_ID.general;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="General"
-      description="Configure models for different tasks"
-      icon={<MonitorIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <SettingSection title="Models">
         <ModelsContent />

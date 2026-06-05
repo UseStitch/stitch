@@ -1,4 +1,4 @@
-import { KeyboardIcon, SearchIcon } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -8,6 +8,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -366,11 +367,14 @@ function ShortcutsContent() {
 }
 
 export function ShortcutsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.shortcuts;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Keyboard shortcuts"
-      description="Customize keyboard shortcuts for quick actions"
-      icon={<KeyboardIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <ShortcutsContent />
     </SettingPage>

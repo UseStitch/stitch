@@ -1,10 +1,11 @@
-import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon, WandSparklesIcon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Skill } from '@stitch/shared/skills/types';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -199,6 +200,8 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
 }
 
 export function SkillsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.skills;
+  const Icon = page.icon;
   const { data: skills } = useSuspenseQuery(skillsQueryOptions);
   const deleteSkill = useDeleteSkill();
   const [view, setView] = React.useState<SkillView>({ type: 'list' });
@@ -227,9 +230,9 @@ export function SkillsSettings() {
 
   return (
     <SettingPage
-      title="Skills"
-      description="Add reusable Markdown instructions the agent can load as a default tool."
-      icon={<WandSparklesIcon className="size-5" />}
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
