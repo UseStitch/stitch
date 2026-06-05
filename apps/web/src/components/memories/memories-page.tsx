@@ -189,7 +189,7 @@ export function MemoriesPage() {
 
   return (
     <Page>
-      <PageContent width="full">
+      <PageContent>
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>

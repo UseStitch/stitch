@@ -7,9 +7,9 @@ import {
   flattenGroups,
   type ModelOption,
 } from '@/components/settings/model-select';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   NumberSettingRow,
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRowControl,
@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
@@ -424,36 +425,50 @@ function EmbeddingModelContent() {
 }
 
 export function MemorySettings() {
+  const page = SETTINGS_PAGE_BY_ID.memory;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Memory"
-      description="Configure how Stitch remembers information across sessions"
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
-      <SettingSection title="General">
-        <React.Suspense fallback={<SettingLoading />}>
-          <MemoryToggles />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Embedding">
-        <React.Suspense fallback={<SettingLoading />}>
-          <EmbeddingModelContent />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Extraction">
-        <React.Suspense fallback={<SettingLoading />}>
-          <ExtractionSettings />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Retention">
-        <React.Suspense fallback={<SettingLoading />}>
-          <RetentionSettings />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Retrieval">
-        <React.Suspense fallback={<SettingLoading />}>
-          <RetrievalSettings />
-        </React.Suspense>
-      </SettingSection>
+      <Tabs defaultValue="general" className="space-y-5">
+        <TabsList variant="line">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="embedding">Embedding</TabsTrigger>
+          <TabsTrigger value="extraction">Extraction</TabsTrigger>
+          <TabsTrigger value="retention">Retention</TabsTrigger>
+          <TabsTrigger value="retrieval">Retrieval</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <SettingSection className="mt-0">
+            <MemoryToggles />
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="embedding">
+          <SettingSection className="mt-0">
+            <EmbeddingModelContent />
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="extraction">
+          <SettingSection className="mt-0">
+            <ExtractionSettings />
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="retention">
+          <SettingSection className="mt-0">
+            <RetentionSettings />
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="retrieval">
+          <SettingSection className="mt-0">
+            <RetrievalSettings />
+          </SettingSection>
+        </TabsContent>
+      </Tabs>
     </SettingPage>
   );
 }

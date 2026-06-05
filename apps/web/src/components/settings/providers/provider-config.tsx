@@ -211,7 +211,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
           {/* Auth method section */}
           {hasMultipleMethods ? (
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList>
+              <TabsList variant="line">
                 {enabledAuthMethods.map((m) => (
                   <TabsTrigger key={m.method} value={m.method}>
                     {m.label}

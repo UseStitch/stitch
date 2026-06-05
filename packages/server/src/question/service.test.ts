@@ -131,6 +131,72 @@ describe('question service interactions', () => {
     expect(row?.status).toBe('rejected');
   });
 
+  test('replyQuestion accepts custom answers by default', async () => {
+    const { createQuestion, replyQuestion } = await import('@/question/service.js');
+
+    const question = await createQuestion({
+      sessionId,
+      messageId,
+      toolCallId: 'call_custom',
+      questions: [
+        {
+          question: 'Pick one',
+          header: 'Choice',
+          options: [{ label: 'A', description: 'Option A' }],
+          multiple: false,
+        },
+      ],
+    });
+
+    const result = await replyQuestion(question.id, [['Something else']]);
+    expect(result).toEqual({ data: null });
+
+    const db = getDb();
+    const [row] = await db.select().from(questions).where(eq(questions.id, question.id));
+    expect(row?.status).toBe('answered');
+    expect(row?.answers).toEqual([['Something else']]);
+  });
+
+  test('replyQuestion rejects invalid answers without resolving the question', async () => {
+    const { createQuestion, replyQuestion } = await import('@/question/service.js');
+
+    const question = await createQuestion({
+      sessionId,
+      messageId,
+      toolCallId: 'call_invalid',
+      questions: [
+        {
+          question: 'Pick one',
+          header: 'Choice',
+          options: [{ label: 'A', description: 'Option A' }],
+          multiple: false,
+          custom: false,
+        },
+      ],
+    });
+
+    expect(replyQuestion(question.id, [[]])).resolves.toEqual({
+      error: 'Question 1 requires an answer',
+      status: 400,
+      details: undefined,
+    });
+    expect(replyQuestion(question.id, [['Something else']])).resolves.toEqual({
+      error: 'Question 1 received an invalid answer',
+      status: 400,
+      details: undefined,
+    });
+    expect(replyQuestion(question.id, [['A', 'Something else']])).resolves.toEqual({
+      error: 'Question 1 only accepts one answer',
+      status: 400,
+      details: undefined,
+    });
+
+    const db = getDb();
+    const [row] = await db.select().from(questions).where(eq(questions.id, question.id));
+    expect(row?.status).toBe('pending');
+    expect(row?.answers).toBeNull();
+  });
+
   test('abortQuestions rejects pending questions for the session', async () => {
     const { askQuestion, abortQuestions, replyQuestion } = await import('@/question/service.js');
 

@@ -44,8 +44,9 @@ export function McpServerList({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex justify-end gap-1">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-end gap-2">
+        <div className="h-8 flex-1" aria-hidden />
         <Button
           size="icon-sm"
           variant="ghost"

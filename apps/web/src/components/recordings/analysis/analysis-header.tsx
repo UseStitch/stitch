@@ -6,6 +6,13 @@ import { AudioPlayer } from './audio-player';
 
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
+import {
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
 
 function formatCost(costUsd: number | null | undefined): string | null {
   if (costUsd === null || costUsd === undefined) return null;
@@ -50,20 +57,20 @@ export function AnalysisHeader({
   const costLabel = formatCost(analysis?.costUsd ?? recording?.costUsd);
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-4">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
-          <FileTextIcon className="size-5.5" />
-        </div>
+    <PageHeader className="shrink-0">
+      <PageHeaderContent>
+        <PageIcon>
+          <FileTextIcon className="size-5" />
+        </PageIcon>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            {analysis?.title || recording?.title || 'Recording analysis'}
-          </h1>
+          <PageTitle>{analysis?.title || recording?.title || 'Recording analysis'}</PageTitle>
           {costLabel ? (
-            <p className="text-xs text-muted-foreground tabular-nums">Recording cost {costLabel}</p>
+            <PageDescription className="text-xs tabular-nums">
+              Recording cost {costLabel}
+            </PageDescription>
           ) : null}
         </div>
-      </div>
+      </PageHeaderContent>
       <div className="flex items-center gap-3">
         {showRecordingControls ? (
           <Button
@@ -132,6 +139,6 @@ export function AnalysisHeader({
           </Button>
         ) : null}
       </div>
-    </div>
+    </PageHeader>
   );
 }

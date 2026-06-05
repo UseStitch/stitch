@@ -69,6 +69,14 @@ export function useSessionDocks({
   return React.useMemo(() => {
     const items: DockItem[] = [];
 
+    const runMutation = async (action: () => Promise<unknown>, errorMessage: string) => {
+      try {
+        await action();
+      } catch (error) {
+        console.error(errorMessage, error);
+      }
+    };
+
     if (doomLoop) {
       items.push({
         id: 'doom-loop',
@@ -90,102 +98,109 @@ export function useSessionDocks({
     }
 
     if (pendingQuestions.length > 0) {
-      items.push({
-        id: 'questions',
-        title: 'Questions',
-        defaultExpanded: true,
-        variant: 'primary',
-        children: (
-          <QuestionDock
-            questions={pendingQuestions}
-            onReply={async (questionId, answers) => {
-              try {
-                await replyQuestion.mutateAsync({ sessionId, questionId, answers });
-              } catch (error) {
-                console.error('Failed to reply to question:', error);
-              }
-            }}
-            onReject={async (questionId) => {
-              try {
-                await rejectQuestion.mutateAsync({ sessionId, questionId });
-              } catch (error) {
-                console.error('Failed to reject question:', error);
-              }
-            }}
-          />
-        ),
-      });
+      const request = pendingQuestions[0];
+      if (request) {
+        items.push({
+          id: 'questions',
+          title: 'Questions',
+          defaultExpanded: true,
+          variant: 'primary',
+          children: (
+            <QuestionDock
+              request={request}
+              onReply={async (questionId, answers) => {
+                await runMutation(
+                  () => replyQuestion.mutateAsync({ sessionId, questionId, answers }),
+                  'Failed to reply to question:',
+                );
+              }}
+              onReject={async (questionId) => {
+                await runMutation(
+                  () => rejectQuestion.mutateAsync({ sessionId, questionId }),
+                  'Failed to reject question:',
+                );
+              }}
+            />
+          ),
+        });
+      }
     }
 
     if (pendingPermissionResponses.length > 0) {
-      const first = pendingPermissionResponses[0];
-      const parsedTool = first ? parseMcpToolName(first.toolName) : null;
-      const toolLabel = parsedTool?.toolName ?? first?.toolName ?? 'tool';
+      const permissionResponse = pendingPermissionResponses[0];
+      if (permissionResponse) {
+        const parsedTool = parseMcpToolName(permissionResponse.toolName);
+        const toolLabel = parsedTool?.toolName ?? permissionResponse.toolName;
 
-      items.push({
-        id: 'permission-response',
-        title: `Allow ${toolLabel}?`,
-        defaultExpanded: true,
-        variant: 'primary',
-        children: (
-          <PermissionResponseDock
-            permissionResponses={pendingPermissionResponses}
-            onAllow={async (permissionResponseId) => {
-              try {
-                await allowPermissionResponse.mutateAsync({ sessionId, permissionResponseId });
-              } catch (error) {
-                console.error('Failed to allow tool:', error);
+        items.push({
+          id: 'permission-response',
+          title: `Allow ${toolLabel}?`,
+          defaultExpanded: true,
+          variant: 'primary',
+          children: (
+            <PermissionResponseDock
+              permissionResponse={permissionResponse}
+              toolLabel={toolLabel}
+              isPending={
+                allowPermissionResponse.isPending ||
+                rejectPermissionResponse.isPending ||
+                alternativePermissionResponse.isPending
               }
-            }}
-            onAlwaysAllow={async (permissionResponseId) => {
-              try {
-                await allowPermissionResponse.mutateAsync({
-                  sessionId,
-                  permissionResponseId,
-                  setPermission: {
-                    permission: 'allow',
-                    pattern: null,
-                  },
-                });
-              } catch (error) {
-                console.error('Failed to always allow tool:', error);
-              }
-            }}
-            onReject={async (permissionResponseId) => {
-              try {
-                await rejectPermissionResponse.mutateAsync({ sessionId, permissionResponseId });
-              } catch (error) {
-                console.error('Failed to reject tool:', error);
-              }
-            }}
-            onAlternative={async (permissionResponseId, entry) => {
-              try {
-                await alternativePermissionResponse.mutateAsync({
-                  sessionId,
-                  permissionResponseId,
-                  entry,
-                });
-              } catch (error) {
-                console.error('Failed to submit alternative action:', error);
-              }
-            }}
-            onApplySuggestion={async (permissionResponseId, pattern) => {
-              try {
-                await allowPermissionResponse.mutateAsync({
-                  sessionId,
-                  permissionResponseId,
-                  setPermission: {
-                    permission: 'allow',
-                    pattern,
-                  },
-                });
-              } catch (error) {
-                console.error('Failed to apply permission suggestion:', error);
-              }
-            }}
-          />
-        ),
-      });
+              onAllow={async (permissionResponseId) => {
+                await runMutation(
+                  () => allowPermissionResponse.mutateAsync({ sessionId, permissionResponseId }),
+                  'Failed to allow tool:',
+                );
+              }}
+              onAlwaysAllow={async (permissionResponseId) => {
+                await runMutation(
+                  () =>
+                    allowPermissionResponse.mutateAsync({
+                      sessionId,
+                      permissionResponseId,
+                      setPermission: {
+                        permission: 'allow',
+                        pattern: null,
+                      },
+                    }),
+                  'Failed to always allow tool:',
+                );
+              }}
+              onReject={async (permissionResponseId) => {
+                await runMutation(
+                  () => rejectPermissionResponse.mutateAsync({ sessionId, permissionResponseId }),
+                  'Failed to reject tool:',
+                );
+              }}
+              onAlternative={async (permissionResponseId, entry) => {
+                await runMutation(
+                  () =>
+                    alternativePermissionResponse.mutateAsync({
+                      sessionId,
+                      permissionResponseId,
+                      entry,
+                    }),
+                  'Failed to submit alternative action:',
+                );
+              }}
+              onApplySuggestion={async (permissionResponseId, pattern) => {
+                await runMutation(
+                  () =>
+                    allowPermissionResponse.mutateAsync({
+                      sessionId,
+                      permissionResponseId,
+                      setPermission: {
+                        permission: 'allow',
+                        pattern,
+                      },
+                    }),
+                  'Failed to apply permission suggestion:',
+                );
+              }}
+            />
+          ),
+        });
+      }
     }
 
     const activeCount = todos.filter(

@@ -7,6 +7,8 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
@@ -57,27 +59,22 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
 }
 
 export function ProvidersSettings() {
+  const page = SETTINGS_PAGE_BY_ID.providers;
+  const Icon = page.icon;
   const [selected, setSelected] = React.useState<ProviderSummary | null>(null);
 
   return (
     <div className="flex h-full flex-col">
       {!selected && (
-        <div className="mb-6">
-          <h2 className="text-base font-bold">Providers</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Connect your AI providers and API keys
-          </p>
-        </div>
-      )}
-      <React.Suspense
-        fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
-      >
-        {selected ? (
-          <ProviderConfig provider={selected} onBack={() => setSelected(null)} />
-        ) : (
+        <SettingPage
+          title={page.title}
+          description={page.description}
+          icon={<Icon className="size-5" />}
+        >
           <ProviderList onSelect={setSelected} />
-        )}
-      </React.Suspense>
+        </SettingPage>
+      )}
+      {selected ? <ProviderConfig provider={selected} onBack={() => setSelected(null)} /> : null}
     </div>
   );
 }

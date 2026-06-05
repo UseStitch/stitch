@@ -8,7 +8,8 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
-import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,7 +134,7 @@ function ShortcutRow({
       <button
         onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
-          'text-sm rounded-md px-2 py-1.5 transition-colors min-w-32 text-right',
+          'text-sm rounded-md px-2 py-1.5 transition-colors',
           isLeaderShortcut
             ? 'cursor-default'
             : isRecording
@@ -305,7 +306,7 @@ function ShortcutsContent() {
         <button
           onClick={handleStartLeaderKeyRecording}
           className={cn(
-            'text-sm rounded-md px-2 py-1.5 transition-colors min-w-32 text-right hover:bg-accent/60 cursor-pointer',
+            'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
             recordingId === LEADER_KEY_RECORDING_ID &&
               'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
           )}
@@ -319,7 +320,7 @@ function ShortcutsContent() {
       </div>
 
       <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-4">
-        <TabsList>
+        <TabsList variant="line">
           {SHORTCUT_CATEGORIES.map((category) => (
             <TabsTrigger key={category} value={category}>
               {category}
@@ -366,14 +367,16 @@ function ShortcutsContent() {
 }
 
 export function ShortcutsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.shortcuts;
+  const Icon = page.icon;
+
   return (
     <SettingPage
-      title="Keyboard shortcuts"
-      description="Customize keyboard shortcuts for quick actions"
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
-      <React.Suspense fallback={<SettingLoading />}>
-        <ShortcutsContent />
-      </React.Suspense>
+      <ShortcutsContent />
     </SettingPage>
   );
 }

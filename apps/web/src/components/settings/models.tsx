@@ -5,6 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -185,17 +187,16 @@ function ModelsListContent() {
 }
 
 export function ModelsSettings() {
+  const page = SETTINGS_PAGE_BY_ID.models;
+  const Icon = page.icon;
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Models</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose which models appear in the model selector
-        </p>
-      </div>
-      <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-        <ModelsListContent />
-      </React.Suspense>
-    </div>
+    <SettingPage
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
+    >
+      <ModelsListContent />
+    </SettingPage>
   );
 }

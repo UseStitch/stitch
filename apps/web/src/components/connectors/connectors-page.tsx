@@ -44,7 +44,7 @@ export function ConnectorsPage() {
 
   return (
     <Page>
-      <PageContent width="full">
+      <PageContent>
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
@@ -60,7 +60,7 @@ export function ConnectorsPage() {
         </PageHeader>
 
         <Tabs defaultValue="marketplace" className="gap-4">
-          <TabsList>
+          <TabsList variant="line">
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <TabsTrigger value="connected" className="gap-2">
               Connected

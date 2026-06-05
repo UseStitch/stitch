@@ -386,7 +386,7 @@ export function UsageDashboardPage() {
 
   return (
     <Page className="thin-scrollbar">
-      <PageContent width="full" className="pb-10">
+      <PageContent className="pb-10">
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>

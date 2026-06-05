@@ -91,10 +91,7 @@ export function buildStreamingToolCallDisplayItems(
   });
 }
 
-export function getToolSummary(
-  call: ToolCallDisplayItem,
-  displayName: string,
-): ToolCallSummary {
+export function getToolSummary(call: ToolCallDisplayItem, displayName: string): ToolCallSummary {
   const kind = getToolKind(call.toolName);
   const label = getToolLabel(call.toolName, displayName, kind);
   const preview = getToolPreview(call, kind);
@@ -181,7 +178,7 @@ function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): strin
     case 'task':
       return getStringArg(call.args, ['description', 'prompt', 'command']) ?? 'Running subagent';
     case 'question':
-      return getStringArg(call.args, ['question', 'header']) ?? 'Waiting for response';
+      return '';
     case 'skill':
       return 'Loading skill';
     case 'memory':

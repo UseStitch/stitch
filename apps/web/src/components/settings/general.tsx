@@ -4,8 +4,8 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRowControl,
@@ -71,20 +71,23 @@ function ModelsContent() {
 }
 
 export function GeneralSettings() {
+  const page = SETTINGS_PAGE_BY_ID.general;
+  const Icon = page.icon;
+
   return (
-    <SettingPage title="General" description="Configure models for different tasks">
+    <SettingPage
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
+    >
       <SettingSection title="Models">
-        <React.Suspense fallback={<SettingLoading />}>
-          <ModelsContent />
-        </React.Suspense>
+        <ModelsContent />
       </SettingSection>
       <SettingSection title="App Updates">
         <AppUpdatesContent />
       </SettingSection>
       <SettingSection title="Notifications">
-        <React.Suspense fallback={<SettingLoading />}>
-          <NotificationsContent />
-        </React.Suspense>
+        <NotificationsContent />
       </SettingSection>
     </SettingPage>
   );

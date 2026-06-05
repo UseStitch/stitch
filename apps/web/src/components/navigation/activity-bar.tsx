@@ -13,7 +13,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useDialogContext } from '@/context/dialog-context';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
@@ -99,7 +98,6 @@ function isActive(matchPrefix: string, currentPath: string): boolean {
 
 export function ActivityBar() {
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
-  const { setSettingsTab } = useDialogContext();
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
   const pendingConnectorUpdates = connectorInstances.filter(
     (instance) => instance.upgrade?.available,
@@ -184,10 +182,15 @@ export function ActivityBar() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <button
-                  type="button"
-                  onClick={() => setSettingsTab('general')}
-                  className="relative flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                <Link
+                  to="/settings/general"
+                  preload="intent"
+                  className={cn(
+                    'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+                    isActive('/settings', currentPath)
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                  )}
                   aria-label="Open settings"
                 />
               }

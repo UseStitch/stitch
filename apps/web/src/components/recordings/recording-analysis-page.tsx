@@ -12,6 +12,7 @@ import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
+import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   recordingAnalysisQueryOptions,
@@ -70,67 +71,69 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   };
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-400 flex-col gap-6 overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
-      <AnalysisHeader
-        analysis={analysis}
-        analysisMarkdown={analysisMarkdown}
-        recording={recording}
-        isRunning={isRunning}
-        isStarting={startAnalysis.isPending}
-        isCancelling={cancelAnalysis.isPending}
-        isDeleting={deleteRecording.isPending}
-        isRecording={isActiveRecording}
-        isStopping={stopRecording.isPending}
-        onStartAnalysis={handleStartAnalysis}
-        onCancelAnalysis={handleCancelAnalysis}
-        onStopRecording={() => {
-          void stopRecording.mutateAsync().then(
-            () => toast.success('Recording stopped'),
-            (error: unknown) => toast.error(getErrorMessage(error, 'Failed to stop recording')),
-          );
-        }}
-        onDelete={() => {
-          if (!recording || shouldConfirmRecordingDelete(recording)) {
-            setShowDeleteConfirm(true);
-            return;
-          }
+    <Page className="overflow-hidden">
+      <PageContent className="min-h-0 overflow-hidden">
+        <AnalysisHeader
+          analysis={analysis}
+          analysisMarkdown={analysisMarkdown}
+          recording={recording}
+          isRunning={isRunning}
+          isStarting={startAnalysis.isPending}
+          isCancelling={cancelAnalysis.isPending}
+          isDeleting={deleteRecording.isPending}
+          isRecording={isActiveRecording}
+          isStopping={stopRecording.isPending}
+          onStartAnalysis={handleStartAnalysis}
+          onCancelAnalysis={handleCancelAnalysis}
+          onStopRecording={() => {
+            void stopRecording.mutateAsync().then(
+              () => toast.success('Recording stopped'),
+              (error: unknown) => toast.error(getErrorMessage(error, 'Failed to stop recording')),
+            );
+          }}
+          onDelete={() => {
+            if (!recording || shouldConfirmRecordingDelete(recording)) {
+              setShowDeleteConfirm(true);
+              return;
+            }
 
-          deleteRecordingById();
-        }}
-      />
+            deleteRecordingById();
+          }}
+        />
 
-      {analysis?.error ? (
-        <div className="shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {analysis.error}
+        {analysis?.error ? (
+          <div className="shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {analysis.error}
+          </div>
+        ) : null}
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-2 xl:col-span-8 2xl:col-span-9">
+            <ScrollArea className="h-0 flex-1 rounded-xl">
+              <div className="space-y-8 pr-6 pb-12">
+                <SummarySection analysis={analysis} isRunning={isRunning} />
+                <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div className="min-h-0 lg:col-span-4 xl:col-span-4 2xl:col-span-3">
+            <TranscriptSidebar
+              analysis={analysis}
+              isRunning={isRunning}
+              recordingId={recordingId}
+              isRecording={recording?.status === 'recording'}
+            />
+          </div>
         </div>
-      ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-2 xl:col-span-8 2xl:col-span-9">
-          <ScrollArea className="h-0 flex-1 rounded-xl">
-            <div className="space-y-8 pr-6 pb-12">
-              <SummarySection analysis={analysis} isRunning={isRunning} />
-              <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
-            </div>
-          </ScrollArea>
-        </div>
-
-        <div className="min-h-0 lg:col-span-4 xl:col-span-4 2xl:col-span-3">
-          <TranscriptSidebar
-            analysis={analysis}
-            isRunning={isRunning}
-            recordingId={recordingId}
-            isRecording={recording?.status === 'recording'}
-          />
-        </div>
-      </div>
-
-      <DeleteRecordingDialog
-        recording={showDeleteConfirm ? recording : null}
-        isDeleting={deleteRecording.isPending}
-        onOpenChange={(open) => !open && setShowDeleteConfirm(false)}
-        onConfirm={deleteRecordingById}
-      />
-    </div>
+        <DeleteRecordingDialog
+          recording={showDeleteConfirm ? recording : null}
+          isDeleting={deleteRecording.isPending}
+          onOpenChange={(open) => !open && setShowDeleteConfirm(false)}
+          onConfirm={deleteRecordingById}
+        />
+      </PageContent>
+    </Page>
   );
 }

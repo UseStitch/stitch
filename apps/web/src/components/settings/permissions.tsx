@@ -23,7 +23,8 @@ import {
   useMcpToolsetGroups,
 } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
-import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +39,8 @@ import {
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 
 function ToolsContent() {
+  const page = SETTINGS_PAGE_BY_ID.tools;
+  const Icon = page.icon;
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
   const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
   const { data: knownToolsets } = useSuspenseQuery(knownToolsetsQueryOptions);
@@ -100,14 +103,12 @@ function ToolsContent() {
 
   if (editingTarget) {
     return (
-      <React.Suspense fallback={<SettingLoading />}>
-        <PermissionPolicyEditor
-          target={editingTarget}
-          onBack={() => setEditingTarget(null)}
-          getEnabled={getEnabled}
-          onToggleEnabled={updateEnabled}
-        />
-      </React.Suspense>
+      <PermissionPolicyEditor
+        target={editingTarget}
+        onBack={() => setEditingTarget(null)}
+        getEnabled={getEnabled}
+        onToggleEnabled={updateEnabled}
+      />
     );
   }
 
@@ -115,8 +116,9 @@ function ToolsContent() {
 
   return (
     <SettingPage
-      title="Tools"
-      description="Keep only the tools you need enabled, then open settings for permission behavior."
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
     >
       <div className="space-y-5">
         <div className="relative">
@@ -285,9 +287,5 @@ function ToolsContent() {
 }
 
 export function ToolsSettings() {
-  return (
-    <React.Suspense fallback={<SettingLoading />}>
-      <ToolsContent />
-    </React.Suspense>
-  );
+  return <ToolsContent />;
 }

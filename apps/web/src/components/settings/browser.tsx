@@ -1,11 +1,10 @@
 import { CheckCircleIcon, DownloadIcon, FolderIcon, LoaderIcon, UserIcon } from 'lucide-react';
-import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRows,
@@ -192,6 +191,8 @@ function BrowserToolsetToggle({
 }
 
 export function BrowserSettings() {
+  const page = SETTINGS_PAGE_BY_ID.browser;
+  const Icon = page.icon;
   const isMac = window.electron?.platform === 'darwin';
   const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
   const setToolEnabledState = useSetToolEnabledState();
@@ -209,7 +210,11 @@ export function BrowserSettings() {
   }
 
   return (
-    <SettingPage title="Browser" description="Configure the browser used by Stitch">
+    <SettingPage
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
+    >
       <SettingSection>
         <SettingRows>
           <BrowserToolsetToggle
@@ -217,9 +222,7 @@ export function BrowserSettings() {
             isMutating={setToolEnabledState.isPending}
             onToggle={handleBrowserToolsetToggle}
           />
-          <React.Suspense fallback={<SettingLoading />}>
-            <HeadlessToggle disabled={!browserToolEnabled} />
-          </React.Suspense>
+          <HeadlessToggle disabled={!browserToolEnabled} />
         </SettingRows>
       </SettingSection>
 
@@ -234,17 +237,11 @@ export function BrowserSettings() {
               copies your profile data into the Stitch browser and fully replaces any previous
               import.
             </p>
-            <React.Suspense fallback={<SettingLoading />}>
-              <ProfileStatus />
-            </React.Suspense>
+            <ProfileStatus />
           </SettingSection>
 
           <SettingSection title="Available Profiles">
-            <React.Suspense
-              fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
-            >
-              <ProfileList disabled={!browserToolEnabled} />
-            </React.Suspense>
+            <ProfileList disabled={!browserToolEnabled} />
           </SettingSection>
         </>
       ) : null}

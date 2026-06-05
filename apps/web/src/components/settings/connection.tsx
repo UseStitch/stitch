@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,8 @@ const MODE_OPTIONS: { mode: ServerMode; label: string; description: string }[] =
 ];
 
 function ConnectionContent() {
+  const page = SETTINGS_PAGE_BY_ID.connection;
+  const Icon = page.icon;
   const { data: config } = useSuspenseQuery(serverConfigQueryOptions);
   const testRemote = useTestRemoteConnection();
   const saveConfig = useSaveServerConfig();
@@ -85,8 +88,9 @@ function ConnectionContent() {
   return (
     <div className="flex h-full flex-col">
       <SettingPage
-        title="Connection"
-        description="Choose whether Stitch connects to the local sidecar or a remote server."
+        title={page.title}
+        description={page.description}
+        icon={<Icon className="size-5" />}
       >
         <SettingSection title="Server">
           <div className="grid grid-cols-2 gap-3">
@@ -180,9 +184,5 @@ function ConnectionContent() {
 }
 
 export function ConnectionSettings() {
-  return (
-    <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-      <ConnectionContent />
-    </React.Suspense>
-  );
+  return <ConnectionContent />;
 }

@@ -6,6 +6,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -57,20 +64,24 @@ export function SettingSubPage({
 type SettingPageProps = {
   title: string;
   description?: string;
+  icon: React.ReactNode;
   actions?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export function SettingPage({ title, description, actions, children }: SettingPageProps) {
+export function SettingPage({ title, description, icon, actions, children }: SettingPageProps) {
   return (
     <div className="flex h-full flex-col">
-      <div className={cn('mb-6', actions && 'flex items-start justify-between gap-4')}>
-        <div>
-          <h2 className="text-base font-bold">{title}</h2>
-          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
-        </div>
+      <PageHeader className="mb-6">
+        <PageHeaderContent>
+          <PageIcon>{icon}</PageIcon>
+          <div>
+            <PageTitle>{title}</PageTitle>
+            {description ? <PageDescription>{description}</PageDescription> : null}
+          </div>
+        </PageHeaderContent>
         {actions}
-      </div>
+      </PageHeader>
       {children}
     </div>
   );
@@ -160,14 +171,6 @@ type SettingRowControlProps = {
 
 export function SettingRowControl({ size = 'md', className, children }: SettingRowControlProps) {
   return <div className={cn('shrink-0', CONTROL_WIDTH[size], className)}>{children}</div>;
-}
-
-// ---------------------------------------------------------------------------
-// SettingLoading — standard Suspense fallback
-// ---------------------------------------------------------------------------
-
-export function SettingLoading() {
-  return <div className="text-sm text-muted-foreground">Loading...</div>;
 }
 
 // ---------------------------------------------------------------------------

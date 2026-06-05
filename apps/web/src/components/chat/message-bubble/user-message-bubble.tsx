@@ -3,6 +3,11 @@ import { FileIcon, FileTextIcon, GitForkIcon } from 'lucide-react';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
+import {
+  MESSAGE_ACTION_BUTTON_CLASS,
+  MessageCopyButton,
+} from '@/components/chat/message-bubble/shared-components.js';
+import { Button } from '@/components/ui/button';
 
 type UserMessageBubbleProps = {
   parts: StoredPart[];
@@ -69,17 +74,23 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
           </div>
         )}
 
-        {onSplit && (
-          <div className="flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              type="button"
-              onClick={onSplit}
-              title="Split from here"
-              className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <GitForkIcon className="size-3" />
-              Split
-            </button>
+        {text && (
+          <div className="flex items-center justify-end gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+            <MessageCopyButton text={text} />
+
+            {onSplit && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={onSplit}
+                aria-label="Split from here"
+                className={MESSAGE_ACTION_BUTTON_CLASS}
+              >
+                <GitForkIcon className="size-3.5" />
+                Split
+              </Button>
+            )}
           </div>
         )}
       </div>
