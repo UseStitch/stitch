@@ -44,7 +44,7 @@ export function ConnectorsPage() {
 
   return (
     <Page>
-      <PageContent width="full">
+      <PageContent>
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
