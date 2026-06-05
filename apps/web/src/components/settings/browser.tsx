@@ -4,6 +4,13 @@ import { toast } from 'sonner';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import {
+  SettingLoading,
+  SettingPage,
+  SettingRow,
+  SettingRows,
+  SettingSection,
+} from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -80,48 +87,40 @@ function ProfileList({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <div className="flex flex-col">
-      {profiles.map((profile, index) => (
-        <div
-          key={profile.id}
-          className={cn(
-            'flex items-center justify-between gap-4 py-3',
-            index < profiles.length - 1 && 'border-b border-border/50',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-full bg-muted">
-              <UserIcon className="size-4 text-muted-foreground" />
+    <>
+      <SettingRows>
+        {profiles.map((profile) => (
+          <div key={profile.id} className="flex items-center justify-between gap-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                <UserIcon className="size-4 text-muted-foreground" />
+              </div>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <Label className="text-sm font-medium">{profile.name}</Label>
+                <p className="text-xs text-muted-foreground">{profile.email ?? profile.id}</p>
+              </div>
             </div>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Label className="text-sm font-medium">{profile.name}</Label>
-              {profile.email ? (
-                <p className="text-xs text-muted-foreground">{profile.email}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={disabled || importMutation.isPending}
+              onClick={() => importMutation.mutate(profile.id)}
+            >
+              {importMutation.isPending && importMutation.variables === profile.id ? (
+                <>
+                  <LoaderIcon className="size-3.5 animate-spin" />
+                  Importing...
+                </>
               ) : (
-                <p className="text-xs text-muted-foreground">{profile.id}</p>
+                <>
+                  <DownloadIcon className="size-3.5" />
+                  Import
+                </>
               )}
-            </div>
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled || importMutation.isPending}
-            onClick={() => importMutation.mutate(profile.id)}
-          >
-            {importMutation.isPending && importMutation.variables === profile.id ? (
-              <>
-                <LoaderIcon className="size-3.5 animate-spin" />
-                Importing...
-              </>
-            ) : (
-              <>
-                <DownloadIcon className="size-3.5" />
-                Import
-              </>
-            )}
-          </Button>
-        </div>
-      ))}
+        ))}
+      </SettingRows>
       {disabled ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Enable the browser tool to import Chrome profiles.
@@ -132,7 +131,7 @@ function ProfileList({ disabled }: { disabled: boolean }) {
           Copying Chrome profile data. This may take a few seconds...
         </p>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -151,22 +150,19 @@ function HeadlessToggle({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <div className={cn('flex items-center justify-between gap-4 py-3', disabled && 'opacity-60')}>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor="headless-toggle" className="text-sm font-medium">
-          Headless mode
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          Run the browser in the background without a visible window
-        </p>
-      </div>
+    <SettingRow
+      label="Headless mode"
+      description="Run the browser in the background without a visible window"
+      htmlFor="headless-toggle"
+      className={cn(disabled && 'opacity-60')}
+    >
       <Switch
         id="headless-toggle"
         checked={headless}
         onCheckedChange={handleToggle}
         disabled={disabled || saveMutation.isPending}
       />
-    </div>
+    </SettingRow>
   );
 }
 
@@ -180,22 +176,18 @@ function BrowserToolsetToggle({
   onToggle: (enabled: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor="browser-toolset-toggle" className="text-sm font-medium">
-          Enable browser tool
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          Browser Toolset {enabled ? 'Active' : 'Inactive'}
-        </p>
-      </div>
+    <SettingRow
+      label="Enable browser tool"
+      description={`Browser Toolset ${enabled ? 'Active' : 'Inactive'}`}
+      htmlFor="browser-toolset-toggle"
+    >
       <Switch
         id="browser-toolset-toggle"
         checked={enabled}
         onCheckedChange={onToggle}
         disabled={isMutating}
       />
-    </div>
+    </SettingRow>
   );
 }
 
@@ -217,49 +209,45 @@ export function BrowserSettings() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Browser</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Configure the browser used by Stitch</p>
-      </div>
-
-      <section className="space-y-3">
-        <BrowserToolsetToggle
-          enabled={browserToolEnabled}
-          isMutating={setToolEnabledState.isPending}
-          onToggle={handleBrowserToolsetToggle}
-        />
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-          <HeadlessToggle disabled={!browserToolEnabled} />
-        </React.Suspense>
-      </section>
+    <SettingPage title="Browser" description="Configure the browser used by Stitch">
+      <SettingSection>
+        <SettingRows>
+          <BrowserToolsetToggle
+            enabled={browserToolEnabled}
+            isMutating={setToolEnabledState.isPending}
+            onToggle={handleBrowserToolsetToggle}
+          />
+          <React.Suspense fallback={<SettingLoading />}>
+            <HeadlessToggle disabled={!browserToolEnabled} />
+          </React.Suspense>
+        </SettingRows>
+      </SettingSection>
 
       {isMac ? (
         <>
-          <section className={cn('mt-8 space-y-3', !browserToolEnabled && 'opacity-70')}>
-            <h3 className="text-sm font-medium">Chrome Profile</h3>
+          <SettingSection
+            title="Chrome Profile"
+            className={cn(!browserToolEnabled && 'opacity-70')}
+          >
             <p className="text-xs text-muted-foreground">
               Import your Chrome profile to use your existing logins, cookies, and sessions. This
               copies your profile data into the Stitch browser and fully replaces any previous
               import.
             </p>
-            <React.Suspense
-              fallback={<div className="text-sm text-muted-foreground">Loading...</div>}
-            >
+            <React.Suspense fallback={<SettingLoading />}>
               <ProfileStatus />
             </React.Suspense>
-          </section>
+          </SettingSection>
 
-          <section className="mt-8 space-y-3">
-            <h3 className="text-sm font-medium">Available Profiles</h3>
+          <SettingSection title="Available Profiles">
             <React.Suspense
               fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
             >
               <ProfileList disabled={!browserToolEnabled} />
             </React.Suspense>
-          </section>
+          </SettingSection>
         </>
       ) : null}
-    </div>
+    </SettingPage>
   );
 }

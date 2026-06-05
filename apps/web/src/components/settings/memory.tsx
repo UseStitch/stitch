@@ -9,10 +9,15 @@ import {
 } from '@/components/settings/model-select';
 import {
   NumberSettingRow,
-  SettingRowLayout,
+  SettingLoading,
+  SettingPage,
+  SettingRow,
+  SettingRowControl,
+  SettingRows,
+  SettingSection,
   SliderSettingRow,
   SwitchSettingRow,
-} from '@/components/settings/setting-rows';
+} from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import {
   Combobox,
@@ -34,7 +39,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -201,41 +205,37 @@ function MemoryToggles() {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label htmlFor="memory-enabled-toggle" className="text-sm font-medium">
-            Enable Memory
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Learn and remember preferences, facts, and workflows across sessions
-          </p>
-        </div>
-        <Switch
-          id="memory-enabled-toggle"
-          checked={memoryEnabled}
-          disabled={!memoryEnabled && !canEnableMemory}
-          onCheckedChange={(checked) => saveEnabledMutation.mutate(checked ? 'true' : 'false')}
-        />
-      </div>
-      {!memoryEnabled && !canEnableMemory && (
+      <SettingRows>
+        <SettingRow
+          label="Enable Memory"
+          description="Learn and remember preferences, facts, and workflows across sessions"
+          htmlFor="memory-enabled-toggle"
+        >
+          <Switch
+            id="memory-enabled-toggle"
+            checked={memoryEnabled}
+            disabled={!memoryEnabled && !canEnableMemory}
+            onCheckedChange={(checked) => saveEnabledMutation.mutate(checked ? 'true' : 'false')}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Auto-extract memories"
+          description="Automatically extract facts from conversations after each response"
+          htmlFor="auto-extract-toggle"
+        >
+          <Switch
+            id="auto-extract-toggle"
+            checked={autoExtract}
+            disabled={!memoryEnabled}
+            onCheckedChange={(checked) =>
+              saveAutoExtractMutation.mutate(checked ? 'true' : 'false')
+            }
+          />
+        </SettingRow>
+      </SettingRows>
+      {!memoryEnabled && !canEnableMemory ? (
         <p className="text-xs text-muted-foreground">Select an embedding model to enable memory.</p>
-      )}
-      <div className="flex items-center justify-between gap-4 border-t border-border/50 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label htmlFor="auto-extract-toggle" className="text-sm font-medium">
-            Auto-extract memories
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Automatically extract facts from conversations after each response
-          </p>
-        </div>
-        <Switch
-          id="auto-extract-toggle"
-          checked={autoExtract}
-          disabled={!memoryEnabled}
-          onCheckedChange={(checked) => saveAutoExtractMutation.mutate(checked ? 'true' : 'false')}
-        />
-      </div>
+      ) : null}
     </>
   );
 }
@@ -258,7 +258,7 @@ function ExtractionSettings() {
   );
 
   return (
-    <div className="space-y-4">
+    <SettingRows>
       <NumberSettingRow
         settingKey="memory.extraction.maxFactsPerTurn"
         label="Max Facts Per Turn"
@@ -275,11 +275,8 @@ function ExtractionSettings() {
         min={0}
         max={500}
       />
-      <SettingRowLayout
-        label="Confidence Filter"
-        description="Which types of extracted facts to store."
-      >
-        <div className="w-52">
+      <SettingRow label="Confidence Filter" description="Which types of extracted facts to store.">
+        <SettingRowControl>
           <Select
             value={confidenceFilter}
             onValueChange={(val) => {
@@ -297,8 +294,8 @@ function ExtractionSettings() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </SettingRowLayout>
+        </SettingRowControl>
+      </SettingRow>
       <SliderSettingRow
         settingKey="memory.extraction.importanceMinScore"
         label="Min Importance Score"
@@ -324,7 +321,7 @@ function ExtractionSettings() {
         min={0}
         max={20}
       />
-    </div>
+    </SettingRows>
   );
 }
 
@@ -332,7 +329,7 @@ function RetentionSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   return (
-    <div className="space-y-4">
+    <SettingRows>
       <NumberSettingRow
         settingKey="memory.retention.maxMemories"
         label="Max Memories"
@@ -355,7 +352,7 @@ function RetentionSettings() {
         description="Run automatic pruning after extraction to stay within limits."
         checked={settings['memory.retention.autoprune'] === 'true'}
       />
-    </div>
+    </SettingRows>
   );
 }
 
@@ -368,7 +365,7 @@ function RetrievalSettings() {
   );
 
   return (
-    <div className="space-y-4">
+    <SettingRows>
       <NumberSettingRow
         settingKey="memory.retrieval.maxResults"
         label="Max Context Results"
@@ -392,7 +389,7 @@ function RetrievalSettings() {
         description="Boost recently-accessed memories in ranking."
         checked={settings['memory.retrieval.recencyBoost'] === 'true'}
       />
-    </div>
+    </SettingRows>
   );
 }
 
@@ -409,63 +406,54 @@ function EmbeddingModelContent() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label className="text-sm font-medium">Embedding Model</Label>
-        <p className="text-xs text-muted-foreground">
-          Model used for memory search. Required to enable memory.
-        </p>
-      </div>
-      <div className="w-52 shrink-0">
-        <EmbeddingModelSelect
-          currentProviderId={settings['memory.embedding.providerId']}
-          currentModelId={settings['memory.embedding.modelId']}
-          providerModels={providerModels}
-        />
-      </div>
-    </div>
+    <SettingRows>
+      <SettingRow
+        label="Embedding Model"
+        description="Model used for memory search. Required to enable memory."
+      >
+        <SettingRowControl>
+          <EmbeddingModelSelect
+            currentProviderId={settings['memory.embedding.providerId']}
+            currentModelId={settings['memory.embedding.modelId']}
+            providerModels={providerModels}
+          />
+        </SettingRowControl>
+      </SettingRow>
+    </SettingRows>
   );
 }
 
 export function MemorySettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Memory</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure how Stitch remembers information across sessions
-        </p>
-      </div>
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">General</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+    <SettingPage
+      title="Memory"
+      description="Configure how Stitch remembers information across sessions"
+    >
+      <SettingSection title="General">
+        <React.Suspense fallback={<SettingLoading />}>
           <MemoryToggles />
         </React.Suspense>
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Embedding</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Embedding">
+        <React.Suspense fallback={<SettingLoading />}>
           <EmbeddingModelContent />
         </React.Suspense>
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Extraction</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Extraction">
+        <React.Suspense fallback={<SettingLoading />}>
           <ExtractionSettings />
         </React.Suspense>
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Retention</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Retention">
+        <React.Suspense fallback={<SettingLoading />}>
           <RetentionSettings />
         </React.Suspense>
-      </section>
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-medium">Retrieval</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Retrieval">
+        <React.Suspense fallback={<SettingLoading />}>
           <RetrievalSettings />
         </React.Suspense>
-      </section>
-    </div>
+      </SettingSection>
+    </SettingPage>
   );
 }

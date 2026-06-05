@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, FolderOpenIcon, Settings2Icon, Trash2Icon } from 'lucide-react';
+import { FolderOpenIcon, Settings2Icon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
 import { PermissionSelect } from './permission-select';
 
 import type { EditingTarget } from './types';
+import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -34,42 +35,6 @@ type PermissionPolicyEditorProps = {
     enabled: boolean,
   ) => void;
 };
-
-function EditorHeader({
-  title,
-  subtitle,
-  enabled,
-  onBack,
-  onToggle,
-}: {
-  title: string;
-  subtitle: string;
-  enabled: boolean;
-  onBack: () => void;
-  onToggle: (enabled: boolean) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <Button variant="ghost" size="sm" onClick={onBack} className="h-7 w-fit px-2">
-        <ArrowLeftIcon className="size-3.5" />
-        Back to tools
-      </Button>
-
-      <div className="rounded-xl border border-border/60 bg-card/40 px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">{title}</p>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Enabled</span>
-            <Switch checked={enabled} onCheckedChange={onToggle} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Section({
   title,
@@ -175,174 +140,184 @@ function ToolPermissionEditor({
   };
 
   return (
-    <div className="space-y-6">
-      <EditorHeader
-        title={displayName}
-        subtitle={`Tool id: ${toolName}`}
-        enabled={getEnabled(enabledScope, toolName)}
-        onBack={onBack}
-        onToggle={(checked) => onToggleEnabled(enabledScope, toolName, checked)}
-      />
-
-      <Section
-        title="Default behavior"
-        description="This permission is used when no path or command rule matches."
-      >
-        <div className="rounded-lg border border-border/60 bg-card/30 px-3 py-2.5">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-            <div>
-              <p className="text-sm font-medium">All uses</p>
-              <p className="text-xs text-muted-foreground">
-                Choose allow, ask, or deny by default.
-              </p>
-            </div>
-            <PermissionSelect
-              value={globalPermission}
-              onChange={handleGlobalChange}
-              includeDeny
-              disabled={isMutating}
-            />
-          </div>
+    <SettingSubPage
+      title={displayName}
+      description={`Tool id: ${toolName}`}
+      onBack={onBack}
+      backLabel="Back to tools"
+      actions={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Enabled</span>
+          <Switch
+            checked={getEnabled(enabledScope, toolName)}
+            onCheckedChange={(checked) => onToggleEnabled(enabledScope, toolName, checked)}
+          />
         </div>
-      </Section>
-
-      {isPatternTool && patternRules.length > 0 && (
+      }
+    >
+      <div className="space-y-6">
         <Section
-          title="Specific rules"
-          description="More specific patterns override the default behavior."
+          title="Default behavior"
+          description="This permission is used when no path or command rule matches."
         >
-          <div className="overflow-hidden rounded-lg border border-border/60">
-            <div className="divide-y divide-border/40">
-              {patternRules.map((rule) => (
-                <div
-                  key={rule.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5"
-                >
-                  <p className="truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
+          <div className="rounded-lg border border-border/60 bg-card/30 px-3 py-2.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+              <div>
+                <p className="text-sm font-medium">All uses</p>
+                <p className="text-xs text-muted-foreground">
+                  Choose allow, ask, or deny by default.
+                </p>
+              </div>
+              <PermissionSelect
+                value={globalPermission}
+                onChange={handleGlobalChange}
+                includeDeny
+                disabled={isMutating}
+              />
+            </div>
+          </div>
+        </Section>
+
+        {isPatternTool && patternRules.length > 0 && (
+          <Section
+            title="Specific rules"
+            description="More specific patterns override the default behavior."
+          >
+            <div className="overflow-hidden rounded-lg border border-border/60">
+              <div className="divide-y divide-border/40">
+                {patternRules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5"
+                  >
+                    <p className="truncate font-mono text-xs text-muted-foreground">
+                      {rule.pattern}
+                    </p>
+                    <PermissionSelect
+                      value={rule.permission}
+                      onChange={(value) => handlePatternPermissionChange(rule, value)}
+                      includeDeny
+                      disabled={isMutating}
+                    />
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteRule(rule)}
+                      disabled={isMutating}
+                      aria-label="Delete rule"
+                      className="text-muted-foreground/70 hover:text-destructive"
+                    >
+                      <Trash2Icon className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {isPatternTool && toolName === 'bash' && (
+          <Section
+            title="Common command presets"
+            description="Quickly allow common safe command patterns."
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
+                const existing = patternRules.find((rule) => rule.pattern === preset.pattern);
+                return (
+                  <button
+                    key={preset.pattern}
+                    type="button"
+                    disabled={isMutating}
+                    onClick={() => {
+                      if (existing) {
+                        handleDeleteRule(existing);
+                      } else {
+                        void upsertPermission
+                          .mutateAsync({
+                            toolName,
+                            pattern: preset.pattern,
+                            permission: 'allow',
+                          })
+                          .catch((error: unknown) => {
+                            toast.error(
+                              error instanceof Error ? error.message : 'Failed to add rule',
+                            );
+                          });
+                      }
+                    }}
+                    className={[
+                      'inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-xs transition-colors',
+                      'disabled:cursor-not-allowed disabled:opacity-50',
+                      existing
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border/50 bg-transparent text-muted-foreground hover:border-border hover:text-foreground',
+                    ].join(' ')}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+
+        {isPatternTool && (
+          <Section
+            title={isFileTool ? 'Add path rule' : 'Add command rule'}
+            description={
+              isFileTool
+                ? 'Add file and directory patterns that should use a specific permission.'
+                : 'Add command patterns that should use a specific permission.'
+            }
+          >
+            <div className="rounded-lg border border-border/60 bg-card/30 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative min-w-0 flex-1">
+                  <Input
+                    value={newPattern}
+                    onChange={(event) => setNewPattern(event.target.value)}
+                    placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
+                    className={isFileTool ? 'pr-8 font-mono text-xs' : 'font-mono text-xs'}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') handleAddRule();
+                    }}
+                  />
+                  {isFileTool && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                      onClick={handleBrowse}
+                      aria-label="Browse for path"
+                      tabIndex={-1}
+                    >
+                      <FolderOpenIcon className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
                   <PermissionSelect
-                    value={rule.permission}
-                    onChange={(value) => handlePatternPermissionChange(rule, value)}
+                    value={newPermission}
+                    onChange={setNewPermission}
                     includeDeny
                     disabled={isMutating}
                   />
                   <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteRule(rule)}
-                    disabled={isMutating}
-                    aria-label="Delete rule"
-                    className="text-muted-foreground/70 hover:text-destructive"
+                    size="sm"
+                    onClick={handleAddRule}
+                    disabled={!newPattern.trim() || isMutating}
                   >
-                    <Trash2Icon className="size-3.5" />
+                    Add rule
                   </Button>
                 </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-      )}
-
-      {isPatternTool && toolName === 'bash' && (
-        <Section
-          title="Common command presets"
-          description="Quickly allow common safe command patterns."
-        >
-          <div className="flex flex-wrap gap-1.5">
-            {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
-              const existing = patternRules.find((rule) => rule.pattern === preset.pattern);
-              return (
-                <button
-                  key={preset.pattern}
-                  type="button"
-                  disabled={isMutating}
-                  onClick={() => {
-                    if (existing) {
-                      handleDeleteRule(existing);
-                    } else {
-                      void upsertPermission
-                        .mutateAsync({
-                          toolName,
-                          pattern: preset.pattern,
-                          permission: 'allow',
-                        })
-                        .catch((error: unknown) => {
-                          toast.error(
-                            error instanceof Error ? error.message : 'Failed to add rule',
-                          );
-                        });
-                    }
-                  }}
-                  className={[
-                    'inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-xs transition-colors',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                    existing
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border/50 bg-transparent text-muted-foreground hover:border-border hover:text-foreground',
-                  ].join(' ')}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
-      )}
-
-      {isPatternTool && (
-        <Section
-          title={isFileTool ? 'Add path rule' : 'Add command rule'}
-          description={
-            isFileTool
-              ? 'Add file and directory patterns that should use a specific permission.'
-              : 'Add command patterns that should use a specific permission.'
-          }
-        >
-          <div className="rounded-lg border border-border/60 bg-card/30 p-3">
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative min-w-0 flex-1">
-                <Input
-                  value={newPattern}
-                  onChange={(event) => setNewPattern(event.target.value)}
-                  placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
-                  className={isFileTool ? 'pr-8 font-mono text-xs' : 'font-mono text-xs'}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') handleAddRule();
-                  }}
-                />
-                {isFileTool && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-                    onClick={handleBrowse}
-                    aria-label="Browse for path"
-                    tabIndex={-1}
-                  >
-                    <FolderOpenIcon className="size-3.5" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <PermissionSelect
-                  value={newPermission}
-                  onChange={setNewPermission}
-                  includeDeny
-                  disabled={isMutating}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleAddRule}
-                  disabled={!newPattern.trim() || isMutating}
-                >
-                  Add rule
-                </Button>
               </div>
             </div>
-          </div>
-        </Section>
-      )}
-    </div>
+          </Section>
+        )}
+      </div>
+    </SettingSubPage>
   );
 }
 
@@ -386,15 +361,21 @@ export function PermissionPolicyEditor({
   const hasPerToolToggle = !!target.perToolEnabledScope;
 
   return (
-    <div className="space-y-6">
-      <EditorHeader
-        title={target.displayName}
-        subtitle={target.subtitle}
-        enabled={getEnabled('toolset', target.toolsetId)}
-        onBack={onBack}
-        onToggle={(checked) => onToggleEnabled('toolset', target.toolsetId, checked)}
-      />
-
+    <SettingSubPage
+      title={target.displayName}
+      description={target.subtitle}
+      onBack={onBack}
+      backLabel="Back to tools"
+      actions={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Enabled</span>
+          <Switch
+            checked={getEnabled('toolset', target.toolsetId)}
+            onCheckedChange={(checked) => onToggleEnabled('toolset', target.toolsetId, checked)}
+          />
+        </div>
+      }
+    >
       <Section title="Toolset tools" description="Open settings for per-tool permission behavior.">
         <div className="overflow-hidden rounded-lg border border-border/60">
           <div className="divide-y divide-border/40">
@@ -437,6 +418,6 @@ export function PermissionPolicyEditor({
           </div>
         </div>
       </Section>
-    </div>
+    </SettingSubPage>
   );
 }

@@ -23,6 +23,7 @@ import {
   useMcpToolsetGroups,
 } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
+import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -99,7 +100,7 @@ function ToolsContent() {
 
   if (editingTarget) {
     return (
-      <React.Suspense fallback={<div className="text-xs text-muted-foreground">Loading...</div>}>
+      <React.Suspense fallback={<SettingLoading />}>
         <PermissionPolicyEditor
           target={editingTarget}
           onBack={() => setEditingTarget(null)}
@@ -113,181 +114,179 @@ function ToolsContent() {
   const isMutating = setToolEnabledState.isPending;
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-base font-bold">Tools</h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Keep only the tools you need enabled, then open settings for permission behavior.
-        </p>
-      </div>
+    <SettingPage
+      title="Tools"
+      description="Keep only the tools you need enabled, then open settings for permission behavior."
+    >
+      <div className="space-y-5">
+        <div className="relative">
+          <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Search by tool, toolset, or MCP server..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
 
-      <div className="relative">
-        <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-8"
-          placeholder="Search by tool, toolset, or MCP server..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </div>
+        <Tabs
+          value={scope}
+          onValueChange={(value) => setScope(value as ScopeFilter)}
+          className="space-y-4"
+        >
+          <TabsList variant="line">
+            <TabsTrigger value="stitch">Core tools</TabsTrigger>
+            <TabsTrigger value="native">Native toolsets</TabsTrigger>
+            <TabsTrigger value="connectors">Connector tools</TabsTrigger>
+            <TabsTrigger value="mcp">MCP servers</TabsTrigger>
+          </TabsList>
 
-      <Tabs
-        value={scope}
-        onValueChange={(value) => setScope(value as ScopeFilter)}
-        className="space-y-4"
-      >
-        <TabsList variant="line">
-          <TabsTrigger value="stitch">Core tools</TabsTrigger>
-          <TabsTrigger value="native">Native toolsets</TabsTrigger>
-          <TabsTrigger value="connectors">Connector tools</TabsTrigger>
-          <TabsTrigger value="mcp">MCP servers</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="stitch">
-          {stitchTools.length > 0 ? (
-            <SectionCard
-              title="Core tools"
-              description="Built-in tools provided by Stitch"
-              count={stitchTools.length}
-            >
-              <div className="divide-y divide-border/40">
-                {stitchTools.map((tool) => (
-                  <ToolRow
-                    key={tool.toolName}
-                    name={tool.displayName}
-                    icon={
-                      <ToolNameIcon
-                        toolName={tool.toolName}
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                    }
-                    technicalName={tool.toolName}
-                    enabled={getEnabled('tool', tool.toolName)}
-                    onConfigure={() =>
-                      setEditingTarget({
-                        type: 'tool',
-                        toolName: tool.toolName,
-                        displayName: tool.displayName,
-                        enabledScope: 'tool',
-                      })
-                    }
-                    onToggleEnabled={(checked) => updateEnabled('tool', tool.toolName, checked)}
-                    isMutating={isMutating}
-                  />
-                ))}
-              </div>
-            </SectionCard>
-          ) : (
-            <EmptyState />
-          )}
-        </TabsContent>
-
-        <TabsContent value="native">
-          {nativeToolsets.length > 0 ? (
-            <SectionCard
-              title="Native toolsets"
-              description="Built-in toolsets available in Stitch"
-              count={nativeToolsets.length}
-            >
-              <div className="divide-y divide-border/40">
-                {nativeToolsets.map((toolset) => (
-                  <ToolsetRow
-                    key={toolset.id}
-                    name={toolset.name}
-                    description={toolset.description}
-                    icon={
-                      <NativeToolsetIcon
-                        toolsetId={toolset.id}
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                    }
-                    enabled={getEnabled('toolset', toolset.id)}
-                    settingsAlign="end"
-                    onConfigure={() =>
-                      setEditingTarget({
-                        type: 'toolset',
-                        toolsetId: toolset.id,
-                        displayName: toolset.name,
-                        subtitle: 'Native toolset',
-                        tools: toolset.tools,
-                      })
-                    }
-                    onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
-                    isMutating={isMutating}
-                  />
-                ))}
-              </div>
-            </SectionCard>
-          ) : (
-            <EmptyState />
-          )}
-        </TabsContent>
-
-        <TabsContent value="connectors">
-          {connectorToolsets.length > 0 ? (
-            <SectionCard
-              title="Connector tools"
-              description="Toolsets from connected apps like Google Workspace"
-              count={connectorToolsets.length}
-            >
-              <div className="divide-y divide-border/40">
-                {connectorToolsets.map((toolset) => (
-                  <ToolsetRow
-                    key={toolset.id}
-                    name={toolset.name}
-                    description={toolset.description}
-                    icon={
-                      toolset.icon ? (
-                        <ConnectorIcon
-                          icon={toolset.icon}
+          <TabsContent value="stitch">
+            {stitchTools.length > 0 ? (
+              <SectionCard
+                title="Core tools"
+                description="Built-in tools provided by Stitch"
+                count={stitchTools.length}
+              >
+                <div className="divide-y divide-border/40">
+                  {stitchTools.map((tool) => (
+                    <ToolRow
+                      key={tool.toolName}
+                      name={tool.displayName}
+                      icon={
+                        <ToolNameIcon
+                          toolName={tool.toolName}
                           className="size-4 shrink-0 text-muted-foreground"
                         />
-                      ) : undefined
-                    }
-                    enabled={getEnabled('toolset', toolset.id)}
-                    settingsAlign="end"
-                    onConfigure={() =>
-                      setEditingTarget({
-                        type: 'toolset',
-                        toolsetId: toolset.id,
-                        displayName: toolset.name,
-                        subtitle: 'Connector toolset',
-                        tools: toolset.tools,
-                      })
-                    }
-                    onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
-                    isMutating={isMutating}
-                  />
-                ))}
-              </div>
-            </SectionCard>
-          ) : (
-            <EmptyState />
-          )}
-        </TabsContent>
+                      }
+                      technicalName={tool.toolName}
+                      enabled={getEnabled('tool', tool.toolName)}
+                      onConfigure={() =>
+                        setEditingTarget({
+                          type: 'tool',
+                          toolName: tool.toolName,
+                          displayName: tool.displayName,
+                          enabledScope: 'tool',
+                        })
+                      }
+                      onToggleEnabled={(checked) => updateEnabled('tool', tool.toolName, checked)}
+                      isMutating={isMutating}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+            ) : (
+              <EmptyState />
+            )}
+          </TabsContent>
 
-        <TabsContent value="mcp">
-          <McpToolsTab
-            groups={filteredMcpGroups}
-            getEnabled={getEnabled}
-            updateEnabled={updateEnabled}
-            isMutating={isMutating}
-            onEditTarget={setEditingTarget}
-          />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="native">
+            {nativeToolsets.length > 0 ? (
+              <SectionCard
+                title="Native toolsets"
+                description="Built-in toolsets available in Stitch"
+                count={nativeToolsets.length}
+              >
+                <div className="divide-y divide-border/40">
+                  {nativeToolsets.map((toolset) => (
+                    <ToolsetRow
+                      key={toolset.id}
+                      name={toolset.name}
+                      description={toolset.description}
+                      icon={
+                        <NativeToolsetIcon
+                          toolsetId={toolset.id}
+                          className="size-4 shrink-0 text-muted-foreground"
+                        />
+                      }
+                      enabled={getEnabled('toolset', toolset.id)}
+                      settingsAlign="end"
+                      onConfigure={() =>
+                        setEditingTarget({
+                          type: 'toolset',
+                          toolsetId: toolset.id,
+                          displayName: toolset.name,
+                          subtitle: 'Native toolset',
+                          tools: toolset.tools,
+                        })
+                      }
+                      onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
+                      isMutating={isMutating}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+            ) : (
+              <EmptyState />
+            )}
+          </TabsContent>
 
-      <p className="text-xs text-muted-foreground">
-        Tip: use <span className="font-medium text-foreground">Settings</span> to configure ask,
-        allow, deny, and path/command rules.
-      </p>
-    </div>
+          <TabsContent value="connectors">
+            {connectorToolsets.length > 0 ? (
+              <SectionCard
+                title="Connector tools"
+                description="Toolsets from connected apps like Google Workspace"
+                count={connectorToolsets.length}
+              >
+                <div className="divide-y divide-border/40">
+                  {connectorToolsets.map((toolset) => (
+                    <ToolsetRow
+                      key={toolset.id}
+                      name={toolset.name}
+                      description={toolset.description}
+                      icon={
+                        toolset.icon ? (
+                          <ConnectorIcon
+                            icon={toolset.icon}
+                            className="size-4 shrink-0 text-muted-foreground"
+                          />
+                        ) : undefined
+                      }
+                      enabled={getEnabled('toolset', toolset.id)}
+                      settingsAlign="end"
+                      onConfigure={() =>
+                        setEditingTarget({
+                          type: 'toolset',
+                          toolsetId: toolset.id,
+                          displayName: toolset.name,
+                          subtitle: 'Connector toolset',
+                          tools: toolset.tools,
+                        })
+                      }
+                      onToggleEnabled={(checked) => updateEnabled('toolset', toolset.id, checked)}
+                      isMutating={isMutating}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+            ) : (
+              <EmptyState />
+            )}
+          </TabsContent>
+
+          <TabsContent value="mcp">
+            <McpToolsTab
+              groups={filteredMcpGroups}
+              getEnabled={getEnabled}
+              updateEnabled={updateEnabled}
+              isMutating={isMutating}
+              onEditTarget={setEditingTarget}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <p className="text-xs text-muted-foreground">
+          Tip: use <span className="font-medium text-foreground">Settings</span> to configure ask,
+          allow, deny, and path/command rules.
+        </p>
+      </div>
+    </SettingPage>
   );
 }
 
 export function ToolsSettings() {
   return (
-    <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+    <React.Suspense fallback={<SettingLoading />}>
       <ToolsContent />
     </React.Suspense>
   );

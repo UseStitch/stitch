@@ -51,41 +51,30 @@ export function McpRegistryList({
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-bold">MCP Marketplace</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Install curated MCP servers or add your own custom endpoint
-          </p>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search servers"
+            className="pl-7"
+          />
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => void handleRefresh()}
-            aria-label="Refresh MCP registry"
-            disabled={refreshRegistry.isPending}
-          >
-            <RefreshCwIcon
-              className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`}
-            />
-          </Button>
-          <Button size="sm" variant="outline" onClick={onAddCustom}>
-            <PlusIcon className="size-4" />
-            Add custom
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search servers"
-          className="pl-7"
-        />
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => void handleRefresh()}
+          aria-label="Refresh MCP registry"
+          disabled={refreshRegistry.isPending}
+        >
+          <RefreshCwIcon className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`} />
+        </Button>
+        <Button size="sm" variant="outline" onClick={onAddCustom}>
+          <PlusIcon className="size-4" />
+          Add custom
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border/60">

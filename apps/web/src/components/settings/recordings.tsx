@@ -3,8 +3,15 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
-import { SettingRowLayout, SliderSettingRow } from '@/components/settings/setting-rows';
-import { Label } from '@/components/ui/label';
+import {
+  SettingLoading,
+  SettingPage,
+  SettingRow,
+  SettingRowControl,
+  SettingRows,
+  SettingSection,
+  SliderSettingRow,
+} from '@/components/settings/settings-ui';
 import {
   Select,
   SelectContent,
@@ -132,9 +139,9 @@ function AudioDeviceSettings() {
   }
 
   return (
-    <div className="flex flex-col">
-      <SettingRowLayout label="Input Device" description="Microphone used for recording.">
-        <div className="w-64 shrink-0">
+    <SettingRows>
+      <SettingRow label="Input Device" description="Microphone used for recording.">
+        <SettingRowControl size="lg">
           <Select
             value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
             onValueChange={handleInputDeviceChange}
@@ -151,14 +158,11 @@ function AudioDeviceSettings() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </SettingRowLayout>
+        </SettingRowControl>
+      </SettingRow>
 
-      <SettingRowLayout
-        label="Output Device"
-        description="Speaker or system audio source for recording."
-      >
-        <div className="w-64 shrink-0">
+      <SettingRow label="Output Device" description="Speaker or system audio source for recording.">
+        <SettingRowControl size="lg">
           <Select
             value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
             onValueChange={handleOutputDeviceChange}
@@ -175,8 +179,8 @@ function AudioDeviceSettings() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </SettingRowLayout>
+        </SettingRowControl>
+      </SettingRow>
 
       <SliderSettingRow
         settingKey="recordings.speakerGain"
@@ -187,9 +191,8 @@ function AudioDeviceSettings() {
         max={30}
         step={1}
         precision={0}
-        borderBottom={false}
       />
-    </div>
+    </SettingRows>
   );
 }
 
@@ -223,78 +226,66 @@ function RecordingsContent() {
     transcriptionProviderModels.length === 0 && audioProviderModels.length === 0;
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 py-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <Label className="text-sm font-medium">Auto analyze recordings</Label>
-          <p className="text-xs text-muted-foreground">
-            Automatically run transcription and analysis after a recording ends.
+    <>
+      <SettingRows>
+        <SettingRow
+          label="Auto analyze recordings"
+          description="Automatically run transcription and analysis after a recording ends."
+        >
+          <Switch
+            checked={autoAnalyzeEnabled}
+            onCheckedChange={(checked) =>
+              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
+            }
+            disabled={autoAnalyzeDisabled}
+          />
+        </SettingRow>
+        {noModelsAvailable ? (
+          <p className="py-3 text-sm text-muted-foreground">
+            No audio-capable models are available for recording transcription.
           </p>
-        </div>
-        <Switch
-          checked={autoAnalyzeEnabled}
-          onCheckedChange={(checked) => saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')}
-          disabled={autoAnalyzeDisabled}
-        />
-      </div>
+        ) : (
+          RECORDING_MODEL_PREFERENCES.map((pref) => (
+            <SettingRow key={pref.providerIdKey} label={pref.label} description={pref.description}>
+              <SettingRowControl>
+                <SettingsModelSelect
+                  providerIdKey={pref.providerIdKey}
+                  modelIdKey={pref.modelIdKey}
+                  currentProviderId={settings[pref.providerIdKey]}
+                  currentModelId={settings[pref.modelIdKey]}
+                  providerModels={providerModelsForPref(pref.providerIdKey)}
+                />
+              </SettingRowControl>
+            </SettingRow>
+          ))
+        )}
+      </SettingRows>
       {!canEnableAutoAnalyze ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           Select both a transcription model and an analysis model to enable auto analyze.
         </p>
       ) : null}
-
-      {noModelsAvailable ? (
-        <p className="border-t border-border/50 py-3 text-sm text-muted-foreground">
-          No audio-capable models are available for recording transcription.
-        </p>
-      ) : (
-        RECORDING_MODEL_PREFERENCES.map((pref, index) => (
-          <div
-            key={pref.providerIdKey}
-            className={`flex items-center justify-between gap-4 py-3 ${index < RECORDING_MODEL_PREFERENCES.length - 1 ? 'border-b border-border/50' : ''}`}
-          >
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <Label className="text-sm font-medium">{pref.label}</Label>
-              <p className="text-xs text-muted-foreground">{pref.description}</p>
-            </div>
-            <div className="w-52 shrink-0">
-              <SettingsModelSelect
-                providerIdKey={pref.providerIdKey}
-                modelIdKey={pref.modelIdKey}
-                currentProviderId={settings[pref.providerIdKey]}
-                currentModelId={settings[pref.modelIdKey]}
-                providerModels={providerModelsForPref(pref.providerIdKey)}
-              />
-            </div>
-          </div>
-        ))
-      )}
-    </div>
+    </>
   );
 }
 
 export function RecordingsSettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Recordings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure audio devices, capture settings, and analysis behavior for recordings.
-        </p>
-      </div>
+    <SettingPage
+      title="Recordings"
+      description="Configure audio devices, capture settings, and analysis behavior for recordings."
+    >
       <PermissionStatus />
-      <section className="mt-4 space-y-3">
-        <h3 className="text-sm font-medium">Audio Devices</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      <SettingSection title="Audio Devices" className="mt-4">
+        <React.Suspense fallback={<SettingLoading />}>
           <AudioDeviceSettings />
         </React.Suspense>
-      </section>
-      <section className="mt-6 space-y-3">
-        <h3 className="text-sm font-medium">Analysis</h3>
-        <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      </SettingSection>
+      <SettingSection title="Analysis">
+        <React.Suspense fallback={<SettingLoading />}>
           <RecordingsContent />
         </React.Suspense>
-      </section>
-    </div>
+      </SettingSection>
+    </SettingPage>
   );
 }

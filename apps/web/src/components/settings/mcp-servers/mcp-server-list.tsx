@@ -44,29 +44,21 @@ export function McpServerList({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-bold">Configured MCP Servers</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage servers currently connected to your workspace
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => void handleRefresh()}
-            aria-label="Refresh MCP servers"
-            disabled={refreshServers.isPending}
-          >
-            <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button size="sm" variant="outline" onClick={onAdd} aria-label="Add MCP server">
-            <PlusIcon className="size-4" />
-            Add custom
-          </Button>
-        </div>
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-end gap-1">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => void handleRefresh()}
+          aria-label="Refresh MCP servers"
+          disabled={refreshServers.isPending}
+        >
+          <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
+        </Button>
+        <Button size="sm" variant="outline" onClick={onAdd} aria-label="Add MCP server">
+          <PlusIcon className="size-4" />
+          Add custom
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border/60">

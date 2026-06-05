@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,98 +84,97 @@ function ConnectionContent() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Connection</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose whether Stitch connects to the local sidecar or a remote server.
-        </p>
-      </div>
+      <SettingPage
+        title="Connection"
+        description="Choose whether Stitch connects to the local sidecar or a remote server."
+      >
+        <SettingSection title="Server">
+          <div className="grid grid-cols-2 gap-3">
+            {MODE_OPTIONS.map((option) => (
+              <button
+                key={option.mode}
+                type="button"
+                onClick={() => setMode(option.mode)}
+                className={cn(
+                  'rounded-xl border p-4 text-left transition-colors',
+                  mode === option.mode
+                    ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
+                    : 'border-border bg-background hover:bg-accent/50',
+                )}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {option.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </SettingSection>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium">Server</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {MODE_OPTIONS.map((option) => (
-            <button
-              key={option.mode}
+        <SettingSection>
+          <div>
+            <Label htmlFor="remote-server-url" className="text-sm font-medium">
+              Remote server URL
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Used only when remote server mode is selected. Example: http://192.168.1.10:3000
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              id="remote-server-url"
+              value={remoteUrl}
+              onChange={(event) => {
+                setRemoteUrl(event.target.value);
+                setTestState({ status: 'idle' });
+              }}
+              disabled={!remoteSelected || saving}
+              placeholder="http://server.local:3000"
+            />
+            <Button
               type="button"
-              onClick={() => setMode(option.mode)}
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={!remoteSelected || testing || saving}
+            >
+              {testing ? (
+                <>
+                  <LoaderIcon className="size-3.5 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                'Test'
+              )}
+            </Button>
+          </div>
+          {testState.status !== 'idle' ? (
+            <p
               className={cn(
-                'rounded-xl border p-4 text-left transition-colors',
-                mode === option.mode
-                  ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
-                  : 'border-border bg-background hover:bg-accent/50',
+                'text-xs',
+                testState.status === 'success' ? 'text-success' : 'text-destructive',
               )}
             >
-              <span className="text-sm font-medium">{option.label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">{option.description}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+              {testState.message}
+            </p>
+          ) : null}
+        </SettingSection>
 
-      <section className="mt-8 space-y-3">
-        <div>
-          <Label htmlFor="remote-server-url" className="text-sm font-medium">
-            Remote server URL
-          </Label>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Used only when remote server mode is selected. Example: http://192.168.1.10:3000
+        <div className="mt-8 flex items-center justify-between border-t pt-4">
+          <p className="text-xs text-muted-foreground">
+            Saving clears cached app data and reconnects to the selected server.
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            id="remote-server-url"
-            value={remoteUrl}
-            onChange={(event) => {
-              setRemoteUrl(event.target.value);
-              setTestState({ status: 'idle' });
-            }}
-            disabled={!remoteSelected || saving}
-            placeholder="http://server.local:3000"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleTestConnection}
-            disabled={!remoteSelected || testing || saving}
-          >
-            {testing ? (
+          <Button type="button" onClick={handleSave} disabled={!hasChanges || saving}>
+            {saving ? (
               <>
                 <LoaderIcon className="size-3.5 animate-spin" />
-                Testing...
+                Saving...
               </>
             ) : (
-              'Test'
+              'Save connection'
             )}
           </Button>
         </div>
-        {testState.status !== 'idle' ? (
-          <p
-            className={cn(
-              'text-xs',
-              testState.status === 'success' ? 'text-success' : 'text-destructive',
-            )}
-          >
-            {testState.message}
-          </p>
-        ) : null}
-      </section>
-
-      <div className="mt-8 flex items-center justify-between border-t pt-4">
-        <p className="text-xs text-muted-foreground">
-          Saving clears cached app data and reconnects to the selected server.
-        </p>
-        <Button type="button" onClick={handleSave} disabled={!hasChanges || saving}>
-          {saving ? (
-            <>
-              <LoaderIcon className="size-3.5 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save connection'
-          )}
-        </Button>
-      </div>
+      </SettingPage>
     </div>
   );
 }

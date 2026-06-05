@@ -1,10 +1,11 @@
-import { ArrowLeftIcon, DownloadIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Skill } from '@stitch/shared/skills/types';
 
+import { SettingPage, SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,19 +58,12 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="flex h-144 max-h-144 flex-col overflow-hidden">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-sm font-semibold">Import Skill</h2>
-          <p className="text-xs text-muted-foreground">
-            Search the public agent skills directory and import into Stitch.
-          </p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title="Import Skill"
+      description="Search the public agent skills directory and import into Stitch."
+      onBack={onBack}
+      backLabel="Back to skills"
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <Input
           autoFocus
@@ -111,7 +105,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
           )}
         </div>
       </div>
-    </div>
+    </SettingSubPage>
   );
 }
 
@@ -148,19 +142,12 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
   }
 
   return (
-    <div className="flex h-144 max-h-144 flex-col overflow-hidden">
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-sm font-semibold">{isEditing ? 'Edit Skill' : 'Add Skill'}</h2>
-          <p className="text-xs text-muted-foreground">
-            Markdown instructions the agent can load when a task matches the description.
-          </p>
-        </div>
-      </div>
-
+    <SettingSubPage
+      title={isEditing ? 'Edit Skill' : 'Add Skill'}
+      description="Markdown instructions the agent can load when a task matches the description."
+      onBack={onBack}
+      backLabel="Back to skills"
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div className="grid gap-2">
           <Label htmlFor="skill-name">Name</Label>
@@ -206,7 +193,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
           </Button>
         </div>
       </div>
-    </div>
+    </SettingSubPage>
   );
 }
 
@@ -238,14 +225,10 @@ export function SkillsSettings() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Skills</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add reusable Markdown instructions the agent can load as a default tool.
-          </p>
-        </div>
+    <SettingPage
+      title="Skills"
+      description="Add reusable Markdown instructions the agent can load as a default tool."
+      actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
             <DownloadIcon className="size-4" />
@@ -256,8 +239,8 @@ export function SkillsSettings() {
             Add Skill
           </Button>
         </div>
-      </div>
-
+      }
+    >
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
         {skills.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
@@ -295,6 +278,6 @@ export function SkillsSettings() {
           ))
         )}
       </div>
-    </div>
+    </SettingPage>
   );
 }
