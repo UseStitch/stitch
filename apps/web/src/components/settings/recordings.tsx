@@ -2,18 +2,7 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
+import { SettingsModelSelect } from '@/components/settings/model-select';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -36,17 +25,6 @@ import {
   settingsQueryOptions,
 } from '@/lib/queries/settings';
 
-type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
-
 const RECORDING_MODEL_PREFERENCES = [
   {
     providerIdKey: 'recordings.transcription.providerId',
@@ -63,101 +41,6 @@ const RECORDING_MODEL_PREFERENCES = [
 ] as const;
 
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
-
-function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
-
-function ModelSelect({
-  providerIdKey,
-  modelIdKey,
-  currentProviderId,
-  currentModelId,
-  providerModels,
-}: {
-  providerIdKey: string;
-  modelIdKey: string;
-  currentProviderId: string | undefined;
-  currentModelId: string | undefined;
-  providerModels: ProviderModels[];
-}) {
-  const queryClient = useQueryClient();
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
-
-  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-  const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient),
-  );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-
-  function handleValueChange(value: ModelOption | null) {
-    if (!value) {
-      if (currentProviderId) deleteProviderMutation.mutate();
-      if (currentModelId) deleteModelMutation.mutate();
-      return;
-    }
-
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
-  }
-
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
-  return (
-    <Combobox<ModelOption>
-      value={selectedOption}
-      onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput
-        placeholder="Search models..."
-        showClear={!!(currentProviderId && currentModelId)}
-      />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={`${item.providerId}:${item.modelId}`} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
 
 function PermissionStatus() {
   const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
@@ -397,7 +280,7 @@ function RecordingsContent() {
               <p className="text-xs text-muted-foreground">{pref.description}</p>
             </div>
             <div className="w-52 shrink-0">
-              <ModelSelect
+              <SettingsModelSelect
                 providerIdKey={pref.providerIdKey}
                 modelIdKey={pref.modelIdKey}
                 currentProviderId={settings[pref.providerIdKey]}

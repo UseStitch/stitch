@@ -3,39 +3,13 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SettingsModelSelect } from '@/components/settings/model-select';
 import { Button } from '@/components/ui/button';
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { visibleProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-  settingsQueryOptions,
-} from '@/lib/queries/settings';
+import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
-
-type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
 
 const MODEL_PREFERENCES = [
   {
@@ -58,100 +32,6 @@ const MODEL_PREFERENCES = [
   },
 ] as const;
 
-function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
-
-function ModelSelect({
-  providerIdKey,
-  modelIdKey,
-  currentProviderId,
-  currentModelId,
-  providerModels,
-}: {
-  providerIdKey: string;
-  modelIdKey: string;
-  currentProviderId: string | undefined;
-  currentModelId: string | undefined;
-  providerModels: ProviderModels[];
-}) {
-  const queryClient = useQueryClient();
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
-
-  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-  const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient),
-  );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
-
-  function handleValueChange(value: ModelOption | null) {
-    if (!value) {
-      if (currentProviderId) deleteProviderMutation.mutate();
-      if (currentModelId) deleteModelMutation.mutate();
-      return;
-    }
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
-  }
-
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
-  return (
-    <Combobox<ModelOption>
-      value={selectedOption}
-      onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput
-        placeholder="Search models..."
-        showClear={!!(currentProviderId && currentModelId)}
-      />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={item.value} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
-  );
-}
-
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
@@ -173,7 +53,7 @@ function ModelsContent() {
               <p className="text-xs text-muted-foreground">{pref.description}</p>
             </div>
             <div className="w-52 shrink-0">
-              <ModelSelect
+              <SettingsModelSelect
                 providerIdKey={pref.providerIdKey}
                 modelIdKey={pref.modelIdKey}
                 currentProviderId={settings[pref.providerIdKey]}

@@ -2,6 +2,11 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import {
+  buildGroupedItems,
+  flattenGroups,
+  type ModelOption,
+} from '@/components/settings/model-select';
 import { Button } from '@/components/ui/button';
 import {
   Combobox,
@@ -38,37 +43,11 @@ import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
-
 const CONFIDENCE_FILTER_OPTIONS = [
   { value: 'stated', label: 'Stated only (Strict)' },
   { value: 'stated+confirmed', label: 'Stated + Confirmed' },
   { value: 'all', label: 'All (Includes Inferred)' },
 ] as const;
-
-function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
 
 function EmbeddingModelSelect({
   currentProviderId,
