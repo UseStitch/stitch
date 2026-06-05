@@ -4,51 +4,28 @@ import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { ChatSidebarContent } from '@/components/chat/chat-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
-import { SettingsNav } from '@/components/settings/settings-nav';
+import { SettingsSidebarContent } from '@/components/settings/settings-nav';
 import { Sidebar } from '@/components/ui/sidebar';
 
-function useActiveContext():
-  | 'chat'
-  | 'connectors'
-  | 'automations'
-  | 'memories'
-  | 'usage'
-  | 'recordings'
-  | 'agenda'
-  | 'settings' {
-  const path = useRouterState({ select: (state) => state.location.pathname });
-  if (path.startsWith('/connectors')) return 'connectors';
-  if (path.startsWith('/automations')) return 'automations';
-  if (path.startsWith('/memories')) return 'memories';
-  if (path.startsWith('/usage')) return 'usage';
-  if (path.startsWith('/recordings')) return 'recordings';
-  if (path.startsWith('/agenda')) return 'agenda';
-  if (path.startsWith('/settings')) return 'settings';
+const HIDDEN_SIDEBAR_PATHS = ['/connectors', '/memories', '/usage'] as const;
 
-  return 'chat';
-}
+const SIDEBAR_CONTENT = [
+  { path: '/settings', content: <SettingsSidebarContent /> },
+  { path: '/automations', content: <AutomationsSidebarContent /> },
+  { path: '/recordings', content: <RecordingsSidebarContent /> },
+  { path: '/agenda', content: <AgendaSidebarContent /> },
+] as const;
 
 export function AppSidebar() {
-  const context = useActiveContext();
+  const path = useRouterState({ select: (state) => state.location.pathname });
 
-  if (context === 'connectors' || context === 'memories' || context === 'usage') {
+  if (HIDDEN_SIDEBAR_PATHS.some((hiddenPath) => path.startsWith(hiddenPath))) {
     return null;
   }
 
-  if (context === 'settings') {
-    return <SettingsNav />;
-  }
-
-  const content =
-    context === 'automations' ? (
-      <AutomationsSidebarContent />
-    ) : context === 'recordings' ? (
-      <RecordingsSidebarContent />
-    ) : context === 'agenda' ? (
-      <AgendaSidebarContent />
-    ) : (
-      <ChatSidebarContent />
-    );
+  const content = SIDEBAR_CONTENT.find((item) => path.startsWith(item.path))?.content ?? (
+    <ChatSidebarContent />
+  );
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">

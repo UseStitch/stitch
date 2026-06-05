@@ -109,6 +109,24 @@ function Item({
   );
 }
 
+function Section({
+  title,
+  children,
+  ...props
+}: React.ComponentProps<typeof SidebarGroup> & {
+  title: React.ReactNode;
+}) {
+  return (
+    <Group title={title} {...props}>
+      <List>{children}</List>
+    </Group>
+  );
+}
+
+function SectionItem(props: React.ComponentProps<typeof Item>) {
+  return <Item {...props} />;
+}
+
 function EmptyState({
   icon: Icon,
   title,
@@ -148,5 +166,7 @@ export const InternalSidebar = Object.assign(Root, {
   Group,
   List,
   Item,
+  Section,
+  SectionItem,
   EmptyState,
 });
