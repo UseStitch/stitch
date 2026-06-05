@@ -2,10 +2,11 @@ import { ArrowRightIcon, FolderIcon, ListTodoIcon, MergeIcon, PlusIcon } from 'l
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useRouterState } from '@tanstack/react-router';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
 
 import type { AgendaListWithCounts } from '@stitch/shared/agenda/types';
 
+import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,16 +18,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '@/components/ui/sidebar';
 import { Textarea } from '@/components/ui/textarea';
 import {
   agendaListsQueryOptions,
@@ -77,81 +68,78 @@ function ListRow({
   }
 
   return (
-    <SidebarMenuItem
-      draggable
-      onDragStart={handleDragStart}
-      onDrop={handleDrop}
-      className={cn(
-        'group/listrow rounded-md transition-all',
-        isDragging && 'opacity-40',
-        mergeIndicator && 'ring-2 ring-primary bg-primary/10',
-      )}
+    <InternalSidebar.Item
+      itemProps={{
+        draggable: true,
+        onDragStart: handleDragStart,
+        onDrop: handleDrop,
+        className: cn(
+          'group/listrow rounded-md transition-all',
+          isDragging && 'opacity-40',
+          mergeIndicator && 'ring-2 ring-primary bg-primary/10',
+        ),
+      }}
+      isActive={isActive}
+      className="h-auto py-1.5"
+      render={
+        <Link
+          to="/agenda/$listId"
+          params={{ listId: list.id }}
+          className="flex items-center gap-2"
+        />
+      }
     >
-      <SidebarMenuButton
-        isActive={isActive}
-        className="h-auto py-1.5"
-        render={
-          <Link
-            to="/agenda/$listId"
-            params={{ listId: list.id }}
-            className="flex items-center gap-2"
-          />
-        }
-      >
-        <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-sm">{list.name}</span>
-            {mergeIndicator ? (
-              <Badge
-                variant="default"
-                className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in"
-              >
-                {mergeIndicator === 'list' ? (
-                  <span className="flex items-center gap-0.5">
-                    <MergeIcon className="size-2.5" />
-                    Merge
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-0.5">
-                    <ArrowRightIcon className="size-2.5" />
-                    Move
-                  </span>
-                )}
-              </Badge>
-            ) : openCount > 0 ? (
-              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                {openCount}
-              </Badge>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <span>{list.itemCounts.total} items</span>
-            {list.itemCounts.overdue > 0 && (
-              <>
-                <span>·</span>
-                <span className="text-destructive">{list.itemCounts.overdue} overdue</span>
-              </>
-            )}
-            {list.itemCounts.dueSoon > 0 && (
-              <>
-                <span>·</span>
-                <span className="text-warning">{list.itemCounts.dueSoon} due soon</span>
-              </>
-            )}
-          </div>
+      <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-sm">{list.name}</span>
+          {mergeIndicator ? (
+            <Badge
+              variant="default"
+              className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in"
+            >
+              {mergeIndicator === 'list' ? (
+                <span className="flex items-center gap-0.5">
+                  <MergeIcon className="size-2.5" />
+                  Merge
+                </span>
+              ) : (
+                <span className="flex items-center gap-0.5">
+                  <ArrowRightIcon className="size-2.5" />
+                  Move
+                </span>
+              )}
+            </Badge>
+          ) : openCount > 0 ? (
+            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+              {openCount}
+            </Badge>
+          ) : null}
         </div>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>{list.itemCounts.total} items</span>
+          {list.itemCounts.overdue > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-destructive">{list.itemCounts.overdue} overdue</span>
+            </>
+          )}
+          {list.itemCounts.dueSoon > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-warning">{list.itemCounts.dueSoon} due soon</span>
+            </>
+          )}
+        </div>
+      </div>
+    </InternalSidebar.Item>
   );
 }
 
 export function AgendaSidebarContent() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const selectedListId = typeof params.listId === 'string' ? params.listId : null;
-  const isOnIndex = pathname === '/agenda';
 
   const { data } = useQuery(agendaListsQueryOptions());
   const lists = data?.lists ?? [];
@@ -261,82 +249,74 @@ export function AgendaSidebarContent() {
 
   return (
     <>
-      <SidebarHeader className="pb-0">
-        <SidebarMenuButton
-          isActive={isOnIndex}
-          render={<Link to="/agenda" className="flex items-center gap-2 font-medium" />}
-        >
-          <ListTodoIcon className="size-4" />
-          All Items
-        </SidebarMenuButton>
-      </SidebarHeader>
+      <InternalSidebar.Header>
+        <InternalSidebar.Top>
+          <InternalSidebar.TopTitle>
+            <Link to="/agenda" className="flex min-w-0 items-center gap-2 truncate">
+              <ListTodoIcon className="size-4 shrink-0" />
+              <span className="truncate">Agenda</span>
+            </Link>
+          </InternalSidebar.TopTitle>
+          <InternalSidebar.TopAction
+            onClick={() => {
+              setNewListName('');
+              setNewListDescription('');
+              setCreateOpen(true);
+            }}
+            aria-label="Create list"
+          >
+            <PlusIcon className="size-3.5" />
+          </InternalSidebar.TopAction>
+        </InternalSidebar.Top>
+      </InternalSidebar.Header>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <div className="flex items-center justify-between">
-            <SidebarGroupLabel>Lists</SidebarGroupLabel>
-            <button
-              type="button"
-              className="mr-2 flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => {
-                setNewListName('');
-                setNewListDescription('');
-                setCreateOpen(true);
-              }}
-            >
-              <PlusIcon className="size-3.5" />
-            </button>
-          </div>
-          <SidebarGroupContent>
-            <SidebarMenu
-              onDrop={handleListDrop}
-              onDragOver={(e) => {
-                if (getDragType(e)) e.preventDefault();
-              }}
-            >
-              {lists.map((list, index) => {
-                const showDropBefore = dropIndex === index && dragListId && dragListId !== list.id;
-                const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
-                return (
-                  <React.Fragment key={list.id}>
-                    {showDropBefore && <div className="mx-2 h-0.5 rounded bg-primary" />}
-                    <div onDragOver={(e) => handleListDragOver(e, index)}>
-                      <ListRow
-                        list={list}
-                        isActive={list.id === selectedListId}
-                        isDragging={dragListId === list.id}
-                        mergeIndicator={
-                          isMergeTarget
-                            ? 'list'
-                            : mergeTargetId === list.id && !dragListId
-                              ? 'item'
-                              : null
-                        }
-                        onDragStart={() => setDragListId(list.id)}
-                        onMoveItem={handleMoveItem}
-                      />
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-              {dropIndex === lists.length && dragListId && (
-                <div className="mx-2 h-0.5 rounded bg-primary" />
-              )}
-              {lists.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-                  <ListTodoIcon className="size-8 text-muted-foreground/40" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">No lists yet</p>
-                    <p className="text-xs text-muted-foreground/70">
-                      Click + to create your first list.
-                    </p>
+      <InternalSidebar.Content>
+        <InternalSidebar.Group title="Lists">
+          <InternalSidebar.List
+            onDrop={handleListDrop}
+            onDragOver={(e) => {
+              if (getDragType(e)) e.preventDefault();
+            }}
+          >
+            {lists.map((list, index) => {
+              const showDropBefore = dropIndex === index && dragListId && dragListId !== list.id;
+              const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
+              return (
+                <React.Fragment key={list.id}>
+                  {showDropBefore && <div className="mx-2 h-0.5 rounded bg-primary" />}
+                  <div onDragOver={(e) => handleListDragOver(e, index)}>
+                    <ListRow
+                      list={list}
+                      isActive={list.id === selectedListId}
+                      isDragging={dragListId === list.id}
+                      mergeIndicator={
+                        isMergeTarget
+                          ? 'list'
+                          : mergeTargetId === list.id && !dragListId
+                            ? 'item'
+                            : null
+                      }
+                      onDragStart={() => setDragListId(list.id)}
+                      onMoveItem={handleMoveItem}
+                    />
                   </div>
-                </div>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+                </React.Fragment>
+              );
+            })}
+            {dropIndex === lists.length && dragListId && (
+              <div className="mx-2 h-0.5 rounded bg-primary" />
+            )}
+            {lists.length === 0 && (
+              <InternalSidebar.EmptyState
+                icon={ListTodoIcon}
+                title="No lists yet"
+                description="Click + to create your first list."
+                className="py-8"
+              />
+            )}
+          </InternalSidebar.List>
+        </InternalSidebar.Group>
+      </InternalSidebar.Content>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
