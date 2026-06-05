@@ -23,6 +23,7 @@ import { ModelsSettings } from '@/components/settings/models';
 import { ToolsSettings } from '@/components/settings/permissions';
 import { ProvidersSettings } from '@/components/settings/providers';
 import { RecordingsSettings } from '@/components/settings/recordings';
+import { SettingLoading } from '@/components/settings/settings-ui';
 import { ShortcutsSettings } from '@/components/settings/shortcuts';
 import { SkillsSettings } from '@/components/settings/skills';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -132,7 +133,11 @@ function SettingsContent({ activeItem }: { activeItem: string }) {
     case 'connection':
       return <ConnectionSettings />;
     case 'browser':
-      return <BrowserSettings />;
+      return (
+        <React.Suspense fallback={<SettingLoading />}>
+          <BrowserSettings />
+        </React.Suspense>
+      );
     case 'recordings':
       return <RecordingsSettings />;
     case 'shortcuts':
