@@ -69,20 +69,10 @@ export function ProvidersSettings() {
           description="Connect your AI providers and API keys"
           icon={<ServerIcon className="size-5" />}
         >
-          <React.Suspense
-            fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
-          >
-            <ProviderList onSelect={setSelected} />
-          </React.Suspense>
+          <ProviderList onSelect={setSelected} />
         </SettingPage>
       )}
-      {selected ? (
-        <React.Suspense
-          fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
-        >
-          <ProviderConfig provider={selected} onBack={() => setSelected(null)} />
-        </React.Suspense>
-      ) : null}
+      {selected ? <ProviderConfig provider={selected} onBack={() => setSelected(null)} /> : null}
     </div>
   );
 }

@@ -181,9 +181,5 @@ function ConnectionContent() {
 }
 
 export function ConnectionSettings() {
-  return (
-    <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-      <ConnectionContent />
-    </React.Suspense>
-  );
+  return <ConnectionContent />;
 }

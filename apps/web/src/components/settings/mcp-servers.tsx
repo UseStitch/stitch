@@ -8,7 +8,7 @@ import { McpServerList } from './mcp-servers/mcp-server-list';
 import { McpToolsPreview } from './mcp-servers/mcp-tools-preview';
 
 import type { View } from './mcp-servers/shared';
-import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Tab = 'configured' | 'marketplace';
@@ -74,9 +74,5 @@ function McpServersContent() {
 }
 
 export function McpServersSettings() {
-  return (
-    <React.Suspense fallback={<SettingLoading />}>
-      <McpServersContent />
-    </React.Suspense>
-  );
+  return <McpServersContent />;
 }

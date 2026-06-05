@@ -23,7 +23,7 @@ import {
   useMcpToolsetGroups,
 } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
-import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -100,14 +100,12 @@ function ToolsContent() {
 
   if (editingTarget) {
     return (
-      <React.Suspense fallback={<SettingLoading />}>
-        <PermissionPolicyEditor
-          target={editingTarget}
-          onBack={() => setEditingTarget(null)}
-          getEnabled={getEnabled}
-          onToggleEnabled={updateEnabled}
-        />
-      </React.Suspense>
+      <PermissionPolicyEditor
+        target={editingTarget}
+        onBack={() => setEditingTarget(null)}
+        getEnabled={getEnabled}
+        onToggleEnabled={updateEnabled}
+      />
     );
   }
 
@@ -286,9 +284,5 @@ function ToolsContent() {
 }
 
 export function ToolsSettings() {
-  return (
-    <React.Suspense fallback={<SettingLoading />}>
-      <ToolsContent />
-    </React.Suspense>
-  );
+  return <ToolsContent />;
 }

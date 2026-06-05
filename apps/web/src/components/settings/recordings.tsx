@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import {
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRowControl,
@@ -279,14 +278,10 @@ export function RecordingsSettings() {
     >
       <PermissionStatus />
       <SettingSection title="Audio Devices" className="mt-4">
-        <React.Suspense fallback={<SettingLoading />}>
-          <AudioDeviceSettings />
-        </React.Suspense>
+        <AudioDeviceSettings />
       </SettingSection>
       <SettingSection title="Analysis">
-        <React.Suspense fallback={<SettingLoading />}>
-          <RecordingsContent />
-        </React.Suspense>
+        <RecordingsContent />
       </SettingSection>
     </SettingPage>
   );

@@ -6,6 +6,7 @@ import {
   knownToolsetsQueryOptions,
   knownToolsQueryOptions,
   toolEnabledStatesQueryOptions,
+  toolPermissionsQueryOptions,
 } from '@/lib/queries/tools';
 
 export const Route = createFileRoute('/settings/tools')({
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/settings/tools')({
       context.queryClient.ensureQueryData(knownMcpToolsQueryOptions),
       context.queryClient.ensureQueryData(knownToolsetsQueryOptions),
       context.queryClient.ensureQueryData(toolEnabledStatesQueryOptions),
+      context.queryClient.ensureQueryData(toolPermissionsQueryOptions),
     ]),
   component: ToolsSettings,
 });

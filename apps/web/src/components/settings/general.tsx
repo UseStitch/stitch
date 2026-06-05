@@ -5,7 +5,6 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import {
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRowControl,
@@ -78,17 +77,13 @@ export function GeneralSettings() {
       icon={<MonitorIcon className="size-5" />}
     >
       <SettingSection title="Models">
-        <React.Suspense fallback={<SettingLoading />}>
-          <ModelsContent />
-        </React.Suspense>
+        <ModelsContent />
       </SettingSection>
       <SettingSection title="App Updates">
         <AppUpdatesContent />
       </SettingSection>
       <SettingSection title="Notifications">
-        <React.Suspense fallback={<SettingLoading />}>
-          <NotificationsContent />
-        </React.Suspense>
+        <NotificationsContent />
       </SettingSection>
     </SettingPage>
   );

@@ -174,14 +174,6 @@ export function SettingRowControl({ size = 'md', className, children }: SettingR
 }
 
 // ---------------------------------------------------------------------------
-// SettingLoading — standard Suspense fallback
-// ---------------------------------------------------------------------------
-
-export function SettingLoading() {
-  return <div className="text-sm text-muted-foreground">Loading...</div>;
-}
-
-// ---------------------------------------------------------------------------
 // Pre-wired row components
 // ---------------------------------------------------------------------------
 

@@ -193,9 +193,7 @@ export function ModelsSettings() {
       description="Choose which models appear in the model selector"
       icon={<CpuIcon className="size-5" />}
     >
-      <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-        <ModelsListContent />
-      </React.Suspense>
+      <ModelsListContent />
     </SettingPage>
   );
 }

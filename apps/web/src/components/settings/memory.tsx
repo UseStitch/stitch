@@ -10,7 +10,6 @@ import {
 } from '@/components/settings/model-select';
 import {
   NumberSettingRow,
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRowControl,
@@ -443,37 +442,27 @@ export function MemorySettings() {
 
         <TabsContent value="general">
           <SettingSection className="mt-0">
-            <React.Suspense fallback={<SettingLoading />}>
-              <MemoryToggles />
-            </React.Suspense>
+            <MemoryToggles />
           </SettingSection>
         </TabsContent>
         <TabsContent value="embedding">
           <SettingSection className="mt-0">
-            <React.Suspense fallback={<SettingLoading />}>
-              <EmbeddingModelContent />
-            </React.Suspense>
+            <EmbeddingModelContent />
           </SettingSection>
         </TabsContent>
         <TabsContent value="extraction">
           <SettingSection className="mt-0">
-            <React.Suspense fallback={<SettingLoading />}>
-              <ExtractionSettings />
-            </React.Suspense>
+            <ExtractionSettings />
           </SettingSection>
         </TabsContent>
         <TabsContent value="retention">
           <SettingSection className="mt-0">
-            <React.Suspense fallback={<SettingLoading />}>
-              <RetentionSettings />
-            </React.Suspense>
+            <RetentionSettings />
           </SettingSection>
         </TabsContent>
         <TabsContent value="retrieval">
           <SettingSection className="mt-0">
-            <React.Suspense fallback={<SettingLoading />}>
-              <RetrievalSettings />
-            </React.Suspense>
+            <RetrievalSettings />
           </SettingSection>
         </TabsContent>
       </Tabs>

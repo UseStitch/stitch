@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import {
-  SettingLoading,
   SettingPage,
   SettingRow,
   SettingRows,
@@ -228,9 +227,7 @@ export function BrowserSettings() {
             isMutating={setToolEnabledState.isPending}
             onToggle={handleBrowserToolsetToggle}
           />
-          <React.Suspense fallback={<SettingLoading />}>
-            <HeadlessToggle disabled={!browserToolEnabled} />
-          </React.Suspense>
+          <HeadlessToggle disabled={!browserToolEnabled} />
         </SettingRows>
       </SettingSection>
 
@@ -245,17 +242,11 @@ export function BrowserSettings() {
               copies your profile data into the Stitch browser and fully replaces any previous
               import.
             </p>
-            <React.Suspense fallback={<SettingLoading />}>
-              <ProfileStatus />
-            </React.Suspense>
+            <ProfileStatus />
           </SettingSection>
 
           <SettingSection title="Available Profiles">
-            <React.Suspense
-              fallback={<div className="text-sm text-muted-foreground">Loading profiles...</div>}
-            >
-              <ProfileList disabled={!browserToolEnabled} />
-            </React.Suspense>
+            <ProfileList disabled={!browserToolEnabled} />
           </SettingSection>
         </>
       ) : null}
