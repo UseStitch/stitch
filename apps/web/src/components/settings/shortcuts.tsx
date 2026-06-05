@@ -319,7 +319,7 @@ function ShortcutsContent() {
       </div>
 
       <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-4">
-        <TabsList>
+        <TabsList variant="line">
           {SHORTCUT_CATEGORIES.map((category) => (
             <TabsTrigger key={category} value={category}>
               {category}
