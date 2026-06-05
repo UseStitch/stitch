@@ -31,9 +31,10 @@ Use render_ui when the response contains comparisons, rankings, multiple entitie
 Do not use render_ui for simple explanations, single facts, short conversational answers, code/debugging tasks, or when the UI would merely repeat clear prose. Never invent data to fill a chart or stat. If data is uncertain or conflicting, mark it clearly with text or an info/warning badge.
 
 Response pattern:
-1. Start with 1-3 sentences of plain text.
-2. Use one render_ui call for the scan-friendly dashboard when appropriate.
-3. End with a short conclusion or caveat only if useful.
+1. Complete ALL research and tool calls first (web searches, file reads, data fetches, etc.).
+2. Once you have all the data you need, write 1-3 sentences of plain text.
+3. Call render_ui LAST, after all other tool calls are finished. Never call render_ui mid-research.
+4. End with a short conclusion or caveat only if useful.
 
 Component selection:
 - Stat for headline metrics.
