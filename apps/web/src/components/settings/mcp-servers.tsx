@@ -9,28 +9,16 @@ import { McpToolsPreview } from './mcp-servers/mcp-tools-preview';
 
 import type { View } from './mcp-servers/shared';
 import { SettingLoading, SettingPage } from '@/components/settings/settings-ui';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Tab = 'configured' | 'marketplace';
 
-function McpTabSwitcher({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
+function McpTabSwitcher() {
   return (
-    <div className="inline-flex items-center rounded-md border border-border/60 p-1">
-      <Button
-        variant={tab === 'configured' ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={() => onTabChange('configured')}
-      >
-        Configured
-      </Button>
-      <Button
-        variant={tab === 'marketplace' ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={() => onTabChange('marketplace')}
-      >
-        Marketplace
-      </Button>
-    </div>
+    <TabsList variant="line">
+      <TabsTrigger value="configured">Configured</TabsTrigger>
+      <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+    </TabsList>
   );
 }
 
@@ -61,26 +49,27 @@ function McpServersContent() {
   }
 
   return (
-    <SettingPage
-      title="MCP Servers"
-      description="Connect external tools and services via the Model Context Protocol."
-      icon={<NetworkIcon className="size-5" />}
-      actions={
-        <McpTabSwitcher tab={view.tab} onTabChange={(tab) => setView({ type: 'home', tab })} />
-      }
-    >
-      {view.tab === 'configured' ? (
-        <McpServerList
-          onAdd={() => setView({ type: 'add-custom', returnTab: 'configured' })}
-          onPreview={(server) => setView({ type: 'preview', server, returnTab: 'configured' })}
-        />
-      ) : (
-        <McpRegistryList
-          onAddCustom={() => setView({ type: 'add-custom', returnTab: 'marketplace' })}
-          onInstall={(server) => setView({ type: 'install', server, returnTab: 'marketplace' })}
-        />
-      )}
-    </SettingPage>
+    <Tabs value={view.tab} onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })}>
+      <SettingPage
+        title="MCP Servers"
+        description="Connect external tools and services via the Model Context Protocol."
+        icon={<NetworkIcon className="size-5" />}
+        actions={<McpTabSwitcher />}
+      >
+        <TabsContent value="configured">
+          <McpServerList
+            onAdd={() => setView({ type: 'add-custom', returnTab: 'configured' })}
+            onPreview={(server) => setView({ type: 'preview', server, returnTab: 'configured' })}
+          />
+        </TabsContent>
+        <TabsContent value="marketplace">
+          <McpRegistryList
+            onAddCustom={() => setView({ type: 'add-custom', returnTab: 'marketplace' })}
+            onInstall={(server) => setView({ type: 'install', server, returnTab: 'marketplace' })}
+          />
+        </TabsContent>
+      </SettingPage>
+    </Tabs>
   );
 }
 
