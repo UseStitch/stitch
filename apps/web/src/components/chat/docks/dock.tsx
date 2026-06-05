@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -15,6 +15,25 @@ export type DockItem = {
 
 type DockItemProps = Omit<DockItem, 'id'> & {
   isLast: boolean;
+};
+
+type DockRootProps = React.ComponentProps<'div'>;
+
+type DockIconProps = React.ComponentProps<'div'>;
+
+type DockBodyProps = React.ComponentProps<'div'>;
+
+type DockTitleProps = React.ComponentProps<'div'>;
+
+type DockDescriptionProps = React.ComponentProps<'div'>;
+
+type DockActionsProps = React.ComponentProps<'div'>;
+
+type DockInputProps = React.ComponentProps<'input'>;
+
+type DockSelectableProps = React.ComponentProps<'button'> & {
+  selected: boolean;
+  description?: React.ReactNode;
 };
 
 const variantStyles = {
@@ -41,7 +60,94 @@ type DockContainerProps = {
   className?: string;
 };
 
-function DockItem({
+function DockRoot({ className, ...props }: DockRootProps) {
+  return <div className={cn('flex flex-col gap-3 text-sm', className)} {...props} />;
+}
+
+function DockInline({ className, ...props }: DockRootProps) {
+  return <div className={cn('flex items-start gap-3', className)} {...props} />;
+}
+
+function DockIcon({ className, ...props }: DockIconProps) {
+  return <div className={cn('mt-0.5 shrink-0', className)} {...props} />;
+}
+
+function DockBody({ className, ...props }: DockBodyProps) {
+  return <div className={cn('min-w-0 flex-1', className)} {...props} />;
+}
+
+function DockTitle({ className, ...props }: DockTitleProps) {
+  return <div className={cn('text-sm text-foreground', className)} {...props} />;
+}
+
+function DockDescription({ className, ...props }: DockDescriptionProps) {
+  return <div className={cn('mt-1 text-xs text-muted-foreground', className)} {...props} />;
+}
+
+function DockActions({ className, ...props }: DockActionsProps) {
+  return <div className={cn('flex flex-wrap items-center gap-2', className)} {...props} />;
+}
+
+function DockInput({ className, ...props }: DockInputProps) {
+  return (
+    <input
+      className={cn(
+        'h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus:outline-none',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function DockSelectable({
+  selected,
+  description,
+  children,
+  className,
+  ...props
+}: DockSelectableProps) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'flex w-full items-start gap-2 rounded-md border p-2 text-left text-sm transition-colors',
+        selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
+        className,
+      )}
+      {...props}
+    >
+      <div
+        className={cn(
+          'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full border',
+          selected ? 'border-primary bg-primary' : 'border-muted-foreground',
+        )}
+      >
+        {selected ? <CheckIcon className="size-2 text-primary-foreground" /> : null}
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-foreground">{children}</div>
+        {description ? (
+          <div className="truncate text-xs text-muted-foreground">{description}</div>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+export const Dock = {
+  Root: DockRoot,
+  Inline: DockInline,
+  Icon: DockIcon,
+  Body: DockBody,
+  Title: DockTitle,
+  Description: DockDescription,
+  Actions: DockActions,
+  Input: DockInput,
+  Selectable: DockSelectable,
+};
+
+function CollapsibleDockItem({
   title,
   defaultExpanded = true,
   children,
@@ -55,7 +161,9 @@ function DockItem({
     <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border/60')}>
       <div className="flex items-center">
         <button
+          type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
+          aria-expanded={isExpanded}
           className={cn(
             'flex flex-1 items-center gap-3 px-4 py-3 text-left text-sm font-medium',
             'transition-colors duration-150 ease-out',
@@ -148,7 +256,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
           )}
         >
           {renderedDocks.map((dock, index) => (
-            <DockItem
+            <CollapsibleDockItem
               key={dock.id}
               title={dock.title}
               defaultExpanded={dock.defaultExpanded}
@@ -156,7 +264,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
               isLast={index === renderedDocks.length - 1}
             >
               {dock.children}
-            </DockItem>
+            </CollapsibleDockItem>
           ))}
         </div>
       </div>

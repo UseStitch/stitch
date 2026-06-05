@@ -1,12 +1,14 @@
 import * as React from 'react';
 
-import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 
+import { Dock } from '@/components/chat/docks/dock';
 import { Button } from '@/components/ui/button';
 
 type PermissionResponseDockProps = {
-  permissionResponses: PermissionResponse[];
+  permissionResponse: PermissionResponse;
+  toolLabel: string;
+  isPending: boolean;
   onAllow: (permissionResponseId: string) => Promise<void>;
   onAlwaysAllow: (permissionResponseId: string) => Promise<void>;
   onReject: (permissionResponseId: string) => Promise<void>;
@@ -17,64 +19,71 @@ type PermissionResponseDockProps = {
 const DIR_PREFIX = 'Always allow in ';
 
 export function PermissionResponseDock({
-  permissionResponses,
+  permissionResponse,
+  toolLabel,
+  isPending,
   onAllow,
   onAlwaysAllow,
   onReject,
   onAlternative,
   onApplySuggestion,
 }: PermissionResponseDockProps) {
-  const pending = permissionResponses[0];
-  const suggestion = pending?.suggestion ?? null;
-  const displayToolName = React.useMemo(() => {
-    if (!pending) return '';
-    const parsed = parseMcpToolName(pending.toolName);
-    return parsed?.toolName ?? pending.toolName;
-  }, [pending]);
+  const suggestion = permissionResponse.suggestion;
   const [entry, setEntry] = React.useState('');
 
   React.useEffect(() => {
     setEntry('');
-  }, [pending?.id]);
+  }, [permissionResponse.id]);
 
-  if (!pending) return null;
-
-  const canSubmitAlternative = entry.trim().length > 0;
+  const canSubmitAlternative = entry.trim().length > 0 && !isPending;
   const isDirectorySuggestion = suggestion?.message.startsWith(DIR_PREFIX) ?? false;
-  const dir = isDirectorySuggestion ? suggestion!.message.slice(DIR_PREFIX.length) : null;
+  const dir = isDirectorySuggestion ? suggestion?.message.slice(DIR_PREFIX.length) : null;
 
   return (
-    <div className="flex flex-col gap-3 text-sm">
-      <div className="text-foreground/90">
-        <span className="font-medium">Tool:</span> {displayToolName}
-      </div>
-      <div className="text-xs text-muted-foreground">{pending.systemReminder}</div>
+    <Dock.Root>
+      <Dock.Title className="text-foreground/90">
+        <span className="font-medium">Tool:</span> {toolLabel}
+      </Dock.Title>
+      <Dock.Description className="mt-0">{permissionResponse.systemReminder}</Dock.Description>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => void onAllow(pending.id)}>
+      <Dock.Actions>
+        <Button size="sm" disabled={isPending} onClick={() => void onAllow(permissionResponse.id)}>
           Allow
         </Button>
-        <Button size="sm" variant="outline" onClick={() => void onAlwaysAllow(pending.id)}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isPending}
+          onClick={() => void onAlwaysAllow(permissionResponse.id)}
+        >
           Always allow this tool
         </Button>
-        <Button size="sm" variant="destructive" onClick={() => void onReject(pending.id)}>
+        <Button
+          size="sm"
+          variant="destructive"
+          disabled={isPending}
+          onClick={() => void onReject(permissionResponse.id)}
+        >
           Reject
         </Button>
         {suggestion && !isDirectorySuggestion ? (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => void onApplySuggestion(pending.id, suggestion.pattern)}
+            disabled={isPending}
+            onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
           >
             {suggestion.message}
           </Button>
         ) : null}
-      </div>
+      </Dock.Actions>
 
       {suggestion && isDirectorySuggestion ? (
         <button
           type="button"
-          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          disabled={isPending}
+          onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
+          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
         >
           <span className="underline-offset-2 group-hover:underline">
             Always allow in directory
@@ -86,12 +95,12 @@ export function PermissionResponseDock({
       ) : null}
 
       <div className="flex items-center gap-2">
-        <input
+        <Dock.Input
           type="text"
           value={entry}
           onChange={(e) => setEntry(e.target.value)}
           placeholder="Do something else..."
-          className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+          disabled={isPending}
         />
         <Button
           size="sm"
@@ -100,12 +109,12 @@ export function PermissionResponseDock({
           onClick={() => {
             const value = entry.trim();
             if (!value) return;
-            void onAlternative(pending.id, value);
+            void onAlternative(permissionResponse.id, value);
           }}
         >
           Send
         </Button>
       </div>
-    </div>
+    </Dock.Root>
   );
 }

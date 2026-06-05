@@ -1,6 +1,7 @@
 import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 
+import { Dock } from '@/components/chat/docks/dock';
 import type { RetryInfo } from '@/stores/stream-store';
 
 export function RetryDock({ retry }: { retry: RetryInfo }) {
@@ -23,14 +24,16 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
       : `Retrying... (attempt ${retry.attempt}/${retry.maxRetries})`;
 
   return (
-    <div className="flex items-start gap-3">
-      <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-destructive" />
-      <div className="min-w-0">
-        <div className="line-clamp-2 text-sm text-destructive" title={retry.message}>
+    <Dock.Inline>
+      <Dock.Icon>
+        <Loader2Icon className="size-4 animate-spin text-destructive" />
+      </Dock.Icon>
+      <Dock.Body>
+        <Dock.Title className="line-clamp-2 text-destructive" title={retry.message}>
           {retry.message}
-        </div>
-        <div className="mt-1 text-xs text-destructive/70">{retryText}</div>
-      </div>
-    </div>
+        </Dock.Title>
+        <Dock.Description className="text-destructive/70">{retryText}</Dock.Description>
+      </Dock.Body>
+    </Dock.Inline>
   );
 }

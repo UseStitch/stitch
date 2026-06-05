@@ -3,25 +3,43 @@ import * as React from 'react';
 
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 
+import { Dock } from '@/components/chat/docks/dock';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 
 type QuestionDockProps = {
-  questions: QuestionRequest[];
+  request: QuestionRequest;
   onReply: (questionId: string, answers: string[][]) => void;
   onReject: (questionId: string) => void;
 };
 
-export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps) {
-  const request = questions[0];
+function emptyAnswers(items: QuestionRequest['questions']) {
+  return items.map(() => [] as string[]);
+}
+
+function emptyText(items: QuestionRequest['questions']) {
+  return items.map(() => '');
+}
+
+function emptyFlags(items: QuestionRequest['questions']) {
+  return items.map(() => false);
+}
+
+export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) {
   const items = request.questions;
   const total = items.length;
 
   const [tab, setTab] = React.useState(0);
-  const [answers, setAnswers] = React.useState<string[][]>(() => items.map(() => []));
-  const [customAnswers, setCustomAnswers] = React.useState<string[]>(() => items.map(() => ''));
-  const [customOn, setCustomOn] = React.useState<boolean[]>(() => items.map(() => false));
+  const [answers, setAnswers] = React.useState<string[][]>(() => emptyAnswers(items));
+  const [customAnswers, setCustomAnswers] = React.useState<string[]>(() => emptyText(items));
+  const [customOn, setCustomOn] = React.useState<boolean[]>(() => emptyFlags(items));
+
+  React.useEffect(() => {
+    setTab(0);
+    setAnswers(emptyAnswers(items));
+    setCustomAnswers(emptyText(items));
+    setCustomOn(emptyFlags(items));
+  }, [request.id, items]);
 
   function handleSelect(idx: number, optionLabel: string) {
     const newAnswers = [...answers];
@@ -97,66 +115,30 @@ export function QuestionDock({ questions, onReply, onReject }: QuestionDockProps
 
               <div className="space-y-1.5">
                 {item.options.map((option) => (
-                  <button
+                  <Dock.Selectable
                     key={option.label}
                     onClick={() => handleSelect(idx, option.label)}
-                    className={cn(
-                      'w-full flex items-start gap-2 p-2 rounded-md border text-sm text-left transition-colors',
-                      isTabSelected(option.label)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:bg-muted/50',
-                    )}
+                    selected={isTabSelected(option.label)}
+                    description={option.description}
                   >
-                    <div
-                      className={cn(
-                        'mt-0.5 size-3.5 rounded-full border flex items-center justify-center shrink-0',
-                        isTabSelected(option.label)
-                          ? 'border-primary bg-primary'
-                          : 'border-muted-foreground',
-                      )}
-                    >
-                      {isTabSelected(option.label) && (
-                        <CheckIcon className="size-2 text-primary-foreground" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-foreground">{option.label}</div>
-                      {option.description && (
-                        <div className="truncate text-xs text-muted-foreground">
-                          {option.description}
-                        </div>
-                      )}
-                    </div>
-                  </button>
+                    {option.label}
+                  </Dock.Selectable>
                 ))}
 
-                <button
+                <Dock.Selectable
                   onClick={() => handleCustomToggle(idx)}
-                  className={cn(
-                    'w-full flex items-center gap-2 p-2 rounded-md border text-sm text-left transition-colors',
-                    customOn[idx]
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:bg-muted/50',
-                  )}
+                  selected={customOn[idx] ?? false}
                 >
-                  <div
-                    className={cn(
-                      'mt-0.5 size-3.5 rounded-full border flex items-center justify-center shrink-0',
-                      customOn[idx] ? 'border-primary bg-primary' : 'border-muted-foreground',
-                    )}
-                  >
-                    {customOn[idx] && <CheckIcon className="size-2 text-primary-foreground" />}
-                  </div>
-                  <span className="text-foreground">Custom answer</span>
-                </button>
+                  Custom answer
+                </Dock.Selectable>
 
                 {customOn[idx] && (
-                  <input
+                  <Dock.Input
                     type="text"
                     value={customAnswers[idx] ?? ''}
                     onChange={(e) => handleCustomChange(idx, e.target.value)}
                     placeholder="Type your answer..."
-                    className="w-full rounded-md border border-primary bg-background p-2 text-sm text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                    className="h-auto w-full border-primary p-2 text-foreground placeholder:text-muted-foreground"
                     autoFocus
                   />
                 )}

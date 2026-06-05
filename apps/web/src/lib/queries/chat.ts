@@ -189,6 +189,11 @@ type DeleteSessionInput = {
   sessionId: PrefixedString<'ses'>;
 };
 
+type DoomLoopResponseInput = {
+  sessionId: string;
+  response: 'continue' | 'stop';
+};
+
 export function useRenameSession() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -263,6 +268,22 @@ export function useMarkSessionRead() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
+
+export function useRespondDoomLoop() {
+  return useMutation({
+    mutationFn: async (input: DoomLoopResponseInput): Promise<void> => {
+      const res = await serverFetch(`/chat/sessions/${input.sessionId}/doom-loop-response`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: input.response }),
+      });
+      if (!res.ok) throw new Error('Failed to respond to repeated action');
+    },
+    onError: (error) => {
+      console.error('Failed to respond to repeated action:', error);
     },
   });
 }

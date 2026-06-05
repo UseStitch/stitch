@@ -1,8 +1,8 @@
 import { RefreshCwIcon } from 'lucide-react';
-import * as React from 'react';
 
+import { Dock } from '@/components/chat/docks/dock';
 import { Button } from '@/components/ui/button';
-import { serverFetch } from '@/lib/api';
+import { useRespondDoomLoop } from '@/lib/queries/chat';
 
 type DoomLoopDockProps = {
   sessionId: string;
@@ -10,47 +10,38 @@ type DoomLoopDockProps = {
 };
 
 export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
-  const [responding, setResponding] = React.useState(false);
-
-  async function handleResponse(response: 'continue' | 'stop') {
-    setResponding(true);
-    await serverFetch(`/chat/sessions/${sessionId}/doom-loop-response`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ response }),
-    });
-  }
+  const respondDoomLoop = useRespondDoomLoop();
 
   return (
-    <div className="flex items-center gap-4">
-      <RefreshCwIcon className="size-4 shrink-0 text-warning" />
-      <div className="min-w-0 flex-1">
-        <div className="text-sm text-foreground">
+    <Dock.Inline className="items-center gap-4">
+      <Dock.Icon className="mt-0">
+        <RefreshCwIcon className="size-4 text-warning" />
+      </Dock.Icon>
+      <Dock.Body>
+        <Dock.Title>
           Repeating <code className="rounded bg-muted px-1 py-0.5 text-xs">{toolName}</code> with
           identical input
-        </div>
-        <div className="mt-1 text-xs text-muted-foreground">
-          The assistant may be stuck in a loop
-        </div>
-      </div>
-      <div className="flex shrink-0 gap-2">
+        </Dock.Title>
+        <Dock.Description>The assistant may be stuck in a loop</Dock.Description>
+      </Dock.Body>
+      <Dock.Actions className="shrink-0 flex-nowrap">
         <Button
           size="sm"
           variant="outline"
-          onClick={() => void handleResponse('stop')}
-          disabled={responding}
+          onClick={() => respondDoomLoop.mutate({ sessionId, response: 'stop' })}
+          disabled={respondDoomLoop.isPending}
         >
           Stop
         </Button>
         <Button
           size="sm"
           variant="default"
-          onClick={() => void handleResponse('continue')}
-          disabled={responding}
+          onClick={() => respondDoomLoop.mutate({ sessionId, response: 'continue' })}
+          disabled={respondDoomLoop.isPending}
         >
           Continue
         </Button>
-      </div>
-    </div>
+      </Dock.Actions>
+    </Dock.Inline>
   );
 }
