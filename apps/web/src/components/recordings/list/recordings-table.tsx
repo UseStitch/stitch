@@ -12,7 +12,7 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { formatClockDuration, getRecordingDisplayTitle } from '../shared/formatting';
+import { formatClockDuration, getRecordingDisplayTitle, STATUS_LABELS, STATUS_VARIANTS } from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 import { RecordingCopyButton } from '../shared/recording-copy-button';
@@ -56,7 +56,11 @@ export function RecordingsTable({
       }),
       columnHelper.accessor('status', {
         header: 'Capturing',
-        cell: ({ getValue }) => <Table.Status>{getValue()}</Table.Status>,
+        cell: ({ getValue }) => (
+          <Table.Badge variant={STATUS_VARIANTS[getValue()]}>
+            {STATUS_LABELS[getValue()]}
+          </Table.Badge>
+        ),
       }),
       columnHelper.accessor('startedAt', {
         header: 'Date',
