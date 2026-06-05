@@ -1,4 +1,4 @@
-import { DownloadIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import type { Skill } from '@stitch/shared/skills/types';
 
 import { SettingPage, SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -255,25 +256,31 @@ export function SkillsSettings() {
               key={skill.id}
               className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0"
             >
-              <button
-                type="button"
-                onClick={() => handleEdit(skill)}
-                className="min-w-0 flex-1 text-left"
-              >
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{skill.name}</p>
                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                   {skill.description}
                 </p>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(skill)}
-                disabled={deleteSkill.isPending}
-                aria-label={`Delete ${skill.name}`}
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
+              </div>
+              <ButtonGroup>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleEdit(skill)}
+                  aria-label={`View ${skill.name}`}
+                >
+                  <EyeIcon className="size-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDelete(skill)}
+                  disabled={deleteSkill.isPending}
+                  aria-label={`Delete ${skill.name}`}
+                >
+                  <Trash2Icon className="size-4" />
+                </Button>
+              </ButtonGroup>
             </div>
           ))
         )}
