@@ -1,11 +1,17 @@
 import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
+
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { ServerConnectionConfig, ServerMode } from '@/lib/api';
+import type { ServerMode } from '@/lib/api';
+import {
+  serverConfigQueryOptions,
+  useSaveServerConfig,
+  useTestRemoteConnection,
+} from '@/lib/queries/connection';
 import { cn } from '@/lib/utils';
 
 type TestState =
@@ -26,82 +32,53 @@ const MODE_OPTIONS: { mode: ServerMode; label: string; description: string }[] =
   },
 ];
 
-export function ConnectionSettings() {
-  const [config, setConfig] = React.useState<ServerConnectionConfig | null>(null);
-  const [mode, setMode] = React.useState<ServerMode>('local');
-  const [remoteUrl, setRemoteUrl] = React.useState('');
-  const [loading, setLoading] = React.useState(true);
-  const [testing, setTesting] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
+function ConnectionContent() {
+  const { data: config } = useSuspenseQuery(serverConfigQueryOptions);
+  const testRemote = useTestRemoteConnection();
+  const saveConfig = useSaveServerConfig();
+
+  const [mode, setMode] = React.useState<ServerMode>(config.mode);
+  const [remoteUrl, setRemoteUrl] = React.useState(config.remoteUrl ?? '');
   const [testState, setTestState] = React.useState<TestState>({ status: 'idle' });
 
   React.useEffect(() => {
-    let cancelled = false;
+    setMode(config.mode);
+    setRemoteUrl(config.remoteUrl ?? '');
+  }, [config]);
 
-    async function loadConfig() {
-      const nextConfig = await window.api?.getServerConfig();
-      if (cancelled || !nextConfig) return;
-      setConfig(nextConfig);
-      setMode(nextConfig.mode);
-      setRemoteUrl(nextConfig.remoteUrl ?? '');
-      setLoading(false);
-    }
-
-    void loadConfig();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const hasChanges = config ? mode !== config.mode || remoteUrl.trim() !== (config.remoteUrl ?? '') : false;
+  const hasChanges = mode !== config.mode || remoteUrl.trim() !== (config.remoteUrl ?? '');
   const remoteSelected = mode === 'remote';
+  const saving = saveConfig.isPending;
+  const testing = testRemote.isPending;
 
-  async function handleTestConnection() {
+  function handleTestConnection() {
     if (!remoteUrl.trim()) {
       setTestState({ status: 'error', message: 'Remote server URL is required' });
       return;
     }
 
-    setTesting(true);
     setTestState({ status: 'idle' });
-
-    try {
-      const result = await window.api?.server?.testRemote(remoteUrl);
-      if (!result?.ok) {
-        setTestState({ status: 'error', message: result?.error ?? 'Connection failed' });
-        return;
-      }
-      if (result.url) setRemoteUrl(result.url);
-      setTestState({ status: 'success', message: 'Connection successful' });
-    } finally {
-      setTesting(false);
-    }
+    testRemote.mutate(remoteUrl, {
+      onSuccess: (result) => {
+        if (!result.ok) {
+          setTestState({ status: 'error', message: result.error ?? 'Connection failed' });
+          return;
+        }
+        if (result.url) setRemoteUrl(result.url);
+        setTestState({ status: 'success', message: 'Connection successful' });
+      },
+      onError: (error) => {
+        setTestState({ status: 'error', message: error.message || 'Connection failed' });
+      },
+    });
   }
 
-  async function handleSave() {
-    setSaving(true);
+  function handleSave() {
     setTestState({ status: 'idle' });
-
-    try {
-      const nextConfig = await window.api?.server?.setConfig({
-        mode,
-        remoteUrl: remoteSelected ? remoteUrl : remoteUrl.trim() || null,
-      });
-      if (!nextConfig) throw new Error('Server configuration is not available');
-      setConfig(nextConfig);
-      setMode(nextConfig.mode);
-      setRemoteUrl(nextConfig.remoteUrl ?? '');
-      toast.success('Server connection updated');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update server connection');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading...</div>;
+    saveConfig.mutate({
+      mode,
+      remoteUrl: remoteSelected ? remoteUrl : remoteUrl.trim() || null,
+    });
   }
 
   return (
@@ -199,5 +176,13 @@ export function ConnectionSettings() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export function ConnectionSettings() {
+  return (
+    <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      <ConnectionContent />
+    </React.Suspense>
   );
 }
