@@ -9,6 +9,14 @@ import { permissionResponses, sessions, toolPermissions } from '@/db/schema.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import {
+  abortPermissionResponses,
+  allowPermissionResponse,
+  alternativePermissionResponse,
+  rejectPermissionResponse,
+  requestPermissionResponse,
+  upsertPerm,
+} from '@/permission/service.js';
 
 setupTestDb();
 
@@ -40,6 +48,14 @@ async function waitForEvents(count: number): Promise<void> {
   }
 }
 
+async function waitForRequestedEvents(count: number): Promise<void> {
+  while (
+    emittedEvents.filter(([name]) => name === 'permission-response-requested').length < count
+  ) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
 describe('permission service interactions', () => {
   beforeEach(async () => {
     emittedEvents = [];
@@ -54,9 +70,6 @@ describe('permission service interactions', () => {
   });
 
   test('requestPermissionResponse broadcasts and resolves through allowPermissionResponse', async () => {
-    const { requestPermissionResponse, allowPermissionResponse } =
-      await import('@/permission/service.js');
-
     const promise = requestPermissionResponse({
       sessionId,
       messageId,
@@ -100,10 +113,167 @@ describe('permission service interactions', () => {
     expect(row?.status).toBe('allowed');
   });
 
-  test('alternativePermissionResponse resolves with alternative entry', async () => {
-    const { requestPermissionResponse, alternativePermissionResponse } =
-      await import('@/permission/service.js');
+  test('deduplicates concurrent permission requests with the same key', async () => {
+    const dedupeKey = 'permission:dedupe:same';
 
+    const first = requestPermissionResponse({
+      sessionId,
+      messageId,
+      streamRunId: 'run_permission',
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+    const second = requestPermissionResponse({
+      sessionId,
+      messageId,
+      streamRunId: 'run_permission',
+      toolCallId: 'call_2',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+
+    await waitForRequestedEvents(1);
+
+    const requestedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-requested',
+    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+    expect(requestedEvents).toHaveLength(1);
+
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(permissionResponses)
+      .where(
+        and(
+          eq(permissionResponses.sessionId, sessionId),
+          eq(permissionResponses.status, 'pending'),
+        ),
+      );
+    expect(rows).toHaveLength(1);
+
+    await allowPermissionResponse(requestedEvents[0][1].permissionResponse.id);
+
+    expect(first).resolves.toEqual({ decision: 'allow' });
+    expect(second).resolves.toEqual({ decision: 'allow' });
+  });
+
+  test('does not deduplicate permission requests with different keys', async () => {
+    const first = requestPermissionResponse({
+      sessionId,
+      messageId,
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey: 'permission:dedupe:first',
+    });
+    const second = requestPermissionResponse({
+      sessionId,
+      messageId,
+      toolCallId: 'call_2',
+      toolName: 'bash',
+      toolInput: { command: 'ls' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey: 'permission:dedupe:second',
+    });
+
+    await waitForRequestedEvents(2);
+
+    const requestedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-requested',
+    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+    expect(requestedEvents).toHaveLength(2);
+
+    await rejectPermissionResponse(requestedEvents[0][1].permissionResponse.id);
+    await rejectPermissionResponse(requestedEvents[1][1].permissionResponse.id);
+
+    expect(first).resolves.toEqual({ decision: 'reject' });
+    expect(second).resolves.toEqual({ decision: 'reject' });
+  });
+
+  test('clears dedupe key after permission resolution', async () => {
+    const dedupeKey = 'permission:dedupe:reusable';
+
+    const first = requestPermissionResponse({
+      sessionId,
+      messageId,
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+
+    await waitForRequestedEvents(1);
+    const firstRequested = emittedEvents.find(
+      ([name]) => name === 'permission-response-requested',
+    )![1] as SseEventPayloadMap['permission-response-requested'];
+
+    await allowPermissionResponse(firstRequested.permissionResponse.id);
+    expect(first).resolves.toEqual({ decision: 'allow' });
+
+    const second = requestPermissionResponse({
+      sessionId,
+      messageId,
+      toolCallId: 'call_2',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+
+    await waitForRequestedEvents(2);
+
+    const requestedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-requested',
+    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+    expect(requestedEvents).toHaveLength(2);
+
+    await rejectPermissionResponse(requestedEvents[1][1].permissionResponse.id);
+    expect(second).resolves.toEqual({ decision: 'reject' });
+  });
+
+  test('deduplicated permission requests reject together on abort', async () => {
+    const dedupeKey = 'permission:dedupe:abort';
+
+    const first = requestPermissionResponse({
+      sessionId,
+      messageId,
+      streamRunId: 'run_permission',
+      toolCallId: 'call_1',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+    const second = requestPermissionResponse({
+      sessionId,
+      messageId,
+      streamRunId: 'run_permission',
+      toolCallId: 'call_2',
+      toolName: 'bash',
+      toolInput: { command: 'pwd' },
+      systemReminder: 'Tool execution requires user approval',
+      dedupeKey,
+    });
+
+    await waitForRequestedEvents(1);
+    await abortPermissionResponses(sessionId);
+
+    const requestedEvents = emittedEvents.filter(
+      ([name]) => name === 'permission-response-requested',
+    );
+    expect(requestedEvents).toHaveLength(1);
+    expect(first).rejects.toThrow('Permission response aborted by session abort');
+    expect(second).rejects.toThrow('Permission response aborted by session abort');
+  });
+
+  test('alternativePermissionResponse resolves with alternative entry', async () => {
     const promise = requestPermissionResponse({
       sessionId,
       messageId,
@@ -138,9 +308,6 @@ describe('permission service interactions', () => {
   });
 
   test('abortPermissionResponses rejects pending permissions for the session', async () => {
-    const { requestPermissionResponse, abortPermissionResponses, rejectPermissionResponse } =
-      await import('@/permission/service.js');
-
     const first = requestPermissionResponse({
       sessionId,
       messageId,
@@ -195,7 +362,6 @@ describe('permission service interactions', () => {
 
 describe('upsertPerm', () => {
   test('deletes existing global rule before inserting when pattern is null', async () => {
-    const { upsertPerm } = await import('@/permission/service.js');
     const db = getDb();
 
     await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: null });
@@ -209,7 +375,6 @@ describe('upsertPerm', () => {
   });
 
   test('does not delete when pattern is a non-null string', async () => {
-    const { upsertPerm } = await import('@/permission/service.js');
     const db = getDb();
 
     await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: '/home/*' });
@@ -223,7 +388,6 @@ describe('upsertPerm', () => {
   });
 
   test('calling upsertPerm twice with null pattern replaces the global rule', async () => {
-    const { upsertPerm } = await import('@/permission/service.js');
     const db = getDb();
 
     await upsertPerm({ toolName: 'bash', permission: 'ask', pattern: null });
