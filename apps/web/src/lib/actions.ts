@@ -16,14 +16,8 @@ export function useActions(): Action[] {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const sessionId = params?.id;
-  const {
-    commandPaletteOpen,
-    setCommandPaletteOpen,
-    settingsTab,
-    setSettingsTab,
-    renameSessionOpen,
-    setRenameSessionOpen,
-  } = useDialogContext();
+  const { commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen } =
+    useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
 
   const actions: Action[] = [
@@ -35,7 +29,7 @@ export function useActions(): Action[] {
     {
       id: 'open-settings',
       label: 'Open settings',
-      run: () => setSettingsTab(settingsTab ? undefined : 'general'),
+      run: () => void navigate({ to: '/settings/general' }),
     },
     { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
     { id: 'open-memories', label: 'Memories', run: () => void navigate({ to: '/memories' }) },

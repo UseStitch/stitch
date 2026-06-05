@@ -1,14 +1,8 @@
 import * as React from 'react';
 
-import { useNavigate, useSearch } from '@tanstack/react-router';
-
-import type { SettingsTab } from '@/routes/__root';
-
 interface DialogContextValue {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
-  settingsTab: SettingsTab;
-  setSettingsTab: (tab: SettingsTab) => void;
   renameSessionOpen: boolean;
   setRenameSessionOpen: (open: boolean) => void;
 }
@@ -16,35 +10,14 @@ interface DialogContextValue {
 const DialogContext = React.createContext<DialogContextValue | null>(null);
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const settingsTab = useSearch({
-    strict: false,
-    select: (search) => (search as { settings?: SettingsTab }).settings,
-  });
-
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [renameSessionOpen, setRenameSessionOpen] = React.useState(false);
-
-  const setSettingsTab = React.useCallback(
-    (tab: SettingsTab) => {
-      void navigate({
-        to: '.',
-        search: (prev: Record<string, unknown>) => ({
-          ...prev,
-          settings: tab,
-        }),
-      });
-    },
-    [navigate],
-  );
 
   return (
     <DialogContext.Provider
       value={{
         commandPaletteOpen,
         setCommandPaletteOpen,
-        settingsTab,
-        setSettingsTab,
         renameSessionOpen,
         setRenameSessionOpen,
       }}

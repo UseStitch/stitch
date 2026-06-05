@@ -1,4 +1,4 @@
-import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon, WandSparklesIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -229,6 +229,7 @@ export function SkillsSettings() {
     <SettingPage
       title="Skills"
       description="Add reusable Markdown instructions the agent can load as a default tool."
+      icon={<WandSparklesIcon className="size-5" />}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>

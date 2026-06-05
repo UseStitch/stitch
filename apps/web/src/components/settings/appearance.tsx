@@ -1,3 +1,5 @@
+import { PaletteIcon } from 'lucide-react';
+
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
@@ -24,7 +26,11 @@ export function AppearanceSettings() {
       : mode;
 
   return (
-    <SettingPage title="Appearance" description="Customize how Stitch looks">
+    <SettingPage
+      title="Appearance"
+      description="Customize how Stitch looks"
+      icon={<PaletteIcon className="size-5" />}
+    >
       <SettingSection title="Mode">
         <div className="flex gap-2">
           {APPEARANCE_MODES.map((m) => (

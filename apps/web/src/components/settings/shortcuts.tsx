@@ -1,4 +1,4 @@
-import { SearchIcon } from 'lucide-react';
+import { KeyboardIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -370,6 +370,7 @@ export function ShortcutsSettings() {
     <SettingPage
       title="Keyboard shortcuts"
       description="Customize keyboard shortcuts for quick actions"
+      icon={<KeyboardIcon className="size-5" />}
     >
       <React.Suspense fallback={<SettingLoading />}>
         <ShortcutsContent />

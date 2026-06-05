@@ -1,4 +1,11 @@
-import { CheckCircleIcon, DownloadIcon, FolderIcon, LoaderIcon, UserIcon } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  DownloadIcon,
+  FolderIcon,
+  GlobeIcon,
+  LoaderIcon,
+  UserIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -209,7 +216,11 @@ export function BrowserSettings() {
   }
 
   return (
-    <SettingPage title="Browser" description="Configure the browser used by Stitch">
+    <SettingPage
+      title="Browser"
+      description="Configure the browser used by Stitch"
+      icon={<GlobeIcon className="size-5" />}
+    >
       <SettingSection>
         <SettingRows>
           <BrowserToolsetToggle

@@ -1,3 +1,4 @@
+import { CpuIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -5,6 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
+import { SettingPage } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -186,16 +188,14 @@ function ModelsListContent() {
 
 export function ModelsSettings() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <h2 className="text-base font-bold">Models</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose which models appear in the model selector
-        </p>
-      </div>
+    <SettingPage
+      title="Models"
+      description="Choose which models appear in the model selector"
+      icon={<CpuIcon className="size-5" />}
+    >
       <React.Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
         <ModelsListContent />
       </React.Suspense>
-    </div>
+    </SettingPage>
   );
 }

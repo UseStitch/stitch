@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { z } from 'zod';
 
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet, useRouter } from '@tanstack/react-router';
@@ -17,7 +16,6 @@ import {
   RecordingEventListener,
 } from '@/components/recordings/meeting-recording-banner';
 import { RenameSessionDialog } from '@/components/rename-session-dialog';
-import { SettingsDialog } from '@/components/settings-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
@@ -29,11 +27,8 @@ import { useTheme } from '@/hooks/ui/use-theme';
 import { UpdaterSync } from '@/hooks/ui/use-updater-sync';
 import { useActions } from '@/lib/actions';
 import { resetServerUrlCache } from '@/lib/api';
-import { providersQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
-import { skillsQueryOptions } from '@/lib/queries/skills';
-import { knownToolsQueryOptions } from '@/lib/queries/tools';
 import {
   applyAppearanceMode,
   DEFAULT_MODE,
@@ -47,37 +42,12 @@ interface RouterContext {
   queryClient: QueryClient;
 }
 
-const settingsSearchSchema = z.object({
-  settings: z
-    .enum([
-      'general',
-      'connection',
-      'appearance',
-      'browser',
-      'recordings',
-      'shortcuts',
-      'providers',
-      'models',
-      'tools',
-      'skills',
-      'mcp-servers',
-      'memory',
-    ])
-    .optional(),
-});
-
-export type SettingsTab = z.infer<typeof settingsSearchSchema>['settings'];
-
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
-  validateSearch: settingsSearchSchema,
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(shortcutsQueryOptions),
-      context.queryClient.ensureQueryData(providersQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
-      context.queryClient.ensureQueryData(knownToolsQueryOptions),
-      context.queryClient.ensureQueryData(skillsQueryOptions),
     ]),
 });
 
@@ -114,7 +84,6 @@ function RootLayout() {
         </div>
       </div>
       <CommandPalette actions={actions} />
-      <SettingsDialog />
       <OnboardingDialog />
       <RenameSessionDialog />
       <Toaster position="bottom-right" />
@@ -129,7 +98,7 @@ function ServerConnectionSync() {
     return window.api?.server?.onConfigChanged((config) => {
       resetServerUrlCache(config.url);
 
-      void router.navigate({ to: '/', search: { settings: 'connection' } }).then(async () => {
+      void router.navigate({ to: '/settings/connection' }).then(async () => {
         router.options.context.queryClient.clear();
         const settings =
           await router.options.context.queryClient.ensureQueryData(settingsQueryOptions);

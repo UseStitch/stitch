@@ -1,3 +1,4 @@
+import { MicIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -274,6 +275,7 @@ export function RecordingsSettings() {
     <SettingPage
       title="Recordings"
       description="Configure audio devices, capture settings, and analysis behavior for recordings."
+      icon={<MicIcon className="size-5" />}
     >
       <PermissionStatus />
       <SettingSection title="Audio Devices" className="mt-4">

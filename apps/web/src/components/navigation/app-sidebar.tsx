@@ -4,6 +4,7 @@ import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { ChatSidebarContent } from '@/components/chat/chat-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
+import { SettingsNav } from '@/components/settings/settings-nav';
 import { Sidebar } from '@/components/ui/sidebar';
 
 function useActiveContext():
@@ -13,7 +14,8 @@ function useActiveContext():
   | 'memories'
   | 'usage'
   | 'recordings'
-  | 'agenda' {
+  | 'agenda'
+  | 'settings' {
   const path = useRouterState({ select: (state) => state.location.pathname });
   if (path.startsWith('/connectors')) return 'connectors';
   if (path.startsWith('/automations')) return 'automations';
@@ -21,6 +23,7 @@ function useActiveContext():
   if (path.startsWith('/usage')) return 'usage';
   if (path.startsWith('/recordings')) return 'recordings';
   if (path.startsWith('/agenda')) return 'agenda';
+  if (path.startsWith('/settings')) return 'settings';
 
   return 'chat';
 }
@@ -30,6 +33,10 @@ export function AppSidebar() {
 
   if (context === 'connectors' || context === 'memories' || context === 'usage') {
     return null;
+  }
+
+  if (context === 'settings') {
+    return <SettingsNav />;
   }
 
   const content =

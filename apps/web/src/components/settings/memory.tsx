@@ -1,3 +1,4 @@
+import { BrainIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -428,6 +429,7 @@ export function MemorySettings() {
     <SettingPage
       title="Memory"
       description="Configure how Stitch remembers information across sessions"
+      icon={<BrainIcon className="size-5" />}
     >
       <SettingSection title="General">
         <React.Suspense fallback={<SettingLoading />}>

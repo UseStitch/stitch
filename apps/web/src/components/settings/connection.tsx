@@ -1,4 +1,4 @@
-import { LoaderIcon } from 'lucide-react';
+import { LoaderIcon, ServerIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -87,6 +87,7 @@ function ConnectionContent() {
       <SettingPage
         title="Connection"
         description="Choose whether Stitch connects to the local sidecar or a remote server."
+        icon={<ServerIcon className="size-5" />}
       >
         <SettingSection title="Server">
           <div className="grid grid-cols-2 gap-3">

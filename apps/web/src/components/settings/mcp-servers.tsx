@@ -1,3 +1,4 @@
+import { NetworkIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { AddCustomMcpServer } from './mcp-servers/add-custom-mcp-server';
@@ -63,6 +64,7 @@ function McpServersContent() {
     <SettingPage
       title="MCP Servers"
       description="Connect external tools and services via the Model Context Protocol."
+      icon={<NetworkIcon className="size-5" />}
       actions={
         <McpTabSwitcher tab={view.tab} onTabChange={(tab) => setView({ type: 'home', tab })} />
       }

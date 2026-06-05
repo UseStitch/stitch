@@ -1,4 +1,4 @@
-import { SearchIcon } from 'lucide-react';
+import { SearchIcon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -117,6 +117,7 @@ function ToolsContent() {
     <SettingPage
       title="Tools"
       description="Keep only the tools you need enabled, then open settings for permission behavior."
+      icon={<WrenchIcon className="size-5" />}
     >
       <div className="space-y-5">
         <div className="relative">

@@ -1,3 +1,4 @@
+import { ServerIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -7,6 +8,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
+import { SettingPage } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
@@ -62,22 +64,25 @@ export function ProvidersSettings() {
   return (
     <div className="flex h-full flex-col">
       {!selected && (
-        <div className="mb-6">
-          <h2 className="text-base font-bold">Providers</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Connect your AI providers and API keys
-          </p>
-        </div>
+        <SettingPage
+          title="Providers"
+          description="Connect your AI providers and API keys"
+          icon={<ServerIcon className="size-5" />}
+        >
+          <React.Suspense
+            fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
+          >
+            <ProviderList onSelect={setSelected} />
+          </React.Suspense>
+        </SettingPage>
       )}
-      <React.Suspense
-        fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
-      >
-        {selected ? (
+      {selected ? (
+        <React.Suspense
+          fallback={<div className="text-sm text-muted-foreground">Loading providers...</div>}
+        >
           <ProviderConfig provider={selected} onBack={() => setSelected(null)} />
-        ) : (
-          <ProviderList onSelect={setSelected} />
-        )}
-      </React.Suspense>
+        </React.Suspense>
+      ) : null}
     </div>
   );
 }

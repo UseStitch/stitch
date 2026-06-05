@@ -1,4 +1,4 @@
-import { LoaderIcon } from 'lucide-react';
+import { LoaderIcon, MonitorIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -72,7 +72,11 @@ function ModelsContent() {
 
 export function GeneralSettings() {
   return (
-    <SettingPage title="General" description="Configure models for different tasks">
+    <SettingPage
+      title="General"
+      description="Configure models for different tasks"
+      icon={<MonitorIcon className="size-5" />}
+    >
       <SettingSection title="Models">
         <React.Suspense fallback={<SettingLoading />}>
           <ModelsContent />
