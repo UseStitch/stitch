@@ -192,7 +192,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
             id="skill-content"
             value={draft.content}
             placeholder="# Skill Instructions\n\nDescribe the workflow, constraints, examples, and expected behavior."
-            className="min-h-0 resize-none overflow-auto font-mono text-xs"
+            className="thin-scrollbar min-h-0 resize-none overflow-auto font-mono text-xs"
             onChange={(event) => setDraft((prev) => ({ ...prev, content: event.target.value }))}
           />
         </div>
