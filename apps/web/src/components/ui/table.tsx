@@ -64,7 +64,7 @@ function TableContainer({ bordered = true, className, ...props }: TableContainer
 }
 
 function TableScroller({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('overflow-x-auto', className)} {...props} />;
+  return <div className={cn('overflow-x-auto thin-scrollbar', className)} {...props} />;
 }
 
 function TableRoot({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
