@@ -15,6 +15,15 @@ import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions'
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
+import {
   recordingsQueryOptions,
   useDeleteRecording,
   useStartRecording,
@@ -70,21 +79,21 @@ export function RecordingsPage() {
   );
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <Page>
+      <PageContent>
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
               <MicIcon className="size-5" />
-            </div>
+            </PageIcon>
             <div>
-              <h1 className="text-xl font-semibold">Recordings</h1>
-              <p className="text-sm text-muted-foreground">
+              <PageTitle>Recordings</PageTitle>
+              <PageDescription>
                 Record any meeting and store raw audio in your local app data directory.
-              </p>
+              </PageDescription>
             </div>
-          </div>
-        </div>
+          </PageHeaderContent>
+        </PageHeader>
 
         <RecordingStartStopBar
           activeRecording={activeRecording}
@@ -122,7 +131,7 @@ export function RecordingsPage() {
           />
           <RecordingsPagination page={page} pageCount={data.totalPages} onPageChange={setPage} />
         </div>
-      </div>
+      </PageContent>
 
       <DeleteRecordingDialog
         recording={recordingToDelete}
@@ -133,6 +142,6 @@ export function RecordingsPage() {
           deleteById(recordingToDelete.id, () => setRecordingToDelete(null));
         }}
       />
-    </div>
+    </Page>
   );
 }

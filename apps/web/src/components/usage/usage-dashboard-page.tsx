@@ -18,6 +18,15 @@ import { USAGE_DATE_RANGES, USAGE_SOURCES, type UsageDateRange } from '@stitch/s
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Page,
+  PageContent,
+  PageDescription,
+  PageHeader,
+  PageHeaderContent,
+  PageIcon,
+  PageTitle,
+} from '@/components/ui/page';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -376,118 +385,126 @@ export function UsageDashboardPage() {
   const hasData = !!usageData && usageData.buckets.length > 0;
 
   return (
-    <div className="thin-scrollbar flex h-full flex-col gap-6 overflow-auto p-6 pb-10">
-      {/* Page header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Usage</h1>
-        <p className="text-sm text-muted-foreground">
-          Cost and token analytics across providers, models, and sources.
-        </p>
-      </div>
+    <Page className="thin-scrollbar">
+      <PageContent width="full" className="pb-10">
+        <PageHeader>
+          <PageHeaderContent>
+            <PageIcon>
+              <BarChart3Icon className="size-5" />
+            </PageIcon>
+            <div>
+              <PageTitle>Usage</PageTitle>
+              <PageDescription>
+                Cost and token analytics across providers, models, and sources.
+              </PageDescription>
+            </div>
+          </PageHeaderContent>
+        </PageHeader>
 
-      {/* Filter toolbar */}
-      <div className="rounded-xl bg-muted/40 p-3">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Select
-            value={providerFilter}
-            onValueChange={(value) => setProviderFilter(value ?? ALL_FILTER)}
-          >
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Filter by provider">{selectedProviderLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER}>All providers</SelectItem>
-              {availableProviders.map((provider) => (
-                <SelectItem key={provider.providerId} value={provider.providerId}>
-                  {provider.providerName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={modelFilter}
-            onValueChange={(value) => setModelFilter(value ?? ALL_FILTER)}
-          >
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Filter by model">{selectedModelLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_FILTER}>All models</SelectItem>
-              {availableModels.map((model) => (
-                <SelectItem
-                  key={`${model.providerId}:${model.modelId}`}
-                  value={encodeModelFilter(model.providerId, model.modelId)}
-                >
-                  {model.providerName} · {model.modelName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center gap-2">
-            <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value ?? '30d')}>
+        {/* Filter toolbar */}
+        <div className="rounded-xl bg-muted/40 p-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Select
+              value={providerFilter}
+              onValueChange={(value) => setProviderFilter(value ?? ALL_FILTER)}
+            >
               <SelectTrigger className="w-full bg-background">
-                <SelectValue placeholder="Select date range">{selectedRangeLabel}</SelectValue>
+                <SelectValue placeholder="Filter by provider">{selectedProviderLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {USAGE_DATE_RANGES.map((range) => (
-                  <SelectItem key={range} value={range}>
-                    {RANGE_LABELS[range]}
+                <SelectItem value={ALL_FILTER}>All providers</SelectItem>
+                {availableProviders.map((provider) => (
+                  <SelectItem key={provider.providerId} value={provider.providerId}>
+                    {provider.providerName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {isFetching ? (
-              <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-            ) : null}
+            <Select
+              value={modelFilter}
+              onValueChange={(value) => setModelFilter(value ?? ALL_FILTER)}
+            >
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue placeholder="Filter by model">{selectedModelLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER}>All models</SelectItem>
+                {availableModels.map((model) => (
+                  <SelectItem
+                    key={`${model.providerId}:${model.modelId}`}
+                    value={encodeModelFilter(model.providerId, model.modelId)}
+                  >
+                    {model.providerName} · {model.modelName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2">
+              <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value ?? '30d')}>
+                <SelectTrigger className="w-full bg-background">
+                  <SelectValue placeholder="Select date range">{selectedRangeLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {USAGE_DATE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {RANGE_LABELS[range]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {isFetching ? (
+                <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardDescription>Total Cost</CardDescription>
-            <CardTitle className="text-3xl font-bold tabular-nums">
-              {formatCost(usageData?.totals.costUsd ?? 0)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground capitalize">
-              {selectedRangeLabel} · {granularityLabel} buckets
-            </p>
-          </CardHeader>
-        </Card>
+        {/* KPI cards */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardDescription>Total Cost</CardDescription>
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {formatCost(usageData?.totals.costUsd ?? 0)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground capitalize">
+                {selectedRangeLabel} · {granularityLabel} buckets
+              </p>
+            </CardHeader>
+          </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardDescription>Total Tokens</CardDescription>
-            <CardTitle className="text-3xl font-bold tabular-nums">
-              {formatTokens(usageData?.totals.tokenMetrics.totalTokens ?? 0)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {formatTokens(usageData?.totals.tokenMetrics.inputTokens ?? 0)} in ·{' '}
-              {formatTokens(usageData?.totals.tokenMetrics.outputTokens ?? 0)} out
-            </p>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Cost chart */}
-      <div className="rounded-xl bg-muted/20 p-4">
-        <div className="mb-4">
-          <p className="text-sm font-medium">Cost over time</p>
-          <p className="text-xs text-muted-foreground">Stacked by source</p>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardDescription>Total Tokens</CardDescription>
+              <CardTitle className="text-3xl font-bold tabular-nums">
+                {formatTokens(usageData?.totals.tokenMetrics.totalTokens ?? 0)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {formatTokens(usageData?.totals.tokenMetrics.inputTokens ?? 0)} in ·{' '}
+                {formatTokens(usageData?.totals.tokenMetrics.outputTokens ?? 0)} out
+              </p>
+            </CardHeader>
+          </Card>
         </div>
-        <div className="h-64 md:h-96">
-          {hasData ? (
-            <Bar data={costChartData} options={costChartOptions} />
-          ) : (
-            <EmptyChart message="No usage data for the selected filters." />
-          )}
+
+        {/* Cost chart */}
+        <div className="rounded-xl bg-muted/20 p-4">
+          <div className="mb-4">
+            <p className="text-sm font-medium">Cost over time</p>
+            <p className="text-xs text-muted-foreground">Stacked by source</p>
+          </div>
+          <div className="h-64 md:h-96">
+            {hasData ? (
+              <Bar data={costChartData} options={costChartOptions} />
+            ) : (
+              <EmptyChart message="No usage data for the selected filters." />
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </PageContent>
+    </Page>
   );
 }
