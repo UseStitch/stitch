@@ -95,16 +95,20 @@ export function GeneralSettings() {
   );
 }
 
+const UPDATER_STATUS_LABELS: Record<string, string> = {
+  checking: 'Checking for updates...',
+  available: 'Update available. Downloading in background...',
+  downloaded: 'Update ready. Restart Stitch to install.',
+  'no-update': 'You are up to date.',
+  error: 'Could not check for updates.',
+  installing: 'Installing update and restarting...',
+};
+
 function updaterStatusLabel(status: string, progress?: number): string {
-  if (status === 'checking') return 'Checking for updates...';
-  if (status === 'available') return 'Update available. Downloading in background...';
-  if (status === 'downloading')
+  if (status === 'downloading') {
     return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
-  if (status === 'downloaded') return 'Update ready. Restart Stitch to install.';
-  if (status === 'no-update') return 'You are up to date.';
-  if (status === 'error') return 'Could not check for updates.';
-  if (status === 'installing') return 'Installing update and restarting...';
-  return 'Check for updates manually.';
+  }
+  return UPDATER_STATUS_LABELS[status] ?? 'Check for updates manually.';
 }
 
 const RELEASES_URL = 'https://github.com/UseStitch/stitch/releases/latest';
