@@ -126,7 +126,7 @@ export function RecordingsTable({
                   key={header.id}
                   className={
                     header.column.id === 'title'
-                      ? 'w-full min-w-62.5 px-4 py-2 font-medium'
+                      ? 'w-full min-w-48 max-w-xs px-4 py-2 font-medium'
                       : 'px-4 py-2 font-medium whitespace-nowrap'
                   }
                 >
@@ -163,7 +163,7 @@ export function RecordingsTable({
                     key={cell.id}
                     className={
                       cell.column.id === 'title'
-                        ? 'w-full min-w-62.5 px-4 py-3'
+                        ? 'w-full min-w-48 max-w-xs px-4 py-3'
                         : 'px-4 py-3 whitespace-nowrap'
                     }
                   >
