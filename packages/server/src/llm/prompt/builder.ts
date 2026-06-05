@@ -36,6 +36,8 @@ Response pattern:
 3. Call render_ui LAST, after all other tool calls are finished. Never call render_ui mid-research.
 4. End with a short conclusion or caveat only if useful.
 
+Never duplicate information between the dashboard and the text. The dashboard is the primary surface for the data — once a metric, status, comparison, or figure is shown in the UI, do NOT restate it in prose. Text should only frame the dashboard (e.g. what it shows, how it was sourced) or add caveats the UI cannot express. Do not write a textual summary, list, or table that repeats what the render_ui call already displays.
+
 Component selection:
 - Stat for headline metrics.
 - Badge for status, confidence, risk, category, or trend.
