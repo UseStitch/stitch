@@ -6,7 +6,7 @@ function Page({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="page"
-      className={cn('flex h-full flex-col overflow-y-auto', className)}
+      className={cn('thin-scrollbar flex h-full flex-col overflow-y-auto', className)}
       {...props}
     />
   );
