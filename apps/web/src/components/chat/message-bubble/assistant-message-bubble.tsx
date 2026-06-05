@@ -75,8 +75,17 @@ export function AssistantMessageBubble({
                 onAbort={onAbortTool}
               />
             );
-          case 'liquid-ui':
+          case 'liquid-ui': {
+            const liquidUiResult = resultsByCallId.get(segment.part.toolCallId);
+            const hasError =
+              liquidUiResult &&
+              'output' in liquidUiResult &&
+              liquidUiResult.output !== null &&
+              typeof liquidUiResult.output === 'object' &&
+              'error' in (liquidUiResult.output as object);
+            if (hasError) return null;
             return <LiquidUi key={segment.key} spec={segment.part.input} />;
+          }
           case 'other': {
             const part = segment.part;
             switch (part.type) {

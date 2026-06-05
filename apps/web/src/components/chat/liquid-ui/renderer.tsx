@@ -3,12 +3,12 @@ import * as React from 'react';
 import { parseLiquidUiSpec } from '@stitch/shared/liquid-ui/parse';
 import { liquidUiNodeSchema, type LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
 
-import { Skeleton } from '@/components/ui/skeleton';
-
 import { renderLiquidUiNode } from './registry.js';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 type LiquidUiProps = { spec: unknown };
-type ErrorBoundaryProps = { children: React.ReactNode; fallback: React.ReactNode };
+type ErrorBoundaryProps = { children: React.ReactNode };
 type ErrorBoundaryState = { hasError: boolean; lastGood: React.ReactNode | null };
 
 class LiquidUiErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -25,7 +25,7 @@ class LiquidUiErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBou
   }
 
   render() {
-    if (this.state.hasError) return this.state.lastGood ?? this.props.fallback;
+    if (this.state.hasError) return this.state.lastGood ?? null;
     return this.props.children;
   }
 }
@@ -35,7 +35,8 @@ function isObject(input: unknown): input is Record<string, unknown> {
 }
 
 function salvageSpec(input: unknown): LiquidUiSpec | null {
-  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes)) return null;
+  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes))
+    return null;
 
   const nodes = input.nodes.flatMap((node) => {
     const result = liquidUiNodeSchema.safeParse(node);
@@ -66,7 +67,11 @@ function LiquidUiTree({ spec }: { spec: LiquidUiSpec }) {
 
     const nextPath = new Set(path);
     nextPath.add(id);
-    return <React.Fragment key={id}>{renderLiquidUiNode(node, (children) => renderChildren(children, nextPath))}</React.Fragment>;
+    return (
+      <React.Fragment key={id}>
+        {renderLiquidUiNode(node, (children) => renderChildren(children, nextPath))}
+      </React.Fragment>
+    );
   }
 
   function renderChildren(children: string[], path: Set<string>) {
@@ -76,26 +81,16 @@ function LiquidUiTree({ spec }: { spec: LiquidUiSpec }) {
   return <>{renderNodeById(spec.root, new Set())}</>;
 }
 
-function LiquidUiFallback({ spec }: { spec: unknown }) {
-  return (
-    <div className="w-full rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-      Unable to render UI spec.
-      <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words">
-        {JSON.stringify(spec, null, 2)}
-      </pre>
-    </div>
-  );
-}
-
 export function LiquidUi({ spec }: LiquidUiProps) {
   const renderableSpec = toRenderableSpec(spec);
-  const fallback = <LiquidUiFallback spec={spec} />;
 
-  if (!renderableSpec) return fallback;
+  if (!renderableSpec) return null;
 
   return (
-    <LiquidUiErrorBoundary fallback={fallback}>
-      <div className="my-2 w-full min-w-0"> <LiquidUiTree spec={renderableSpec} /></div>
+    <LiquidUiErrorBoundary>
+      <div className="my-2 w-full min-w-0">
+        <LiquidUiTree spec={renderableSpec} />
+      </div>
     </LiquidUiErrorBoundary>
   );
 }
