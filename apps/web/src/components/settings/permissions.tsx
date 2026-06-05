@@ -1,4 +1,4 @@
-import { SearchIcon, ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -7,16 +7,24 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
-import { RemoteImageIcon } from '@/components/icons/remote-icon';
-import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import {
+  EmptyState,
+  SectionCard,
+  ToolRow,
+  ToolsetRow,
+} from '@/components/settings/permissions/components';
 import {
   filterCoreTools,
   filterToolsetsByQuery,
 } from '@/components/settings/permissions/filtering';
+import {
+  McpToolsTab,
+  filterMcpGroups,
+  useMcpToolsetGroups,
+} from '@/components/settings/permissions/mcp-tools-tab';
+import type { EditingTarget } from '@/components/settings/permissions/types';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   knownMcpToolsQueryOptions,
@@ -25,176 +33,8 @@ import {
   toolEnabledStatesQueryOptions,
   useSetToolEnabledState,
 } from '@/lib/queries/tools';
-import { cn } from '@/lib/utils';
-
-type EditingTarget =
-  | {
-      type: 'tool';
-      toolName: string;
-      displayName: string;
-      enabledScope: 'tool' | 'toolset' | 'mcp_tool';
-    }
-  | {
-      type: 'toolset';
-      toolsetId: string;
-      displayName: string;
-      subtitle: string;
-      tools: { toolName: string; displayName: string }[];
-      perToolEnabledScope?: 'tool' | 'mcp_tool';
-    };
 
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
-
-type ToolRowProps = {
-  name: string;
-  icon?: React.ReactNode;
-  subtitle?: string;
-  iconPath?: string;
-  technicalName?: string;
-  enabled: boolean;
-  onConfigure: () => void;
-  onToggleEnabled: (enabled: boolean) => void;
-  isMutating: boolean;
-  reserveMiddleSlot?: boolean;
-  isNested?: boolean;
-};
-
-type ToolsetRowProps = {
-  name: string;
-  description: string;
-  icon?: React.ReactNode;
-  enabled: boolean;
-  onConfigure: () => void;
-  onToggleEnabled: (enabled: boolean) => void;
-  isMutating: boolean;
-  settingsAlign?: 'start' | 'end';
-};
-
-function ToolRow({
-  name,
-  icon,
-  iconPath,
-  enabled,
-  onConfigure,
-  onToggleEnabled,
-  isMutating,
-  reserveMiddleSlot = false,
-  isNested = false,
-}: ToolRowProps) {
-  return (
-    <div
-      className={cn(
-        'grid items-center gap-3 px-3 py-2.5 sm:px-4',
-        reserveMiddleSlot
-          ? 'grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem]'
-          : 'grid-cols-[minmax(0,1fr)_5rem_2.5rem]',
-        isNested && 'pl-10 sm:pl-12 bg-muted/10',
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-2.5">
-        {icon ??
-          (iconPath && (
-            <RemoteImageIcon
-              path={iconPath}
-              label={`${name} icon`}
-              className="size-4"
-              fallback={null}
-            />
-          ))}
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{name}</p>
-        </div>
-      </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground"
-      >
-        <Settings2Icon className="size-3.5" />
-        Settings
-      </Button>
-      {reserveMiddleSlot && <div className="h-7 w-full" aria-hidden="true" />}
-      <div className="flex w-10 justify-end">
-        <Switch checked={enabled} onCheckedChange={onToggleEnabled} disabled={isMutating} />
-      </div>
-    </div>
-  );
-}
-
-function ToolsetRow({
-  name,
-  description,
-  icon,
-  enabled,
-  onConfigure,
-  onToggleEnabled,
-  isMutating,
-  settingsAlign = 'start',
-}: ToolsetRowProps) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
-      <div className="flex min-w-0 items-center gap-2.5">
-        {icon ?? <ServerIcon className="size-4 shrink-0 text-muted-foreground" />}
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className={cn(
-          'h-7 w-full px-2 text-muted-foreground hover:text-foreground',
-          settingsAlign === 'end' ? 'justify-end' : 'justify-start',
-        )}
-      >
-        <Settings2Icon className="size-3.5" />
-        Settings
-      </Button>
-      <div className="flex w-10 justify-end">
-        <Switch checked={enabled} onCheckedChange={onToggleEnabled} disabled={isMutating} />
-      </div>
-    </div>
-  );
-}
-
-function SectionCard({
-  title,
-  description,
-  count,
-  children,
-}: {
-  title: string;
-  description: string;
-  count: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
-      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <p className="rounded-md border border-border/60 bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground">
-          {count}
-        </p>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center">
-      <WrenchIcon className="mx-auto mb-2 size-4 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">No tools match your current filters.</p>
-    </div>
-  );
-}
 
 function ToolsContent() {
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
@@ -247,50 +87,15 @@ function ToolsContent() {
 
   const query = search.trim().toLowerCase();
   const stitchTools = filterCoreTools(knownTools, query);
-
   const filteredToolsets = filterToolsetsByQuery(knownToolsets, query);
-
   const nativeToolsets = filteredToolsets.filter((toolset) => toolset.source === 'native');
   const connectorToolsets = filteredToolsets.filter((toolset) => toolset.source === 'connector');
 
-  const mcpToolsetGroups = React.useMemo(() => {
-    const groups = new Map<
-      string,
-      {
-        serverId: string;
-        serverName: string;
-        serverIconPath?: string;
-        tools: { toolName: string; displayName: string; iconPath?: string }[];
-      }
-    >();
-
-    for (const tool of knownTools) {
-      if (tool.toolType !== 'mcp') continue;
-      const meta = mcpToolMetaByName.get(tool.toolName);
-      if (!meta) continue;
-
-      const current = groups.get(meta.serverId) ?? {
-        serverId: meta.serverId,
-        serverName: meta.serverName,
-        serverIconPath: meta.serverIconPath,
-        tools: [],
-      };
-
-      current.tools.push({
-        toolName: tool.toolName,
-        displayName: tool.displayName,
-        iconPath: meta.toolIconPath ?? meta.serverIconPath,
-      });
-      groups.set(meta.serverId, current);
-    }
-
-    return Array.from(groups.values())
-      .map((group) => ({
-        ...group,
-        tools: group.tools.sort((a, b) => a.displayName.localeCompare(b.displayName)),
-      }))
-      .sort((a, b) => a.serverName.localeCompare(b.serverName));
-  }, [knownTools, mcpToolMetaByName]);
+  const mcpToolsetGroups = useMcpToolsetGroups(knownTools, mcpToolMetaByName);
+  const filteredMcpGroups = React.useMemo(
+    () => filterMcpGroups(mcpToolsetGroups, query),
+    [mcpToolsetGroups, query],
+  );
 
   if (editingTarget) {
     return (
@@ -304,22 +109,6 @@ function ToolsContent() {
       </React.Suspense>
     );
   }
-
-  const filteredMcpGroups = mcpToolsetGroups
-    .map((group) => {
-      if (!query) return group;
-      const serverMatch = group.serverName.toLowerCase().includes(query);
-      if (serverMatch) return group;
-
-      const matchingTools = group.tools.filter(
-        (tool) =>
-          tool.displayName.toLowerCase().includes(query) ||
-          tool.toolName.toLowerCase().includes(query),
-      );
-
-      return { ...group, tools: matchingTools };
-    })
-    .filter((group) => group.tools.length > 0);
 
   const isMutating = setToolEnabledState.isPending;
 
@@ -478,67 +267,13 @@ function ToolsContent() {
         </TabsContent>
 
         <TabsContent value="mcp">
-          {filteredMcpGroups.length > 0 ? (
-            <SectionCard
-              title="MCP servers"
-              description="Enable entire servers and open settings to manage server tools"
-              count={filteredMcpGroups.length}
-            >
-              <div className="divide-y divide-border/40">
-                {filteredMcpGroups.map((group) => (
-                  <div key={group.serverId} className="flex flex-col">
-                    <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <McpServerLogo
-                          serverId={group.serverId}
-                          name={group.serverName}
-                          className="size-4 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{group.serverName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {group.tools.length} tool{group.tools.length === 1 ? '' : 's'}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() =>
-                          setEditingTarget({
-                            type: 'toolset',
-                            toolsetId: `mcp:${group.serverId}`,
-                            displayName: group.serverName,
-                            subtitle: 'MCP server',
-                            perToolEnabledScope: 'mcp_tool',
-                            tools: group.tools.map((tool) => ({
-                              toolName: tool.toolName,
-                              displayName: tool.displayName,
-                            })),
-                          })
-                        }
-                      >
-                        <Settings2Icon className="size-3.5" />
-                        Settings
-                      </Button>
-                      <div className="flex w-10 justify-end">
-                        <Switch
-                          checked={getEnabled('toolset', `mcp:${group.serverId}`)}
-                          onCheckedChange={(checked) =>
-                            updateEnabled('toolset', `mcp:${group.serverId}`, checked)
-                          }
-                          disabled={isMutating}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          ) : (
-            <EmptyState />
-          )}
+          <McpToolsTab
+            groups={filteredMcpGroups}
+            getEnabled={getEnabled}
+            updateEnabled={updateEnabled}
+            isMutating={isMutating}
+            onEditTarget={setEditingTarget}
+          />
         </TabsContent>
       </Tabs>
 

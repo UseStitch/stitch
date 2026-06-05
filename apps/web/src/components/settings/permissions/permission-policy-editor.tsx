@@ -10,6 +10,7 @@ import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
 
 import { PermissionSelect } from './permission-select';
 
+import type { EditingTarget } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -23,24 +24,8 @@ const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 const COMMAND_PATTERN_TOOLS = new Set(['bash']);
 const PATTERN_POLICY_TOOLS = new Set([...FILE_PATTERN_TOOLS, ...COMMAND_PATTERN_TOOLS]);
 
-type PermissionTarget =
-  | {
-      type: 'tool';
-      toolName: string;
-      displayName: string;
-      enabledScope: 'tool' | 'toolset' | 'mcp_tool';
-    }
-  | {
-      type: 'toolset';
-      toolsetId: string;
-      displayName: string;
-      subtitle: string;
-      tools: { toolName: string; displayName: string }[];
-      perToolEnabledScope?: 'tool' | 'mcp_tool';
-    };
-
 type PermissionPolicyEditorProps = {
-  target: PermissionTarget;
+  target: EditingTarget;
   onBack: () => void;
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
   onToggleEnabled: (
