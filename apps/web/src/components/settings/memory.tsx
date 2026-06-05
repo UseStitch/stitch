@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
 import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
@@ -431,31 +432,51 @@ export function MemorySettings() {
       description="Configure how Stitch remembers information across sessions"
       icon={<BrainIcon className="size-5" />}
     >
-      <SettingSection title="General">
-        <React.Suspense fallback={<SettingLoading />}>
-          <MemoryToggles />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Embedding">
-        <React.Suspense fallback={<SettingLoading />}>
-          <EmbeddingModelContent />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Extraction">
-        <React.Suspense fallback={<SettingLoading />}>
-          <ExtractionSettings />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Retention">
-        <React.Suspense fallback={<SettingLoading />}>
-          <RetentionSettings />
-        </React.Suspense>
-      </SettingSection>
-      <SettingSection title="Retrieval">
-        <React.Suspense fallback={<SettingLoading />}>
-          <RetrievalSettings />
-        </React.Suspense>
-      </SettingSection>
+      <Tabs defaultValue="general" className="space-y-5">
+        <TabsList variant="line">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="embedding">Embedding</TabsTrigger>
+          <TabsTrigger value="extraction">Extraction</TabsTrigger>
+          <TabsTrigger value="retention">Retention</TabsTrigger>
+          <TabsTrigger value="retrieval">Retrieval</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <SettingSection className="mt-0">
+            <React.Suspense fallback={<SettingLoading />}>
+              <MemoryToggles />
+            </React.Suspense>
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="embedding">
+          <SettingSection className="mt-0">
+            <React.Suspense fallback={<SettingLoading />}>
+              <EmbeddingModelContent />
+            </React.Suspense>
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="extraction">
+          <SettingSection className="mt-0">
+            <React.Suspense fallback={<SettingLoading />}>
+              <ExtractionSettings />
+            </React.Suspense>
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="retention">
+          <SettingSection className="mt-0">
+            <React.Suspense fallback={<SettingLoading />}>
+              <RetentionSettings />
+            </React.Suspense>
+          </SettingSection>
+        </TabsContent>
+        <TabsContent value="retrieval">
+          <SettingSection className="mt-0">
+            <React.Suspense fallback={<SettingLoading />}>
+              <RetrievalSettings />
+            </React.Suspense>
+          </SettingSection>
+        </TabsContent>
+      </Tabs>
     </SettingPage>
   );
 }
