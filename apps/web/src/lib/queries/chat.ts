@@ -1,6 +1,7 @@
 import {
   queryOptions,
   infiniteQueryOptions,
+  keepPreviousData,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -72,6 +73,7 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
       return oldest.createdAt;
     },
     staleTime: Infinity,
+    placeholderData: keepPreviousData,
   });
 
 export const sessionQueryOptions = (id: string) =>
