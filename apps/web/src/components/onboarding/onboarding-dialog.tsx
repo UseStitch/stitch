@@ -495,10 +495,8 @@ function OnboardingMemoryStep({
       return;
     }
 
-    if (!selectedValue) {
-      setSelectedValue(modelOptions[0].value);
-    }
-  }, [modelOptions, selectedValue, settings]);
+    setSelectedValue(modelOptions[0].value);
+  }, [modelOptions, settings]);
 
   if (!settings || !providerModels) {
     return <div className="text-sm text-muted-foreground">Loading memory settings...</div>;
