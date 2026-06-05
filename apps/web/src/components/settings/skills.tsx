@@ -57,7 +57,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="flex h-[36rem] max-h-[36rem] flex-col overflow-hidden">
+    <div className="flex h-144 max-h-144 flex-col overflow-hidden">
       <div className="mb-6 flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
           <ArrowLeftIcon className="size-4" />
@@ -148,7 +148,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
   }
 
   return (
-    <div className="flex h-[36rem] max-h-[36rem] flex-col overflow-hidden">
+    <div className="flex h-144 max-h-144 flex-col overflow-hidden">
       <div className="mb-6 flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to skills">
           <ArrowLeftIcon className="size-4" />
