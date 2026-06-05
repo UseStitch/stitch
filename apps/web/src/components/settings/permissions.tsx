@@ -316,32 +316,6 @@ function ToolsContent() {
   const visibleConnectors = scope === 'connectors';
   const visibleMcp = scope === 'mcp';
 
-  const enabledCount =
-    (visibleStitch ? stitchTools.filter((tool) => getEnabled('tool', tool.toolName)).length : 0) +
-    (visibleNative
-      ? nativeToolsets.filter((toolset) => getEnabled('toolset', toolset.id)).length
-      : 0) +
-    (visibleConnectors
-      ? connectorToolsets.filter((toolset) => getEnabled('toolset', toolset.id)).length
-      : 0) +
-    (visibleMcp
-      ? filteredMcpGroups.reduce((count, group) => {
-          const serverEnabled = getEnabled('toolset', `mcp:${group.serverId}`) ? 1 : 0;
-          const toolsEnabled = group.tools.filter((tool) =>
-            getEnabled('mcp_tool', tool.toolName),
-          ).length;
-          return count + serverEnabled + toolsEnabled;
-        }, 0)
-      : 0);
-
-  const totalCount =
-    (visibleStitch ? stitchTools.length : 0) +
-    (visibleNative ? nativeToolsets.length : 0) +
-    (visibleConnectors ? connectorToolsets.length : 0) +
-    (visibleMcp
-      ? filteredMcpGroups.reduce((count, group) => count + 1 + group.tools.length, 0)
-      : 0);
-
   const isMutating = setToolEnabledState.isPending;
 
   return (
@@ -351,24 +325,6 @@ function ToolsContent() {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           Keep only the tools you need enabled, then open settings for permission behavior.
         </p>
-      </div>
-
-      <div className="rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="rounded-md border border-border/60 bg-background px-2 py-1">
-            <span className="text-muted-foreground">Enabled </span>
-            <span className="font-semibold text-foreground">{enabledCount}</span>
-          </div>
-          <div className="rounded-md border border-border/60 bg-background px-2 py-1">
-            <span className="text-muted-foreground">Disabled </span>
-            <span className="font-semibold text-foreground">
-              {Math.max(totalCount - enabledCount, 0)}
-            </span>
-          </div>
-          <div className="rounded-md border border-border/60 bg-background px-2 py-1 text-muted-foreground">
-            Disabled tools are removed from agent availability
-          </div>
-        </div>
       </div>
 
       <div className="space-y-3">
