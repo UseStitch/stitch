@@ -45,8 +45,21 @@ function TopTitle({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function TopAction({ className, ...props }: React.ComponentProps<typeof Button>) {
-  return <Button size="icon-sm" className={cn('shrink-0', className)} {...props} />;
+function TopAction({
+  className,
+  nativeButton,
+  render,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      size="icon-sm"
+      className={cn('shrink-0', className)}
+      nativeButton={nativeButton ?? (render ? false : undefined)}
+      render={render}
+      {...props}
+    />
+  );
 }
 
 function Action(props: React.ComponentProps<typeof SidebarMenuButton>) {
