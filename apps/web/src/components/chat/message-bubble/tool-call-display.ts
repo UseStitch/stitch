@@ -1,5 +1,6 @@
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import { formatToolDisplayName, truncateText } from './tool-call/card-primitives';
@@ -76,7 +77,7 @@ export function buildStreamingToolCallDisplayItems(
 ): ToolCallDisplayItem[] {
   return partIds.flatMap((partId) => {
     const part = parts[partId];
-    if (!part || part.type !== 'tool-call' || part.toolName === 'todo') return [];
+    if (!part || part.type !== 'tool-call' || isHiddenToolCall(part.toolName)) return [];
 
     return [
       {
@@ -113,7 +114,11 @@ function isVisibleStoredToolCallPart(part: StoredPart): part is StoredPart & {
   toolName: string;
   input: unknown;
 } {
-  return part.type === 'tool-call' && part.toolName !== 'todo';
+  return part.type === 'tool-call' && !isHiddenToolCall(part.toolName);
+}
+
+function isHiddenToolCall(toolName: string): boolean {
+  return toolName === 'todo' || toolName === LIQUID_UI_TOOL_NAME;
 }
 
 function isToolResultError(output: unknown): boolean {
