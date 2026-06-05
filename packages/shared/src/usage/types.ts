@@ -30,13 +30,6 @@ export type UsageBucket = {
   end: number;
   label: string;
   costUsdBySource: Record<string, number>;
-  tokensBySource: Record<string, number>;
-  tokenMetricsBySource: Record<string, UsageTokenMetrics>;
-};
-
-export type UsageTotalsBySource = {
-  costUsd: number;
-  tokenMetrics: UsageTokenMetrics;
 };
 
 export type UsageDashboardResponse = {
@@ -56,7 +49,6 @@ export type UsageDashboardResponse = {
   totals: {
     costUsd: number;
     tokenMetrics: UsageTokenMetrics;
-    bySource: Record<string, UsageTotalsBySource>;
   };
   buckets: UsageBucket[];
 };

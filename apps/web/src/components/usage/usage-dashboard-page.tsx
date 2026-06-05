@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { usageDashboardQueryOptions } from '@/lib/queries/usage';
 
@@ -50,24 +49,7 @@ const SOURCE_LABELS: Record<string, string> = {
   recording_analysis: 'Recording Analysis',
 };
 
-const TOKEN_TYPE_KEYS = [
-  'inputTokens',
-  'outputTokens',
-  'cacheReadTokens',
-  'cacheWriteTokens',
-] as const;
-
-type TokenTypeKey = (typeof TOKEN_TYPE_KEYS)[number];
-
-const TOKEN_TYPE_LABELS: Record<TokenTypeKey, string> = {
-  inputTokens: 'Input',
-  outputTokens: 'Output',
-  cacheReadTokens: 'Cache Read',
-  cacheWriteTokens: 'Cache Write',
-};
-
 const FALLBACK_SOURCE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-const FALLBACK_TOKEN_TYPE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#14b8a6'];
 
 const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> = {
   chat: { cssVar: '--chart-1', fallback: '#f97316' },
@@ -77,19 +59,6 @@ const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> 
   transcription: { cssVar: '--chart-4', fallback: '#f59e0b' },
   memory_extraction: { cssVar: '--chart-4', fallback: '#ec4899' },
   recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
-};
-
-const TOKEN_TYPE_COLOR_CONFIG: Record<TokenTypeKey, { cssVar: string; fallback: string }> = {
-  inputTokens: { cssVar: '--chart-1', fallback: FALLBACK_TOKEN_TYPE_COLORS[0] ?? '#3b82f6' },
-  outputTokens: { cssVar: '--chart-2', fallback: FALLBACK_TOKEN_TYPE_COLORS[1] ?? '#22c55e' },
-  cacheReadTokens: {
-    cssVar: '--chart-3',
-    fallback: FALLBACK_TOKEN_TYPE_COLORS[2] ?? '#f59e0b',
-  },
-  cacheWriteTokens: {
-    cssVar: '--chart-4',
-    fallback: FALLBACK_TOKEN_TYPE_COLORS[3] ?? '#14b8a6',
-  },
 };
 
 function getSourceLabel(source: string): string {
@@ -141,15 +110,6 @@ function getSourceColor(source: string): string {
 
   const fallback = FALLBACK_SOURCE_COLORS[hashSource(source) % FALLBACK_SOURCE_COLORS.length];
   return fallback ?? '#6b7280';
-}
-
-function getTokenTypeColors(): Record<TokenTypeKey, string> {
-  return Object.fromEntries(
-    TOKEN_TYPE_KEYS.map((key) => [
-      key,
-      resolveCssVar(TOKEN_TYPE_COLOR_CONFIG[key].cssVar, TOKEN_TYPE_COLOR_CONFIG[key].fallback),
-    ]),
-  ) as Record<TokenTypeKey, string>;
 }
 
 function getNumericValue(value: unknown): number {
@@ -219,7 +179,6 @@ export function UsageDashboardPage() {
   const [providerFilter, setProviderFilter] = React.useState<string>(ALL_FILTER);
   const [modelFilter, setModelFilter] = React.useState<string>(ALL_FILTER);
   const [rangeFilter, setRangeFilter] = React.useState<UsageDateRange>('30d');
-  const [usageTab, setUsageTab] = React.useState<'cost' | 'tokens'>('cost');
 
   const { data: usageRangeData } = useQuery({
     ...usageDashboardQueryOptions({ range: rangeFilter }),
@@ -324,7 +283,6 @@ export function UsageDashboardPage() {
     () => Object.fromEntries(sources.map((source) => [source, getSourceColor(source)])),
     [sources],
   );
-  const tokenTypeColors = React.useMemo(() => getTokenTypeColors(), []);
   const { tickColor, gridColor } = useChartTheme();
 
   const selectedProviderLabel =
@@ -350,23 +308,6 @@ export function UsageDashboardPage() {
     }),
     [sourceColors, sources, usageData],
   );
-
-  const tokenTypeChartsBySource = React.useMemo(() => {
-    const labels = usageData?.buckets.map((b) => b.label) ?? [];
-    return Object.fromEntries(
-      sources.map((source) => {
-        const datasets = TOKEN_TYPE_KEYS.map((key) => ({
-          label: TOKEN_TYPE_LABELS[key],
-          data: usageData?.buckets.map((b) => b.tokenMetricsBySource[source]?.[key] ?? 0) ?? [],
-          backgroundColor: tokenTypeColors[key],
-          borderRadius: (ctx: ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-          borderSkipped: false,
-          inflateAmount: 0,
-        }));
-        return [source, { labels, datasets }];
-      }),
-    );
-  }, [sources, tokenTypeColors, usageData]);
 
   const baseScales = React.useMemo(
     () => ({
@@ -430,34 +371,6 @@ export function UsageDashboardPage() {
       },
     }),
     [baseScales, baseLegend],
-  );
-
-  const tokenTypeChartOptions = React.useMemo(
-    () => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index' as const, intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx: TooltipItem<'bar'>) =>
-              `${ctx.dataset.label}: ${formatTokens(Number(ctx.raw ?? 0))} tokens`,
-          },
-        },
-      },
-      scales: {
-        ...baseScales,
-        y: {
-          ...baseScales.y,
-          ticks: {
-            ...baseScales.y.ticks,
-            callback: (value: string | number) => formatTokens(Number(value)),
-          },
-        },
-      },
-    }),
-    [baseScales],
   );
 
   const hasData = !!usageData && usageData.buckets.length > 0;
@@ -561,85 +474,20 @@ export function UsageDashboardPage() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <Tabs
-        value={usageTab}
-        onValueChange={(value) => setUsageTab((value as 'cost' | 'tokens') ?? 'cost')}
-      >
-        <TabsList>
-          <TabsTrigger value="cost">Cost</TabsTrigger>
-          <TabsTrigger value="tokens">Tokens</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cost" className="pt-4">
-          <div className="rounded-xl bg-muted/20 p-4">
-            <div className="mb-4">
-              <p className="text-sm font-medium">Cost over time</p>
-              <p className="text-xs text-muted-foreground">Stacked by source</p>
-            </div>
-            <div className="h-64 md:h-96">
-              {hasData ? (
-                <Bar data={costChartData} options={costChartOptions} />
-              ) : (
-                <EmptyChart message="No usage data for the selected filters." />
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tokens" className="pt-4">
+      {/* Cost chart */}
+      <div className="rounded-xl bg-muted/20 p-4">
+        <div className="mb-4">
+          <p className="text-sm font-medium">Cost over time</p>
+          <p className="text-xs text-muted-foreground">Stacked by source</p>
+        </div>
+        <div className="h-64 md:h-96">
           {hasData ? (
-            <div className="space-y-4">
-              {/* Token type legend */}
-              <div className="flex flex-wrap items-center gap-4">
-                {TOKEN_TYPE_KEYS.map((key) => (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-                  >
-                    <span
-                      className="inline-block size-2.5 rounded-sm"
-                      style={{ backgroundColor: tokenTypeColors[key] }}
-                    />
-                    {TOKEN_TYPE_LABELS[key]}
-                  </span>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {sources.map((source) => {
-                  const sourceTotals = usageData?.totals.bySource[source]?.tokenMetrics;
-                  const chartData = tokenTypeChartsBySource[source];
-
-                  return (
-                    <div key={source} className="rounded-xl bg-muted/20 p-4">
-                      <div className="mb-4">
-                        <p className="text-sm font-medium">{getSourceLabel(source)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatTokens(sourceTotals?.totalTokens ?? 0)} total tokens
-                        </p>
-                      </div>
-                      <div className="h-56">
-                        {chartData ? (
-                          <Bar data={chartData} options={tokenTypeChartOptions} />
-                        ) : (
-                          <EmptyChart message="No token data for this source." />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <Bar data={costChartData} options={costChartOptions} />
           ) : (
-            <div className="rounded-xl bg-muted/20 p-4">
-              <div className="h-72">
-                <EmptyChart message="No token data for the selected filters." />
-              </div>
-            </div>
+            <EmptyChart message="No usage data for the selected filters." />
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
