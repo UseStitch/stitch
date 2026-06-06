@@ -28,11 +28,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun
-
       - name: Build website registry artifacts
-        run: bun run scripts/build-website-registries.mjs
+        run: node scripts/build-website-registries.mjs
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
