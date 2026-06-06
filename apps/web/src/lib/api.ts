@@ -88,6 +88,7 @@ declare global {
         check: () => Promise<DesktopUpdaterState>;
         getState: () => Promise<DesktopUpdaterState>;
         install: () => Promise<boolean>;
+        openManualUpdateAndQuit: () => Promise<boolean>;
       };
       spellcheck?: {
         replaceMisspelling: (word: string) => Promise<void>;

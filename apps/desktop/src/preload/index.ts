@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('api', {
     check: () => ipcRenderer.invoke('updater:check') as Promise<UpdaterStatePayload>,
     getState: () => ipcRenderer.invoke('updater:getState') as Promise<UpdaterStatePayload>,
     install: () => ipcRenderer.invoke('updater:install') as Promise<boolean>,
+    openManualUpdateAndQuit: () =>
+      ipcRenderer.invoke('updater:openManualUpdateAndQuit') as Promise<boolean>,
   },
   spellcheck: {
     replaceMisspelling: (word: string) => ipcRenderer.invoke('spellcheck:replaceMisspelling', word),

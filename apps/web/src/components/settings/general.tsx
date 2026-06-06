@@ -102,6 +102,9 @@ const UPDATER_STATUS_LABELS: Record<string, string> = {
   installing: 'Installing update and restarting...',
 };
 
+const MAC_MANUAL_UPDATE_DESCRIPTION =
+  'Download the latest macOS installer, open it, then quit Stitch so you can replace the app safely.';
+
 function updaterStatusLabel(status: string, progress?: number): string {
   if (status === 'downloading') {
     return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
@@ -109,33 +112,59 @@ function updaterStatusLabel(status: string, progress?: number): string {
   return UPDATER_STATUS_LABELS[status] ?? 'Check for updates manually.';
 }
 
-const RELEASES_URL = 'https://github.com/UseStitch/stitch/releases/latest';
-
 function AppUpdatesContent() {
   const isMac = window.electron?.platform === 'darwin';
 
   if (isMac) {
-    return (
-      <SettingRows>
-        <SettingRow
-          label="Desktop app updates"
-          description="Auto-updates are not available on macOS. Download the latest version from the releases page."
-        >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={() => void window.api?.shell?.openExternal(RELEASES_URL)}
-          >
-            Download update
-          </Button>
-        </SettingRow>
-      </SettingRows>
-    );
+    return <MacManualUpdatesContent />;
   }
 
   return <AutoUpdatesContent />;
+}
+
+function MacManualUpdatesContent() {
+  const [quitPending, setQuitPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function handleManualUpdate() {
+    const openManualUpdateAndQuit = window.api?.updater?.openManualUpdateAndQuit;
+    if (!openManualUpdateAndQuit) return;
+
+    setQuitPending(true);
+    setError(null);
+    try {
+      await openManualUpdateAndQuit();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setQuitPending(false);
+    }
+  }
+
+  return (
+    <SettingRows>
+      <SettingRow label="Desktop app updates" description={MAC_MANUAL_UPDATE_DESCRIPTION}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={handleManualUpdate}
+          disabled={quitPending}
+        >
+          {quitPending ? (
+            <>
+              <LoaderIcon className="size-3.5 animate-spin" />
+              Downloading...
+            </>
+          ) : (
+            'Download and quit'
+          )}
+        </Button>
+      </SettingRow>
+      {error ? <p className="pb-2 text-xs text-destructive">{error}</p> : null}
+    </SettingRows>
+  );
 }
 
 function AutoUpdatesContent() {
