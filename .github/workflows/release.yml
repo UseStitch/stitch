@@ -278,6 +278,15 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.version.outputs.commit }}
 
+      - name: Setup git committer
+        id: auth
+        uses: ./.github/actions/setup-git-committer
+        with:
+          app-id: ${{ vars.STITCH_APP_ID }}
+          app-private-key: ${{ secrets.STITCH_APP_PRIVATE_KEY }}
+          bot-name: stitch[bot]
+          bot-email: stitch[bot]@users.noreply.github.com
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -362,7 +371,7 @@ jobs:
 
       - name: Create GitHub release and upload assets
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.version.outputs.tag }}
           COMMIT: ${{ needs.version.outputs.commit }}
@@ -392,7 +401,7 @@ jobs:
     steps:
       - name: Delete stale caches
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           # For each cache prefix, keep only the most recently accessed entry and delete the rest
