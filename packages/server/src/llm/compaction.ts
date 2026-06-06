@@ -19,7 +19,7 @@ import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
-import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -580,7 +580,7 @@ export async function buildCompactedHistory(
 }
 
 export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'ses'>): string {
-  const activeIds = getSessionActiveToolsetIds(sessionId);
+  const activeIds = getSessionToolsetState(sessionId).active.map((entry) => entry.id);
   const instructionBlocks = activeIds
     .map((id) => getToolset(id))
     .filter((ts): ts is NonNullable<ReturnType<typeof getToolset>> => !!ts?.instructions)

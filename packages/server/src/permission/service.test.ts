@@ -37,8 +37,8 @@ const messageId = 'msg_permission' as PrefixedString<'msg'>;
 async function seedSessions(): Promise<void> {
   const db = getDb();
   await db.insert(sessions).values([
-    { id: sessionId, title: 'Test session', activeToolsetIds: [] },
-    { id: otherSessionId, title: 'Other session', activeToolsetIds: [] },
+    { id: sessionId, title: 'Test session' },
+    { id: otherSessionId, title: 'Other session' },
   ]);
 }
 

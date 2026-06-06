@@ -3,7 +3,11 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import { getSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import {
+  getSessionToolsetState,
+  setSessionToolsetState,
+  type SessionExpiredToolset,
+} from '@/llm/stream/session-toolsets.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
@@ -60,6 +64,28 @@ async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<st
   ].join('\n');
 }
 
+export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): string {
+  if (expired.length === 0) return '';
+
+  const lines = expired.map((entry) => {
+    const toolset = getToolset(entry.id);
+    const name = toolset?.name ?? entry.id;
+    const tools =
+      entry.toolNames.length > 0
+        ? ` Tools no longer available: ${entry.toolNames.join(', ')}.`
+        : '';
+    return `- ${name} (${entry.id}) expired at the last turn boundary.${tools}`;
+  });
+
+  return [
+    '## Toolset Expiry Notice',
+    '',
+    'These toolsets were active in the previous run but are not loaded for this turn. Do not call their tools unless you first call `activate_toolset` again.',
+    '',
+    ...lines,
+  ].join('\n');
+}
+
 export class ToolAssembler {
   private readonly toolContext: ToolContext;
 
@@ -76,8 +102,17 @@ export class ToolAssembler {
   }
 
   async assemble(): Promise<AssembledTools> {
+    const sessionState = getSessionToolsetState(this.opts.sessionId);
     const persistedToolsetIds =
-      this.opts.activeToolsetIds ?? getSessionActiveToolsetIds(this.opts.sessionId);
+      this.opts.activeToolsetIds ?? sessionState.active.map((entry) => entry.id);
+    const expiredPrompt = this.opts.activeToolsetIds
+      ? ''
+      : buildExpiredToolsetsPrompt(sessionState.expired);
+
+    if (!this.opts.activeToolsetIds && sessionState.expired.length > 0) {
+      setSessionToolsetState(this.opts.sessionId, { ...sessionState, expired: [] });
+    }
+
     const toolsetManager = new ToolsetManager(this.toolContext, persistedToolsetIds);
     await this.restoreToolsets(toolsetManager, persistedToolsetIds);
 
@@ -109,9 +144,12 @@ export class ToolAssembler {
         execute_typescript: codeModeResult.tool,
       },
       toolsetManager,
-      promptAdditions: [codeModeResult.getSystemPrompt(), toolsetsPrompt, skillsPrompt].filter(
-        Boolean,
-      ),
+      promptAdditions: [
+        codeModeResult.getSystemPrompt(),
+        expiredPrompt,
+        toolsetsPrompt,
+        skillsPrompt,
+      ].filter(Boolean),
     };
   }
 

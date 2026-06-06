@@ -142,6 +142,18 @@ export class ToolsetManager {
     return new Set(this.persistedIds);
   }
 
+  getActivationState(): Array<{ id: string; scope: 'until_deactivated' }> {
+    return [...this.persistedIds]
+      .filter((id) => this.activeIds.has(id))
+      .map((id) => ({ id, scope: 'until_deactivated' }));
+  }
+
+  getExpiredRunToolsets(): Array<{ id: string; toolNames: string[] }> {
+    return [...this.activeIds]
+      .filter((id) => !this.persistedIds.has(id))
+      .map((id) => ({ id, toolNames: Object.keys(this.activeToolCache.get(id) ?? {}) }));
+  }
+
   pin(toolsetId: string): boolean {
     if (!this.activeIds.has(toolsetId)) {
       return false;

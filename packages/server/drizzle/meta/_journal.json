@@ -183,6 +183,13 @@
       "when": 1780349118310,
       "tag": "0025_lean_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1780765566023,
+      "tag": "0026_mixed_guardsmen",
+      "breakpoints": true
     }
   ]
 }

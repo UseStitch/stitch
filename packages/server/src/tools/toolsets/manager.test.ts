@@ -185,3 +185,34 @@ describe('ToolsetManager.getActiveTools ordering', () => {
     expect(Object.keys(manager1.getActiveTools())).toEqual(['a_tool', 'b_tool']);
   });
 });
+
+describe('ToolsetManager activation state', () => {
+  beforeEach(() => {
+    clearToolsets();
+  });
+
+  test('tracks persisted active toolsets separately from run-only toolsets', async () => {
+    registerToolset({
+      id: 'persisted',
+      name: 'Persisted',
+      description: 'Persisted',
+      tools: () => [{ name: 'persisted_tool', description: 'persisted' }],
+      activate: async () => ({ persisted_tool: makeTool('persisted') }),
+    } satisfies Toolset);
+    registerToolset({
+      id: 'run-only',
+      name: 'Run Only',
+      description: 'Run only',
+      tools: () => [{ name: 'run_tool', description: 'run' }],
+      activate: async () => ({ run_tool: makeTool('run') }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    await manager.activate('persisted');
+    await manager.activate('run-only');
+    manager.pin('persisted');
+
+    expect(manager.getActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
+    expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
+  });
+});
