@@ -308,19 +308,26 @@ jobs:
 
           declare -a feats fixes improvements docs chores other
 
+          re_bump='^chore(\([^)]*\))?!?:\ bump\ version'
+          re_feat='^feat(\([^)]*\))?!?:\ (.*)'
+          re_fix='^fix(\([^)]*\))?!?:\ (.*)'
+          re_improvement='^(improvement|refactor|perf)(\([^)]*\))?!?:\ (.*)'
+          re_docs='^docs(\([^)]*\))?!?:\ (.*)'
+          re_chore='^chore(\([^)]*\))?!?:\ (.*)'
+
           while IFS= read -r subject; do
             # Skip version bump commits
-            if [[ "$subject" =~ ^chore(\([^)]*\))?!?:\ bump\ version ]]; then continue; fi
+            if [[ "$subject" =~ $re_bump ]]; then continue; fi
 
-            if [[ "$subject" =~ ^feat(\([^)]*\))?!?:\ (.*) ]]; then
+            if [[ "$subject" =~ $re_feat ]]; then
               feats+=("- ${BASH_REMATCH[2]}")
-            elif [[ "$subject" =~ ^fix(\([^)]*\))?!?:\ (.*) ]]; then
+            elif [[ "$subject" =~ $re_fix ]]; then
               fixes+=("- ${BASH_REMATCH[2]}")
-            elif [[ "$subject" =~ ^(improvement|refactor|perf)(\([^)]*\))?!?:\ (.*) ]]; then
+            elif [[ "$subject" =~ $re_improvement ]]; then
               improvements+=("- ${BASH_REMATCH[3]}")
-            elif [[ "$subject" =~ ^docs(\([^)]*\))?!?:\ (.*) ]]; then
+            elif [[ "$subject" =~ $re_docs ]]; then
               docs+=("- ${BASH_REMATCH[2]}")
-            elif [[ "$subject" =~ ^chore(\([^)]*\))?!?:\ (.*) ]]; then
+            elif [[ "$subject" =~ $re_chore ]]; then
               chores+=("- ${BASH_REMATCH[2]}")
             else
               other+=("- ${subject}")
