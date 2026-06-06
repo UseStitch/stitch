@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
+import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
@@ -13,6 +17,8 @@ function clearToolsets(): void {
 }
 
 const TEST_SESSION_ID = 'ses_test' as never;
+
+setupTestDb();
 
 function createManager(): ToolsetManager {
   return new ToolsetManager({
@@ -45,6 +51,8 @@ function registerTestToolset(overrides: Partial<Toolset> = {}): Toolset {
 describe('toolset management tools', () => {
   beforeEach(() => {
     clearToolsets();
+    getDb().insert(sessions).values({ id: TEST_SESSION_ID, title: 'Toolset test' }).run();
+    setSessionToolsetState(TEST_SESSION_ID, { turnCounter: 0, active: [], expired: [] });
   });
 
   test('list_toolsets returns catalog when called without toolsetId', async () => {
@@ -122,6 +130,56 @@ describe('toolset management tools', () => {
       instructions: 'Use this toolset carefully.',
       prompts: [{ name: 'demo', description: 'Demo prompt' }],
     });
+  });
+
+  test('activate_toolset stores ttl scope by default', async () => {
+    registerTestToolset();
+    const manager = createManager();
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'test-toolset' },
+      {} as never,
+    )) as { message: string; persisted: boolean };
+
+    expect(result.persisted).toBe(false);
+    expect(result.message).toContain('multi-turn TTL');
+    expect(manager.getActivationState()).toEqual([
+      { id: 'test-toolset', scope: 'ttl_turns', expiresAtTurn: 2 },
+    ]);
+  });
+
+  test('activate_toolset persist=true maps to until_deactivated scope', async () => {
+    registerTestToolset();
+    const manager = createManager();
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'test-toolset', persist: true },
+      {} as never,
+    )) as { message: string; persisted: boolean };
+
+    expect(result.persisted).toBe(true);
+    expect(result.message).toContain('persist until explicitly deactivated');
+    expect(manager.getActivationState()).toEqual([
+      { id: 'test-toolset', scope: 'until_deactivated' },
+    ]);
+  });
+
+  test('activate_toolset supports current_run scope', async () => {
+    registerTestToolset();
+    const manager = createManager();
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+
+    const result = (await tools.activate_toolset.execute?.(
+      { toolsetId: 'test-toolset', scope: 'current_run' },
+      {} as never,
+    )) as { message: string; persisted: boolean };
+
+    expect(result.persisted).toBe(false);
+    expect(result.message).toContain('activated for this run only');
+    expect(manager.getActivationState()).toEqual([]);
+    expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'test-toolset', toolNames: [] }]);
   });
 
   test('activate_toolset humanizes MCP tool names in message', async () => {

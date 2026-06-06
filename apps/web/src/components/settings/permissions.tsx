@@ -2,7 +2,7 @@ import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
@@ -24,10 +24,26 @@ import {
 } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import { SettingPage } from '@/components/settings/settings-ui';
+import {
+  NumberSettingRow,
+  SettingPage,
+  SettingRow,
+  SettingRowControl,
+  SettingRows,
+  SettingSection,
+  SwitchSettingRow,
+} from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
   knownMcpToolsQueryOptions,
   knownToolsetsQueryOptions,
@@ -37,6 +53,72 @@ import {
 } from '@/lib/queries/tools';
 
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
+type ToolsetDefaultScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
+
+const TOOLSET_SCOPE_OPTIONS: Array<{ value: ToolsetDefaultScope; label: string }> = [
+  { value: 'current_run', label: 'Current run' },
+  { value: 'ttl_turns', label: 'TTL turns' },
+  { value: 'until_deactivated', label: 'Until deactivated' },
+];
+
+function ToolsetActivationSettings() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const saveDefaultScope = useMutation(
+    saveSettingMutationOptions('toolsets.defaultScope', queryClient, { silent: true }),
+  );
+  const defaultScope = (settings['toolsets.defaultScope'] ?? 'ttl_turns') as ToolsetDefaultScope;
+  const selectedScopeLabel =
+    TOOLSET_SCOPE_OPTIONS.find((option) => option.value === defaultScope)?.label ?? 'TTL turns';
+
+  return (
+    <SettingSection
+      title="Toolset activation"
+      description="Control how long activated toolsets stay available across conversation turns."
+    >
+      <SettingRows>
+        <SettingRow
+          label="Default scope"
+          description="Scope used when activate_toolset does not request a lifetime."
+        >
+          <SettingRowControl>
+            <Select
+              value={defaultScope}
+              onValueChange={(value) => {
+                if (value) saveDefaultScope.mutate(value);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>{selectedScopeLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {TOOLSET_SCOPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRowControl>
+        </SettingRow>
+        <NumberSettingRow
+          settingKey="toolsets.ttlTurns"
+          label="TTL turns"
+          description="Turns of inactivity before a TTL-scoped toolset expires."
+          currentValue={settings['toolsets.ttlTurns'] ?? '3'}
+          min={1}
+          max={30}
+        />
+        <SwitchSettingRow
+          settingKey="toolsets.autoRehydrate"
+          label="Auto rehydrate"
+          description="Automatically reactivate an expired toolset when the model calls one of its tools."
+          checked={(settings['toolsets.autoRehydrate'] ?? 'true') === 'true'}
+        />
+      </SettingRows>
+    </SettingSection>
+  );
+}
 
 function ToolsContent() {
   const page = SETTINGS_PAGE_BY_ID.tools;
@@ -121,6 +203,8 @@ function ToolsContent() {
       icon={<Icon className="size-5" />}
     >
       <div className="space-y-5">
+        <ToolsetActivationSettings />
+
         <div className="relative">
           <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input

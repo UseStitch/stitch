@@ -22,12 +22,13 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { processMemories } from '@/memory/processor.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { getToolsetSettings } from '@/tools/toolsets/settings.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
 import * as Usage from '@/utils/usage.js';
@@ -510,6 +511,7 @@ class StreamRunner {
       for (const call of stepResult.toolCalls) {
         this.state.toolCallHistory.push(call);
       }
+      await this.renewToolsetActivity(stepResult.toolCalls);
 
       const doomLoopState = await this.deps.checkAndHandleDoomLoop({
         sessionId: this.ctx.sessionId,
@@ -941,7 +943,16 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
-    setSessionActiveToolsetIds(this.ctx.sessionId, this.ctx.toolsetManager.getPersistedIds());
+    const currentToolsetState = getSessionToolsetState(this.ctx.sessionId);
+    const nextTurnCounter = currentToolsetState.turnCounter + 1;
+    setSessionToolsetState(this.ctx.sessionId, {
+      turnCounter: nextTurnCounter,
+      active: this.ctx.toolsetManager.getActivationState(),
+      expired: this.ctx.toolsetManager.getExpiredRunToolsets().map((entry) => ({
+        ...entry,
+        expiredAtTurn: nextTurnCounter,
+      })),
+    });
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
@@ -974,6 +985,16 @@ class StreamRunner {
       },
       'stream.finished',
     );
+  }
+
+  private async renewToolsetActivity(toolCalls: ToolCallRecord[]): Promise<void> {
+    const settings = await getToolsetSettings();
+    const currentTurn = getSessionToolsetState(this.ctx.sessionId).turnCounter;
+    const expiresAtTurn = currentTurn + settings.ttlTurns - 1;
+
+    for (const call of toolCalls) {
+      this.ctx.toolsetManager.renewTtlForTool(call.toolName, expiresAtTurn);
+    }
   }
 
   private hasUserFacingTextPart(): boolean {

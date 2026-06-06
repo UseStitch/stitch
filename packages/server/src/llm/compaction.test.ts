@@ -2,10 +2,15 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { registerToolset, unregisterToolset, listToolsetIds } from '@/tools/toolsets/registry.js';
+
+setupTestDb();
 
 describe('isOverflow', () => {
   const defaultLimits = { context: 200_000, output: 8_192 };
@@ -485,11 +490,20 @@ describe('buildHistoryMessages', () => {
 describe('buildActiveToolsetInstructionsBlock', () => {
   const sessionId = 'ses_test_compaction' as never;
 
+  const setActiveToolsets = (ids: string[]) => {
+    setSessionToolsetState(sessionId, {
+      turnCounter: 0,
+      active: ids.map((id) => ({ id, scope: 'until_deactivated' })),
+      expired: [],
+    });
+  };
+
   beforeEach(() => {
     for (const id of listToolsetIds()) {
       unregisterToolset(id);
     }
-    setSessionActiveToolsetIds(sessionId, []);
+    getDb().insert(sessions).values({ id: sessionId, title: 'Compaction test' }).run();
+    setActiveToolsets([]);
   });
 
   test('returns empty string when no toolsets are active', () => {
@@ -505,7 +519,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
       tools: () => [],
       activate: async () => ({}),
     });
-    setSessionActiveToolsetIds(sessionId, ['no-instructions']);
+    setActiveToolsets(['no-instructions']);
 
     const result = buildActiveToolsetInstructionsBlock(sessionId);
     expect(result).toBe('');
@@ -520,7 +534,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
       tools: () => [],
       activate: async () => ({}),
     });
-    setSessionActiveToolsetIds(sessionId, ['browser']);
+    setActiveToolsets(['browser']);
 
     const result = buildActiveToolsetInstructionsBlock(sessionId);
     expect(result).toContain('## Active Toolset Instructions');
@@ -544,7 +558,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
       tools: () => [],
       activate: async () => ({}),
     });
-    setSessionActiveToolsetIds(sessionId, ['with-instructions', 'without-instructions']);
+    setActiveToolsets(['with-instructions', 'without-instructions']);
 
     const result = buildActiveToolsetInstructionsBlock(sessionId);
     expect(result).toContain('### With Instructions Toolset Instructions');
@@ -568,7 +582,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
       tools: () => [],
       activate: async () => ({}),
     });
-    setSessionActiveToolsetIds(sessionId, ['ts-alpha', 'ts-beta']);
+    setActiveToolsets(['ts-alpha', 'ts-beta']);
 
     const result = buildActiveToolsetInstructionsBlock(sessionId);
     expect(result).toContain('### Alpha Toolset Instructions');

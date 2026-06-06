@@ -185,3 +185,59 @@ describe('ToolsetManager.getActiveTools ordering', () => {
     expect(Object.keys(manager1.getActiveTools())).toEqual(['a_tool', 'b_tool']);
   });
 });
+
+describe('ToolsetManager activation state', () => {
+  beforeEach(() => {
+    clearToolsets();
+  });
+
+  test('tracks persisted active toolsets separately from run-only toolsets', async () => {
+    registerToolset({
+      id: 'persisted',
+      name: 'Persisted',
+      description: 'Persisted',
+      tools: () => [{ name: 'persisted_tool', description: 'persisted' }],
+      activate: async () => ({ persisted_tool: makeTool('persisted') }),
+    } satisfies Toolset);
+    registerToolset({
+      id: 'run-only',
+      name: 'Run Only',
+      description: 'Run only',
+      tools: () => [{ name: 'run_tool', description: 'run' }],
+      activate: async () => ({ run_tool: makeTool('run') }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    await manager.activate('persisted');
+    await manager.activate('run-only');
+    manager.pin('persisted');
+
+    expect(manager.getActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
+    expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
+  });
+
+  test('renews TTL state when a tool from a TTL toolset is used', async () => {
+    registerToolset({
+      id: 'ttl-toolset',
+      name: 'TTL',
+      description: 'TTL',
+      tools: () => [{ name: 'ttl_tool', description: 'ttl' }],
+      activate: async () => ({ ttl_tool: makeTool('ttl') }),
+    } satisfies Toolset);
+
+    const manager = new ToolsetManager(
+      {
+        sessionId: 'ses_test' as never,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [{ id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 1 }],
+    );
+    await manager.activate('ttl-toolset');
+
+    expect(manager.renewTtlForTool('ttl_tool', 5)).toBe('ttl-toolset');
+    expect(manager.getActivationState()).toEqual([
+      { id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 5 },
+    ]);
+  });
+});

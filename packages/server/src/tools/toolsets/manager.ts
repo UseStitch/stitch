@@ -1,6 +1,7 @@
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import * as Log from '@/lib/log.js';
+import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
 import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
 import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
@@ -22,15 +23,24 @@ export class ToolsetManager {
   /** Subset of active toolsets that should persist across future turns. */
   private readonly persistedIds = new Set<string>();
 
+  private readonly activationState = new Map<string, SessionActiveToolset>();
+
+  private readonly manuallyDeactivatedIds = new Set<string>();
+
   /** Cached tool instances for each active toolset (lazy-populated on activate) */
   private readonly activeToolCache = new Map<string, Record<string, Tool>>();
 
   private readonly context: ToolContext;
 
-  constructor(context: ToolContext, persistedToolsetIds: Iterable<string> = []) {
+  constructor(context: ToolContext, activationState: Iterable<string | SessionActiveToolset> = []) {
     this.context = context;
-    for (const id of persistedToolsetIds) {
-      this.persistedIds.add(id);
+    for (const entry of activationState) {
+      const state =
+        typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
+      this.activationState.set(state.id, state);
+      if (state.scope === 'until_deactivated') {
+        this.persistedIds.add(state.id);
+      }
     }
   }
 
@@ -40,6 +50,7 @@ export class ToolsetManager {
    */
   async activate(
     toolsetId: string,
+    state?: { scope: SessionToolsetScope; expiresAtTurn?: number },
   ): Promise<
     | { status: 'activated'; toolNames: string[]; collisions: string[] }
     | { status: 'not_found' }
@@ -98,6 +109,11 @@ export class ToolsetManager {
     }
 
     this.activeIds.add(toolsetId);
+    this.manuallyDeactivatedIds.delete(toolsetId);
+    this.setActivationState(
+      toolsetId,
+      state ?? this.activationState.get(toolsetId) ?? { scope: 'current_run' },
+    );
     this.activeToolCache.set(toolsetId, tools);
 
     log.info(
@@ -115,12 +131,14 @@ export class ToolsetManager {
 
   /** Deactivate a toolset, removing its tools from the active set. */
   deactivate(toolsetId: string): boolean {
+    this.manuallyDeactivatedIds.add(toolsetId);
     if (!this.activeIds.has(toolsetId)) {
       return false;
     }
 
     this.activeIds.delete(toolsetId);
     this.persistedIds.delete(toolsetId);
+    this.activationState.delete(toolsetId);
     this.activeToolCache.delete(toolsetId);
 
     log.info({ event: 'toolset.deactivated', toolsetId }, 'toolset deactivated');
@@ -142,21 +160,68 @@ export class ToolsetManager {
     return new Set(this.persistedIds);
   }
 
+  getActivationState(): SessionActiveToolset[] {
+    return [...this.activationState.values()]
+      .filter((entry) => this.activeIds.has(entry.id) && entry.scope !== 'current_run')
+      .map((entry) => ({ ...entry }));
+  }
+
+  getExpiredRunToolsets(): Array<{ id: string; toolNames: string[] }> {
+    return [...this.activeIds]
+      .filter((id) => this.activationState.get(id)?.scope === 'current_run')
+      .map((id) => ({ id, toolNames: Object.keys(this.activeToolCache.get(id) ?? {}) }));
+  }
+
+  renewTtlForTool(toolName: string, expiresAtTurn: number): string | null {
+    for (const [toolsetId, tools] of this.activeToolCache.entries()) {
+      if (!(toolName in tools)) continue;
+
+      const state = this.activationState.get(toolsetId);
+      if (state?.scope !== 'ttl_turns') return null;
+
+      this.activationState.set(toolsetId, { ...state, expiresAtTurn });
+      return toolsetId;
+    }
+
+    return null;
+  }
+
   pin(toolsetId: string): boolean {
     if (!this.activeIds.has(toolsetId)) {
       return false;
     }
 
     this.persistedIds.add(toolsetId);
+    this.setActivationState(toolsetId, { scope: 'until_deactivated' });
     return true;
   }
 
   unpin(toolsetId: string): boolean {
-    return this.persistedIds.delete(toolsetId);
+    const deleted = this.persistedIds.delete(toolsetId);
+    if (deleted) {
+      this.setActivationState(toolsetId, { scope: 'current_run' });
+    }
+    return deleted;
   }
 
   isPersisted(toolsetId: string): boolean {
     return this.persistedIds.has(toolsetId);
+  }
+
+  wasManuallyDeactivated(toolsetId: string): boolean {
+    return this.manuallyDeactivatedIds.has(toolsetId);
+  }
+
+  setActivationState(
+    toolsetId: string,
+    state: { scope: SessionToolsetScope; expiresAtTurn?: number },
+  ): void {
+    this.activationState.set(toolsetId, { id: toolsetId, ...state });
+    if (state.scope === 'until_deactivated') {
+      this.persistedIds.add(toolsetId);
+    } else {
+      this.persistedIds.delete(toolsetId);
+    }
   }
 
   /**
