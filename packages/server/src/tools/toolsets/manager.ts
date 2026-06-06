@@ -25,6 +25,8 @@ export class ToolsetManager {
 
   private readonly activationState = new Map<string, SessionActiveToolset>();
 
+  private readonly manuallyDeactivatedIds = new Set<string>();
+
   /** Cached tool instances for each active toolset (lazy-populated on activate) */
   private readonly activeToolCache = new Map<string, Record<string, Tool>>();
 
@@ -107,6 +109,7 @@ export class ToolsetManager {
     }
 
     this.activeIds.add(toolsetId);
+    this.manuallyDeactivatedIds.delete(toolsetId);
     this.setActivationState(
       toolsetId,
       state ?? this.activationState.get(toolsetId) ?? { scope: 'current_run' },
@@ -128,6 +131,7 @@ export class ToolsetManager {
 
   /** Deactivate a toolset, removing its tools from the active set. */
   deactivate(toolsetId: string): boolean {
+    this.manuallyDeactivatedIds.add(toolsetId);
     if (!this.activeIds.has(toolsetId)) {
       return false;
     }
@@ -168,6 +172,20 @@ export class ToolsetManager {
       .map((id) => ({ id, toolNames: Object.keys(this.activeToolCache.get(id) ?? {}) }));
   }
 
+  renewTtlForTool(toolName: string, expiresAtTurn: number): string | null {
+    for (const [toolsetId, tools] of this.activeToolCache.entries()) {
+      if (!(toolName in tools)) continue;
+
+      const state = this.activationState.get(toolsetId);
+      if (state?.scope !== 'ttl_turns') return null;
+
+      this.activationState.set(toolsetId, { ...state, expiresAtTurn });
+      return toolsetId;
+    }
+
+    return null;
+  }
+
   pin(toolsetId: string): boolean {
     if (!this.activeIds.has(toolsetId)) {
       return false;
@@ -188,6 +206,10 @@ export class ToolsetManager {
 
   isPersisted(toolsetId: string): boolean {
     return this.persistedIds.has(toolsetId);
+  }
+
+  wasManuallyDeactivated(toolsetId: string): boolean {
+    return this.manuallyDeactivatedIds.has(toolsetId);
   }
 
   setActivationState(

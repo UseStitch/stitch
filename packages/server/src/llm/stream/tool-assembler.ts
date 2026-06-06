@@ -1,3 +1,6 @@
+import { tool, type Tool } from 'ai';
+import { z } from 'zod';
+
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
@@ -19,7 +22,7 @@ import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
-import type { Tool } from 'ai';
+import { getToolsetSettings } from '@/tools/toolsets/settings.js';
 
 const log = Log.create({ service: 'tool-assembler' });
 
@@ -107,12 +110,15 @@ export class ToolAssembler {
     const activeEntries = this.opts.activeToolsetIds
       ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
       : this.getRestorableToolsets(sessionState.active, sessionState.turnCounter);
-    const expiredPrompt = this.opts.activeToolsetIds
-      ? ''
-      : buildExpiredToolsetsPrompt([
+    const expiredEntries = this.opts.activeToolsetIds
+      ? []
+      : [
           ...sessionState.expired,
           ...this.getExpiredTtlToolsets(sessionState.active, sessionState.turnCounter),
-        ]);
+        ];
+    const expiredPrompt = this.opts.activeToolsetIds
+      ? ''
+      : buildExpiredToolsetsPrompt(expiredEntries);
 
     if (!this.opts.activeToolsetIds) {
       setSessionToolsetState(this.opts.sessionId, {
@@ -132,10 +138,23 @@ export class ToolAssembler {
     const metaTools = this.buildToolsetMetaTools(toolsetManager);
     const taskTool = this.buildTaskTool(toolsetManager);
     const inspectImageTool = this.buildInspectImageTool();
+    const reservedToolNames = new Set([
+      ...Object.keys(coreTools),
+      ...Object.keys(metaTools),
+      ...(taskTool ? ['task'] : []),
+      'inspect_image',
+      'execute_typescript',
+    ]);
+    const guardTools = this.buildRehydrationGuardTools(
+      expiredEntries,
+      toolsetManager,
+      reservedToolNames,
+      sessionState.turnCounter,
+    );
     const codeModeResult = createCodeModeTool({
       getTools: () =>
         this.mergeTools({
-          staticTools: { ...coreTools, ...metaTools },
+          staticTools: { ...coreTools, ...metaTools, ...guardTools },
           taskTool,
           inspectImageTool,
           dynamicTools: toolsetManager.getActiveTools(),
@@ -148,7 +167,7 @@ export class ToolAssembler {
     return {
       staticTools: {
         ...this.mergeTools({
-          staticTools: { ...coreTools, ...metaTools },
+          staticTools: { ...coreTools, ...metaTools, ...guardTools },
           taskTool,
           inspectImageTool,
           dynamicTools: {},
@@ -213,6 +232,98 @@ export class ToolAssembler {
         defineRuntimeTool(name, tool, { source: 'meta' }),
       ),
     );
+  }
+
+  private buildRehydrationGuardTools(
+    expired: SessionExpiredToolset[],
+    manager: ToolsetManager,
+    reservedToolNames: Set<string>,
+    currentTurn: number,
+  ): Record<string, Tool> {
+    const guards: Record<string, Tool> = {};
+
+    for (const entry of expired) {
+      const toolset = getToolset(entry.id);
+      if (!toolset) continue;
+
+      for (const toolInfo of toolset.tools()) {
+        if (!entry.toolNames.includes(toolInfo.name) || reservedToolNames.has(toolInfo.name)) {
+          continue;
+        }
+
+        guards[toolInfo.name] = tool({
+          description: `Recovery guard for expired tool ${toolInfo.name}. Reactivates ${toolset.name} when safe; does not execute the original stale tool call.`,
+          inputSchema: z.record(z.string(), z.unknown()),
+          execute: async () =>
+            this.rehydrateExpiredToolset(entry, manager, reservedToolNames, currentTurn),
+        });
+      }
+    }
+
+    return guards;
+  }
+
+  private async rehydrateExpiredToolset(
+    expired: SessionExpiredToolset,
+    manager: ToolsetManager,
+    reservedToolNames: Set<string>,
+    currentTurn: number,
+  ): Promise<Record<string, unknown>> {
+    const toolset = getToolset(expired.id);
+    if (!toolset || expired.manuallyDeactivated || manager.wasManuallyDeactivated(expired.id)) {
+      return {
+        status: 'not_active',
+        toolsetId: expired.id,
+        message: `Toolset "${expired.id}" is not active. Call activate_toolset before using its tools.`,
+      };
+    }
+
+    const settings = await getToolsetSettings();
+    if (!settings.autoRehydrate) {
+      return {
+        status: 'not_active',
+        toolsetId: expired.id,
+        autoRehydrate: false,
+        message: `Toolset "${toolset.name}" is not active. Call activate_toolset("${expired.id}") before using its tools.`,
+      };
+    }
+
+    const activeToolNames = new Set(Object.keys(manager.getActiveTools()));
+    const collision = toolset
+      .tools()
+      .map((toolInfo) => toolInfo.name)
+      .find((toolName) => activeToolNames.has(toolName) || reservedToolNames.has(toolName));
+    if (collision) {
+      return {
+        status: 'not_active',
+        toolsetId: expired.id,
+        collision,
+        message: `Toolset "${toolset.name}" is not active and cannot be auto-reactivated because tool "${collision}" would collide. Call activate_toolset explicitly if you still need it.`,
+      };
+    }
+
+    const result = await manager.activate(expired.id, {
+      scope: 'ttl_turns',
+      expiresAtTurn: currentTurn + settings.ttlTurns - 1,
+    });
+
+    if (result.status !== 'activated') {
+      return {
+        status: 'not_active',
+        toolsetId: expired.id,
+        reason: result.status,
+        message: `Toolset "${toolset.name}" is not active and could not be auto-reactivated. Call activate_toolset before using its tools.`,
+      };
+    }
+
+    return {
+      status: 'reactivated',
+      toolsetId: expired.id,
+      toolsetName: toolset.name,
+      tools: result.toolNames,
+      message:
+        'The toolset has been reactivated. Retry the original tool call now that the tool is available.',
+    };
   }
 
   private buildTaskTool(toolsetManager: ToolsetManager): Tool | null {

@@ -13,9 +13,10 @@ describe('parseToolsetSettings', () => {
         new Map([
           ['toolsets.defaultScope', 'current_run'],
           ['toolsets.ttlTurns', '5'],
+          ['toolsets.autoRehydrate', 'false'],
         ]),
       ),
-    ).toEqual({ defaultScope: 'current_run', ttlTurns: 5 });
+    ).toEqual({ defaultScope: 'current_run', ttlTurns: 5, autoRehydrate: false });
   });
 
   test('ignores invalid values', () => {
@@ -24,6 +25,7 @@ describe('parseToolsetSettings', () => {
         new Map([
           ['toolsets.defaultScope', 'invalid'],
           ['toolsets.ttlTurns', '0'],
+          ['toolsets.autoRehydrate', 'invalid'],
         ]),
       ),
     ).toEqual(DEFAULT_TOOLSET_SETTINGS);

@@ -17,6 +17,7 @@ export type SessionExpiredToolset = {
   id: string;
   expiredAtTurn: number;
   toolNames: string[];
+  manuallyDeactivated?: boolean;
 };
 
 export type SessionToolsetState = {
@@ -47,7 +48,7 @@ function normalizeState(state: SessionToolsetState | null | undefined): SessionT
         ? state.active.map((entry) => ({
             id: entry.id,
             scope: entry.scope,
-            expiresAtTurn: Number.isFinite(entry.expiresAtTurn) ? entry.expiresAtTurn : undefined,
+            ...(Number.isFinite(entry.expiresAtTurn) && { expiresAtTurn: entry.expiresAtTurn }),
           }))
         : [],
       expired: Array.isArray(state.expired)
@@ -55,6 +56,7 @@ function normalizeState(state: SessionToolsetState | null | undefined): SessionT
             id: entry.id,
             expiredAtTurn: Number.isFinite(entry.expiredAtTurn) ? entry.expiredAtTurn : 0,
             toolNames: Array.isArray(entry.toolNames) ? entry.toolNames : [],
+            ...(entry.manuallyDeactivated === true && { manuallyDeactivated: true }),
           }))
         : [],
     };

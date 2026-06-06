@@ -215,4 +215,29 @@ describe('ToolsetManager activation state', () => {
     expect(manager.getActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
   });
+
+  test('renews TTL state when a tool from a TTL toolset is used', async () => {
+    registerToolset({
+      id: 'ttl-toolset',
+      name: 'TTL',
+      description: 'TTL',
+      tools: () => [{ name: 'ttl_tool', description: 'ttl' }],
+      activate: async () => ({ ttl_tool: makeTool('ttl') }),
+    } satisfies Toolset);
+
+    const manager = new ToolsetManager(
+      {
+        sessionId: 'ses_test' as never,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [{ id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 1 }],
+    );
+    await manager.activate('ttl-toolset');
+
+    expect(manager.renewTtlForTool('ttl_tool', 5)).toBe('ttl-toolset');
+    expect(manager.getActivationState()).toEqual([
+      { id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 5 },
+    ]);
+  });
 });
