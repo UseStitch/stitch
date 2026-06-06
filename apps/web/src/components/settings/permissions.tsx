@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
+
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
@@ -31,7 +33,6 @@ import {
   SettingRowControl,
   SettingRows,
   SettingSection,
-  SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,8 @@ import {
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
 type ToolsetDefaultScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
 
+const DEFAULT_TOOLSET_SCOPE = 'ttl_turns' satisfies ToolsetDefaultScope;
+
 const TOOLSET_SCOPE_OPTIONS: Array<{ value: ToolsetDefaultScope; label: string }> = [
   { value: 'current_run', label: 'Current run' },
   { value: 'ttl_turns', label: 'TTL turns' },
@@ -67,7 +70,12 @@ function ToolsetActivationSettings() {
   const saveDefaultScope = useMutation(
     saveSettingMutationOptions('toolsets.defaultScope', queryClient, { silent: true }),
   );
-  const defaultScope = (settings['toolsets.defaultScope'] ?? 'ttl_turns') as ToolsetDefaultScope;
+  const parsedDefaultScope = SETTINGS_SCHEMAS['toolsets.defaultScope'].safeParse(
+    settings['toolsets.defaultScope'],
+  );
+  const defaultScope = parsedDefaultScope.success
+    ? (parsedDefaultScope.data as ToolsetDefaultScope)
+    : DEFAULT_TOOLSET_SCOPE;
   const selectedScopeLabel =
     TOOLSET_SCOPE_OPTIONS.find((option) => option.value === defaultScope)?.label ?? 'TTL turns';
 
@@ -108,12 +116,6 @@ function ToolsetActivationSettings() {
           currentValue={settings['toolsets.ttlTurns'] ?? '3'}
           min={1}
           max={30}
-        />
-        <SwitchSettingRow
-          settingKey="toolsets.autoRehydrate"
-          label="Auto rehydrate"
-          description="Automatically reactivate an expired toolset when the model calls one of its tools."
-          checked={(settings['toolsets.autoRehydrate'] ?? 'true') === 'true'}
         />
       </SettingRows>
     </SettingSection>

@@ -7,13 +7,11 @@ import type { SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 type ToolsetSettings = {
   defaultScope: SessionToolsetScope;
   ttlTurns: number;
-  autoRehydrate: boolean;
 };
 
 export const DEFAULT_TOOLSET_SETTINGS: ToolsetSettings = {
   defaultScope: 'ttl_turns',
   ttlTurns: 3,
-  autoRehydrate: true,
 };
 
 function parseDefaultScope(value: string | undefined): SessionToolsetScope | undefined {
@@ -29,20 +27,12 @@ function parseTtlTurns(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : undefined;
 }
 
-function parseBoolean(value: string | undefined): boolean | undefined {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
 export function parseToolsetSettings(values: Map<string, string>): ToolsetSettings {
   return {
     defaultScope:
       parseDefaultScope(values.get('toolsets.defaultScope')) ??
       DEFAULT_TOOLSET_SETTINGS.defaultScope,
     ttlTurns: parseTtlTurns(values.get('toolsets.ttlTurns')) ?? DEFAULT_TOOLSET_SETTINGS.ttlTurns,
-    autoRehydrate:
-      parseBoolean(values.get('toolsets.autoRehydrate')) ?? DEFAULT_TOOLSET_SETTINGS.autoRehydrate,
   };
 }
 

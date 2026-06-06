@@ -25,8 +25,6 @@ export class ToolsetManager {
 
   private readonly activationState = new Map<string, SessionActiveToolset>();
 
-  private readonly manuallyDeactivatedIds = new Set<string>();
-
   /** Cached tool instances for each active toolset (lazy-populated on activate) */
   private readonly activeToolCache = new Map<string, Record<string, Tool>>();
 
@@ -109,7 +107,6 @@ export class ToolsetManager {
     }
 
     this.activeIds.add(toolsetId);
-    this.manuallyDeactivatedIds.delete(toolsetId);
     this.setActivationState(
       toolsetId,
       state ?? this.activationState.get(toolsetId) ?? { scope: 'current_run' },
@@ -131,7 +128,6 @@ export class ToolsetManager {
 
   /** Deactivate a toolset, removing its tools from the active set. */
   deactivate(toolsetId: string): boolean {
-    this.manuallyDeactivatedIds.add(toolsetId);
     if (!this.activeIds.has(toolsetId)) {
       return false;
     }
@@ -160,7 +156,7 @@ export class ToolsetManager {
     return new Set(this.persistedIds);
   }
 
-  getActivationState(): SessionActiveToolset[] {
+  getPersistableActivationState(): SessionActiveToolset[] {
     return [...this.activationState.values()]
       .filter((entry) => this.activeIds.has(entry.id) && entry.scope !== 'current_run')
       .map((entry) => ({ ...entry }));
@@ -206,10 +202,6 @@ export class ToolsetManager {
 
   isPersisted(toolsetId: string): boolean {
     return this.persistedIds.has(toolsetId);
-  }
-
-  wasManuallyDeactivated(toolsetId: string): boolean {
-    return this.manuallyDeactivatedIds.has(toolsetId);
   }
 
   setActivationState(

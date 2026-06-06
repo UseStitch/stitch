@@ -87,7 +87,9 @@ describe('ToolAssembler expired toolset handling', () => {
 
     expect(assembled.promptAdditions.join('\n')).toContain('Toolset Expiry Notice');
     expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
-    expect(getSessionToolsetState(sessionId).expired).toEqual([]);
+    expect(getSessionToolsetState(sessionId).expired).toEqual([
+      { id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] },
+    ]);
   });
 
   test('restores ttl toolsets before expiry and expires them on turn N', async () => {
@@ -135,74 +137,5 @@ describe('ToolAssembler expired toolset handling', () => {
 
     expect(expired.promptAdditions.join('\n')).toContain('Toolset Expiry Notice');
     expect(expired.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
-  });
-
-  test('guard tool auto-reactivates an expired toolset', async () => {
-    const sessionId = 'ses_rehydrate_toolsets' as never;
-    getDb().insert(sessions).values({ id: sessionId, title: 'Rehydrate toolsets test' }).run();
-
-    registerToolset({
-      id: 'browser',
-      name: 'Browser',
-      description: 'Browser toolset',
-      tools: () => [{ name: 'browser_open', description: 'open' }],
-      activate: async () => ({ browser_open: makeTool('open') }),
-    } satisfies Toolset);
-    setSessionToolsetState(sessionId, {
-      turnCounter: 3,
-      active: [],
-      expired: [{ id: 'browser', expiredAtTurn: 3, toolNames: ['browser_open'] }],
-    });
-
-    const assembled = await ToolAssembler.create({
-      sessionId,
-      messageId: 'msg_rehydrate_toolsets' as never,
-      streamRunId: 'run_rehydrate_toolsets',
-      credentials: CREDENTIALS,
-      modelId: 'openai/gpt-5.3-codex',
-      abortSignal: new AbortController().signal,
-    }).assemble();
-
-    const result = (await assembled.staticTools.browser_open?.execute?.({}, {} as never)) as {
-      status: string;
-    };
-
-    expect(result.status).toBe('reactivated');
-    expect(assembled.toolsetManager.getActiveTools()).toHaveProperty('browser_open');
-  });
-
-  test('manual deactivation blocks guard auto-reactivation', async () => {
-    const sessionId = 'ses_manual_rehydrate' as never;
-    getDb().insert(sessions).values({ id: sessionId, title: 'Manual rehydrate test' }).run();
-
-    registerToolset({
-      id: 'browser',
-      name: 'Browser',
-      description: 'Browser toolset',
-      tools: () => [{ name: 'browser_open', description: 'open' }],
-      activate: async () => ({ browser_open: makeTool('open') }),
-    } satisfies Toolset);
-    setSessionToolsetState(sessionId, {
-      turnCounter: 3,
-      active: [],
-      expired: [{ id: 'browser', expiredAtTurn: 3, toolNames: ['browser_open'] }],
-    });
-
-    const assembled = await ToolAssembler.create({
-      sessionId,
-      messageId: 'msg_manual_rehydrate' as never,
-      streamRunId: 'run_manual_rehydrate',
-      credentials: CREDENTIALS,
-      modelId: 'openai/gpt-5.3-codex',
-      abortSignal: new AbortController().signal,
-    }).assemble();
-    assembled.toolsetManager.deactivate('browser');
-
-    const result = (await assembled.staticTools.browser_open?.execute?.({}, {} as never)) as {
-      status: string;
-    };
-
-    expect(result.status).toBe('not_active');
-    expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
   });
 });

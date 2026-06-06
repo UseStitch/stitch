@@ -5,6 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
 import {
+  getToolsetExpiresAtTurn,
   getSessionToolsetState,
   setSessionToolsetState,
   type SessionToolsetScope,
@@ -23,8 +24,8 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     const current = getSessionToolsetState(sessionId);
     setSessionToolsetState(sessionId, {
       ...current,
-      active: manager.getActivationState(),
-      expired: current.expired.filter((entry) => manager.isActive(entry.id)),
+      active: manager.getPersistableActivationState(),
+      expired: current.expired.filter((entry) => !manager.isActive(entry.id)),
     });
   };
 
@@ -35,7 +36,10 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
 
-  const getActivationState = async (input: { persist?: boolean; scope?: SessionToolsetScope }) => {
+  const resolveActivationState = async (input: {
+    persist?: boolean;
+    scope?: SessionToolsetScope;
+  }) => {
     if (input.persist === true) {
       return { scope: 'until_deactivated' as const };
     }
@@ -45,7 +49,10 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     return scope === 'ttl_turns'
       ? {
           scope,
-          expiresAtTurn: getSessionToolsetState(sessionId).turnCounter + settings.ttlTurns - 1,
+          expiresAtTurn: getToolsetExpiresAtTurn(
+            getSessionToolsetState(sessionId).turnCounter,
+            settings.ttlTurns,
+          ),
         }
       : { scope };
   };
@@ -156,7 +163,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         .describe('Include full toolset instructions and prompt metadata in the response.'),
     }),
     execute: async ({ toolsetId, persist, scope, verbose }) => {
-      const activationState = await getActivationState({ persist, scope });
+      const activationState = await resolveActivationState({ persist, scope });
       if (manager.isActive(toolsetId)) {
         const wasPersisted = manager.isPersisted(toolsetId);
         const toolsetName = getToolset(toolsetId)?.name ?? toolsetId;
