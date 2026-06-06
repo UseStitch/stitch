@@ -381,3 +381,20 @@ jobs:
           else
             gh release create "${TAG}" "${assets[@]}" --target "${COMMIT}" --title "${TAG}" --notes-file release-notes.md
           fi
+
+  purge-caches:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # For each cache prefix, keep only the most recently accessed entry and delete the rest
+          gh api "repos/${GH_REPO}/actions/caches?per_page=100" \
+            --jq '.actions_caches | sort_by(.last_accessed_at) | reverse | group_by(.key | split("-") | .[0:3] | join("-")) | map(.[1:]) | flatten | .[].id' \
+          | while read -r id; do
+            echo "Deleting stale cache $id"
+            gh api --method DELETE "repos/${GH_REPO}/actions/caches/$id"
+          done
