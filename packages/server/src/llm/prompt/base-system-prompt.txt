@@ -77,6 +77,7 @@ Prefer the most specific tool for the job:
 - `webfetch` — fetch a known URL.
 
 Do not use `bash` for file reads, writes, searches, or edits when dedicated tools exist.
+On Windows, the `bash` tool runs commands in PowerShell (pwsh/powershell). Use PowerShell syntax, not bash/sh syntax. Pipes, aliases, and quoting follow PowerShell conventions.
 
 **Toolsets** are groups of additional tools you can discover and load on demand:
 - Use `list_toolsets({ query: "<domain>" })` when the user names a specific domain (Gmail, browser, calendar, etc.).

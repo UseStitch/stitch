@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { inferWindowsShellFromProfile, pickWindowsShell } from '@/lib/shell.js';
+import {
+  buildCmdArgv,
+  buildPowerShellArgv,
+  buildWindowsShellArgv,
+  inferWindowsShellFromProfile,
+  pickWindowsShell,
+} from '@/lib/shell.js';
 
 describe('shell preferences', () => {
   test('infers pwsh from PowerShell profile metadata', () => {
@@ -60,5 +66,39 @@ describe('shell preferences', () => {
         comspec: 'C:\\Windows\\System32\\cmd.exe',
       }),
     ).toBe('C:\\Windows\\System32\\cmd.exe');
+  });
+
+  test('builds encoded PowerShell argv', () => {
+    const command = 'Get-ChildItem -LiteralPath "C:\\Program Files"';
+    const argv = buildPowerShellArgv(command);
+
+    expect(argv.slice(0, -1)).toEqual([
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-EncodedCommand',
+    ]);
+    expect(Buffer.from(argv.at(-1) ?? '', 'base64').toString('utf16le')).toBe(command);
+  });
+
+  test('builds cmd argv', () => {
+    const command = 'dir "C:\\Program Files"';
+
+    expect(buildCmdArgv(command)).toEqual(['/d', '/s', '/c', command]);
+  });
+
+  test('round-trips PowerShell commands with shell-sensitive characters', () => {
+    const command = '"quoted value"; $env:Path; Write-Output "a & b"\nWrite-Output done';
+    const argv = buildWindowsShellArgv('pwsh.exe', command);
+
+    expect(Buffer.from(argv.at(-1) ?? '', 'base64').toString('utf16le')).toBe(command);
+  });
+
+  test('uses cmd argv for non-PowerShell Windows shells', () => {
+    const command = 'echo hello';
+
+    expect(buildWindowsShellArgv('cmd.exe', command)).toEqual(['/d', '/s', '/c', command]);
   });
 });
