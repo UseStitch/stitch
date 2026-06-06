@@ -4,10 +4,15 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
-import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import {
+  getSessionToolsetState,
+  setSessionToolsetState,
+  type SessionToolsetScope,
+} from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
+import { getToolsetSettings } from '@/tools/toolsets/settings.js';
 
 /**
  * Create the three toolset management meta-tools bound to a specific ToolsetManager instance.
@@ -29,6 +34,39 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
+
+  const getActivationState = async (input: { persist?: boolean; scope?: SessionToolsetScope }) => {
+    if (input.persist === true) {
+      return { scope: 'until_deactivated' as const };
+    }
+
+    const settings = await getToolsetSettings();
+    const scope = input.scope ?? settings.defaultScope;
+    return scope === 'ttl_turns'
+      ? {
+          scope,
+          expiresAtTurn: getSessionToolsetState(sessionId).turnCounter + settings.ttlTurns - 1,
+        }
+      : { scope };
+  };
+
+  const buildActivationMessage = (input: {
+    toolsetName: string;
+    toolsetId: string;
+    toolNames: string[];
+    scope: SessionToolsetScope;
+    expiresAtTurn?: number;
+  }) => {
+    const tools = `${input.toolNames.length} tool(s) now available: ${input.toolNames.map(humanizeToolName).join(', ')}.`;
+    const deactivate = `Call deactivate_toolset("${input.toolsetId}") when you no longer need it to keep context clean.`;
+    if (input.scope === 'until_deactivated') {
+      return `Toolset "${input.toolsetName}" activated and will persist until explicitly deactivated. ${tools} ${deactivate}`;
+    }
+    if (input.scope === 'ttl_turns') {
+      return `Toolset "${input.toolsetName}" activated with a multi-turn TTL and will expire after turn ${input.expiresAtTurn}. ${tools} ${deactivate}`;
+    }
+    return `Toolset "${input.toolsetName}" activated for this run only. ${tools} ${deactivate} Use scope="ttl_turns" or persist=true when you expect to need it again in future turns.`;
+  };
 
   const list_toolsets = tool({
     description: `List toolsets and inspect toolset contents. Prefer a query string when you already know the domain (for example "gmail", "browser", or "calendar"). Call with no arguments only for broad discovery. Pass a toolsetId only when you need to inspect prompts or instructions before activation — activate_toolset already returns the full tool list, so do not call list_toolsets with a toolsetId just to preview tools you are about to activate.`,
@@ -108,19 +146,22 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         .boolean()
         .optional()
         .describe('Keep this toolset active for future turns in the same session.'),
+      scope: z
+        .enum(['current_run', 'ttl_turns', 'until_deactivated'])
+        .optional()
+        .describe('Activation lifetime. persist=true is equivalent to scope="until_deactivated".'),
       verbose: z
         .boolean()
         .optional()
         .describe('Include full toolset instructions and prompt metadata in the response.'),
     }),
-    execute: async ({ toolsetId, persist, verbose }) => {
+    execute: async ({ toolsetId, persist, scope, verbose }) => {
+      const activationState = await getActivationState({ persist, scope });
       if (manager.isActive(toolsetId)) {
         const wasPersisted = manager.isPersisted(toolsetId);
         const toolsetName = getToolset(toolsetId)?.name ?? toolsetId;
-        if (persist === true) {
-          manager.pin(toolsetId);
-          persistManagerState();
-        }
+        manager.setActivationState(toolsetId, activationState);
+        persistManagerState();
 
         return {
           toolsetId,
@@ -129,13 +170,13 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
           icon: getToolset(toolsetId)?.icon ?? null,
           persisted: manager.isPersisted(toolsetId),
           message:
-            persist === true && !wasPersisted
+            manager.isPersisted(toolsetId) && !wasPersisted
               ? `Toolset "${toolsetName}" is already active and will now persist for future turns.`
               : `Toolset "${toolsetName}" is already active.`,
         };
       }
 
-      const result = await manager.activate(toolsetId);
+      const result = await manager.activate(toolsetId, activationState);
       if (result.status === 'not_found') {
         throw new Error(
           `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
@@ -147,10 +188,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         );
       }
 
-      if (persist === true) {
-        manager.pin(toolsetId);
-        persistManagerState();
-      }
+      persistManagerState();
 
       const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
@@ -166,9 +204,13 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         tools: toolNames,
         toolDisplayNames: toolNames.map(humanizeToolName),
         icon: toolset?.icon ?? null,
-        message: persisted
-          ? `Toolset "${toolsetName}" activated and will persist for future turns. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean.`
-          : `Toolset "${toolsetName}" activated for this run only. ${toolNames.length} tool(s) now available: ${toolNames.map(humanizeToolName).join(', ')}. Call deactivate_toolset("${toolsetId}") when you no longer need it to keep context clean. Set persist=true on activation only when you expect to need it again in future turns.`,
+        message: buildActivationMessage({
+          toolsetName,
+          toolsetId,
+          toolNames,
+          scope: activationState.scope,
+          expiresAtTurn: activationState.expiresAtTurn,
+        }),
         hasInstructions: !!toolset?.instructions,
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,

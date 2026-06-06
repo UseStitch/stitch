@@ -89,4 +89,51 @@ describe('ToolAssembler expired toolset handling', () => {
     expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
     expect(getSessionToolsetState(sessionId).expired).toEqual([]);
   });
+
+  test('restores ttl toolsets before expiry and expires them on turn N', async () => {
+    const sessionId = 'ses_ttl_toolsets' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'TTL toolsets test' }).run();
+
+    registerToolset({
+      id: 'browser',
+      name: 'Browser',
+      description: 'Browser toolset',
+      tools: () => [{ name: 'browser_open', description: 'open' }],
+      activate: async () => ({ browser_open: makeTool('open') }),
+    } satisfies Toolset);
+    setSessionToolsetState(sessionId, {
+      turnCounter: 2,
+      active: [{ id: 'browser', scope: 'ttl_turns', expiresAtTurn: 2 }],
+      expired: [],
+    });
+
+    const restored = await ToolAssembler.create({
+      sessionId,
+      messageId: 'msg_ttl_restore' as never,
+      streamRunId: 'run_ttl_restore',
+      credentials: CREDENTIALS,
+      modelId: 'openai/gpt-5.3-codex',
+      abortSignal: new AbortController().signal,
+    }).assemble();
+
+    expect(restored.toolsetManager.getActiveTools()).toHaveProperty('browser_open');
+
+    setSessionToolsetState(sessionId, {
+      turnCounter: 3,
+      active: [{ id: 'browser', scope: 'ttl_turns', expiresAtTurn: 2 }],
+      expired: [],
+    });
+
+    const expired = await ToolAssembler.create({
+      sessionId,
+      messageId: 'msg_ttl_expire' as never,
+      streamRunId: 'run_ttl_expire',
+      credentials: CREDENTIALS,
+      modelId: 'openai/gpt-5.3-codex',
+      abortSignal: new AbortController().signal,
+    }).assemble();
+
+    expect(expired.promptAdditions.join('\n')).toContain('Toolset Expiry Notice');
+    expect(expired.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
+  });
 });

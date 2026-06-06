@@ -10,6 +10,7 @@ export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivat
 export type SessionActiveToolset = {
   id: string;
   scope: SessionToolsetScope;
+  expiresAtTurn?: number;
 };
 
 export type SessionExpiredToolset = {
@@ -43,7 +44,11 @@ function normalizeState(state: SessionToolsetState | null | undefined): SessionT
     return {
       turnCounter: Number.isFinite(state.turnCounter) ? state.turnCounter : 0,
       active: Array.isArray(state.active)
-        ? state.active.map((entry) => ({ id: entry.id, scope: entry.scope }))
+        ? state.active.map((entry) => ({
+            id: entry.id,
+            scope: entry.scope,
+            expiresAtTurn: Number.isFinite(entry.expiresAtTurn) ? entry.expiresAtTurn : undefined,
+          }))
         : [],
       expired: Array.isArray(state.expired)
         ? state.expired.map((entry) => ({
