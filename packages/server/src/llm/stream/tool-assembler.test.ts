@@ -139,6 +139,8 @@ describe('ToolAssembler expired toolset handling', () => {
 
   test('guard tool auto-reactivates an expired toolset', async () => {
     const sessionId = 'ses_rehydrate_toolsets' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'Rehydrate toolsets test' }).run();
+
     registerToolset({
       id: 'browser',
       name: 'Browser',
@@ -171,6 +173,8 @@ describe('ToolAssembler expired toolset handling', () => {
 
   test('manual deactivation blocks guard auto-reactivation', async () => {
     const sessionId = 'ses_manual_rehydrate' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'Manual rehydrate test' }).run();
+
     registerToolset({
       id: 'browser',
       name: 'Browser',
