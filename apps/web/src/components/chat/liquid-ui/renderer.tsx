@@ -88,7 +88,7 @@ export function LiquidUi({ spec }: LiquidUiProps) {
 
   return (
     <LiquidUiErrorBoundary>
-      <div className="my-2 w-full min-w-0">
+      <div className="my-3 w-full min-w-0 border-t border-border/40 pt-3">
         <LiquidUiTree spec={renderableSpec} />
       </div>
     </LiquidUiErrorBoundary>

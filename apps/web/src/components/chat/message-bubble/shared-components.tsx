@@ -22,7 +22,7 @@ export function FileBlock({ mediaType }: { mediaType: string }) {
 export function AssistantBubbleWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div className="group flex justify-start">
-      <div className="w-full space-y-1.5">{children}</div>
+      <div className="w-full space-y-3">{children}</div>
     </div>
   );
 }
