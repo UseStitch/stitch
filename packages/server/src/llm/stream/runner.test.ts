@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 
+import { setupTestDb } from '@/db/test-helpers.js';
 import * as Events from '@/lib/events.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
@@ -30,6 +31,8 @@ const CREDENTIALS: ProviderCredentials = {
   providerId: 'openai',
   auth: { method: 'api-key', apiKey: 'test-key' },
 };
+
+setupTestDb();
 
 function createTextModel(text: string): MockLanguageModelV3 {
   return new MockLanguageModelV3({

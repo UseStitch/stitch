@@ -114,10 +114,6 @@ export const sessions = sqliteTable('sessions', {
     .$type<PrefixedString<'ses'> | null>()
     .references((): ReturnType<typeof text> => sessions.id),
   isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
-  activeToolsetIds: blob('active_toolset_ids', { mode: 'json' })
-    .$type<string[]>()
-    .notNull()
-    .default([]),
   toolsetState: blob('toolset_state', { mode: 'json' }).$type<SessionToolsetState | null>(),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()

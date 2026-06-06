@@ -1,1 +1,0 @@
-ALTER TABLE `sessions` ADD `toolset_state` blob;

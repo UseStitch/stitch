@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { buildExpiredToolsetsPrompt, ToolAssembler } from '@/llm/stream/tool-assembler.js';
@@ -11,6 +14,8 @@ const CREDENTIALS: ProviderCredentials = {
   providerId: 'openai',
   auth: { method: 'api-key', apiKey: 'test-key' },
 };
+
+setupTestDb();
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {
@@ -42,7 +47,9 @@ describe('buildExpiredToolsetsPrompt', () => {
 
     expect(prompt).toContain('## Toolset Expiry Notice');
     expect(prompt).toContain('Browser (browser) expired');
-    expect(prompt).toContain('Do not call their tools unless you first call `activate_toolset` again');
+    expect(prompt).toContain(
+      'Do not call their tools unless you first call `activate_toolset` again',
+    );
     expect(prompt).toContain('browser_open');
   });
 });
@@ -54,6 +61,8 @@ describe('ToolAssembler expired toolset handling', () => {
 
   test('adds expiry notice next turn and does not load expired tools', async () => {
     const sessionId = 'ses_expired_toolsets' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'Expired toolsets test' }).run();
+
     registerToolset({
       id: 'browser',
       name: 'Browser',

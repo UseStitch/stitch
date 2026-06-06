@@ -2,10 +2,15 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { registerToolset, unregisterToolset, listToolsetIds } from '@/tools/toolsets/registry.js';
+
+setupTestDb();
 
 describe('isOverflow', () => {
   const defaultLimits = { context: 200_000, output: 8_192 };
@@ -497,6 +502,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
     for (const id of listToolsetIds()) {
       unregisterToolset(id);
     }
+    getDb().insert(sessions).values({ id: sessionId, title: 'Compaction test' }).run();
     setActiveToolsets([]);
   });
 

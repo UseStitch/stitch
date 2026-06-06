@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getDb, isDbInitialized } from '@/db/client.js';
+import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema.js';
 
 export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
@@ -30,9 +30,6 @@ const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = {
   expired: [],
 };
 
-// Fallback used only when DB is not initialized (e.g. unit tests).
-const inMemoryFallback = new Map<string, SessionToolsetState>();
-
 function cloneState(state: SessionToolsetState): SessionToolsetState {
   return {
     turnCounter: state.turnCounter,
@@ -41,10 +38,7 @@ function cloneState(state: SessionToolsetState): SessionToolsetState {
   };
 }
 
-function normalizeState(
-  state: SessionToolsetState | null | undefined,
-  legacyActiveIds: string[] = [],
-): SessionToolsetState {
+function normalizeState(state: SessionToolsetState | null | undefined): SessionToolsetState {
   if (state) {
     return {
       turnCounter: Number.isFinite(state.turnCounter) ? state.turnCounter : 0,
@@ -61,23 +55,17 @@ function normalizeState(
     };
   }
 
-  return {
-    ...EMPTY_SESSION_TOOLSET_STATE,
-    active: legacyActiveIds.map((id) => ({ id, scope: 'until_deactivated' })),
-  };
+  return EMPTY_SESSION_TOOLSET_STATE;
 }
 
 export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): SessionToolsetState {
-  if (!isDbInitialized()) {
-    return cloneState(inMemoryFallback.get(sessionId) ?? EMPTY_SESSION_TOOLSET_STATE);
-  }
   const row = getDb()
-    .select({ activeToolsetIds: sessions.activeToolsetIds, toolsetState: sessions.toolsetState })
+    .select({ toolsetState: sessions.toolsetState })
     .from(sessions)
     .where(eq(sessions.id, sessionId))
     .get();
 
-  return normalizeState(row?.toolsetState, row?.activeToolsetIds ?? []);
+  return normalizeState(row?.toolsetState);
 }
 
 export function setSessionToolsetState(
@@ -85,22 +73,9 @@ export function setSessionToolsetState(
   state: SessionToolsetState,
 ): void {
   const nextState = normalizeState(state);
-  const activeIds = nextState.active.map((entry) => entry.id);
-  if (!isDbInitialized()) {
-    if (
-      nextState.active.length === 0 &&
-      nextState.expired.length === 0 &&
-      nextState.turnCounter === 0
-    ) {
-      inMemoryFallback.delete(sessionId);
-    } else {
-      inMemoryFallback.set(sessionId, cloneState(nextState));
-    }
-    return;
-  }
   getDb()
     .update(sessions)
-    .set({ activeToolsetIds: activeIds, toolsetState: nextState, updatedAt: Date.now() })
+    .set({ toolsetState: cloneState(nextState), updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .run();
 }
