@@ -45,6 +45,7 @@ import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcut
 import type { SkillId } from '@stitch/shared/skills/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import type { SessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import type { LanguageModelUsage } from 'ai';
 
 export const userSettings = sqliteTable('user_settings', {
@@ -117,6 +118,7 @@ export const sessions = sqliteTable('sessions', {
     .$type<string[]>()
     .notNull()
     .default([]),
+  toolsetState: blob('toolset_state', { mode: 'json' }).$type<SessionToolsetState | null>(),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 
-import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -14,6 +14,15 @@ import { getToolset } from '@/tools/toolsets/registry.js';
  * These are always-active tools that let the LLM discover, activate, and deactivate toolsets.
  */
 export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedString<'ses'>) {
+  const persistManagerState = () => {
+    const current = getSessionToolsetState(sessionId);
+    setSessionToolsetState(sessionId, {
+      ...current,
+      active: manager.getActivationState(),
+      expired: current.expired.filter((entry) => manager.isActive(entry.id)),
+    });
+  };
+
   const humanizeToolName = (name: string) =>
     (parseMcpToolName(name)?.toolName ?? name)
       .split(/[_-]+/)
@@ -110,7 +119,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         const toolsetName = getToolset(toolsetId)?.name ?? toolsetId;
         if (persist === true) {
           manager.pin(toolsetId);
-          setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
+          persistManagerState();
         }
 
         return {
@@ -140,7 +149,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       if (persist === true) {
         manager.pin(toolsetId);
-        setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
+        persistManagerState();
       }
 
       const { toolNames, collisions } = result;
@@ -197,7 +206,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         };
       }
 
-      setSessionActiveToolsetIds(sessionId, manager.getPersistedIds());
+      persistManagerState();
 
       return {
         toolsetId,

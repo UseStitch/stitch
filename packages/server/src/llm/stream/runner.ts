@@ -22,7 +22,7 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { setSessionActiveToolsetIds } from '@/llm/stream/session-toolsets.js';
+import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { processMemories } from '@/memory/processor.js';
@@ -941,7 +941,16 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
-    setSessionActiveToolsetIds(this.ctx.sessionId, this.ctx.toolsetManager.getPersistedIds());
+    const currentToolsetState = getSessionToolsetState(this.ctx.sessionId);
+    const nextTurnCounter = currentToolsetState.turnCounter + 1;
+    setSessionToolsetState(this.ctx.sessionId, {
+      turnCounter: nextTurnCounter,
+      active: this.ctx.toolsetManager.getActivationState(),
+      expired: this.ctx.toolsetManager.getExpiredRunToolsets().map((entry) => ({
+        ...entry,
+        expiredAtTurn: nextTurnCounter,
+      })),
+    });
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
