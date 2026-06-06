@@ -275,6 +275,12 @@ jobs:
       - build-linux-server
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.version.outputs.commit }}
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -292,6 +298,63 @@ jobs:
         env:
           TAG: ${{ needs.version.outputs.tag }}
         run: mv release-assets/server-linux-x64/stitch-server release-assets/server-linux-x64/stitch-server-linux-x64-${TAG}
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          prev=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n1)
+          from=${prev:-$(git rev-list --max-parents=0 HEAD)}
+
+          declare -a feats fixes improvements docs chores other
+
+          while IFS= read -r subject; do
+            # Skip version bump commits
+            if [[ "$subject" =~ ^chore(\([^)]*\))?!?:\ bump\ version ]]; then continue; fi
+
+            if [[ "$subject" =~ ^feat(\([^)]*\))?!?:\ (.*) ]]; then
+              feats+=("- ${BASH_REMATCH[2]}")
+            elif [[ "$subject" =~ ^fix(\([^)]*\))?!?:\ (.*) ]]; then
+              fixes+=("- ${BASH_REMATCH[2]}")
+            elif [[ "$subject" =~ ^(improvement|refactor|perf)(\([^)]*\))?!?:\ (.*) ]]; then
+              improvements+=("- ${BASH_REMATCH[3]}")
+            elif [[ "$subject" =~ ^docs(\([^)]*\))?!?:\ (.*) ]]; then
+              docs+=("- ${BASH_REMATCH[2]}")
+            elif [[ "$subject" =~ ^chore(\([^)]*\))?!?:\ (.*) ]]; then
+              chores+=("- ${BASH_REMATCH[2]}")
+            else
+              other+=("- ${subject}")
+            fi
+          done < <(git log "${from}..${TAG}" --pretty=format:"%s")
+
+          {
+            if [ ${#feats[@]} -gt 0 ]; then
+              echo "### New Features"
+              printf '%s\n' "${feats[@]}"
+            fi
+            if [ ${#fixes[@]} -gt 0 ]; then
+              echo "### Bug Fixes"
+              printf '%s\n' "${fixes[@]}"
+            fi
+            if [ ${#improvements[@]} -gt 0 ]; then
+              echo "### Improvements"
+              printf '%s\n' "${improvements[@]}"
+            fi
+            if [ ${#docs[@]} -gt 0 ]; then
+              echo "### Documentation"
+              printf '%s\n' "${docs[@]}"
+            fi
+            if [ ${#chores[@]} -gt 0 ]; then
+              echo "### Chores"
+              printf '%s\n' "${chores[@]}"
+            fi
+            if [ ${#other[@]} -gt 0 ]; then
+              echo "### Other Changes"
+              printf '%s\n' "${other[@]}"
+            fi
+          } > release-notes.md
+
+          cat release-notes.md
 
       - name: Create GitHub release and upload assets
         env:
@@ -316,5 +379,5 @@ jobs:
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "${assets[@]}" --clobber
           else
-            gh release create "${TAG}" "${assets[@]}" --target "${COMMIT}" --title "${TAG}" --notes "Release ${TAG}"
+            gh release create "${TAG}" "${assets[@]}" --target "${COMMIT}" --title "${TAG}" --notes-file release-notes.md
           fi
