@@ -39,8 +39,8 @@ Response pattern:
 Never duplicate information between the dashboard and the text. The dashboard is the primary surface for the data — once a metric, status, comparison, or figure is shown in the UI, do NOT restate it in prose. Text should only frame the dashboard (e.g. what it shows, how it was sourced) or add caveats the UI cannot express. Do not write a textual summary, list, or table that repeats what the render_ui call already displays.
 
 Component selection:
-- Stat for headline metrics.
-- Badge for status, confidence, risk, category, or trend.
+- Stat for headline metrics. Use Stat's built-in badge prop for a status label attached to that metric — do NOT place a standalone Badge as a sibling of Stat in a Grid or Stack.
+- Badge for status, confidence, risk, category, or trend that is NOT tied to a specific Stat. Place Badge inside a Row or at the end of a Stack, never as a direct Grid child alongside Stat or Card nodes.
 - Card for one entity/theme.
 - Grid for comparing peer entities.
 - KeyValue for factual rows.
@@ -64,10 +64,12 @@ Critical rules to avoid schema rejection:
 
 Minimal valid example:
 { "root": "s1", "nodes": [
-  { "id": "s1", "component": "Stack", "spacing": "sm", "children": ["g1"] },
-  { "id": "g1", "component": "Grid",  "columns": "2", "gap": "sm", "children": ["st1", "b1"] },
-  { "id": "st1", "component": "Stat",     "label": "Revenue", "value": "$4.2k", "caption": null, "trend": "up" },
-  { "id": "b1",  "component": "Badge",    "variant": "success", "text": "On track" }
+  { "id": "s1", "component": "Stack", "spacing": "sm", "children": ["g1", "r1"] },
+  { "id": "g1", "component": "Grid",  "columns": "2", "gap": "sm", "children": ["st1", "st2"] },
+  { "id": "st1", "component": "Stat", "label": "Revenue", "value": "$4.2k", "caption": null, "trend": "up" },
+  { "id": "st2", "component": "Stat", "label": "Orders",  "value": "38",    "caption": null, "trend": null },
+  { "id": "r1",  "component": "Row",  "gap": "sm", "align": "start", "children": ["b1"] },
+  { "id": "b1",  "component": "Badge", "variant": "success", "text": "On track" }
 ]}
 
 Catalog:
