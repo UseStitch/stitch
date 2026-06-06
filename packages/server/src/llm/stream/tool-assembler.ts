@@ -6,6 +6,7 @@ import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import {
   getSessionToolsetState,
   setSessionToolsetState,
+  type SessionActiveToolset,
   type SessionExpiredToolset,
 } from '@/llm/stream/session-toolsets.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
@@ -103,18 +104,29 @@ export class ToolAssembler {
 
   async assemble(): Promise<AssembledTools> {
     const sessionState = getSessionToolsetState(this.opts.sessionId);
-    const persistedToolsetIds =
-      this.opts.activeToolsetIds ?? sessionState.active.map((entry) => entry.id);
+    const activeEntries = this.opts.activeToolsetIds
+      ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
+      : this.getRestorableToolsets(sessionState.active, sessionState.turnCounter);
     const expiredPrompt = this.opts.activeToolsetIds
       ? ''
-      : buildExpiredToolsetsPrompt(sessionState.expired);
+      : buildExpiredToolsetsPrompt([
+          ...sessionState.expired,
+          ...this.getExpiredTtlToolsets(sessionState.active, sessionState.turnCounter),
+        ]);
 
-    if (!this.opts.activeToolsetIds && sessionState.expired.length > 0) {
-      setSessionToolsetState(this.opts.sessionId, { ...sessionState, expired: [] });
+    if (!this.opts.activeToolsetIds) {
+      setSessionToolsetState(this.opts.sessionId, {
+        ...sessionState,
+        active: activeEntries,
+        expired: [],
+      });
     }
 
-    const toolsetManager = new ToolsetManager(this.toolContext, persistedToolsetIds);
-    await this.restoreToolsets(toolsetManager, persistedToolsetIds);
+    const toolsetManager = new ToolsetManager(this.toolContext, activeEntries);
+    await this.restoreToolsets(
+      toolsetManager,
+      activeEntries.map((entry) => entry.id),
+    );
 
     const coreTools = await createTools(this.toolContext);
     const metaTools = this.buildToolsetMetaTools(toolsetManager);
@@ -167,6 +179,31 @@ export class ToolAssembler {
         }
       }),
     );
+  }
+
+  private getRestorableToolsets(
+    active: SessionActiveToolset[],
+    currentTurn: number,
+  ): SessionActiveToolset[] {
+    return active.filter(
+      (entry) => entry.scope !== 'ttl_turns' || (entry.expiresAtTurn ?? -1) >= currentTurn,
+    );
+  }
+
+  private getExpiredTtlToolsets(
+    active: SessionActiveToolset[],
+    currentTurn: number,
+  ): SessionExpiredToolset[] {
+    return active
+      .filter((entry) => entry.scope === 'ttl_turns' && (entry.expiresAtTurn ?? -1) < currentTurn)
+      .map((entry) => {
+        const toolset = getToolset(entry.id);
+        return {
+          id: entry.id,
+          expiredAtTurn: currentTurn,
+          toolNames: toolset?.tools().map((tool) => tool.name) ?? [],
+        };
+      });
   }
 
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
