@@ -12,6 +12,7 @@ export function registerUpdaterHandlers(
   ipcMain.handle('updater:check', () => updater.checkForUpdates());
   ipcMain.handle('updater:getState', (): UpdaterStatePayload => updater.getState());
   ipcMain.handle('updater:install', () => updater.installUpdate());
+  ipcMain.handle('updater:openManualUpdateAndQuit', () => updater.openManualUpdateAndQuit());
 
   updater.onEvent((state) => {
     const win = getWindow();
