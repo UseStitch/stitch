@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
+import { getDb } from '@/db/client.js';
+import { sessions } from '@/db/schema.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -14,6 +17,8 @@ function clearToolsets(): void {
 }
 
 const TEST_SESSION_ID = 'ses_test' as never;
+
+setupTestDb();
 
 function createManager(): ToolsetManager {
   return new ToolsetManager({
@@ -46,6 +51,7 @@ function registerTestToolset(overrides: Partial<Toolset> = {}): Toolset {
 describe('toolset management tools', () => {
   beforeEach(() => {
     clearToolsets();
+    getDb().insert(sessions).values({ id: TEST_SESSION_ID, title: 'Toolset test' }).run();
     setSessionToolsetState(TEST_SESSION_ID, { turnCounter: 0, active: [], expired: [] });
   });
 

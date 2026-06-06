@@ -92,6 +92,8 @@ describe('ToolAssembler expired toolset handling', () => {
 
   test('restores ttl toolsets before expiry and expires them on turn N', async () => {
     const sessionId = 'ses_ttl_toolsets' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'TTL toolsets test' }).run();
+
     registerToolset({
       id: 'browser',
       name: 'Browser',
