@@ -75,6 +75,15 @@ ${buildLiquidUiCatalogPrompt()}
 </liquid_ui>`;
 }
 
+function buildEnforcementGuidance(): string {
+  return `## Enforcement Guidance
+
+- Mandatory tool use: never answer from memory when a tool can produce the fact, including calculations, current data, file contents, system state, or financial/market data.
+- Tool persistence: keep using tools until the task is complete and verified. If a tool returns empty or partial data, try a different query or strategy before giving up.
+- Anti-fabrication: if you cannot produce a result with tools, state the blocker honestly instead of filling gaps with plausible output.
+- Act, don't ask: act immediately when the request has an obvious safe default. Ask at most one focused question only when truly blocked.`;
+}
+
 export function buildSystemPrompt(input: {
   useBasePrompt: boolean;
   systemPrompt: string | null;
@@ -98,6 +107,8 @@ export function buildSystemPrompt(input: {
   }
 
   let result = `${identity(userName)}\n\n${buildPromptEnvironment({ userTimezone })}\n\n${promptBody}`;
+
+  result = `${result}\n\n${buildEnforcementGuidance()}`;
 
   if (input.codeModePrompt?.trim()) {
     result = `${result}\n\n${input.codeModePrompt.trim()}`;

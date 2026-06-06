@@ -23,8 +23,40 @@ type TerminalProfileWithGuid = TerminalProfile & {
 
 type ShellResolution = {
   shell: string;
+  exe: string;
   source: string;
+  buildArgv: (command: string) => string[];
 };
+
+export function buildPowerShellArgv(command: string): string[] {
+  const encodedCommand = Buffer.from(command, 'utf16le').toString('base64');
+  return [
+    '-NoLogo',
+    '-NoProfile',
+    '-NonInteractive',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-EncodedCommand',
+    encodedCommand,
+  ];
+}
+
+export function buildCmdArgv(command: string): string[] {
+  return ['/d', '/s', '/c', command];
+}
+
+function buildPosixArgv(command: string): string[] {
+  return ['-c', command];
+}
+
+export function buildWindowsShellArgv(shell: string, command: string): string[] {
+  const lowerShell = shell.toLowerCase();
+  if (lowerShell.includes('pwsh') || lowerShell.includes('powershell')) {
+    return buildPowerShellArgv(command);
+  }
+
+  return buildCmdArgv(command);
+}
 
 export function inferWindowsShellFromProfile(profile: TerminalProfile): WindowsShellPreference {
   const text = [profile.name, profile.source, profile.commandline]
@@ -68,25 +100,37 @@ export function resolvePreferredShell(): ShellResolution {
   if (process.platform === 'win32') {
     const profile = readWindowsTerminalDefaultProfile();
     const preferred = profile ? inferWindowsShellFromProfile(profile) : null;
+    const shell = pickWindowsShell({
+      preferred,
+      hasPwsh: commandExists('pwsh.exe'),
+      hasPowershell: commandExists('powershell.exe'),
+      comspec: process.env.COMSPEC,
+    });
 
     return {
-      shell: pickWindowsShell({
-        preferred,
-        hasPwsh: commandExists('pwsh.exe'),
-        hasPowershell: commandExists('powershell.exe'),
-        comspec: process.env.COMSPEC,
-      }),
+      shell,
+      exe: shell,
       source: preferred ? 'windows-terminal-default-profile' : 'windows-fallback',
+      buildArgv: (command) => buildWindowsShellArgv(shell, command),
     };
   }
 
   if (process.env.SHELL && process.env.SHELL.trim().length > 0) {
-    return { shell: process.env.SHELL, source: 'process.env.SHELL' };
+    return {
+      shell: process.env.SHELL,
+      exe: process.env.SHELL,
+      source: 'process.env.SHELL',
+      buildArgv: buildPosixArgv,
+    };
   }
 
+  const shell = process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh';
+
   return {
-    shell: process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh',
+    shell,
+    exe: shell,
     source: 'platform-default',
+    buildArgv: buildPosixArgv,
   };
 }
 

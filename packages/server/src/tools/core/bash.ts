@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess, type SpawnOptions } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
@@ -47,6 +47,35 @@ function normalizeTimeout(timeout: number | undefined): number {
     throw new Error('timeout must be a positive number');
   }
   return Math.min(Math.trunc(timeout), MAX_TIMEOUT_MS);
+}
+
+function spawnShellCommand(input: {
+  shell: string;
+  exe: string;
+  argv: string[];
+  command: string;
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+}): ChildProcess {
+  const options: SpawnOptions = {
+    cwd: input.cwd,
+    env: input.env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: process.platform !== 'win32',
+    windowsHide: process.platform === 'win32',
+  };
+
+  if (process.platform === 'win32') {
+    return spawn(input.exe, input.argv, {
+      ...options,
+      detached: false,
+    });
+  }
+
+  return spawn(input.command, [], {
+    ...options,
+    shell: input.shell,
+  });
 }
 
 async function killProcessTree(proc: ChildProcess, exited: () => boolean): Promise<void> {
@@ -100,14 +129,14 @@ Parameter sourcing:
     execute: async (input, { abortSignal }) => {
       const workdir = await validateExistingDirectoryPath(input.workdir);
       const timeout = normalizeTimeout(input.timeout);
-      const shell = resolvePreferredShell().shell;
-      const proc = spawn(input.command, {
-        shell,
+      const shellResolution = resolvePreferredShell();
+      const proc = spawnShellCommand({
+        shell: shellResolution.shell,
+        exe: shellResolution.exe,
+        argv: shellResolution.buildArgv(input.command),
+        command: input.command,
         cwd: workdir,
         env: process.env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        detached: process.platform !== 'win32',
-        windowsHide: process.platform === 'win32',
       });
 
       let output = '';
@@ -149,6 +178,9 @@ Parameter sourcing:
 
         proc.once('exit', () => {
           exited = true;
+        });
+
+        proc.once('close', () => {
           cleanup();
           resolve();
         });
