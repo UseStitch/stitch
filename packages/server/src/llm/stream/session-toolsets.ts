@@ -17,7 +17,6 @@ export type SessionExpiredToolset = {
   id: string;
   expiredAtTurn: number;
   toolNames: string[];
-  manuallyDeactivated?: boolean;
 };
 
 export type SessionToolsetState = {
@@ -32,6 +31,11 @@ const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = {
   expired: [],
 };
 
+type ExpiredToolsetInput = {
+  id: string;
+  toolNames: string[];
+};
+
 function cloneState(state: SessionToolsetState): SessionToolsetState {
   return {
     turnCounter: state.turnCounter,
@@ -40,29 +44,65 @@ function cloneState(state: SessionToolsetState): SessionToolsetState {
   };
 }
 
-function normalizeState(state: SessionToolsetState | null | undefined): SessionToolsetState {
-  if (state) {
-    return {
-      turnCounter: Number.isFinite(state.turnCounter) ? state.turnCounter : 0,
-      active: Array.isArray(state.active)
-        ? state.active.map((entry) => ({
-            id: entry.id,
-            scope: entry.scope,
-            ...(Number.isFinite(entry.expiresAtTurn) && { expiresAtTurn: entry.expiresAtTurn }),
-          }))
-        : [],
-      expired: Array.isArray(state.expired)
-        ? state.expired.map((entry) => ({
-            id: entry.id,
-            expiredAtTurn: Number.isFinite(entry.expiredAtTurn) ? entry.expiredAtTurn : 0,
-            toolNames: Array.isArray(entry.toolNames) ? entry.toolNames : [],
-            ...(entry.manuallyDeactivated === true && { manuallyDeactivated: true }),
-          }))
-        : [],
-    };
+export function getToolsetExpiresAtTurn(currentTurn: number, ttlTurns: number): number {
+  return currentTurn + ttlTurns - 1;
+}
+
+function partitionActiveToolsets(
+  active: SessionActiveToolset[],
+  currentTurn: number,
+): { active: SessionActiveToolset[]; expired: SessionActiveToolset[] } {
+  const nextActive: SessionActiveToolset[] = [];
+  const expired: SessionActiveToolset[] = [];
+
+  for (const entry of active) {
+    if (entry.scope === 'ttl_turns' && (entry.expiresAtTurn ?? -1) < currentTurn) {
+      expired.push(entry);
+    } else {
+      nextActive.push(entry);
+    }
   }
 
-  return EMPTY_SESSION_TOOLSET_STATE;
+  return { active: nextActive, expired };
+}
+
+export function getCurrentSessionToolsetState(
+  state: SessionToolsetState,
+  getToolNames: (toolsetId: string) => string[],
+): SessionToolsetState {
+  const partitioned = partitionActiveToolsets(state.active, state.turnCounter);
+  return {
+    turnCounter: state.turnCounter,
+    active: partitioned.active,
+    expired: [
+      ...state.expired,
+      ...partitioned.expired.map((entry) => ({
+        id: entry.id,
+        expiredAtTurn: state.turnCounter,
+        toolNames: getToolNames(entry.id),
+      })),
+    ],
+  };
+}
+
+export function buildNextSessionToolsetState(input: {
+  currentState: SessionToolsetState;
+  active: SessionActiveToolset[];
+  expiredRunToolsets: ExpiredToolsetInput[];
+  getToolNames: (toolsetId: string) => string[];
+}): SessionToolsetState {
+  const nextTurnCounter = input.currentState.turnCounter + 1;
+  return getCurrentSessionToolsetState(
+    {
+      turnCounter: nextTurnCounter,
+      active: input.active,
+      expired: input.expiredRunToolsets.map((entry) => ({
+        ...entry,
+        expiredAtTurn: nextTurnCounter,
+      })),
+    },
+    input.getToolNames,
+  );
 }
 
 export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): SessionToolsetState {
@@ -72,17 +112,16 @@ export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): Sessio
     .where(eq(sessions.id, sessionId))
     .get();
 
-  return normalizeState(row?.toolsetState);
+  return cloneState(row?.toolsetState ?? EMPTY_SESSION_TOOLSET_STATE);
 }
 
 export function setSessionToolsetState(
   sessionId: PrefixedString<'ses'>,
   state: SessionToolsetState,
 ): void {
-  const nextState = normalizeState(state);
   getDb()
     .update(sessions)
-    .set({ toolsetState: cloneState(nextState), updatedAt: Date.now() })
+    .set({ toolsetState: cloneState(state), updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .run();
 }

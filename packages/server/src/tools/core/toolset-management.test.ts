@@ -144,7 +144,7 @@ describe('toolset management tools', () => {
 
     expect(result.persisted).toBe(false);
     expect(result.message).toContain('multi-turn TTL');
-    expect(manager.getActivationState()).toEqual([
+    expect(manager.getPersistableActivationState()).toEqual([
       { id: 'test-toolset', scope: 'ttl_turns', expiresAtTurn: 2 },
     ]);
   });
@@ -161,7 +161,7 @@ describe('toolset management tools', () => {
 
     expect(result.persisted).toBe(true);
     expect(result.message).toContain('persist until explicitly deactivated');
-    expect(manager.getActivationState()).toEqual([
+    expect(manager.getPersistableActivationState()).toEqual([
       { id: 'test-toolset', scope: 'until_deactivated' },
     ]);
   });
@@ -178,7 +178,7 @@ describe('toolset management tools', () => {
 
     expect(result.persisted).toBe(false);
     expect(result.message).toContain('activated for this run only');
-    expect(manager.getActivationState()).toEqual([]);
+    expect(manager.getPersistableActivationState()).toEqual([]);
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'test-toolset', toolNames: [] }]);
   });
 

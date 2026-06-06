@@ -22,12 +22,18 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import {
+  buildNextSessionToolsetState,
+  getSessionToolsetState,
+  getToolsetExpiresAtTurn,
+  setSessionToolsetState,
+} from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { processMemories } from '@/memory/processor.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
 import { recordUsageEvent } from '@/usage/ledger.js';
 import { calculateMessageCostUsd } from '@/utils/cost.js';
@@ -944,15 +950,18 @@ class StreamRunner {
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
     const currentToolsetState = getSessionToolsetState(this.ctx.sessionId);
-    const nextTurnCounter = currentToolsetState.turnCounter + 1;
-    setSessionToolsetState(this.ctx.sessionId, {
-      turnCounter: nextTurnCounter,
-      active: this.ctx.toolsetManager.getActivationState(),
-      expired: this.ctx.toolsetManager.getExpiredRunToolsets().map((entry) => ({
-        ...entry,
-        expiredAtTurn: nextTurnCounter,
-      })),
-    });
+    setSessionToolsetState(
+      this.ctx.sessionId,
+      buildNextSessionToolsetState({
+        currentState: currentToolsetState,
+        active: this.ctx.toolsetManager.getPersistableActivationState(),
+        expiredRunToolsets: this.ctx.toolsetManager.getExpiredRunToolsets(),
+        getToolNames: (toolsetId) =>
+          getToolset(toolsetId)
+            ?.tools()
+            .map((tool) => tool.name) ?? [],
+      }),
+    );
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
@@ -990,7 +999,7 @@ class StreamRunner {
   private async renewToolsetActivity(toolCalls: ToolCallRecord[]): Promise<void> {
     const settings = await getToolsetSettings();
     const currentTurn = getSessionToolsetState(this.ctx.sessionId).turnCounter;
-    const expiresAtTurn = currentTurn + settings.ttlTurns - 1;
+    const expiresAtTurn = getToolsetExpiresAtTurn(currentTurn, settings.ttlTurns);
 
     for (const call of toolCalls) {
       this.ctx.toolsetManager.renewTtlForTool(call.toolName, expiresAtTurn);

@@ -212,7 +212,9 @@ describe('ToolsetManager activation state', () => {
     await manager.activate('run-only');
     manager.pin('persisted');
 
-    expect(manager.getActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
+    expect(manager.getPersistableActivationState()).toEqual([
+      { id: 'persisted', scope: 'until_deactivated' },
+    ]);
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
   });
 
@@ -236,7 +238,7 @@ describe('ToolsetManager activation state', () => {
     await manager.activate('ttl-toolset');
 
     expect(manager.renewTtlForTool('ttl_tool', 5)).toBe('ttl-toolset');
-    expect(manager.getActivationState()).toEqual([
+    expect(manager.getPersistableActivationState()).toEqual([
       { id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 5 },
     ]);
   });

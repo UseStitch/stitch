@@ -12,7 +12,6 @@ export const SETTINGS_KEYS = [
   'compaction.reserved',
   'toolsets.defaultScope',
   'toolsets.ttlTurns',
-  'toolsets.autoRehydrate',
   'appearance.mode',
   'appearance.theme',
   'onboarding.status',
@@ -64,7 +63,6 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'compaction.reserved': z.coerce.number().int().min(0),
   'toolsets.defaultScope': z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
   'toolsets.ttlTurns': z.coerce.number().int().min(1),
-  'toolsets.autoRehydrate': z.coerce.boolean(),
   'appearance.mode': z.enum(['light', 'dark', 'system']),
   'appearance.theme': z.enum(['default', 'dracula', 'solarized', 'tokyonight']),
   'onboarding.status': z.enum(['pending', 'completed']),
@@ -170,11 +168,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'toolsets.ttlTurns',
     value: '3',
     description: 'Turns of inactivity before a TTL-scoped toolset expires.',
-  },
-  {
-    key: 'toolsets.autoRehydrate',
-    value: 'true',
-    description: 'Auto-reactivate an expired toolset when the model calls one of its tools.',
   },
   {
     key: 'appearance.mode',
