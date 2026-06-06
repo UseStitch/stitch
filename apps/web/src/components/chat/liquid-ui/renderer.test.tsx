@@ -77,15 +77,34 @@ describe('LiquidUi', () => {
     expect(html).toBe('');
   });
 
-  test('renders nothing when nodes use nested props shape (model error)', () => {
+  test('repairs common missing layout props', () => {
     const html = renderToStaticMarkup(
       <LiquidUi
         spec={{
           root: 'n1',
-          nodes: [{ id: 'n1', component: 'Stack', props: { spacing: 'md' }, children: [] }],
+          nodes: [
+            { id: 'n1', component: 'Row', align: 'between', children: ['n2'] },
+            { id: 'n2', component: 'Text', text: 'Recovered', variant: 'body' },
+          ],
         }}
       />,
     );
-    expect(html).toBe('');
+    expect(html).toContain('Recovered');
+  });
+
+  test('repairs numeric grid columns and missing stat nullables', () => {
+    const html = renderToStaticMarkup(
+      <LiquidUi
+        spec={{
+          root: 'n1',
+          nodes: [
+            { id: 'n1', component: 'Grid', columns: 2, children: ['n2'] },
+            { id: 'n2', component: 'Stat', label: 'Latest Filing', value: 'June 4, 2026' },
+          ],
+        }}
+      />,
+    );
+    expect(html).toContain('Latest Filing');
+    expect(html).toContain('June 4, 2026');
   });
 });

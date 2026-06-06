@@ -13,6 +13,7 @@ import {
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
+import { parseInlineLiquidUiText } from '@/components/chat/liquid-ui/inline.js';
 import { LiquidUi } from '@/components/chat/liquid-ui/renderer.js';
 import { ReasoningBlock } from '@/components/chat/message-bubble/reasoning-block.js';
 import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
@@ -24,6 +25,23 @@ type AssistantMessageBubbleProps = {
   finishReason?: string | null;
   onAbortTool?: () => void;
 };
+
+function AssistantTextSegment({ text }: { text: string }) {
+  const inlineSegments = parseInlineLiquidUiText(text);
+  if (!inlineSegments) return <ChatMarkdown text={text} />;
+
+  return (
+    <>
+      {inlineSegments.map((segment, index) => {
+        if (segment.type === 'text') {
+          return segment.text ? <ChatMarkdown key={index} text={segment.text} /> : null;
+        }
+
+        return <LiquidUi key={index} spec={segment.spec} />;
+      })}
+    </>
+  );
+}
 
 export function AssistantMessageBubble({
   parts,
@@ -64,7 +82,7 @@ export function AssistantMessageBubble({
       {segments.map((segment) => {
         switch (segment.type) {
           case 'text':
-            return <ChatMarkdown key={segment.key} text={segment.text} />;
+            return <AssistantTextSegment key={segment.key} text={segment.text} />;
           case 'reasoning':
             return <ReasoningBlock key={segment.key} text={segment.text} />;
           case 'tool-call-group':

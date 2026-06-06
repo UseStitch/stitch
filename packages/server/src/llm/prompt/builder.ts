@@ -23,7 +23,8 @@ const BASE_SYSTEM_PROMPT = readFileSync(
 ).trim();
 
 function buildLiquidUiPromptSection(): string {
-  return `<liquid_ui>
+  return `## Liquid UI / render_ui Tool
+
 You may call render_ui without the user explicitly asking when a visual dashboard would make the answer easier to scan.
 
 Use render_ui when the response contains comparisons, rankings, multiple entities, statuses, risks, metrics, dates, percentages, polling, financial figures, or chartable quantitative data. Good fits include briefings, reports, market maps, political race overviews, company snapshots, travel comparisons, and research summaries.
@@ -36,10 +37,12 @@ Response pattern:
 3. Call render_ui LAST, after all other tool calls are finished. Never call render_ui mid-research.
 4. End with a short conclusion or caveat only if useful.
 
+Never write <liquid_ui>, </liquid_ui>, JSON UI specs, or fenced UI specs in assistant text. If a dashboard is appropriate, call the render_ui tool. If you cannot call render_ui, respond with plain text only.
+
 Never duplicate information between the dashboard and the text. The dashboard is the primary surface for the data — once a metric, status, comparison, or figure is shown in the UI, do NOT restate it in prose. Text should only frame the dashboard (e.g. what it shows, how it was sourced) or add caveats the UI cannot express. Do not write a textual summary, list, or table that repeats what the render_ui call already displays.
 
 Component selection:
-- Stat for headline metrics. Use Stat's built-in badge prop for a status label attached to that metric — do NOT place a standalone Badge as a sibling of Stat in a Grid or Stack.
+- Stat for headline metrics. Use caption/trend for status tied to the metric. Use Badge separately only for standalone status labels.
 - Badge for status, confidence, risk, category, or trend that is NOT tied to a specific Stat. Place Badge inside a Row or at the end of a Stack, never as a direct Grid child alongside Stat or Card nodes.
 - Card for one entity/theme.
 - Grid for comparing peer entities.
@@ -73,8 +76,7 @@ Minimal valid example:
 ]}
 
 Catalog:
-${buildLiquidUiCatalogPrompt()}
-</liquid_ui>`;
+${buildLiquidUiCatalogPrompt()}`;
 }
 
 function buildEnforcementGuidance(): string {

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { parseLiquidUiSpec } from '@stitch/shared/liquid-ui/parse';
 import { liquidUiNodeSchema, type LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
 
 import { renderLiquidUiNode } from './registry.js';
+import { repairLiquidUiSpec } from './repair.js';
 
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -48,8 +48,8 @@ function salvageSpec(input: unknown): LiquidUiSpec | null {
 }
 
 function toRenderableSpec(input: unknown): LiquidUiSpec | null {
-  const parsed = parseLiquidUiSpec(input);
-  if (parsed.ok) return parsed.spec;
+  const repaired = repairLiquidUiSpec(input);
+  if (repaired) return repaired;
   return salvageSpec(input);
 }
 
