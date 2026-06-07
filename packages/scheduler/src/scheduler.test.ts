@@ -73,7 +73,6 @@ class MemoryStore implements SchedulerStore {
       catchupMaxRuns: input.catchupMaxRuns,
       nextRunAt: input.initialNextRunAt,
       runningCount: 0,
-      queuedCount: 0,
       totalRuns: 0,
       totalFailures: 0,
       lastRunAt: null,
@@ -91,44 +90,30 @@ class MemoryStore implements SchedulerStore {
     return this.jobs.get(key) ?? null;
   }
 
-  async enqueueDueRuns(input: {
+  async startRun(input: {
     key: string;
-    incrementBy: number;
+    scheduledFor: number;
     nextRunAt: number;
     now: number;
-  }): Promise<PersistedJob | null> {
-    const row = this.jobs.get(input.key);
-    if (!row) return null;
-    const next = {
-      ...row,
-      nextRunAt: input.nextRunAt,
-      queuedCount: row.queuedCount + input.incrementBy,
-      updatedAt: input.now,
-    };
-    this.jobs.set(input.key, next);
-    return next;
-  }
-
-  async startQueuedRun(input: { key: string; now: number }): Promise<PersistedJobRun | null> {
+  }): Promise<PersistedJobRun | null> {
     const row = this.jobs.get(input.key);
     if (!row) return null;
     if (!row.enabled) return null;
-    if (row.queuedCount <= 0) return null;
     if (row.runningCount >= row.maxConcurrency) return null;
 
     const run: PersistedJobRun = {
       id: `run_${this.nextRunId++}`,
       jobId: row.id,
       key: row.key,
-      scheduledFor: input.now,
+      scheduledFor: input.scheduledFor,
       startedAt: input.now,
     };
 
     this.runs.set(run.id, run);
     this.jobs.set(input.key, {
       ...row,
-      queuedCount: row.queuedCount - 1,
       runningCount: row.runningCount + 1,
+      nextRunAt: input.nextRunAt,
       lastRunAt: input.now,
       totalRuns: row.totalRuns + 1,
       updatedAt: input.now,
@@ -160,7 +145,11 @@ class MemoryStore implements SchedulerStore {
   }
 
   async unregisterJob(key: string): Promise<boolean> {
-    return this.jobs.delete(key);
+    const row = this.jobs.get(key);
+    if (!row) return false;
+
+    this.jobs.set(key, { ...row, enabled: false, runningCount: 0, updatedAt: mockNow });
+    return true;
   }
 }
 
@@ -198,11 +187,10 @@ describe('scheduler', () => {
     const status = await store.getJob('interval-job');
     expect(status).not.toBeNull();
     expect(status?.runningCount).toBe(0);
-    expect(status?.queuedCount).toBe(0);
     expect(status?.totalRuns).toBe(3);
   });
 
-  test('respects maxConcurrency and drains queued runs', async () => {
+  test('respects maxConcurrency without queueing blocked runs', async () => {
     const store = new MemoryStore();
     const callback = mock(async () => {
       await advanceTime(120);
@@ -227,7 +215,6 @@ describe('scheduler', () => {
     const status = await store.getJob('concurrency-job');
     expect(status).not.toBeNull();
     expect(status!.totalRuns).toBeGreaterThanOrEqual(2);
-    expect(status!.queuedCount).toBeGreaterThanOrEqual(1);
     expect(status!.runningCount).toBe(0);
   });
 
@@ -278,10 +265,10 @@ describe('scheduler', () => {
     await advanceTime(5_000, 500);
 
     await scheduler.start();
-    await advanceTime(600, 50);
+    await Promise.resolve();
     await scheduler.stop();
 
-    expect(callback).toHaveBeenCalledTimes(6);
+    expect(callback).toHaveBeenCalledTimes(5);
   });
 
   test('supports cron schedule', async () => {
@@ -304,7 +291,7 @@ describe('scheduler', () => {
     expect(callback).toHaveBeenCalledTimes(2);
   });
 
-  test('unregister removes job from status', async () => {
+  test('unregister disables persisted job status', async () => {
     const store = new MemoryStore();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 100 });
 
@@ -318,7 +305,7 @@ describe('scheduler', () => {
     const status = await store.getJob('remove-me');
 
     expect(removed).toBe(true);
-    expect(status).toBeNull();
+    expect(status?.enabled).toBe(false);
   });
 
   test('registration recovers stale running counts from previous process', async () => {
@@ -332,13 +319,12 @@ describe('scheduler', () => {
       callback: () => {},
       maxConcurrency: 1,
     });
-    await store.enqueueDueRuns({
+    const staleRun = await store.startRun({
       key: 'recover-me',
-      incrementBy: 1,
+      scheduledFor: BASE_TIME,
       nextRunAt: BASE_TIME,
       now: BASE_TIME,
     });
-    const staleRun = await store.startQueuedRun({ key: 'recover-me', now: BASE_TIME });
     expect(staleRun).not.toBeNull();
 
     await scheduler.registerJob({

@@ -3,6 +3,7 @@ import { getNextCronRunMs } from './cron.js';
 import type {
   CatchupPolicy,
   JobSchedule,
+  PersistedJobRun,
   RegisteredJob,
   SchedulerLogger,
   SchedulerStore,
@@ -38,34 +39,51 @@ function calculateNextDueRunMs(schedule: JobSchedule, nextRunAt: number, dueCoun
   return cursor;
 }
 
-function calculateDueCount(
+function calculateDueTimes(
   schedule: JobSchedule,
   nextRunAt: number,
   now: number,
   hardLimit: number,
-): number {
-  if (now < nextRunAt) return 0;
+): number[] {
+  if (now < nextRunAt) return [];
 
   if (schedule.type === 'interval') {
-    return Math.max(1, Math.floor((now - nextRunAt) / schedule.everyMs) + 1);
+    const dueCount = Math.max(1, Math.floor((now - nextRunAt) / schedule.everyMs) + 1);
+    const limitedCount = Math.min(dueCount, hardLimit);
+    return Array.from({ length: limitedCount }, (_, index) => nextRunAt + schedule.everyMs * index);
   }
 
-  let due = 0;
+  const dueTimes: number[] = [];
   let cursor = nextRunAt;
 
-  while (cursor <= now && due < hardLimit) {
-    due++;
+  while (cursor <= now && dueTimes.length < hardLimit) {
+    dueTimes.push(cursor);
     cursor = calculateNextRunMs(schedule, cursor);
   }
 
-  return due;
+  return dueTimes;
 }
 
-function runsToQueue(dueCount: number, catchup: CatchupPolicy, maxRuns: number): number {
-  if (dueCount <= 0) return 0;
-  if (catchup === 'all') return Math.min(dueCount, Math.max(1, maxRuns));
-  if (catchup === 'one') return 1;
-  return 1;
+function selectRunsToStart(
+  dueTimes: number[],
+  catchup: CatchupPolicy,
+  maxRuns: number,
+  availableSlots: number,
+): { scheduledFor: number[]; advanceBy: number } | null {
+  if (dueTimes.length === 0 || availableSlots <= 0) return null;
+
+  if (catchup === 'none') {
+    return {
+      scheduledFor: [dueTimes[dueTimes.length - 1]],
+      advanceBy: dueTimes.length,
+    };
+  }
+
+  const runsToStart = catchup === 'all' ? Math.min(dueTimes.length, maxRuns, availableSlots) : 1;
+  return {
+    scheduledFor: dueTimes.slice(0, runsToStart),
+    advanceBy: runsToStart,
+  };
 }
 
 export function createScheduler(options: SchedulerOptions) {
@@ -80,15 +98,13 @@ export function createScheduler(options: SchedulerOptions) {
   let timer: ReturnType<typeof setInterval> | null = null;
   let stopped = false;
 
-  async function runCallback(jobKey: string): Promise<void> {
-    const job = jobs.get(jobKey);
-    if (!job) return;
-
-    const startedRun = await store.startQueuedRun({ key: jobKey, now: Date.now() });
-    if (!startedRun) return;
-
+  async function executeCallback(
+    jobKey: string,
+    startedRun: PersistedJobRun,
+    callback: RegisteredJob['callback'],
+  ): Promise<void> {
     try {
-      await job.callback();
+      await callback();
       await store.completeRun({
         runId: startedRun.id,
         key: jobKey,
@@ -117,24 +133,6 @@ export function createScheduler(options: SchedulerOptions) {
     }
   }
 
-  async function refillWorkers(jobKey: string, safetyLimit = 1_000): Promise<void> {
-    const job = jobs.get(jobKey);
-    if (!job) return;
-
-    const status = await store.getJob(jobKey);
-    if (!status || !status.enabled || status.maxConcurrency <= status.runningCount) return;
-
-    const availableSlots = Math.max(0, status.maxConcurrency - status.runningCount);
-    const toStart = Math.min(availableSlots, status.queuedCount, safetyLimit);
-
-    for (let i = 0; i < toStart; i++) {
-      const runPromise = runCallback(jobKey).finally(() => {
-        inFlightRuns.delete(runPromise);
-      });
-      inFlightRuns.add(runPromise);
-    }
-  }
-
   async function evaluateDue(jobKey: string): Promise<void> {
     if (jobLocks.has(jobKey)) return;
     const job = jobs.get(jobKey);
@@ -146,31 +144,46 @@ export function createScheduler(options: SchedulerOptions) {
       const state = await store.getJob(jobKey);
       if (!state || !state.enabled) return;
 
+      const availableSlots = Math.max(0, state.maxConcurrency - state.runningCount);
+      if (availableSlots <= 0) return;
+
       const now = Date.now();
-      const dueCount = calculateDueCount(
+      const dueTimes = calculateDueTimes(
         job.schedule,
         state.nextRunAt,
         now,
         Math.max(1, job.catchupMaxRuns),
       );
+      const selectedRuns = selectRunsToStart(
+        dueTimes,
+        job.catchup,
+        job.catchupMaxRuns,
+        availableSlots,
+      );
 
-      if (dueCount > 0) {
-        const nextRunAt = calculateNextDueRunMs(job.schedule, state.nextRunAt, dueCount);
+      if (!selectedRuns) return;
 
-        // 'none' drops backlog but still runs the currently due occurrence.
-        const incrementBy = runsToQueue(dueCount, job.catchup, job.catchupMaxRuns);
+      const nextRunAt = calculateNextDueRunMs(
+        job.schedule,
+        state.nextRunAt,
+        selectedRuns.advanceBy,
+      );
+      const callback = job.callback;
 
-        if (incrementBy > 0) {
-          await store.enqueueDueRuns({
-            key: jobKey,
-            incrementBy,
-            nextRunAt,
-            now,
-          });
-        }
+      for (const scheduledFor of selectedRuns.scheduledFor) {
+        const startedRun = await store.startRun({
+          key: jobKey,
+          scheduledFor,
+          nextRunAt,
+          now: Date.now(),
+        });
+        if (!startedRun) continue;
+
+        const runPromise = executeCallback(jobKey, startedRun, callback).finally(() => {
+          inFlightRuns.delete(runPromise);
+        });
+        inFlightRuns.add(runPromise);
       }
-
-      await refillWorkers(jobKey);
     } finally {
       jobLocks.delete(jobKey);
     }

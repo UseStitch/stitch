@@ -38,7 +38,6 @@ export type PersistedJob = {
   catchupMaxRuns: number;
   nextRunAt: number;
   runningCount: number;
-  queuedCount: number;
   totalRuns: number;
   totalFailures: number;
   lastRunAt: number | null;
@@ -68,13 +67,12 @@ export type SchedulerStore = {
     now: number;
   }): Promise<PersistedJob>;
   getJob(key: string): Promise<PersistedJob | null>;
-  enqueueDueRuns(input: {
+  startRun(input: {
     key: string;
-    incrementBy: number;
+    scheduledFor: number;
     nextRunAt: number;
     now: number;
-  }): Promise<PersistedJob | null>;
-  startQueuedRun(input: { key: string; now: number }): Promise<PersistedJobRun | null>;
+  }): Promise<PersistedJobRun | null>;
   completeRun(input: {
     runId: string;
     key: string;

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { SchedulerStore } from '@stitch/scheduler';
 import { createScheduledJobId, createScheduledJobRunId } from '@stitch/shared/id';
@@ -35,10 +35,10 @@ export function createSchedulerStore(): SchedulerStore {
               schedule: input.schedule,
               enabled: input.enabled,
               maxConcurrency: input.maxConcurrency,
-              queueEnabled: true,
               catchup: input.catchup,
               catchupMaxRuns: input.catchupMaxRuns,
               runningCount: 0,
+              nextRunAt: input.initialNextRunAt,
               updatedAt: input.now,
             })
             .where(eq(scheduledJobs.key, input.key))
@@ -58,12 +58,10 @@ export function createSchedulerStore(): SchedulerStore {
           schedule: input.schedule,
           enabled: input.enabled,
           maxConcurrency: input.maxConcurrency,
-          queueEnabled: true,
           catchup: input.catchup,
           catchupMaxRuns: input.catchupMaxRuns,
           nextRunAt: input.initialNextRunAt,
           runningCount: 0,
-          queuedCount: 0,
           totalRuns: 0,
           totalFailures: 0,
           createdAt: input.now,
@@ -81,33 +79,12 @@ export function createSchedulerStore(): SchedulerStore {
       return db.select().from(scheduledJobs).where(eq(scheduledJobs.key, key)).get() ?? null;
     },
 
-    async enqueueDueRuns(input) {
-      const db = getDb();
-      return (
-        db
-          .update(scheduledJobs)
-          .set({
-            queuedCount: sql`max(0, ${scheduledJobs.queuedCount} + ${input.incrementBy})`,
-            nextRunAt: input.nextRunAt,
-            updatedAt: input.now,
-          })
-          .where(eq(scheduledJobs.key, input.key))
-          .returning()
-          .get() ?? null
-      );
-    },
-
-    async startQueuedRun(input) {
+    async startRun(input) {
       const db = getDb();
 
       return db.transaction((tx) => {
         const job = tx.select().from(scheduledJobs).where(eq(scheduledJobs.key, input.key)).get();
-        if (
-          !job ||
-          !job.enabled ||
-          job.queuedCount <= 0 ||
-          job.runningCount >= job.maxConcurrency
-        ) {
+        if (!job || !job.enabled || job.runningCount >= job.maxConcurrency) {
           return null;
         }
 
@@ -115,10 +92,10 @@ export function createSchedulerStore(): SchedulerStore {
 
         tx.update(scheduledJobs)
           .set({
-            queuedCount: job.queuedCount - 1,
             runningCount: job.runningCount + 1,
             totalRuns: job.totalRuns + 1,
             lastRunAt: input.now,
+            nextRunAt: input.nextRunAt,
             updatedAt: input.now,
           })
           .where(eq(scheduledJobs.id, job.id))
@@ -131,7 +108,7 @@ export function createSchedulerStore(): SchedulerStore {
             jobId: job.id,
             key: job.key,
             status: 'running',
-            scheduledFor: input.now,
+            scheduledFor: input.scheduledFor,
             startedAt: input.now,
             createdAt: input.now,
           })
@@ -191,8 +168,13 @@ export function createSchedulerStore(): SchedulerStore {
 
     async unregisterJob(key) {
       const db = getDb();
-      const deleted = db.delete(scheduledJobs).where(eq(scheduledJobs.key, key)).returning().get();
-      return Boolean(deleted);
+      const updated = db
+        .update(scheduledJobs)
+        .set({ enabled: false, runningCount: 0, updatedAt: Date.now() })
+        .where(eq(scheduledJobs.key, key))
+        .returning()
+        .get();
+      return Boolean(updated);
     },
   };
 }

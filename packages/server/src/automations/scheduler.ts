@@ -66,9 +66,12 @@ async function registerAutomationJob(automation: Automation, timezone: string): 
 
 export async function syncAutomationSchedule(automation: Automation): Promise<void> {
   const key = getAutomationJobKey(automation.id);
-  await unregisterSchedulerJob(key);
 
-  if (!automation.schedule) return;
+  if (!automation.schedule) {
+    await unregisterSchedulerJob(key);
+    return;
+  }
+
   await registerAutomationJob(automation, resolveUserTimezone());
 }
 
@@ -97,7 +100,11 @@ export async function syncAllAutomationSchedules(): Promise<void> {
 
   await Promise.all(
     automationList.map(async (automation) => {
-      await unregisterSchedulerJob(getAutomationJobKey(automation.id));
+      if (!automation.schedule) {
+        await unregisterSchedulerJob(getAutomationJobKey(automation.id));
+        return;
+      }
+
       await registerAutomationJob(automation, timezone);
     }),
   );
