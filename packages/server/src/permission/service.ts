@@ -7,12 +7,11 @@ import type {
   ToolPermissionValue,
   PermissionDecisionResult,
   PermissionResponse,
-  PermissionResponseStatus,
   PermissionSuggestion,
 } from '@stitch/shared/permissions/types';
 
 import { getDb } from '@/db/client.js';
-import { permissionResponses, toolPermissions } from '@/db/schema/permissions.js';
+import { toolPermissions } from '@/db/schema/permissions.js';
 import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
 import * as Log from '@/lib/log.js';
@@ -24,14 +23,7 @@ import { resolvePermissionFromRules } from '@/permission/policy.js';
 const log = Log.create({ service: 'permission-service' });
 const pendingPermissionRequests = new Map<string, Promise<PermissionDecisionResult>>();
 
-type PermissionResponseRow = typeof permissionResponses.$inferSelect;
-
-function toPermissionResponse(row: PermissionResponseRow): PermissionResponse {
-  return {
-    ...row,
-    resolvedAt: row.resolvedAt ?? undefined,
-  };
-}
+const permissionResponseStore = new Map<PrefixedString<'permres'>, PermissionResponse>();
 
 type SetPermissionRule = {
   permission: ToolPermissionValue;
@@ -113,31 +105,22 @@ type RequestPermissionResponseOptions = {
 async function createPermissionResponse(
   opts: RequestPermissionResponseOptions,
 ): Promise<PermissionDecisionResult> {
-  const db = getDb();
   const id = createPermissionResponseId();
-  const now = Date.now();
 
-  const [row] = await db
-    .insert(permissionResponses)
-    .values({
-      id,
-      sessionId: opts.sessionId,
-      messageId: opts.messageId,
-      toolCallId: opts.toolCallId,
-      toolName: opts.toolName,
-      toolInput: opts.toolInput,
-      systemReminder: opts.systemReminder,
-      suggestion: opts.suggestion ?? null,
-      status: 'pending',
-      createdAt: now,
-    })
-    .returning();
+  const permissionResponse: PermissionResponse = {
+    id,
+    sessionId: opts.sessionId,
+    messageId: opts.messageId,
+    toolCallId: opts.toolCallId,
+    toolName: opts.toolName,
+    toolInput: opts.toolInput,
+    systemReminder: opts.systemReminder,
+    suggestion: opts.suggestion ?? null,
+  };
 
-  if (!row) throw new Error('Permission response not found after create');
+  permissionResponseStore.set(id, permissionResponse);
 
-  Events.emit('permission-response-requested', {
-    permissionResponse: toPermissionResponse(row),
-  });
+  Events.emit('permission-response-requested', { permissionResponse });
 
   log.info(
     {
@@ -181,18 +164,10 @@ export async function requestPermissionResponse(
 
 async function resolvePermissionResponse(opts: {
   permissionResponseId: PrefixedString<'permres'>;
-  status: PermissionResponseStatus;
   decision: PermissionDecisionResult;
-  entry?: string;
   setPermission?: SetPermissionRule;
 }): Promise<ServiceResult<null>> {
-  const db = getDb();
-  const now = Date.now();
-
-  const [existing] = await db
-    .select()
-    .from(permissionResponses)
-    .where(eq(permissionResponses.id, opts.permissionResponseId));
+  const existing = permissionResponseStore.get(opts.permissionResponseId);
 
   if (!existing) {
     return err(`Permission response not found: ${opts.permissionResponseId}`, 404);
@@ -206,19 +181,11 @@ async function resolvePermissionResponse(opts: {
     });
   }
 
-  const [permissionResponse] = await db
-    .update(permissionResponses)
-    .set({
-      status: opts.status,
-      entry: opts.entry ?? null,
-      resolvedAt: now,
-    })
-    .where(eq(permissionResponses.id, opts.permissionResponseId))
-    .returning();
+  permissionResponseStore.delete(opts.permissionResponseId);
 
   Events.emit('permission-response-resolved', {
     permissionResponseId: opts.permissionResponseId,
-    sessionId: permissionResponse?.sessionId ?? existing.sessionId,
+    sessionId: existing.sessionId,
   });
 
   const pending = interactionBroker.get(opts.permissionResponseId);
@@ -227,8 +194,7 @@ async function resolvePermissionResponse(opts: {
       event: 'stream.permission.resolved',
       streamRunId: pending?.streamRunId,
       permissionResponseId: opts.permissionResponseId,
-      sessionId: permissionResponse?.sessionId ?? existing.sessionId,
-      status: opts.status,
+      sessionId: existing.sessionId,
     },
     'permission resolved',
   );
@@ -244,7 +210,6 @@ export async function allowPermissionResponse(
 ): Promise<ServiceResult<null>> {
   return resolvePermissionResponse({
     permissionResponseId,
-    status: 'allowed',
     decision: { decision: 'allow' },
     setPermission,
   });
@@ -256,7 +221,6 @@ export async function rejectPermissionResponse(
 ): Promise<ServiceResult<null>> {
   return resolvePermissionResponse({
     permissionResponseId,
-    status: 'rejected',
     decision: { decision: 'reject' },
     setPermission,
   });
@@ -268,8 +232,6 @@ export async function alternativePermissionResponse(
 ): Promise<ServiceResult<null>> {
   return resolvePermissionResponse({
     permissionResponseId,
-    status: 'alternative',
-    entry,
     decision: { decision: 'alternative', entry },
   });
 }
@@ -277,36 +239,18 @@ export async function alternativePermissionResponse(
 export async function getPendingPermissionResponses(
   sessionId: PrefixedString<'ses'>,
 ): Promise<PermissionResponse[]> {
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(permissionResponses)
-    .where(
-      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
-    );
-
-  return rows.map(toPermissionResponse);
+  return [...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId);
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {
-  const db = getDb();
-  const now = Date.now();
-
-  const pending = await db
-    .select()
-    .from(permissionResponses)
-    .where(
-      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
-    );
+  const pending = [...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId);
 
   if (pending.length === 0) return;
 
-  await db
-    .update(permissionResponses)
-    .set({ status: 'rejected', resolvedAt: now })
-    .where(
-      and(eq(permissionResponses.sessionId, sessionId), eq(permissionResponses.status, 'pending')),
-    );
+  // Remove from in-memory store
+  for (const row of pending) {
+    permissionResponseStore.delete(row.id);
+  }
 
   const aborted = interactionBroker.abortSession({
     sessionId,
@@ -315,27 +259,24 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
   });
   const streamRunIds = new Map(aborted.map((entry) => [entry.id, entry.streamRunId]));
 
-  await Promise.all(
-    pending.map(async (row) => {
-      const id = row.id;
-      const streamRunId = streamRunIds.get(id);
+  for (const row of pending) {
+    const streamRunId = streamRunIds.get(row.id);
 
-      Events.emit('permission-response-resolved', {
-        permissionResponseId: row.id,
+    Events.emit('permission-response-resolved', {
+      permissionResponseId: row.id,
+      sessionId,
+    });
+
+    log.info(
+      {
+        event: 'stream.permission.aborted',
+        streamRunId,
         sessionId,
-      });
-
-      log.info(
-        {
-          event: 'stream.permission.aborted',
-          streamRunId,
-          sessionId,
-          permissionResponseId: row.id,
-        },
-        'permission aborted',
-      );
-    }),
-  );
+        permissionResponseId: row.id,
+      },
+      'permission aborted',
+    );
+  }
 
   log.info(
     {

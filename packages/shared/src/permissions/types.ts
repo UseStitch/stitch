@@ -22,15 +22,6 @@ export type ToolPermission = {
   updatedAt: number;
 };
 
-export const PERMISSION_RESPONSE_STATUSES = [
-  'pending',
-  'allowed',
-  'rejected',
-  'alternative',
-] as const;
-
-export type PermissionResponseStatus = (typeof PERMISSION_RESPONSE_STATUSES)[number];
-
 export type PermissionResponse = {
   id: PrefixedString<'permres'>;
   sessionId: PrefixedString<'ses'>;
@@ -40,10 +31,6 @@ export type PermissionResponse = {
   toolInput: unknown;
   systemReminder: string;
   suggestion: PermissionSuggestion | null;
-  status: PermissionResponseStatus;
-  entry: string | null;
-  createdAt: number;
-  resolvedAt?: number;
 };
 
 export type PermissionDecisionResult = {
