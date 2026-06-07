@@ -3,7 +3,7 @@ import { getNextCronRunMs } from './cron.js';
 import type {
   CatchupPolicy,
   JobSchedule,
-  JobStatus,
+  PersistedJobRun,
   RegisteredJob,
   SchedulerLogger,
   SchedulerStore,
@@ -29,34 +29,61 @@ function calculateNextRunMs(schedule: JobSchedule, afterMs: number): number {
   return getNextCronRunMs(schedule.expression, afterMs, schedule.timezone ?? 'UTC');
 }
 
-function calculateDueCount(
+function calculateNextDueRunMs(schedule: JobSchedule, nextRunAt: number, dueCount: number): number {
+  if (schedule.type === 'interval') return nextRunAt + schedule.everyMs * dueCount;
+
+  let cursor = nextRunAt;
+  for (let i = 0; i < dueCount; i++) {
+    cursor = calculateNextRunMs(schedule, cursor);
+  }
+  return cursor;
+}
+
+function calculateDueTimes(
   schedule: JobSchedule,
   nextRunAt: number,
   now: number,
   hardLimit: number,
-): number {
-  if (now < nextRunAt) return 0;
+): number[] {
+  if (now < nextRunAt) return [];
 
   if (schedule.type === 'interval') {
-    return Math.max(1, Math.floor((now - nextRunAt) / schedule.everyMs) + 1);
+    const dueCount = Math.max(1, Math.floor((now - nextRunAt) / schedule.everyMs) + 1);
+    const limitedCount = Math.min(dueCount, hardLimit);
+    return Array.from({ length: limitedCount }, (_, index) => nextRunAt + schedule.everyMs * index);
   }
 
-  let due = 0;
+  const dueTimes: number[] = [];
   let cursor = nextRunAt;
 
-  while (cursor <= now && due < hardLimit) {
-    due++;
+  while (cursor <= now && dueTimes.length < hardLimit) {
+    dueTimes.push(cursor);
     cursor = calculateNextRunMs(schedule, cursor);
   }
 
-  return due;
+  return dueTimes;
 }
 
-function runsToQueue(dueCount: number, catchup: CatchupPolicy, maxRuns: number): number {
-  if (dueCount <= 0) return 0;
-  if (catchup === 'all') return Math.min(dueCount, Math.max(1, maxRuns));
-  if (catchup === 'one') return 1;
-  return dueCount > 1 ? 0 : 1;
+function selectRunsToStart(
+  dueTimes: number[],
+  catchup: CatchupPolicy,
+  maxRuns: number,
+  availableSlots: number,
+): { scheduledFor: number[]; advanceBy: number } | null {
+  if (dueTimes.length === 0 || availableSlots <= 0) return null;
+
+  if (catchup === 'none') {
+    return {
+      scheduledFor: [dueTimes[dueTimes.length - 1]],
+      advanceBy: dueTimes.length,
+    };
+  }
+
+  const runsToStart = catchup === 'all' ? Math.min(dueTimes.length, maxRuns, availableSlots) : 1;
+  return {
+    scheduledFor: dueTimes.slice(0, runsToStart),
+    advanceBy: runsToStart,
+  };
 }
 
 export function createScheduler(options: SchedulerOptions) {
@@ -71,15 +98,13 @@ export function createScheduler(options: SchedulerOptions) {
   let timer: ReturnType<typeof setInterval> | null = null;
   let stopped = false;
 
-  async function runCallback(jobKey: string): Promise<void> {
-    const job = jobs.get(jobKey);
-    if (!job) return;
-
-    const startedRun = await store.startQueuedRun({ key: jobKey, now: Date.now() });
-    if (!startedRun) return;
-
+  async function executeCallback(
+    jobKey: string,
+    startedRun: PersistedJobRun,
+    callback: RegisteredJob['callback'],
+  ): Promise<void> {
     try {
-      await job.callback();
+      await callback();
       await store.completeRun({
         runId: startedRun.id,
         key: jobKey,
@@ -108,24 +133,6 @@ export function createScheduler(options: SchedulerOptions) {
     }
   }
 
-  async function refillWorkers(jobKey: string, safetyLimit = 1_000): Promise<void> {
-    const job = jobs.get(jobKey);
-    if (!job) return;
-
-    const status = await store.getJob(jobKey);
-    if (!status || !status.enabled || status.maxConcurrency <= status.runningCount) return;
-
-    const availableSlots = Math.max(0, status.maxConcurrency - status.runningCount);
-    const toStart = Math.min(availableSlots, status.queuedCount, safetyLimit);
-
-    for (let i = 0; i < toStart; i++) {
-      const runPromise = runCallback(jobKey).finally(() => {
-        inFlightRuns.delete(runPromise);
-      });
-      inFlightRuns.add(runPromise);
-    }
-  }
-
   async function evaluateDue(jobKey: string): Promise<void> {
     if (jobLocks.has(jobKey)) return;
     const job = jobs.get(jobKey);
@@ -137,41 +144,62 @@ export function createScheduler(options: SchedulerOptions) {
       const state = await store.getJob(jobKey);
       if (!state || !state.enabled) return;
 
+      const availableSlots = Math.max(0, state.maxConcurrency - state.runningCount);
+      if (availableSlots <= 0) return;
+
       const now = Date.now();
-      const dueCount = calculateDueCount(
+      const dueTimes = calculateDueTimes(
         job.schedule,
         state.nextRunAt,
         now,
         Math.max(1, job.catchupMaxRuns),
       );
+      const selectedRuns = selectRunsToStart(
+        dueTimes,
+        job.catchup,
+        job.catchupMaxRuns,
+        availableSlots,
+      );
 
-      if (dueCount > 0) {
-        let nextRunAt = state.nextRunAt;
-        const stepped = Math.max(dueCount, 1);
-        for (let i = 0; i < stepped; i++) {
-          nextRunAt = calculateNextRunMs(job.schedule, nextRunAt);
-        }
+      if (!selectedRuns) return;
 
-        const incrementBy = job.queueEnabled
-          ? runsToQueue(dueCount, job.catchup, job.catchupMaxRuns)
-          : 0;
+      const nextRunAt = calculateNextDueRunMs(
+        job.schedule,
+        state.nextRunAt,
+        selectedRuns.advanceBy,
+      );
+      const callback = job.callback;
 
-        await store.enqueueDueRuns({
+      for (const scheduledFor of selectedRuns.scheduledFor) {
+        const startedRun = await store.startRun({
           key: jobKey,
-          incrementBy,
+          scheduledFor,
           nextRunAt,
-          now,
+          now: Date.now(),
         });
-      }
+        if (!startedRun) continue;
 
-      if (job.queueEnabled) await refillWorkers(jobKey);
+        const runPromise = executeCallback(jobKey, startedRun, callback).finally(() => {
+          inFlightRuns.delete(runPromise);
+        });
+        inFlightRuns.add(runPromise);
+      }
     } finally {
       jobLocks.delete(jobKey);
     }
   }
 
   async function tick(): Promise<void> {
-    await Promise.all(Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)));
+    const results = await Promise.allSettled(
+      Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        const error =
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
+        logger.error({ event: 'scheduler.tick.failed', error }, 'scheduler tick failed');
+      }
+    }
   }
 
   async function registerJob(job: RegisteredJob): Promise<void> {
@@ -185,7 +213,6 @@ export function createScheduler(options: SchedulerOptions) {
       enabled: job.enabled ?? true,
       immediate: job.immediate ?? false,
       maxConcurrency: Math.max(1, job.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY),
-      queueEnabled: job.queueEnabled ?? true,
       catchup: job.catchup ?? 'one',
       catchupMaxRuns: Math.max(1, job.catchupMaxRuns ?? DEFAULT_CATCHUP_MAX_RUNS),
     };
@@ -199,7 +226,6 @@ export function createScheduler(options: SchedulerOptions) {
       schedule: normalized.schedule,
       enabled: normalized.enabled,
       maxConcurrency: normalized.maxConcurrency,
-      queueEnabled: normalized.queueEnabled,
       catchup: normalized.catchup,
       catchupMaxRuns: normalized.catchupMaxRuns,
       initialNextRunAt: normalized.immediate ? now : calculateNextRunMs(normalized.schedule, now),
@@ -224,44 +250,6 @@ export function createScheduler(options: SchedulerOptions) {
     );
 
     return removed;
-  }
-
-  async function listJobStatus(): Promise<JobStatus[]> {
-    const keys = Array.from(jobs.keys());
-    const rows = await store.listJobs(keys);
-    return rows.map((row) => ({
-      key: row.key,
-      enabled: row.enabled,
-      runningCount: row.runningCount,
-      queuedCount: row.queuedCount,
-      maxConcurrency: row.maxConcurrency,
-      nextRunAt: row.nextRunAt,
-      lastRunAt: row.lastRunAt,
-      lastSuccessAt: row.lastSuccessAt,
-      lastErrorAt: row.lastErrorAt,
-      lastErrorMessage: row.lastErrorMessage,
-      totalRuns: row.totalRuns,
-      totalFailures: row.totalFailures,
-    }));
-  }
-
-  async function getJobStatus(key: string): Promise<JobStatus | null> {
-    const row = await store.getJob(key);
-    if (!row) return null;
-    return {
-      key: row.key,
-      enabled: row.enabled,
-      runningCount: row.runningCount,
-      queuedCount: row.queuedCount,
-      maxConcurrency: row.maxConcurrency,
-      nextRunAt: row.nextRunAt,
-      lastRunAt: row.lastRunAt,
-      lastSuccessAt: row.lastSuccessAt,
-      lastErrorAt: row.lastErrorAt,
-      lastErrorMessage: row.lastErrorMessage,
-      totalRuns: row.totalRuns,
-      totalFailures: row.totalFailures,
-    };
   }
 
   async function start(): Promise<void> {
@@ -295,7 +283,5 @@ export function createScheduler(options: SchedulerOptions) {
     stop,
     registerJob,
     unregisterJob,
-    listJobStatus,
-    getJobStatus,
   };
 }

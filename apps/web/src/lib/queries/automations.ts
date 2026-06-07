@@ -13,14 +13,16 @@ import { serverFetch } from '@/lib/api';
 
 const automationKeys = {
   all: ['automations'] as const,
-  list: (page: number, pageSize: number) =>
-    [...automationKeys.all, 'list', page, pageSize] as const,
+  page: (page: number, pageSize: number) =>
+    [...automationKeys.all, 'page', page, pageSize] as const,
+  detail: (automationId: string) => [...automationKeys.all, 'detail', automationId] as const,
+  sidebarList: () => [...automationKeys.all, 'sidebar-list'] as const,
   sessions: (automationId: string) => [...automationKeys.all, 'sessions', automationId] as const,
 };
 
 export function automationsPageQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
-    queryKey: automationKeys.list(input.page, input.pageSize),
+    queryKey: automationKeys.page(input.page, input.pageSize),
     staleTime: Infinity,
     queryFn: async (): Promise<ListAutomationsResponse> => {
       const params = new URLSearchParams({
@@ -34,8 +36,8 @@ export function automationsPageQueryOptions(input: { page: number; pageSize: num
   });
 }
 
-export const automationsQueryOptions = queryOptions({
-  queryKey: automationKeys.list(1, 100),
+export const automationsSidebarListQueryOptions = queryOptions({
+  queryKey: automationKeys.sidebarList(),
   staleTime: Infinity,
   queryFn: async (): Promise<Automation[]> => {
     const params = new URLSearchParams({ page: '1', pageSize: '100' });
@@ -45,6 +47,17 @@ export const automationsQueryOptions = queryOptions({
     return data.automations;
   },
 });
+
+export const automationQueryOptions = (automationId: string) =>
+  queryOptions({
+    queryKey: automationKeys.detail(automationId),
+    staleTime: Infinity,
+    queryFn: async (): Promise<Automation> => {
+      const res = await serverFetch(`/automations/${automationId}`);
+      if (!res.ok) throw new Error('Failed to fetch automation');
+      return res.json() as Promise<Automation>;
+    },
+  });
 
 export function useCreateAutomation() {
   const queryClient = useQueryClient();

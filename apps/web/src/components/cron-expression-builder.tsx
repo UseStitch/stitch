@@ -1,7 +1,8 @@
-import { CronExpressionParser } from 'cron-parser';
 import { format } from 'date-fns';
 import { Calendar, Info } from 'lucide-react';
 import * as React from 'react';
+
+import { getUpcomingCronRuns } from '@stitch/scheduler';
 
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -189,17 +190,11 @@ export function CronExpressionBuilder({
   const upcomingExecutions = React.useMemo(() => {
     const options = { tz: timezone };
     try {
-      const interval = CronExpressionParser.parse(value, options);
-      const runs: { date: string; time: string; key: string }[] = [];
-      for (let i = 0; i < 5; i++) {
-        const date = interval.next().toDate();
-        runs.push({
-          date: format(date, 'MMM d, yyyy'),
-          time: format(date, 'h:mm a'),
-          key: date.toISOString(),
-        });
-      }
-      return runs;
+      return getUpcomingCronRuns(value, 5, options.tz).map((date) => ({
+        date: format(date, 'MMM d, yyyy'),
+        time: format(date, 'h:mm a'),
+        key: date.toISOString(),
+      }));
     } catch {
       return [];
     }

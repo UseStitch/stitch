@@ -10,7 +10,7 @@ export type IntervalSchedule = {
 export type CronSchedule = {
   type: 'cron';
   expression: string;
-  timezone?: 'UTC' | 'local';
+  timezone?: string;
 };
 
 export type JobSchedule = IntervalSchedule | CronSchedule;
@@ -24,7 +24,6 @@ export type RegisteredJob = {
   enabled?: boolean;
   immediate?: boolean;
   maxConcurrency?: number;
-  queueEnabled?: boolean;
   catchup?: CatchupPolicy;
   catchupMaxRuns?: number;
 };
@@ -35,12 +34,10 @@ export type PersistedJob = {
   schedule: JobSchedule;
   enabled: boolean;
   maxConcurrency: number;
-  queueEnabled: boolean;
   catchup: CatchupPolicy;
   catchupMaxRuns: number;
   nextRunAt: number;
   runningCount: number;
-  queuedCount: number;
   totalRuns: number;
   totalFailures: number;
   lastRunAt: number | null;
@@ -58,42 +55,24 @@ export type PersistedJobRun = {
   startedAt: number;
 };
 
-export type JobStatus = {
-  key: string;
-  enabled: boolean;
-  runningCount: number;
-  queuedCount: number;
-  maxConcurrency: number;
-  nextRunAt: number;
-  lastRunAt: number | null;
-  lastSuccessAt: number | null;
-  lastErrorAt: number | null;
-  lastErrorMessage: string | null;
-  totalRuns: number;
-  totalFailures: number;
-};
-
 export type SchedulerStore = {
   upsertJob(input: {
     key: string;
     schedule: JobSchedule;
     enabled: boolean;
     maxConcurrency: number;
-    queueEnabled: boolean;
     catchup: CatchupPolicy;
     catchupMaxRuns: number;
     initialNextRunAt: number;
     now: number;
   }): Promise<PersistedJob>;
   getJob(key: string): Promise<PersistedJob | null>;
-  listJobs(keys: string[]): Promise<PersistedJob[]>;
-  enqueueDueRuns(input: {
+  startRun(input: {
     key: string;
-    incrementBy: number;
+    scheduledFor: number;
     nextRunAt: number;
     now: number;
-  }): Promise<PersistedJob | null>;
-  startQueuedRun(input: { key: string; now: number }): Promise<PersistedJobRun | null>;
+  }): Promise<PersistedJobRun | null>;
   completeRun(input: {
     runId: string;
     key: string;
