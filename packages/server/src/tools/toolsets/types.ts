@@ -1,5 +1,6 @@
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
+import type { McpServerPresentation } from '@/mcp/presentation.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
@@ -42,6 +43,11 @@ export type Toolset = {
   instructions?: string;
   /** MCP prompt templates available from this toolset (user-controlled). */
   prompts?: ToolsetPrompt[];
+  /**
+   * UI presentation metadata (server/tool titles and icon paths) for MCP
+   * toolsets. Owned by the toolset so registry and presentation never desync.
+   */
+  presentation?: McpServerPresentation;
   /** Return brief summaries of all tools in this toolset (for list_toolsets) */
   tools: () => ToolSummary[];
   /** Instantiate and return the actual AI SDK Tool objects */

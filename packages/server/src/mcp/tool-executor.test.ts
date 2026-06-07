@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { McpServerWithTools } from '@/mcp/service.js';
-import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
+import { getMcpServerPresentation, refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import {
   getToolset,
   listToolsetIds,
@@ -155,5 +155,63 @@ describe('refreshMcpToolsets', () => {
     );
 
     expect(getToolset('mcp:mcp_test_server')?.name).toBe('Exa');
+  });
+
+  test('attaches presentation to the toolset and reads it back through the registry', async () => {
+    await refreshMcpToolsets(
+      { refreshTools: true },
+      {
+        getMcpServersWithCachedTools: async () => [TEST_SERVER],
+        fetchMcpTools: async () => ({
+          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
+        }),
+        fetchServerInfo: async () => null,
+        fetchServerPrompts: async () => [],
+        findRegistryServer: async () => null,
+        buildServerPresentation: async () => ({
+          serverId: TEST_SERVER.id,
+          name: TEST_SERVER.name,
+          iconPath: '/mcp/icons/test',
+          tools: { lookup: { title: 'Lookup', iconPath: '/mcp/icons/lookup' } },
+        }),
+      },
+    );
+
+    expect(getToolset('mcp:mcp_test_server')?.presentation).toMatchObject({
+      serverId: TEST_SERVER.id,
+      iconPath: '/mcp/icons/test',
+    });
+    expect(getMcpServerPresentation(TEST_SERVER.id)).toMatchObject({
+      serverId: TEST_SERVER.id,
+      iconPath: '/mcp/icons/test',
+    });
+  });
+
+  test('removing a stale server also drops its presentation', async () => {
+    const deps = {
+      fetchMcpTools: async () => ({
+        data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
+      }),
+      fetchServerInfo: async () => null,
+      fetchServerPrompts: async () => [],
+      findRegistryServer: async () => null,
+      buildServerPresentation: async () => ({
+        serverId: TEST_SERVER.id,
+        name: TEST_SERVER.name,
+        tools: {},
+      }),
+    } as const;
+
+    await refreshMcpToolsets(
+      { refreshTools: true },
+      { ...deps, getMcpServersWithCachedTools: async () => [TEST_SERVER] },
+    );
+    expect(getMcpServerPresentation(TEST_SERVER.id)).toBeDefined();
+
+    await refreshMcpToolsets(
+      { refreshTools: true },
+      { ...deps, getMcpServersWithCachedTools: async () => [] },
+    );
+    expect(getMcpServerPresentation(TEST_SERVER.id)).toBeUndefined();
   });
 });

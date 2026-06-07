@@ -13,7 +13,12 @@ import type { McpServerWithTools } from '@/mcp/service.js';
 import { permissionMiddleware } from '@/tools/runtime/middleware.js';
 import { createToolRuntime } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import {
+  getToolset,
+  listToolsets,
+  registerToolset,
+  unregisterToolset,
+} from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
@@ -21,7 +26,6 @@ export { evictMcpClient } from '@/mcp/client.js';
 
 const log = Log.create({ service: 'mcp-tool-executor' });
 
-const serverPresentationById = new Map<string, McpServerPresentation>();
 let refreshInFlight: Promise<void> | null = null;
 
 type McpToolExecutorDeps = {
@@ -148,8 +152,8 @@ async function fetchServerPrompts(server: McpServerWithTools): Promise<ToolsetPr
   }
 }
 
-function buildMcpToolsetId(server: McpServerWithTools): string {
-  return `mcp:${server.id}`;
+function buildMcpToolsetId(serverId: string): string {
+  return `mcp:${serverId}`;
 }
 
 function buildToolsetDescription(
@@ -205,8 +209,9 @@ function createMcpToolset(
   liveInfo: McpServerLiveInfo | null,
   registryServer: McpRegistryServer | null,
   prompts: ToolsetPrompt[],
+  presentation: McpServerPresentation,
 ): Toolset {
-  const toolsetId = buildMcpToolsetId(server);
+  const toolsetId = buildMcpToolsetId(server.id);
   const cachedTools = server.tools ?? [];
   const displayName = registryServer?.name ?? server.name ?? liveInfo?.title ?? liveInfo?.name;
   const description = buildToolsetDescription(server, liveInfo, registryServer);
@@ -218,6 +223,7 @@ function createMcpToolset(
     description,
     instructions: buildMcpInstructions({ server, liveInfo, prompts }),
     prompts: prompts.length > 0 ? prompts : undefined,
+    presentation,
     tools: () =>
       cachedTools.map((tool) => ({
         name: formatMcpToolName(server.id, tool.name),
@@ -244,19 +250,13 @@ async function refreshMcpToolsetsInternal(
     : configuredServers;
 
   const desiredMcpToolsetIds = new Set(
-    configuredServers.map((server) => buildMcpToolsetId(server)),
+    configuredServers.map((server) => buildMcpToolsetId(server.id)),
   );
   const staleIds = listToolsets()
     .filter((toolset) => toolset.kind === 'mcp' && !desiredMcpToolsetIds.has(toolset.id))
     .map((toolset) => toolset.id);
   for (const staleId of staleIds) {
     unregisterToolset(staleId);
-  }
-
-  for (const [serverId] of serverPresentationById.entries()) {
-    if (!desiredMcpToolsetIds.has(`mcp:${serverId}`)) {
-      serverPresentationById.delete(serverId);
-    }
   }
 
   if (serversToRefresh.length === 0) {
@@ -294,13 +294,22 @@ async function refreshMcpToolsetsInternal(
     ),
   );
 
-  const registeredIds: string[] = [];
-  for (const [index, server] of serverSnapshots.entries()) {
-    const liveInfo = infoResults[index]?.status === 'fulfilled' ? infoResults[index].value : null;
-    const prompts = promptResults[index]?.status === 'fulfilled' ? promptResults[index].value : [];
-    const registryServer =
-      registryResults[index]?.status === 'fulfilled' ? registryResults[index].value : null;
+  const resolved = serverSnapshots.map((server, index) => ({
+    server,
+    liveInfo: infoResults[index]?.status === 'fulfilled' ? infoResults[index].value : null,
+    prompts: promptResults[index]?.status === 'fulfilled' ? promptResults[index].value : [],
+    registryServer:
+      registryResults[index]?.status === 'fulfilled' ? registryResults[index].value : null,
+  }));
 
+  const presentations = await Promise.all(
+    resolved.map((entry) =>
+      deps.buildServerPresentation(entry.server, entry.liveInfo, entry.registryServer),
+    ),
+  );
+
+  const registeredIds: string[] = [];
+  for (const [index, { server, liveInfo, prompts, registryServer }] of resolved.entries()) {
     if (liveInfo) {
       log.info(
         {
@@ -317,12 +326,15 @@ async function refreshMcpToolsetsInternal(
       );
     }
 
-    const toolset = createMcpToolset(server, liveInfo, registryServer, prompts);
+    const toolset = createMcpToolset(
+      server,
+      liveInfo,
+      registryServer,
+      prompts,
+      presentations[index],
+    );
     registerToolset(toolset);
     registeredIds.push(toolset.id);
-
-    const presentation = await deps.buildServerPresentation(server, liveInfo, registryServer);
-    serverPresentationById.set(server.id, presentation);
   }
 
   log.info(
@@ -365,5 +377,5 @@ export async function refreshMcpToolsets(
 }
 
 export function getMcpServerPresentation(serverId: string): McpServerPresentation | undefined {
-  return serverPresentationById.get(serverId);
+  return getToolset(buildMcpToolsetId(serverId))?.presentation;
 }
