@@ -60,7 +60,7 @@ export function NewSessionPage() {
       assistantMessageId,
     });
 
-    void navigate({ to: '/session/$id', params: { id: session.id }, viewTransition: true });
+    void navigate({ to: '/session/$id', params: { id: session.id } });
   }
 
   return (
@@ -70,7 +70,7 @@ export function NewSessionPage() {
           <h1 className="text-3xl font-bold tracking-tight">What can I help you with?</h1>
           <p className="text-base text-muted-foreground">Select a model and start a conversation</p>
         </div>
-        <div style={{ viewTransitionName: 'chat-input' }}>
+        <div>
           <ChatInput
             value={value}
             onChange={setValue}
