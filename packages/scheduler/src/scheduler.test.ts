@@ -93,12 +93,6 @@ class MemoryStore implements SchedulerStore {
     return this.jobs.get(key) ?? null;
   }
 
-  async listJobs(keys: string[]): Promise<PersistedJob[]> {
-    return keys
-      .map((key) => this.jobs.get(key))
-      .filter((value): value is PersistedJob => Boolean(value));
-  }
-
   async enqueueDueRuns(input: {
     key: string;
     incrementBy: number;
@@ -204,7 +198,7 @@ describe('scheduler', () => {
 
     expect(callback).toHaveBeenCalledTimes(3);
 
-    const status = await scheduler.getJobStatus('interval-job');
+    const status = await store.getJob('interval-job');
     expect(status).not.toBeNull();
     expect(status?.runningCount).toBe(0);
     expect(status?.queuedCount).toBe(0);
@@ -234,7 +228,7 @@ describe('scheduler', () => {
     await advanceTime(260);
     await scheduler.stop();
 
-    const status = await scheduler.getJobStatus('concurrency-job');
+    const status = await store.getJob('concurrency-job');
     expect(status).not.toBeNull();
     expect(status!.totalRuns).toBeGreaterThanOrEqual(2);
     expect(status!.queuedCount).toBeGreaterThanOrEqual(1);
@@ -328,7 +322,7 @@ describe('scheduler', () => {
     });
 
     const removed = await scheduler.unregisterJob('remove-me');
-    const status = await scheduler.getJobStatus('remove-me');
+    const status = await store.getJob('remove-me');
 
     expect(removed).toBe(true);
     expect(status).toBeNull();

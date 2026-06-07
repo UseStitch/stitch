@@ -10,7 +10,7 @@ export type IntervalSchedule = {
 export type CronSchedule = {
   type: 'cron';
   expression: string;
-  timezone?: 'UTC' | 'local';
+  timezone?: string;
 };
 
 export type JobSchedule = IntervalSchedule | CronSchedule;
@@ -58,21 +58,6 @@ export type PersistedJobRun = {
   startedAt: number;
 };
 
-export type JobStatus = {
-  key: string;
-  enabled: boolean;
-  runningCount: number;
-  queuedCount: number;
-  maxConcurrency: number;
-  nextRunAt: number;
-  lastRunAt: number | null;
-  lastSuccessAt: number | null;
-  lastErrorAt: number | null;
-  lastErrorMessage: string | null;
-  totalRuns: number;
-  totalFailures: number;
-};
-
 export type SchedulerStore = {
   upsertJob(input: {
     key: string;
@@ -86,7 +71,6 @@ export type SchedulerStore = {
     now: number;
   }): Promise<PersistedJob>;
   getJob(key: string): Promise<PersistedJob | null>;
-  listJobs(keys: string[]): Promise<PersistedJob[]>;
   enqueueDueRuns(input: {
     key: string;
     incrementBy: number;

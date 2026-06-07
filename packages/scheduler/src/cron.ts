@@ -1,5 +1,3 @@
-import type { CronSchedule } from './types.js';
-
 type CronParts = {
   minute: Set<number>;
   hour: Set<number>;
@@ -9,9 +7,64 @@ type CronParts = {
 };
 
 const MAX_SCAN_MINUTES = 60 * 24 * 366;
+const DEFAULT_TIMEZONE = 'UTC';
 
-function parseField(raw: string, min: number, max: number): Set<number> {
+type DateParts = {
+  minute: number;
+  hour: number;
+  day: number;
+  month: number;
+  dayOfWeek: number;
+};
+
+function parseIntPart(parts: Intl.DateTimeFormatPart[], type: string): number {
+  const value = parts.find((part) => part.type === type)?.value;
+  if (!value) throw new Error(`Unable to read ${type} from formatted date`);
+  return Number(value);
+}
+
+function getDateParts(at: Date, formatter: Intl.DateTimeFormat): DateParts {
+  const parts = formatter.formatToParts(at);
+  const year = parseIntPart(parts, 'year');
+  const month = parseIntPart(parts, 'month');
+  const day = parseIntPart(parts, 'day');
+
+  return {
+    minute: parseIntPart(parts, 'minute'),
+    hour: parseIntPart(parts, 'hour'),
+    day,
+    month,
+    dayOfWeek: new Date(Date.UTC(year, month - 1, day)).getUTCDay(),
+  };
+}
+
+function createFormatter(timezone: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function parseField(
+  raw: string,
+  min: number,
+  max: number,
+  normalize?: (value: number) => number,
+): Set<number> {
   const values = new Set<number>();
+
+  function addValue(value: number, source: string): void {
+    const normalized = normalize ? normalize(value) : value;
+    if (!Number.isInteger(normalized) || normalized < min || normalized > max) {
+      throw new Error(`Invalid cron value: ${source}`);
+    }
+    values.add(normalized);
+  }
 
   for (const part of raw.split(',')) {
     if (part === '*') {
@@ -35,19 +88,22 @@ function parseField(raw: string, min: number, max: number): Set<number> {
       if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) {
         throw new Error(`Invalid cron range: ${part}`);
       }
-      if (start < min || end > max) throw new Error(`Cron range out of bounds: ${part}`);
-      for (let i = start; i <= end; i++) values.add(i);
+      for (let i = start; i <= end; i++) addValue(i, part);
       continue;
     }
 
     const value = Number(part);
-    if (!Number.isInteger(value) || value < min || value > max) {
+    if (!Number.isInteger(value)) {
       throw new Error(`Invalid cron value: ${part}`);
     }
-    values.add(value);
+    addValue(value, part);
   }
 
   return values;
+}
+
+function parseDayOfWeekField(raw: string): Set<number> {
+  return parseField(raw, 0, 6, (value) => (value === 7 ? 0 : value));
 }
 
 function parseCron(expression: string): CronParts {
@@ -61,23 +117,19 @@ function parseCron(expression: string): CronParts {
     hour: parseField(fields[1], 0, 23),
     dayOfMonth: parseField(fields[2], 1, 31),
     month: parseField(fields[3], 1, 12),
-    dayOfWeek: parseField(fields[4], 0, 6),
+    dayOfWeek: parseDayOfWeekField(fields[4]),
   };
 }
 
-function matchesCron(parts: CronParts, at: Date, timezone: CronSchedule['timezone']): boolean {
-  const minute = timezone === 'local' ? at.getMinutes() : at.getUTCMinutes();
-  const hour = timezone === 'local' ? at.getHours() : at.getUTCHours();
-  const day = timezone === 'local' ? at.getDate() : at.getUTCDate();
-  const month = (timezone === 'local' ? at.getMonth() : at.getUTCMonth()) + 1;
-  const dayOfWeek = timezone === 'local' ? at.getDay() : at.getUTCDay();
+function matchesCron(parts: CronParts, at: Date, formatter: Intl.DateTimeFormat): boolean {
+  const dateParts = getDateParts(at, formatter);
 
   return (
-    parts.minute.has(minute) &&
-    parts.hour.has(hour) &&
-    parts.dayOfMonth.has(day) &&
-    parts.month.has(month) &&
-    parts.dayOfWeek.has(dayOfWeek)
+    parts.minute.has(dateParts.minute) &&
+    parts.hour.has(dateParts.hour) &&
+    parts.dayOfMonth.has(dateParts.day) &&
+    parts.month.has(dateParts.month) &&
+    parts.dayOfWeek.has(dateParts.dayOfWeek)
   );
 }
 
@@ -95,23 +147,17 @@ export function validateCronExpression(
 export function getNextCronRunMs(
   expression: string,
   afterMs: number,
-  timezone: 'UTC' | 'local',
+  timezone: string = DEFAULT_TIMEZONE,
 ): number {
   const parts = parseCron(expression);
+  const formatter = createFormatter(timezone);
   const cursor = new Date(afterMs);
-
-  if (timezone === 'local') {
-    cursor.setSeconds(0, 0);
-    cursor.setMinutes(cursor.getMinutes() + 1);
-  } else {
-    cursor.setUTCSeconds(0, 0);
-    cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
-  }
+  cursor.setUTCSeconds(0, 0);
+  cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
 
   for (let i = 0; i < MAX_SCAN_MINUTES; i++) {
-    if (matchesCron(parts, cursor, timezone)) return cursor.getTime();
-    if (timezone === 'local') cursor.setMinutes(cursor.getMinutes() + 1);
-    else cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
+    if (matchesCron(parts, cursor, formatter)) return cursor.getTime();
+    cursor.setUTCMinutes(cursor.getUTCMinutes() + 1);
   }
 
   throw new Error(

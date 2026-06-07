@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import type { SchedulerStore } from '@stitch/scheduler';
 import { createScheduledJobId, createScheduledJobRunId } from '@stitch/shared/id';
@@ -67,12 +67,6 @@ export function createSchedulerStore(): SchedulerStore {
     async getJob(key) {
       const db = getDb();
       return db.select().from(scheduledJobs).where(eq(scheduledJobs.key, key)).get() ?? null;
-    },
-
-    async listJobs(keys) {
-      if (keys.length === 0) return [];
-      const db = getDb();
-      return db.select().from(scheduledJobs).where(inArray(scheduledJobs.key, keys)).all();
     },
 
     async enqueueDueRuns(input) {

@@ -3,7 +3,6 @@ import { getNextCronRunMs } from './cron.js';
 import type {
   CatchupPolicy,
   JobSchedule,
-  JobStatus,
   RegisteredJob,
   SchedulerLogger,
   SchedulerStore,
@@ -27,6 +26,16 @@ type RegisteredJobInternal = Omit<Required<RegisteredJob>, 'callback' | 'schedul
 function calculateNextRunMs(schedule: JobSchedule, afterMs: number): number {
   if (schedule.type === 'interval') return afterMs + schedule.everyMs;
   return getNextCronRunMs(schedule.expression, afterMs, schedule.timezone ?? 'UTC');
+}
+
+function calculateNextDueRunMs(schedule: JobSchedule, nextRunAt: number, dueCount: number): number {
+  if (schedule.type === 'interval') return nextRunAt + schedule.everyMs * dueCount;
+
+  let cursor = nextRunAt;
+  for (let i = 0; i < dueCount; i++) {
+    cursor = calculateNextRunMs(schedule, cursor);
+  }
+  return cursor;
 }
 
 function calculateDueCount(
@@ -146,12 +155,9 @@ export function createScheduler(options: SchedulerOptions) {
       );
 
       if (dueCount > 0) {
-        let nextRunAt = state.nextRunAt;
-        const stepped = Math.max(dueCount, 1);
-        for (let i = 0; i < stepped; i++) {
-          nextRunAt = calculateNextRunMs(job.schedule, nextRunAt);
-        }
+        const nextRunAt = calculateNextDueRunMs(job.schedule, state.nextRunAt, dueCount);
 
+        // 'none' drops backlog but still runs the currently due occurrence.
         const incrementBy = job.queueEnabled
           ? runsToQueue(dueCount, job.catchup, job.catchupMaxRuns)
           : 0;
@@ -171,7 +177,16 @@ export function createScheduler(options: SchedulerOptions) {
   }
 
   async function tick(): Promise<void> {
-    await Promise.all(Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)));
+    const results = await Promise.allSettled(
+      Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        const error =
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
+        logger.error({ event: 'scheduler.tick.failed', error }, 'scheduler tick failed');
+      }
+    }
   }
 
   async function registerJob(job: RegisteredJob): Promise<void> {
@@ -226,44 +241,6 @@ export function createScheduler(options: SchedulerOptions) {
     return removed;
   }
 
-  async function listJobStatus(): Promise<JobStatus[]> {
-    const keys = Array.from(jobs.keys());
-    const rows = await store.listJobs(keys);
-    return rows.map((row) => ({
-      key: row.key,
-      enabled: row.enabled,
-      runningCount: row.runningCount,
-      queuedCount: row.queuedCount,
-      maxConcurrency: row.maxConcurrency,
-      nextRunAt: row.nextRunAt,
-      lastRunAt: row.lastRunAt,
-      lastSuccessAt: row.lastSuccessAt,
-      lastErrorAt: row.lastErrorAt,
-      lastErrorMessage: row.lastErrorMessage,
-      totalRuns: row.totalRuns,
-      totalFailures: row.totalFailures,
-    }));
-  }
-
-  async function getJobStatus(key: string): Promise<JobStatus | null> {
-    const row = await store.getJob(key);
-    if (!row) return null;
-    return {
-      key: row.key,
-      enabled: row.enabled,
-      runningCount: row.runningCount,
-      queuedCount: row.queuedCount,
-      maxConcurrency: row.maxConcurrency,
-      nextRunAt: row.nextRunAt,
-      lastRunAt: row.lastRunAt,
-      lastSuccessAt: row.lastSuccessAt,
-      lastErrorAt: row.lastErrorAt,
-      lastErrorMessage: row.lastErrorMessage,
-      totalRuns: row.totalRuns,
-      totalFailures: row.totalFailures,
-    };
-  }
-
   async function start(): Promise<void> {
     if (timer) return;
     stopped = false;
@@ -295,7 +272,5 @@ export function createScheduler(options: SchedulerOptions) {
     stop,
     registerJob,
     unregisterJob,
-    listJobStatus,
-    getJobStatus,
   };
 }
