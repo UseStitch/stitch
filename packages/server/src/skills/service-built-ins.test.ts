@@ -4,16 +4,11 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { getDb } from '@/db/client.js';
-import { skillMetadata } from '@/db/schema.js';
-import { setupTestDb } from '@/db/test-helpers.js';
 import { PATHS } from '@/lib/paths.js';
 import { buildSkillsSystemPrompt, syncBuiltInSkills } from '@/skills/service.js';
 
 let tempDir: string;
 let originalSkillsDir: string;
-
-setupTestDb();
 
 beforeEach(async () => {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'stitch-skills-test-'));
@@ -27,7 +22,7 @@ afterEach(async () => {
 });
 
 describe('syncBuiltInSkills', () => {
-  test('inserts missing built-in skills', async () => {
+  test('writes missing built-in skills to disk', async () => {
     await syncBuiltInSkills([
       {
         name: 'test-skill',
@@ -37,71 +32,34 @@ describe('syncBuiltInSkills', () => {
       },
     ]);
 
-    const rows = await getDb().select().from(skillMetadata);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      name: 'test-skill',
-      isExternal: false,
-      source: 'builtin:test-skill',
-    });
-
     const mdPath = path.join(tempDir, 'test-skill', 'SKILL.md');
     const content = await fs.readFile(mdPath, 'utf8');
     expect(content).toContain('name: test-skill');
     expect(content).toContain('Test instructions.');
   });
 
-  test('updates existing skills when content changes', async () => {
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'Old description.',
-        content: 'Old instructions.',
-        files: [],
-      },
-    ]);
-
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'New description.',
-        content: 'New instructions.',
-        files: [],
-      },
-    ]);
-
-    const rows = await getDb().select().from(skillMetadata);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      name: 'test-skill',
-      source: 'builtin:test-skill',
-      isExternal: false,
-    });
-
-    const mdPath = path.join(tempDir, 'test-skill', 'SKILL.md');
-    const content = await fs.readFile(mdPath, 'utf8');
-    expect(content).toContain('New description.');
-    expect(content).toContain('New instructions.');
-  });
-
-  test('does not update unchanged built-in skills', async () => {
+  test('skips existing skill directories', async () => {
     const skill = {
       name: 'test-skill',
       description: 'Use this test skill.',
-      content: 'Test instructions.',
+      content: 'Original instructions.',
       files: [],
     };
 
     await syncBuiltInSkills([skill]);
-    const [before] = await getDb().select().from(skillMetadata);
 
-    await syncBuiltInSkills([skill]);
-    const [after] = await getDb().select().from(skillMetadata);
+    // Manually modify the file to simulate a user edit
+    const mdPath = path.join(tempDir, 'test-skill', 'SKILL.md');
+    await fs.writeFile(mdPath, 'user modified content', 'utf8');
 
-    expect(after.updatedAt).toBe(before.updatedAt);
+    await syncBuiltInSkills([{ ...skill, content: 'New instructions.' }]);
+
+    // File should remain as the user left it
+    const content = await fs.readFile(mdPath, 'utf8');
+    expect(content).toBe('user modified content');
   });
 
-  test('syncs companion files to the skill directory', async () => {
+  test('syncs companion files for new skills', async () => {
     await syncBuiltInSkills([
       {
         name: 'test-skill',
@@ -124,96 +82,22 @@ describe('syncBuiltInSkills', () => {
     expect(await fs.readFile(scriptPath, 'utf8')).toBe('print("hello")');
   });
 
-  test('updates changed companion files', async () => {
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [{ relativePath: 'references/guide.md', content: 'Version 1' }],
-      },
-    ]);
-
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [{ relativePath: 'references/guide.md', content: 'Version 2' }],
-      },
-    ]);
-
-    const guidePath = path.join(tempDir, 'test-skill', 'references', 'guide.md');
-    expect(await fs.readFile(guidePath, 'utf8')).toBe('Version 2');
-  });
-
-  test('removes stale companion files from built-in skills', async () => {
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [
-          { relativePath: 'references/old.md', content: 'old content' },
-          { relativePath: 'references/keep.md', content: 'keep this' },
-        ],
-      },
-    ]);
-
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [{ relativePath: 'references/keep.md', content: 'keep this' }],
-      },
-    ]);
-
-    const oldPath = path.join(tempDir, 'test-skill', 'references', 'old.md');
-    const keepPath = path.join(tempDir, 'test-skill', 'references', 'keep.md');
-
-    expect(existsSync(oldPath)).toBe(false);
-    expect(existsSync(keepPath)).toBe(true);
-  });
-
-  test('removes empty directories after stale file removal', async () => {
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [{ relativePath: 'agents/old-agent.md', content: 'agent content' }],
-      },
-    ]);
-
-    await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'A skill.',
-        content: 'Instructions.',
-        files: [],
-      },
-    ]);
-
-    const agentsDir = path.join(tempDir, 'test-skill', 'agents');
-    expect(existsSync(agentsDir)).toBe(false);
-  });
-
-  test('does not update when companion files are unchanged', async () => {
+  test('does not write companion files for existing skill directories', async () => {
     const skill = {
       name: 'test-skill',
       description: 'A skill.',
       content: 'Instructions.',
-      files: [{ relativePath: 'references/guide.md', content: 'stable content' }],
+      files: [{ relativePath: 'references/guide.md', content: 'original' }],
     };
 
     await syncBuiltInSkills([skill]);
-    const [before] = await getDb().select().from(skillMetadata);
 
-    await syncBuiltInSkills([skill]);
-    const [after] = await getDb().select().from(skillMetadata);
+    await syncBuiltInSkills([
+      { ...skill, files: [{ relativePath: 'references/guide.md', content: 'updated' }] },
+    ]);
 
-    expect(after.updatedAt).toBe(before.updatedAt);
+    const guidePath = path.join(tempDir, 'test-skill', 'references', 'guide.md');
+    expect(await fs.readFile(guidePath, 'utf8')).toBe('original');
   });
 });
 
@@ -235,5 +119,18 @@ describe('buildSkillsSystemPrompt', () => {
   test('returns empty string when no skills exist', async () => {
     const prompt = await buildSkillsSystemPrompt();
     expect(prompt).toBe('');
+  });
+
+  test('does not write skills that already exist', async () => {
+    await syncBuiltInSkills([
+      {
+        name: 'test-skill',
+        description: 'Use this test skill.',
+        content: 'Test instructions.',
+        files: [],
+      },
+    ]);
+
+    expect(existsSync(path.join(tempDir, 'test-skill'))).toBe(true);
   });
 });

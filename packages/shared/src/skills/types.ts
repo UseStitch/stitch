@@ -1,19 +1,10 @@
 import { z } from 'zod';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
-export type SkillId = PrefixedString<'skill'>;
-
 export type Skill = {
-  id: SkillId;
   name: string;
   description: string;
   content: string;
   location: string;
-  isExternal: boolean;
-  source: string | null;
-  createdAt: number;
-  updatedAt: number;
   files: string[];
 };
 

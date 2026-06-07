@@ -19,7 +19,6 @@ import {
   createAgendaListId,
   createAgendaItemId,
   createTodoId,
-  createSkillId,
   extractTimestamp,
 } from './index';
 
@@ -41,7 +40,6 @@ const ALL_FACTORIES = [
   { create: createAgendaListId, prefix: ID_PREFIXES.agendaList },
   { create: createAgendaItemId, prefix: ID_PREFIXES.agendaItem },
   { create: createTodoId, prefix: ID_PREFIXES.todo },
-  { create: createSkillId, prefix: ID_PREFIXES.skill },
 ] as const;
 
 describe('id factories', () => {

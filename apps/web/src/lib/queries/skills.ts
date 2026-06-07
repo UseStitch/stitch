@@ -77,8 +77,8 @@ export function useCreateSkill() {
 export function useUpdateSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, input }: { id: string; input: SkillUpdateInput }) => {
-      const res = await serverFetch(`/skills/${id}`, {
+    mutationFn: async ({ name, input }: { name: string; input: SkillUpdateInput }) => {
+      const res = await serverFetch(`/skills/${encodeURIComponent(name)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
@@ -97,8 +97,8 @@ export function useUpdateSkill() {
 export function useDeleteSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await serverFetch(`/skills/${id}`, { method: 'DELETE' });
+    mutationFn: async (name: string) => {
+      const res = await serverFetch(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' });
       if (!res.ok) throw await parseError(res, 'Failed to delete skill');
     },
     onSuccess: () => {

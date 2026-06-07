@@ -18,7 +18,6 @@ export const ID_PREFIXES = {
   agendaList: 'alist',
   agendaItem: 'aitm',
   todo: 'todo',
-  skill: 'skill',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -81,7 +80,6 @@ export const createRecordingAnalysisId = createIdFactory(ID_PREFIXES.recordingAn
 export const createAgendaListId = createIdFactory(ID_PREFIXES.agendaList);
 export const createAgendaItemId = createIdFactory(ID_PREFIXES.agendaItem);
 export const createTodoId = createIdFactory(ID_PREFIXES.todo);
-export const createSkillId = createIdFactory(ID_PREFIXES.skill);
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

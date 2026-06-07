@@ -37,7 +37,6 @@ import type {
 } from '@stitch/shared/recordings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
-import type { SkillId } from '@stitch/shared/skills/types';
 
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { SessionToolsetState } from '@/llm/stream/session-toolsets.js';
@@ -322,23 +321,6 @@ export const toolEnabled = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [uniqueIndex('tool_enabled_scope_identifier_uidx').on(table.scope, table.identifier)],
-);
-
-export const skillMetadata = sqliteTable(
-  'skill_metadata',
-  {
-    id: text('id').$type<SkillId>().primaryKey(),
-    name: text('name').notNull(),
-    isExternal: integer('is_external', { mode: 'boolean' }).notNull().default(false),
-    source: text('source'),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-    updatedAt: integer('updated_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [uniqueIndex('skill_metadata_source_uidx').on(table.source)],
 );
 
 export const mcpServers = sqliteTable('mcp_servers', {
