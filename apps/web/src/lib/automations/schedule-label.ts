@@ -1,6 +1,6 @@
-import { CronExpressionParser } from 'cron-parser';
 import { format } from 'date-fns';
 
+import { getUpcomingCronRuns } from '@stitch/scheduler';
 import type { AutomationSchedule } from '@stitch/shared/automations/types';
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -76,13 +76,9 @@ export function getUpcomingRuns(
   if (!schedule) return [];
 
   try {
-    const interval = CronExpressionParser.parse(schedule.expression, { tz: timezone });
-    const runs: string[] = [];
-    for (let i = 0; i < count; i++) {
-      const date = interval.next().toDate();
-      runs.push(format(date, 'MMM d, h:mm a'));
-    }
-    return runs;
+    return getUpcomingCronRuns(schedule.expression, count, timezone).map((date) =>
+      format(date, 'MMM d, h:mm a'),
+    );
   } catch {
     return [];
   }

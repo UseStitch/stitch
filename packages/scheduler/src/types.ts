@@ -24,7 +24,6 @@ export type RegisteredJob = {
   enabled?: boolean;
   immediate?: boolean;
   maxConcurrency?: number;
-  queueEnabled?: boolean;
   catchup?: CatchupPolicy;
   catchupMaxRuns?: number;
 };
@@ -35,7 +34,6 @@ export type PersistedJob = {
   schedule: JobSchedule;
   enabled: boolean;
   maxConcurrency: number;
-  queueEnabled: boolean;
   catchup: CatchupPolicy;
   catchupMaxRuns: number;
   nextRunAt: number;
@@ -64,7 +62,6 @@ export type SchedulerStore = {
     schedule: JobSchedule;
     enabled: boolean;
     maxConcurrency: number;
-    queueEnabled: boolean;
     catchup: CatchupPolicy;
     catchupMaxRuns: number;
     initialNextRunAt: number;

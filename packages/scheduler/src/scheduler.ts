@@ -158,9 +158,7 @@ export function createScheduler(options: SchedulerOptions) {
         const nextRunAt = calculateNextDueRunMs(job.schedule, state.nextRunAt, dueCount);
 
         // 'none' drops backlog but still runs the currently due occurrence.
-        const incrementBy = job.queueEnabled
-          ? runsToQueue(dueCount, job.catchup, job.catchupMaxRuns)
-          : 0;
+        const incrementBy = runsToQueue(dueCount, job.catchup, job.catchupMaxRuns);
 
         await store.enqueueDueRuns({
           key: jobKey,
@@ -170,7 +168,7 @@ export function createScheduler(options: SchedulerOptions) {
         });
       }
 
-      if (job.queueEnabled) await refillWorkers(jobKey);
+      await refillWorkers(jobKey);
     } finally {
       jobLocks.delete(jobKey);
     }
@@ -200,7 +198,6 @@ export function createScheduler(options: SchedulerOptions) {
       enabled: job.enabled ?? true,
       immediate: job.immediate ?? false,
       maxConcurrency: Math.max(1, job.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY),
-      queueEnabled: job.queueEnabled ?? true,
       catchup: job.catchup ?? 'one',
       catchupMaxRuns: Math.max(1, job.catchupMaxRuns ?? DEFAULT_CATCHUP_MAX_RUNS),
     };
@@ -214,7 +211,6 @@ export function createScheduler(options: SchedulerOptions) {
       schedule: normalized.schedule,
       enabled: normalized.enabled,
       maxConcurrency: normalized.maxConcurrency,
-      queueEnabled: normalized.queueEnabled,
       catchup: normalized.catchup,
       catchupMaxRuns: normalized.catchupMaxRuns,
       initialNextRunAt: normalized.immediate ? now : calculateNextRunMs(normalized.schedule, now),

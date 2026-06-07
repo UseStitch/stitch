@@ -23,6 +23,56 @@ const TOKEN_REFRESH_INTERVAL_MS = 60 * 1000;
 
 let scheduler: ReturnType<typeof createScheduler> | null = null;
 
+function getBuiltinJobs(): RegisteredJob[] {
+  const jobs: RegisteredJob[] = [
+    {
+      key: 'memory-maintenance',
+      schedule: { type: 'interval', everyMs: MEMORY_MAINTENANCE_INTERVAL_MS },
+      callback: async () => {
+        await runMemoryMaintenance();
+      },
+    },
+    {
+      key: 'log-cleanup',
+      schedule: { type: 'interval', everyMs: LOG_CLEANUP_INTERVAL_MS },
+      callback: () => Log.cleanup(),
+      catchup: 'none',
+    },
+    {
+      key: 'models-refresh',
+      schedule: { type: 'interval', everyMs: MODELS_REFRESH_INTERVAL_MS },
+      callback: () => ModelsDev.refresh(),
+      immediate: true,
+    },
+    {
+      key: 'tool-output-cleanup',
+      schedule: { type: 'interval', everyMs: TOOL_OUTPUT_CLEANUP_INTERVAL_MS },
+      callback: () => ToolTruncation.cleanup(),
+      catchup: 'none',
+    },
+    {
+      key: 'mcp-refresh',
+      schedule: { type: 'interval', everyMs: MCP_REFRESH_INTERVAL_MS },
+      callback: () => refreshMcpToolsets({ refreshTools: true }),
+    },
+    {
+      key: 'mcp-registry-refresh',
+      schedule: { type: 'interval', everyMs: MCP_REGISTRY_REFRESH_INTERVAL_MS },
+      callback: async () => {
+        await refreshMcpRegistryCache({ force: true });
+      },
+      immediate: true,
+    },
+    {
+      key: 'token-refresh',
+      schedule: { type: 'interval', everyMs: TOKEN_REFRESH_INTERVAL_MS },
+      callback: () => refreshExpiringTokens(),
+    },
+  ];
+
+  return jobs.map((job) => ({ maxConcurrency: 1, catchup: 'one', ...job }));
+}
+
 export async function startScheduler(): Promise<void> {
   if (scheduler) return;
 
@@ -31,77 +81,11 @@ export async function startScheduler(): Promise<void> {
     store: createSchedulerStore(),
     pollIntervalMs: 1_000,
   });
+  const activeScheduler = scheduler;
 
-  await scheduler.registerJob({
-    key: 'memory-maintenance',
-    schedule: { type: 'interval', everyMs: MEMORY_MAINTENANCE_INTERVAL_MS },
-    callback: async () => {
-      await runMemoryMaintenance();
-    },
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'one',
-  });
+  await Promise.all(getBuiltinJobs().map((job) => activeScheduler.registerJob(job)));
 
-  await scheduler.registerJob({
-    key: 'log-cleanup',
-    schedule: { type: 'interval', everyMs: LOG_CLEANUP_INTERVAL_MS },
-    callback: () => Log.cleanup(),
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'none',
-  });
-
-  await scheduler.registerJob({
-    key: 'models-refresh',
-    schedule: { type: 'interval', everyMs: MODELS_REFRESH_INTERVAL_MS },
-    callback: () => ModelsDev.refresh(),
-    immediate: true,
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'one',
-  });
-
-  await scheduler.registerJob({
-    key: 'tool-output-cleanup',
-    schedule: { type: 'interval', everyMs: TOOL_OUTPUT_CLEANUP_INTERVAL_MS },
-    callback: () => ToolTruncation.cleanup(),
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'none',
-  });
-
-  await scheduler.registerJob({
-    key: 'mcp-refresh',
-    schedule: { type: 'interval', everyMs: MCP_REFRESH_INTERVAL_MS },
-    callback: () => refreshMcpToolsets({ refreshTools: true }),
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'one',
-  });
-
-  await scheduler.registerJob({
-    key: 'mcp-registry-refresh',
-    schedule: { type: 'interval', everyMs: MCP_REGISTRY_REFRESH_INTERVAL_MS },
-    callback: async () => {
-      await refreshMcpRegistryCache({ force: true });
-    },
-    immediate: true,
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'one',
-  });
-
-  await scheduler.registerJob({
-    key: 'token-refresh',
-    schedule: { type: 'interval', everyMs: TOKEN_REFRESH_INTERVAL_MS },
-    callback: () => refreshExpiringTokens(),
-    maxConcurrency: 1,
-    queueEnabled: true,
-    catchup: 'one',
-  });
-
-  await scheduler.start();
+  await activeScheduler.start();
 }
 
 export async function stopScheduler(): Promise<void> {

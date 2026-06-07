@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
-import { automationsQueryOptions } from '@/lib/queries/automations';
+import { automationsSidebarListQueryOptions } from '@/lib/queries/automations';
 import { useAutomationStore } from '@/stores/automation-store';
 
 export function AutomationsSidebarContent() {
@@ -12,7 +12,7 @@ export function AutomationsSidebarContent() {
 
   const openCreateDialog = useAutomationStore((state) => state.openCreateDialog);
 
-  const { data: automations = [] } = useQuery(automationsQueryOptions);
+  const { data: automations = [] } = useQuery(automationsSidebarListQueryOptions);
   const selectedAutomationId = typeof params.automationId === 'string' ? params.automationId : null;
 
   return (

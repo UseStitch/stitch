@@ -41,7 +41,6 @@ class MemoryStore implements SchedulerStore {
     schedule: JobSchedule;
     enabled: boolean;
     maxConcurrency: number;
-    queueEnabled: boolean;
     catchup: 'none' | 'one' | 'all';
     catchupMaxRuns: number;
     initialNextRunAt: number;
@@ -55,9 +54,9 @@ class MemoryStore implements SchedulerStore {
         schedule: input.schedule,
         enabled: input.enabled,
         maxConcurrency: input.maxConcurrency,
-        queueEnabled: input.queueEnabled,
         catchup: input.catchup,
         catchupMaxRuns: input.catchupMaxRuns,
+        runningCount: 0,
         updatedAt: input.now,
       };
       this.jobs.set(input.key, next);
@@ -70,7 +69,6 @@ class MemoryStore implements SchedulerStore {
       schedule: input.schedule,
       enabled: input.enabled,
       maxConcurrency: input.maxConcurrency,
-      queueEnabled: input.queueEnabled,
       catchup: input.catchup,
       catchupMaxRuns: input.catchupMaxRuns,
       nextRunAt: input.initialNextRunAt,
@@ -189,7 +187,6 @@ describe('scheduler', () => {
       callback,
       immediate: true,
       maxConcurrency: 1,
-      queueEnabled: true,
     });
 
     await scheduler.start();
@@ -219,7 +216,6 @@ describe('scheduler', () => {
       callback,
       immediate: true,
       maxConcurrency: 1,
-      queueEnabled: true,
       catchup: 'all',
       catchupMaxRuns: 20,
     });
@@ -245,7 +241,6 @@ describe('scheduler', () => {
       schedule: { type: 'interval', everyMs: 1_000 },
       callback,
       maxConcurrency: 1,
-      queueEnabled: true,
       catchup: 'none',
     });
 
@@ -272,7 +267,6 @@ describe('scheduler', () => {
       schedule: { type: 'interval', everyMs: 500 },
       callback,
       maxConcurrency: 5,
-      queueEnabled: true,
       catchup: 'all',
       catchupMaxRuns: 4,
     });
@@ -300,7 +294,6 @@ describe('scheduler', () => {
       schedule: { type: 'cron', expression: '*/1 * * * *', timezone: 'UTC' },
       callback,
       maxConcurrency: 1,
-      queueEnabled: true,
       catchup: 'one',
     });
 
@@ -326,5 +319,42 @@ describe('scheduler', () => {
 
     expect(removed).toBe(true);
     expect(status).toBeNull();
+  });
+
+  test('registration recovers stale running counts from previous process', async () => {
+    const store = new MemoryStore();
+    const callback = mock();
+    const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 25 });
+
+    await scheduler.registerJob({
+      key: 'recover-me',
+      schedule: { type: 'interval', everyMs: 100 },
+      callback: () => {},
+      maxConcurrency: 1,
+    });
+    await store.enqueueDueRuns({
+      key: 'recover-me',
+      incrementBy: 1,
+      nextRunAt: BASE_TIME,
+      now: BASE_TIME,
+    });
+    const staleRun = await store.startQueuedRun({ key: 'recover-me', now: BASE_TIME });
+    expect(staleRun).not.toBeNull();
+
+    await scheduler.registerJob({
+      key: 'recover-me',
+      schedule: { type: 'interval', everyMs: 100 },
+      callback,
+      immediate: true,
+      maxConcurrency: 1,
+    });
+
+    await scheduler.start();
+    await advanceTime(120, 25);
+    await scheduler.stop();
+
+    expect(callback).toHaveBeenCalled();
+    const status = await store.getJob('recover-me');
+    expect(status?.runningCount).toBe(0);
   });
 });

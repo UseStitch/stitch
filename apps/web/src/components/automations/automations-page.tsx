@@ -32,8 +32,9 @@ import {
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
 import {
   automationSessionsQueryOptions,
+  automationQueryOptions,
   automationsPageQueryOptions,
-  automationsQueryOptions,
+  automationsSidebarListQueryOptions,
   useCreateAutomation,
   useDeleteAutomation,
   useRunAutomation,
@@ -49,7 +50,7 @@ type AutomationsPageProps = {
 
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
-  const { data: automations } = useSuspenseQuery(automationsQueryOptions);
+  const { data: sidebarAutomations } = useSuspenseQuery(automationsSidebarListQueryOptions);
   const [page, setPage] = useState(1);
   const pageSize = 15;
   const { data: automationsPage } = useSuspenseQuery(
@@ -57,6 +58,10 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   );
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
+  const { data: automationDetail = null } = useQuery({
+    ...automationQueryOptions(automationId ?? ''),
+    enabled: automationId !== undefined,
+  });
 
   const createAutomation = useCreateAutomation();
   const updateAutomation = useUpdateAutomation();
@@ -70,12 +75,12 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const openEditDialog = useAutomationStore((state) => state.openEditDialog);
   const closeEditDialog = useAutomationStore((state) => state.closeEditDialog);
 
-  const selectedAutomation = automationId
-    ? (automations.find((automation) => automation.id === automationId) ?? null)
-    : null;
+  const selectedAutomation = automationId ? automationDetail : null;
 
   const editingAutomation = editingAutomationId
-    ? (automations.find((automation) => automation.id === editingAutomationId) ?? null)
+    ? (automationsPage.automations.find((automation) => automation.id === editingAutomationId) ??
+      sidebarAutomations.find((automation) => automation.id === editingAutomationId) ??
+      null)
     : null;
 
   const { data: automationSessions = [] } = useQuery({

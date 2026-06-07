@@ -23,6 +23,7 @@ import { validateProviderModel } from '@/llm/resolve-model.js';
 
 type AutomationDbRow = typeof automations.$inferSelect;
 type AutomationRow = Automation;
+type SyncAutomationSchedule = (automation: AutomationRow) => Promise<void>;
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -85,7 +86,21 @@ export async function listAutomations(input: {
   return ok({ automations: result.items, ...result });
 }
 
-export async function createAutomation(
+export async function getAutomation(automationId: string): Promise<ServiceResult<AutomationRow>> {
+  const db = getDb();
+  const [automation] = await db
+    .select()
+    .from(automations)
+    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+
+  if (!automation) {
+    return err('Automation not found', 404);
+  }
+
+  return ok(toAutomationRow(automation));
+}
+
+async function createAutomation(
   input: CreateAutomationInput,
 ): Promise<ServiceResult<AutomationRow>> {
   const providerId = normalizeText(input.providerId);
@@ -125,7 +140,23 @@ export async function createAutomation(
   return ok(toAutomationRow(created));
 }
 
-export async function updateAutomation(
+export async function createAutomationAndSync(
+  input: CreateAutomationInput,
+  syncSchedule: SyncAutomationSchedule,
+): Promise<ServiceResult<AutomationRow>> {
+  const result = await createAutomation(input);
+  if (isServiceError(result)) return result;
+
+  try {
+    await syncSchedule(result.data);
+    return result;
+  } catch (error) {
+    await deleteAutomation(result.data.id);
+    return err(error instanceof Error ? error.message : 'Failed to schedule automation', 500);
+  }
+}
+
+async function updateAutomation(
   automationId: string,
   input: UpdateAutomationInput,
 ): Promise<ServiceResult<AutomationRow>> {
@@ -183,6 +214,40 @@ export async function updateAutomation(
   }
 
   return ok(toAutomationRow(updated));
+}
+
+export async function updateAutomationAndSync(
+  automationId: string,
+  input: UpdateAutomationInput,
+  syncSchedule: SyncAutomationSchedule,
+): Promise<ServiceResult<AutomationRow>> {
+  const beforeResult = await getAutomation(automationId);
+  if (isServiceError(beforeResult)) return beforeResult;
+
+  const result = await updateAutomation(automationId, input);
+  if (isServiceError(result)) return result;
+
+  try {
+    await syncSchedule(result.data);
+    return result;
+  } catch (error) {
+    const previous = beforeResult.data;
+    await getDb()
+      .update(automations)
+      .set({
+        providerId: previous.providerId,
+        modelId: previous.modelId,
+        title: previous.title,
+        initialMessage: previous.initialMessage,
+        schedule: serializeAutomationSchedule(previous.schedule),
+        updatedAt: previous.updatedAt,
+      })
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+
+    await syncSchedule(previous).catch(() => {});
+
+    return err(error instanceof Error ? error.message : 'Failed to schedule automation', 500);
+  }
 }
 
 export async function deleteAutomation(automationId: string): Promise<ServiceResult<null>> {

@@ -19,23 +19,35 @@ export function createSchedulerStore(): SchedulerStore {
         .get();
 
       if (existing) {
-        const updated = db
-          .update(scheduledJobs)
-          .set({
-            schedule: input.schedule,
-            enabled: input.enabled,
-            maxConcurrency: input.maxConcurrency,
-            queueEnabled: input.queueEnabled,
-            catchup: input.catchup,
-            catchupMaxRuns: input.catchupMaxRuns,
-            updatedAt: input.now,
-          })
-          .where(eq(scheduledJobs.key, input.key))
-          .returning()
-          .get();
+        return db.transaction((tx) => {
+          tx.update(scheduledJobRuns)
+            .set({
+              status: 'failed',
+              finishedAt: input.now,
+              errorMessage: 'scheduler restarted before run completed',
+            })
+            .where(and(eq(scheduledJobRuns.key, input.key), eq(scheduledJobRuns.status, 'running')))
+            .run();
 
-        if (!updated) throw new Error(`failed to update scheduled job ${input.key}`);
-        return updated;
+          const updated = tx
+            .update(scheduledJobs)
+            .set({
+              schedule: input.schedule,
+              enabled: input.enabled,
+              maxConcurrency: input.maxConcurrency,
+              queueEnabled: true,
+              catchup: input.catchup,
+              catchupMaxRuns: input.catchupMaxRuns,
+              runningCount: 0,
+              updatedAt: input.now,
+            })
+            .where(eq(scheduledJobs.key, input.key))
+            .returning()
+            .get();
+
+          if (!updated) throw new Error(`failed to update scheduled job ${input.key}`);
+          return updated;
+        });
       }
 
       const inserted = db
@@ -46,7 +58,7 @@ export function createSchedulerStore(): SchedulerStore {
           schedule: input.schedule,
           enabled: input.enabled,
           maxConcurrency: input.maxConcurrency,
-          queueEnabled: input.queueEnabled,
+          queueEnabled: true,
           catchup: input.catchup,
           catchupMaxRuns: input.catchupMaxRuns,
           nextRunAt: input.initialNextRunAt,

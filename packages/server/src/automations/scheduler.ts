@@ -60,7 +60,6 @@ async function registerAutomationJob(automation: Automation, timezone: string): 
       }
     },
     maxConcurrency: 1,
-    queueEnabled: true,
     catchup: 'one',
   });
 }
