@@ -20,7 +20,7 @@ import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js'
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';

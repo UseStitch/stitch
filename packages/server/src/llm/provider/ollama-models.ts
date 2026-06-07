@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { getDb } from '@/db/client.js';
-import { ollamaModels } from '@/db/schema.js';
+import { ollamaModels } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { ModelSchema } from '@/llm/provider/models.js';

@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema.js';
+import { providerConfig } from '@/db/schema/providers.js';
 import * as Log from '@/lib/log.js';
 import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
 import {

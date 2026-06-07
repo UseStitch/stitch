@@ -3,7 +3,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { messages, sessions } from '@/db/schema.js';
+import { messages, sessions } from '@/db/schema/sessions.js';
 
 type SearchRoleFilter = 'user' | 'assistant' | 'all';
 
@@ -295,7 +295,9 @@ export async function getSessionHistoryMessages(input: {
       createdAt: messages.createdAt,
     })
     .from(messages)
-    .where(and(eq(messages.sessionId, input.sessionId), inArray(messages.role, ['user', 'assistant'])))
+    .where(
+      and(eq(messages.sessionId, input.sessionId), inArray(messages.role, ['user', 'assistant'])),
+    )
     .orderBy(desc(messages.createdAt))
     .limit(input.limit);
 

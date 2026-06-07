@@ -8,7 +8,8 @@ import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { messages, sessions, userSettings } from '@/db/schema.js';
+import { messages, sessions } from '@/db/schema/sessions.js';
+import { userSettings } from '@/db/schema/settings.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';

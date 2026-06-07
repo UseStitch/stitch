@@ -8,7 +8,7 @@ import { OAuthRefreshError } from '@/connectors/auth/oauth2.js';
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 
 setupTestDb();

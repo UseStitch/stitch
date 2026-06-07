@@ -5,7 +5,7 @@ import { createTodoId } from '@stitch/shared/id';
 import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
 import { getDb } from '@/db/client.js';
-import { sessionTodos, sessions } from '@/db/schema.js';
+import { sessionTodos, sessions } from '@/db/schema/sessions.js';
 import * as Events from '@/lib/events.js';
 import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
 

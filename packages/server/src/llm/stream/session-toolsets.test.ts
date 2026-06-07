@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
+import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import {
   buildNextSessionToolsetState,

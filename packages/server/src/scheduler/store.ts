@@ -4,7 +4,7 @@ import type { SchedulerStore } from '@stitch/scheduler';
 import { createScheduledJobId, createScheduledJobRunId } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { scheduledJobs, scheduledJobRuns } from '@/db/schema.js';
+import { scheduledJobs, scheduledJobRuns } from '@/db/schema/scheduler.js';
 
 type ScheduledJobRunId = (typeof scheduledJobRuns.$inferSelect)['id'];
 

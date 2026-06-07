@@ -7,7 +7,8 @@ import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
-import { messages, sessions, userSettings } from '@/db/schema.js';
+import { messages, sessions } from '@/db/schema/sessions.js';
+import { userSettings } from '@/db/schema/settings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';

@@ -1,13 +1,13 @@
 import * as lancedb from '@lancedb/lancedb';
 import { Field, Int32, Schema, Utf8 } from 'apache-arrow';
+import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, test } from 'bun:test';
 
+import { getDb } from '@/db/client.js';
 import { runPendingMigrations } from '@/db/lance-migrations.js';
 import { migration0001AddPinnedColumn } from '@/db/lance-migrations/0001-add-pinned-column.js';
-import { getDb } from '@/db/client.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 
 setupTestDb();
@@ -21,7 +21,10 @@ async function withTempWorkspace(fn: (ctx: { tempDir: string }) => Promise<void>
   }
 }
 
-async function createSemanticTable(tempDir: string, withPinned = false): Promise<lancedb.Connection> {
+async function createSemanticTable(
+  tempDir: string,
+  withPinned = false,
+): Promise<lancedb.Connection> {
   const connection = await lancedb.connect(path.join(tempDir, 'memory.lance'));
   const fields: Field[] = [new Field('id', new Utf8(), false)];
   if (withPinned) fields.push(new Field('pinned', new Int32(), false));
@@ -42,7 +45,7 @@ describe('runPendingMigrations', () => {
       expect(schema.fields.some((f) => f.name === 'pinned')).toBe(true);
 
       // Check the migration row recorded in SQLite
-      const { lanceMigrations } = await import('@/db/schema.js');
+      const { lanceMigrations } = await import('@/db/schema/lance-migrations.js');
       const rows = db.select().from(lanceMigrations).all();
       const row = rows.find((r) => r.version === 1);
       expect(row?.status).toBe('applied');
@@ -62,7 +65,7 @@ describe('runPendingMigrations', () => {
       await runPendingMigrations(db, { getConnection: async () => connection as never });
       await runPendingMigrations(db, { getConnection: async () => connection as never });
 
-      const { lanceMigrations } = await import('@/db/schema.js');
+      const { lanceMigrations } = await import('@/db/schema/lance-migrations.js');
       const rows = db.select().from(lanceMigrations).all();
       expect(rows).toHaveLength(1);
     });
@@ -74,17 +77,19 @@ describe('runPendingMigrations', () => {
       const db = getDb();
 
       // Pre-seed migration row with wrong checksum
-      const { lanceMigrations } = await import('@/db/schema.js');
-      db.insert(lanceMigrations).values({
-        version: 1,
-        id: migration0001AddPinnedColumn.id,
-        prevId: migration0001AddPinnedColumn.prevId,
-        name: 'add_pinned_column',
-        checksum: 'sha256:old',
-        status: 'applied',
-        error: null,
-        appliedAt: Date.now(),
-      }).run();
+      const { lanceMigrations } = await import('@/db/schema/lance-migrations.js');
+      db.insert(lanceMigrations)
+        .values({
+          version: 1,
+          id: migration0001AddPinnedColumn.id,
+          prevId: migration0001AddPinnedColumn.prevId,
+          name: 'add_pinned_column',
+          checksum: 'sha256:old',
+          status: 'applied',
+          error: null,
+          appliedAt: Date.now(),
+        })
+        .run();
 
       let threw = false;
       try {
@@ -102,17 +107,19 @@ describe('runPendingMigrations', () => {
       const connection = await lancedb.connect(path.join(tempDir, 'memory.lance'));
       const db = getDb();
 
-      const { lanceMigrations } = await import('@/db/schema.js');
-      db.insert(lanceMigrations).values({
-        version: 1,
-        id: migration0001AddPinnedColumn.id,
-        prevId: 'wrong-prev-id',
-        name: 'add_pinned_column',
-        checksum: migration0001AddPinnedColumn.checksum,
-        status: 'applied',
-        error: null,
-        appliedAt: Date.now(),
-      }).run();
+      const { lanceMigrations } = await import('@/db/schema/lance-migrations.js');
+      db.insert(lanceMigrations)
+        .values({
+          version: 1,
+          id: migration0001AddPinnedColumn.id,
+          prevId: 'wrong-prev-id',
+          name: 'add_pinned_column',
+          checksum: migration0001AddPinnedColumn.checksum,
+          status: 'applied',
+          error: null,
+          appliedAt: Date.now(),
+        })
+        .run();
 
       let threw = false;
       try {

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
-import { modelVisibility } from '@/db/schema.js';
+import { modelVisibility } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 

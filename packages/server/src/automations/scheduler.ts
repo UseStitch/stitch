@@ -6,7 +6,7 @@ import type { Automation, AutomationSchedule } from '@stitch/shared/automations/
 import { listAutomations, runAutomation } from './service.js';
 
 import { getDb } from '@/db/client.js';
-import { userSettings } from '@/db/schema.js';
+import { userSettings } from '@/db/schema/settings.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 

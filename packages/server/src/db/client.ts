@@ -5,13 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
-import * as schema from '@/db/schema.js';
+import { keyboardShortcuts, userSettings } from '@/db/schema/settings.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import type { Database } from 'bun:sqlite';
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-type Db = BunSQLiteDatabase<typeof schema>;
+type Db = BunSQLiteDatabase;
 
 const log = Log.create({ service: 'db' });
 
@@ -41,7 +41,7 @@ function getMigrationsDir(): string {
 
 function seedShortcuts(db: Db): void {
   for (const def of SHORTCUT_DEFAULTS) {
-    db.insert(schema.keyboardShortcuts)
+    db.insert(keyboardShortcuts)
       .values({
         actionId: def.actionId,
         hotkey: def.hotkey,
@@ -56,14 +56,14 @@ function seedShortcuts(db: Db): void {
 
 function seedSettings(db: Db): void {
   for (const def of SETTINGS_DEFAULTS) {
-    db.insert(schema.userSettings)
+    db.insert(userSettings)
       .values({
         key: def.key,
         value: def.value,
         description: def.description,
       })
       .onConflictDoUpdate({
-        target: schema.userSettings.key,
+        target: userSettings.key,
         set: { description: def.description },
       })
       .run();
@@ -99,7 +99,7 @@ export async function initDb(): Promise<void> {
   sqlite.run('PRAGMA foreign_keys = ON');
 
   _sqlite = sqlite;
-  _db = drizzle({ client: sqlite, schema }) as Db;
+  _db = drizzle({ client: sqlite }) as Db;
   migrate(_db, { migrationsFolder: migrationsDir });
 
   seedShortcuts(_db);

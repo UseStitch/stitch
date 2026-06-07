@@ -3,7 +3,8 @@ import { inArray } from 'drizzle-orm';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, userSettings } from '@/db/schema.js';
+import { providerConfig } from '@/db/schema/providers.js';
+import { userSettings } from '@/db/schema/settings.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';

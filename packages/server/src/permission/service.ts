@@ -12,7 +12,7 @@ import type {
 } from '@stitch/shared/permissions/types';
 
 import { getDb } from '@/db/client.js';
-import { permissionResponses, toolPermissions } from '@/db/schema.js';
+import { permissionResponses, toolPermissions } from '@/db/schema/permissions.js';
 import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
 import * as Log from '@/lib/log.js';

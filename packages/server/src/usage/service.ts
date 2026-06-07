@@ -10,7 +10,9 @@ import {
 } from '@stitch/shared/usage/types';
 
 import { getDb } from '@/db/client.js';
-import { llmUsageEvents, recordingAnalyses, sessions } from '@/db/schema.js';
+import { recordingAnalyses } from '@/db/schema/recordings.js';
+import { sessions } from '@/db/schema/sessions.js';
+import { llmUsageEvents } from '@/db/schema/usage.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';

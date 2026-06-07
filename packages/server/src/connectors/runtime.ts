@@ -2,7 +2,7 @@ import type { ConnectorModule } from '@stitch-connectors/sdk';
 
 import { getConnectorModules } from '@/connectors/definitions/index.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'connector-runtime' });

@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import type { ToolEnabledScope, ToolEnabledState } from '@stitch/shared/tools/types';
 
 import { getDb, isDbInitialized } from '@/db/client.js';
-import { toolEnabled } from '@/db/schema.js';
+import { toolEnabled } from '@/db/schema/permissions.js';
 
 export async function getToolEnabledStates(): Promise<ToolEnabledState[]> {
   if (!isDbInitialized()) {
