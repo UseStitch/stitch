@@ -54,8 +54,8 @@ import {
   DISPLAY_NAME as WRITE_DISPLAY_NAME,
 } from '@/tools/core/write.js';
 import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
-import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
+import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
+import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
 
 export const MAX_STEPS = 25;
 
@@ -156,7 +156,7 @@ export async function createTools(context: {
     ([name, mod]) => ('alwaysActive' in mod && mod.alwaysActive) || !disabledTools.has(name),
   );
 
-  const runtime = createToolRuntime(context).use(resultNormalizationMiddleware());
+  const runtime = createNormalizedToolRuntime(context);
   return runtime.toAiToolRecord(
     enabledToolEntries.map(([name, mod]) =>
       defineRuntimeTool(name, mod.createRegisteredTool(context), {

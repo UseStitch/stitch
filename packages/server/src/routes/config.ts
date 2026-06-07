@@ -14,6 +14,7 @@ import { getToolEnabledStates, setToolEnabledState } from '@/tools/enabled-servi
 import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import type { ToolsetKind } from '@/tools/toolsets/types.js';
+import { toToolsetView } from '@/tools/toolsets/view.js';
 
 const upsertPermissionSchema = z.object({
   toolName: z.string().min(1),
@@ -31,14 +32,6 @@ export const configRouter = new Hono();
 
 export function getToolsetSource(toolset: { kind: ToolsetKind }): ToolsetKind {
   return toolset.kind;
-}
-
-function humanizeToolName(name: string): string {
-  return name
-    .split(/[_-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 configRouter.get('/tools', async (c) => {
@@ -82,20 +75,27 @@ configRouter.get('/mcp-tools', async (c) => {
 
 configRouter.get('/toolsets', async (c) => {
   const toolsets = listToolsets()
-    .map((toolset) => ({
-      id: toolset.id,
-      name: toolset.name,
-      description: toolset.description,
-      icon: toolset.icon ?? null,
-      source: getToolsetSource(toolset),
-      toolCount: toolset.tools().length,
-      hasInstructions: !!toolset.instructions,
-      promptCount: toolset.prompts?.length ?? 0,
-      tools: toolset.tools().map((tool) => ({
-        toolName: tool.name,
-        displayName: humanizeToolName(tool.name),
-      })),
-    }))
+    .map((toolset) => {
+      const view = toToolsetView(toolset, {
+        active: false,
+        persisted: false,
+        includeTools: true,
+      });
+      return {
+        id: view.id,
+        name: view.name,
+        description: view.description,
+        icon: view.icon,
+        source: getToolsetSource(toolset),
+        toolCount: view.tools?.length ?? 0,
+        hasInstructions: view.hasInstructions,
+        promptCount: view.promptCount,
+        tools: (view.tools ?? []).map((tool) => ({
+          toolName: tool.name,
+          displayName: tool.displayName,
+        })),
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return c.json({ toolsets });

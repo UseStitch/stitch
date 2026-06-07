@@ -27,6 +27,7 @@
     "./todos/types": "./src/todos/types.ts",
     "./tools/bash-families": "./src/tools/bash-families.ts",
     "./tools/bash-presets": "./src/tools/bash-presets.ts",
+    "./tools/display": "./src/tools/display.ts",
     "./tools/types": "./src/tools/types.ts",
     "./usage/types": "./src/usage/types.ts",
     "./connectors/types": "./src/connectors/types.ts",

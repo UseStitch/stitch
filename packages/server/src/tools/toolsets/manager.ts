@@ -1,12 +1,11 @@
-import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
-
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
-import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
+import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
+import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
+import { toToolsetView, type ToolsetView } from '@/tools/toolsets/view.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'toolset-manager' });
@@ -80,7 +79,7 @@ export class ToolsetManager {
       return { status: 'disabled' };
     }
 
-    const runtime = createToolRuntime(this.context).use(resultNormalizationMiddleware());
+    const runtime = createNormalizedToolRuntime(this.context);
     const toolsetTools = await toolset.activate(this.context);
     const allTools = runtime.toAiToolRecord(
       Object.entries(toolsetTools).map(([name, tool]) =>
@@ -232,30 +231,16 @@ export class ToolsetManager {
    * Disabled toolsets are excluded so the LLM never sees or attempts to use them.
    * Used by the list_toolsets meta-tool.
    */
-  async getCatalogWithState(): Promise<
-    Array<{
-      id: string;
-      name: string;
-      description: string;
-      icon?: ConnectorIconSource;
-      active: boolean;
-      persisted: boolean;
-      hasInstructions: boolean;
-      promptCount: number;
-    }>
-  > {
+  async getCatalogWithState(options?: { includeTools?: boolean }): Promise<ToolsetView[]> {
     const disabledIds = await getDisabledToolIdentifiers('toolset');
     return listToolsets()
       .filter((ts) => !disabledIds.has(ts.id))
-      .map((ts) => ({
-        id: ts.id,
-        name: ts.name,
-        description: ts.description,
-        icon: ts.icon,
-        active: this.activeIds.has(ts.id),
-        persisted: this.persistedIds.has(ts.id),
-        hasInstructions: !!ts.instructions,
-        promptCount: ts.prompts?.length ?? 0,
-      }));
+      .map((ts) =>
+        toToolsetView(ts, {
+          active: this.activeIds.has(ts.id),
+          persisted: this.persistedIds.has(ts.id),
+          includeTools: options?.includeTools,
+        }),
+      );
   }
 }

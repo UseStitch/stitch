@@ -12,9 +12,9 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { resultNormalizationMiddleware } from '@/tools/runtime/middleware.js';
+import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
 import { createTools } from '@/tools/runtime/registry.js';
-import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
+import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -40,13 +40,11 @@ type AssembledTools = {
 };
 
 async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
-  const catalog = await manager.getCatalogWithState();
+  const catalog = await manager.getCatalogWithState({ includeTools: true });
   if (catalog.length === 0) return '';
 
   const lines = catalog.map((item) => {
-    const toolset = getToolset(item.id);
-    const tools = toolset
-      ?.tools()
+    const tools = (item.tools ?? [])
       .slice(0, 3)
       .map((tool) => `${tool.name}: ${tool.description}`)
       .join('; ');
@@ -182,7 +180,7 @@ export class ToolAssembler {
   }
 
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
-    const runtime = createToolRuntime(this.toolContext).use(resultNormalizationMiddleware());
+    const runtime = createNormalizedToolRuntime(this.toolContext);
     return runtime.toAiToolRecord(
       Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) =>
         defineRuntimeTool(name, tool, { source: 'meta' }),
@@ -194,7 +192,7 @@ export class ToolAssembler {
     const canUseTaskTool = this.opts.allowTaskTool ?? true;
     if (!canUseTaskTool) return null;
 
-    const runtime = createToolRuntime(this.toolContext).use(resultNormalizationMiddleware());
+    const runtime = createNormalizedToolRuntime(this.toolContext);
     return runtime.wrapTool(
       'task',
       createTaskTool(this.toolContext, {
@@ -210,7 +208,7 @@ export class ToolAssembler {
   }
 
   private buildInspectImageTool(): Tool {
-    const runtime = createToolRuntime(this.toolContext).use(resultNormalizationMiddleware());
+    const runtime = createNormalizedToolRuntime(this.toolContext);
     return runtime.wrapTool(
       'inspect_image',
       createInspectImageTool(this.toolContext, {
