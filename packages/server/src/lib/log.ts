@@ -1,6 +1,6 @@
+import { createWriteStream, type WriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import pino from 'pino';
 import z from 'zod';
 
 import { type StitchLogger } from '@stitch/shared/logger';
@@ -12,12 +12,14 @@ const Level = z
   .meta({ ref: 'LogLevel', description: 'Log level' });
 type Level = z.infer<typeof Level>;
 
-const pinoLevel: Record<Level, pino.Level> = {
-  DEBUG: 'debug',
-  INFO: 'info',
-  WARN: 'warn',
-  ERROR: 'error',
+const levelPriority: Record<Level, number> = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
 };
+
+let level: Level = 'INFO';
 
 type Logger = StitchLogger & {
   tag(key: string, value: string): Logger;
@@ -36,6 +38,10 @@ interface Options {
   level?: Level;
 }
 
+function shouldLog(input: Level): boolean {
+  return levelPriority[input] >= levelPriority[level];
+}
+
 function formatDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -43,29 +49,44 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-// Silent by default until init() is called — nothing goes to stdout/stderr before then
-let rootLogger: pino.Logger = pino({ level: 'silent' });
+function formatError(error: Error, depth = 0): string {
+  const message = error.message;
+  return error.cause instanceof Error && depth < 10
+    ? `${message} Caused by: ${formatError(error.cause, depth + 1)}`
+    : message;
+}
+
+function formatValue(value: unknown): string {
+  if (value instanceof Error) return formatError(value);
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return value.toString();
+  }
+  if (typeof value === 'symbol') return value.description ?? value.toString();
+  if (typeof value === 'function') return value.name ? `[Function ${value.name}]` : '[Function]';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return '';
+}
+
+let stream: WriteStream | undefined;
+let write = (_msg: string) => {};
+let last = Date.now();
 const loggers = new Map<string, Logger>();
 
-type LoggerState = {
-  tags: Record<string, unknown>;
-  child: pino.Logger;
-};
-
-const loggerStates = new Set<LoggerState>();
-
 export async function init(options: Options): Promise<void> {
-  const level = pinoLevel[options.level ?? 'INFO'];
+  level = options.level ?? 'INFO';
 
   await fs.mkdir(PATHS.logDir, { recursive: true });
 
   const prefix = options.dev ? 'dev' : 'app';
   const logFile = path.join(PATHS.logDir, `${prefix}.${formatDate(new Date())}.1.log`);
 
-  rootLogger = pino({ level }, pino.destination({ dest: logFile, mkdir: true, sync: false }));
-  for (const state of loggerStates) {
-    state.child = rootLogger.child(state.tags);
-  }
+  await fs.truncate(logFile).catch(() => {});
+  stream?.end();
+  stream = createWriteStream(logFile, { flags: 'a' });
+  write = (msg: string) => {
+    stream?.write(msg);
+  };
 }
 
 // Log filename format: <prefix>.<date>.<count>.log
@@ -97,44 +118,50 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     if (cached) return cached;
   }
 
-  const state: LoggerState = {
-    tags,
-    child: rootLogger.child(tags),
-  };
-  loggerStates.add(state);
+  function build(message: string, extra?: Record<string, unknown>) {
+    const prefix = Object.entries({ ...tags, ...extra })
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${key}=${formatValue(value)}`)
+      .join(' ');
 
-  function emit(
-    lvl: pino.Level,
-    extraOrMessage: Record<string, unknown> | string,
-    message?: string,
-  ) {
+    const next = new Date();
+    const diff = next.getTime() - last;
+    last = next.getTime();
+
+    return [next.toISOString().split('.')[0], `+${diff}ms`, prefix, message]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {
+    if (!shouldLog(lvl)) return;
+
     if (typeof extraOrMessage === 'string') {
-      state.child[lvl](extraOrMessage);
+      write(`${lvl} ${build(extraOrMessage)}\n`);
     } else {
-      state.child[lvl](extraOrMessage, message ?? '');
+      write(`${lvl} ${build(message ?? '', extraOrMessage)}\n`);
     }
   }
 
   const result: Logger = {
     debug(extraOrMessage, message?) {
-      emit('debug', extraOrMessage, message as string | undefined);
+      emit('DEBUG', extraOrMessage, message as string | undefined);
     },
     info(extraOrMessage, message?) {
-      emit('info', extraOrMessage, message as string | undefined);
+      emit('INFO', extraOrMessage, message as string | undefined);
     },
     warn(extraOrMessage, message?) {
-      emit('warn', extraOrMessage, message as string | undefined);
+      emit('WARN', extraOrMessage, message as string | undefined);
     },
     error(extraOrMessage, message?) {
-      emit('error', extraOrMessage, message as string | undefined);
+      emit('ERROR', extraOrMessage, message as string | undefined);
     },
     tag(key: string, value: string) {
-      state.tags = { ...state.tags, [key]: value };
-      state.child = rootLogger.child(state.tags);
+      tags = { ...tags, [key]: value };
       return result;
     },
     clone() {
-      return create({ ...state.tags }, { skipCache: true });
+      return create({ ...tags }, { skipCache: true });
     },
     time(message: string, extra?: Record<string, unknown>) {
       const now = Date.now();

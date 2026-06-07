@@ -1,0 +1,1 @@
+DROP TABLE `agenda_item_events`;

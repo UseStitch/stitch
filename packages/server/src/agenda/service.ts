@@ -2,8 +2,6 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type {
   AgendaItem,
-  AgendaItemDetail,
-  AgendaItemEvent,
   AgendaItemPriority,
   AgendaItemStatus,
   AgendaList,
@@ -14,18 +12,17 @@ import type {
   UpdateAgendaItemInput,
   UpdateAgendaListInput,
 } from '@stitch/shared/agenda/types';
-import { createAgendaItemEventId, createAgendaItemId, createAgendaListId } from '@stitch/shared/id';
+import { createAgendaItemId, createAgendaListId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { agendaItems, agendaItemEvents, agendaLists } from '@/db/schema.js';
+import { agendaItems, agendaLists } from '@/db/schema.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
 import { ok, err } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
 type AgendaListRow = typeof agendaLists.$inferSelect;
 type AgendaItemRow = typeof agendaItems.$inferSelect;
-type AgendaItemEventRow = typeof agendaItemEvents.$inferSelect;
 
 function toAgendaList(row: AgendaListRow): AgendaList {
   return {
@@ -56,19 +53,6 @@ function toAgendaItem(row: AgendaItemRow, listName?: string): AgendaItem {
     position: row.position,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-  };
-}
-
-function toAgendaItemEvent(row: AgendaItemEventRow): AgendaItemEvent {
-  return {
-    id: row.id,
-    itemId: row.itemId,
-    type: row.type,
-    fromStatus: row.fromStatus ?? null,
-    toStatus: row.toStatus ?? null,
-    content: row.content,
-    sessionId: row.sessionId,
-    createdAt: row.createdAt,
   };
 }
 
@@ -247,7 +231,7 @@ export async function getAgendaItems(input: {
   return ok(result);
 }
 
-export function getAgendaItem(id: PrefixedString<'aitm'>): ServiceResult<AgendaItemDetail> {
+export function getAgendaItem(id: PrefixedString<'aitm'>): ServiceResult<AgendaItem> {
   const db = getDb();
   const row = db
     .select({ item: agendaItems, listName: agendaLists.name })
@@ -258,17 +242,7 @@ export function getAgendaItem(id: PrefixedString<'aitm'>): ServiceResult<AgendaI
 
   if (!row) return err('Item not found', 404);
 
-  const events = db
-    .select()
-    .from(agendaItemEvents)
-    .where(eq(agendaItemEvents.itemId, id))
-    .orderBy(desc(agendaItemEvents.createdAt))
-    .all();
-
-  return ok({
-    ...toAgendaItem(row.item, row.listName ?? undefined),
-    events: events.map(toAgendaItemEvent),
-  });
+  return ok(toAgendaItem(row.item, row.listName ?? undefined));
 }
 
 function findOrCreateList(name: string): PrefixedString<'alist'> {
@@ -309,17 +283,6 @@ export function createAgendaItem(input: CreateAgendaItemInput): ServiceResult<Ag
   };
 
   db.insert(agendaItems).values(itemRow).run();
-  db.insert(agendaItemEvents)
-    .values({
-      id: createAgendaItemEventId(),
-      itemId: id,
-      type: 'created',
-      toStatus: itemRow.status,
-      content: `Created: ${input.title}`,
-      sessionId: input.sourceSessionId ?? null,
-      createdAt: now,
-    })
-    .run();
 
   const listRow = db.select().from(agendaLists).where(eq(agendaLists.id, listId)).get();
 
@@ -329,7 +292,6 @@ export function createAgendaItem(input: CreateAgendaItemInput): ServiceResult<Ag
 export function updateAgendaItem(
   id: PrefixedString<'aitm'>,
   input: UpdateAgendaItemInput,
-  sessionId?: PrefixedString<'ses'> | null,
 ): ServiceResult<AgendaItem> {
   const db = getDb();
   const existing = db
@@ -355,36 +317,6 @@ export function updateAgendaItem(
     } else if (existing.item.status === 'done') {
       updates.completedAt = null;
     }
-
-    db.insert(agendaItemEvents)
-      .values({
-        id: createAgendaItemEventId(),
-        itemId: id,
-        type: 'status_change',
-        fromStatus: existing.item.status,
-        toStatus: input.status,
-        content: `Status changed from ${existing.item.status} to ${input.status}`,
-        sessionId: sessionId ?? null,
-        createdAt: now,
-      })
-      .run();
-  }
-
-  const hasNonStatusUpdates = Object.keys(updates).some(
-    (k) => k !== 'updatedAt' && k !== 'status' && k !== 'completedAt',
-  );
-  if (hasNonStatusUpdates) {
-    const changedFields = Object.keys(input).filter((k) => k !== 'status');
-    db.insert(agendaItemEvents)
-      .values({
-        id: createAgendaItemEventId(),
-        itemId: id,
-        type: 'updated',
-        content: `Updated: ${changedFields.join(', ')}`,
-        sessionId: sessionId ?? null,
-        createdAt: now,
-      })
-      .run();
   }
 
   db.update(agendaItems).set(updates).where(eq(agendaItems.id, id)).run();
