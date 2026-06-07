@@ -177,4 +177,23 @@ describe('Log.create', () => {
 
     await clearLogDir();
   });
+
+  test('writes formatted text lines with tags and extras', async () => {
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    await clearLogDir();
+
+    const log = Log.create({ service: 'test-format' });
+    await Log.init({});
+
+    log.info({ requestId: 'abc123', count: 2 }, 'formatted message');
+
+    const output = await waitForLogOutput('formatted message');
+    expect(output).toContain('INFO ');
+    expect(output).toContain('service=test-format');
+    expect(output).toContain('requestId=abc123');
+    expect(output).toContain('count=2');
+    expect(output).toContain('formatted message');
+
+    await clearLogDir();
+  });
 });
