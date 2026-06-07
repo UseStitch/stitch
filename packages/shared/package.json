@@ -8,7 +8,6 @@
     "./automations/types": "./src/automations/types.ts",
     "./chat/errors": "./src/chat/errors.ts",
     "./chat/messages": "./src/chat/messages.ts",
-    "./chat/queue": "./src/chat/queue.ts",
     "./chat/realtime": "./src/chat/realtime.ts",
     "./id": "./src/id/index.ts",
     "./liquid-ui/catalog": "./src/liquid-ui/catalog.ts",

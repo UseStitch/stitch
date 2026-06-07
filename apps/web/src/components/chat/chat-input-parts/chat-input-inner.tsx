@@ -1,4 +1,4 @@
-import { ArrowUpIcon, ListOrderedIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
+import { ArrowUpIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -29,7 +29,6 @@ type ChatInputInnerProps = {
   disabled?: boolean;
   hasDockAbove?: boolean;
   embedded?: boolean;
-  mode?: 'send' | 'queue';
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
 };
@@ -46,7 +45,6 @@ export function ChatInputInner({
   disabled,
   hasDockAbove,
   embedded,
-  mode = 'send',
   pendingAttachments,
   onPendingAttachmentsConsumed,
 }: ChatInputInnerProps) {
@@ -208,23 +206,19 @@ export function ChatInputInner({
             </Button>
           ) : null}
 
-          {!(isStreaming && mode === 'send') ? (
+          {!isStreaming ? (
             <Button
               type="button"
               size="icon-xs"
-              variant={canSubmit ? (mode === 'queue' ? 'secondary' : 'default') : 'outline'}
+              variant={canSubmit ? 'default' : 'outline'}
               disabled={!canSubmit}
               onClick={() => {
                 if (canSubmit) submit();
               }}
               className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
-              title={mode === 'queue' ? 'Add to queue' : 'Send message'}
+              title="Send message"
             >
-              {mode === 'queue' ? (
-                <ListOrderedIcon className="size-3.5" />
-              ) : (
-                <ArrowUpIcon className="size-3.5" />
-              )}
+              <ArrowUpIcon className="size-3.5" />
             </Button>
           ) : null}
         </div>

@@ -204,6 +204,13 @@
       "when": 1780854201050,
       "tag": "0028_wandering_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1780862829070,
+      "tag": "0029_drop_queued_messages",
+      "breakpoints": true
     }
   ]
 }
