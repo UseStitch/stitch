@@ -183,14 +183,3 @@ export function createDocsTools(
 
   return tools;
 }
-
-export const DOCS_TOOL_SUMMARIES = [
-  { name: 'docs_search', description: 'Search Google Docs files by Drive query filters' },
-  { name: 'docs_read', description: 'Read a Google Docs document as plain text' },
-  { name: 'docs_create', description: 'Create a Google Docs document (requires write access)' },
-  { name: 'docs_update', description: 'Update a Google Docs document (requires write access)' },
-  {
-    name: 'docs_edit',
-    description: 'Edit a Google Docs document by replacing exact text (requires write access)',
-  },
-];

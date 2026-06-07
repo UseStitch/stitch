@@ -43,3 +43,25 @@ export type Toolset = {
   /** Instantiate and return the actual AI SDK Tool objects */
   activate: (context: ToolContext) => Promise<Record<string, Tool>>;
 };
+
+export const TOOLSET_SUMMARY_CONTEXT: ToolContext = {
+  sessionId: 'ses_summary',
+  messageId: 'msg_summary',
+  streamRunId: 'summary',
+};
+
+export function summarizeTools(tools: Record<string, Tool>): ToolSummary[] {
+  return Object.entries(tools).map(([name, tool]) => ({
+    name,
+    description: summarizeToolDescription(tool.description),
+  }));
+}
+
+function summarizeToolDescription(description: string | undefined): string {
+  return (
+    description
+      ?.split('\n')
+      .find((line) => line.trim())
+      ?.trim() ?? ''
+  );
+}

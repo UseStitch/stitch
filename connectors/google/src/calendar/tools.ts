@@ -203,17 +203,3 @@ export function createCalendarTools(
 
   return tools;
 }
-
-export const CALENDAR_TOOL_SUMMARIES = [
-  {
-    name: 'calendar_list',
-    description: 'List upcoming Google Calendar events with optional date/text filtering',
-  },
-  { name: 'calendar_get', description: 'Get full details for a specific calendar event' },
-  { name: 'calendar_create', description: 'Create a new calendar event (requires write access)' },
-  {
-    name: 'calendar_update',
-    description: 'Update an existing calendar event (requires write access)',
-  },
-  { name: 'calendar_delete', description: 'Delete a calendar event (requires write access)' },
-];

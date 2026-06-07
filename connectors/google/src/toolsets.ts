@@ -8,10 +8,10 @@
 
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
-import { CALENDAR_TOOL_SUMMARIES, createCalendarTools } from './calendar/tools.js';
-import { DOCS_TOOL_SUMMARIES, createDocsTools } from './docs/tools.js';
-import { DRIVE_TOOL_SUMMARIES, createDriveTools } from './drive/tools.js';
-import { GMAIL_TOOL_SUMMARIES, createGmailTools } from './gmail/tools.js';
+import { createCalendarTools } from './calendar/tools.js';
+import { createDocsTools } from './docs/tools.js';
+import { createDriveTools } from './drive/tools.js';
+import { createGmailTools } from './gmail/tools.js';
 import {
   hasGmailModifyAccess,
   hasGmailSendAccess,
@@ -61,6 +61,26 @@ export type GoogleToolsetDefinition = {
 };
 
 type Resolver = (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>;
+
+const SUMMARY_RESOLVER: Resolver = async () => {
+  throw new Error('Summary resolver should not be executed.');
+};
+
+function summarizeTools(tools: Record<string, Tool>): { name: string; description: string }[] {
+  return Object.entries(tools).map(([name, tool]) => ({
+    name,
+    description: summarizeToolDescription(tool.description),
+  }));
+}
+
+function summarizeToolDescription(description: string | undefined): string {
+  return (
+    description
+      ?.split('\n')
+      .find((line) => line.trim())
+      ?.trim() ?? ''
+  );
+}
 
 type BuildGoogleToolsetsInput = {
   scopes: string[];
@@ -114,12 +134,7 @@ function createGmailToolset(
   const canSend = hasGmailSendAccess(scopes) && canWriteCapability;
   const canModify = hasGmailModifyAccess(scopes) && canWriteCapability;
   const canManageFilters = hasGmailSettingsAccess(scopes) && canWriteCapability;
-  const summaries = GMAIL_TOOL_SUMMARIES.filter((t) => {
-    if (t.name === 'gmail_send') return canSend;
-    if (t.name === 'gmail_modify_labels' || t.name === 'gmail_modify_messages') return canModify;
-    if (t.name === 'gmail_filters') return canManageFilters;
-    return true;
-  });
+  const permissions = { canSend, canModify, canManageFilters };
 
   return {
     id: 'google-gmail',
@@ -146,18 +161,14 @@ function createGmailToolset(
         : 'You do not have settings access. Managing Gmail filters is not available.',
       'Do not add SPAM and TRASH in the same gmail_modify_messages call. Apply those actions in separate steps if needed.',
     ].join('\n'),
-    tools: () => summaries,
-    activate: (resolveClient) =>
-      createGmailTools(resolveClient, { canSend, canModify, canManageFilters }, config),
+    tools: () => summarizeTools(createGmailTools(SUMMARY_RESOLVER, permissions, config)),
+    activate: (resolveClient) => createGmailTools(resolveClient, permissions, config),
   };
 }
 
 function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
   const canWrite =
     hasWriteAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_WRITE);
-  const summaries = canWrite
-    ? DRIVE_TOOL_SUMMARIES
-    : DRIVE_TOOL_SUMMARIES.filter((t) => t.name !== 'drive_write');
 
   return {
     id: 'google-drive',
@@ -176,7 +187,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
         ? 'You have write access. Use drive_write to create new text or Markdown files.'
         : 'You have read-only access. Creating files is not available.',
     ].join('\n'),
-    tools: () => summaries,
+    tools: () => summarizeTools(createDriveTools(SUMMARY_RESOLVER, canWrite)),
     activate: (resolveClient) => createDriveTools(resolveClient, canWrite),
   };
 }
@@ -185,14 +196,6 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
   const canWrite =
     hasWriteAccess(scopes, 'calendar') &&
     hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
-  const summaries = canWrite
-    ? CALENDAR_TOOL_SUMMARIES
-    : CALENDAR_TOOL_SUMMARIES.filter(
-        (t) =>
-          t.name !== 'calendar_create' &&
-          t.name !== 'calendar_update' &&
-          t.name !== 'calendar_delete',
-      );
 
   return {
     id: 'google-calendar',
@@ -211,7 +214,7 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
         ? 'You have write access. Use calendar_create to schedule new events, calendar_update to modify existing events, and calendar_delete to remove them. Pass addMeet: true to automatically attach a Google Meet link.'
         : 'You have read-only access. Creating, updating, and deleting events is not available.',
     ].join('\n'),
-    tools: () => summaries,
+    tools: () => summarizeTools(createCalendarTools(SUMMARY_RESOLVER, canWrite)),
     activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
   };
 }
@@ -219,11 +222,6 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
 function createDocsToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
   const canWrite =
     hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
-  const summaries = canWrite
-    ? DOCS_TOOL_SUMMARIES
-    : DOCS_TOOL_SUMMARIES.filter(
-        (t) => t.name !== 'docs_create' && t.name !== 'docs_update' && t.name !== 'docs_edit',
-      );
 
   return {
     id: 'google-docs',
@@ -240,7 +238,7 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
         ? 'You have write access. Use docs_create to create docs, docs_update to append or replace content, and docs_edit for targeted text replacement.'
         : 'You have read-only access. Creating and updating docs is not available.',
     ].join('\n'),
-    tools: () => summaries,
+    tools: () => summarizeTools(createDocsTools(SUMMARY_RESOLVER, canWrite)),
     activate: (resolveClient) => createDocsTools(resolveClient, canWrite),
   };
 }

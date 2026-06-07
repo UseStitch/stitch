@@ -16,7 +16,7 @@ import {
 import { isServiceError } from '@/lib/service-result.js';
 import { listSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
+import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const AGENDA_TOOLSET_ID = 'agenda';
@@ -81,15 +81,6 @@ async function resolveUserTimezone(): Promise<string> {
   if (isServiceError(settingsResult)) return 'UTC';
   return settingsResult.data['profile.timezone'] || 'UTC';
 }
-
-const TOOL_SUMMARIES = [
-  { name: 'agenda_add_item', description: 'Create a new agenda item in a list' },
-  { name: 'agenda_update_item', description: 'Update an existing agenda item' },
-  { name: 'agenda_list_items', description: 'List agenda items with optional filters' },
-  { name: 'agenda_get_item', description: 'Get full details of a single agenda item' },
-  { name: 'agenda_create_list', description: 'Create a new agenda list' },
-  { name: 'agenda_list_lists', description: 'Show all agenda lists with counts' },
-];
 
 function createAgendaTools(context: ToolContext, userTimezone: string): Record<string, Tool> {
   const agenda_add_item = tool({
@@ -338,7 +329,7 @@ export function createAgendaToolset(): Toolset {
       "If the user mentions something that sounds like a task but doesn't explicitly ask to track it, do NOT add it automatically — only act on clear intent.",
       'When updating status, briefly confirm what changed.',
     ].join('\n'),
-    tools: () => TOOL_SUMMARIES,
+    tools: () => summarizeTools(createAgendaTools(TOOLSET_SUMMARY_CONTEXT, 'UTC')),
     activate: async (context: ToolContext) => {
       const userTimezone = await resolveUserTimezone();
       return createAgendaTools(context, userTimezone);

@@ -24,7 +24,9 @@ const driveFileSchema = z.object({
   mimeType: z
     .string()
     .optional()
-    .describe('Optional MIME type of the file. Providing this skips an extra metadata lookup if known from a previous search.'),
+    .describe(
+      'Optional MIME type of the file. Providing this skips an extra metadata lookup if known from a previous search.',
+    ),
 });
 
 const driveWriteSchema = z.object({
@@ -111,16 +113,3 @@ export function createDriveTools(
 
   return tools;
 }
-
-export const DRIVE_TOOL_SUMMARIES = [
-  { name: 'drive_search', description: 'Search Google Drive files using Drive query syntax' },
-  {
-    name: 'drive_read',
-    description: 'Read file content from Google Drive (Docs as text, Sheets as CSV)',
-  },
-  { name: 'drive_info', description: 'Get metadata for a Google Drive file (including owners)' },
-  {
-    name: 'drive_write',
-    description: 'Create a new text or Markdown file in Google Drive (requires write access)',
-  },
-];
