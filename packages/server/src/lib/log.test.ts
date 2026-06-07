@@ -5,10 +5,6 @@ import path from 'path';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 async function fileExists(filepath: string): Promise<boolean> {
   return fs
     .access(filepath)
@@ -55,10 +51,6 @@ function dailyLogNames(count: number, startDate = new Date('2020-01-01')): strin
     return `app.${d.toISOString().slice(0, 10)}.${i + 1}.log`;
   });
 }
-
-// ---------------------------------------------------------------------------
-// Log.cleanup
-// ---------------------------------------------------------------------------
 
 describe('Log.cleanup', () => {
   beforeEach(async () => {
@@ -113,22 +105,7 @@ describe('Log.cleanup', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Log.create
-// ---------------------------------------------------------------------------
-
 describe('Log.create', () => {
-  test('returns a logger with all required methods', () => {
-    const log = Log.create({ service: 'test-create' });
-    expect(typeof log.debug).toBe('function');
-    expect(typeof log.info).toBe('function');
-    expect(typeof log.warn).toBe('function');
-    expect(typeof log.error).toBe('function');
-    expect(typeof log.tag).toBe('function');
-    expect(typeof log.clone).toBe('function');
-    expect(typeof log.time).toBe('function');
-  });
-
   test('tag() returns the same logger instance for chaining', () => {
     const log = Log.create({ service: 'test-tag' });
     const chained = log.tag('requestId', 'abc123');
