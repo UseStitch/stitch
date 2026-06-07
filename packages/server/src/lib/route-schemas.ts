@@ -34,6 +34,5 @@ export const routeSchemas = {
   recordingAnalysisId: prefixedId(ID_PREFIXES.recordingAnalysis),
   agendaListId: prefixedId(ID_PREFIXES.agendaList),
   agendaItemId: prefixedId(ID_PREFIXES.agendaItem),
-  agendaItemEventId: prefixedId(ID_PREFIXES.agendaItemEvent),
   todoId: prefixedId(ID_PREFIXES.todo),
 } as const;

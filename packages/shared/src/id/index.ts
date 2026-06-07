@@ -18,7 +18,6 @@ export const ID_PREFIXES = {
   recordingAnalysis: 'recan',
   agendaList: 'alist',
   agendaItem: 'aitm',
-  agendaItemEvent: 'aevt',
   todo: 'todo',
   skill: 'skill',
 } as const;
@@ -83,7 +82,6 @@ export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createRecordingAnalysisId = createIdFactory(ID_PREFIXES.recordingAnalysis);
 export const createAgendaListId = createIdFactory(ID_PREFIXES.agendaList);
 export const createAgendaItemId = createIdFactory(ID_PREFIXES.agendaItem);
-export const createAgendaItemEventId = createIdFactory(ID_PREFIXES.agendaItemEvent);
 export const createTodoId = createIdFactory(ID_PREFIXES.todo);
 export const createSkillId = createIdFactory(ID_PREFIXES.skill);
 

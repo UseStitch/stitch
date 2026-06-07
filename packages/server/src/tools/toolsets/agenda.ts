@@ -161,17 +161,13 @@ Use when the user asks to mark something as done, change priority, reschedule, o
           ? null
           : undefined;
 
-      const result = updateAgendaItem(
-        input.itemId as PrefixedString<'aitm'>,
-        {
-          title: input.title,
-          description: input.description,
-          status: input.status,
-          priority: input.priority,
-          dueAt,
-        },
-        context.sessionId,
-      );
+      const result = updateAgendaItem(input.itemId as PrefixedString<'aitm'>, {
+        title: input.title,
+        description: input.description,
+        status: input.status,
+        priority: input.priority,
+        dueAt,
+      });
 
       if (isServiceError(result)) {
         return { output: `No agenda item found with id: ${input.itemId}` };
