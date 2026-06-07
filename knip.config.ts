@@ -51,8 +51,6 @@ const config: KnipConfig = {
     'tw-animate-css',
     'tailwindcss',
     '@tailwindcss/typography',
-    // Loaded at runtime as pino.transport() string targets, not static imports
-    'pino-pretty',
   ],
   ignoreBinaries: [],
 };
