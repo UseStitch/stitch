@@ -70,7 +70,7 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   if (calls.length === 0) return null;
 
   return (
-    <div className="my-1.5 border-l border-border/70 pl-2 text-xs">
+    <div className="my-2 border-l-2 border-border/60 pl-3 text-xs">
       {hiddenCount > 0 ? (
         <Button
           key={hiddenCount}

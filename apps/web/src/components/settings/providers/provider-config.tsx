@@ -27,9 +27,18 @@ import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/
 type Props = {
   provider: ProviderSummary;
   onBack: () => void;
+  saveLabel?: string;
+  onSaved?: () => void;
+  showDisconnect?: boolean;
 };
 
-export function ProviderConfig({ provider, onBack }: Props) {
+export function ProviderConfig({
+  provider,
+  onBack,
+  saveLabel = 'Save',
+  onSaved,
+  showDisconnect = true,
+}: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
     : undefined;
@@ -75,6 +84,7 @@ export function ProviderConfig({ provider, onBack }: Props) {
     onSuccess: () => {
       setFieldsByMethod({});
       setExtraFields({});
+      onSaved?.();
       onBack();
     },
   });
@@ -256,9 +266,9 @@ export function ProviderConfig({ provider, onBack }: Props) {
 
           <div className="flex items-center gap-2 pt-1">
             <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
-              {saveMutation.isPending ? 'Saving...' : 'Save'}
+              {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>
-            {provider.enabled && (
+            {showDisconnect && provider.enabled && (
               <Button
                 variant="destructive"
                 size="sm"

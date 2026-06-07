@@ -291,7 +291,7 @@ export function MemoriesPage() {
 
         <Table.Container>
           <Table.Scroller>
-            <Table.Root className="min-w-200">
+            <Table.Root className="min-w-200 table-fixed">
               <Table.Header>
                 <Table.Row className="hover:bg-transparent">
                   <Table.Head className="w-14 text-center">
@@ -303,7 +303,7 @@ export function MemoriesPage() {
                     />
                   </Table.Head>
                   <Table.Head className="w-10 text-center"></Table.Head>
-                  <Table.Head className="w-full min-w-75">Content</Table.Head>
+                  <Table.Head className="w-full min-w-0">Content</Table.Head>
                   <Table.Head className="w-28 text-center">Category</Table.Head>
                   <Table.Head className="w-28 text-center">Confidence</Table.Head>
                   <Table.Head className="w-24 text-center">Source</Table.Head>
@@ -316,7 +316,7 @@ export function MemoriesPage() {
                     <Table.Row key={i} className="hover:bg-transparent">
                       <Table.Cell className="w-14" />
                       <Table.Cell className="w-10" />
-                      <Table.Cell className="w-full min-w-75">
+                      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
                         <div className="h-4 animate-pulse rounded bg-muted" />
                       </Table.Cell>
                       <Table.Cell className="w-28">
@@ -495,8 +495,8 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
         )}
       </Table.Cell>
 
-      <Table.Cell className="w-full min-w-75">
-        <Table.Title>{memory.content}</Table.Title>
+      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
+        <Table.Title className="block">{memory.content}</Table.Title>
       </Table.Cell>
 
       <Table.Cell className="w-28 text-center">

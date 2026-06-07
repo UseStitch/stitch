@@ -18,7 +18,7 @@ import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
 import { hasUpdaterBadge, useUpdaterStore } from '@/stores/updater-store';
 
-type ActivityItem = {
+type NavItemData = {
   id: string;
   icon: React.ReactNode;
   label: string;
@@ -26,15 +26,7 @@ type ActivityItem = {
   matchPrefix: string;
 };
 
-type BottomActivityItem = {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  to: string;
-  matchPrefix: string;
-};
-
-const ACTIVITY_ITEMS: ActivityItem[] = [
+const TOP_ITEMS: NavItemData[] = [
   {
     id: 'chat',
     icon: <MessageSquareIcon className="size-5" />,
@@ -65,7 +57,7 @@ const ACTIVITY_ITEMS: ActivityItem[] = [
   },
 ];
 
-const BOTTOM_ACTIVITY_ITEMS: BottomActivityItem[] = [
+const BOTTOM_ITEMS: NavItemData[] = [
   {
     id: 'connectors',
     icon: <PlugIcon className="size-5" />,
@@ -96,6 +88,48 @@ function isActive(matchPrefix: string, currentPath: string): boolean {
   return currentPath.startsWith(matchPrefix);
 }
 
+function NavLink({
+  to,
+  label,
+  icon,
+  active,
+  badge,
+  preload,
+  ariaLabel,
+}: {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  badge?: string;
+  preload?: boolean;
+  ariaLabel?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Link
+            to={to}
+            {...(preload ? { preload: 'intent' as const } : {})}
+            {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
+            className={cn(
+              'relative flex size-10 items-center justify-center rounded-lg transition-colors',
+              active
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+            )}
+          />
+        }
+      >
+        {icon}
+        {badge && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />}
+      </TooltipTrigger>
+      <TooltipContent side="right">{badge ?? label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function ActivityBar() {
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
@@ -120,90 +154,40 @@ export function ActivityBar() {
           <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
         )}
         <div className="flex w-full flex-col items-center gap-2">
-          {ACTIVITY_ITEMS.map((item) => {
-            const active = isActive(item.matchPrefix, currentPath);
-            return (
-              <Tooltip key={item.id}>
-                <TooltipTrigger
-                  render={
-                    <Link
-                      to={item.to}
-                      className={cn(
-                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                        active
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                      )}
-                    />
-                  }
-                >
-                  {item.icon}
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            );
-          })}
+          {TOP_ITEMS.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.to}
+              label={item.label}
+              icon={item.icon}
+              active={isActive(item.matchPrefix, currentPath)}
+            />
+          ))}
         </div>
-
         <div className="mt-auto flex w-full flex-col items-center gap-2">
-          {BOTTOM_ACTIVITY_ITEMS.map((item) => {
-            const active = isActive(item.matchPrefix, currentPath);
-            const isConnectors = item.id === 'connectors';
-            const showUpdateIndicator = isConnectors && pendingConnectorUpdates > 0;
-            return (
-              <Tooltip key={item.id}>
-                <TooltipTrigger
-                  render={
-                    <Link
-                      to={item.to}
-                      className={cn(
-                        'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                        active
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                      )}
-                    />
-                  }
-                >
-                  {item.icon}
-                  {showUpdateIndicator ? (
-                    <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-                  ) : null}
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  {isConnectors && pendingConnectorUpdates > 0
-                    ? `${item.label} (updates available)`
-                    : item.label}
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Link
-                  to="/settings/general"
-                  preload="intent"
-                  className={cn(
-                    'relative flex size-10 items-center justify-center rounded-lg transition-colors',
-                    isActive('/settings', currentPath)
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
-                  )}
-                  aria-label="Open settings"
-                />
+          {BOTTOM_ITEMS.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.to}
+              label={item.label}
+              icon={item.icon}
+              active={isActive(item.matchPrefix, currentPath)}
+              badge={
+                item.id === 'connectors' && pendingConnectorUpdates > 0
+                  ? `${item.label} (updates available)`
+                  : undefined
               }
-            >
-              <SettingsIcon className="size-5" />
-              {showSettingsUpdateIndicator ? (
-                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />
-              ) : null}
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {showSettingsUpdateIndicator ? 'Settings (update available)' : 'Settings'}
-            </TooltipContent>
-          </Tooltip>
+            />
+          ))}
+          <NavLink
+            to="/settings/general"
+            label="Settings"
+            icon={<SettingsIcon className="size-5" />}
+            active={isActive('/settings', currentPath)}
+            badge={showSettingsUpdateIndicator ? 'Settings (update available)' : undefined}
+            preload
+            ariaLabel="Open settings"
+          />
         </div>
       </div>
     </TooltipProvider>
