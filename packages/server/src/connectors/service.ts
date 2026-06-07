@@ -22,7 +22,7 @@ import type { startOAuthFlow as StartOAuthFlowFn } from '@/connectors/auth/oauth
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
 import { err, ok, isServiceError } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';

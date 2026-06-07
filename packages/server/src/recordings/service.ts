@@ -13,7 +13,9 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, recordingAnalyses, recordings, userSettings } from '@/db/schema.js';
+import { providerConfig } from '@/db/schema/providers.js';
+import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
+import { userSettings } from '@/db/schema/settings.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';

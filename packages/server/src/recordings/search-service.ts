@@ -10,7 +10,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings } from '@/db/schema.js';
+import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 
 type SearchRecordingsInput = {
   query?: string;

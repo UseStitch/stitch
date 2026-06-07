@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings } from '@/db/schema.js';
+import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 

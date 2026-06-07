@@ -16,7 +16,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
-import { automations, sessions } from '@/db/schema.js';
+import { automations } from '@/db/schema/automations.js';
+import { sessions } from '@/db/schema/sessions.js';
 import * as Log from '@/lib/log.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';

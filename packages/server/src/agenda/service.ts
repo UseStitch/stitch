@@ -16,7 +16,7 @@ import { createAgendaItemId, createAgendaListId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { agendaItems, agendaLists } from '@/db/schema.js';
+import { agendaItems, agendaLists } from '@/db/schema/agenda.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
 import { ok, err } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';

@@ -5,7 +5,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { mcpServers, toolEnabled, toolPermissions } from '@/db/schema.js';
+import { mcpServers } from '@/db/schema/mcp.js';
+import { toolEnabled, toolPermissions } from '@/db/schema/permissions.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { withMcpClient } from '@/mcp/client.js';

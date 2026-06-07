@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
+import { sessions } from '@/db/schema/sessions.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
@@ -218,7 +218,11 @@ export async function processMemories(input: {
     facts = facts.filter((fact) => {
       if (fact.importanceScore < config.importanceMinScore) {
         log.debug(
-          { factContent: fact.content, importanceScore: fact.importanceScore, threshold: config.importanceMinScore },
+          {
+            factContent: fact.content,
+            importanceScore: fact.importanceScore,
+            threshold: config.importanceMinScore,
+          },
           'discarding fact: below importance threshold',
         );
         return false;

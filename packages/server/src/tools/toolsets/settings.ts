@@ -1,7 +1,7 @@
 import { like } from 'drizzle-orm';
 
 import { getDb, isDbInitialized } from '@/db/client.js';
-import { userSettings } from '@/db/schema.js';
+import { userSettings } from '@/db/schema/settings.js';
 import type { SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 
 type ToolsetSettings = {

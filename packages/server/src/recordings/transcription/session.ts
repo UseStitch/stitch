@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { RecordingTranscriptEntry } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses } from '@/db/schema.js';
+import { recordingAnalyses } from '@/db/schema/recordings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import type { TranscriptionPricing } from '@/llm/provider/transcription-schema.js';

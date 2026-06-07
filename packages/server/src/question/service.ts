@@ -5,7 +5,7 @@ import { createQuestionId } from '@stitch/shared/id';
 import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/types';
 
 import { getDb } from '@/db/client.js';
-import { questions } from '@/db/schema.js';
+import { questions } from '@/db/schema/questions.js';
 import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
 import * as Log from '@/lib/log.js';

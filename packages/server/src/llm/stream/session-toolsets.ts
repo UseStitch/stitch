@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
+import { sessions } from '@/db/schema/sessions.js';
 
 export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
 

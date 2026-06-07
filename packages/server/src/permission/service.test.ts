@@ -5,7 +5,8 @@ import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realt
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { permissionResponses, sessions, toolPermissions } from '@/db/schema.js';
+import { permissionResponses, toolPermissions } from '@/db/schema/permissions.js';
+import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';

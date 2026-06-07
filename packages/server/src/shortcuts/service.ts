@@ -4,7 +4,7 @@ import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts
 import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
-import { keyboardShortcuts } from '@/db/schema.js';
+import { keyboardShortcuts } from '@/db/schema/settings.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 

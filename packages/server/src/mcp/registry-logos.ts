@@ -5,7 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { mcpServers } from '@/db/schema.js';
+import { mcpServers } from '@/db/schema/mcp.js';
 import { isSvgResponse, readCachedText, writeCachedText } from '@/lib/icon-cache.js';
 import type { FetchLike } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';

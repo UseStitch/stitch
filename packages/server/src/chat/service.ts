@@ -8,7 +8,8 @@ import { createMessageId, createPartId, createSessionId } from '@stitch/shared/i
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { messages, providerConfig, sessions } from '@/db/schema.js';
+import { providerConfig } from '@/db/schema/providers.js';
+import { messages, sessions } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';

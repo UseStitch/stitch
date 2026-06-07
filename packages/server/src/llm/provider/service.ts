@@ -1,7 +1,7 @@
 import { eq, count } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, ollamaModels } from '@/db/schema.js';
+import { providerConfig, ollamaModels } from '@/db/schema/providers.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import * as EmbeddingModels from '@/llm/provider/embedding-models.js';

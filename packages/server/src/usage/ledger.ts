@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { llmUsageEvents } from '@/db/schema.js';
+import { llmUsageEvents } from '@/db/schema/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
 type UsageEventStatus = 'succeeded' | 'failed' | 'aborted';

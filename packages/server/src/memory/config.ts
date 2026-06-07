@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
-import { userSettings } from '@/db/schema.js';
+import { userSettings } from '@/db/schema/settings.js';
 
 type MemoryConfig = {
   enabled: boolean;

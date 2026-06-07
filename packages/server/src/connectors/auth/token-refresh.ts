@@ -10,7 +10,7 @@ import {
 import type { refreshAccessToken as RefreshAccessTokenFn } from '@/connectors/auth/oauth2.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'token-refresh' });

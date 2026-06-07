@@ -11,7 +11,7 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema.js';
+import { connectorInstances } from '@/db/schema/connectors.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 

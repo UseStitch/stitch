@@ -15,7 +15,7 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings } from '@/db/schema.js';
+import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';

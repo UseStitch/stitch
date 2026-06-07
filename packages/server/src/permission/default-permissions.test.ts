@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import path from 'node:path';
 
 import { getDb } from '@/db/client.js';
-import { toolPermissions } from '@/db/schema.js';
+import { toolPermissions } from '@/db/schema/permissions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { PATHS } from '@/lib/paths.js';
 import { syncDefaultPermissions } from '@/permission/default-permissions.js';

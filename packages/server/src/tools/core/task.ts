@@ -8,7 +8,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createSession } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
-import { messages } from '@/db/schema.js';
+import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';

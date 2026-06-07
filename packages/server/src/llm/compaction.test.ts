@@ -3,7 +3,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema.js';
+import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
