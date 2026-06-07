@@ -24,8 +24,7 @@ export function useSessionPendingItems(sessionId: string) {
   );
 
   const pendingPermissionResponses = React.useMemo(
-    () =>
-      permissionResponsesQuery.data?.filter((permission) => permission.status === 'pending') ?? [],
+    () => permissionResponsesQuery.data ?? [],
     [permissionResponsesQuery.data],
   );
 

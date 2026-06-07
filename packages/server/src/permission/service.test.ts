@@ -5,7 +5,7 @@ import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realt
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { permissionResponses, toolPermissions } from '@/db/schema/permissions.js';
+import { toolPermissions } from '@/db/schema/permissions.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import * as Events from '@/lib/events.js';
@@ -91,7 +91,6 @@ describe('permission service interactions', () => {
       messageId,
       toolCallId: 'call_permission',
       toolName: 'bash',
-      status: 'pending',
     });
 
     const permissionResponseId = requestedData.permissionResponse.id;
@@ -105,13 +104,6 @@ describe('permission service interactions', () => {
       permissionResponseId,
       sessionId,
     });
-
-    const db = getDb();
-    const [row] = await db
-      .select()
-      .from(permissionResponses)
-      .where(eq(permissionResponses.id, permissionResponseId));
-    expect(row?.status).toBe('allowed');
   });
 
   test('deduplicates concurrent permission requests with the same key', async () => {
@@ -144,18 +136,6 @@ describe('permission service interactions', () => {
       ([name]) => name === 'permission-response-requested',
     ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
     expect(requestedEvents).toHaveLength(1);
-
-    const db = getDb();
-    const rows = await db
-      .select()
-      .from(permissionResponses)
-      .where(
-        and(
-          eq(permissionResponses.sessionId, sessionId),
-          eq(permissionResponses.status, 'pending'),
-        ),
-      );
-    expect(rows).toHaveLength(1);
 
     await allowPermissionResponse(requestedEvents[0][1].permissionResponse.id);
 
@@ -263,6 +243,10 @@ describe('permission service interactions', () => {
       dedupeKey,
     });
 
+    // Attach .catch() to prevent unhandled rejection before aborting
+    const firstResult = first.catch((e: Error) => e);
+    const secondResult = second.catch((e: Error) => e);
+
     await waitForRequestedEvents(1);
     await abortPermissionResponses(sessionId);
 
@@ -270,8 +254,13 @@ describe('permission service interactions', () => {
       ([name]) => name === 'permission-response-requested',
     );
     expect(requestedEvents).toHaveLength(1);
-    expect(first).rejects.toThrow('Permission response aborted by session abort');
-    expect(second).rejects.toThrow('Permission response aborted by session abort');
+
+    const firstError = await firstResult;
+    const secondError = await secondResult;
+    expect(firstError).toBeInstanceOf(Error);
+    expect((firstError as Error).message).toBe('Permission response aborted by session abort');
+    expect(secondError).toBeInstanceOf(Error);
+    expect((secondError as Error).message).toBe('Permission response aborted by session abort');
   });
 
   test('alternativePermissionResponse resolves with alternative entry', async () => {
@@ -298,14 +287,6 @@ describe('permission service interactions', () => {
       decision: 'alternative',
       entry: 'Use read instead',
     });
-
-    const db = getDb();
-    const [row] = await db
-      .select()
-      .from(permissionResponses)
-      .where(eq(permissionResponses.id, permissionResponseId));
-    expect(row?.status).toBe('alternative');
-    expect(row?.entry).toBe('Use read instead');
   });
 
   test('abortPermissionResponses rejects pending permissions for the session', async () => {
