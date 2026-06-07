@@ -65,7 +65,7 @@ function runsToQueue(dueCount: number, catchup: CatchupPolicy, maxRuns: number):
   if (dueCount <= 0) return 0;
   if (catchup === 'all') return Math.min(dueCount, Math.max(1, maxRuns));
   if (catchup === 'one') return 1;
-  return dueCount > 1 ? 0 : 1;
+  return 1;
 }
 
 export function createScheduler(options: SchedulerOptions) {
@@ -160,12 +160,14 @@ export function createScheduler(options: SchedulerOptions) {
         // 'none' drops backlog but still runs the currently due occurrence.
         const incrementBy = runsToQueue(dueCount, job.catchup, job.catchupMaxRuns);
 
-        await store.enqueueDueRuns({
-          key: jobKey,
-          incrementBy,
-          nextRunAt,
-          now,
-        });
+        if (incrementBy > 0) {
+          await store.enqueueDueRuns({
+            key: jobKey,
+            incrementBy,
+            nextRunAt,
+            now,
+          });
+        }
       }
 
       await refillWorkers(jobKey);

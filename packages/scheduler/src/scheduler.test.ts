@@ -231,7 +231,7 @@ describe('scheduler', () => {
     expect(status!.runningCount).toBe(0);
   });
 
-  test('catchup none skips replay backlog', async () => {
+  test('catchup none drops backlog but runs the current due occurrence', async () => {
     const store = new MemoryStore();
     const callback = mock();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 1_000 });
@@ -254,7 +254,7 @@ describe('scheduler', () => {
     await advanceTime(1_100, 100);
     await scheduler.stop();
 
-    expect(callback).toHaveBeenCalledTimes(2);
+    expect(callback).toHaveBeenCalledTimes(3);
   });
 
   test('catchup all replays backlog up to limit', async () => {

@@ -17,9 +17,13 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createSession, sendMessage } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { automations, sessions } from '@/db/schema.js';
+import * as Log from '@/lib/log.js';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { validateProviderModel } from '@/llm/resolve-model.js';
+
+const log = Log.create({ service: 'automations' });
 
 type AutomationDbRow = typeof automations.$inferSelect;
 type AutomationRow = Automation;
@@ -66,8 +70,6 @@ function toAutomationRow(row: AutomationDbRow): AutomationRow {
     schedule: deserializeAutomationSchedule(row.schedule),
   };
 }
-
-import { paginatedQuery } from '@/lib/paginated-query.js';
 
 export async function listAutomations(input: {
   page: number;
@@ -244,7 +246,16 @@ export async function updateAutomationAndSync(
       })
       .where(eq(automations.id, automationId as PrefixedString<'auto'>));
 
-    await syncSchedule(previous).catch(() => {});
+    await syncSchedule(previous).catch((syncError) => {
+      log.error(
+        {
+          event: 'automation.schedule.rollback.failed',
+          automationId,
+          error: syncError instanceof Error ? syncError.message : String(syncError),
+        },
+        'failed to restore automation schedule after update rollback',
+      );
+    });
 
     return err(error instanceof Error ? error.message : 'Failed to schedule automation', 500);
   }
@@ -254,12 +265,14 @@ export async function deleteAutomation(automationId: string): Promise<ServiceRes
   const db = getDb();
   const typedId = automationId as PrefixedString<'auto'>;
 
-  await db.update(sessions).set({ automationId: null }).where(eq(sessions.automationId, typedId));
+  const deleted = await db.transaction(async (tx) => {
+    await tx.update(sessions).set({ automationId: null }).where(eq(sessions.automationId, typedId));
 
-  const deleted = await db
-    .delete(automations)
-    .where(eq(automations.id, typedId))
-    .returning({ id: automations.id });
+    return tx
+      .delete(automations)
+      .where(eq(automations.id, typedId))
+      .returning({ id: automations.id });
+  });
 
   if (deleted.length === 0) {
     return err('Automation not found', 404);
@@ -312,20 +325,7 @@ export async function runAutomation(
     return validation;
   }
 
-  const [updatedAutomation] = await db
-    .update(automations)
-    .set({
-      runCount: sql`${automations.runCount} + 1`,
-      updatedAt: Date.now(),
-    })
-    .where(eq(automations.id, automation.id))
-    .returning({ runCount: automations.runCount });
-
-  if (!updatedAutomation) {
-    return err('Automation not found', 404);
-  }
-
-  const title = `${automation.title} #${updatedAutomation.runCount}`;
+  const title = `${automation.title} #${automation.runCount + 1}`;
   const sessionResult = await createSession({
     title,
     type: 'automation',
@@ -343,6 +343,30 @@ export async function runAutomation(
     assistantMessageId,
   });
   if (isServiceError(sendResult)) return sendResult;
+
+  const [updatedAutomation] = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(automations)
+      .set({
+        runCount: sql`${automations.runCount} + 1`,
+        updatedAt: Date.now(),
+      })
+      .where(eq(automations.id, automation.id))
+      .returning({ runCount: automations.runCount });
+
+    if (!updated) return [];
+
+    await tx
+      .update(sessions)
+      .set({ title: `${automation.title} #${updated.runCount}`, updatedAt: Date.now() })
+      .where(eq(sessions.id, session.id));
+
+    return [updated];
+  });
+
+  if (!updatedAutomation) {
+    return err('Automation not found', 404);
+  }
 
   return ok({
     sessionId: session.id,
