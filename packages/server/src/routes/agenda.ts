@@ -10,7 +10,6 @@ import {
   createAgendaList,
   deleteAgendaItem,
   deleteAgendaList,
-  getAgendaItem,
   getAgendaItems,
   getAgendaLists,
   mergeAgendaLists,
@@ -140,21 +139,13 @@ agendaRouter.post('/items', zValidator('json', createItemSchema), (c) => {
   return unwrapResult(c, result, 201);
 });
 
-agendaRouter.get('/items/:id', (c) => {
-  const id = c.req.param('id') as PrefixedString<'aitm'>;
-  const result = getAgendaItem(id);
-  return unwrapResult(c, result);
-});
-
 agendaRouter.patch('/items/:id', zValidator('json', updateItemSchema), (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const body = c.req.valid('json');
-  const sessionId = c.req.query('sessionId') as PrefixedString<'ses'> | undefined;
-  const result = updateAgendaItem(
-    id,
-    { ...body, listId: body.listId as PrefixedString<'alist'> | undefined },
-    sessionId,
-  );
+  const result = updateAgendaItem(id, {
+    ...body,
+    listId: body.listId as PrefixedString<'alist'> | undefined,
+  });
   return unwrapResult(c, result);
 });
 

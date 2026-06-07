@@ -6,9 +6,6 @@ export type AgendaItemStatus = (typeof AGENDA_ITEM_STATUSES)[number];
 export const AGENDA_ITEM_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type AgendaItemPriority = (typeof AGENDA_ITEM_PRIORITIES)[number];
 
-export const AGENDA_EVENT_TYPES = ['created', 'status_change', 'updated', 'comment'] as const;
-export type AgendaEventType = (typeof AGENDA_EVENT_TYPES)[number];
-
 export type AgendaList = {
   id: PrefixedString<'alist'>;
   name: string;
@@ -35,17 +32,6 @@ export type AgendaItem = {
   position: number;
   createdAt: number;
   updatedAt: number;
-};
-
-export type AgendaItemEvent = {
-  id: PrefixedString<'aevt'>;
-  itemId: PrefixedString<'aitm'>;
-  type: AgendaEventType;
-  fromStatus: AgendaItemStatus | null;
-  toStatus: AgendaItemStatus | null;
-  content: string;
-  sessionId: PrefixedString<'ses'> | null;
-  createdAt: number;
 };
 
 export type CreateAgendaListInput = {
@@ -100,8 +86,4 @@ export type ListAgendaItemsResponse = {
   pageSize: number;
   total: number;
   totalPages: number;
-};
-
-export type AgendaItemDetail = AgendaItem & {
-  events: AgendaItemEvent[];
 };

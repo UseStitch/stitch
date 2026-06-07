@@ -11,11 +11,7 @@ import {
 } from 'drizzle-orm/sqlite-core';
 
 import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
-import type {
-  AgendaEventType,
-  AgendaItemPriority,
-  AgendaItemStatus,
-} from '@stitch/shared/agenda/types';
+import type { AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
@@ -622,33 +618,6 @@ export const agendaItems = sqliteTable(
     check(
       'agenda_items_priority_check',
       sql`${table.priority} in ('low', 'medium', 'high', 'urgent')`,
-    ),
-  ],
-);
-
-export const agendaItemEvents = sqliteTable(
-  'agenda_item_events',
-  {
-    id: text('id').$type<PrefixedString<'aevt'>>().primaryKey(),
-    itemId: text('item_id')
-      .$type<PrefixedString<'aitm'>>()
-      .notNull()
-      .references(() => agendaItems.id, { onDelete: 'cascade' }),
-    type: text('type').$type<AgendaEventType>().notNull(),
-    fromStatus: text('from_status').$type<AgendaItemStatus>(),
-    toStatus: text('to_status').$type<AgendaItemStatus>(),
-    content: text('content').notNull().default(''),
-    sessionId: text('session_id').$type<PrefixedString<'ses'> | null>(),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    index('agenda_item_events_item_id_idx').on(table.itemId),
-    index('agenda_item_events_created_at_idx').on(table.createdAt),
-    check(
-      'agenda_item_events_type_check',
-      sql`${table.type} in ('created', 'status_change', 'updated', 'comment')`,
     ),
   ],
 );

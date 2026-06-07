@@ -19,7 +19,6 @@ import {
   createRecordingAnalysisId,
   createAgendaListId,
   createAgendaItemId,
-  createAgendaItemEventId,
   createTodoId,
   createSkillId,
   extractTimestamp,
@@ -43,7 +42,6 @@ const ALL_FACTORIES = [
   { create: createRecordingAnalysisId, prefix: ID_PREFIXES.recordingAnalysis },
   { create: createAgendaListId, prefix: ID_PREFIXES.agendaList },
   { create: createAgendaItemId, prefix: ID_PREFIXES.agendaItem },
-  { create: createAgendaItemEventId, prefix: ID_PREFIXES.agendaItemEvent },
   { create: createTodoId, prefix: ID_PREFIXES.todo },
   { create: createSkillId, prefix: ID_PREFIXES.skill },
 ] as const;
