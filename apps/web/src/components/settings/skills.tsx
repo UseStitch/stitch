@@ -135,7 +135,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
     };
 
     if (skill) {
-      await updateSkill.mutateAsync({ id: skill.id, input });
+      await updateSkill.mutateAsync({ name: skill.name, input });
     } else {
       await createSkill.mutateAsync(input);
     }
@@ -217,7 +217,7 @@ export function SkillsSettings() {
   function handleDelete(skill: Skill) {
     const confirmed = window.confirm(`Delete skill "${skill.name}"?`);
     if (!confirmed) return;
-    deleteSkill.mutate(skill.id);
+    deleteSkill.mutate(skill.name);
   }
 
   if (view.type === 'editor') {
@@ -257,7 +257,7 @@ export function SkillsSettings() {
         ) : (
           skills.map((skill) => (
             <div
-              key={skill.id}
+              key={skill.name}
               className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0"
             >
               <div className="min-w-0 flex-1">

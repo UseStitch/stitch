@@ -1,9 +1,7 @@
-import { eq, inArray } from 'drizzle-orm';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { createSkillId } from '@stitch/shared/id';
 import {
   createSkillSchema,
   importSkillSchema,
@@ -12,14 +10,11 @@ import {
 import type {
   Skill,
   SkillCreateInput,
-  SkillId,
   SkillImportInput,
   SkillSearchResult,
   SkillUpdateInput,
 } from '@stitch/shared/skills/types';
 
-import { getDb, isDbInitialized } from '@/db/client.js';
-import { skillMetadata } from '@/db/schema.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -65,29 +60,6 @@ type SkillsDownloadResponse = {
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
 
-type MetadataRow = {
-  id: SkillId;
-  isExternal: boolean;
-  source: string | null;
-  createdAt: number;
-  updatedAt: number;
-};
-
-function getMetadata(name: string): MetadataRow | null {
-  if (!isDbInitialized()) return null;
-
-  const row = getDb().select().from(skillMetadata).where(eq(skillMetadata.name, name)).get();
-  if (!row) return null;
-
-  return {
-    id: row.id,
-    isExternal: row.isExternal,
-    source: row.source,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
-
 async function readSkillFromDisk(name: string): Promise<Skill | null> {
   const markdown = await readSkillMdFile(name);
   if (!markdown) return null;
@@ -97,24 +69,14 @@ async function readSkillFromDisk(name: string): Promise<Skill | null> {
 
   const skillDir = getSkillDir(name);
   const files = await listSkillFiles(skillDir);
-  const metadata = getMetadata(name);
 
   return {
-    id: metadata?.id ?? createSkillId(),
     name: parsed.name,
     description: parsed.description,
     content: parsed.content,
     location: getSkillMdPath(name),
-    isExternal: metadata?.isExternal ?? false,
-    source: metadata?.source ?? null,
-    createdAt: metadata?.createdAt ?? Date.now(),
-    updatedAt: metadata?.updatedAt ?? Date.now(),
     files,
   };
-}
-
-function toSourceKey(source: string, slug: string): string {
-  return `${source.trim().toLowerCase()}/${slug.trim().toLowerCase()}`;
 }
 
 export async function listSkills(): Promise<ServiceResult<Skill[]>> {
@@ -157,29 +119,11 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  const now = Date.now();
-  const id = createSkillId();
-  if (isDbInitialized()) {
-    await getDb().insert(skillMetadata).values({
-      id,
-      name: value.name,
-      isExternal: false,
-      source: null,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
   return ok({
-    id,
     name: value.name,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
-    isExternal: false,
-    source: null,
-    createdAt: now,
-    updatedAt: now,
     files: [],
   });
 }
@@ -188,120 +132,61 @@ export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<
   await ensureSkillsDir();
 
   for (const skill of builtInSkills) {
-    const source = `builtin:${skill.name}`;
     const skillDir = getSkillDir(skill.name);
-    const existingContent = await readSkillMdFile(skill.name);
-    const newContent = buildSkillMd(skill);
 
-    const skillMdChanged = existingContent !== newContent;
-    const filesChanged = await syncCompanionFiles(skillDir, skill.files);
+    if (existsSync(skillDir)) continue;
 
-    if (!skillMdChanged && !filesChanged) continue;
-
-    if (skillMdChanged) {
-      await writeSkillMdFile(skill.name, newContent);
-    }
-
-    if (isDbInitialized()) {
-      const existing = getDb()
-        .select()
-        .from(skillMetadata)
-        .where(eq(skillMetadata.name, skill.name))
-        .get();
-
-      if (!existing) {
-        await getDb().insert(skillMetadata).values({
-          id: createSkillId(),
-          name: skill.name,
-          isExternal: false,
-          source,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-      } else {
-        await getDb()
-          .update(skillMetadata)
-          .set({ source, updatedAt: Date.now() })
-          .where(eq(skillMetadata.name, skill.name));
-      }
-    }
+    await writeSkillMdFile(skill.name, buildSkillMd(skill));
+    await syncCompanionFiles(skillDir, skill.files);
   }
 }
 
 export async function updateSkill(
-  id: SkillId,
+  name: string,
   input: SkillUpdateInput,
 ): Promise<ServiceResult<Skill>> {
   const parsed = updateSkillSchema.safeParse(input);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
 
-  if (!isDbInitialized()) return err('Database not initialized', 500);
-
-  const existing = getDb().select().from(skillMetadata).where(eq(skillMetadata.id, id)).get();
-  if (!existing) return err(new SkillNotFoundError(id).message, 404);
-
-  const currentName = existing.name;
   const value = parsed.data;
-
   await ensureSkillsDir();
 
-  if (value.name !== currentName) {
+  const currentDir = getSkillDir(name);
+  if (!existsSync(currentDir)) {
+    return err(new SkillNotFoundError(name).message, 404);
+  }
+
+  if (value.name !== name) {
     const newDir = getSkillDir(value.name);
     if (existsSync(newDir)) {
       return err(new SkillNameCollisionError(value.name).message, 409);
     }
-
-    const existingDir = getSkillDir(currentName);
-    if (existsSync(existingDir)) {
-      await rename(existingDir, newDir);
-    } else {
-      await mkdir(newDir, { recursive: true });
-    }
-
-    await getDb()
-      .update(skillMetadata)
-      .set({ name: value.name, updatedAt: Date.now() })
-      .where(eq(skillMetadata.id, id));
-  } else {
-    await getDb()
-      .update(skillMetadata)
-      .set({ updatedAt: Date.now() })
-      .where(eq(skillMetadata.id, id));
+    await rename(currentDir, newDir);
   }
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
 
   const targetDir = getSkillDir(value.name);
   const files = await listSkillFiles(targetDir);
-  const metadata = getMetadata(value.name);
 
   return ok({
-    id,
     name: value.name,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
-    isExternal: metadata?.isExternal ?? false,
-    source: metadata?.source ?? null,
-    createdAt: metadata?.createdAt ?? Date.now(),
-    updatedAt: metadata?.updatedAt ?? Date.now(),
     files,
   });
 }
 
-export async function deleteSkill(id: SkillId): Promise<ServiceResult<null>> {
-  if (!isDbInitialized()) return err('Database not initialized', 500);
+export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
+  await ensureSkillsDir();
 
-  const existing = getDb().select().from(skillMetadata).where(eq(skillMetadata.id, id)).get();
-  if (!existing) return err(new SkillNotFoundError(id).message, 404);
-
-  const skillDir = getSkillDir(existing.name);
-  if (existsSync(skillDir)) {
-    await rm(skillDir, { recursive: true, force: true });
+  const skillDir = getSkillDir(name);
+  if (!existsSync(skillDir)) {
+    return err(new SkillNotFoundError(name).message, 404);
   }
 
-  await getDb().delete(skillMetadata).where(eq(skillMetadata.id, id));
-
+  await rm(skillDir, { recursive: true, force: true });
   return ok(null);
 }
 
@@ -343,21 +228,7 @@ export async function searchSkillsDirectory(
       })
       .sort((a, b) => b.installs - a.installs);
 
-    if (!isDbInitialized() || results.length === 0) return ok(results);
-
-    const sourceKeys = results.map((skill) => toSourceKey(skill.source, skill.slug));
-    const existing = await getDb()
-      .select({ source: skillMetadata.source })
-      .from(skillMetadata)
-      .where(inArray(skillMetadata.source, sourceKeys));
-    const importedSources = new Set(existing.flatMap((row) => (row.source ? [row.source] : [])));
-
-    return ok(
-      results.map((skill) => ({
-        ...skill,
-        isImported: importedSources.has(toSourceKey(skill.source, skill.slug)),
-      })),
-    );
+    return ok(results);
   } catch (error) {
     log.error({ error, query: trimmedQuery }, 'skills.sh search threw');
     return err('Failed to search skills directory', 500);
@@ -372,20 +243,6 @@ export async function importSkillFromDirectory(
 
   const { source, slug } = parsed.data;
   if (!source.includes('/')) return err('Skill source must be an owner/repo value', 400);
-
-  const sourceKey = toSourceKey(source, slug);
-
-  if (isDbInitialized()) {
-    const existingSource = getDb()
-      .select()
-      .from(skillMetadata)
-      .where(eq(skillMetadata.source, sourceKey))
-      .get();
-    if (existingSource) {
-      const skill = await readSkillFromDisk(existingSource.name);
-      if (skill) return ok(skill);
-    }
-  }
 
   try {
     const encodedSlug = slug.split('/').map(encodeURIComponent).join('/');
@@ -466,31 +323,13 @@ export async function importSkillFromDirectory(
       await writeFile(filePath, file.contents, 'utf8');
     }
 
-    const now = Date.now();
-    const id = createSkillId();
-    if (isDbInitialized()) {
-      await getDb().insert(skillMetadata).values({
-        id,
-        name: value.name,
-        isExternal: true,
-        source: sourceKey,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
     const skillFiles = await listSkillFiles(skillDir);
 
     return ok({
-      id,
       name: value.name,
       description: value.description.trim(),
       content: value.content.trim(),
       location: getSkillMdPath(value.name),
-      isExternal: true,
-      source: sourceKey,
-      createdAt: now,
-      updatedAt: now,
       files: skillFiles,
     });
   } catch (error) {
