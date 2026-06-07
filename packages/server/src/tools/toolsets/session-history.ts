@@ -21,7 +21,7 @@ const TOOL_SUMMARIES = [
   },
 ];
 
-function createSessionHistoryTools(context: ToolContext) {
+function createSessionHistoryTools(context: ToolContext): Record<string, Tool> {
   const session_history_search = tool({
     description: `Search chat history across past sessions.
 
@@ -136,7 +136,7 @@ export function createSessionHistoryToolset(): Toolset {
     ].join('\n'),
     tools: () => TOOL_SUMMARIES,
     activate: async (context: ToolContext) => {
-      return createSessionHistoryTools(context) as unknown as Record<string, Tool>;
+      return createSessionHistoryTools(context);
     },
   };
 }

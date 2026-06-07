@@ -91,7 +91,7 @@ const TOOL_SUMMARIES = [
   { name: 'agenda_list_lists', description: 'Show all agenda lists with counts' },
 ];
 
-function createAgendaTools(context: ToolContext, userTimezone: string) {
+function createAgendaTools(context: ToolContext, userTimezone: string): Record<string, Tool> {
   const agenda_add_item = tool({
     description: `Create a new agenda item. Requires a title. Optionally set priority (low/medium/high/urgent), dueAt (ISO date), listName (auto-creates list if missing), and description.
 
@@ -341,7 +341,7 @@ export function createAgendaToolset(): Toolset {
     tools: () => TOOL_SUMMARIES,
     activate: async (context: ToolContext) => {
       const userTimezone = await resolveUserTimezone();
-      return createAgendaTools(context, userTimezone) as unknown as Record<string, Tool>;
+      return createAgendaTools(context, userTimezone);
     },
   };
 }

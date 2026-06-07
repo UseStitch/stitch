@@ -21,6 +21,7 @@ import {
 } from './scopes.js';
 
 import type { GoogleClient } from './client.js';
+import type { Tool } from 'ai';
 
 export const GOOGLE_CAPABILITY_GMAIL_READ = 'google.gmail.read';
 export const GOOGLE_CAPABILITY_GMAIL_WRITE = 'google.gmail.write';
@@ -56,7 +57,7 @@ export type GoogleToolsetDefinition = {
   icon?: ConnectorIconSource;
   instructions?: string;
   tools: () => { name: string; description: string }[];
-  activate: (resolveClient: Resolver) => Record<string, unknown>;
+  activate: (resolveClient: Resolver) => Record<string, Tool>;
 };
 
 type Resolver = (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>;

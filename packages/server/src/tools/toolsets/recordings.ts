@@ -28,7 +28,7 @@ const TOOL_SUMMARIES = [
   },
 ];
 
-function createRecordingsTools(_context: ToolContext) {
+function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
   const recordings_search = tool({
     description: `Search recording history using title, analysis summary, and transcript-derived content.
 
@@ -210,7 +210,7 @@ export function createRecordingsToolset(): Toolset {
     ].join('\n'),
     tools: () => TOOL_SUMMARIES,
     activate: async (context: ToolContext) => {
-      return createRecordingsTools(context) as unknown as Record<string, Tool>;
+      return createRecordingsTools(context);
     },
   };
 }

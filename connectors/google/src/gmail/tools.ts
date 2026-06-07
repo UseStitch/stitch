@@ -238,7 +238,7 @@ export function createGmailTools(
   ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   permissions: { canSend: boolean; canModify: boolean; canManageFilters: boolean },
   config?: { tempPath?: string },
-) {
+): Record<string, Tool> {
   const { canSend, canModify, canManageFilters } = permissions;
   const tools: Record<string, Tool> = {
     gmail_search: tool({
