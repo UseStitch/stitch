@@ -16,6 +16,8 @@ export type ToolsetPrompt = {
   arguments?: { name: string; description?: string; required?: boolean }[];
 };
 
+export type ToolsetKind = 'native' | 'provider' | 'connector' | 'mcp';
+
 /**
  * A Toolset is a named group of related tools managed as a single unit.
  * Toolsets can be activated/deactivated dynamically during a session to
@@ -24,6 +26,8 @@ export type ToolsetPrompt = {
 export type Toolset = {
   /** Unique identifier, e.g. "browser", "mcp:<serverName>" */
   id: string;
+  /** Origin category used by runtime, settings, and UI layers. */
+  kind: ToolsetKind;
   /** Human-readable display name */
   name: string;
   /** Brief description for LLM discovery (included in system prompt catalog) */

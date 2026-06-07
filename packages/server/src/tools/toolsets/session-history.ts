@@ -115,6 +115,7 @@ Use this after session_history_search to inspect a specific session without dump
 export function createSessionHistoryToolset(): Toolset {
   return {
     id: SESSION_HISTORY_TOOLSET_ID,
+    kind: 'native',
     name: 'Session History',
     description:
       'Search and inspect prior chat sessions with bounded, relevance-ranked results for cross-session recall.',

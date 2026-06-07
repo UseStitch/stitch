@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { applyToolFilter } from '@/code-mode/filter.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
+import type { Toolset, ToolsetKind } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 function clearToolsets(): void {
@@ -11,9 +11,10 @@ function clearToolsets(): void {
   }
 }
 
-function registerTestToolset(id: string, toolNames: string[]): void {
+function registerTestToolset(id: string, toolNames: string[], kind: ToolsetKind = 'native'): void {
   const toolset: Toolset = {
     id,
+    kind,
     name: id,
     description: `${id} test toolset`,
     tools: () => toolNames.map((name) => ({ name, description: `${name} test tool` })),
@@ -38,9 +39,11 @@ describe('applyToolFilter', () => {
 
   test('excludes tools from excluded toolset IDs', () => {
     registerTestToolset('browser', ['browser']);
-    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', [
-      'mcp_abcdefghijklmnopqrstuvwxyz_search',
-    ]);
+    registerTestToolset(
+      'mcp:mcp_abcdefghijklmnopqrstuvwxyz',
+      ['mcp_abcdefghijklmnopqrstuvwxyz_search'],
+      'mcp',
+    );
 
     const input = buildTools(['browser', 'mcp_abcdefghijklmnopqrstuvwxyz_search', 'read']);
     const result = applyToolFilter(input, {

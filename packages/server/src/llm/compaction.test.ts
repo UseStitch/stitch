@@ -514,6 +514,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
   test('returns empty string when active toolsets have no instructions', () => {
     registerToolset({
       id: 'no-instructions',
+      kind: 'native',
       name: 'No Instructions',
       description: 'Toolset without instructions',
       tools: () => [],
@@ -528,6 +529,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
   test('includes instructions for active toolsets that have them', () => {
     registerToolset({
       id: 'browser',
+      kind: 'native',
       name: 'Browser',
       description: 'Browser toolset',
       instructions: 'Use browser_navigate to open pages.',
@@ -545,6 +547,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
   test('omits toolsets that have no instructions even when mixed with ones that do', () => {
     registerToolset({
       id: 'with-instructions',
+      kind: 'native',
       name: 'With Instructions',
       description: 'Has instructions',
       instructions: 'Do something specific.',
@@ -553,6 +556,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
     });
     registerToolset({
       id: 'without-instructions',
+      kind: 'native',
       name: 'Without Instructions',
       description: 'No instructions',
       tools: () => [],
@@ -568,6 +572,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
   test('includes multiple toolset instruction blocks', () => {
     registerToolset({
       id: 'ts-alpha',
+      kind: 'native',
       name: 'Alpha',
       description: 'Alpha',
       instructions: 'Alpha instructions.',
@@ -576,6 +581,7 @@ describe('buildActiveToolsetInstructionsBlock', () => {
     });
     registerToolset({
       id: 'ts-beta',
+      kind: 'native',
       name: 'Beta',
       description: 'Beta',
       instructions: 'Beta instructions.',

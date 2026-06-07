@@ -36,6 +36,7 @@ const refreshInFlight = new Map<string, Promise<string>>();
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
   return {
     id: def.id,
+    kind: 'connector',
     name: def.name,
     description: def.description,
     icon: def.icon,

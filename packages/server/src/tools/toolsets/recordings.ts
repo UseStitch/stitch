@@ -185,6 +185,7 @@ Use this when analysis is missing or stale.`,
 export function createRecordingsToolset(): Toolset {
   return {
     id: RECORDINGS_TOOLSET_ID,
+    kind: 'native',
     name: 'Recordings',
     description:
       'Search recordings and work with transcription/analysis results, including summaries, topics, and action items.',

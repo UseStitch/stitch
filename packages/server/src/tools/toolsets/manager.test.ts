@@ -31,6 +31,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('returns empty collisions when no overlap exists', async () => {
     registerToolset({
       id: 'ts-a',
+      kind: 'native',
       name: 'A',
       description: 'A',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -39,6 +40,7 @@ describe('ToolsetManager.activate collision detection', () => {
 
     registerToolset({
       id: 'ts-b',
+      kind: 'native',
       name: 'B',
       description: 'B',
       tools: () => [{ name: 'tool_b', description: 'b' }],
@@ -56,6 +58,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('reports collisions when two toolsets share a tool name', async () => {
     registerToolset({
       id: 'ts-x',
+      kind: 'native',
       name: 'X',
       description: 'X',
       tools: () => [{ name: 'search', description: 'search' }],
@@ -64,6 +67,7 @@ describe('ToolsetManager.activate collision detection', () => {
 
     registerToolset({
       id: 'ts-y',
+      kind: 'native',
       name: 'Y',
       description: 'Y',
       tools: () => [
@@ -87,6 +91,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('returns no collisions when activating the first toolset', async () => {
     registerToolset({
       id: 'ts-only',
+      kind: 'native',
       name: 'Only',
       description: 'Only',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -103,6 +108,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('already-active toolset returns empty collisions', async () => {
     registerToolset({
       id: 'ts-once',
+      kind: 'native',
       name: 'Once',
       description: 'Once',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -126,6 +132,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
   test('returns tools sorted alphabetically by key', async () => {
     registerToolset({
       id: 'ts-alpha',
+      kind: 'native',
       name: 'Alpha',
       description: 'Alpha toolset',
       tools: () => [
@@ -140,6 +147,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
 
     registerToolset({
       id: 'ts-beta',
+      kind: 'native',
       name: 'Beta',
       description: 'Beta toolset',
       tools: () => [{ name: 'mango_tool', description: 'm' }],
@@ -159,6 +167,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
   test('activation order does not affect key order', async () => {
     registerToolset({
       id: 'ts-first',
+      kind: 'native',
       name: 'First',
       description: 'First',
       tools: () => [{ name: 'b_tool', description: 'b' }],
@@ -167,6 +176,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
 
     registerToolset({
       id: 'ts-second',
+      kind: 'native',
       name: 'Second',
       description: 'Second',
       tools: () => [{ name: 'a_tool', description: 'a' }],
@@ -194,6 +204,7 @@ describe('ToolsetManager activation state', () => {
   test('tracks persisted active toolsets separately from run-only toolsets', async () => {
     registerToolset({
       id: 'persisted',
+      kind: 'native',
       name: 'Persisted',
       description: 'Persisted',
       tools: () => [{ name: 'persisted_tool', description: 'persisted' }],
@@ -201,6 +212,7 @@ describe('ToolsetManager activation state', () => {
     } satisfies Toolset);
     registerToolset({
       id: 'run-only',
+      kind: 'native',
       name: 'Run Only',
       description: 'Run only',
       tools: () => [{ name: 'run_tool', description: 'run' }],
@@ -221,6 +233,7 @@ describe('ToolsetManager activation state', () => {
   test('renews TTL state when a tool from a TTL toolset is used', async () => {
     registerToolset({
       id: 'ttl-toolset',
+      kind: 'native',
       name: 'TTL',
       description: 'TTL',
       tools: () => [{ name: 'ttl_tool', description: 'ttl' }],

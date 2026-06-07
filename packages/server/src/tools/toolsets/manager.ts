@@ -84,12 +84,11 @@ export class ToolsetManager {
     const toolsetTools = await toolset.activate(this.context);
     const allTools = runtime.toAiToolRecord(
       Object.entries(toolsetTools).map(([name, tool]) =>
-        defineRuntimeTool(name, tool, { source: toolsetId.startsWith('mcp:') ? 'mcp' : 'toolset' }),
+        defineRuntimeTool(name, tool, { source: toolset.kind === 'mcp' ? 'mcp' : 'toolset' }),
       ),
     );
-    const disabledMcpTools = toolsetId.startsWith('mcp:')
-      ? await getDisabledToolIdentifiers('mcp_tool')
-      : new Set<string>();
+    const disabledMcpTools =
+      toolset.kind === 'mcp' ? await getDisabledToolIdentifiers('mcp_tool') : new Set<string>();
     const tools =
       disabledMcpTools.size === 0
         ? allTools

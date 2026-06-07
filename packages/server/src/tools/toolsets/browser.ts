@@ -5,6 +5,7 @@ import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/t
 export function createBrowserToolset(): Toolset {
   return {
     id: 'browser',
+    kind: 'native',
     name: 'Browser',
     description:
       'Control a Chrome browser: navigate pages, click elements, type text, take screenshots, and interact with web applications.',

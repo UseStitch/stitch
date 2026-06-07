@@ -53,6 +53,7 @@ describe('refreshMcpToolsets', () => {
   test('removes stale mcp toolsets that no longer exist', async () => {
     registerToolset({
       id: 'mcp:stale-server',
+      kind: 'mcp',
       name: 'Stale',
       description: 'stale',
       tools: () => [],

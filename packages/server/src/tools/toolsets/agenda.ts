@@ -319,6 +319,7 @@ Use when the user wants to see what lists exist or get an overview of their agen
 export function createAgendaToolset(): Toolset {
   return {
     id: AGENDA_TOOLSET_ID,
+    kind: 'native',
     name: 'Agenda',
     description:
       "Manage the user's agenda — a persistent system for tracking todos organized into lists. Activate to add items, update status, manage lists, and check what's pending or due.",

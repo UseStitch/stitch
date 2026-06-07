@@ -13,7 +13,7 @@ import type { McpServerWithTools } from '@/mcp/service.js';
 import { permissionMiddleware } from '@/tools/runtime/middleware.js';
 import { createToolRuntime } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
@@ -213,6 +213,7 @@ function createMcpToolset(
 
   return {
     id: toolsetId,
+    kind: 'mcp',
     name: displayName,
     description,
     instructions: buildMcpInstructions({ server, liveInfo, prompts }),
@@ -245,9 +246,9 @@ async function refreshMcpToolsetsInternal(
   const desiredMcpToolsetIds = new Set(
     configuredServers.map((server) => buildMcpToolsetId(server)),
   );
-  const staleIds = listToolsetIds().filter(
-    (id) => id.startsWith('mcp:') && !desiredMcpToolsetIds.has(id),
-  );
+  const staleIds = listToolsets()
+    .filter((toolset) => toolset.kind === 'mcp' && !desiredMcpToolsetIds.has(toolset.id))
+    .map((toolset) => toolset.id);
   for (const staleId of staleIds) {
     unregisterToolset(staleId);
   }
