@@ -10,22 +10,18 @@ import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'toolset-manager' });
 
+type ToolsetActivationEntry = {
+  state: SessionActiveToolset;
+  tools?: Record<string, Tool>;
+};
+
 /**
  * Per-session manager that tracks which toolsets are currently active.
  * Tools from active toolsets are merged with core tools each step.
  * This is mutable — toolsets can be activated/deactivated between LLM steps.
  */
 export class ToolsetManager {
-  /** Set of currently active toolset IDs */
-  private readonly activeIds = new Set<string>();
-
-  /** Subset of active toolsets that should persist across future turns. */
-  private readonly persistedIds = new Set<string>();
-
-  private readonly activationState = new Map<string, SessionActiveToolset>();
-
-  /** Cached tool instances for each active toolset (lazy-populated on activate) */
-  private readonly activeToolCache = new Map<string, Record<string, Tool>>();
+  private readonly activations = new Map<string, ToolsetActivationEntry>();
 
   private readonly context: ToolContext;
 
@@ -34,10 +30,7 @@ export class ToolsetManager {
     for (const entry of activationState) {
       const state =
         typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
-      this.activationState.set(state.id, state);
-      if (state.scope === 'until_deactivated') {
-        this.persistedIds.add(state.id);
-      }
+      this.activations.set(state.id, { state });
     }
   }
 
@@ -53,10 +46,11 @@ export class ToolsetManager {
     | { status: 'not_found' }
     | { status: 'disabled' }
   > {
-    if (this.activeIds.has(toolsetId)) {
+    const existing = this.activations.get(toolsetId);
+    if (existing?.tools) {
       return {
         status: 'activated',
-        toolNames: Object.keys(this.activeToolCache.get(toolsetId) ?? {}),
+        toolNames: Object.keys(existing.tools),
         collisions: [],
       };
     }
@@ -104,12 +98,13 @@ export class ToolsetManager {
       );
     }
 
-    this.activeIds.add(toolsetId);
-    this.setActivationState(
-      toolsetId,
-      state ?? this.activationState.get(toolsetId) ?? { scope: 'current_run' },
-    );
-    this.activeToolCache.set(toolsetId, tools);
+    this.activations.set(toolsetId, {
+      state: this.buildActivationState(
+        toolsetId,
+        state ?? existing?.state ?? { scope: 'current_run' },
+      ),
+      tools,
+    });
 
     log.info(
       {
@@ -126,14 +121,11 @@ export class ToolsetManager {
 
   /** Deactivate a toolset, removing its tools from the active set. */
   deactivate(toolsetId: string): boolean {
-    if (!this.activeIds.has(toolsetId)) {
+    if (!this.activations.get(toolsetId)?.tools) {
       return false;
     }
 
-    this.activeIds.delete(toolsetId);
-    this.persistedIds.delete(toolsetId);
-    this.activationState.delete(toolsetId);
-    this.activeToolCache.delete(toolsetId);
+    this.activations.delete(toolsetId);
 
     log.info({ event: 'toolset.deactivated', toolsetId }, 'toolset deactivated');
     return true;
@@ -141,39 +133,46 @@ export class ToolsetManager {
 
   /** Check if a toolset is currently active. */
   isActive(toolsetId: string): boolean {
-    return this.activeIds.has(toolsetId);
+    return !!this.activations.get(toolsetId)?.tools;
   }
 
   /** Return the set of currently active toolset IDs. */
   getActiveIds(): Set<string> {
-    return new Set(this.activeIds);
+    return new Set(this.getActiveEntries().map(([id]) => id));
   }
 
-  /** Return the set of active toolset IDs that should persist across future turns. */
+  /** Return the set of toolset IDs that should persist across future turns. */
   getPersistedIds(): Set<string> {
-    return new Set(this.persistedIds);
+    return new Set(
+      [...this.activations.values()]
+        .filter((entry) => entry.state.scope === 'until_deactivated')
+        .map((entry) => entry.state.id),
+    );
   }
 
   getPersistableActivationState(): SessionActiveToolset[] {
-    return [...this.activationState.values()]
-      .filter((entry) => this.activeIds.has(entry.id) && entry.scope !== 'current_run')
-      .map((entry) => ({ ...entry }));
+    return this.getActiveEntries()
+      .map(([, entry]) => entry.state)
+      .filter((state) => state.scope !== 'current_run')
+      .map((state) => ({ ...state }));
   }
 
   getExpiredRunToolsets(): Array<{ id: string; toolNames: string[] }> {
-    return [...this.activeIds]
-      .filter((id) => this.activationState.get(id)?.scope === 'current_run')
-      .map((id) => ({ id, toolNames: Object.keys(this.activeToolCache.get(id) ?? {}) }));
+    return this.getActiveEntries()
+      .filter(([, entry]) => entry.state.scope === 'current_run')
+      .map(([id, entry]) => ({ id, toolNames: Object.keys(entry.tools) }));
   }
 
   renewTtlForTool(toolName: string, expiresAtTurn: number): string | null {
-    for (const [toolsetId, tools] of this.activeToolCache.entries()) {
-      if (!(toolName in tools)) continue;
+    for (const [toolsetId, entry] of this.getActiveEntries()) {
+      if (!(toolName in entry.tools)) continue;
 
-      const state = this.activationState.get(toolsetId);
-      if (state?.scope !== 'ttl_turns') return null;
+      if (entry.state.scope !== 'ttl_turns') return null;
 
-      this.activationState.set(toolsetId, { ...state, expiresAtTurn });
+      this.activations.set(toolsetId, {
+        ...entry,
+        state: { ...entry.state, expiresAtTurn },
+      });
       return toolsetId;
     }
 
@@ -181,37 +180,36 @@ export class ToolsetManager {
   }
 
   pin(toolsetId: string): boolean {
-    if (!this.activeIds.has(toolsetId)) {
+    if (!this.isActive(toolsetId)) {
       return false;
     }
 
-    this.persistedIds.add(toolsetId);
     this.setActivationState(toolsetId, { scope: 'until_deactivated' });
     return true;
   }
 
   unpin(toolsetId: string): boolean {
-    const deleted = this.persistedIds.delete(toolsetId);
-    if (deleted) {
-      this.setActivationState(toolsetId, { scope: 'current_run' });
+    if (!this.isPersisted(toolsetId)) {
+      return false;
     }
-    return deleted;
+
+    this.setActivationState(toolsetId, { scope: 'current_run' });
+    return true;
   }
 
   isPersisted(toolsetId: string): boolean {
-    return this.persistedIds.has(toolsetId);
+    return this.activations.get(toolsetId)?.state.scope === 'until_deactivated';
   }
 
   setActivationState(
     toolsetId: string,
     state: { scope: SessionToolsetScope; expiresAtTurn?: number },
   ): void {
-    this.activationState.set(toolsetId, { id: toolsetId, ...state });
-    if (state.scope === 'until_deactivated') {
-      this.persistedIds.add(toolsetId);
-    } else {
-      this.persistedIds.delete(toolsetId);
-    }
+    const existing = this.activations.get(toolsetId);
+    this.activations.set(toolsetId, {
+      state: this.buildActivationState(toolsetId, state),
+      tools: existing?.tools,
+    });
   }
 
   /**
@@ -220,8 +218,8 @@ export class ToolsetManager {
    */
   getActiveTools(): Record<string, Tool> {
     const merged: Record<string, Tool> = {};
-    for (const tools of this.activeToolCache.values()) {
-      Object.assign(merged, tools);
+    for (const [, entry] of this.getActiveEntries()) {
+      Object.assign(merged, entry.tools);
     }
     return Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)));
   }
@@ -237,10 +235,26 @@ export class ToolsetManager {
       .filter((ts) => !disabledIds.has(ts.id))
       .map((ts) =>
         toToolsetView(ts, {
-          active: this.activeIds.has(ts.id),
-          persisted: this.persistedIds.has(ts.id),
+          active: this.isActive(ts.id),
+          persisted: this.isPersisted(ts.id),
           includeTools: options?.includeTools,
         }),
       );
+  }
+
+  private buildActivationState(
+    toolsetId: string,
+    state: { scope: SessionToolsetScope; expiresAtTurn?: number },
+  ): SessionActiveToolset {
+    return { id: toolsetId, ...state };
+  }
+
+  private getActiveEntries(): Array<
+    [string, ToolsetActivationEntry & { tools: Record<string, Tool> }]
+  > {
+    return [...this.activations.entries()].filter(
+      (entry): entry is [string, ToolsetActivationEntry & { tools: Record<string, Tool> }] =>
+        !!entry[1].tools,
+    );
   }
 }
