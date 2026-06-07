@@ -4,12 +4,11 @@ import {
   EllipsisIcon,
   SparklesIcon,
   InfoIcon,
-  ListOrderedIcon,
   PencilLineIcon,
   Trash2Icon,
 } from 'lucide-react';
 
-import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
 import type { RightPanel } from '@/components/session/session-page-types';
@@ -22,14 +21,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
-import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { cn } from '@/lib/utils';
 
 type SessionPageHeaderProps = {
   sessionId: string;
   rightPanel: RightPanel;
   onToggleDetails: () => void;
-  onToggleQueue: () => void;
   onDeleteSession: () => void;
   onGenerateAutomation: () => void;
   generateAutomationPending?: boolean;
@@ -39,16 +36,13 @@ export function SessionPageHeader({
   sessionId,
   rightPanel,
   onToggleDetails,
-  onToggleQueue,
   onDeleteSession,
   onGenerateAutomation,
   generateAutomationPending = false,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
-  const { data: queuedMessages } = useQuery(queuedMessagesQueryOptions(sessionId));
 
-  const queueCount = queuedMessages?.length ?? 0;
   const isChildSession = session.parentSessionId !== null;
 
   return (
@@ -78,24 +72,6 @@ export function SessionPageHeader({
 
         {isChildSession ? null : (
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className={cn(
-                'relative hidden lg:inline-flex',
-                rightPanel === 'queue' && 'bg-accent',
-              )}
-              onClick={onToggleQueue}
-              aria-label={rightPanel === 'queue' ? 'Hide message queue' : 'Show message queue'}
-            >
-              <ListOrderedIcon className="size-4" />
-              {queueCount > 0 ? (
-                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                  {queueCount > 9 ? '9+' : queueCount}
-                </span>
-              ) : null}
-            </Button>
-
             <Button
               variant="ghost"
               size="icon-sm"

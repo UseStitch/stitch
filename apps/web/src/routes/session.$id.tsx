@@ -6,7 +6,6 @@ import { SessionPage } from '@/components/session/session-page';
 import { useActions } from '@/lib/actions';
 import { sessionQueryOptions, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { queuedMessagesQueryOptions } from '@/lib/queries/queue';
 import { sessionTodosQueryOptions } from '@/lib/queries/todos';
 import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
 
@@ -22,7 +21,6 @@ export const Route = createFileRoute('/session/$id')({
     void Promise.all([
       context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
-      context.queryClient.ensureQueryData(queuedMessagesQueryOptions(params.id)),
       context.queryClient.ensureQueryData(sessionTodosQueryOptions(params.id)),
     ]);
   },

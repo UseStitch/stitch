@@ -14,7 +14,6 @@ import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
 import type { AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import type { AutomationScheduleBlob } from '@stitch/shared/automations/types';
 import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
-import type { QueuedMessageAttachment } from '@stitch/shared/chat/queue';
 import type { ConnectorStatus } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig, McpTool, McpTransport } from '@stitch/shared/mcp/types';
@@ -356,27 +355,6 @@ export const mcpServers = sqliteTable('mcp_servers', {
     .notNull()
     .$defaultFn(() => Date.now()),
 });
-
-export const queuedMessages = sqliteTable('queued_messages', {
-  id: text('id').$type<PrefixedString<'qmsg'>>().primaryKey(),
-  sessionId: text('session_id')
-    .$type<PrefixedString<'ses'>>()
-    .notNull()
-    .references(() => sessions.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  attachments: blob('attachments', { mode: 'json' })
-    .$type<QueuedMessageAttachment[]>()
-    .notNull()
-    .default([]),
-  position: integer('position').notNull(),
-  createdAt: integer('created_at', { mode: 'number' })
-    .notNull()
-    .$defaultFn(() => Date.now()),
-  updatedAt: integer('updated_at', { mode: 'number' })
-    .notNull()
-    .$defaultFn(() => Date.now()),
-});
-
 export const lanceMigrations = sqliteTable('lance_migrations', {
   version: integer('version').primaryKey(),
   id: text('id').notNull().default(''),

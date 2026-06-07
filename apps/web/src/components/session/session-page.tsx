@@ -7,16 +7,11 @@ import { useNavigate } from '@tanstack/react-router';
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 
 import { AutomationDialog } from '@/components/automations/automation-dialog';
-import { MessageQueuePanel } from '@/components/session/message-queue-panel';
 import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
 import { SessionDetailsSheet } from '@/components/session/session-details-sheet';
 import { SessionPageHeader } from '@/components/session/session-page-header';
-import type {
-  EditQueuedMessagePayload,
-  RightPanel,
-  SendQueuedMessageFn,
-} from '@/components/session/session-page-types';
+import type { RightPanel } from '@/components/session/session-page-types';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
@@ -42,8 +37,6 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
-  const [editPayload, setEditPayload] = React.useState<EditQueuedMessagePayload | null>(null);
-  const sendQueuedRef = React.useRef<SendQueuedMessageFn | null>(null);
   const lastReadCompletedMessageIdRef = React.useRef<string | null>(null);
   const timezone =
     settings?.['profile.timezone']?.trim() ||
@@ -54,14 +47,6 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
   const toggleDetails = React.useCallback(() => {
     setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
-  }, []);
-
-  const toggleQueue = React.useCallback(() => {
-    setRightPanel((previous) => (previous === 'queue' ? 'closed' : 'queue'));
-  }, []);
-
-  const openQueue = React.useCallback(() => {
-    setRightPanel('queue');
   }, []);
 
   React.useEffect(() => {
@@ -115,7 +100,6 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           sessionId={sessionId}
           rightPanel={rightPanel}
           onToggleDetails={toggleDetails}
-          onToggleQueue={toggleQueue}
           onDeleteSession={() => setDeleteDialogOpen(true)}
           onGenerateAutomation={() => void handleGenerateAutomation()}
           generateAutomationPending={generateAutomation.isPending}
@@ -126,13 +110,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
         >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
-            <SessionChatPane
-              sessionId={sessionId}
-              onOpenQueue={openQueue}
-              editPayload={editPayload}
-              onConsumeEditPayload={() => setEditPayload(null)}
-              sendQueuedRef={sendQueuedRef}
-            />
+            <SessionChatPane sessionId={sessionId} />
           </ResizablePanel>
 
           {rightPanelOpen ? (
@@ -140,20 +118,11 @@ export function SessionPage({ sessionId }: SessionPageProps) {
               <ResizableHandle className="hidden bg-foreground/25 after:w-0 lg:flex" />
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
-                {rightPanel === 'details' ? (
-                  <SessionDetailsSheet
-                    {...details}
-                    sessionId={sessionId}
-                    className="hidden lg:block"
-                  />
-                ) : (
-                  <MessageQueuePanel
-                    sessionId={sessionId}
-                    className="hidden lg:block"
-                    onEdit={setEditPayload}
-                    sendQueuedRef={sendQueuedRef}
-                  />
-                )}
+                <SessionDetailsSheet
+                  {...details}
+                  sessionId={sessionId}
+                  className="hidden lg:block"
+                />
               </ResizablePanel>
             </>
           ) : null}

@@ -17,7 +17,6 @@ type ChatInputProps = {
   className?: string;
   hasDockAbove?: boolean;
   embedded?: boolean;
-  mode?: 'send' | 'queue';
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
 };
