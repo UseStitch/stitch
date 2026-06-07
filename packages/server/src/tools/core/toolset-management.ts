@@ -2,7 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import { parseMcpToolName } from '@stitch/shared/mcp/types';
+import { humanizeToolName } from '@stitch/shared/tools/display';
 
 import {
   getToolsetExpiresAtTurn,
@@ -14,6 +14,7 @@ import { isToolEnabled } from '@/tools/enabled-service.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
+import { toToolsetView } from '@/tools/toolsets/view.js';
 
 /**
  * Create the three toolset management meta-tools bound to a specific ToolsetManager instance.
@@ -28,13 +29,6 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       expired: current.expired.filter((entry) => !manager.isActive(entry.id)),
     });
   };
-
-  const humanizeToolName = (name: string) =>
-    (parseMcpToolName(name)?.toolName ?? name)
-      .split(/[_-]+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
 
   const resolveActivationState = async (input: {
     persist?: boolean;
@@ -120,27 +114,14 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         );
       }
 
-      const tools = toolset.tools();
       return {
         toolsetId: toolset.id,
-        name: toolset.name,
-        description: toolset.description,
-        icon: toolset.icon ?? null,
-        active: manager.isActive(toolsetId),
-        persisted: manager.isPersisted(toolsetId),
-        hasInstructions: !!toolset.instructions,
-        promptCount: toolset.prompts?.length ?? 0,
-        prompts:
-          toolset.prompts?.map((p) => ({
-            name: p.name,
-            description: p.description,
-            arguments: p.arguments,
-          })) ?? [],
-        tools: tools.map((t) => ({
-          name: t.name,
-          displayName: humanizeToolName(t.name),
-          description: t.description,
-        })),
+        ...toToolsetView(toolset, {
+          active: manager.isActive(toolsetId),
+          persisted: manager.isPersisted(toolsetId),
+          includePrompts: true,
+          includeTools: true,
+        }),
       };
     },
   });

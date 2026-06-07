@@ -5,23 +5,12 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getSessionHistoryMessages, searchSessionHistory } from '@/chat/history-search-service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
+import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const SESSION_HISTORY_TOOLSET_ID = 'session-history';
 
-const TOOL_SUMMARIES = [
-  {
-    name: 'session_history_search',
-    description: 'Search prior sessions by query with relevance-ranked snippets',
-  },
-  {
-    name: 'session_history_get',
-    description: 'Read a bounded slice of messages for one session',
-  },
-];
-
-function createSessionHistoryTools(context: ToolContext) {
+function createSessionHistoryTools(context: ToolContext): Record<string, Tool> {
   const session_history_search = tool({
     description: `Search chat history across past sessions.
 
@@ -126,6 +115,7 @@ Use this after session_history_search to inspect a specific session without dump
 export function createSessionHistoryToolset(): Toolset {
   return {
     id: SESSION_HISTORY_TOOLSET_ID,
+    kind: 'native',
     name: 'Session History',
     description:
       'Search and inspect prior chat sessions with bounded, relevance-ranked results for cross-session recall.',
@@ -134,9 +124,9 @@ export function createSessionHistoryToolset(): Toolset {
       'Prefer small limits (3-5 sessions, 20-30 messages) to avoid unnecessary context growth.',
       'Do not request includeToolResults unless tool output details are essential to answer the user.',
     ].join('\n'),
-    tools: () => TOOL_SUMMARIES,
+    tools: () => summarizeTools(createSessionHistoryTools(TOOLSET_SUMMARY_CONTEXT)),
     activate: async (context: ToolContext) => {
-      return createSessionHistoryTools(context) as unknown as Record<string, Tool>;
+      return createSessionHistoryTools(context);
     },
   };
 }

@@ -25,7 +25,6 @@ import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
-import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'google-toolsets' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -37,6 +36,7 @@ const refreshInFlight = new Map<string, Promise<string>>();
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
   return {
     id: def.id,
+    kind: 'connector',
     name: def.name,
     description: def.description,
     icon: def.icon,
@@ -226,7 +226,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
         };
         clientCache.set(cacheKey, result);
         return result;
-      }) as Record<string, Tool>;
+      });
     },
   };
 }

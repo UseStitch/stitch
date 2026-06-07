@@ -35,6 +35,7 @@ function makeTool(description: string): Tool {
 function registerTestToolset(overrides: Partial<Toolset> = {}): Toolset {
   const toolset: Toolset = {
     id: 'test-toolset',
+    kind: 'native',
     name: 'Test Toolset',
     description: 'Test-only toolset',
     instructions: 'Use this toolset carefully.',
@@ -185,6 +186,7 @@ describe('toolset management tools', () => {
   test('activate_toolset humanizes MCP tool names in message', async () => {
     registerTestToolset({
       id: 'mcp:mcp_12345678901234567890123456',
+      kind: 'mcp',
       name: 'Exa',
       tools: () => [
         {
@@ -230,6 +232,7 @@ describe('toolset management tools', () => {
   test('activate_toolset includes warning and collisions when tool names overlap', async () => {
     registerToolset({
       id: 'first-toolset',
+      kind: 'native',
       name: 'First',
       description: 'First toolset',
       tools: () => [{ name: 'search', description: 'search' }],
@@ -238,6 +241,7 @@ describe('toolset management tools', () => {
 
     registerToolset({
       id: 'second-toolset',
+      kind: 'native',
       name: 'Second',
       description: 'Second toolset',
       tools: () => [
@@ -265,6 +269,7 @@ describe('toolset management tools', () => {
   test('activate_toolset omits warning and collisions when no overlap exists', async () => {
     registerToolset({
       id: 'no-overlap-a',
+      kind: 'native',
       name: 'A',
       description: 'A',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -273,6 +278,7 @@ describe('toolset management tools', () => {
 
     registerToolset({
       id: 'no-overlap-b',
+      kind: 'native',
       name: 'B',
       description: 'B',
       tools: () => [{ name: 'tool_b', description: 'b' }],
@@ -296,6 +302,7 @@ describe('toolset management tools', () => {
       clearToolsets();
       registerToolset({
         id: 'browser-toolset',
+        kind: 'native',
         name: 'Browser',
         description: 'Control a headless browser',
         tools: () => [],
@@ -303,6 +310,7 @@ describe('toolset management tools', () => {
       } satisfies Toolset);
       registerToolset({
         id: 'database-toolset',
+        kind: 'native',
         name: 'Database',
         description: 'Query and manage SQL databases',
         tools: () => [],
@@ -310,6 +318,7 @@ describe('toolset management tools', () => {
       } satisfies Toolset);
       registerToolset({
         id: 'email-sender',
+        kind: 'native',
         name: 'Email',
         description: 'Send and receive messages',
         tools: () => [],

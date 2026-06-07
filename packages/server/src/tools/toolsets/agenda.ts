@@ -16,7 +16,7 @@ import {
 import { isServiceError } from '@/lib/service-result.js';
 import { listSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
+import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const AGENDA_TOOLSET_ID = 'agenda';
@@ -82,16 +82,7 @@ async function resolveUserTimezone(): Promise<string> {
   return settingsResult.data['profile.timezone'] || 'UTC';
 }
 
-const TOOL_SUMMARIES = [
-  { name: 'agenda_add_item', description: 'Create a new agenda item in a list' },
-  { name: 'agenda_update_item', description: 'Update an existing agenda item' },
-  { name: 'agenda_list_items', description: 'List agenda items with optional filters' },
-  { name: 'agenda_get_item', description: 'Get full details of a single agenda item' },
-  { name: 'agenda_create_list', description: 'Create a new agenda list' },
-  { name: 'agenda_list_lists', description: 'Show all agenda lists with counts' },
-];
-
-function createAgendaTools(context: ToolContext, userTimezone: string) {
+function createAgendaTools(context: ToolContext, userTimezone: string): Record<string, Tool> {
   const agenda_add_item = tool({
     description: `Create a new agenda item. Requires a title. Optionally set priority (low/medium/high/urgent), dueAt (ISO date), listName (auto-creates list if missing), and description.
 
@@ -328,6 +319,7 @@ Use when the user wants to see what lists exist or get an overview of their agen
 export function createAgendaToolset(): Toolset {
   return {
     id: AGENDA_TOOLSET_ID,
+    kind: 'native',
     name: 'Agenda',
     description:
       "Manage the user's agenda — a persistent system for tracking todos organized into lists. Activate to add items, update status, manage lists, and check what's pending or due.",
@@ -338,10 +330,10 @@ export function createAgendaToolset(): Toolset {
       "If the user mentions something that sounds like a task but doesn't explicitly ask to track it, do NOT add it automatically — only act on clear intent.",
       'When updating status, briefly confirm what changed.',
     ].join('\n'),
-    tools: () => TOOL_SUMMARIES,
+    tools: () => summarizeTools(createAgendaTools(TOOLSET_SUMMARY_CONTEXT, 'UTC')),
     activate: async (context: ToolContext) => {
       const userTimezone = await resolveUserTimezone();
-      return createAgendaTools(context, userTimezone) as unknown as Record<string, Tool>;
+      return createAgendaTools(context, userTimezone);
     },
   };
 }

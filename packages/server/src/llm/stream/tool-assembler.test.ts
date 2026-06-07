@@ -35,6 +35,7 @@ describe('buildExpiredToolsetsPrompt', () => {
   test('builds a model-visible notice for expired run-only toolsets', () => {
     registerToolset({
       id: 'browser',
+      kind: 'native',
       name: 'Browser',
       description: 'Browser toolset',
       tools: () => [{ name: 'browser_open', description: 'open' }],
@@ -65,6 +66,7 @@ describe('ToolAssembler expired toolset handling', () => {
 
     registerToolset({
       id: 'browser',
+      kind: 'native',
       name: 'Browser',
       description: 'Browser toolset',
       tools: () => [{ name: 'browser_open', description: 'open' }],
@@ -98,6 +100,7 @@ describe('ToolAssembler expired toolset handling', () => {
 
     registerToolset({
       id: 'browser',
+      kind: 'native',
       name: 'Browser',
       description: 'Browser toolset',
       tools: () => [{ name: 'browser_open', description: 'open' }],

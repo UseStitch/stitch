@@ -3,18 +3,10 @@ import { describe, expect, it } from 'bun:test';
 import { getToolsetSource } from '@/routes/config.js';
 
 describe('config route toolset source classification', () => {
-  it('classifies built-in toolsets as native', () => {
-    expect(getToolsetSource('browser')).toBe('native');
-    expect(getToolsetSource('agenda')).toBe('native');
-    expect(getToolsetSource('session-history')).toBe('native');
-    expect(getToolsetSource('recordings')).toBe('native');
-  });
-
-  it('classifies MCP toolsets by prefix', () => {
-    expect(getToolsetSource('mcp:deepwiki')).toBe('mcp');
-  });
-
-  it('falls back to provider when toolset id is unknown', () => {
-    expect(getToolsetSource('unknown-toolset')).toBe('provider');
+  it('returns the explicit toolset kind', () => {
+    expect(getToolsetSource({ kind: 'native' })).toBe('native');
+    expect(getToolsetSource({ kind: 'connector' })).toBe('connector');
+    expect(getToolsetSource({ kind: 'mcp' })).toBe('mcp');
+    expect(getToolsetSource({ kind: 'provider' })).toBe('provider');
   });
 });

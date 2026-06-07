@@ -60,9 +60,7 @@ const sendUpdatesEnum = z
   .enum(['all', 'externalOnly', 'none'])
   .optional()
   .default('all')
-  .describe(
-    'Who to notify about the change: "all" (default), "externalOnly", or "none"',
-  );
+  .describe('Who to notify about the change: "all" (default), "externalOnly", or "none"');
 
 const calendarUpdateSchema = z.object({
   account: z
@@ -75,8 +73,14 @@ const calendarUpdateSchema = z.object({
   location: z.string().optional().describe('New event location'),
   startDateTime: z.string().optional().describe('New start time (ISO 8601)'),
   endDateTime: z.string().optional().describe('New end time (ISO 8601)'),
-  timeZone: z.string().optional().describe('Time zone for start/end times (e.g. "America/Chicago")'),
-  attendees: z.array(z.string()).optional().describe('Replacement list of attendee email addresses'),
+  timeZone: z
+    .string()
+    .optional()
+    .describe('Time zone for start/end times (e.g. "America/Chicago")'),
+  attendees: z
+    .array(z.string())
+    .optional()
+    .describe('Replacement list of attendee email addresses'),
   addMeet: z
     .boolean()
     .optional()
@@ -100,7 +104,7 @@ export function createCalendarTools(
     account?: string,
   ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
-) {
+): Record<string, Tool> {
   const tools: Record<string, Tool> = {
     calendar_list: tool({
       description:
@@ -191,12 +195,7 @@ export function createCalendarTools(
       inputSchema: calendarDeleteSchema,
       execute: async (input: z.infer<typeof calendarDeleteSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        await CalendarApi.deleteEvent(
-          client,
-          input.eventId,
-          input.calendarId,
-          input.sendUpdates,
-        );
+        await CalendarApi.deleteEvent(client, input.eventId, input.calendarId, input.sendUpdates);
         return { deleted: true, eventId: input.eventId, usedAccount };
       },
     });
@@ -204,17 +203,3 @@ export function createCalendarTools(
 
   return tools;
 }
-
-export const CALENDAR_TOOL_SUMMARIES = [
-  {
-    name: 'calendar_list',
-    description: 'List upcoming Google Calendar events with optional date/text filtering',
-  },
-  { name: 'calendar_get', description: 'Get full details for a specific calendar event' },
-  { name: 'calendar_create', description: 'Create a new calendar event (requires write access)' },
-  {
-    name: 'calendar_update',
-    description: 'Update an existing calendar event (requires write access)',
-  },
-  { name: 'calendar_delete', description: 'Delete a calendar event (requires write access)' },
-];

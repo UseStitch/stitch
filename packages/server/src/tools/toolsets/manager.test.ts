@@ -31,6 +31,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('returns empty collisions when no overlap exists', async () => {
     registerToolset({
       id: 'ts-a',
+      kind: 'native',
       name: 'A',
       description: 'A',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -39,6 +40,7 @@ describe('ToolsetManager.activate collision detection', () => {
 
     registerToolset({
       id: 'ts-b',
+      kind: 'native',
       name: 'B',
       description: 'B',
       tools: () => [{ name: 'tool_b', description: 'b' }],
@@ -56,6 +58,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('reports collisions when two toolsets share a tool name', async () => {
     registerToolset({
       id: 'ts-x',
+      kind: 'native',
       name: 'X',
       description: 'X',
       tools: () => [{ name: 'search', description: 'search' }],
@@ -64,6 +67,7 @@ describe('ToolsetManager.activate collision detection', () => {
 
     registerToolset({
       id: 'ts-y',
+      kind: 'native',
       name: 'Y',
       description: 'Y',
       tools: () => [
@@ -84,9 +88,38 @@ describe('ToolsetManager.activate collision detection', () => {
     expect(result.status === 'activated' && result.collisions).toEqual(['search']);
   });
 
+  test('does not report stale collisions after deactivation', async () => {
+    registerToolset({
+      id: 'ts-x',
+      kind: 'native',
+      name: 'X',
+      description: 'X',
+      tools: () => [{ name: 'search', description: 'search' }],
+      activate: async () => ({ search: makeTool('search from X') }),
+    } satisfies Toolset);
+
+    registerToolset({
+      id: 'ts-y',
+      kind: 'native',
+      name: 'Y',
+      description: 'Y',
+      tools: () => [{ name: 'search', description: 'search' }],
+      activate: async () => ({ search: makeTool('search from Y') }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    await manager.activate('ts-x');
+    manager.deactivate('ts-x');
+    const result = await manager.activate('ts-y');
+
+    expect(result.status).toBe('activated');
+    expect(result.status === 'activated' && result.collisions).toEqual([]);
+  });
+
   test('returns no collisions when activating the first toolset', async () => {
     registerToolset({
       id: 'ts-only',
+      kind: 'native',
       name: 'Only',
       description: 'Only',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -103,6 +136,7 @@ describe('ToolsetManager.activate collision detection', () => {
   test('already-active toolset returns empty collisions', async () => {
     registerToolset({
       id: 'ts-once',
+      kind: 'native',
       name: 'Once',
       description: 'Once',
       tools: () => [{ name: 'tool_a', description: 'a' }],
@@ -126,6 +160,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
   test('returns tools sorted alphabetically by key', async () => {
     registerToolset({
       id: 'ts-alpha',
+      kind: 'native',
       name: 'Alpha',
       description: 'Alpha toolset',
       tools: () => [
@@ -140,6 +175,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
 
     registerToolset({
       id: 'ts-beta',
+      kind: 'native',
       name: 'Beta',
       description: 'Beta toolset',
       tools: () => [{ name: 'mango_tool', description: 'm' }],
@@ -159,6 +195,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
   test('activation order does not affect key order', async () => {
     registerToolset({
       id: 'ts-first',
+      kind: 'native',
       name: 'First',
       description: 'First',
       tools: () => [{ name: 'b_tool', description: 'b' }],
@@ -167,6 +204,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
 
     registerToolset({
       id: 'ts-second',
+      kind: 'native',
       name: 'Second',
       description: 'Second',
       tools: () => [{ name: 'a_tool', description: 'a' }],
@@ -194,6 +232,7 @@ describe('ToolsetManager activation state', () => {
   test('tracks persisted active toolsets separately from run-only toolsets', async () => {
     registerToolset({
       id: 'persisted',
+      kind: 'native',
       name: 'Persisted',
       description: 'Persisted',
       tools: () => [{ name: 'persisted_tool', description: 'persisted' }],
@@ -201,6 +240,7 @@ describe('ToolsetManager activation state', () => {
     } satisfies Toolset);
     registerToolset({
       id: 'run-only',
+      kind: 'native',
       name: 'Run Only',
       description: 'Run only',
       tools: () => [{ name: 'run_tool', description: 'run' }],
@@ -215,12 +255,91 @@ describe('ToolsetManager activation state', () => {
     expect(manager.getPersistableActivationState()).toEqual([
       { id: 'persisted', scope: 'until_deactivated' },
     ]);
+    expect(manager.getPersistedIds()).toEqual(new Set(['persisted']));
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
+  });
+
+  test('preserves restored persisted state before activation', async () => {
+    registerToolset({
+      id: 'restored',
+      kind: 'native',
+      name: 'Restored',
+      description: 'Restored',
+      tools: () => [{ name: 'restored_tool', description: 'restored' }],
+      activate: async () => ({ restored_tool: makeTool('restored') }),
+    } satisfies Toolset);
+
+    const manager = new ToolsetManager(
+      {
+        sessionId: 'ses_test' as never,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [{ id: 'restored', scope: 'until_deactivated' }],
+    );
+
+    expect(manager.isActive('restored')).toBe(false);
+    expect(manager.isPersisted('restored')).toBe(true);
+    expect(manager.getActiveIds()).toEqual(new Set());
+    expect(manager.getPersistedIds()).toEqual(new Set(['restored']));
+
+    const catalog = await manager.getCatalogWithState();
+    expect(catalog.find((entry) => entry.id === 'restored')).toMatchObject({
+      active: false,
+      persisted: true,
+    });
+  });
+
+  test('can unpin restored persisted state before activation', async () => {
+    const manager = new ToolsetManager(
+      {
+        sessionId: 'ses_test' as never,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [{ id: 'restored', scope: 'until_deactivated' }],
+    );
+
+    expect(manager.unpin('restored')).toBe(true);
+    expect(manager.isPersisted('restored')).toBe(false);
+    expect(manager.getPersistedIds()).toEqual(new Set());
+    expect(manager.getPersistableActivationState()).toEqual([]);
+  });
+
+  test('deactivation removes activated restored state', async () => {
+    registerToolset({
+      id: 'restored',
+      kind: 'native',
+      name: 'Restored',
+      description: 'Restored',
+      tools: () => [{ name: 'restored_tool', description: 'restored' }],
+      activate: async () => ({ restored_tool: makeTool('restored') }),
+    } satisfies Toolset);
+
+    const manager = new ToolsetManager(
+      {
+        sessionId: 'ses_test' as never,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [{ id: 'restored', scope: 'until_deactivated' }],
+    );
+
+    await manager.activate('restored');
+    expect(manager.deactivate('restored')).toBe(true);
+
+    expect(manager.isActive('restored')).toBe(false);
+    expect(manager.isPersisted('restored')).toBe(false);
+    expect(manager.getActiveIds()).toEqual(new Set());
+    expect(manager.getPersistedIds()).toEqual(new Set());
+    expect(manager.getPersistableActivationState()).toEqual([]);
+    expect(manager.getActiveTools()).toEqual({});
   });
 
   test('renews TTL state when a tool from a TTL toolset is used', async () => {
     registerToolset({
       id: 'ttl-toolset',
+      kind: 'native',
       name: 'TTL',
       description: 'TTL',
       tools: () => [{ name: 'ttl_tool', description: 'ttl' }],
@@ -240,6 +359,26 @@ describe('ToolsetManager activation state', () => {
     expect(manager.renewTtlForTool('ttl_tool', 5)).toBe('ttl-toolset');
     expect(manager.getPersistableActivationState()).toEqual([
       { id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 5 },
+    ]);
+  });
+
+  test('does not renew TTL for unknown tools or non-TTL toolsets', async () => {
+    registerToolset({
+      id: 'persisted',
+      kind: 'native',
+      name: 'Persisted',
+      description: 'Persisted',
+      tools: () => [{ name: 'persisted_tool', description: 'persisted' }],
+      activate: async () => ({ persisted_tool: makeTool('persisted') }),
+    } satisfies Toolset);
+
+    const manager = createManager();
+    await manager.activate('persisted', { scope: 'until_deactivated' });
+
+    expect(manager.renewTtlForTool('missing_tool', 5)).toBeNull();
+    expect(manager.renewTtlForTool('persisted_tool', 5)).toBeNull();
+    expect(manager.getPersistableActivationState()).toEqual([
+      { id: 'persisted', scope: 'until_deactivated' },
     ]);
   });
 });

@@ -6,29 +6,14 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { getRecordingAnalysesByIds, searchRecordings } from '@/recordings/search-service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import type { Toolset } from '@/tools/toolsets/types.js';
+import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const RECORDINGS_TOOLSET_ID = 'recordings';
 const RECORDING_STATUSES = ['recording', 'completed', 'failed'] as const;
 const RECORDING_PLATFORMS = ['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet'] as const;
 
-const TOOL_SUMMARIES = [
-  {
-    name: 'recordings_search',
-    description: 'Search recordings and transcription analysis with ranked snippets',
-  },
-  {
-    name: 'recordings_get_analysis',
-    description: 'Fetch structured analysis for one recording',
-  },
-  {
-    name: 'recordings_start_analysis',
-    description: 'Start or re-run transcription and analysis for a completed recording',
-  },
-];
-
-function createRecordingsTools(_context: ToolContext) {
+function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
   const recordings_search = tool({
     description: `Search recording history using title, analysis summary, and transcript-derived content.
 
@@ -200,6 +185,7 @@ Use this when analysis is missing or stale.`,
 export function createRecordingsToolset(): Toolset {
   return {
     id: RECORDINGS_TOOLSET_ID,
+    kind: 'native',
     name: 'Recordings',
     description:
       'Search recordings and work with transcription/analysis results, including summaries, topics, and action items.',
@@ -208,9 +194,9 @@ export function createRecordingsToolset(): Toolset {
       'Use recordings_get_analysis for details only after narrowing to one or a few recordings.',
       'Use recordings_start_analysis when a completed recording has no analysis or needs a forced refresh.',
     ].join('\n'),
-    tools: () => TOOL_SUMMARIES,
+    tools: () => summarizeTools(createRecordingsTools(TOOLSET_SUMMARY_CONTEXT)),
     activate: async (context: ToolContext) => {
-      return createRecordingsTools(context) as unknown as Record<string, Tool>;
+      return createRecordingsTools(context);
     },
   };
 }

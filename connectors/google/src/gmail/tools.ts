@@ -238,7 +238,7 @@ export function createGmailTools(
   ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   permissions: { canSend: boolean; canModify: boolean; canManageFilters: boolean },
   config?: { tempPath?: string },
-) {
+): Record<string, Tool> {
   const { canSend, canModify, canManageFilters } = permissions;
   const tools: Record<string, Tool> = {
     gmail_search: tool({
@@ -385,32 +385,3 @@ export function createGmailTools(
 
   return tools;
 }
-
-export const GMAIL_TOOL_SUMMARIES = [
-  { name: 'gmail_search', description: 'Search Gmail messages using Gmail search syntax' },
-  { name: 'gmail_read', description: 'Read the full content of a Gmail message by ID' },
-  {
-    name: 'gmail_download_attachments',
-    description: 'Download attachments from a Gmail message by ID to temporary local files',
-  },
-  { name: 'gmail_send', description: 'Send an email or reply to a thread (requires write access)' },
-  {
-    name: 'gmail_list_labels',
-    description: 'List Gmail labels with metadata and visibility settings',
-  },
-  { name: 'gmail_get_label', description: 'Get details for a single Gmail label by ID' },
-  {
-    name: 'gmail_modify_labels',
-    description: 'Create, update, or delete Gmail labels; requires operation=create|update|delete',
-  },
-  {
-    name: 'gmail_modify_messages',
-    description:
-      'Add or remove labels on messages or threads; requires addLabelIds/removeLabelIds and cannot add SPAM and TRASH together',
-  },
-  {
-    name: 'gmail_filters',
-    description:
-      'List, get, create, or delete Gmail filters; requires operation=list|get|create|delete (requires settings access)',
-  },
-];
