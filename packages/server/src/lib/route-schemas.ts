@@ -10,7 +10,7 @@ export function paginationQuerySchema(defaults: { pageSize?: number } = {}) {
   });
 }
 
-export function prefixedId<P extends IdPrefix>(prefix: P) {
+function prefixedId<P extends IdPrefix>(prefix: P) {
   return z.custom<PrefixedString<P>>((val) => {
     return typeof val === 'string' && val.startsWith(`${prefix}_`);
   }, `Invalid ID format. Expected prefix: ${prefix}_`);
