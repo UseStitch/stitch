@@ -94,11 +94,11 @@ export function useStt(): UseSttReturn {
       }
       streamRef.current = stream;
 
-      // Set up AudioContext for PCM capture at 16 kHz
-      const audioCtx = new AudioContext({ sampleRate: 16000 });
+      // Set up AudioContext for PCM capture at 24 kHz (required by OpenAI Realtime)
+      const audioCtx = new AudioContext({ sampleRate: 24000 });
       audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
-      // 4096-sample buffer → ~256 ms at 16 kHz
+      // 4096-sample buffer → ~170 ms at 24 kHz
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
 
@@ -178,7 +178,7 @@ export function useStt(): UseSttReturn {
         providerId,
         modelId,
         capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
-        audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz: 16000 },
+        audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz: 24000 },
       };
       send(startMsg);
 
@@ -192,7 +192,7 @@ export function useStt(): UseSttReturn {
           sttSessionId: sessionId,
           source: 'mic',
           samplesB64: int16ToBase64(pcm),
-          sampleRateHz: 16000,
+          sampleRateHz: 24000,
           numSamples: pcm.length,
         });
       };

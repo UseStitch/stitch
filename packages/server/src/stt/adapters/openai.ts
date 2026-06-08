@@ -26,12 +26,11 @@ function createOpenAIRawConnection(config: STTConnectionConfig): Promise<RawConn
     const errorListeners: ((err: Error) => void)[] = [];
     const closeListeners: (() => void)[] = [];
 
-    const url = `${OPENAI_REALTIME_BASE_URL}?intent=transcription&model=${config.modelId}`;
+    const url = `${OPENAI_REALTIME_BASE_URL}?intent=transcription`;
 
     const ws = new WebSocket(url, {
       headers: {
         Authorization: `Bearer ${config.auth.kind === 'apiKey' ? config.auth.key : ''}`,
-        'OpenAI-Beta': 'realtime=v1',
       },
     } as unknown as string[]);
 
@@ -40,29 +39,32 @@ function createOpenAIRawConnection(config: STTConnectionConfig): Promise<RawConn
 
     ws.addEventListener('open', () => {
       opened = true;
+      log.info(
+        { modelId: config.modelId, commitStrategy: config.commitStrategy },
+        'WS open, sending session.update',
+      );
 
-      // Configure session
-      const sessionConfig: Record<string, unknown> = {
-        type: 'transcription_session.update',
+      // GA Realtime Transcription API shape
+      // gpt-realtime-whisper does not support turn_detection; always set to null
+      // and rely on manual commits via input_audio_buffer.commit
+      const audioInput: Record<string, unknown> = {
+        format: { type: 'audio/pcm', rate: 24000 },
+        transcription: {
+          model: config.modelId,
+          ...(config.language ? { language: config.language } : {}),
+        },
+        turn_detection: null,
+      };
+
+      const sessionConfig = {
+        type: 'session.update',
         session: {
-          input_audio_format: 'pcm16',
-          input_audio_transcription: {
-            model: config.modelId,
-            language: config.language || undefined,
-          },
+          type: 'transcription',
+          audio: { input: audioInput },
         },
       };
 
-      if (config.commitStrategy === 'native_vad') {
-        (sessionConfig['session'] as Record<string, unknown>)['turn_detection'] = {
-          type: 'server_vad',
-          threshold: 0.5,
-          silence_duration_ms: 500,
-        };
-      } else {
-        (sessionConfig['session'] as Record<string, unknown>)['turn_detection'] = null;
-      }
-
+      log.info({ sessionConfig: JSON.stringify(sessionConfig) }, 'session config payload');
       ws.send(JSON.stringify(sessionConfig));
       sessionStartMs = Date.now();
 
@@ -105,14 +107,17 @@ function createOpenAIRawConnection(config: STTConnectionConfig): Promise<RawConn
     ws.addEventListener('message', (event) => {
       try {
         const msg = JSON.parse(String(event.data)) as OpenAIRealtimeMessage;
+        log.info({ type: msg.type }, 'OpenAI WS message received');
 
         switch (msg.type) {
           case 'conversation.item.input_audio_transcription.delta': {
+            log.info({ delta: msg.delta }, 'transcript delta');
             const evt: TranscriptEvent = { kind: 'partial', text: msg.delta };
             for (const cb of transcriptListeners) cb(evt);
             break;
           }
           case 'conversation.item.input_audio_transcription.completed': {
+            log.info({ transcript: msg.transcript }, 'transcript completed');
             const evt: TranscriptEvent = { kind: 'final', text: msg.transcript };
             for (const cb of transcriptListeners) cb(evt);
 
@@ -122,10 +127,18 @@ function createOpenAIRawConnection(config: STTConnectionConfig): Promise<RawConn
             break;
           }
           case 'error': {
+            log.error({ error: msg.error }, 'OpenAI STT error message');
             const err = new Error(`OpenAI STT: ${msg.error.message}`);
             (err as Error & { code?: string }).code = msg.error.code;
             for (const cb of errorListeners) cb(err);
             break;
+          }
+          default: {
+            // log unhandled types for diagnosis
+            log.info(
+              { type: (msg as { type: string }).type, raw: JSON.stringify(msg).slice(0, 200) },
+              'unhandled OpenAI WS message',
+            );
           }
         }
       } catch (err) {
@@ -170,10 +183,9 @@ export const openaiAdapter: STTAdapter = {
   providerId: 'openai',
 
   get models(): ModelDescriptor[] {
-    return [
-      getModelDescriptor('openai', 'gpt-4o-transcribe'),
-      getModelDescriptor('openai', 'gpt-4o-mini-transcribe'),
-    ].filter((m): m is ModelDescriptor => m !== null);
+    return [getModelDescriptor('openai', 'gpt-realtime-whisper')].filter(
+      (m): m is ModelDescriptor => m !== null,
+    );
   },
 
   async connect(config: STTConnectionConfig): Promise<STTConnection> {
