@@ -197,6 +197,9 @@
     "registries/mcp": {
       "name": "@stitch/registry-mcp",
     },
+    "registries/stt": {
+      "name": "@stitch/registry-stt",
+    },
   },
   "catalog": {
     "@types/bun": "latest",
@@ -911,6 +914,8 @@
     "@stitch/registry-live-transcription": ["@stitch/registry-live-transcription@workspace:registries/live-transcription"],
 
     "@stitch/registry-mcp": ["@stitch/registry-mcp@workspace:registries/mcp"],
+
+    "@stitch/registry-stt": ["@stitch/registry-stt@workspace:registries/stt"],
 
     "@stitch/sandbox": ["@stitch/sandbox@workspace:packages/sandbox"],
 

@@ -101,10 +101,9 @@ function createOpenAITransport(config: STTConnectionConfig) {
 export const openaiAdapter: STTAdapter = {
   providerId: 'openai',
 
-  get models(): ModelDescriptor[] {
-    return [getModelDescriptor('openai', 'gpt-realtime-whisper')].filter(
-      (m): m is ModelDescriptor => m !== null,
-    );
+  async models(): Promise<ModelDescriptor[]> {
+    const descriptor = await getModelDescriptor('openai', 'gpt-realtime-whisper');
+    return descriptor ? [descriptor] : [];
   },
 
   async connect(config: STTConnectionConfig): Promise<STTConnection> {

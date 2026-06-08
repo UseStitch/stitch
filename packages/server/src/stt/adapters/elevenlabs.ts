@@ -144,10 +144,9 @@ function createElevenLabsTransport(config: STTConnectionConfig) {
 export const elevenlabsAdapter: STTAdapter = {
   providerId: 'elevenlabs',
 
-  get models(): ModelDescriptor[] {
-    return [getModelDescriptor('elevenlabs', 'scribe_v2_realtime')].filter(
-      (m): m is ModelDescriptor => m !== null,
-    );
+  async models(): Promise<ModelDescriptor[]> {
+    const descriptor = await getModelDescriptor('elevenlabs', 'scribe_v2_realtime');
+    return descriptor ? [descriptor] : [];
   },
 
   async connect(config: STTConnectionConfig): Promise<STTConnection> {

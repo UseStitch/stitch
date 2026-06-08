@@ -5,7 +5,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import * as EmbeddingModels from '@/llm/provider/embedding-models.js';
 import * as Models from '@/llm/provider/models.js';
 import * as TranscriptionModels from '@/llm/provider/transcription-models.js';
-import { MODEL_CATALOG } from '@/stt/models.js';
+import { getModelCatalog } from '@/stt/models.js';
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding' | 'transcription';
 
@@ -33,12 +33,14 @@ export async function listProvidersWithCapabilities(): Promise<
   ServiceResult<ProviderWithCapabilities[]>
 > {
   const db = getDb();
-  const [llmProviders, embeddingProviders, transcriptionProviders, configs] = await Promise.all([
-    Models.get(),
-    EmbeddingModels.getEmbeddingModels(),
-    TranscriptionModels.getTranscriptionModels(),
-    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
-  ]);
+  const [llmProviders, embeddingProviders, transcriptionProviders, sttCatalog, configs] =
+    await Promise.all([
+      Models.get(),
+      EmbeddingModels.getEmbeddingModels(),
+      TranscriptionModels.getTranscriptionModels(),
+      getModelCatalog(),
+      db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+    ]);
 
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
@@ -61,7 +63,7 @@ export async function listProvidersWithCapabilities(): Promise<
     ensureEntry(provider.providerId).add('transcription');
   }
 
-  for (const entry of MODEL_CATALOG) {
+  for (const entry of sttCatalog) {
     ensureEntry(entry.providerId).add('stt');
   }
 
@@ -123,13 +125,15 @@ export async function listProvidersWithCapabilities(): Promise<
 
 export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderModelsSummary[]>> {
   const db = getDb();
-  const configs = await db.select({ providerId: providerConfig.providerId }).from(providerConfig);
+  const [configs, sttCatalog, llmProviders] = await Promise.all([
+    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+    getModelCatalog(),
+    Models.get(),
+  ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  const llmProviders = await Models.get();
-
   const results: SttProviderModelsSummary[] = [];
-  for (const entry of MODEL_CATALOG) {
+  for (const entry of sttCatalog) {
     if (!enabledIds.has(entry.providerId)) continue;
     const providerName = llmProviders[entry.providerId]?.name ?? entry.providerId;
     results.push({

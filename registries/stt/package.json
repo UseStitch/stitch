@@ -1,0 +1,9 @@
+{
+  "name": "@stitch/registry-stt",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./models/openai.json": "./models/openai.json",
+    "./models/elevenlabs.json": "./models/elevenlabs.json"
+  }
+}

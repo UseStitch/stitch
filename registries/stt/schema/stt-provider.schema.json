@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usestitch.ai/schemas/stt-provider.schema.json",
+  "title": "Stitch STT Provider Registry Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["providerId", "providerName", "models"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor tooling"
+    },
+    "providerId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "providerName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "modelId",
+          "displayName",
+          "capabilities",
+          "inputFormat",
+          "partialStrategy",
+          "buffer",
+          "reconnect",
+          "pricing"
+        ],
+        "properties": {
+          "modelId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique model identifier"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable model name"
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "partials",
+              "word_timestamps",
+              "utterance_timestamps",
+              "diarization",
+              "native_vad",
+              "language_detection",
+              "keyterm_biasing"
+            ],
+            "properties": {
+              "partials": { "type": "boolean" },
+              "word_timestamps": { "type": "boolean" },
+              "utterance_timestamps": { "type": "boolean" },
+              "diarization": { "type": "boolean" },
+              "native_vad": { "type": "boolean" },
+              "language_detection": { "type": "boolean" },
+              "keyterm_biasing": { "type": "boolean" }
+            }
+          },
+          "inputFormat": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["encoding", "sampleRateHz", "channels"],
+            "properties": {
+              "encoding": {
+                "type": "string",
+                "enum": ["pcm_s16le", "f32le"]
+              },
+              "sampleRateHz": {
+                "type": "integer",
+                "minimum": 8000
+              },
+              "channels": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "partialStrategy": {
+            "type": "string",
+            "enum": ["cumulative", "incremental"]
+          },
+          "buffer": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["maxChunkBytes", "flushIntervalMs", "maxBufferedMs", "paceRealtime"],
+            "properties": {
+              "maxChunkBytes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "flushIntervalMs": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "maxBufferedMs": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "paceRealtime": {
+                "type": "boolean"
+              }
+            }
+          },
+          "reconnect": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["enabled", "maxRetries", "backoffMs"],
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "maxRetries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "backoffMs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rotateBeforeMs": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Proactively rotate the connection before this many milliseconds elapse"
+              }
+            }
+          },
+          "pricing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type"],
+            "description": "Cost information for this model",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["token", "duration"]
+              },
+              "perMillionTokens": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Cost in USD per 1M tokens. Used when type=token.",
+                "properties": {
+                  "audioInput": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "textOutput": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              },
+              "perMinuteUsd": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Cost in USD per minute of audio. Used when type=duration."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
