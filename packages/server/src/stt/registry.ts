@@ -73,33 +73,6 @@ export const MODEL_CATALOG: CatalogEntry[] = [
       },
     ],
   },
-  {
-    providerId: 'google',
-    models: [
-      {
-        modelId: 'chirp_3',
-        displayName: 'Chirp 3 (STT v2)',
-        capabilities: {
-          partials: true,
-          word_timestamps: true,
-          utterance_timestamps: true,
-          diarization: false,
-          native_vad: true,
-          language_detection: true,
-          keyterm_biasing: false,
-        },
-        inputFormat: { encoding: 'pcm_s16le', sampleRateHz: 16000, channels: 1 },
-        buffer: {
-          maxChunkBytes: 25_000,
-          flushIntervalMs: 60,
-          maxBufferedMs: 15_000,
-          paceRealtime: false,
-        },
-        reconnect: { enabled: true, maxRetries: 5, backoffMs: 1000, rotateBeforeMs: 4 * 60 * 1000 },
-        pricing: { type: 'duration', perMinuteUsd: 0.016 },
-      },
-    ],
-  },
 ];
 
 export function getModelDescriptor(providerId: string, modelId: string): ModelDescriptor | null {

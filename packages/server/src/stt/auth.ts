@@ -33,11 +33,6 @@ export async function resolveSttAuth(providerId: string): Promise<ProviderAuth |
       if (!apiKey) return null;
       return { kind: 'apiKey', key: apiKey };
     }
-    case 'google': {
-      const apiKey = (auth as { apiKey?: string }).apiKey;
-      if (!apiKey) return null;
-      return { kind: 'apiKey', key: apiKey };
-    }
     default:
       return null;
   }
