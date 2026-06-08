@@ -136,6 +136,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
                   sttSessionId: message.sttSessionId,
                   providerId: message.providerId,
                   modelId: message.modelId,
+                  service: 'chat-input',
                   capabilityRequest: message.capabilityRequest,
                   language: message.language,
                   keyterms: message.keyterms,

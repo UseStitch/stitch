@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 import type {
   AudioChunk,
@@ -11,6 +12,7 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { userSettings } from '@/db/schema/settings.js';
+import { sttUsageEvents, type SttService } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
 import type { STTConnection } from '@/stt/adapter-iface.js';
 import { resolveSttAuth } from '@/stt/auth.js';
@@ -31,6 +33,7 @@ type STTSessionConfig = {
   sttSessionId: string;
   providerId: string;
   modelId: string;
+  service: SttService;
   capabilityRequest: CapabilityRequest;
   language?: string;
   keyterms?: string[];
@@ -72,7 +75,8 @@ export async function createSTTSession(
   config: STTSessionConfig,
   deps: STTSessionDeps,
 ): Promise<STTSession> {
-  const { sttSessionId, providerId, modelId, capabilityRequest, language, keyterms } = config;
+  const { sttSessionId, providerId, modelId, service, capabilityRequest, language, keyterms } =
+    config;
 
   log.info({ sttSessionId, providerId, modelId }, 'creating STT session');
 
@@ -164,6 +168,7 @@ export async function createSTTSession(
   let primaryConnection: STTConnection | null = null;
 
   // Usage tracking
+  const startedAt = Date.now();
   let totalUsage: STTUsage = { durationMs: 0 };
 
   async function openConnectionForSource(source: AudioSource): Promise<STTConnection> {
@@ -276,6 +281,19 @@ export async function createSTTSession(
     );
 
     const costUsd = calculateCost(model.pricing, totalUsage);
+    const endedAt = Date.now();
+
+    const db = getDb();
+    await db.insert(sttUsageEvents).values({
+      id: randomUUID(),
+      providerId,
+      modelId,
+      service,
+      costUsd,
+      rawData: totalUsage,
+      startedAt,
+      endedAt,
+    });
 
     log.info(
       { sttSessionId, providerId, modelId, costUsd, durationMs: totalUsage.durationMs },

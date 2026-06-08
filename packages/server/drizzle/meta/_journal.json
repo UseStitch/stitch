@@ -225,6 +225,13 @@
       "when": 1780865790791,
       "tag": "0031_daily_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1780893750152,
+      "tag": "0032_tearful_black_cat",
+      "breakpoints": true
     }
   ]
 }
