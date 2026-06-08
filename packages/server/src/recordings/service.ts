@@ -22,6 +22,7 @@ import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getModelDescriptor } from '@/stt/models.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
@@ -334,6 +335,9 @@ export async function stopRecording(
         updatedAt: Date.now(),
       })
       .where(eq(recordingAnalyses.recordingId, current.id));
+
+    // Final flush of in-memory transcript to the database
+    await finalFlushAndCleanup(current.id);
 
     log.info(
       {

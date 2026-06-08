@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import type { PrefixedString } from '@stitch/shared/id';
 import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
+import { pushTranscriptEvent, startTranscriptCollection } from '@/recordings/transcript-store.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -122,6 +124,11 @@ async function handleStart(
 
     state.session = session;
 
+    // Start in-memory transcript collection for meeting recordings
+    if (message.service === 'meeting-recording' && state.recordingId) {
+      startTranscriptCollection(state.recordingId as PrefixedString<'rec'>);
+    }
+
     session.onTranscript((evt) => {
       send(ws, {
         type: 'transcript',
@@ -135,10 +142,20 @@ async function handleStart(
 
       // Emit SSE event for recording transcripts so the FE can display them live
       if (message.service === 'meeting-recording' && state.recordingId) {
+        const source = evt.speaker === 'Them' ? 'speaker' : 'mic';
+
         Events.emit('recording-transcript-entry', {
           recordingId: state.recordingId,
           kind: evt.kind,
-          source: evt.speaker === 'Them' ? 'speaker' : 'mic',
+          source,
+          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          content: evt.text,
+        });
+
+        // Accumulate all transcript events (partial + final) in the store for DB persistence
+        pushTranscriptEvent(state.recordingId as PrefixedString<'rec'>, {
+          kind: evt.kind,
+          source: source,
           speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
           content: evt.text,
         });
