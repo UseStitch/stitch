@@ -3,6 +3,7 @@ import type { RegisteredJob } from '@stitch/scheduler';
 
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
+import * as EmbeddingRegistry from '@/llm/provider/embedding-registry.js';
 import * as ModelsDev from '@/llm/provider/models.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
@@ -18,6 +19,7 @@ const LOG_CLEANUP_INTERVAL_MS = 24 * HOUR_MS;
 const MEMORY_MAINTENANCE_INTERVAL_MS = 6 * HOUR_MS;
 const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 const STT_REGISTRY_REFRESH_INTERVAL_MS = 6 * HOUR_MS;
+const EMBEDDING_REGISTRY_REFRESH_INTERVAL_MS = 6 * HOUR_MS;
 const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 const MCP_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 const MCP_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -50,6 +52,12 @@ function getBuiltinJobs(): RegisteredJob[] {
       key: 'stt-registry-refresh',
       schedule: { type: 'interval', everyMs: STT_REGISTRY_REFRESH_INTERVAL_MS },
       callback: () => SttRegistry.refresh(),
+      immediate: true,
+    },
+    {
+      key: 'embedding-registry-refresh',
+      schedule: { type: 'interval', everyMs: EMBEDDING_REGISTRY_REFRESH_INTERVAL_MS },
+      callback: () => EmbeddingRegistry.refresh(),
       immediate: true,
     },
     {
