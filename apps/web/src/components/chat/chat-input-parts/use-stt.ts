@@ -52,7 +52,7 @@ export function useStt(): UseSttReturn {
   const wsRef = React.useRef<WebSocket | null>(null);
   const streamRef = React.useRef<MediaStream | null>(null);
   const audioCtxRef = React.useRef<AudioContext | null>(null);
-  const processorRef = React.useRef<ScriptProcessorNode | null>(null);
+  const workletRef = React.useRef<AudioWorkletNode | null>(null);
   const sessionIdRef = React.useRef<string>('');
   const finalTextRef = React.useRef<string>('');
   const stopResolveRef = React.useRef<((text: string) => void) | null>(null);
@@ -60,8 +60,9 @@ export function useStt(): UseSttReturn {
 
   // Cleanup all audio and WS resources.
   const cleanup = React.useCallback(() => {
-    processorRef.current?.disconnect();
-    processorRef.current = null;
+    workletRef.current?.disconnect();
+    workletRef.current?.port.close();
+    workletRef.current = null;
     audioCtxRef.current?.close().catch(() => undefined);
     audioCtxRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -98,9 +99,11 @@ export function useStt(): UseSttReturn {
       const audioCtx = new AudioContext({ sampleRate: 24000 });
       audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
-      // 4096-sample buffer → ~170 ms at 24 kHz
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
+
+      // Load AudioWorklet processor module
+      await audioCtx.audioWorklet.addModule('/pcm-capture-processor.js');
+      const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor');
+      workletRef.current = workletNode;
 
       // Open WebSocket
       const ws = new WebSocket(toWsUrl(serverUrl));
@@ -182,10 +185,10 @@ export function useStt(): UseSttReturn {
       };
       send(startMsg);
 
-      // Wire up audio processor
-      processor.onaudioprocess = (e) => {
+      // Wire up audio worklet message handler
+      workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
-        const f32 = e.inputBuffer.getChannelData(0);
+        const f32 = new Float32Array(e.data);
         const pcm = encodeF32ToPcmS16le(f32);
         send({
           type: 'chunk',
@@ -197,8 +200,8 @@ export function useStt(): UseSttReturn {
         });
       };
 
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
+      source.connect(workletNode);
+      workletNode.connect(audioCtx.destination);
 
       setState('recording');
     },
@@ -209,7 +212,7 @@ export function useStt(): UseSttReturn {
     if (state !== 'recording') return Promise.resolve('');
 
     setState('stopping');
-    processorRef.current?.disconnect();
+    workletRef.current?.disconnect();
 
     return new Promise<string>((resolve, reject) => {
       stopResolveRef.current = resolve;
