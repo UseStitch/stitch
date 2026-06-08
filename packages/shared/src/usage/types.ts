@@ -52,3 +52,32 @@ export type UsageDashboardResponse = {
   };
   buckets: UsageBucket[];
 };
+
+export type SttUsageBucket = {
+  start: number;
+  end: number;
+  label: string;
+  costUsdByService: Record<string, number>;
+  durationMsByService: Record<string, number>;
+};
+
+export type SttUsageDashboardResponse = {
+  range: {
+    from: number;
+    to: number;
+    granularity: UsageBucketGranularity;
+    bucketCount: number;
+  };
+  filters: {
+    providerId: string | null;
+    modelId: string | null;
+  };
+  usedProviders: string[];
+  usedModels: Array<{ providerId: string; modelId: string }>;
+  services: string[];
+  totals: {
+    costUsd: number;
+    durationMs: number;
+  };
+  buckets: SttUsageBucket[];
+};

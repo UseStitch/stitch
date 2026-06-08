@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { USAGE_DATE_RANGES } from '@stitch/shared/usage/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { getUsageDashboard } from '@/usage/service.js';
+import { getSttUsageDashboard, getUsageDashboard } from '@/usage/service.js';
 
 const usageQuerySchema = z.object({
   providerId: z.string().optional(),
@@ -21,5 +21,12 @@ usageRouter.get('/', zValidator('query', usageQuerySchema), async (c) => {
   const { providerId, modelId, range, from, to } = c.req.valid('query');
 
   const result = await getUsageDashboard({ providerId, modelId, range, from, to });
+  return unwrapResult(c, result);
+});
+
+usageRouter.get('/stt', zValidator('query', usageQuerySchema), async (c) => {
+  const { providerId, modelId, range, from, to } = c.req.valid('query');
+
+  const result = await getSttUsageDashboard({ providerId, modelId, range, from, to });
   return unwrapResult(c, result);
 });

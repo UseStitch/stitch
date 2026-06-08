@@ -9,13 +9,18 @@ import {
   PageIcon,
   PageTitle,
 } from '@/components/ui/page';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SttUsageCostChart } from '@/components/usage/stt-usage-cost-chart';
+import { SttUsageSummaryCards } from '@/components/usage/stt-usage-summary-cards';
 import { UsageDashboardCostChart } from '@/components/usage/usage-dashboard-cost-chart';
 import { UsageDashboardFilters } from '@/components/usage/usage-dashboard-filters';
 import { UsageDashboardSummaryCards } from '@/components/usage/usage-dashboard-summary-cards';
+import { useSttUsageDashboardData } from '@/components/usage/use-stt-usage-dashboard-data';
 import { useUsageDashboardData } from '@/components/usage/use-usage-dashboard-data';
 
 export function UsageDashboardPage() {
-  const dashboard = useUsageDashboardData();
+  const llm = useUsageDashboardData();
+  const stt = useSttUsageDashboardData(llm.filters.range);
 
   return (
     <Page className="thin-scrollbar">
@@ -34,23 +39,42 @@ export function UsageDashboardPage() {
           </PageHeaderContent>
         </PageHeader>
 
-        <UsageDashboardFilters
-          availableModels={dashboard.availableModels}
-          availableProviders={dashboard.availableProviders}
-          filters={dashboard.filters}
-          labels={dashboard.labels}
-          isFetching={dashboard.isFetching}
-          onModelChange={dashboard.setModelFilter}
-          onProviderChange={dashboard.setProviderFilter}
-          onRangeChange={dashboard.setRangeFilter}
-        />
+        <Tabs defaultValue="llm">
+          <TabsList variant="line">
+            <TabsTrigger value="llm">LLM</TabsTrigger>
+            <TabsTrigger value="stt">Speech-to-Text</TabsTrigger>
+          </TabsList>
 
-        <UsageDashboardSummaryCards
-          rangeLabel={dashboard.labels.range}
-          usageData={dashboard.usageData}
-        />
+          <TabsContent value="llm" className="mt-4 flex flex-col gap-4">
+            <UsageDashboardFilters
+              availableModels={llm.availableModels}
+              availableProviders={llm.availableProviders}
+              filters={llm.filters}
+              labels={llm.labels}
+              isFetching={llm.isFetching}
+              onModelChange={llm.setModelFilter}
+              onProviderChange={llm.setProviderFilter}
+              onRangeChange={llm.setRangeFilter}
+            />
+            <UsageDashboardSummaryCards rangeLabel={llm.labels.range} usageData={llm.usageData} />
+            <UsageDashboardCostChart usageData={llm.usageData} />
+          </TabsContent>
 
-        <UsageDashboardCostChart usageData={dashboard.usageData} />
+          <TabsContent value="stt" className="mt-4 flex flex-col gap-4">
+            <UsageDashboardFilters
+              availableModels={stt.availableModels}
+              availableProviders={stt.availableProviders}
+              filters={stt.filters}
+              labels={stt.labels}
+              isFetching={stt.isFetching}
+              onModelChange={stt.setModelFilter}
+              onProviderChange={stt.setProviderFilter}
+              onRangeChange={llm.setRangeFilter}
+            />
+            <SttUsageSummaryCards rangeLabel={stt.labels.range} usageData={stt.usageData} />
+            <SttUsageCostChart usageData={stt.usageData} />
+          </TabsContent>
+        </Tabs>
       </PageContent>
     </Page>
   );
