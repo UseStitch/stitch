@@ -158,6 +158,7 @@
         "@stitch-connectors/google": "workspace:*",
         "@stitch-connectors/sdk": "workspace:*",
         "@stitch/registry-embeddings": "workspace:*",
+        "@stitch/registry-stt": "workspace:*",
         "@stitch/sandbox": "workspace:*",
         "@stitch/scheduler": "workspace:*",
         "@stitch/shared": "workspace:*",
@@ -196,6 +197,9 @@
     },
     "registries/mcp": {
       "name": "@stitch/registry-mcp",
+    },
+    "registries/stt": {
+      "name": "@stitch/registry-stt",
     },
   },
   "catalog": {
@@ -911,6 +915,8 @@
     "@stitch/registry-live-transcription": ["@stitch/registry-live-transcription@workspace:registries/live-transcription"],
 
     "@stitch/registry-mcp": ["@stitch/registry-mcp@workspace:registries/mcp"],
+
+    "@stitch/registry-stt": ["@stitch/registry-stt@workspace:registries/stt"],
 
     "@stitch/sandbox": ["@stitch/sandbox@workspace:packages/sandbox"],
 

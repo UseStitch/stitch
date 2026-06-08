@@ -14,10 +14,14 @@ const embeddingSchemaDir = join(embeddingsRegistryDir, 'schema');
 const liveTranscriptionRegistryDir = join(rootDir, 'registries', 'live-transcription');
 const liveTranscriptionModelsDir = join(liveTranscriptionRegistryDir, 'models');
 const liveTranscriptionSchemaDir = join(liveTranscriptionRegistryDir, 'schema');
+const sttRegistryDir = join(rootDir, 'registries', 'stt');
+const sttModelsDir = join(sttRegistryDir, 'models');
+const sttSchemaDir = join(sttRegistryDir, 'schema');
 const outputDir = join(rootDir, 'apps', 'website', 'dist');
 const outputFile = join(outputDir, 'mcp-registry.json');
 const embeddingOutputFile = join(outputDir, 'embedding-models.json');
 const liveTranscriptionOutputFile = join(outputDir, 'live-transcription-models.json');
+const sttOutputFile = join(outputDir, 'stt-models.json');
 const websiteBaseUrl = 'https://usestitch.ai';
 
 function readJson(path) {
@@ -267,6 +271,78 @@ function assertLiveTranscriptionProviderConfig(provider, filePath) {
   }
 }
 
+function assertSttModel(model, filePath) {
+  assert(model && typeof model === 'object', `${filePath}: model must be an object`);
+  assert(
+    typeof model.modelId === 'string' && model.modelId.length > 0,
+    `${filePath}: model.modelId is required`,
+  );
+  assert(
+    typeof model.displayName === 'string' && model.displayName.length > 0,
+    `${filePath}: model.displayName is required`,
+  );
+  assert(
+    model.capabilities && typeof model.capabilities === 'object',
+    `${filePath}: model.capabilities is required`,
+  );
+  assert(
+    model.inputFormat && typeof model.inputFormat === 'object',
+    `${filePath}: model.inputFormat is required`,
+  );
+  assert(
+    model.inputFormat.encoding === 'pcm_s16le' || model.inputFormat.encoding === 'f32le',
+    `${filePath}: model.inputFormat.encoding must be pcm_s16le or f32le`,
+  );
+  assert(
+    Number.isInteger(model.inputFormat.sampleRateHz) && model.inputFormat.sampleRateHz >= 8000,
+    `${filePath}: model.inputFormat.sampleRateHz must be an integer >= 8000`,
+  );
+  assert(
+    Number.isInteger(model.inputFormat.channels) && model.inputFormat.channels >= 1,
+    `${filePath}: model.inputFormat.channels must be a positive integer`,
+  );
+  assert(
+    model.partialStrategy === 'cumulative' || model.partialStrategy === 'incremental',
+    `${filePath}: model.partialStrategy must be cumulative or incremental`,
+  );
+  assert(model.buffer && typeof model.buffer === 'object', `${filePath}: model.buffer is required`);
+  assert(
+    model.reconnect && typeof model.reconnect === 'object',
+    `${filePath}: model.reconnect is required`,
+  );
+  assert(
+    model.pricing && typeof model.pricing === 'object',
+    `${filePath}: model.pricing is required`,
+  );
+  assert(
+    model.pricing.type === 'token' || model.pricing.type === 'duration',
+    `${filePath}: model.pricing.type must be token or duration`,
+  );
+}
+
+function assertSttProviderConfig(provider, filePath) {
+  assert(provider && typeof provider === 'object', `${filePath}: config must be an object`);
+  assert(
+    typeof provider.providerId === 'string' && provider.providerId.length > 0,
+    `${filePath}: providerId is required`,
+  );
+  assert(
+    typeof provider.providerName === 'string' && provider.providerName.length > 0,
+    `${filePath}: providerName is required`,
+  );
+  assert(
+    Array.isArray(provider.models) && provider.models.length > 0,
+    `${filePath}: models must be a non-empty array`,
+  );
+
+  const ids = new Set();
+  for (const model of provider.models) {
+    assertSttModel(model, filePath);
+    assert(!ids.has(model.modelId), `${filePath}: duplicate model id ${model.modelId}`);
+    ids.add(model.modelId);
+  }
+}
+
 function loadServerConfigs() {
   const entries = readdirSync(serversDir, { withFileTypes: true }).filter((entry) =>
     entry.isDirectory(),
@@ -347,7 +423,27 @@ function loadLiveTranscriptionProviderConfigs() {
   return providers.toSorted((a, b) => a.providerName.localeCompare(b.providerName));
 }
 
-function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
+function loadSttProviderConfigs() {
+  const files = readdirSync(sttModelsDir)
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => join(sttModelsDir, name));
+
+  const providers = files.map((filePath) => {
+    const parsed = readJson(filePath);
+    assertSttProviderConfig(parsed, filePath);
+    return parsed;
+  });
+
+  const ids = new Set();
+  for (const provider of providers) {
+    assert(!ids.has(provider.providerId), `Duplicate STT provider id: ${provider.providerId}`);
+    ids.add(provider.providerId);
+  }
+
+  return providers.toSorted((a, b) => a.providerName.localeCompare(b.providerName));
+}
+
+function writeOutput(servers, embeddingProviders, liveTranscriptionProviders, sttProviders) {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(join(outputDir, 'schemas'), { recursive: true });
   mkdirSync(join(outputDir, 'mcp', 'servers'), { recursive: true });
@@ -364,6 +460,10 @@ function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
   cpSync(
     join(liveTranscriptionSchemaDir, 'live-transcription-provider.schema.json'),
     join(outputDir, 'schemas', 'live-transcription-provider.schema.json'),
+  );
+  cpSync(
+    join(sttSchemaDir, 'stt-provider.schema.json'),
+    join(outputDir, 'schemas', 'stt-provider.schema.json'),
   );
 
   for (const server of servers) {
@@ -401,13 +501,22 @@ function writeOutput(servers, embeddingProviders, liveTranscriptionProviders) {
     `${JSON.stringify(liveTranscriptionPayload, null, 2)}\n`,
     'utf8',
   );
+
+  const sttPayload = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    providers: sttProviders,
+  };
+
+  writeFileSync(sttOutputFile, `${JSON.stringify(sttPayload, null, 2)}\n`, 'utf8');
 }
 
 function main() {
   const servers = loadServerConfigs();
   const embeddingProviders = loadEmbeddingProviderConfigs();
   const liveTranscriptionProviders = loadLiveTranscriptionProviderConfigs();
-  writeOutput(servers, embeddingProviders, liveTranscriptionProviders);
+  const sttProviders = loadSttProviderConfigs();
+  writeOutput(servers, embeddingProviders, liveTranscriptionProviders, sttProviders);
   console.log(`Built MCP registry with ${servers.length} server(s): ${outputFile}`);
   console.log(
     `Built embedding registry with ${embeddingProviders.length} provider(s): ${embeddingOutputFile}`,
@@ -415,6 +524,7 @@ function main() {
   console.log(
     `Built live transcription registry with ${liveTranscriptionProviders.length} provider(s): ${liveTranscriptionOutputFile}`,
   );
+  console.log(`Built STT registry with ${sttProviders.length} provider(s): ${sttOutputFile}`);
 }
 
 main();
