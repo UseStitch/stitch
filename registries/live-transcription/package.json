@@ -1,8 +1,0 @@
-{
-  "name": "@stitch/registry-live-transcription",
-  "private": true,
-  "type": "module",
-  "exports": {
-    "./models/google.json": "./models/google.json"
-  }
-}

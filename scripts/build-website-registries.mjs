@@ -153,48 +153,6 @@ function assertEmbeddingProviderConfig(provider, filePath) {
   }
 }
 
-// --- Live transcription model validation ---
-
-function assertLiveTranscriptionModel(model, filePath) {
-  assertObject(model, filePath, 'model');
-  assertNonEmptyString(model.id, filePath, 'model.id');
-  assertNonEmptyString(model.name, filePath, 'model.name');
-  assert(
-    typeof model.endpoint === 'string' && model.endpoint.startsWith('wss://'),
-    `${filePath}: model.endpoint must be a wss:// URL`,
-  );
-  assertObject(model.audio, filePath, 'model.audio');
-  assert(
-    Number.isInteger(model.audio.sampleRate) && model.audio.sampleRate >= 8000,
-    `${filePath}: model.audio.sampleRate must be an integer >= 8000`,
-  );
-  assertPositiveInt(model.audio.channels, filePath, 'model.audio.channels');
-  assert(
-    model.audio.encoding === 'pcm_s16le',
-    `${filePath}: model.audio.encoding must be pcm_s16le`,
-  );
-  assertObject(model.connection, filePath, 'model.connection');
-  assertOneOf(model.connection.mode, ['per-source', 'single'], filePath, 'model.connection.mode');
-  assertOneOf(
-    model.connection.authMethod,
-    ['query-param', 'header'],
-    filePath,
-    'model.connection.authMethod',
-  );
-  assertOptionalNonEmptyArray(model.supportedLanguages, filePath, 'model.supportedLanguages');
-}
-
-function assertLiveTranscriptionProviderConfig(provider, filePath) {
-  assertObject(provider, filePath, 'config');
-  assertOneOf(provider.providerId, ['google', 'openai'], filePath, 'providerId');
-  assertNonEmptyString(provider.providerName, filePath, 'providerName');
-  assertNonEmptyArray(provider.models, filePath, 'models');
-  assertUniqueIds(provider.models, (m) => m.id, filePath);
-  for (const model of provider.models) {
-    assertLiveTranscriptionModel(model, filePath);
-  }
-}
-
 // --- STT model validation ---
 
 function assertSttModel(model, filePath) {
@@ -326,16 +284,6 @@ function copySchemas() {
       dest: 'embedding-provider.schema.json',
     },
     {
-      src: join(
-        rootDir,
-        'registries',
-        'live-transcription',
-        'schema',
-        'live-transcription-provider.schema.json',
-      ),
-      dest: 'live-transcription-provider.schema.json',
-    },
-    {
       src: join(rootDir, 'registries', 'stt', 'schema', 'stt-provider.schema.json'),
       dest: 'stt-provider.schema.json',
     },
@@ -357,7 +305,7 @@ function copyServerLogos(servers) {
   }
 }
 
-function writeOutput(servers, embeddingProviders, liveTranscriptionProviders, sttProviders) {
+function writeOutput(servers, embeddingProviders, sttProviders) {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(join(outputDir, 'mcp', 'servers'), { recursive: true });
 
@@ -377,12 +325,6 @@ function writeOutput(servers, embeddingProviders, liveTranscriptionProviders, st
     providers: embeddingProviders,
   });
 
-  writeRegistryJson(join(outputDir, 'live-transcription-models.json'), {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    providers: liveTranscriptionProviders,
-  });
-
   writeRegistryJson(join(outputDir, 'stt-models.json'), {
     version: 1,
     generatedAt: new Date().toISOString(),
@@ -399,27 +341,19 @@ function main() {
     assertEmbeddingProviderConfig,
     'embedding',
   );
-  const liveTranscriptionProviders = loadProviderConfigs(
-    join(rootDir, 'registries', 'live-transcription', 'models'),
-    assertLiveTranscriptionProviderConfig,
-    'live transcription',
-  );
   const sttProviders = loadProviderConfigs(
     join(rootDir, 'registries', 'stt', 'models'),
     assertSttProviderConfig,
     'STT',
   );
 
-  writeOutput(servers, embeddingProviders, liveTranscriptionProviders, sttProviders);
+  writeOutput(servers, embeddingProviders, sttProviders);
 
   console.log(
     `Built MCP registry with ${servers.length} server(s): ${join(outputDir, 'mcp-registry.json')}`,
   );
   console.log(
     `Built embedding registry with ${embeddingProviders.length} provider(s): ${join(outputDir, 'embedding-models.json')}`,
-  );
-  console.log(
-    `Built live transcription registry with ${liveTranscriptionProviders.length} provider(s): ${join(outputDir, 'live-transcription-models.json')}`,
   );
   console.log(
     `Built STT registry with ${sttProviders.length} provider(s): ${join(outputDir, 'stt-models.json')}`,
