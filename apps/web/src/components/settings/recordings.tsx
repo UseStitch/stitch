@@ -22,7 +22,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import {
   audioProviderModelsQueryOptions,
-  transcriptionProviderModelsQueryOptions,
+  sttProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
 import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
@@ -199,9 +199,7 @@ function AudioDeviceSettings() {
 function RecordingsContent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: transcriptionProviderModels } = useSuspenseQuery(
-    transcriptionProviderModelsQueryOptions,
-  );
+  const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
@@ -216,6 +214,13 @@ function RecordingsContent() {
   const canEnableAutoAnalyze = hasTranscriptionModel && hasAnalysisModel;
   const autoAnalyzeDisabled =
     saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
+
+  // Map STT models to ProviderModels shape for the model select component
+  const transcriptionProviderModels: ProviderModels[] = sttProviderModels.map((p) => ({
+    providerId: p.providerId,
+    providerName: p.providerName,
+    models: p.models.map((m) => ({ id: m.id, name: m.name })),
+  }));
 
   const providerModelsForPref = (providerIdKey: string): ProviderModels[] => {
     if (providerIdKey === 'recordings.transcription.providerId') return transcriptionProviderModels;
