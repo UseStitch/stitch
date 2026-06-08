@@ -12,6 +12,8 @@ export type ReconnectConfig = {
   rotateBeforeMs?: number;
 };
 
+export type PartialStrategy = 'cumulative' | 'incremental';
+
 export type STTPricing =
   | { type: 'token'; perMillionTokens: { audioInput: number; textOutput: number } }
   | { type: 'duration'; perMinuteUsd: number };
@@ -21,6 +23,7 @@ export type ModelDescriptor = {
   displayName: string;
   capabilities: Record<import('@stitch/shared/stt/types').STTCapability, boolean>;
   inputFormat: import('@stitch/shared/stt/types').AudioFormat;
+  partialStrategy: PartialStrategy;
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   pricing: STTPricing;
@@ -37,6 +40,7 @@ export type STTConnectionConfig = {
   language?: string;
   capabilities: import('@stitch/shared/stt/types').CapabilityResolution;
   commitStrategy: CommitStrategy;
+  partialStrategy: PartialStrategy;
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   keyterms?: string[];

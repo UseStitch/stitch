@@ -147,6 +147,7 @@ export async function createSTTSession(
     language,
     capabilities: capabilityResolution,
     commitStrategy,
+    partialStrategy: model.partialStrategy,
     buffer: model.buffer,
     reconnect: model.reconnect,
     keyterms,

@@ -2,13 +2,14 @@ import type { AudioChunk, TranscriptEvent, STTUsage } from '@stitch/shared/stt/t
 
 import * as Log from '@/lib/log.js';
 import type { STTConnection, STTTransport } from '@/stt/adapter-iface.js';
-import type { BufferConfig, ReconnectConfig } from '@/stt/types.js';
+import type { BufferConfig, PartialStrategy, ReconnectConfig } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.base-adapter' });
 
 type ManagedConnectionConfig = {
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
+  partialStrategy: PartialStrategy;
   isFatal: (err: Error) => boolean;
   openConnection: () => Promise<STTTransport>;
 };
@@ -32,7 +33,13 @@ function chunkDurationMs(chunk: AudioChunk): number {
 export async function createManagedConnection(
   config: ManagedConnectionConfig,
 ): Promise<STTConnection> {
-  const { buffer: bufferConfig, reconnect: reconnectConfig, isFatal, openConnection } = config;
+  const {
+    buffer: bufferConfig,
+    reconnect: reconnectConfig,
+    partialStrategy,
+    isFatal,
+    openConnection,
+  } = config;
 
   const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
   const usageListeners: ((u: STTUsage) => void)[] = [];
@@ -47,6 +54,9 @@ export async function createManagedConnection(
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingChunks: AudioChunk[] = [];
   let pendingBytes = 0;
+
+  // Partial accumulation for incremental providers
+  let accumulatedPartial = '';
 
   let transport: STTTransport | null = null;
   let closed = false;
@@ -76,7 +86,8 @@ export async function createManagedConnection(
 
   function wireTransport(conn: STTTransport): void {
     conn.onTranscript((e) => {
-      for (const cb of transcriptListeners) cb(e);
+      const normalized = normalizeTranscript(e);
+      for (const cb of transcriptListeners) cb(normalized);
     });
     conn.onUsage((u) => {
       for (const cb of usageListeners) cb(u);
@@ -89,6 +100,23 @@ export async function createManagedConnection(
       if (closed) return;
       void handleDisconnect();
     });
+  }
+
+  /**
+   * Normalizes incremental partials into cumulative ones.
+   * Resets on final events.
+   */
+  function normalizeTranscript(event: TranscriptEvent): TranscriptEvent {
+    if (partialStrategy === 'cumulative') return event;
+
+    if (event.kind === 'partial') {
+      accumulatedPartial += event.text;
+      return { ...event, text: accumulatedPartial };
+    }
+
+    // Final event — reset accumulation for the next utterance
+    accumulatedPartial = '';
+    return event;
   }
 
   function scheduleRotation(): void {

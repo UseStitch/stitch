@@ -111,6 +111,7 @@ export const openaiAdapter: STTAdapter = {
     return createManagedConnection({
       buffer: config.buffer,
       reconnect: config.reconnect,
+      partialStrategy: config.partialStrategy,
       isFatal: isFatalOpenAI,
       openConnection: () => createOpenAITransport(config),
     });

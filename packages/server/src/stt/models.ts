@@ -22,6 +22,7 @@ export const MODEL_CATALOG: CatalogEntry[] = [
           keyterm_biasing: false,
         },
         inputFormat: { encoding: 'pcm_s16le', sampleRateHz: 24000, channels: 1 },
+        partialStrategy: 'incremental',
         buffer: {
           maxChunkBytes: 65_536,
           flushIntervalMs: 100,
@@ -49,6 +50,7 @@ export const MODEL_CATALOG: CatalogEntry[] = [
           keyterm_biasing: true,
         },
         inputFormat: { encoding: 'pcm_s16le', sampleRateHz: 16000, channels: 1 },
+        partialStrategy: 'cumulative',
         buffer: {
           maxChunkBytes: 32_768,
           flushIntervalMs: 80,

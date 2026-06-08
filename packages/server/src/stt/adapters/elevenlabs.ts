@@ -154,6 +154,7 @@ export const elevenlabsAdapter: STTAdapter = {
     return createManagedConnection({
       buffer: config.buffer,
       reconnect: config.reconnect,
+      partialStrategy: config.partialStrategy,
       isFatal: isFatalElevenLabs,
       openConnection: () => createElevenLabsTransport(config),
     });
