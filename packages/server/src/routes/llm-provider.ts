@@ -13,6 +13,7 @@ import {
   getProvider,
   getProviderCredentials,
   getProviderLogo,
+  listEnabledProviderEmbeddingModels,
   listProviderModels,
   upsertProviderCredentials,
 } from '@/llm/provider/service.js';
@@ -23,6 +24,11 @@ const providerIdSchema = z.enum(PROVIDER_IDS);
 const providerConfigSchema = z.record(z.string(), z.unknown());
 
 export const providerRouter = new Hono();
+
+providerRouter.get('/embedding-models', async (c) => {
+  const result = await listEnabledProviderEmbeddingModels();
+  return unwrapResult(c, result);
+});
 
 providerRouter.get(
   '/:providerId',
