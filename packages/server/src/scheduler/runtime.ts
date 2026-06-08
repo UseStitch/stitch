@@ -8,6 +8,7 @@ import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
+import * as SttRegistry from '@/stt/stt-registry.js';
 import * as ToolTruncation from '@/tools/runtime/truncation.js';
 
 const log = Log.create({ service: 'scheduler' });
@@ -16,6 +17,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const LOG_CLEANUP_INTERVAL_MS = 24 * HOUR_MS;
 const MEMORY_MAINTENANCE_INTERVAL_MS = 6 * HOUR_MS;
 const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
+const STT_REGISTRY_REFRESH_INTERVAL_MS = 6 * HOUR_MS;
 const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 const MCP_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 const MCP_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -42,6 +44,12 @@ function getBuiltinJobs(): RegisteredJob[] {
       key: 'models-refresh',
       schedule: { type: 'interval', everyMs: MODELS_REFRESH_INTERVAL_MS },
       callback: () => ModelsDev.refresh(),
+      immediate: true,
+    },
+    {
+      key: 'stt-registry-refresh',
+      schedule: { type: 'interval', everyMs: STT_REGISTRY_REFRESH_INTERVAL_MS },
+      callback: () => SttRegistry.refresh(),
       immediate: true,
     },
     {

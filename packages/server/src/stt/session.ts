@@ -88,7 +88,7 @@ export async function createSTTSession(
   }
 
   // Resolve model
-  const maybeModel = getModelDescriptor(providerId, modelId);
+  const maybeModel = await getModelDescriptor(providerId, modelId);
   if (!maybeModel) {
     throw new STTSessionError(`Unknown STT model: ${modelId}`, 'unknown_model');
   }

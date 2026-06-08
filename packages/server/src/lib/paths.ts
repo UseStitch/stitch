@@ -88,6 +88,7 @@ export const PATHS = {
     models: path.join(paths.cache, 'models.json'),
     embeddingModelsRegistry: path.join(paths.cache, 'embedding-models-registry.json'),
     transcriptionModelsRegistry: path.join(paths.cache, 'transcription-models-registry.json'),
+    sttModelsRegistry: path.join(paths.cache, 'stt-models-registry.json'),
     mcpRegistry: path.join(paths.cache, 'mcp-registry.json'),
   },
 

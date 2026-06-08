@@ -30,7 +30,6 @@
     "@stitch-connectors/google": "workspace:*",
     "@stitch-connectors/sdk": "workspace:*",
     "@stitch/registry-embeddings": "workspace:*",
-    "@stitch/registry-stt": "workspace:*",
     "@stitch/sandbox": "workspace:*",
     "@stitch/scheduler": "workspace:*",
     "@stitch/shared": "workspace:*",

@@ -28,6 +28,6 @@ export type STTTransport = {
 
 export type STTAdapter = {
   readonly providerId: string;
-  readonly models: ModelDescriptor[];
+  models(): Promise<ModelDescriptor[]>;
   connect(config: STTConnectionConfig): Promise<STTConnection>;
 };
