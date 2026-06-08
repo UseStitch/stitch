@@ -33,6 +33,7 @@
     "./memory/types": "./src/memory/types.ts",
     "./agenda/types": "./src/agenda/types.ts",
     "./skills/types": "./src/skills/types.ts",
+    "./stt/types": "./src/stt/types.ts",
     "./logger": "./src/logger.ts"
   },
   "scripts": {
