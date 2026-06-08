@@ -31,7 +31,6 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
       if (!res.ok) throw new Error('Failed to fetch recordings');
       return res.json() as Promise<ListRecordingsResponse>;
     },
-    refetchInterval: 2_000,
   });
 }
 
