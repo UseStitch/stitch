@@ -16,7 +16,10 @@ import {
 } from '@/components/model-selectors/provider-model-utils';
 import { Button } from '@/components/ui/button';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
-import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import {
+  sttProviderModelsQueryOptions,
+  visibleProviderModelsQueryOptions,
+} from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +56,7 @@ export function ChatInputInner({
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -127,8 +131,15 @@ export function ChatInputInner({
       return;
     }
 
+    const provider = sttProviders.find((p) => p.providerId === providerId);
+    const model = provider?.models.find((m) => m.modelId === modelId);
+    if (!model) {
+      toast.error('Configured STT model not found. Check Settings → General → STT Model.');
+      return;
+    }
+
     sttBaseOffsetRef.current = value.length;
-    await stt.start(providerId, modelId);
+    await stt.start(providerId, modelId, model.sampleRateHz);
   }
 
   // Splice partial text into textarea value while recording

@@ -1,10 +1,10 @@
 /** AudioWorkletProcessor that captures PCM float32 data and posts it to the main thread. */
 class PcmCaptureProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
     this._buffer = [];
     this._bufferLength = 0;
-    this._chunkSize = 4096;
+    this._chunkSize = options.processorOptions.chunkSize;
   }
 
   process(inputs) {

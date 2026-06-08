@@ -79,7 +79,11 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
         if (!auth) return null;
         return {
           providerId: entry.providerId,
-          models: entry.models.map((m) => ({ modelId: m.modelId, displayName: m.displayName })),
+          models: entry.models.map((m) => ({
+            modelId: m.modelId,
+            displayName: m.displayName,
+            sampleRateHz: m.inputFormat.sampleRateHz,
+          })),
         };
       }),
     );

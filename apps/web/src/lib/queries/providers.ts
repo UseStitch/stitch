@@ -189,7 +189,7 @@ export const transcriptionProviderModelsQueryOptions = queryOptions({
 
 type SttProviderModels = {
   providerId: string;
-  models: { modelId: string; displayName: string }[];
+  models: { modelId: string; displayName: string; sampleRateHz: number }[];
 };
 
 export const sttProviderModelsQueryOptions = queryOptions({

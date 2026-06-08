@@ -10,7 +10,7 @@ type SttState = 'idle' | 'recording' | 'stopping';
 type UseSttReturn = {
   state: SttState;
   partialText: string;
-  start: (providerId: string, modelId: string) => Promise<void>;
+  start: (providerId: string, modelId: string, sampleRateHz: number) => Promise<void>;
   stop: () => Promise<string>;
 };
 
@@ -76,7 +76,7 @@ export function useStt(): UseSttReturn {
   }, []);
 
   const start = React.useCallback(
-    async (providerId: string, modelId: string) => {
+    async (providerId: string, modelId: string, sampleRateHz: number) => {
       if (state !== 'idle') return;
 
       const serverUrl = await getServerUrl();
@@ -95,14 +95,16 @@ export function useStt(): UseSttReturn {
       }
       streamRef.current = stream;
 
-      // Set up AudioContext for PCM capture at 24 kHz (required by OpenAI Realtime)
-      const audioCtx = new AudioContext({ sampleRate: 24000 });
+      // Set up AudioContext for PCM capture at the model's required sample rate
+      const audioCtx = new AudioContext({ sampleRate: sampleRateHz });
       audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
 
       // Load AudioWorklet processor module
       await audioCtx.audioWorklet.addModule('/pcm-capture-processor.js');
-      const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor');
+      const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor', {
+        processorOptions: { chunkSize: Math.round(sampleRateHz * 0.1) },
+      });
       workletRef.current = workletNode;
 
       // Open WebSocket
@@ -181,7 +183,7 @@ export function useStt(): UseSttReturn {
         providerId,
         modelId,
         capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
-        audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz: 24000 },
+        audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
       };
       send(startMsg);
 
@@ -195,7 +197,7 @@ export function useStt(): UseSttReturn {
           sttSessionId: sessionId,
           source: 'mic',
           samplesB64: int16ToBase64(pcm),
-          sampleRateHz: 24000,
+          sampleRateHz,
           numSamples: pcm.length,
         });
       };
