@@ -101,7 +101,9 @@ export function useStt(): UseSttReturn {
       const source = audioCtx.createMediaStreamSource(stream);
 
       // Load AudioWorklet processor module
-      await audioCtx.audioWorklet.addModule('/pcm-capture-processor.js');
+      // Use relative path for Electron file:// compatibility
+      const workletUrl = new URL('pcm-capture-processor.js', window.location.href).href;
+      await audioCtx.audioWorklet.addModule(workletUrl);
       const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor', {
         processorOptions: { chunkSize: Math.round(sampleRateHz * 0.1) },
       });
