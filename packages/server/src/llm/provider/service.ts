@@ -10,7 +10,6 @@ import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';
 import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { ProviderCredentialsSchema } from '@/llm/provider/provider.js';
-import * as TranscriptionModels from '@/llm/provider/transcription-models.js';
 
 type ProviderSummary = {
   id: string;
@@ -70,39 +69,6 @@ async function resolveProvider(providerId: string): Promise<ServiceResult<Models
   }
 
   return ok(provider);
-}
-
-export async function listProviders(): Promise<ServiceResult<ProviderSummary[]>> {
-  const db = getDb();
-  const [providers, configs, ollamaModelCount] = await Promise.all([
-    Models.get(),
-    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
-    db.select({ value: count() }).from(ollamaModels),
-  ]);
-  const enabledIds = new Set(configs.map((row) => row.providerId));
-  const ollamaCount = ollamaModelCount[0]?.value ?? 0;
-
-  const summaries = Object.values(providers).map((provider) =>
-    toProviderSummary(provider, enabledIds.has(provider.id)),
-  );
-
-  summaries.push({
-    id: 'ollama_local',
-    name: 'Ollama',
-    api: 'http://localhost:11434',
-    model_count: ollamaCount,
-    enabled: enabledIds.has('ollama_local'),
-  });
-
-  summaries.push({
-    id: 'elevenlabs',
-    name: 'ElevenLabs',
-    api: 'https://api.elevenlabs.io',
-    model_count: 0,
-    enabled: enabledIds.has('elevenlabs'),
-  });
-
-  return ok(summaries);
 }
 
 export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
@@ -191,59 +157,6 @@ export async function listProviderModels(
   }
 
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
-}
-
-export async function listEnabledProviderAudioModels(): Promise<
-  ServiceResult<ProviderModelsSummary[]>
-> {
-  const db = getDb();
-  const [providers, configs] = await Promise.all([
-    Models.getAudioModels(),
-    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
-  ]);
-  const enabledIds = new Set(configs.map((row) => row.providerId));
-
-  return ok(
-    Object.values(providers)
-      .filter((provider) => enabledIds.has(provider.id))
-      .map((provider) => ({
-        providerId: provider.id,
-        providerName: provider.name,
-        models: Object.values(provider.models).map(toModelSummary),
-      })),
-  );
-}
-
-type TranscriptionModelSummary = {
-  id: string;
-  name: string;
-};
-
-type TranscriptionProviderSummary = {
-  providerId: string;
-  providerName: string;
-  models: TranscriptionModelSummary[];
-};
-
-export async function listEnabledProviderTranscriptionModels(): Promise<
-  ServiceResult<TranscriptionProviderSummary[]>
-> {
-  const db = getDb();
-  const [providers, configs] = await Promise.all([
-    TranscriptionModels.getTranscriptionModels(),
-    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
-  ]);
-  const enabledIds = new Set(configs.map((row) => row.providerId));
-
-  return ok(
-    providers
-      .filter((provider) => enabledIds.has(provider.providerId))
-      .map((provider) => ({
-        providerId: provider.providerId,
-        providerName: provider.providerName,
-        models: provider.models.map((m) => ({ id: m.id, name: m.name })),
-      })),
-  );
 }
 
 export async function listEnabledProviderEmbeddingModels(): Promise<

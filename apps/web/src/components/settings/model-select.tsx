@@ -1,50 +1,8 @@
-import * as React from 'react';
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-} from '@/lib/queries/settings';
+import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
 import type { ProviderModels } from '@/lib/queries/providers';
-
-export type ModelOption = {
-  label: string;
-  providerId: string;
-  modelId: string;
-};
-
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
-
-export function buildGroupedItems(providerModels: ProviderModels[]): ModelGroup[] {
-  return providerModels.map((provider) => ({
-    value: provider.providerName,
-    items: provider.models.map((model) => ({
-      label: model.name,
-      providerId: provider.providerId,
-      modelId: model.id,
-    })),
-  }));
-}
-
-export function flattenGroups(groups: ModelGroup[]): ModelOption[] {
-  return groups.flatMap((g) => g.items);
-}
+import { deleteSettingMutationOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
 
 type SettingsModelSelectProps = {
   providerIdKey: string;
@@ -62,13 +20,10 @@ export function SettingsModelSelect({
   currentProviderId,
   currentModelId,
   providerModels,
-  placeholder = 'Search models...',
+  placeholder,
   showClear,
 }: SettingsModelSelectProps) {
   const queryClient = useQueryClient();
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
 
   const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
   const saveModelMutation = useMutation(
@@ -81,51 +36,28 @@ export function SettingsModelSelect({
     deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
   );
 
-  function handleValueChange(value: ModelOption | null) {
-    if (!value) {
+  const value: ModelSelection | null =
+    currentProviderId && currentModelId
+      ? { providerId: currentProviderId, modelId: currentModelId }
+      : null;
+
+  function handleValueChange(selection: ModelSelection | null) {
+    if (!selection) {
       if (currentProviderId) deleteProviderMutation.mutate();
       if (currentModelId) deleteModelMutation.mutate();
       return;
     }
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
+    saveProviderMutation.mutate(selection.providerId);
+    saveModelMutation.mutate(selection.modelId);
   }
 
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
-  const resolvedShowClear = showClear ?? !!(currentProviderId && currentModelId);
-
   return (
-    <Combobox<ModelOption>
-      value={selectedOption}
+    <ModelCombobox
+      providerModels={providerModels}
+      value={value}
       onValueChange={handleValueChange}
-      isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
-      <ComboboxInput placeholder={placeholder} showClear={resolvedShowClear} />
-      <ComboboxContent side="bottom" sideOffset={4} align="start">
-        <ComboboxEmpty>No models found</ComboboxEmpty>
-        <ComboboxList>
-          {(group, index) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(item) => (
-                  <ComboboxItem key={`${item.providerId}:${item.modelId}`} value={item}>
-                    {item.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-              {index < groups.length - 1 && <ComboboxSeparator />}
-            </ComboboxGroup>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      placeholder={placeholder}
+      showClear={showClear}
+    />
   );
 }

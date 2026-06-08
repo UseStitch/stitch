@@ -4,8 +4,6 @@ import { z } from 'zod';
 import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
 
 import * as Log from '@/lib/log.js';
-import { resolveSttAuth } from '@/stt/auth.js';
-import { MODEL_CATALOG } from '@/stt/models.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -200,24 +198,6 @@ async function handleStop(
 
 export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   const router = new Hono();
-
-  router.get('/providers/models', async (c) => {
-    const entries = await Promise.all(
-      MODEL_CATALOG.map(async (entry) => {
-        const auth = await resolveSttAuth(entry.providerId);
-        if (!auth) return null;
-        return {
-          providerId: entry.providerId,
-          models: entry.models.map((m) => ({
-            modelId: m.modelId,
-            displayName: m.displayName,
-            sampleRateHz: m.inputFormat.sampleRateHz,
-          })),
-        };
-      }),
-    );
-    return c.json(entries.filter(Boolean));
-  });
 
   router.get(
     '/stream',

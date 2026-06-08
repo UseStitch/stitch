@@ -189,7 +189,9 @@ export function ProviderConfig({
         </div>
         <div>
           <h2 className="text-sm font-semibold">{meta.displayName}</h2>
-          <p className="text-xs text-muted-foreground">{provider.model_count} models available</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {provider.capabilities.join(', ')}
+          </p>
         </div>
         {provider.enabled && (
           <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">

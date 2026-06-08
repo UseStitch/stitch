@@ -132,7 +132,7 @@ export function ChatInputInner({
     }
 
     const provider = sttProviders.find((p) => p.providerId === providerId);
-    const model = provider?.models.find((m) => m.modelId === modelId);
+    const model = provider?.models.find((m) => m.id === modelId);
     if (!model) {
       toast.error('Configured STT model not found. Check Settings → General → STT Model.');
       return;

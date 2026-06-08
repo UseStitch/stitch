@@ -13,11 +13,8 @@ import {
   getProvider,
   getProviderCredentials,
   getProviderLogo,
-  listEnabledProviderAudioModels,
   listEnabledProviderEmbeddingModels,
-  listEnabledProviderTranscriptionModels,
   listProviderModels,
-  listProviders,
   upsertProviderCredentials,
 } from '@/llm/provider/service.js';
 
@@ -27,21 +24,6 @@ const providerIdSchema = z.enum(PROVIDER_IDS);
 const providerConfigSchema = z.record(z.string(), z.unknown());
 
 export const providerRouter = new Hono();
-
-providerRouter.get('/', async (c) => {
-  const result = await listProviders();
-  return unwrapResult(c, result);
-});
-
-providerRouter.get('/audio-models', async (c) => {
-  const result = await listEnabledProviderAudioModels();
-  return unwrapResult(c, result);
-});
-
-providerRouter.get('/transcription-models', async (c) => {
-  const result = await listEnabledProviderTranscriptionModels();
-  return unwrapResult(c, result);
-});
 
 providerRouter.get('/embedding-models', async (c) => {
   const result = await listEnabledProviderEmbeddingModels();
