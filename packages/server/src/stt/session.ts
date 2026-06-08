@@ -23,7 +23,8 @@ import {
   type DiarizationFallback,
 } from '@/stt/fallbacks/diarization.js';
 import { createVadFallback, type VadFallback } from '@/stt/fallbacks/vad.js';
-import { getAdapter, getModelDescriptor } from '@/stt/registry.js';
+import { getModelDescriptor } from '@/stt/models.js';
+import { getAdapter } from '@/stt/registry.js';
 import type { AudioResampler } from '@/stt/resampler.js';
 import type { CommitStrategy, STTConnectionConfig } from '@/stt/types.js';
 
@@ -81,17 +82,14 @@ export async function createSTTSession(
   log.info({ sttSessionId, providerId, modelId }, 'creating STT session');
 
   // Resolve adapter
-  const maybeAdapter = getAdapter(providerId);
-  if (!maybeAdapter) {
-    log.error({ providerId }, 'no adapter registered for provider');
+  const adapter = getAdapter(providerId);
+  if (!adapter) {
     throw new STTSessionError(`Unknown STT provider: ${providerId}`, 'unknown_provider');
   }
-  const adapter = maybeAdapter;
 
   // Resolve model
   const maybeModel = getModelDescriptor(providerId, modelId);
   if (!maybeModel) {
-    log.error({ providerId, modelId }, 'unknown STT model');
     throw new STTSessionError(`Unknown STT model: ${modelId}`, 'unknown_model');
   }
   const model = maybeModel;
@@ -100,10 +98,8 @@ export async function createSTTSession(
   let capabilityResolution: CapabilityResolution;
   try {
     capabilityResolution = resolve(capabilityRequest, model.capabilities);
-    log.info({ sttSessionId, capabilityResolution }, 'capabilities resolved');
   } catch (err) {
     if (err instanceof CapabilityNegotiationError) {
-      log.error({ sttSessionId, error: err }, 'capability negotiation failed');
       throw new STTSessionError(err.message, 'capability_unsatisfied');
     }
     throw err;
@@ -112,13 +108,11 @@ export async function createSTTSession(
   // Resolve auth
   const auth = await resolveSttAuth(providerId);
   if (!auth) {
-    log.error({ providerId }, 'no credentials configured for STT provider');
     throw new STTSessionError(
       `No credentials configured for provider: ${providerId}`,
       'no_credentials',
     );
   }
-  log.info({ sttSessionId, providerId, authKind: auth.kind }, 'auth resolved');
 
   // Determine commit strategy
   const commitStrategy: CommitStrategy =
@@ -158,22 +152,18 @@ export async function createSTTSession(
     keyterms,
   };
 
-  // Open connections — one per source if diarization fallback is active
-  const connections = new Map<AudioSource, STTConnection>();
+  // Open connections eagerly
   const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
   const errorListeners: ((err: Error) => void)[] = [];
 
-  // For single-stream mode, use one connection for all sources
   const useDualStream = diarizationFallback !== null;
-  let primaryConnection: STTConnection | null = null;
+  const connections = new Map<AudioSource, STTConnection>();
 
   // Usage tracking
   const startedAt = Date.now();
   let totalUsage: STTUsage = { durationMs: 0 };
 
-  async function openConnectionForSource(source: AudioSource): Promise<STTConnection> {
-    const conn = await adapter.connect(connectionConfig);
-
+  function wireConnection(conn: STTConnection, source: AudioSource): void {
     conn.onTranscript((evt) => {
       let tagged = evt;
       if (diarizationFallback) {
@@ -195,43 +185,32 @@ export async function createSTTSession(
     conn.onError((err) => {
       for (const cb of errorListeners) cb(err);
     });
-
-    return conn;
   }
 
-  // Open the primary connection eagerly
-  if (!useDualStream) {
-    primaryConnection = await openConnectionForSource('mic');
+  // Open all connections eagerly to avoid race conditions with lazy opens
+  if (useDualStream) {
+    const [micConn, speakerConn] = await Promise.all([
+      adapter.connect(connectionConfig),
+      adapter.connect(connectionConfig),
+    ]);
+    connections.set('mic', micConn);
+    connections.set('speaker', speakerConn);
+    wireConnection(micConn, 'mic');
+    wireConnection(speakerConn, 'speaker');
+  } else {
+    const primaryConn = await adapter.connect(connectionConfig);
+    connections.set('mic', primaryConn);
+    wireConnection(primaryConn, 'mic');
   }
 
   function feedAudio(source: AudioSource, chunk: AudioChunk): void {
     const converted = deps.resampler.convert(chunk, model.inputFormat);
 
-    let conn: STTConnection | null | undefined;
-
-    if (useDualStream) {
-      conn = connections.get(source);
-      if (!conn) {
-        // Lazily open connection for this source
-        openConnectionForSource(source)
-          .then((c) => {
-            connections.set(source, c);
-            c.sendAudio(converted);
-          })
-          .catch((err) => {
-            for (const cb of errorListeners)
-              cb(err instanceof Error ? err : new Error(String(err)));
-          });
-        return;
-      }
-    } else {
-      conn = primaryConnection;
-    }
-
+    const conn = useDualStream ? connections.get(source) : connections.get('mic');
     if (!conn) return;
+
     conn.sendAudio(converted);
 
-    // VAD fallback: detect turn boundaries and trigger commit
     if (vadFallback) {
       const shouldCommit = vadFallback.processChunk(converted);
       if (shouldCommit) {
@@ -241,37 +220,27 @@ export async function createSTTSession(
   }
 
   function commit(): void {
-    if (useDualStream) {
-      for (const conn of connections.values()) {
-        conn.commit();
-      }
-    } else {
-      primaryConnection?.commit();
+    for (const conn of connections.values()) {
+      conn.commit();
     }
   }
 
   async function stop(): Promise<STTSessionResult> {
-    const allConns = useDualStream
-      ? [...connections.values()]
-      : primaryConnection
-        ? [primaryConnection]
-        : [];
-
-    // Commit all connections and wait for the final committed_transcript before closing.
+    const allConns = [...connections.values()];
     const COMMIT_DRAIN_TIMEOUT_MS = 5000;
 
     await Promise.all(
       allConns.map((conn) => {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolvePromise) => {
           const timer = setTimeout(() => {
             log.warn({ sttSessionId }, 'timed out waiting for committed_transcript after commit');
-            resolve();
+            resolvePromise();
           }, COMMIT_DRAIN_TIMEOUT_MS);
 
           conn.onTranscript((evt) => {
             if (evt.kind === 'final') {
               clearTimeout(timer);
-              resolve();
+              resolvePromise();
             }
           });
 

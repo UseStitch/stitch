@@ -5,7 +5,7 @@ import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/t
 
 import * as Log from '@/lib/log.js';
 import { resolveSttAuth } from '@/stt/auth.js';
-import { MODEL_CATALOG } from '@/stt/registry.js';
+import { MODEL_CATALOG } from '@/stt/models.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -68,10 +68,139 @@ function parseMessage(data: unknown): SttInboundMessage | null {
 
 const resampler = createDefaultResampler();
 
+type WsSender = {
+  send(data: string | ArrayBuffer): void;
+  close(code: number, reason: string): void;
+};
+
+function send(ws: WsSender, msg: SttOutboundMessage): void {
+  ws.send(JSON.stringify(msg));
+}
+
+type SessionState = {
+  session: STTSession | null;
+  inputEncoding: 'f32le' | 'pcm_s16le';
+};
+
+async function handleStart(
+  message: z.infer<typeof startMessageSchema>,
+  ws: WsSender,
+  state: SessionState,
+): Promise<void> {
+  if (state.session) {
+    send(ws, {
+      type: 'error',
+      sttSessionId: message.sttSessionId,
+      message: 'Session already active',
+      code: 'session_active',
+    });
+    return;
+  }
+
+  state.inputEncoding = message.audioChunkConfig.encoding;
+
+  try {
+    const session = await createSTTSession(
+      {
+        sttSessionId: message.sttSessionId,
+        providerId: message.providerId,
+        modelId: message.modelId,
+        service: 'chat-input',
+        capabilityRequest: message.capabilityRequest,
+        language: message.language,
+        keyterms: message.keyterms,
+        inputEncoding: state.inputEncoding,
+        inputSampleRateHz: message.audioChunkConfig.sampleRateHz,
+      },
+      { resampler },
+    );
+
+    state.session = session;
+
+    session.onTranscript((evt) => {
+      send(ws, {
+        type: 'transcript',
+        sttSessionId: message.sttSessionId,
+        kind: evt.kind,
+        text: evt.text,
+        speaker: evt.speaker,
+        words: evt.words,
+        language: evt.language,
+      });
+    });
+
+    session.onError((err) => {
+      send(ws, {
+        type: 'error',
+        sttSessionId: message.sttSessionId,
+        message: err.message,
+        code: 'adapter_error',
+      });
+    });
+
+    send(ws, {
+      type: 'ready',
+      sttSessionId: message.sttSessionId,
+      capabilityResolution: session.capabilityResolution,
+    });
+  } catch (err) {
+    const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    log.error({ error: err, sttSessionId: message.sttSessionId }, 'failed to start STT session');
+    send(ws, { type: 'error', sttSessionId: message.sttSessionId, message: msg, code });
+    ws.close(4000, code);
+  }
+}
+
+function handleChunk(message: z.infer<typeof chunkMessageSchema>, state: SessionState): void {
+  if (!state.session || state.session.sttSessionId !== message.sttSessionId) return;
+  state.session.feedAudio(message.source, {
+    samplesB64: message.samplesB64,
+    sampleRateHz: message.sampleRateHz,
+    numSamples: message.numSamples,
+    encoding: state.inputEncoding,
+  });
+}
+
+function handleCommit(message: z.infer<typeof commitMessageSchema>, state: SessionState): void {
+  if (!state.session || state.session.sttSessionId !== message.sttSessionId) return;
+  state.session.commit();
+}
+
+async function handleStop(
+  message: z.infer<typeof stopMessageSchema>,
+  ws: WsSender,
+  state: SessionState,
+): Promise<void> {
+  if (!state.session || state.session.sttSessionId !== message.sttSessionId) return;
+
+  const currentSession = state.session;
+  const sessionId = message.sttSessionId;
+  state.session = null;
+
+  try {
+    const result = await currentSession.stop();
+    log.info({ sttSessionId: sessionId, costUsd: result.costUsd }, 'session done');
+    send(ws, {
+      type: 'done',
+      sttSessionId: sessionId,
+      costUsd: result.costUsd,
+      usage: result.usage,
+    });
+  } catch (err) {
+    log.error({ error: err, sttSessionId: sessionId }, 'error stopping STT session');
+    send(ws, {
+      type: 'error',
+      sttSessionId: sessionId,
+      message: err instanceof Error ? err.message : 'Unknown error',
+      code: 'stop_failed',
+    });
+  }
+}
+
 export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   const router = new Hono();
 
-  // Returns the STT model catalog filtered to providers with credentials configured.
   router.get('/providers/models', async (c) => {
     const entries = await Promise.all(
       MODEL_CATALOG.map(async (entry) => {
@@ -93,12 +222,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   router.get(
     '/stream',
     upgradeWebSocket(() => {
-      let session: STTSession | null = null;
-      let inputEncoding: 'f32le' | 'pcm_s16le' = 'pcm_s16le';
-
-      function send(ws: { send(data: string | ArrayBuffer): void }, msg: SttOutboundMessage): void {
-        ws.send(JSON.stringify(msg));
-      }
+      const state: SessionState = { session: null, inputEncoding: 'pcm_s16le' };
 
       return {
         onOpen() {
@@ -118,141 +242,27 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
           }
 
           switch (message.type) {
-            case 'start': {
-              if (session) {
-                send(ws, {
-                  type: 'error',
-                  sttSessionId: message.sttSessionId,
-                  message: 'Session already active',
-                  code: 'session_active',
-                });
-                return;
-              }
-
-              inputEncoding = message.audioChunkConfig.encoding;
-
-              createSTTSession(
-                {
-                  sttSessionId: message.sttSessionId,
-                  providerId: message.providerId,
-                  modelId: message.modelId,
-                  service: 'chat-input',
-                  capabilityRequest: message.capabilityRequest,
-                  language: message.language,
-                  keyterms: message.keyterms,
-                  inputEncoding,
-                  inputSampleRateHz: message.audioChunkConfig.sampleRateHz,
-                },
-                { resampler },
-              )
-                .then((s) => {
-                  session = s;
-
-                  session.onTranscript((evt) => {
-                    send(ws, {
-                      type: 'transcript',
-                      sttSessionId: message.sttSessionId,
-                      kind: evt.kind,
-                      text: evt.text,
-                      speaker: evt.speaker,
-                      words: evt.words,
-                      language: evt.language,
-                    });
-                  });
-
-                  session.onError((err) => {
-                    send(ws, {
-                      type: 'error',
-                      sttSessionId: message.sttSessionId,
-                      message: err.message,
-                      code: 'adapter_error',
-                    });
-                  });
-
-                  send(ws, {
-                    type: 'ready',
-                    sttSessionId: message.sttSessionId,
-                    capabilityResolution: s.capabilityResolution,
-                  });
-                })
-                .catch((err) => {
-                  const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
-                  const msg = err instanceof Error ? err.message : 'Unknown error';
-                  log.error(
-                    { error: err, sttSessionId: message.sttSessionId },
-                    'failed to start STT session',
-                  );
-                  send(ws, {
-                    type: 'error',
-                    sttSessionId: message.sttSessionId,
-                    message: msg,
-                    code,
-                  });
-                  ws.close(4000, code);
-                });
+            case 'start':
+              void handleStart(message, ws, state);
               break;
-            }
-
-            case 'chunk': {
-              if (!session || session.sttSessionId !== message.sttSessionId) return;
-              session.feedAudio(message.source, {
-                samplesB64: message.samplesB64,
-                sampleRateHz: message.sampleRateHz,
-                numSamples: message.numSamples,
-                encoding: inputEncoding,
-              });
+            case 'chunk':
+              handleChunk(message, state);
               break;
-            }
-
-            case 'commit': {
-              if (!session || session.sttSessionId !== message.sttSessionId) return;
-              log.info({ sttSessionId: message.sttSessionId }, 'commit');
-              session.commit();
+            case 'commit':
+              handleCommit(message, state);
               break;
-            }
-
-            case 'stop': {
-              if (!session || session.sttSessionId !== message.sttSessionId) return;
-              const currentSession = session;
-              const sessionId = message.sttSessionId;
-              session = null;
-              log.info({ sttSessionId: sessionId }, 'stopping session');
-
-              currentSession
-                .stop()
-                .then((result) => {
-                  log.info(
-                    { sttSessionId: sessionId, costUsd: result.costUsd, usage: result.usage },
-                    'session done',
-                  );
-                  send(ws, {
-                    type: 'done',
-                    sttSessionId: sessionId,
-                    costUsd: result.costUsd,
-                    usage: result.usage,
-                  });
-                })
-                .catch((err) => {
-                  log.error({ error: err, sttSessionId: sessionId }, 'error stopping STT session');
-                  send(ws, {
-                    type: 'error',
-                    sttSessionId: sessionId,
-                    message: err instanceof Error ? err.message : 'Unknown error',
-                    code: 'stop_failed',
-                  });
-                });
+            case 'stop':
+              void handleStop(message, ws, state);
               break;
-            }
           }
         },
 
         onClose() {
-          log.info({ hasSession: !!session }, 'client WebSocket disconnected');
-          if (session) {
-            session.stop().catch((err) => {
+          if (state.session) {
+            state.session.stop().catch((err) => {
               log.warn({ error: err }, 'error during session cleanup on WS close');
             });
-            session = null;
+            state.session = null;
           }
         },
       };

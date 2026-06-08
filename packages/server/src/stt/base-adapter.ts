@@ -1,56 +1,45 @@
 import type { AudioChunk, TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 
 import * as Log from '@/lib/log.js';
-import type { STTConnection } from '@/stt/adapter-iface.js';
+import type { STTConnection, STTTransport } from '@/stt/adapter-iface.js';
 import type { BufferConfig, ReconnectConfig } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.base-adapter' });
 
-type TranscriptListener = (e: TranscriptEvent) => void;
-type UsageListener = (u: STTUsage) => void;
-type ErrorListener = (err: Error) => void;
-type CloseListener = () => void;
-
-export type RawConnection = {
-  send(chunk: AudioChunk): void;
-  commit(): void;
-  close(): Promise<void>;
-  onTranscript(cb: TranscriptListener): void;
-  onUsage(cb: UsageListener): void;
-  onError(cb: ErrorListener): void;
-  onClose(cb: CloseListener): void;
-};
-
-type BaseAdapterConfig = {
+type ManagedConnectionConfig = {
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   isFatal: (err: Error) => boolean;
-  openConnection: () => Promise<RawConnection>;
+  openConnection: () => Promise<STTTransport>;
 };
 
 type BufferedChunk = {
   chunk: AudioChunk;
-  timestampMs: number;
-  byteSize: number;
+  durationMs: number;
 };
 
 function chunkByteSize(chunk: AudioChunk): number {
-  // base64 -> raw bytes: ~3/4 ratio
   return Math.ceil((chunk.samplesB64.length * 3) / 4);
+}
+
+function chunkDurationMs(chunk: AudioChunk): number {
+  return (chunk.numSamples / chunk.sampleRateHz) * 1000;
 }
 
 /**
  * Creates a managed STTConnection with bounded buffer, pacing, and reconnect/rotation.
  */
-export async function createManagedConnection(config: BaseAdapterConfig): Promise<STTConnection> {
+export async function createManagedConnection(
+  config: ManagedConnectionConfig,
+): Promise<STTConnection> {
   const { buffer: bufferConfig, reconnect: reconnectConfig, isFatal, openConnection } = config;
 
-  const transcriptListeners: TranscriptListener[] = [];
-  const usageListeners: UsageListener[] = [];
-  const errorListeners: ErrorListener[] = [];
-  const closeListeners: CloseListener[] = [];
+  const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
+  const usageListeners: ((u: STTUsage) => void)[] = [];
+  const errorListeners: ((err: Error) => void)[] = [];
+  const closeListeners: (() => void)[] = [];
 
-  // Bounded ring buffer
+  // Bounded ring buffer for replay on reconnect
   const ringBuffer: BufferedChunk[] = [];
   let totalBufferedMs = 0;
 
@@ -59,23 +48,19 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
   let pendingChunks: AudioChunk[] = [];
   let pendingBytes = 0;
 
-  let connection: RawConnection | null = null;
+  let transport: STTTransport | null = null;
   let closed = false;
   let reconnecting = false;
   let rotationTimer: ReturnType<typeof setTimeout> | null = null;
 
   function addToBuffer(chunk: AudioChunk): void {
-    const byteSize = chunkByteSize(chunk);
-    const chunkDurationMs = (chunk.numSamples / chunk.sampleRateHz) * 1000;
+    const duration = chunkDurationMs(chunk);
+    ringBuffer.push({ chunk, durationMs: duration });
+    totalBufferedMs += duration;
 
-    ringBuffer.push({ chunk, timestampMs: Date.now(), byteSize });
-    totalBufferedMs += chunkDurationMs;
-
-    // Enforce max buffered duration — drop oldest
     while (totalBufferedMs > bufferConfig.maxBufferedMs && ringBuffer.length > 1) {
       const dropped = ringBuffer.shift()!;
-      const droppedDurationMs = (dropped.chunk.numSamples / dropped.chunk.sampleRateHz) * 1000;
-      totalBufferedMs -= droppedDurationMs;
+      totalBufferedMs -= dropped.durationMs;
       log.warn('buffer overflow, dropping oldest chunk');
     }
   }
@@ -89,7 +74,7 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
     totalBufferedMs = 0;
   }
 
-  function wireConnection(conn: RawConnection): void {
+  function wireTransport(conn: STTTransport): void {
     conn.onTranscript((e) => {
       for (const cb of transcriptListeners) cb(e);
     });
@@ -109,11 +94,10 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
   function scheduleRotation(): void {
     if (!reconnectConfig.enabled || !reconnectConfig.rotateBeforeMs) return;
 
-    const rotateAt = reconnectConfig.rotateBeforeMs;
     rotationTimer = setTimeout(() => {
       if (closed) return;
       void proactiveRotate();
-    }, rotateAt);
+    }, reconnectConfig.rotateBeforeMs);
   }
 
   async function proactiveRotate(): Promise<void> {
@@ -122,23 +106,20 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
 
     log.info('proactive session rotation starting');
 
-    const oldConn = connection;
-    // Force a commit on the old connection for a clean final at the seam
-    oldConn?.commit();
+    const oldTransport = transport;
+    oldTransport?.commit();
 
     try {
-      const newConn = await openConnection();
-      connection = newConn;
-      wireConnection(newConn);
+      const newTransport = await openConnection();
+      transport = newTransport;
+      wireTransport(newTransport);
 
-      // Replay buffered audio onto new connection
       const replay = getReplayChunks();
       for (const chunk of replay) {
-        newConn.send(chunk);
+        newTransport.sendAudio(chunk);
       }
 
-      // Close old connection after new one is ready
-      await oldConn?.close();
+      await oldTransport?.close();
       scheduleRotation();
       log.info({ replayedChunks: replay.length }, 'proactive rotation complete');
     } catch (err) {
@@ -181,14 +162,13 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
       if (closed) break;
 
       try {
-        const newConn = await openConnection();
-        connection = newConn;
-        wireConnection(newConn);
+        const newTransport = await openConnection();
+        transport = newTransport;
+        wireTransport(newTransport);
 
-        // Replay buffered audio
         const replay = getReplayChunks();
         for (const chunk of replay) {
-          newConn.send(chunk);
+          newTransport.sendAudio(chunk);
         }
 
         scheduleRotation();
@@ -209,29 +189,10 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
   }
 
   function flushPending(): void {
-    if (pendingChunks.length === 0 || !connection || closed) return;
-
-    // Coalesce into chunks respecting maxChunkBytes
-    let currentBatch: AudioChunk[] = [];
-    let currentBytes = 0;
+    if (pendingChunks.length === 0 || !transport || closed) return;
 
     for (const chunk of pendingChunks) {
-      const bytes = chunkByteSize(chunk);
-      if (currentBytes + bytes > bufferConfig.maxChunkBytes && currentBatch.length > 0) {
-        // Send current batch as individual chunks (provider handles framing)
-        for (const c of currentBatch) {
-          connection.send(c);
-        }
-        currentBatch = [];
-        currentBytes = 0;
-      }
-      currentBatch.push(chunk);
-      currentBytes += bytes;
-    }
-
-    // Send remaining
-    for (const c of currentBatch) {
-      connection.send(c);
+      transport.sendAudio(chunk);
     }
 
     pendingChunks = [];
@@ -246,11 +207,10 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
 
     const bytes = chunkByteSize(chunk);
 
-    // If single chunk exceeds maxChunkBytes, send immediately (adapter will handle splitting)
+    // If single chunk exceeds maxChunkBytes, send immediately
     if (bytes >= bufferConfig.maxChunkBytes) {
-      // Flush any pending first
       if (pendingChunks.length > 0) flushPending();
-      connection?.send(chunk);
+      transport?.sendAudio(chunk);
       return;
     }
 
@@ -275,9 +235,8 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
 
   function commit(): void {
     if (closed) return;
-    // Flush pending audio first
     if (pendingChunks.length > 0) flushPending();
-    connection?.commit();
+    transport?.commit();
   }
 
   async function close(): Promise<void> {
@@ -293,18 +252,17 @@ export async function createManagedConnection(config: BaseAdapterConfig): Promis
       rotationTimer = null;
     }
 
-    // Flush any remaining audio
-    if (pendingChunks.length > 0 && connection) {
+    if (pendingChunks.length > 0 && transport) {
       flushPending();
     }
 
-    await connection?.close();
+    await transport?.close();
     clearBuffer();
   }
 
   // Initial connection
-  connection = await openConnection();
-  wireConnection(connection);
+  transport = await openConnection();
+  wireTransport(transport);
   scheduleRotation();
 
   return {
