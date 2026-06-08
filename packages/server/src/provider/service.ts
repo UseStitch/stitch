@@ -4,10 +4,9 @@ import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import * as EmbeddingModels from '@/llm/provider/embedding-models.js';
 import * as Models from '@/llm/provider/models.js';
-import * as TranscriptionModels from '@/llm/provider/transcription-models.js';
 import { getModelCatalog } from '@/stt/models.js';
 
-export type ProviderCapability = 'llm' | 'stt' | 'embedding' | 'transcription';
+export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
 export type ProviderWithCapabilities = {
   id: string;
@@ -33,14 +32,12 @@ export async function listProvidersWithCapabilities(): Promise<
   ServiceResult<ProviderWithCapabilities[]>
 > {
   const db = getDb();
-  const [llmProviders, embeddingProviders, transcriptionProviders, sttCatalog, configs] =
-    await Promise.all([
-      Models.get(),
-      EmbeddingModels.getEmbeddingModels(),
-      TranscriptionModels.getTranscriptionModels(),
-      getModelCatalog(),
-      db.select({ providerId: providerConfig.providerId }).from(providerConfig),
-    ]);
+  const [llmProviders, embeddingProviders, sttCatalog, configs] = await Promise.all([
+    Models.get(),
+    EmbeddingModels.getEmbeddingModels(),
+    getModelCatalog(),
+    db.select({ providerId: providerConfig.providerId }).from(providerConfig),
+  ]);
 
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
@@ -57,10 +54,6 @@ export async function listProvidersWithCapabilities(): Promise<
 
   for (const id of Object.keys(embeddingProviders)) {
     ensureEntry(id).add('embedding');
-  }
-
-  for (const provider of transcriptionProviders) {
-    ensureEntry(provider.providerId).add('transcription');
   }
 
   for (const entry of sttCatalog) {
@@ -82,12 +75,6 @@ export async function listProvidersWithCapabilities(): Promise<
       apiMap[id] = p.api;
     }
   }
-  for (const p of transcriptionProviders) {
-    if (!nameMap[p.providerId]) {
-      nameMap[p.providerId] = p.providerName;
-      apiMap[p.providerId] = undefined;
-    }
-  }
   nameMap['ollama_local'] = 'Ollama';
   apiMap['ollama_local'] = 'http://localhost:11434';
   if (!nameMap['elevenlabs']) {
@@ -98,7 +85,6 @@ export async function listProvidersWithCapabilities(): Promise<
   const allIds = new Set([
     ...Object.keys(llmProviders),
     ...Object.keys(embeddingProviders),
-    ...transcriptionProviders.map((p) => p.providerId),
     ...capabilitiesMap.keys(),
   ]);
 

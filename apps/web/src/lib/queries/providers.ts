@@ -4,7 +4,7 @@ import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers
 
 import { serverFetch } from '@/lib/api';
 
-export type ProviderCapability = 'llm' | 'stt' | 'embedding' | 'transcription';
+export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
 export type ProviderSummary = {
   id: string;
@@ -59,7 +59,6 @@ export const providerKeys = {
   visibleModels: () => [...providerKeys.all, 'visible-models'] as const,
   embeddingModels: () => [...providerKeys.all, 'embedding-models'] as const,
   audioModels: () => [...providerKeys.all, 'audio-models'] as const,
-  transcriptionModels: () => [...providerKeys.all, 'transcription-models'] as const,
   sttModels: () => [...providerKeys.all, 'stt-models'] as const,
 };
 
@@ -186,17 +185,6 @@ export const audioProviderModelsQueryOptions = queryOptions({
   queryFn: async (): Promise<ProviderModels[]> => {
     const res = await serverFetch('/llm/provider/audio-models');
     if (!res.ok) throw new Error('Failed to fetch audio models');
-    return res.json() as Promise<ProviderModels[]>;
-  },
-});
-
-export const transcriptionProviderModelsQueryOptions = queryOptions({
-  queryKey: providerKeys.transcriptionModels(),
-  staleTime: 60 * 60 * 1000,
-  refetchOnWindowFocus: true,
-  queryFn: async (): Promise<ProviderModels[]> => {
-    const res = await serverFetch('/llm/provider/transcription-models');
-    if (!res.ok) throw new Error('Failed to fetch transcription models');
     return res.json() as Promise<ProviderModels[]>;
   },
 });
