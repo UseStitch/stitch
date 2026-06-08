@@ -56,6 +56,27 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
       },
     ],
   },
+  elevenlabs: {
+    displayName: 'ElevenLabs',
+    description: 'Speech-to-text and audio intelligence',
+    extraFields: [],
+    authMethods: [
+      {
+        method: 'api-key',
+        label: 'API Key',
+        enabled: true,
+        fields: [
+          {
+            key: 'apiKey',
+            label: 'API Key',
+            placeholder: 'xi-...',
+            required: true,
+            secret: true,
+          },
+        ],
+      },
+    ],
+  },
   google: {
     displayName: 'Google AI',
     description: 'Access to Gemini and other Google AI models',

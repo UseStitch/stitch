@@ -1,7 +1,7 @@
 import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
@@ -14,8 +14,24 @@ import {
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
-import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { settingsQueryOptions } from '@/lib/queries/settings';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  sttProviderModelsQueryOptions,
+  visibleProviderModelsQueryOptions,
+} from '@/lib/queries/providers';
+import {
+  deleteSettingMutationOptions,
+  saveSettingMutationOptions,
+  settingsQueryOptions,
+} from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
 
 const MODEL_PREFERENCES = [
@@ -38,6 +54,78 @@ const MODEL_PREFERENCES = [
     description: 'Used for generating conversation titles',
   },
 ] as const;
+
+function SttModelSelect() {
+  const queryClient = useQueryClient();
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+
+  const saveProviderMutation = useMutation(
+    saveSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
+  );
+  const saveModelMutation = useMutation(
+    saveSettingMutationOptions('stt.default.modelId', queryClient),
+  );
+  const deleteProviderMutation = useMutation(
+    deleteSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
+  );
+  const deleteModelMutation = useMutation(
+    deleteSettingMutationOptions('stt.default.modelId', queryClient, { silent: true }),
+  );
+
+  const currentProviderId = settings['stt.default.providerId'];
+  const currentModelId = settings['stt.default.modelId'];
+  const selectedValue =
+    currentProviderId && currentModelId ? `${currentProviderId}:${currentModelId}` : '';
+
+  const selectedLabel = React.useMemo(() => {
+    if (!currentProviderId || !currentModelId) return null;
+    const provider = sttProviders.find((p) => p.providerId === currentProviderId);
+    return provider?.models.find((m) => m.modelId === currentModelId)?.displayName ?? null;
+  }, [sttProviders, currentProviderId, currentModelId]);
+
+  function handleChange(value: string | null) {
+    if (!value) {
+      deleteProviderMutation.mutate();
+      deleteModelMutation.mutate();
+      return;
+    }
+    const [providerId, modelId] = value.split(':') as [string, string];
+    saveProviderMutation.mutate(providerId);
+    saveModelMutation.mutate(modelId);
+  }
+
+  if (sttProviders.length === 0) {
+    return (
+      <p className="py-1 text-sm text-muted-foreground">
+        No STT providers configured. Add OpenAI, ElevenLabs, or Google credentials first.
+      </p>
+    );
+  }
+
+  return (
+    <Select value={selectedValue} onValueChange={handleChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select STT model...">{selectedLabel ?? undefined}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {sttProviders.map((provider) => (
+          <SelectGroup key={provider.providerId}>
+            <SelectLabel>{provider.providerId}</SelectLabel>
+            {provider.models.map((model) => (
+              <SelectItem
+                key={`${provider.providerId}:${model.modelId}`}
+                value={`${provider.providerId}:${model.modelId}`}
+              >
+                {model.displayName}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function ModelsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
@@ -66,6 +154,11 @@ function ModelsContent() {
           </SettingRowControl>
         </SettingRow>
       ))}
+      <SettingRow label="STT Model" description="Used for live speech-to-text in the chat input">
+        <SettingRowControl>
+          <SttModelSelect />
+        </SettingRowControl>
+      </SettingRow>
     </SettingRows>
   );
 }

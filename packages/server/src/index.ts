@@ -28,6 +28,8 @@ import { shortcutsRouter } from '@/routes/shortcuts.js';
 import { skillsRouter } from '@/routes/skills.js';
 import { usageRouter } from '@/routes/usage.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
+import { initSttAdapters } from '@/stt/init.js';
+import { createSttRouter } from '@/stt/route.js';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -76,7 +78,9 @@ app.route('/shortcuts', shortcutsRouter);
 app.route('/usage', usageRouter);
 app.route('/connectors', connectorsRouter);
 app.route('/agenda', agendaRouter);
+app.route('/stt', createSttRouter(nodeWebSocket.upgradeWebSocket));
 
+initSttAdapters();
 registerShutdownHandlers();
 await init();
 

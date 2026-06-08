@@ -94,6 +94,14 @@ export async function listProviders(): Promise<ServiceResult<ProviderSummary[]>>
     enabled: enabledIds.has('ollama_local'),
   });
 
+  summaries.push({
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    api: 'https://api.elevenlabs.io',
+    model_count: 0,
+    enabled: enabledIds.has('elevenlabs'),
+  });
+
   return ok(summaries);
 }
 
@@ -112,6 +120,21 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
       name: 'Ollama',
       api: 'http://localhost:11434',
       model_count: modelCount[0]?.value ?? 0,
+      enabled: config !== undefined,
+    });
+  }
+
+  if (providerId === 'elevenlabs') {
+    const db = getDb();
+    const [config] = await db
+      .select({ providerId: providerConfig.providerId })
+      .from(providerConfig)
+      .where(eq(providerConfig.providerId, 'elevenlabs'));
+    return ok({
+      id: 'elevenlabs',
+      name: 'ElevenLabs',
+      api: 'https://api.elevenlabs.io',
+      model_count: 0,
       enabled: config !== undefined,
     });
   }

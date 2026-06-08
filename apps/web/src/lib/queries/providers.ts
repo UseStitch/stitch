@@ -46,6 +46,7 @@ export const providerKeys = {
   embeddingModels: () => [...providerKeys.all, 'embedding-models'] as const,
   audioModels: () => [...providerKeys.all, 'audio-models'] as const,
   transcriptionModels: () => [...providerKeys.all, 'transcription-models'] as const,
+  sttModels: () => [...providerKeys.all, 'stt-models'] as const,
 };
 
 export const providersQueryOptions = queryOptions({
@@ -183,5 +184,21 @@ export const transcriptionProviderModelsQueryOptions = queryOptions({
     const res = await serverFetch('/llm/provider/transcription-models');
     if (!res.ok) throw new Error('Failed to fetch transcription models');
     return res.json() as Promise<ProviderModels[]>;
+  },
+});
+
+type SttProviderModels = {
+  providerId: string;
+  models: { modelId: string; displayName: string; sampleRateHz: number }[];
+};
+
+export const sttProviderModelsQueryOptions = queryOptions({
+  queryKey: providerKeys.sttModels(),
+  staleTime: 60 * 60 * 1000,
+  refetchOnWindowFocus: true,
+  queryFn: async (): Promise<SttProviderModels[]> => {
+    const res = await serverFetch('/stt/providers/models');
+    if (!res.ok) throw new Error('Failed to fetch STT models');
+    return res.json() as Promise<SttProviderModels[]>;
   },
 });
