@@ -1,10 +1,6 @@
-import googleRegistry from '@stitch/registry-embeddings/models/google.json';
-import openaiRegistry from '@stitch/registry-embeddings/models/openai.json';
-
 import { PATHS } from '@/lib/paths.js';
 import { createRegistryCache } from '@/lib/registry-cache.js';
 import {
-  EmbeddingProviderSchema,
   EmbeddingRegistryPayloadSchema,
   type EmbeddingModel,
   type EmbeddingProvider,
@@ -13,8 +9,6 @@ import {
 import type { RawModel, RawProvider } from '@/llm/provider/models.js';
 
 const DEFAULT_EMBEDDING_REGISTRY_URL = 'https://usestitch.ai/embedding-models.json';
-
-const registries = [googleRegistry, openaiRegistry] as const;
 
 function toRawModel(model: EmbeddingModel): RawModel {
   return {
@@ -62,21 +56,12 @@ function getRegistryUrl(): string {
   return process.env['STITCH_EMBEDDING_REGISTRY_URL']?.trim() || DEFAULT_EMBEDDING_REGISTRY_URL;
 }
 
-function getBundledRegistryPayload(): EmbeddingRegistryPayload {
-  return {
-    version: 1,
-    generatedAt: new Date(0).toISOString(),
-    providers: registries.map((registry) => EmbeddingProviderSchema.parse(registry)),
-  };
-}
-
 const embeddingRegistryCache = createRegistryCache<EmbeddingRegistryPayload>({
   cacheFilePath: PATHS.filePaths.embeddingModelsRegistry,
   get url() {
     return getRegistryUrl();
   },
   parse: (raw) => EmbeddingRegistryPayloadSchema.parse(raw),
-  fallback: getBundledRegistryPayload(),
 });
 
 export async function getEmbeddingModelsFromRegistry(
@@ -84,4 +69,8 @@ export async function getEmbeddingModelsFromRegistry(
 ): Promise<Record<string, RawProvider>> {
   const payload = await embeddingRegistryCache.get(fetchImpl);
   return toRawProviders(payload.providers);
+}
+
+export async function refresh(fetchImpl = fetch): Promise<void> {
+  await embeddingRegistryCache.refresh(fetchImpl);
 }
