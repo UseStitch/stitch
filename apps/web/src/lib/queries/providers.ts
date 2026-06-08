@@ -178,17 +178,6 @@ export const embeddingProviderModelsQueryOptions = queryOptions({
   },
 });
 
-export const audioProviderModelsQueryOptions = queryOptions({
-  queryKey: providerKeys.audioModels(),
-  staleTime: 60 * 60 * 1000,
-  refetchOnWindowFocus: true,
-  queryFn: async (): Promise<ProviderModels[]> => {
-    const res = await serverFetch('/llm/provider/audio-models');
-    if (!res.ok) throw new Error('Failed to fetch audio models');
-    return res.json() as Promise<ProviderModels[]>;
-  },
-});
-
 export const sttProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.sttModels(),
   staleTime: 60 * 60 * 1000,

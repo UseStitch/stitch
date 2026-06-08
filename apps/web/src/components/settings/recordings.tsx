@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import {
-  audioProviderModelsQueryOptions,
+  enabledProviderModelsQueryOptions,
   sttProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
@@ -200,7 +200,7 @@ function RecordingsContent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
-  const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
+  const { data: llmProviderModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
   );
@@ -224,11 +224,11 @@ function RecordingsContent() {
 
   const providerModelsForPref = (providerIdKey: string): ProviderModels[] => {
     if (providerIdKey === 'recordings.transcription.providerId') return transcriptionProviderModels;
-    return audioProviderModels;
+    return llmProviderModels;
   };
 
   const noModelsAvailable =
-    transcriptionProviderModels.length === 0 && audioProviderModels.length === 0;
+    transcriptionProviderModels.length === 0 && llmProviderModels.length === 0;
 
   return (
     <>
