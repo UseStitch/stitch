@@ -171,6 +171,7 @@ export type RecordingDeviceChangedPayload = {
 
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
+  kind: 'partial' | 'final';
   source: 'mic' | 'speaker';
   speaker: string;
   content: string;

@@ -134,9 +134,10 @@ async function handleStart(
       });
 
       // Emit SSE event for recording transcripts so the FE can display them live
-      if (message.service === 'meeting-recording' && state.recordingId && evt.kind === 'final') {
+      if (message.service === 'meeting-recording' && state.recordingId) {
         Events.emit('recording-transcript-entry', {
           recordingId: state.recordingId,
+          kind: evt.kind,
           source: evt.speaker === 'Them' ? 'speaker' : 'mic',
           speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
           content: evt.text,
@@ -145,6 +146,7 @@ async function handleStart(
     });
 
     session.onError((err) => {
+      log.error({ error: err, sttSessionId: message.sttSessionId }, 'session adapter error');
       send(ws, {
         type: 'error',
         sttSessionId: message.sttSessionId,

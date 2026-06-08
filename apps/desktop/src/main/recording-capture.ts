@@ -127,12 +127,11 @@ export async function startRecordingCapture(
       }
     });
 
-    // Listen for transcript events from the STT session (for logging/debugging)
     ws.addEventListener('message', (event) => {
       try {
         const msg = JSON.parse(String(event.data)) as SttOutboundMessage;
         if (msg.type === 'error') {
-          console.error('[recording-stt] error:', msg.message);
+          console.error('[recording-stt] error:', msg.code, msg.message);
         }
       } catch {
         // ignore parse errors

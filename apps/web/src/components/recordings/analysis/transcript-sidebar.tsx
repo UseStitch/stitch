@@ -18,6 +18,7 @@ type TranscriptEntryView = {
   source: 'mic' | 'speaker' | null;
   speaker: string;
   content: string;
+  isPartial: boolean;
 };
 
 interface TranscriptSidebarProps {
@@ -45,6 +46,7 @@ export function TranscriptSidebar({
         source: entry.source,
         speaker: entry.speaker,
         content: entry.content,
+        isPartial: entry.kind === 'partial',
       }));
     }
 
@@ -54,6 +56,7 @@ export function TranscriptSidebar({
       source: null,
       speaker: entry.speaker,
       content: entry.content,
+      isPartial: false,
     }));
   }, [liveEntries, showLive, staticTranscript]);
 
@@ -118,7 +121,11 @@ export function TranscriptSidebar({
                         {entry.speaker}
                       </p>
                     </div>
-                    <p className="text-sm leading-relaxed text-foreground/90">{entry.content}</p>
+                    <p
+                      className={`text-sm leading-relaxed ${entry.isPartial ? 'text-foreground/60 italic' : 'text-foreground/90'}`}
+                    >
+                      {entry.content}
+                    </p>
                   </div>
                 </div>
               ) : null;
