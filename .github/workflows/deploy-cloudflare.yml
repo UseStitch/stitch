@@ -28,6 +28,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
       - name: Build website registry artifacts
         run: node scripts/build-website-registries.mjs
 
