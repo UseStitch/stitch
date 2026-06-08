@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -14,15 +15,6 @@ import {
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   sttProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -75,24 +67,19 @@ function SttModelSelect() {
 
   const currentProviderId = settings['stt.default.providerId'];
   const currentModelId = settings['stt.default.modelId'];
-  const selectedValue =
-    currentProviderId && currentModelId ? `${currentProviderId}:${currentModelId}` : '';
+  const value: ModelSelection | null =
+    currentProviderId && currentModelId
+      ? { providerId: currentProviderId, modelId: currentModelId }
+      : null;
 
-  const selectedLabel = React.useMemo(() => {
-    if (!currentProviderId || !currentModelId) return null;
-    const provider = sttProviders.find((p) => p.providerId === currentProviderId);
-    return provider?.models.find((m) => m.modelId === currentModelId)?.displayName ?? null;
-  }, [sttProviders, currentProviderId, currentModelId]);
-
-  function handleChange(value: string | null) {
-    if (!value) {
+  function handleValueChange(selection: ModelSelection | null) {
+    if (!selection) {
       deleteProviderMutation.mutate();
       deleteModelMutation.mutate();
       return;
     }
-    const [providerId, modelId] = value.split(':') as [string, string];
-    saveProviderMutation.mutate(providerId);
-    saveModelMutation.mutate(modelId);
+    saveProviderMutation.mutate(selection.providerId);
+    saveModelMutation.mutate(selection.modelId);
   }
 
   if (sttProviders.length === 0) {
@@ -104,26 +91,12 @@ function SttModelSelect() {
   }
 
   return (
-    <Select value={selectedValue} onValueChange={handleChange}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select STT model...">{selectedLabel ?? undefined}</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {sttProviders.map((provider) => (
-          <SelectGroup key={provider.providerId}>
-            <SelectLabel>{provider.providerId}</SelectLabel>
-            {provider.models.map((model) => (
-              <SelectItem
-                key={`${provider.providerId}:${model.modelId}`}
-                value={`${provider.providerId}:${model.modelId}`}
-              >
-                {model.displayName}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ))}
-      </SelectContent>
-    </Select>
+    <ModelCombobox
+      providerModels={sttProviders}
+      value={value}
+      onValueChange={handleValueChange}
+      placeholder="Select STT model..."
+    />
   );
 }
 

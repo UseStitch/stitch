@@ -2,11 +2,7 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
-import {
-  buildGroupedItems,
-  flattenGroups,
-  type ModelOption,
-} from '@/components/settings/model-select';
+import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   NumberSettingRow,
@@ -19,18 +15,6 @@ import {
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
-import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxSeparator,
-} from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -68,10 +52,9 @@ function EmbeddingModelSelect({
   providerModels: ProviderModels[];
 }) {
   const queryClient = useQueryClient();
-  const [pendingValue, setPendingValue] = React.useState<ModelOption | null | undefined>(undefined);
-
-  const groups = React.useMemo(() => buildGroupedItems(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
+  const [pendingValue, setPendingValue] = React.useState<ModelSelection | null | undefined>(
+    undefined,
+  );
 
   const saveProviderMutation = useMutation(
     saveSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
@@ -81,77 +64,51 @@ function EmbeddingModelSelect({
   );
   const resetMutation = useMutation(resetMemoriesMutationOptions(queryClient));
 
-  function isActualChange(value: ModelOption | null): boolean {
-    if (!value) return false;
-    return value.providerId !== currentProviderId || value.modelId !== currentModelId;
-  }
+  const value: ModelSelection | null =
+    currentProviderId && currentModelId
+      ? { providerId: currentProviderId, modelId: currentModelId }
+      : null;
 
-  function handleValueChange(value: ModelOption | null) {
-    if (!isActualChange(value)) return;
-    if (!value) return;
+  function handleValueChange(selection: ModelSelection | null) {
+    if (!selection) return;
+    const isActualChange =
+      selection.providerId !== currentProviderId || selection.modelId !== currentModelId;
+    if (!isActualChange) return;
 
     if (!currentProviderId && !currentModelId) {
-      saveProviderMutation.mutate(value.providerId);
-      saveModelMutation.mutate(value.modelId);
+      saveProviderMutation.mutate(selection.providerId);
+      saveModelMutation.mutate(selection.modelId);
       return;
     }
 
-    setPendingValue(value);
+    setPendingValue(selection);
   }
 
   async function handleConfirm() {
-    const value = pendingValue;
+    const selection = pendingValue;
     setPendingValue(undefined);
-
-    if (!value) return;
+    if (!selection) return;
 
     await resetMutation.mutateAsync();
-
-    saveProviderMutation.mutate(value.providerId);
-    saveModelMutation.mutate(value.modelId);
+    saveProviderMutation.mutate(selection.providerId);
+    saveModelMutation.mutate(selection.modelId);
   }
 
   function handleCancel() {
     setPendingValue(undefined);
   }
 
-  const selectedOption =
-    currentProviderId && currentModelId
-      ? (allOptions.find(
-          (o) => o.providerId === currentProviderId && o.modelId === currentModelId,
-        ) ?? null)
-      : null;
-
   const isConfirming = resetMutation.isPending;
 
   return (
     <>
-      <Combobox<ModelOption>
-        value={selectedOption}
+      <ModelCombobox
+        providerModels={providerModels}
+        value={value}
         onValueChange={handleValueChange}
-        isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-        items={groups}
-      >
-        <ComboboxInput placeholder="Select embedding model" showClear={false} />
-        <ComboboxContent side="bottom" sideOffset={4} align="start">
-          <ComboboxEmpty>No models found</ComboboxEmpty>
-          <ComboboxList>
-            {(group, index) => (
-              <ComboboxGroup key={group.value} items={group.items}>
-                <ComboboxLabel>{group.value}</ComboboxLabel>
-                <ComboboxCollection>
-                  {(item) => (
-                    <ComboboxItem key={item.value} value={item}>
-                      {item.label}
-                    </ComboboxItem>
-                  )}
-                </ComboboxCollection>
-                {index < groups.length - 1 && <ComboboxSeparator />}
-              </ComboboxGroup>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
+        placeholder="Select embedding model"
+        showClear={false}
+      />
 
       <Dialog open={pendingValue !== undefined} onOpenChange={(open) => !open && handleCancel()}>
         <DialogContent className="max-w-sm">
