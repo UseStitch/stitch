@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
+import type { PrefixedString } from '@stitch/shared/id';
+import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
+import { pushTranscriptEvent, startTranscriptCollection } from '@/recordings/transcript-store.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -17,6 +20,8 @@ const startMessageSchema = z.object({
   sttSessionId: z.string().min(1),
   providerId: z.string().min(1),
   modelId: z.string().min(1),
+  service: z.enum(['chat-input', 'meeting-recording']),
+  recordingId: z.string().min(1),
   capabilityRequest: z
     .record(z.string(), z.enum(['required', 'preferred']))
     .optional()
@@ -55,10 +60,12 @@ const inboundMessageSchema = z.discriminatedUnion('type', [
   stopMessageSchema,
 ]);
 
-function parseMessage(data: unknown): SttInboundMessage | null {
+type ParsedInboundMessage = z.infer<typeof inboundMessageSchema>;
+
+function parseMessage(data: unknown): ParsedInboundMessage | null {
   if (typeof data !== 'string') return null;
   try {
-    return inboundMessageSchema.parse(JSON.parse(data)) as SttInboundMessage;
+    return inboundMessageSchema.parse(JSON.parse(data));
   } catch {
     return null;
   }
@@ -78,6 +85,7 @@ function send(ws: WsSender, msg: SttOutboundMessage): void {
 type SessionState = {
   session: STTSession | null;
   inputEncoding: 'f32le' | 'pcm_s16le';
+  recordingId: string | null;
 };
 
 async function handleStart(
@@ -96,6 +104,7 @@ async function handleStart(
   }
 
   state.inputEncoding = message.audioChunkConfig.encoding;
+  state.recordingId = message.recordingId ?? null;
 
   try {
     const session = await createSTTSession(
@@ -103,7 +112,7 @@ async function handleStart(
         sttSessionId: message.sttSessionId,
         providerId: message.providerId,
         modelId: message.modelId,
-        service: 'chat-input',
+        service: message.service,
         capabilityRequest: message.capabilityRequest,
         language: message.language,
         keyterms: message.keyterms,
@@ -115,6 +124,11 @@ async function handleStart(
 
     state.session = session;
 
+    // Start in-memory transcript collection for meeting recordings
+    if (message.service === 'meeting-recording' && state.recordingId) {
+      startTranscriptCollection(state.recordingId as PrefixedString<'rec'>);
+    }
+
     session.onTranscript((evt) => {
       send(ws, {
         type: 'transcript',
@@ -125,9 +139,31 @@ async function handleStart(
         words: evt.words,
         language: evt.language,
       });
+
+      // Emit SSE event for recording transcripts so the FE can display them live
+      if (message.service === 'meeting-recording' && state.recordingId) {
+        const source = evt.speaker === 'Them' ? 'speaker' : 'mic';
+
+        Events.emit('recording-transcript-entry', {
+          recordingId: state.recordingId,
+          kind: evt.kind,
+          source,
+          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          content: evt.text,
+        });
+
+        // Accumulate all transcript events (partial + final) in the store for DB persistence
+        pushTranscriptEvent(state.recordingId as PrefixedString<'rec'>, {
+          kind: evt.kind,
+          source: source,
+          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          content: evt.text,
+        });
+      }
     });
 
     session.onError((err) => {
+      log.error({ error: err, sttSessionId: message.sttSessionId }, 'session adapter error');
       send(ws, {
         type: 'error',
         sttSessionId: message.sttSessionId,
@@ -202,7 +238,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   router.get(
     '/stream',
     upgradeWebSocket(() => {
-      const state: SessionState = { session: null, inputEncoding: 'pcm_s16le' };
+      const state: SessionState = { session: null, inputEncoding: 'pcm_s16le', recordingId: null };
 
       return {
         onOpen() {

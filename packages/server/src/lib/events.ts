@@ -1,8 +1,6 @@
-import type { RecordingAudioChunkPayload, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 
-type InternalEventPayloadMap = SseEventPayloadMap & {
-  'recording-audio-chunk': RecordingAudioChunkPayload;
-};
+type InternalEventPayloadMap = SseEventPayloadMap;
 
 type InternalEventName = keyof InternalEventPayloadMap;
 

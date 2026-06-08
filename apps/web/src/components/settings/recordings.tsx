@@ -21,8 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import {
-  audioProviderModelsQueryOptions,
-  transcriptionProviderModelsQueryOptions,
+  enabledProviderModelsQueryOptions,
+  sttProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
 import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
@@ -199,10 +199,8 @@ function AudioDeviceSettings() {
 function RecordingsContent() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: transcriptionProviderModels } = useSuspenseQuery(
-    transcriptionProviderModelsQueryOptions,
-  );
-  const { data: audioProviderModels } = useSuspenseQuery(audioProviderModelsQueryOptions);
+  const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: llmProviderModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
   );
@@ -217,13 +215,20 @@ function RecordingsContent() {
   const autoAnalyzeDisabled =
     saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
 
+  // Map STT models to ProviderModels shape for the model select component
+  const transcriptionProviderModels: ProviderModels[] = sttProviderModels.map((p) => ({
+    providerId: p.providerId,
+    providerName: p.providerName,
+    models: p.models.map((m) => ({ id: m.id, name: m.name })),
+  }));
+
   const providerModelsForPref = (providerIdKey: string): ProviderModels[] => {
     if (providerIdKey === 'recordings.transcription.providerId') return transcriptionProviderModels;
-    return audioProviderModels;
+    return llmProviderModels;
   };
 
   const noModelsAvailable =
-    transcriptionProviderModels.length === 0 && audioProviderModels.length === 0;
+    transcriptionProviderModels.length === 0 && llmProviderModels.length === 0;
 
   return (
     <>

@@ -56,12 +56,16 @@ export type STTUsage = {
   textOutputTokens?: number;
 };
 
+export type SttService = 'chat-input' | 'meeting-recording';
+
 // WebSocket protocol messages (client -> server)
 export type SttStartMessage = {
   type: 'start';
   sttSessionId: string;
   providerId: string;
   modelId: string;
+  service: SttService;
+  recordingId: string;
   capabilityRequest: CapabilityRequest;
   language?: string;
   keyterms?: string[];

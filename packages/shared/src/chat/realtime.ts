@@ -169,41 +169,9 @@ export type RecordingDeviceChangedPayload = {
   deviceName: string | null;
 };
 
-export type RecordingAudioChunkPayload = {
-  recordingId: string;
-  source: 'mic' | 'speaker';
-  samplesB64: string;
-  sampleRateHz: number;
-  numSamples: number;
-};
-
-export type RecordingIngestAudioChunkConfig = {
-  encoding: 'f32le' | 'pcm_s16le';
-  sampleRateHz: number;
-};
-
-export type RecordingIngestStartMessage = {
-  type: 'start';
-  recordingId: string;
-  audioChunkConfig: RecordingIngestAudioChunkConfig;
-};
-
-export type RecordingIngestChunkMessage = {
-  type: 'chunk';
-} & RecordingAudioChunkPayload;
-
-export type RecordingIngestStopMessage = {
-  type: 'stop';
-  recordingId: string;
-};
-
-export type RecordingIngestMessage =
-  | RecordingIngestStartMessage
-  | RecordingIngestChunkMessage
-  | RecordingIngestStopMessage;
-
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
+  kind: 'partial' | 'final';
   source: 'mic' | 'speaker';
   speaker: string;
   content: string;

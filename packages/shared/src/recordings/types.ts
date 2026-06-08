@@ -45,6 +45,10 @@ export type StartRecordingResponse = {
     encoding: 'f32le' | 'pcm_s16le';
     sampleRateHz: number;
   };
+  stt: {
+    providerId: string;
+    modelId: string;
+  };
 };
 
 export type StopRecordingInput = {

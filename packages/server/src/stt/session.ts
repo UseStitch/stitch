@@ -139,6 +139,8 @@ export async function createSTTSession(
     });
   }
 
+  const useDualStream = diarizationFallback !== null;
+
   // Build connection config
   const connectionConfig: STTConnectionConfig = {
     modelId,
@@ -157,7 +159,6 @@ export async function createSTTSession(
   const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
   const errorListeners: ((err: Error) => void)[] = [];
 
-  const useDualStream = diarizationFallback !== null;
   const connections = new Map<AudioSource, STTConnection>();
 
   // Usage tracking
