@@ -56,6 +56,8 @@ export function getCacheConfig(
     case 'ollama_local':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
+    // ElevenLabs: STT-only, no LLM cache control
+    case 'elevenlabs':
       return null;
   }
 }

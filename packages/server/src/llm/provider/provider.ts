@@ -78,6 +78,11 @@ const NvidiaCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
 });
 
+const ElevenLabsCredentialsSchema = z.object({
+  providerId: z.literal('elevenlabs'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
+
 const OllamaCredentialsSchema = z.object({
   providerId: z.literal('ollama_local'),
   baseURL: z.string().optional(),
@@ -87,6 +92,7 @@ const OllamaCredentialsSchema = z.object({
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   BedrockCredentialsSchema,
   AnthropicCredentialsSchema,
+  ElevenLabsCredentialsSchema,
   GoogleCredentialsSchema,
   GoogleVertexCredentialsSchema,
   NvidiaCredentialsSchema,
@@ -182,5 +188,9 @@ export const createProvider = (credentials: ProviderCredentials) => {
         name: 'ollama_local',
         baseURL: (credentials.baseURL ?? 'http://localhost:11434') + '/v1',
       });
+
+    case 'elevenlabs':
+      // ElevenLabs is STT-only, no LLM provider
+      return undefined as never;
   }
 };
