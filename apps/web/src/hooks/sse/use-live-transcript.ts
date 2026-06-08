@@ -28,50 +28,69 @@ export function useLiveTranscript(activeRecordingId: string | null) {
     'recording-transcript-entry': (data: RecordingTranscriptEntryPayload) => {
       if (!activeRecordingId || data.recordingId !== activeRecordingId) return;
 
-      if (data.kind === 'partial') {
-        setEntries((prev) => {
-          // Replace the last partial from the same source, or append if none
-          const lastIdx = prev.findLastIndex(
-            (e) => e.source === data.source && e.kind === 'partial',
-          );
+      setEntries((prev) => {
+        // Find existing partial from same source to replace
+        const partialIdx = prev.findLastIndex(
+          (e) => e.source === data.source && e.kind === 'partial',
+        );
+
+        if (data.kind === 'partial') {
           const entry: LiveTranscriptEntry = {
-            id: lastIdx >= 0 ? prev[lastIdx].id : ++counterRef.current,
+            id: partialIdx >= 0 ? prev[partialIdx].id : ++counterRef.current,
             source: data.source,
             speaker: data.speaker,
             content: data.content,
             timestamp: Date.now(),
             kind: 'partial',
           };
-          if (lastIdx >= 0) {
+          if (partialIdx >= 0) {
             const next = [...prev];
-            next[lastIdx] = entry;
+            next[partialIdx] = entry;
+            return next;
+          }
+          // No existing partial — merge into last entry if same speaker
+          const lastEntry = prev[prev.length - 1];
+          if (lastEntry && lastEntry.speaker === data.speaker) {
+            const next = [...prev];
+            next[next.length - 1] = {
+              ...entry,
+              id: lastEntry.id,
+              content: lastEntry.content + ' ' + data.content,
+            };
             return next;
           }
           return [...prev, entry];
-        });
-      } else {
-        // Final: replace the last partial from same source with the final version
+        }
+
+        // Final: remove the partial being replaced (if any)
+        const withoutPartial = partialIdx >= 0 ? prev.filter((_, i) => i !== partialIdx) : prev;
+
+        // Merge with the last entry if same speaker
+        const lastEntry = withoutPartial[withoutPartial.length - 1];
+        if (lastEntry && lastEntry.speaker === data.speaker) {
+          const next = [...withoutPartial];
+          next[next.length - 1] = {
+            ...lastEntry,
+            content: lastEntry.content + ' ' + data.content,
+            timestamp: Date.now(),
+            kind: 'final',
+          };
+          return next;
+        }
+
         counterRef.current += 1;
-        const entry: LiveTranscriptEntry = {
-          id: counterRef.current,
-          source: data.source,
-          speaker: data.speaker,
-          content: data.content,
-          timestamp: Date.now(),
-          kind: 'final',
-        };
-        setEntries((prev) => {
-          const lastPartialIdx = prev.findLastIndex(
-            (e) => e.source === data.source && e.kind === 'partial',
-          );
-          if (lastPartialIdx >= 0) {
-            const next = [...prev];
-            next[lastPartialIdx] = entry;
-            return next;
-          }
-          return [...prev, entry];
-        });
-      }
+        return [
+          ...withoutPartial,
+          {
+            id: counterRef.current,
+            source: data.source,
+            speaker: data.speaker,
+            content: data.content,
+            timestamp: Date.now(),
+            kind: 'final',
+          },
+        ];
+      });
     },
   });
 

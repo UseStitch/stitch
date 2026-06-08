@@ -65,14 +65,12 @@ export function pushTranscriptEvent(
   const state = getOrCreate(recordingId);
 
   if (event.kind === 'final') {
-    // Final event: discard any pending partial for this source and commit the final text
     state.pendingPartials.delete(event.source);
     if (event.content.trim()) {
       state.entries.push({ speaker: event.speaker, content: event.content });
       state.dirty = true;
     }
   } else {
-    // Partial event: replace the pending partial for this source
     if (event.content.trim()) {
       state.pendingPartials.set(event.source, {
         speaker: event.speaker,
@@ -84,28 +82,33 @@ export function pushTranscriptEvent(
 }
 
 /**
- * Build the full transcript snapshot: committed entries + any pending partials.
+ * Merge adjacent entries by the same speaker into a single entry.
  */
-function buildSnapshot(state: RecordingTranscriptState): RecordingTranscriptEntry[] {
-  const snapshot = [...state.entries];
-  for (const partial of state.pendingPartials.values()) {
-    if (partial.content.trim()) {
-      snapshot.push({ speaker: partial.speaker, content: partial.content });
+function mergeAdjacentEntries(entries: RecordingTranscriptEntry[]): RecordingTranscriptEntry[] {
+  const merged: RecordingTranscriptEntry[] = [];
+  for (const entry of entries) {
+    const last = merged[merged.length - 1];
+    if (last && last.speaker === entry.speaker) {
+      last.content += ' ' + entry.content;
+    } else {
+      merged.push({ speaker: entry.speaker, content: entry.content });
     }
   }
-  return snapshot;
+  return merged;
 }
 
 /**
- * Promote all pending partials into committed entries (used on stop).
+ * Build the full transcript snapshot: committed entries + any pending partials,
+ * with adjacent same-speaker entries merged.
  */
-function promotePendingPartials(state: RecordingTranscriptState): void {
+function buildSnapshot(state: RecordingTranscriptState): RecordingTranscriptEntry[] {
+  const raw = [...state.entries];
   for (const partial of state.pendingPartials.values()) {
     if (partial.content.trim()) {
-      state.entries.push({ speaker: partial.speaker, content: partial.content });
+      raw.push({ speaker: partial.speaker, content: partial.content });
     }
   }
-  state.pendingPartials.clear();
+  return mergeAdjacentEntries(raw);
 }
 
 async function flushTranscript(recordingId: PrefixedString<'rec'>): Promise<void> {
@@ -139,7 +142,14 @@ export async function finalFlushAndCleanup(recordingId: PrefixedString<'rec'>): 
     state.flushTimer = null;
   }
 
-  promotePendingPartials(state);
+  // Promote partials and merge everything for the final write
+  for (const partial of state.pendingPartials.values()) {
+    if (partial.content.trim()) {
+      state.entries.push({ speaker: partial.speaker, content: partial.content });
+    }
+  }
+  state.pendingPartials.clear();
+  state.entries = mergeAdjacentEntries(state.entries);
   state.dirty = true;
   await flushTranscript(recordingId);
 
