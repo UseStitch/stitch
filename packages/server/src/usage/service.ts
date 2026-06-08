@@ -2,6 +2,7 @@ import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 
 import {
   USAGE_SOURCES,
+  type SttUsageDashboardResponse,
   type UsageDashboardResponse,
   type UsageBucketGranularity,
   type UsageDateRange,
@@ -12,7 +13,7 @@ import {
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
-import { llmUsageEvents } from '@/db/schema/usage.js';
+import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';
@@ -500,6 +501,111 @@ export async function getUsageDashboard(
     totals: {
       costUsd: totalCostUsd,
       tokenMetrics: totalTokenMetrics,
+    },
+    buckets,
+  });
+}
+
+export async function getSttUsageDashboard(
+  input: GetUsageDashboardInput,
+): Promise<ServiceResult<SttUsageDashboardResponse>> {
+  const db = getDb();
+  const window = await resolveWindow(input);
+  const granularity = inferGranularity(window);
+  const bucketRanges = buildBucketRanges(window, granularity);
+
+  const buckets = bucketRanges.map((range) => ({
+    start: range.start,
+    end: range.end,
+    label: formatBucketLabel(range, granularity),
+    costUsdByService: {} as Record<string, number>,
+    durationMsByService: {} as Record<string, number>,
+  }));
+
+  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
+
+  const serviceSet = new Set<string>();
+  let totalCostUsd = 0;
+  let totalDurationMs = 0;
+
+  const usedProviderIds = new Set<string>();
+  const usedModelKeys = new Set<string>();
+
+  const conditions = [
+    gte(sttUsageEvents.startedAt, window.from),
+    lt(sttUsageEvents.startedAt, window.to),
+  ];
+  if (input.providerId) {
+    conditions.push(eq(sttUsageEvents.providerId, input.providerId));
+  }
+  if (input.modelId) {
+    conditions.push(eq(sttUsageEvents.modelId, input.modelId));
+  }
+
+  const rows = await db
+    .select({
+      startedAt: sttUsageEvents.startedAt,
+      providerId: sttUsageEvents.providerId,
+      modelId: sttUsageEvents.modelId,
+      service: sttUsageEvents.service,
+      costUsd: sttUsageEvents.costUsd,
+      rawData: sttUsageEvents.rawData,
+    })
+    .from(sttUsageEvents)
+    .where(and(...conditions));
+
+  for (const row of rows) {
+    usedProviderIds.add(row.providerId);
+    usedModelKeys.add(`${row.providerId}::${row.modelId}`);
+
+    const service = row.service;
+    const costUsd = row.costUsd ?? 0;
+    const durationMs = row.rawData?.durationMs ?? 0;
+
+    serviceSet.add(service);
+    totalCostUsd += costUsd;
+    totalDurationMs += durationMs;
+
+    const bucketStart = floorToGranularity(row.startedAt, granularity);
+    const bucketIndex = bucketIndexByStart.get(bucketStart);
+    if (bucketIndex === undefined) continue;
+
+    const bucket = buckets[bucketIndex];
+    if (!bucket) continue;
+
+    bucket.costUsdByService[service] = (bucket.costUsdByService[service] ?? 0) + costUsd;
+    bucket.durationMsByService[service] = (bucket.durationMsByService[service] ?? 0) + durationMs;
+  }
+
+  const services = Array.from(serviceSet).sort((a, b) => a.localeCompare(b));
+
+  return ok({
+    range: {
+      from: window.from,
+      to: window.to,
+      granularity,
+      bucketCount: buckets.length,
+    },
+    filters: {
+      providerId: input.providerId ?? null,
+      modelId: input.modelId ?? null,
+    },
+    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedModels: Array.from(usedModelKeys)
+      .map((key) => {
+        const separator = key.indexOf('::');
+        return {
+          providerId: key.slice(0, separator),
+          modelId: key.slice(separator + 2),
+        };
+      })
+      .sort(
+        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
+      ),
+    services,
+    totals: {
+      costUsd: totalCostUsd,
+      durationMs: totalDurationMs,
     },
     buckets,
   });
