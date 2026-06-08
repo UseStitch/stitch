@@ -18,7 +18,7 @@ type CatalogEntry = {
   models: ModelDescriptor[];
 };
 
-const MODEL_CATALOG: CatalogEntry[] = [
+export const MODEL_CATALOG: CatalogEntry[] = [
   {
     providerId: 'openai',
     models: [

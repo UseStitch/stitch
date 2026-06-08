@@ -47,6 +47,8 @@ export const SETTINGS_KEYS = [
   'recordings.transcription.modelId',
   'recordings.analysis.providerId',
   'recordings.analysis.modelId',
+  'stt.default.providerId',
+  'stt.default.modelId',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -98,6 +100,8 @@ export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
   'recordings.transcription.modelId': z.string(),
   'recordings.analysis.providerId': z.string(),
   'recordings.analysis.modelId': z.string(),
+  'stt.default.providerId': z.string(),
+  'stt.default.modelId': z.string(),
 } as const;
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
@@ -347,5 +351,17 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'recordings.analysis.modelId',
     value: '',
     description: 'Preferred model ID used for recording analysis and summaries.',
+  },
+  {
+    key: 'stt.default.providerId',
+    value: '',
+    description:
+      'Provider ID for the default STT model used for live speech-to-text in the chat input.',
+  },
+  {
+    key: 'stt.default.modelId',
+    value: '',
+    description:
+      'Model ID for the default STT model used for live speech-to-text in the chat input.',
   },
 ];

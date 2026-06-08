@@ -1,11 +1,13 @@
-import { ArrowUpIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
+import { ArrowUpIcon, MicIcon, MicOffIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { AttachmentPreview } from './attachment-preview';
 import { ModelSelectorPopover } from './model-selector-popover';
 import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
+import { useStt } from './use-stt';
 
 import type { Attachment, ModelSpec } from './types';
 import {
@@ -15,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
 type ChatInputInnerProps = {
@@ -49,6 +52,7 @@ export function ChatInputInner({
   onPendingAttachmentsConsumed,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -98,6 +102,48 @@ export function ChatInputInner({
   }, [value]);
 
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !disabled;
+
+  // STT
+  const stt = useStt();
+  const sttBaseOffsetRef = React.useRef(0);
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  async function handleMicClick() {
+    if (stt.state === 'recording') {
+      const transcript = await stt.stop();
+      const base = valueRef.current.slice(0, sttBaseOffsetRef.current);
+      const separator = base.trimEnd().length > 0 ? ' ' : '';
+      onChange(base.trimEnd() + separator + transcript);
+      return;
+    }
+
+    if (stt.state !== 'idle') return;
+
+    const providerId = settings['stt.default.providerId'];
+    const modelId = settings['stt.default.modelId'];
+    if (!providerId || !modelId) {
+      toast.error('No STT model configured. Set one in Settings → General → STT Model.');
+      return;
+    }
+
+    sttBaseOffsetRef.current = value.length;
+    await stt.start(providerId, modelId);
+  }
+
+  // Splice partial text into textarea value while recording
+  React.useEffect(() => {
+    if (stt.state !== 'recording') return;
+    const base = value.slice(0, sttBaseOffsetRef.current);
+    const separator = base.trimEnd().length > 0 ? ' ' : '';
+    const next = base.trimEnd() + separator + stt.partialText;
+    if (next !== value) onChange(next);
+    // Only re-run when partialText changes — value intentionally omitted to avoid loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stt.partialText, stt.state]);
+
+  const isRecording = stt.state === 'recording';
+  const isStopping = stt.state === 'stopping';
 
   return (
     <div
@@ -191,6 +237,25 @@ export function ChatInputInner({
               <PaperclipIcon className="size-3.5" />
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              void handleMicClick();
+            }}
+            disabled={disabled || isStopping}
+            className={cn(
+              'flex items-center justify-center rounded-md p-1 transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+              isRecording
+                ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              (disabled || isStopping) && 'pointer-events-none opacity-50',
+            )}
+            title={isRecording ? 'Stop recording' : 'Speak to type'}
+          >
+            {isRecording ? <MicOffIcon className="size-3.5" /> : <MicIcon className="size-3.5" />}
+          </button>
         </div>
 
         <div className="flex items-center gap-1">

@@ -74,9 +74,12 @@ export async function createSTTSession(
 ): Promise<STTSession> {
   const { sttSessionId, providerId, modelId, capabilityRequest, language, keyterms } = config;
 
+  log.info({ sttSessionId, providerId, modelId }, 'creating STT session');
+
   // Resolve adapter
   const maybeAdapter = getAdapter(providerId);
   if (!maybeAdapter) {
+    log.error({ providerId }, 'no adapter registered for provider');
     throw new STTSessionError(`Unknown STT provider: ${providerId}`, 'unknown_provider');
   }
   const adapter = maybeAdapter;
@@ -84,6 +87,7 @@ export async function createSTTSession(
   // Resolve model
   const maybeModel = getModelDescriptor(providerId, modelId);
   if (!maybeModel) {
+    log.error({ providerId, modelId }, 'unknown STT model');
     throw new STTSessionError(`Unknown STT model: ${modelId}`, 'unknown_model');
   }
   const model = maybeModel;
@@ -92,8 +96,10 @@ export async function createSTTSession(
   let capabilityResolution: CapabilityResolution;
   try {
     capabilityResolution = resolve(capabilityRequest, model.capabilities);
+    log.info({ sttSessionId, capabilityResolution }, 'capabilities resolved');
   } catch (err) {
     if (err instanceof CapabilityNegotiationError) {
+      log.error({ sttSessionId, error: err }, 'capability negotiation failed');
       throw new STTSessionError(err.message, 'capability_unsatisfied');
     }
     throw err;
@@ -102,11 +108,13 @@ export async function createSTTSession(
   // Resolve auth
   const auth = await resolveSttAuth(providerId);
   if (!auth) {
+    log.error({ providerId }, 'no credentials configured for STT provider');
     throw new STTSessionError(
       `No credentials configured for provider: ${providerId}`,
       'no_credentials',
     );
   }
+  log.info({ sttSessionId, providerId, authKind: auth.kind }, 'auth resolved');
 
   // Determine commit strategy
   const commitStrategy: CommitStrategy =
@@ -192,7 +200,6 @@ export async function createSTTSession(
   }
 
   function feedAudio(source: AudioSource, chunk: AudioChunk): void {
-    // Convert to the adapter's required format
     const converted = deps.resampler.convert(chunk, model.inputFormat);
 
     let conn: STTConnection | null | undefined;
@@ -239,14 +246,34 @@ export async function createSTTSession(
   }
 
   async function stop(): Promise<STTSessionResult> {
-    // Close all connections
     const allConns = useDualStream
       ? [...connections.values()]
       : primaryConnection
         ? [primaryConnection]
         : [];
 
-    await Promise.all(allConns.map((c) => c.close()));
+    // Commit all connections and wait for the final committed_transcript before closing.
+    const COMMIT_DRAIN_TIMEOUT_MS = 5000;
+
+    await Promise.all(
+      allConns.map((conn) => {
+        return new Promise<void>((resolve) => {
+          const timer = setTimeout(() => {
+            log.warn({ sttSessionId }, 'timed out waiting for committed_transcript after commit');
+            resolve();
+          }, COMMIT_DRAIN_TIMEOUT_MS);
+
+          conn.onTranscript((evt) => {
+            if (evt.kind === 'final') {
+              clearTimeout(timer);
+              resolve();
+            }
+          });
+
+          conn.commit();
+        }).then(() => conn.close());
+      }),
+    );
 
     const costUsd = calculateCost(model.pricing, totalUsage);
 

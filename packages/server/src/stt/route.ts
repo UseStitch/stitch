@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
 
 import * as Log from '@/lib/log.js';
+import { resolveSttAuth } from '@/stt/auth.js';
+import { MODEL_CATALOG } from '@/stt/registry.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -69,6 +71,21 @@ const resampler = createDefaultResampler();
 export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   const router = new Hono();
 
+  // Returns the STT model catalog filtered to providers with credentials configured.
+  router.get('/providers/models', async (c) => {
+    const entries = await Promise.all(
+      MODEL_CATALOG.map(async (entry) => {
+        const auth = await resolveSttAuth(entry.providerId);
+        if (!auth) return null;
+        return {
+          providerId: entry.providerId,
+          models: entry.models.map((m) => ({ modelId: m.modelId, displayName: m.displayName })),
+        };
+      }),
+    );
+    return c.json(entries.filter(Boolean));
+  });
+
   router.get(
     '/stream',
     upgradeWebSocket(() => {
@@ -80,6 +97,10 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
       }
 
       return {
+        onOpen() {
+          log.info('client WebSocket connected');
+        },
+
         onMessage(event, ws) {
           const message = parseMessage(event.data);
           if (!message) {
@@ -152,7 +173,10 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
                 .catch((err) => {
                   const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
                   const msg = err instanceof Error ? err.message : 'Unknown error';
-                  log.error({ error: err }, 'failed to start STT session');
+                  log.error(
+                    { error: err, sttSessionId: message.sttSessionId },
+                    'failed to start STT session',
+                  );
                   send(ws, {
                     type: 'error',
                     sttSessionId: message.sttSessionId,
@@ -177,6 +201,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
 
             case 'commit': {
               if (!session || session.sttSessionId !== message.sttSessionId) return;
+              log.info({ sttSessionId: message.sttSessionId }, 'commit');
               session.commit();
               break;
             }
@@ -186,10 +211,15 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
               const currentSession = session;
               const sessionId = message.sttSessionId;
               session = null;
+              log.info({ sttSessionId: sessionId }, 'stopping session');
 
               currentSession
                 .stop()
                 .then((result) => {
+                  log.info(
+                    { sttSessionId: sessionId, costUsd: result.costUsd, usage: result.usage },
+                    'session done',
+                  );
                   send(ws, {
                     type: 'done',
                     sttSessionId: sessionId,
@@ -198,7 +228,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
                   });
                 })
                 .catch((err) => {
-                  log.error({ error: err }, 'error stopping STT session');
+                  log.error({ error: err, sttSessionId: sessionId }, 'error stopping STT session');
                   send(ws, {
                     type: 'error',
                     sttSessionId: sessionId,
@@ -212,6 +242,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
         },
 
         onClose() {
+          log.info({ hasSession: !!session }, 'client WebSocket disconnected');
           if (session) {
             session.stop().catch((err) => {
               log.warn({ error: err }, 'error during session cleanup on WS close');
