@@ -182,6 +182,8 @@ export function useStt(): UseSttReturn {
         sttSessionId: sessionId,
         providerId,
         modelId,
+        service: 'chat-input',
+        recordingId: sessionId,
         capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
         audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
       };

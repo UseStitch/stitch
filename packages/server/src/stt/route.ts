@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
+import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
@@ -17,6 +18,8 @@ const startMessageSchema = z.object({
   sttSessionId: z.string().min(1),
   providerId: z.string().min(1),
   modelId: z.string().min(1),
+  service: z.enum(['chat-input', 'meeting-recording']),
+  recordingId: z.string().min(1),
   capabilityRequest: z
     .record(z.string(), z.enum(['required', 'preferred']))
     .optional()
@@ -55,10 +58,12 @@ const inboundMessageSchema = z.discriminatedUnion('type', [
   stopMessageSchema,
 ]);
 
-function parseMessage(data: unknown): SttInboundMessage | null {
+type ParsedInboundMessage = z.infer<typeof inboundMessageSchema>;
+
+function parseMessage(data: unknown): ParsedInboundMessage | null {
   if (typeof data !== 'string') return null;
   try {
-    return inboundMessageSchema.parse(JSON.parse(data)) as SttInboundMessage;
+    return inboundMessageSchema.parse(JSON.parse(data));
   } catch {
     return null;
   }
@@ -78,6 +83,7 @@ function send(ws: WsSender, msg: SttOutboundMessage): void {
 type SessionState = {
   session: STTSession | null;
   inputEncoding: 'f32le' | 'pcm_s16le';
+  recordingId: string | null;
 };
 
 async function handleStart(
@@ -96,6 +102,7 @@ async function handleStart(
   }
 
   state.inputEncoding = message.audioChunkConfig.encoding;
+  state.recordingId = message.recordingId ?? null;
 
   try {
     const session = await createSTTSession(
@@ -103,7 +110,7 @@ async function handleStart(
         sttSessionId: message.sttSessionId,
         providerId: message.providerId,
         modelId: message.modelId,
-        service: 'chat-input',
+        service: message.service,
         capabilityRequest: message.capabilityRequest,
         language: message.language,
         keyterms: message.keyterms,
@@ -125,6 +132,16 @@ async function handleStart(
         words: evt.words,
         language: evt.language,
       });
+
+      // Emit SSE event for recording transcripts so the FE can display them live
+      if (message.service === 'meeting-recording' && state.recordingId && evt.kind === 'final') {
+        Events.emit('recording-transcript-entry', {
+          recordingId: state.recordingId,
+          source: evt.speaker === 'Them' ? 'speaker' : 'mic',
+          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          content: evt.text,
+        });
+      }
     });
 
     session.onError((err) => {
@@ -202,7 +219,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
   router.get(
     '/stream',
     upgradeWebSocket(() => {
-      const state: SessionState = { session: null, inputEncoding: 'pcm_s16le' };
+      const state: SessionState = { session: null, inputEncoding: 'pcm_s16le', recordingId: null };
 
       return {
         onOpen() {
