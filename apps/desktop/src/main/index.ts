@@ -42,6 +42,7 @@ if (!gotTheLock) {
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let isShuttingDown = false;
+let updateCheckInterval: NodeJS.Timeout | null = null;
 
 // Shared mutable server state — passed by reference to IPC handlers that own it.
 const serverState = {
@@ -74,6 +75,10 @@ async function resolveServerUrl(): Promise<string> {
 async function shutdownRuntime(): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+    updateCheckInterval = null;
+  }
   destroyTray();
   stopMeetingDetection();
   await stopRecordingCapture().catch(() => null);
@@ -116,7 +121,9 @@ function onContextMenu(params: Electron.ContextMenuParams): void {
 
 async function spawnMainWindow(): Promise<BrowserWindow> {
   return createWindow(onContextMenu, () => {
-    if (!isQuitting) mainWindow?.hide();
+    if (isQuitting) return 'allow';
+    mainWindow?.hide();
+    return 'prevent';
   });
 }
 
@@ -160,7 +167,10 @@ void app.whenReady().then(async () => {
     if (process.platform !== 'darwin') {
       updater.init();
       setTimeout(() => void updater.checkForUpdates(), 15_000);
-      setInterval(() => void updater.checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
+      updateCheckInterval = setInterval(
+        () => void updater.checkForUpdates(),
+        UPDATE_CHECK_INTERVAL_MS,
+      );
     }
 
     initTray(() => mainWindow);
