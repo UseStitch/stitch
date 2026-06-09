@@ -37,7 +37,7 @@ function resolveWindowIcon(): Electron.NativeImage | undefined {
 
 export async function createWindow(
   onContextMenu: (params: Electron.ContextMenuParams) => void,
-  onClose: () => void,
+  onClose: () => 'allow' | 'prevent',
 ): Promise<BrowserWindow> {
   const isMac = process.platform === 'darwin';
   const windowIcon = resolveWindowIcon();
@@ -74,8 +74,9 @@ export async function createWindow(
   });
 
   win.on('close', (event) => {
-    event.preventDefault();
-    onClose();
+    if (onClose() === 'prevent') {
+      event.preventDefault();
+    }
   });
 
   win.webContents.on('context-menu', (_e, params) => {
