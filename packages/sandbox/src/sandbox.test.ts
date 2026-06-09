@@ -116,11 +116,11 @@ describe('process sandbox', () => {
     try {
       const result = await context.execute(`
         const arrays = [];
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 512; i++) {
           const arr = new Uint8Array(1024 * 1024);
           arr.fill(1);
           arrays.push(arr);
-          if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
+          await new Promise(r => setTimeout(r, 5));
         }
       `);
       expect(result.result).toEqual({ error: 'Sandbox memory limit exceeded (64MB)' });
