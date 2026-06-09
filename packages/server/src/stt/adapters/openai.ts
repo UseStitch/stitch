@@ -16,21 +16,40 @@ type OpenAIRealtimeMessage =
   | { type: 'session.updated' }
   | { type: 'input_audio_buffer.speech_started' }
   | { type: 'input_audio_buffer.speech_stopped' }
-  | { type: 'conversation.item.input_audio_transcription.delta'; delta: string }
-  | { type: 'conversation.item.input_audio_transcription.completed'; transcript: string }
+  | {
+      type: 'conversation.item.input_audio_transcription.delta';
+      delta: string;
+      item_id?: string;
+      content_index?: number;
+    }
+  | {
+      type: 'conversation.item.input_audio_transcription.completed';
+      transcript: string;
+      item_id?: string;
+      content_index?: number;
+    }
   | { type: 'error'; error: { type: string; message: string; code?: string } };
 
 function createOpenAIMessageParser(sessionStartMs: number) {
+  // Monotonic offset tracker: OpenAI doesn't provide word timestamps,
+  // so we use elapsed time since session start as the offset.
+  // We track the last offset to ensure monotonicity even if messages arrive out of order.
+  let lastOffsetMs = 0;
+
   return function parseMessage(data: string): WsMessageResult | null {
     const msg = JSON.parse(data) as OpenAIRealtimeMessage;
 
     switch (msg.type) {
       case 'conversation.item.input_audio_transcription.delta': {
-        const transcript: TranscriptEvent = { kind: 'partial', text: msg.delta };
+        const offsetMs = Math.max(Date.now() - sessionStartMs, lastOffsetMs);
+        lastOffsetMs = offsetMs;
+        const transcript: TranscriptEvent = { kind: 'partial', text: msg.delta, offsetMs };
         return { transcript };
       }
       case 'conversation.item.input_audio_transcription.completed': {
-        const transcript: TranscriptEvent = { kind: 'final', text: msg.transcript };
+        const offsetMs = Math.max(Date.now() - sessionStartMs, lastOffsetMs + 1);
+        lastOffsetMs = offsetMs;
+        const transcript: TranscriptEvent = { kind: 'final', text: msg.transcript, offsetMs };
         const usage: STTUsage = { durationMs: Date.now() - sessionStartMs };
         return { transcript, usage };
       }
