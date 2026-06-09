@@ -309,7 +309,6 @@ function writeOutput(servers, embeddingProviders, sttProviders) {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(join(outputDir, 'mcp', 'servers'), { recursive: true });
 
-  cpSync(join(rootDir, 'apps', 'website', 'index.html'), join(outputDir, 'index.html'));
   copySchemas();
   copyServerLogos(servers);
 
