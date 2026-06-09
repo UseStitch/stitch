@@ -9,7 +9,7 @@ type LiveTranscriptEntry = {
   source: 'mic' | 'speaker';
   speaker: string;
   content: string;
-  timestamp: number;
+  offsetMs: number;
   kind: 'partial' | 'final';
 };
 
@@ -40,23 +40,12 @@ export function useLiveTranscript(activeRecordingId: string | null) {
             source: data.source,
             speaker: data.speaker,
             content: data.content,
-            timestamp: Date.now(),
+            offsetMs: data.offsetMs,
             kind: 'partial',
           };
           if (partialIdx >= 0) {
             const next = [...prev];
             next[partialIdx] = entry;
-            return next;
-          }
-          // No existing partial — merge into last entry if same speaker
-          const lastEntry = prev[prev.length - 1];
-          if (lastEntry && lastEntry.speaker === data.speaker) {
-            const next = [...prev];
-            next[next.length - 1] = {
-              ...entry,
-              id: lastEntry.id,
-              content: lastEntry.content + ' ' + data.content,
-            };
             return next;
           }
           return [...prev, entry];
@@ -65,19 +54,8 @@ export function useLiveTranscript(activeRecordingId: string | null) {
         // Final: remove the partial being replaced (if any)
         const withoutPartial = partialIdx >= 0 ? prev.filter((_, i) => i !== partialIdx) : prev;
 
-        // Merge with the last entry if same speaker
-        const lastEntry = withoutPartial[withoutPartial.length - 1];
-        if (lastEntry && lastEntry.speaker === data.speaker) {
-          const next = [...withoutPartial];
-          next[next.length - 1] = {
-            ...lastEntry,
-            content: lastEntry.content + ' ' + data.content,
-            timestamp: Date.now(),
-            kind: 'final',
-          };
-          return next;
-        }
-
+        // Each final from the STT provider is a distinct committed utterance.
+        // Never merge across commit boundaries — append as a new entry.
         counterRef.current += 1;
         return [
           ...withoutPartial,
@@ -86,7 +64,7 @@ export function useLiveTranscript(activeRecordingId: string | null) {
             source: data.source,
             speaker: data.speaker,
             content: data.content,
-            timestamp: Date.now(),
+            offsetMs: data.offsetMs,
             kind: 'final',
           },
         ];

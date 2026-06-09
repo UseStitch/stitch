@@ -67,7 +67,7 @@ async function seedCompletedAnalysis(): Promise<void> {
     id: analysisId,
     recordingId,
     status: 'completed',
-    transcript: [{ speaker: 'Speaker', content: 'Existing transcript' }],
+    transcript: [{ speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 }],
     topicSections: [
       {
         name: 'Existing Topic',

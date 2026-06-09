@@ -72,6 +72,10 @@ export type ListRecordingsResponse = {
 export type RecordingTranscriptEntry = {
   speaker: string;
   content: string;
+  /** Milliseconds since recording start when this entry began */
+  startMs: number;
+  /** Milliseconds since recording start when this entry ended */
+  endMs: number;
 };
 
 export type RecordingActionItem = {

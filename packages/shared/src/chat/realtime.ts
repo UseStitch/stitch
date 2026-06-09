@@ -175,6 +175,8 @@ export type RecordingTranscriptEntryPayload = {
   source: 'mic' | 'speaker';
   speaker: string;
   content: string;
+  /** Milliseconds since recording start — use for ordering instead of client wall-clock */
+  offsetMs: number;
 };
 
 export const SSE_EVENT_NAMES = [

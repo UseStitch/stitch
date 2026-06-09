@@ -45,6 +45,7 @@ export type TranscriptWord = {
 export type TranscriptEvent = {
   kind: 'partial' | 'final';
   text: string;
+  offsetMs: number;
   speaker?: string | number;
   words?: TranscriptWord[];
   language?: string;
@@ -112,6 +113,7 @@ export type SttTranscriptMessage = {
   sttSessionId: string;
   kind: 'partial' | 'final';
   text: string;
+  offsetMs: number;
   speaker?: string | number;
   words?: TranscriptWord[];
   language?: string;

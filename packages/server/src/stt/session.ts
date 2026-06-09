@@ -7,7 +7,6 @@ import type {
   CapabilityRequest,
   CapabilityResolution,
   STTUsage,
-  TranscriptEvent,
 } from '@stitch/shared/stt/types';
 
 import { getDb } from '@/db/client.js';
@@ -24,6 +23,10 @@ import {
 } from '@/stt/fallbacks/diarization.js';
 import { createVadFallback, type VadFallback } from '@/stt/fallbacks/vad.js';
 import { getModelDescriptor } from '@/stt/models.js';
+import {
+  createTranscriptOrderingBuffer,
+  type SourcedTranscriptEvent,
+} from '@/stt/ordering-buffer.js';
 import { getAdapter } from '@/stt/registry.js';
 import type { AudioResampler } from '@/stt/resampler.js';
 import type { CommitStrategy, STTConnectionConfig } from '@/stt/types.js';
@@ -54,7 +57,7 @@ export type STTSession = {
   feedAudio(source: AudioSource, chunk: AudioChunk): void;
   commit(): void;
   stop(): Promise<STTSessionResult>;
-  onTranscript(cb: (e: TranscriptEvent) => void): void;
+  onTranscript(cb: (e: SourcedTranscriptEvent) => void): void;
   onError(cb: (err: Error) => void): void;
 };
 
@@ -156,7 +159,7 @@ export async function createSTTSession(
   };
 
   // Open connections eagerly
-  const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
+  const transcriptListeners: ((e: SourcedTranscriptEvent) => void)[] = [];
   const errorListeners: ((err: Error) => void)[] = [];
 
   const connections = new Map<AudioSource, STTConnection>();
@@ -165,13 +168,20 @@ export async function createSTTSession(
   const startedAt = Date.now();
   let totalUsage: STTUsage = { durationMs: 0 };
 
+  // Ordering buffer: collects events from both streams and emits in offsetMs order
+  const orderingBuffer = createTranscriptOrderingBuffer((event) => {
+    for (const cb of transcriptListeners) cb(event);
+  });
+
   function wireConnection(conn: STTConnection, source: AudioSource): void {
     conn.onTranscript((evt) => {
       let tagged = evt;
       if (diarizationFallback) {
         tagged = diarizationFallback.tagTranscript(evt, source);
       }
-      for (const cb of transcriptListeners) cb(tagged);
+      // Route through the ordering buffer with source attached
+      const sourcedEvent: SourcedTranscriptEvent = { ...tagged, source };
+      orderingBuffer.push(sourcedEvent);
     });
 
     conn.onUsage((usage) => {
@@ -250,6 +260,9 @@ export async function createSTTSession(
         }).then(() => conn.close());
       }),
     );
+
+    // Drain any remaining buffered events before reporting done
+    orderingBuffer.drain();
 
     const costUsd = calculateCost(model.pricing, totalUsage);
     const endedAt = Date.now();

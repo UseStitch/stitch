@@ -135,6 +135,7 @@ async function handleStart(
         sttSessionId: message.sttSessionId,
         kind: evt.kind,
         text: evt.text,
+        offsetMs: evt.offsetMs,
         speaker: evt.speaker,
         words: evt.words,
         language: evt.language,
@@ -142,7 +143,7 @@ async function handleStart(
 
       // Emit SSE event for recording transcripts so the FE can display them live
       if (message.service === 'meeting-recording' && state.recordingId) {
-        const source = evt.speaker === 'Them' ? 'speaker' : 'mic';
+        const source = evt.source;
 
         Events.emit('recording-transcript-entry', {
           recordingId: state.recordingId,
@@ -150,14 +151,16 @@ async function handleStart(
           source,
           speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
           content: evt.text,
+          offsetMs: evt.offsetMs,
         });
 
         // Accumulate all transcript events (partial + final) in the store for DB persistence
         pushTranscriptEvent(state.recordingId as PrefixedString<'rec'>, {
           kind: evt.kind,
-          source: source,
+          source,
           speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
           content: evt.text,
+          offsetMs: evt.offsetMs,
         });
       }
     });
