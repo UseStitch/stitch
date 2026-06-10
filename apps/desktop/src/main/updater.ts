@@ -1,10 +1,5 @@
 import { app, shell } from 'electron';
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-updater';
-import { createWriteStream } from 'node:fs';
-import { mkdir, rename, rm } from 'node:fs/promises';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 
 import type { UpdaterStatePayload } from './ipc-types.js';
 
@@ -19,38 +14,9 @@ const NETWORK_ERROR_CODES = [
 ];
 
 const RELEASES_URL = 'https://github.com/UseStitch/stitch/releases/latest';
-const RELEASE_DOWNLOAD_BASE_URL = 'https://github.com/UseStitch/stitch/releases/latest/download';
 
 function isNetworkError(error: Error): boolean {
   return NETWORK_ERROR_CODES.some((code) => error.message.includes(code));
-}
-
-async function downloadLatestMacDmg(): Promise<string> {
-  const downloadsDir = app.getPath('downloads');
-  await mkdir(downloadsDir, { recursive: true });
-
-  const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
-  const fileName = `Stitch-macos-${arch}.dmg`;
-  const filePath = path.join(downloadsDir, fileName);
-  const partialPath = `${filePath}.download`;
-  const downloadUrl = `${RELEASE_DOWNLOAD_BASE_URL}/${fileName}`;
-
-  const response = await fetch(downloadUrl, {
-    headers: { 'User-Agent': 'Stitch Desktop' },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to download ${fileName}: ${response.status} ${response.statusText}`);
-  }
-  if (!response.body) {
-    throw new Error(`Failed to download ${fileName}: response body was empty`);
-  }
-
-  await rm(partialPath, { force: true });
-  await pipeline(Readable.fromWeb(response.body), createWriteStream(partialPath));
-  await rename(partialPath, filePath);
-
-  return filePath;
 }
 
 type UpdaterOptions = {
@@ -139,15 +105,7 @@ export function createUpdater(options: UpdaterOptions) {
   }
 
   async function openManualUpdateAndQuit(): Promise<boolean> {
-    const filePath = process.platform === 'darwin' ? await downloadLatestMacDmg() : null;
-
-    if (filePath) {
-      const error = await shell.openPath(filePath);
-      if (error) throw new Error(error);
-    } else {
-      await shell.openExternal(RELEASES_URL);
-    }
-
+    await shell.openExternal(RELEASES_URL);
     await options.prepareForInstall();
     app.quit();
     return true;

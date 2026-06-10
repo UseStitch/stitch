@@ -164,14 +164,12 @@ void app.whenReady().then(async () => {
       });
     }
 
-    if (process.platform !== 'darwin') {
-      updater.init();
-      setTimeout(() => void updater.checkForUpdates(), 15_000);
-      updateCheckInterval = setInterval(
-        () => void updater.checkForUpdates(),
-        UPDATE_CHECK_INTERVAL_MS,
-      );
-    }
+    updater.init();
+    setTimeout(() => void updater.checkForUpdates(), 15_000);
+    updateCheckInterval = setInterval(
+      () => void updater.checkForUpdates(),
+      UPDATE_CHECK_INTERVAL_MS,
+    );
 
     initTray(() => mainWindow);
 
