@@ -63,6 +63,7 @@
         <div class="nav-links">
           <a href="#features" class="hide-mobile">Features</a>
           <a href="#installation" class="hide-mobile">Install</a>
+          <a href="#free-api-keys" class="hide-mobile">Free API Keys</a>
           <a href="#privacy" class="hide-mobile">Privacy</a>
           <a href="https://github.com/UseStitch/stitch" class="hide-mobile">GitHub</a>
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
@@ -414,6 +415,115 @@
           <div class="integration-chip"><span class="dot"></span> Google Gemini</div>
           <div class="integration-chip"><span class="dot"></span> Local models</div>
         </div>
+      </div>
+    </section>
+
+    <!-- Free API Keys -->
+    <section id="free-api-keys">
+      <div class="container">
+        <p class="section-label">Get started for free</p>
+        <h2 class="section-heading">Free API keys for LLM &amp; Speech-to-Text</h2>
+        <p class="section-desc">
+          You don't need to spend a cent to use Stitch. These providers offer free tiers with
+          generous limits &mdash; no credit card required.
+        </p>
+
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
+          Free LLM providers
+        </p>
+        <div class="install-grid">
+          <div class="install-card">
+            <div class="install-header">
+              <h3>OpenRouter</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong><a href="https://openrouter.ai" target="_blank">openrouter.ai</a></strong>
+                  and sign up with email, GitHub, or Google
+                </li>
+                <li>Open <strong>Settings &rarr; Keys</strong> in the dashboard</li>
+                <li>Click <strong>Create Key</strong>, give it a name, and click Create</li>
+                <li>
+                  Copy the key (starts with <strong>sk-or-</strong>) &mdash; it's only shown once
+                </li>
+                <li>Paste the key into Stitch settings under the OpenRouter provider</li>
+              </ol>
+              <p class="install-note">
+                Free tier includes 28+ models (DeepSeek R1, Gemma 3, Gemini Flash, and more) at 20
+                requests/min. No credit card needed. Use the <strong>:free</strong> model variant
+                for zero-cost access.
+              </p>
+            </div>
+          </div>
+
+          <div class="install-card">
+            <div class="install-header">
+              <h3>NVIDIA NIM</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong
+                    ><a href="https://build.nvidia.com" target="_blank">build.nvidia.com</a></strong
+                  >
+                  and sign up for the free NVIDIA Developer Program
+                </li>
+                <li>Open any model page and click <strong>Get API Key</strong></li>
+                <li>Enter your email and follow the sign-up prompts</li>
+                <li>Copy your API key (starts with <strong>nvapi-</strong>) from the popup</li>
+                <li>Paste the key into Stitch settings under the NVIDIA provider</li>
+              </ol>
+              <p class="install-note">
+                Free tier gives you 1,000 inference credits on signup (up to 5,000 on request) with
+                a 40 requests/min rate limit. Includes models like Nemotron, Llama, and DeepSeek. No
+                credit card required. OpenAI-compatible endpoint.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
+          Free Speech-to-Text provider
+        </p>
+        <div class="install-grid" style="grid-template-columns: 1fr">
+          <div class="install-card">
+            <div class="install-header">
+              <h3>ElevenLabs</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong><a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a></strong>
+                  and create a free account
+                </li>
+                <li>Click <strong>Developers</strong> in the left sidebar</li>
+                <li>Select the <strong>API Keys</strong> tab</li>
+                <li>
+                  Click <strong>Create API Key</strong>, give it a name, and enable Speech-to-Text
+                  access
+                </li>
+                <li>Copy the key immediately &mdash; it's only shown in full once</li>
+                <li>Paste the key into Stitch settings under the ElevenLabs STT provider</li>
+              </ol>
+              <p class="install-note">
+                The free plan includes 10,000 credits/month which covers both Text-to-Speech and
+                Speech-to-Text (Scribe). No credit card required. Used for transcribing meeting
+                recordings in Stitch.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="install-shared-note">
+          These providers are independent third-party services and are not affiliated with or
+          endorsed by Stitch. Each provider has its own terms of service, privacy policy, and data
+          handling practices. Please review the respective provider's website for details on how
+          your data is used.
+        </p>
       </div>
     </section>
 

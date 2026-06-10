@@ -920,6 +920,20 @@ footer a:hover {
   font-weight: 600;
 }
 
+.install-steps li a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border-strong);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.install-steps li a:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
 .install-note {
   margin-top: 16px;
   font-size: 0.8rem;
