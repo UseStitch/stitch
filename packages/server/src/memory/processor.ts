@@ -25,8 +25,7 @@ import {
   pruneStaleMemories,
 } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'memory-processor' });
 
@@ -75,26 +74,17 @@ function recordUsageFireAndForget(params: {
   startedAt: number;
   endedAt: number;
 }): void {
-  calculateMessageCostUsd({
+  recordLlmUsage({
+    runId: params.runId,
+    source: MEMORY_SOURCE,
+    status: 'succeeded',
     providerId: params.providerId,
     modelId: params.modelId,
     usage: params.usage,
-  })
-    .then((costUsd) =>
-      recordUsageEvent({
-        runId: params.runId,
-        source: MEMORY_SOURCE,
-        status: 'succeeded',
-        providerId: params.providerId,
-        modelId: params.modelId,
-        usage: params.usage,
-        costUsd,
-        metadata: params.metadata,
-        startedAt: params.startedAt,
-        endedAt: params.endedAt,
-      }),
-    )
-    .catch((err) => log.warn({ error: err }, 'failed to record memory usage event'));
+    metadata: params.metadata,
+    startedAt: params.startedAt,
+    endedAt: params.endedAt,
+  }).catch((err) => log.warn({ error: err }, 'failed to record memory usage event'));
 }
 
 /**

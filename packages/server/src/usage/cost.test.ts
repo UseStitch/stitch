@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { calculateMessageCostUsd } from '@/usage/cost.js';
 import type { LanguageModelUsage } from 'ai';
 
 function buildUsage(input: {
