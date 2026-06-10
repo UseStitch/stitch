@@ -323,10 +323,16 @@ jobs:
         env:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
+          set -euo pipefail
+
+          # The new tag does not exist yet (it is created by `gh release create`),
+          # so range against the checked-out release commit (HEAD) instead of TAG.
           prev=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n1)
           from=${prev:-$(git rev-list --max-parents=0 HEAD)}
 
-          declare -a feats fixes improvements docs chores other
+          subjects=$(git log "${from}..HEAD" --pretty=format:"%s")
+
+          feats=() fixes=() improvements=() docs=() chores=() other=()
 
           re_bump='^chore(\([^)]*\))?!?:\ bump\ version'
           re_feat='^feat(\([^)]*\))?!?:\ (.*)'
@@ -352,7 +358,7 @@ jobs:
             else
               other+=("- ${subject}")
             fi
-          done < <(git log "${from}..${TAG}" --pretty=format:"%s")
+          done <<< "$subjects"
 
           {
             if [ ${#feats[@]} -gt 0 ]; then
