@@ -15,6 +15,10 @@ const audioCaptureResource = {
 
 const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
 
+const shouldNotarize = Boolean(
+  process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
+);
+
 const config: Configuration = {
   appId: 'com.stitch.desktop',
   productName: 'Stitch',
@@ -78,6 +82,9 @@ const config: Configuration = {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    notarize: shouldNotarize,
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
     binaries: [
