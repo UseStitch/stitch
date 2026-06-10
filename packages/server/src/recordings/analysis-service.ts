@@ -24,8 +24,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'recordings-analysis' });
@@ -427,19 +426,12 @@ async function runRecordingAnalysis(
 
     const analysisUsage = analysisResult.usage ?? ZERO_USAGE;
 
-    const analysisCost = await calculateMessageCostUsd({
-      providerId: input.analysisProviderId,
-      modelId: input.analysisModelId,
-      usage: analysisUsage,
-    });
-
-    await recordUsageEvent({
+    const { costUsd: analysisCost } = await recordLlmUsage({
       runId: analysisRunId,
       source: 'recording_analysis',
       providerId: input.analysisProviderId,
       modelId: input.analysisModelId,
       usage: analysisUsage,
-      costUsd: analysisCost,
       metadata: {
         recordingId: input.recordingId,
         analysisId,

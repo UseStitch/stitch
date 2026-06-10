@@ -26,8 +26,7 @@ import {
   type ProviderWithCapabilities,
 } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'chat-service' });
 
@@ -217,13 +216,22 @@ async function maybeGenerateTitle(input: {
         endedAt: now,
       };
 
-      const costUsd = generatedTitle.usage
-        ? await calculateMessageCostUsd({
-            providerId: generatedTitle.providerId,
-            modelId: generatedTitle.modelId,
-            usage: generatedTitle.usage,
-          })
-        : 0;
+      const { costUsd } = await recordLlmUsage({
+        runId: titleMessageId,
+        source: 'title_generation',
+        status: 'succeeded',
+        sessionId: input.sessionId,
+        messageId: titleMessageId,
+        providerId: generatedTitle.providerId,
+        modelId: generatedTitle.modelId,
+        usage: generatedTitle.usage ?? null,
+        metadata: {
+          phase: 'title-generation',
+        },
+        startedAt: now,
+        endedAt: now,
+        durationMs: 0,
+      });
 
       await db.insert(messages).values({
         id: titleMessageId,
@@ -241,26 +249,6 @@ async function maybeGenerateTitle(input: {
         startedAt: now,
         duration: 0,
       });
-
-      if (generatedTitle.usage) {
-        await recordUsageEvent({
-          runId: titleMessageId,
-          source: 'title_generation',
-          status: 'succeeded',
-          sessionId: input.sessionId,
-          messageId: titleMessageId,
-          providerId: generatedTitle.providerId,
-          modelId: generatedTitle.modelId,
-          usage: generatedTitle.usage,
-          costUsd,
-          metadata: {
-            phase: 'title-generation',
-          },
-          startedAt: now,
-          endedAt: now,
-          durationMs: 0,
-        });
-      }
 
       await db
         .update(sessions)
