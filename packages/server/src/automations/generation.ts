@@ -16,8 +16,7 @@ import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 
 const draftSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -240,13 +239,23 @@ export async function generateAutomationDraft(
   );
 
   const usage = result.usage ?? null;
-  const costUsd = usage
-    ? await calculateMessageCostUsd({
-        providerId: resolved.providerId,
-        modelId: resolved.modelId,
-        usage,
-      })
-    : 0;
+
+  const { costUsd } = await recordLlmUsage({
+    runId: generationMessageId,
+    source: 'automation_generation',
+    status: 'succeeded',
+    sessionId: session.id,
+    messageId: generationMessageId,
+    providerId: resolved.providerId,
+    modelId: resolved.modelId,
+    usage,
+    metadata: {
+      phase: 'automation-generation',
+    },
+    startedAt: start,
+    endedAt: Date.now(),
+    durationMs: Date.now() - start,
+  });
 
   const generationPart: StoredPart = {
     type: 'automation-generation',
@@ -277,26 +286,6 @@ export async function generateAutomationDraft(
     startedAt: start,
     duration: Date.now() - start,
   });
-
-  if (usage) {
-    await recordUsageEvent({
-      runId: generationMessageId,
-      source: 'automation_generation',
-      status: 'succeeded',
-      sessionId: session.id,
-      messageId: generationMessageId,
-      providerId: resolved.providerId,
-      modelId: resolved.modelId,
-      usage,
-      costUsd,
-      metadata: {
-        phase: 'automation-generation',
-      },
-      startedAt: start,
-      endedAt: Date.now(),
-      durationMs: Date.now() - start,
-    });
-  }
 
   return ok(draft);
 }

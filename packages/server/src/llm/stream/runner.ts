@@ -35,8 +35,8 @@ import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { calculateMessageCostUsd } from '@/usage/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 
@@ -92,14 +92,6 @@ async function saveAssistantMessage(opts: {
     finishReason: finalFinishReason,
     usage: totalUsage,
   });
-}
-
-async function safeRecordUsageEvent(input: Parameters<typeof recordUsageEvent>[0]): Promise<void> {
-  try {
-    await recordUsageEvent(input);
-  } catch (error) {
-    log.warn({ error, source: input.source, runId: input.runId }, 'usage event write failed');
-  }
 }
 
 const TRANSIENT_PART_TYPES = new Set([
@@ -368,7 +360,7 @@ class StreamRunner {
         tools: isLastStep ? ({} as StepOptions['tools']) : this.getCurrentTools(),
         onAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
           const now = this.deps.now();
-          await safeRecordUsageEvent({
+          await recordLlmUsage({
             runId: this.ctx.streamRunId,
             source: 'chat',
             status: 'failed',
@@ -376,7 +368,6 @@ class StreamRunner {
             messageId: this.ctx.assistantMessageId,
             providerId: this.ctx.providerId,
             modelId: this.ctx.modelId,
-            costUsd: 0,
             errorCode,
             stepIndex: step + 1,
             attemptIndex: attempt,
@@ -418,12 +409,7 @@ class StreamRunner {
       );
 
       const stepFinishedAt = this.deps.now();
-      const stepCostUsd = await calculateMessageCostUsd({
-        providerId: this.ctx.providerId,
-        modelId: this.ctx.modelId,
-        usage: stepResult.usage,
-      });
-      await safeRecordUsageEvent({
+      await recordLlmUsage({
         runId: this.ctx.streamRunId,
         source: 'chat',
         status: 'succeeded',
@@ -432,7 +418,6 @@ class StreamRunner {
         providerId: this.ctx.providerId,
         modelId: this.ctx.modelId,
         usage: stepResult.usage,
-        costUsd: stepCostUsd,
         stepIndex: step + 1,
         attemptIndex: stepResult.attemptCount,
         metadata: {
@@ -532,7 +517,7 @@ class StreamRunner {
         },
         onDoomLoopAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
           const now = this.deps.now();
-          await safeRecordUsageEvent({
+          await recordLlmUsage({
             runId: this.ctx.streamRunId,
             source: 'doom_loop_summary',
             status: 'failed',
@@ -540,7 +525,6 @@ class StreamRunner {
             messageId: this.ctx.assistantMessageId,
             providerId: this.ctx.providerId,
             modelId: this.ctx.modelId,
-            costUsd: 0,
             errorCode,
             attemptIndex: attempt,
             metadata: {
@@ -560,12 +544,7 @@ class StreamRunner {
       this.setFinishReason(doomLoopState.finalFinishReason, 'doom-loop');
       if (doomLoopState.summaryUsage) {
         const now = this.deps.now();
-        const summaryCostUsd = await calculateMessageCostUsd({
-          providerId: this.ctx.providerId,
-          modelId: this.ctx.modelId,
-          usage: doomLoopState.summaryUsage,
-        });
-        await safeRecordUsageEvent({
+        await recordLlmUsage({
           runId: this.ctx.streamRunId,
           source: 'doom_loop_summary',
           status: 'succeeded',
@@ -574,7 +553,6 @@ class StreamRunner {
           providerId: this.ctx.providerId,
           modelId: this.ctx.modelId,
           usage: doomLoopState.summaryUsage,
-          costUsd: summaryCostUsd,
           metadata: {
             phase: 'doom-loop',
             eventType: 'summary-after-stop',

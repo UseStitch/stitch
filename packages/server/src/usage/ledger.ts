@@ -4,7 +4,11 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { llmUsageEvents } from '@/db/schema/usage.js';
+import * as Log from '@/lib/log.js';
+import { calculateMessageCostUsd } from '@/usage/cost.js';
 import type { LanguageModelUsage } from 'ai';
+
+const log = Log.create({ service: 'usage-ledger' });
 
 type UsageEventStatus = 'succeeded' | 'failed' | 'aborted';
 
@@ -96,4 +100,39 @@ export async function recordUsageEvent(input: {
     endedAt,
     durationMs,
   });
+}
+
+export async function recordLlmUsage(input: {
+  runId: string;
+  source: string;
+  providerId: string;
+  modelId: string;
+  usage?: LanguageModelUsage | null;
+  status?: UsageEventStatus;
+  isAttributable?: boolean;
+  sessionId?: PrefixedString<'ses'> | null;
+  messageId?: PrefixedString<'msg'> | null;
+  stepIndex?: number;
+  attemptIndex?: number;
+  errorCode?: string | null;
+  metadata?: Record<string, unknown>;
+  startedAt: number;
+  endedAt?: number;
+  durationMs?: number;
+}): Promise<{ costUsd: number }> {
+  const costUsd = input.usage
+    ? await calculateMessageCostUsd({
+        providerId: input.providerId,
+        modelId: input.modelId,
+        usage: input.usage,
+      })
+    : 0;
+
+  try {
+    await recordUsageEvent({ ...input, costUsd });
+  } catch (error) {
+    log.warn({ error, source: input.source, runId: input.runId }, 'usage event write failed');
+  }
+
+  return { costUsd };
 }

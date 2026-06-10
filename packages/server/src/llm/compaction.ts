@@ -24,8 +24,7 @@ import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
-import { recordUsageEvent } from '@/usage/ledger.js';
-import { calculateMessageCostUsd } from '@/utils/cost.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
@@ -387,11 +386,6 @@ export async function compact(input: {
     }
 
     const usage = await result.usage;
-    const costUsd = await calculateMessageCostUsd({
-      providerId: resolved.providerId,
-      modelId: resolved.modelId,
-      usage,
-    });
     const summaryNow = Date.now();
     const summaryPart: StoredPart = {
       type: 'text-delta',
@@ -400,6 +394,25 @@ export async function compact(input: {
       startedAt: summaryNow,
       endedAt: summaryNow,
     } as StoredPart;
+
+    const { costUsd } = await recordLlmUsage({
+      runId: summaryMessageId,
+      source: 'compaction',
+      status: 'succeeded',
+      sessionId,
+      messageId: summaryMessageId,
+      providerId: resolved.providerId,
+      modelId: resolved.modelId,
+      usage,
+      metadata: {
+        phase: 'compaction',
+        auto: input.auto,
+        overflow: input.overflow ?? false,
+      },
+      startedAt: now,
+      endedAt: summaryNow,
+      durationMs: summaryNow - now,
+    });
 
     await db.transaction(async (tx) => {
       await tx.insert(messages).values({
@@ -420,26 +433,6 @@ export async function compact(input: {
       });
 
       await tx.update(sessions).set({ updatedAt: summaryNow }).where(eq(sessions.id, sessionId));
-    });
-
-    await recordUsageEvent({
-      runId: summaryMessageId,
-      source: 'compaction',
-      status: 'succeeded',
-      sessionId,
-      messageId: summaryMessageId,
-      providerId: resolved.providerId,
-      modelId: resolved.modelId,
-      usage,
-      costUsd,
-      metadata: {
-        phase: 'compaction',
-        auto: input.auto,
-        overflow: input.overflow ?? false,
-      },
-      startedAt: now,
-      endedAt: summaryNow,
-      durationMs: summaryNow - now,
     });
 
     log.info(
@@ -476,7 +469,7 @@ export async function compact(input: {
     });
 
     const failedAt = Date.now();
-    await recordUsageEvent({
+    await recordLlmUsage({
       runId: summaryMessageId,
       source: 'compaction',
       status: 'failed',
@@ -484,7 +477,6 @@ export async function compact(input: {
       messageId: summaryMessageId,
       providerId: input.providerId,
       modelId: input.modelId,
-      costUsd: 0,
       errorCode: mappedError.category,
       metadata: {
         phase: 'compaction',
