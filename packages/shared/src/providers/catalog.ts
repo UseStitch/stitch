@@ -69,7 +69,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
           {
             key: 'apiKey',
             label: 'API Key',
-            placeholder: 'xi-...',
+            placeholder: 'sk_...',
             required: true,
             secret: true,
           },
