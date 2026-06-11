@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import * as Events from '@/lib/events.js';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';

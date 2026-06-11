@@ -2,13 +2,14 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { PROVIDER_IDS } from '@stitch/shared/providers/types';
+
 import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   deleteVisibility,
   listVisibilityOverrides,
   upsertVisibility,
-} from '@/llm/provider/model-visibility.js';
-import { PROVIDER_IDS } from '@stitch/shared/providers/types';
+} from '@/models/llm/visibility.js';
 
 export const modelsRouter = new Hono();
 

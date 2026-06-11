@@ -4,7 +4,7 @@ import {
   SttRegistryPayloadSchema,
   type SttProvider,
   type SttRegistryPayload,
-} from '@/stt/stt-schema.js';
+} from '@/models/stt/schema.js';
 
 const DEFAULT_STT_REGISTRY_URL = 'https://usestitch.ai/stt-models.json';
 

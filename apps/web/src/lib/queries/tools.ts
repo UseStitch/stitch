@@ -4,7 +4,7 @@ import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permissions/types';
 import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/shared/tools/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 type KnownTool = {
   toolType: ToolType;
@@ -44,54 +44,37 @@ export const toolKeys = {
 
 export const knownToolsQueryOptions = queryOptions({
   queryKey: toolKeys.knownTools(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownTool[]> => {
-    const res = await serverFetch('/config/tools');
-    if (!res.ok) throw new Error('Failed to fetch tools');
-    const data = (await res.json()) as { tools: KnownTool[] };
+    const data = await serverRequest<{ tools: KnownTool[] }>('/config/tools');
     return data.tools;
   },
 });
 
 export const knownMcpToolsQueryOptions = queryOptions({
   queryKey: toolKeys.knownMcpTools(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownMcpTool[]> => {
-    const res = await serverFetch('/config/mcp-tools');
-    if (!res.ok) throw new Error('Failed to fetch MCP tools');
-    const data = (await res.json()) as { tools: KnownMcpTool[] };
+    const data = await serverRequest<{ tools: KnownMcpTool[] }>('/config/mcp-tools');
     return data.tools;
   },
 });
 
 export const knownToolsetsQueryOptions = queryOptions({
   queryKey: toolKeys.knownToolsets(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownToolset[]> => {
-    const res = await serverFetch('/config/toolsets');
-    if (!res.ok) throw new Error('Failed to fetch toolsets');
-    const data = (await res.json()) as { toolsets: KnownToolset[] };
+    const data = await serverRequest<{ toolsets: KnownToolset[] }>('/config/toolsets');
     return data.toolsets;
   },
 });
 
 export const toolPermissionsQueryOptions = queryOptions({
   queryKey: toolKeys.permissions(),
-  staleTime: Infinity,
-  queryFn: async (): Promise<ToolPermission[]> => {
-    const res = await serverFetch('/config/permissions');
-    if (!res.ok) throw new Error('Failed to fetch permissions');
-    return res.json() as Promise<ToolPermission[]>;
-  },
+  queryFn: () => serverRequest<ToolPermission[]>('/config/permissions'),
 });
 
 export const toolEnabledStatesQueryOptions = queryOptions({
   queryKey: toolKeys.enabledStates(),
-  staleTime: Infinity,
   queryFn: async (): Promise<ToolEnabledState[]> => {
-    const res = await serverFetch('/config/tools/enabled');
-    if (!res.ok) throw new Error('Failed to fetch tool enabled states');
-    const data = (await res.json()) as { states: ToolEnabledState[] };
+    const data = await serverRequest<{ states: ToolEnabledState[] }>('/config/tools/enabled');
     return data.states;
   },
 });
@@ -99,21 +82,16 @@ export const toolEnabledStatesQueryOptions = queryOptions({
 export function useUpsertToolPermission() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       toolName: string;
       pattern: string | null;
       permission: ToolPermissionValue;
-    }) => {
-      const res = await serverFetch('/config/permissions', {
+    }) =>
+      serverRequest<void>('/config/permissions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to update permission');
-      }
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: toolKeys.permissions() });
     },
@@ -123,15 +101,10 @@ export function useUpsertToolPermission() {
 export function useDeleteToolPermission() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (permissionId: string) => {
-      const res = await serverFetch(`/config/permissions/${permissionId}`, {
+    mutationFn: (permissionId: string) =>
+      serverRequest<void>(`/config/permissions/${permissionId}`, {
         method: 'DELETE',
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to delete permission');
-      }
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: toolKeys.permissions() });
     },
@@ -141,21 +114,12 @@ export function useDeleteToolPermission() {
 export function useSetToolEnabledState() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      scope: ToolEnabledScope;
-      identifier: string;
-      enabled: boolean;
-    }) => {
-      const res = await serverFetch('/config/tools/enabled', {
+    mutationFn: (input: { scope: ToolEnabledScope; identifier: string; enabled: boolean }) =>
+      serverRequest<void>('/config/tools/enabled', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to update tool state');
-      }
-    },
+      }),
     onSuccess: () => {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: toolKeys.enabledStates() }),

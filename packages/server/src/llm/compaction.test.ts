@@ -170,14 +170,24 @@ describe('buildHistoryMessages', () => {
   }
 
   test('keeps matched tool-call and tool-result pairs', () => {
-    const result = buildHistoryMessages([
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'assistant',
+          isSummary: false,
+          modelId: 'test-model',
+          parts: [toolCallPart('tc_1'), toolResultPart('tc_1', { ok: true })],
+        },
+      ],
       {
-        role: 'assistant',
-        isSummary: false,
-        modelId: 'test-model',
-        parts: [toolCallPart('tc_1'), toolResultPart('tc_1', { ok: true })],
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
-    ]);
+    );
 
     expect(result).toHaveLength(3);
     expect(result[0]).toMatchObject({ role: 'system' });
@@ -192,28 +202,48 @@ describe('buildHistoryMessages', () => {
   });
 
   test('drops unmatched tool-call parts from history', () => {
-    const result = buildHistoryMessages([
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'assistant',
+          isSummary: false,
+          modelId: 'test-model',
+          parts: [toolCallPart('tc_missing')],
+        },
+      ],
       {
-        role: 'assistant',
-        isSummary: false,
-        modelId: 'test-model',
-        parts: [toolCallPart('tc_missing')],
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
-    ]);
+    );
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ role: 'system' });
   });
 
   test('keeps assistant text even when tool-call is unmatched', () => {
-    const result = buildHistoryMessages([
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'assistant',
+          isSummary: false,
+          modelId: 'test-model',
+          parts: [textPart('hello'), toolCallPart('tc_missing')],
+        },
+      ],
       {
-        role: 'assistant',
-        isSummary: false,
-        modelId: 'test-model',
-        parts: [textPart('hello'), toolCallPart('tc_missing')],
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
-    ]);
+    );
 
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ role: 'system' });
@@ -224,14 +254,27 @@ describe('buildHistoryMessages', () => {
   });
 
   test('maps error outputs to error-json tool results', () => {
-    const result = buildHistoryMessages([
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'assistant',
+          isSummary: false,
+          modelId: 'test-model',
+          parts: [
+            toolCallPart('tc_err'),
+            toolResultPart('tc_err', { error: 'Command was aborted' }),
+          ],
+        },
+      ],
       {
-        role: 'assistant',
-        isSummary: false,
-        modelId: 'test-model',
-        parts: [toolCallPart('tc_err'), toolResultPart('tc_err', { error: 'Command was aborted' })],
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
-    ]);
+    );
 
     expect(result[2]).toMatchObject({
       role: 'tool',
@@ -246,14 +289,24 @@ describe('buildHistoryMessages', () => {
   });
 
   test('adds system prompt with environment', () => {
-    const result = buildHistoryMessages([
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
       {
-        role: 'user',
-        isSummary: false,
-        modelId: 'openai/gpt-5.3-codex',
-        parts: [textPart('hello')],
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
-    ]);
+    );
 
     expect(result[0]).toMatchObject({ role: 'system' });
     expect(typeof result[0]?.content).toBe('string');
@@ -275,6 +328,10 @@ describe('buildHistoryMessages', () => {
       {
         useBasePrompt: false,
         systemPrompt: 'Custom system prompt for testing',
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
     );
 
@@ -297,6 +354,10 @@ describe('buildHistoryMessages', () => {
       {
         useBasePrompt: true,
         systemPrompt: 'Extra user instruction',
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
     );
 
@@ -320,6 +381,9 @@ describe('buildHistoryMessages', () => {
         useBasePrompt: true,
         systemPrompt: null,
         userName: 'Jane',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
       },
     );
 
@@ -341,7 +405,10 @@ describe('buildHistoryMessages', () => {
       {
         useBasePrompt: true,
         systemPrompt: null,
+        userName: '',
         userTimezone: 'America/New_York',
+        memoryContext: null,
+        todoContext: null,
       },
     );
 
@@ -351,9 +418,16 @@ describe('buildHistoryMessages', () => {
   });
 
   test('throws when called with empty history', () => {
-    expect(() => buildHistoryMessages([])).toThrow(
-      'buildHistoryMessages requires at least one message',
-    );
+    expect(() =>
+      buildHistoryMessages([], {
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
+      }),
+    ).toThrow('buildHistoryMessages requires at least one message');
   });
 
   function imagePart(dataUrl = 'data:image/png;base64,AAAA', mime = 'image/png'): StoredPart {
@@ -404,7 +478,14 @@ describe('buildHistoryMessages', () => {
       assistantMsg('Done'),
     ];
 
-    const result = buildHistoryMessages(msgs);
+    const result = buildHistoryMessages(msgs, {
+      useBasePrompt: true,
+      systemPrompt: null,
+      userName: '',
+      userTimezone: '',
+      memoryContext: null,
+      todoContext: null,
+    });
     const userMessages = result.filter((m) => m.role === 'user');
 
     for (const um of userMessages) {
@@ -433,7 +514,14 @@ describe('buildHistoryMessages', () => {
       assistantMsg('turn 4'),
     ];
 
-    const result = buildHistoryMessages(msgs);
+    const result = buildHistoryMessages(msgs, {
+      useBasePrompt: true,
+      systemPrompt: null,
+      userName: '',
+      userTimezone: '',
+      memoryContext: null,
+      todoContext: null,
+    });
     const userMessages = result.filter((m) => m.role === 'user');
 
     const firstUserContent = userMessages[0].content as Array<{ type: string; text?: string }>;
@@ -460,7 +548,14 @@ describe('buildHistoryMessages', () => {
       assistantMsg('turn 4'),
     ];
 
-    const result = buildHistoryMessages(msgs);
+    const result = buildHistoryMessages(msgs, {
+      useBasePrompt: true,
+      systemPrompt: null,
+      userName: '',
+      userTimezone: '',
+      memoryContext: null,
+      todoContext: null,
+    });
     const userMessages = result.filter((m) => m.role === 'user');
 
     const firstUserContent = userMessages[0].content as Array<{ type: string; text?: string }>;
@@ -478,7 +573,14 @@ describe('buildHistoryMessages', () => {
       assistantMsg('turn 2'),
     ];
 
-    const result = buildHistoryMessages(msgs);
+    const result = buildHistoryMessages(msgs, {
+      useBasePrompt: true,
+      systemPrompt: null,
+      userName: '',
+      userTimezone: '',
+      memoryContext: null,
+      todoContext: null,
+    });
     const userMessages = result.filter((m) => m.role === 'user');
 
     const firstContent = userMessages[0].content as Array<{ type: string }>;

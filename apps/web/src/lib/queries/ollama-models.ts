@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export type OllamaModality = 'text' | 'audio' | 'image' | 'video' | 'pdf';
 
@@ -53,24 +53,15 @@ export const ollamaModelKeys = {
 
 export const ollamaModelsQueryOptions = queryOptions({
   queryKey: ollamaModelKeys.list(),
-  queryFn: async (): Promise<OllamaModel[]> => {
-    const res = await serverFetch('/llm/ollama/models');
-    if (!res.ok) throw new Error('Failed to fetch Ollama models');
-    return res.json() as Promise<OllamaModel[]>;
-  },
+  queryFn: () => serverRequest<OllamaModel[]>('/llm/ollama/models'),
 });
 
 export const discoverOllamaModelsQueryOptions = (baseURL?: string) =>
   queryOptions({
     queryKey: ollamaModelKeys.discover(baseURL),
     enabled: false,
-    queryFn: async (): Promise<DiscoveredModel[]> => {
+    queryFn: () => {
       const params = baseURL ? `?baseURL=${encodeURIComponent(baseURL)}` : '';
-      const res = await serverFetch(`/llm/ollama/models/discover${params}`);
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error ?? 'Failed to discover Ollama models');
-      }
-      return res.json() as Promise<DiscoveredModel[]>;
+      return serverRequest<DiscoveredModel[]>(`/llm/ollama/models/discover${params}`);
     },
   });

@@ -1,4 +1,4 @@
-import type { SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { SseEventPayloadMap } from '@stitch/shared/realtime';
 
 type InternalEventPayloadMap = SseEventPayloadMap;
 

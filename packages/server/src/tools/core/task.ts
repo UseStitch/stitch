@@ -124,7 +124,10 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       });
 
       // Build history (just the system prompt + user message)
-      const llmMessages = await buildCompactedHistory(childSessionId);
+      const llmMessages = await buildCompactedHistory(childSessionId, {
+        useBasePrompt: true,
+        systemPrompt: null,
+      });
       const assistantMessageId = createMessageId();
 
       // Create a child abort controller linked to the parent

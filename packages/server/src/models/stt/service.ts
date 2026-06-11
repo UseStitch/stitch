@@ -1,5 +1,5 @@
-import { getSttProvidersFromRegistry } from '@/stt/stt-registry.js';
-import type { SttModel, SttProvider } from '@/stt/stt-schema.js';
+import { getSttProvidersFromRegistry } from '@/models/stt/registry.js';
+import type { SttModel, SttProvider } from '@/models/stt/schema.js';
 import type { ModelDescriptor } from '@/stt/types.js';
 
 type CatalogEntry = {

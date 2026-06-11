@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 
 import { queryOptions, type QueryClient, type MutationOptions } from '@tanstack/react-query';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 type UserSettings = Record<string, string>;
 
@@ -13,12 +13,7 @@ const settingsKeys = {
 
 export const settingsQueryOptions = queryOptions({
   queryKey: settingsKeys.list(),
-  staleTime: Infinity,
-  queryFn: async (): Promise<UserSettings> => {
-    const res = await serverFetch('/settings');
-    if (!res.ok) throw new Error('Failed to fetch settings');
-    return res.json() as Promise<UserSettings>;
-  },
+  queryFn: () => serverRequest<UserSettings>('/settings'),
 });
 
 export function saveSettingMutationOptions(
@@ -27,17 +22,12 @@ export function saveSettingMutationOptions(
   options?: { silent?: boolean },
 ): MutationOptions<void, Error, string> {
   return {
-    mutationFn: async (value: string) => {
-      const res = await serverFetch(`/settings/${key}`, {
+    mutationFn: (value: string) =>
+      serverRequest<void>(`/settings/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to save');
-      }
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
       if (!options?.silent) toast.success('Model preference saved');
@@ -52,10 +42,11 @@ export function deleteSettingMutationOptions(
   options?: { silent?: boolean },
 ): MutationOptions<void, Error, void> {
   return {
-    mutationFn: async () => {
-      const res = await serverFetch(`/settings/${key}`, { method: 'DELETE' });
-      if (!res.ok && res.status !== 404) throw new Error('Failed to reset');
-    },
+    mutationFn: () =>
+      serverRequest<void>(`/settings/${key}`, { method: 'DELETE' }).catch((err) => {
+        if (err instanceof Error && err.message.includes('status 404')) return;
+        throw err;
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
       if (!options?.silent) toast.success('Model preference reset');

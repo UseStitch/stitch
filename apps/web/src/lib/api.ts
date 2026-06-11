@@ -1,14 +1,4 @@
-import type {
-  MeetingCallDetectedPayload,
-  MeetingCallEndedPayload,
-  RecordingDeviceChangedPayload,
-  RecordingWarningPayload,
-} from '@stitch/shared/chat/realtime';
-import type {
-  StartRecordingInput,
-  StartRecordingResponse,
-  StopRecordingResponse,
-} from '@stitch/shared/recordings/types';
+import type { DesktopApi } from '../../../desktop/src/preload/index';
 
 export type ContextMenuParams = {
   x: number;
@@ -56,72 +46,7 @@ declare global {
       send: (channel: string, data?: unknown) => void;
       on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
     };
-    api?: {
-      getServerConfig: () => Promise<ServerConnectionConfig>;
-      server?: {
-        testRemote: (url: string) => Promise<{ ok: boolean; url?: string; error?: string }>;
-        setConfig: (config: {
-          mode: ServerMode;
-          remoteUrl: string | null;
-        }) => Promise<ServerConnectionConfig>;
-        onConfigChanged: (callback: (config: ServerConnectionConfig) => void) => () => void;
-      };
-      window?: {
-        minimize: () => Promise<void>;
-        maximize: () => Promise<void>;
-        close: () => Promise<void>;
-        isMaximized: () => Promise<boolean>;
-        isFullScreen: () => Promise<boolean>;
-      };
-      devtools?: {
-        toggle: () => Promise<void>;
-        inspect: (x: number, y: number) => Promise<void>;
-      };
-      shell?: {
-        openExternal: (url: string) => Promise<void>;
-      };
-      files?: {
-        writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
-        openPath: () => Promise<string[]>;
-      };
-      updater?: {
-        check: () => Promise<DesktopUpdaterState>;
-        getState: () => Promise<DesktopUpdaterState>;
-        install: () => Promise<boolean>;
-        openManualUpdateAndQuit: () => Promise<boolean>;
-      };
-      spellcheck?: {
-        replaceMisspelling: (word: string) => Promise<void>;
-        addToDictionary: (word: string) => Promise<void>;
-      };
-      permissions?: {
-        requestMicrophone: () => Promise<boolean>;
-        getScreenCaptureStatus: () => Promise<string>;
-        openScreenCaptureSettings: () => Promise<void>;
-      };
-      meeting?: {
-        onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) => () => void;
-        onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) => () => void;
-      };
-      recording?: {
-        start: (input: StartRecordingInput) => Promise<StartRecordingResponse>;
-        stop: () => Promise<StopRecordingResponse>;
-        listDevices: () => Promise<{
-          microphoneDevices: string[];
-          speakerDevices: string[];
-        }>;
-        checkPermissions: () => Promise<{
-          microphone: 'granted' | 'denied' | 'unknown';
-          screenCapture: 'granted' | 'denied' | 'unknown';
-        }>;
-        primeSystemAudio: () => Promise<{
-          microphone: 'granted' | 'denied' | 'unknown';
-          screenCapture: 'granted' | 'denied' | 'unknown';
-        }>;
-        onWarning: (callback: (payload: RecordingWarningPayload) => void) => () => void;
-        onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) => () => void;
-      };
-    };
+    api?: DesktopApi;
   }
 }
 
@@ -153,4 +78,25 @@ export async function getServerUrl(): Promise<string> {
 export async function serverFetch(path: string, init?: RequestInit): Promise<Response> {
   const baseUrl = await getServerUrl();
   return fetch(`${baseUrl}${path}`, init);
+}
+
+export async function serverRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await serverFetch(path, init);
+  if (!res.ok) {
+    let errorMsg = `Request failed with status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.error) {
+        errorMsg = errJson.error;
+      }
+    } catch {
+      // JSON parsing failed; use status code fallback
+    }
+    throw new Error(errorMsg);
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+  return res.json() as Promise<T>;
 }

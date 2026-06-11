@@ -2,7 +2,7 @@ import { createAudioCaptureHandle, resolveNativeBinaryPath } from '@stitch/audio
 import type {
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
-} from '@stitch/shared/chat/realtime';
+} from '@stitch/shared/recordings/events';
 import type { StartRecordingResponse, StopRecordingInput } from '@stitch/shared/recordings/types';
 import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
 

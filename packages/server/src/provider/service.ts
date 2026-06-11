@@ -2,9 +2,9 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import * as EmbeddingModels from '@/llm/provider/embedding-models.js';
-import * as Models from '@/llm/provider/models.js';
-import { getModelCatalog } from '@/stt/models.js';
+import * as EmbeddingModels from '@/models/embedding/service.js';
+import * as Models from '@/models/llm/registry.js';
+import { getModelCatalog } from '@/models/stt/service.js';
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 

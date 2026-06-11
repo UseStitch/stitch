@@ -1,5 +1,5 @@
-import { getEmbeddingModelsFromRegistry } from '@/llm/provider/embedding-registry.js';
-import type { RawProvider, RawModel } from '@/llm/provider/models.js';
+import { getEmbeddingModelsFromRegistry } from '@/models/embedding/registry.js';
+import type { RawProvider, RawModel } from '@/models/llm/registry.js';
 
 /** Returns embedding models from the Stitch embedding registry. */
 export async function getEmbeddingModels(): Promise<Record<string, RawProvider>> {

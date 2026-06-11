@@ -1,8 +1,6 @@
 import * as React from 'react';
 
-import type { RecordingTranscriptEntryPayload } from '@stitch/shared/chat/realtime';
-
-import { useSSE } from '@/hooks/sse/sse-context';
+import { useRecordingEvents } from '@/hooks/sse/sse-context';
 
 type LiveTranscriptEntry = {
   id: number;
@@ -24,10 +22,8 @@ export function useLiveTranscript(activeRecordingId: string | null) {
     }
   }, [activeRecordingId]);
 
-  useSSE({
-    'recording-transcript-entry': (data: RecordingTranscriptEntryPayload) => {
-      if (!activeRecordingId || data.recordingId !== activeRecordingId) return;
-
+  useRecordingEvents(activeRecordingId, {
+    'recording-transcript-entry': (data) => {
       setEntries((prev) => {
         // Find existing partial from same source to replace
         const partialIdx = prev.findLastIndex(

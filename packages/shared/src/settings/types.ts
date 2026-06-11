@@ -53,7 +53,7 @@ export const SETTINGS_KEYS = [
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
-export const SETTINGS_SCHEMAS: Record<SettingsKey, z.ZodType> = {
+export const SETTINGS_SCHEMAS = {
   'model.default.providerId': z.string(),
   'model.default.modelId': z.string(),
   'model.compaction.providerId': z.string(),

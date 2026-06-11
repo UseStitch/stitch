@@ -16,10 +16,6 @@ import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
-import { usePermissionResponseSync } from '@/hooks/sse/use-permission-response-sync';
-import { useQuestionSync } from '@/hooks/sse/use-question-sync';
-import { useSessionStream } from '@/hooks/sse/use-session-stream';
-import { useTodoSync } from '@/hooks/sse/use-todo-sync';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import {
@@ -59,11 +55,6 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
   const abortStream = useStreamStore((state) => state.abortStream);
   const { isCompacting } = useCompactionUpdates(id);
   const pendingItems = useSessionPendingItems(id);
-
-  useQuestionSync(id);
-  usePermissionResponseSync(id);
-  useTodoSync(id);
-  useSessionStream({ sessionId: id });
 
   const docks = useSessionDocks({
     sessionId: id,

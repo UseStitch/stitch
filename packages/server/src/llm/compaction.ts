@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { eq, asc, like, inArray } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -8,20 +8,22 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { userSettings } from '@/db/schema/settings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import * as Models from '@/llm/provider/models.js';
-import * as OllamaModels from '@/llm/provider/ollama-models.js';
+import { getPromptUserContext } from '@/llm/prompt/builder.js';
+import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import * as OllamaModels from '@/models/llm/ollama.js';
+import * as Models from '@/models/llm/registry.js';
+import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -45,47 +47,16 @@ type CompactionSettings = {
 
 type StoredMessage = typeof messages.$inferSelect;
 
-function parseBooleanSetting(value: string | undefined): boolean | undefined {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
-function parseReservedSetting(value: string | undefined): number | undefined {
-  if (!value) return undefined;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return undefined;
-  }
-  return parsed;
-}
-
 export async function getCompactionSettings(): Promise<CompactionSettings> {
-  const db = getDb();
-  const rows = await db.select().from(userSettings).where(like(userSettings.key, 'compaction.%'));
-  const byKey = new Map(rows.map((row) => [row.key, row.value]));
-
+  const s = await getSettings([
+    'compaction.auto',
+    'compaction.prune',
+    'compaction.reserved',
+  ] as const);
   return {
-    auto: parseBooleanSetting(byKey.get('compaction.auto')) ?? true,
-    prune: parseBooleanSetting(byKey.get('compaction.prune')) ?? true,
-    reserved: parseReservedSetting(byKey.get('compaction.reserved')),
-  };
-}
-
-async function getPromptUserContext(): Promise<{
-  userName: string | null;
-  userTimezone: string | null;
-}> {
-  const db = getDb();
-  const rows = await db
-    .select({ key: userSettings.key, value: userSettings.value })
-    .from(userSettings)
-    .where(inArray(userSettings.key, ['profile.name', 'profile.timezone']));
-  const byKey = new Map(rows.map((row) => [row.key, row.value.trim()]));
-
-  return {
-    userName: byKey.get('profile.name') || null,
-    userTimezone: byKey.get('profile.timezone') || null,
+    auto: s['compaction.auto'],
+    prune: s['compaction.prune'],
+    reserved: s['compaction.reserved'],
   };
 }
 
@@ -346,6 +317,7 @@ export async function compact(input: {
       systemPrompt: null,
       userName: promptUserContext.userName,
       userTimezone: promptUserContext.userTimezone,
+      memoryContext: null,
       todoContext,
     });
 
@@ -446,7 +418,6 @@ export async function compact(input: {
     );
 
     Events.emit('compaction-complete', { sessionId, summaryMessageId });
-    Events.emit('data-change', { queryKey: ['sessions', sessionId] });
 
     return 'continue';
   } catch (error) {
@@ -500,13 +471,7 @@ export async function compact(input: {
  */
 export async function buildCompactedHistory(
   sessionId: PrefixedString<'ses'>,
-  promptConfig?: {
-    useBasePrompt: boolean;
-    systemPrompt: string | null;
-    userName?: string | null;
-    userTimezone?: string | null;
-    codeModePrompt?: string | null;
-  },
+  promptConfig: Pick<PromptConfig, 'useBasePrompt' | 'systemPrompt'>,
 ): Promise<ModelMessage[]> {
   const db = getDb();
 
@@ -516,12 +481,7 @@ export async function buildCompactedHistory(
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
-    promptConfig?.userName !== undefined && promptConfig?.userTimezone !== undefined
-      ? Promise.resolve({
-          userName: promptConfig.userName ?? null,
-          userTimezone: promptConfig.userTimezone ?? null,
-        })
-      : getPromptUserContext(),
+    getPromptUserContext(),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
     getSessionTodosPromptBlock(sessionId),
   ]);
@@ -553,13 +513,12 @@ export async function buildCompactedHistory(
   }
 
   const historyMessages = buildHistoryMessages(msgs.slice(startIndex), {
-    useBasePrompt: promptConfig?.useBasePrompt ?? true,
-    systemPrompt: promptConfig?.systemPrompt ?? null,
+    useBasePrompt: promptConfig.useBasePrompt,
+    systemPrompt: promptConfig.systemPrompt,
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,
     todoContext,
-    codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
 
   const instructionsBlock = buildActiveToolsetInstructionsBlock(sessionId);

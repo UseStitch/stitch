@@ -1,14 +1,11 @@
-import { eq } from 'drizzle-orm';
-
 import type { JobSchedule } from '@stitch/scheduler';
 import type { Automation, AutomationSchedule } from '@stitch/shared/automations/types';
 
 import { listAutomations, runAutomation } from './service.js';
 
-import { getDb } from '@/db/client.js';
-import { userSettings } from '@/db/schema/settings.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
+import { getSettings } from '@/settings/service.js';
 
 const AUTOMATION_JOB_KEY_PREFIX = 'automation:';
 const DEFAULT_TIMEZONE = 'UTC';
@@ -29,14 +26,9 @@ function normalizeTimezone(timezone: string | null | undefined): string {
   }
 }
 
-function resolveUserTimezone(): string {
-  const row = getDb()
-    .select({ value: userSettings.value })
-    .from(userSettings)
-    .where(eq(userSettings.key, 'profile.timezone'))
-    .get();
-
-  return normalizeTimezone(row?.value);
+async function resolveUserTimezone(): Promise<string> {
+  const s = await getSettings(['profile.timezone'] as const);
+  return normalizeTimezone(s['profile.timezone']);
 }
 
 function toSchedulerSchedule(schedule: AutomationSchedule, timezone: string): JobSchedule {
@@ -72,7 +64,7 @@ export async function syncAutomationSchedule(automation: Automation): Promise<vo
     return;
   }
 
-  await registerAutomationJob(automation, resolveUserTimezone());
+  await registerAutomationJob(automation, await resolveUserTimezone());
 }
 
 export async function unregisterAutomationSchedule(automationId: string): Promise<void> {
@@ -82,7 +74,7 @@ export async function unregisterAutomationSchedule(automationId: string): Promis
 export async function syncAllAutomationSchedules(): Promise<void> {
   const pageSize = 100;
   const automationList: Automation[] = [];
-  const timezone = resolveUserTimezone();
+  const timezone = await resolveUserTimezone();
   let page = 1;
 
   while (true) {

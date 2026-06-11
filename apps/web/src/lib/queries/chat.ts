@@ -20,7 +20,7 @@ import type {
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -48,7 +48,7 @@ const SESSION_PAGE_SIZE = 30;
 export const sessionsInfiniteQueryOptions = (search: string) =>
   infiniteQueryOptions({
     queryKey: sessionKeys.infiniteList(search),
-    queryFn: async ({ pageParam }): Promise<SessionsPage> => {
+    queryFn: ({ pageParam }): Promise<SessionsPage> => {
       const params = new URLSearchParams({
         type: 'chat',
         limit: String(SESSION_PAGE_SIZE),
@@ -60,9 +60,7 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
         params.set('cursor', String(pageParam));
       }
 
-      const res = await serverFetch(`/chat/sessions?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch sessions');
-      return res.json() as Promise<SessionsPage>;
+      return serverRequest<SessionsPage>(`/chat/sessions?${params.toString()}`);
     },
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
@@ -72,19 +70,13 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
       if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
       return oldest.createdAt;
     },
-    staleTime: Infinity,
     placeholderData: keepPreviousData,
   });
 
 export const sessionQueryOptions = (id: string) =>
   queryOptions({
     queryKey: sessionKeys.detail(id),
-    queryFn: async (): Promise<Session> => {
-      const res = await serverFetch(`/chat/sessions/${id}`);
-      if (!res.ok) throw new Error('Failed to fetch session');
-      return res.json() as Promise<Session>;
-    },
-    staleTime: Infinity,
+    queryFn: () => serverRequest<Session>(`/chat/sessions/${id}`),
   });
 
 function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
@@ -122,11 +114,7 @@ export async function loadSessionRoute(queryClient: QueryClient, id: string): Pr
 export const sessionStatsQueryOptions = (id: string) =>
   queryOptions({
     queryKey: sessionKeys.stats(id),
-    queryFn: async (): Promise<SessionStats> => {
-      const res = await serverFetch(`/chat/sessions/${id}/stats`);
-      if (!res.ok) throw new Error('Failed to fetch session stats');
-      return res.json() as Promise<SessionStats>;
-    },
+    queryFn: () => serverRequest<SessionStats>(`/chat/sessions/${id}/stats`),
     staleTime: 30_000,
   });
 
@@ -135,14 +123,12 @@ const PAGE_SIZE = 50;
 export const sessionMessagesInfiniteQueryOptions = (id: string) =>
   infiniteQueryOptions({
     queryKey: sessionKeys.messages(id),
-    queryFn: async ({ pageParam }): Promise<MessagesPage> => {
+    queryFn: ({ pageParam }): Promise<MessagesPage> => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (pageParam !== undefined) {
         params.set('cursor', String(pageParam));
       }
-      const res = await serverFetch(`/chat/sessions/${id}/messages?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch messages');
-      return res.json() as Promise<MessagesPage>;
+      return serverRequest<MessagesPage>(`/chat/sessions/${id}/messages?${params.toString()}`);
     },
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
@@ -155,7 +141,6 @@ export const sessionMessagesInfiniteQueryOptions = (id: string) =>
       if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
       return oldest.createdAt;
     },
-    staleTime: Infinity,
   });
 
 /** Flatten all pages into a single chronological message array. */
@@ -197,15 +182,12 @@ type SendMessageResult = {
 export function useCreateSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateSessionInput): Promise<Session> => {
-      const res = await serverFetch('/chat/sessions', {
+    mutationFn: (input: CreateSessionInput) =>
+      serverRequest<Session>('/chat/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) throw new Error('Failed to create session');
-      return res.json() as Promise<Session>;
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
     },
@@ -229,15 +211,12 @@ type DoomLoopResponseInput = {
 export function useRenameSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: RenameSessionInput): Promise<Session> => {
-      const res = await serverFetch(`/chat/sessions/${input.sessionId}`, {
+    mutationFn: (input: RenameSessionInput) =>
+      serverRequest<Session>(`/chat/sessions/${input.sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: input.title }),
-      });
-      if (!res.ok) throw new Error('Failed to rename session');
-      return res.json() as Promise<Session>;
-    },
+      }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(input.sessionId) });
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
@@ -258,13 +237,10 @@ type SplitSessionResult = {
 export function useSplitSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: SplitSessionInput): Promise<SplitSessionResult> => {
-      const res = await serverFetch(`/chat/sessions/${input.sessionId}/split/${input.msgId}`, {
+    mutationFn: (input: SplitSessionInput) =>
+      serverRequest<SplitSessionResult>(`/chat/sessions/${input.sessionId}/split/${input.msgId}`, {
         method: 'POST',
-      });
-      if (!res.ok) throw new Error('Failed to split session');
-      return res.json() as Promise<SplitSessionResult>;
-    },
+      }),
     onSuccess: (data) => {
       queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev) =>
         prev ? [...prev, data.session] : [data.session],
@@ -277,12 +253,10 @@ export function useSplitSession() {
 export function useDeleteSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: DeleteSessionInput): Promise<void> => {
-      const res = await serverFetch(`/chat/sessions/${input.sessionId}`, {
+    mutationFn: (input: DeleteSessionInput) =>
+      serverRequest<void>(`/chat/sessions/${input.sessionId}`, {
         method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete session');
-    },
+      }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
       queryClient.removeQueries({ queryKey: sessionKeys.detail(input.sessionId) });
@@ -294,10 +268,11 @@ export function useDeleteSession() {
 export function useMarkSessionRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (sessionId: string): Promise<void> => {
-      const res = await serverFetch(`/chat/sessions/${sessionId}/read`, { method: 'PATCH' });
-      if (!res.ok && res.status !== 404) throw new Error('Failed to mark session as read');
-    },
+    mutationFn: (sessionId: string) =>
+      serverRequest<void>(`/chat/sessions/${sessionId}/read`, { method: 'PATCH' }).catch((err) => {
+        if (err instanceof Error && err.message.includes('status 404')) return;
+        throw err;
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
     },
@@ -306,14 +281,12 @@ export function useMarkSessionRead() {
 
 export function useRespondDoomLoop() {
   return useMutation({
-    mutationFn: async (input: DoomLoopResponseInput): Promise<void> => {
-      const res = await serverFetch(`/chat/sessions/${input.sessionId}/doom-loop-response`, {
+    mutationFn: (input: DoomLoopResponseInput) =>
+      serverRequest<void>(`/chat/sessions/${input.sessionId}/doom-loop-response`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response: input.response }),
-      });
-      if (!res.ok) throw new Error('Failed to respond to repeated action');
-    },
+      }),
     onError: (error) => {
       console.error('Failed to respond to repeated action:', error);
     },
@@ -323,17 +296,10 @@ export function useRespondDoomLoop() {
 export function useGenerateAutomationDraft() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (sessionId: string): Promise<GeneratedAutomationDraft> => {
-      const res = await serverFetch(`/chat/sessions/${sessionId}/generate-automation`, {
+    mutationFn: (sessionId: string) =>
+      serverRequest<GeneratedAutomationDraft>(`/chat/sessions/${sessionId}/generate-automation`, {
         method: 'POST',
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to generate automation draft');
-      }
-
-      return res.json() as Promise<GeneratedAutomationDraft>;
-    },
+      }),
     onSuccess: (_data, sessionId) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
@@ -343,8 +309,8 @@ export function useGenerateAutomationDraft() {
 export function useSendMessage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: SendMessageInput): Promise<SendMessageResult> => {
-      const res = await serverFetch(`/chat/sessions/${input.sessionId}/messages`, {
+    mutationFn: (input: SendMessageInput) =>
+      serverRequest<SendMessageResult>(`/chat/sessions/${input.sessionId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,10 +324,7 @@ export function useSendMessage() {
           modelId: input.modelId,
           assistantMessageId: input.assistantMessageId,
         }),
-      });
-      if (!res.ok) throw new Error('Failed to send message');
-      return res.json() as Promise<SendMessageResult>;
-    },
+      }),
     onMutate: async (input) => {
       const queryKey = sessionKeys.messages(input.sessionId);
       await queryClient.cancelQueries({ queryKey });

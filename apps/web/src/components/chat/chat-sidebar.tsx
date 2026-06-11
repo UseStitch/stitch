@@ -8,7 +8,6 @@ import { Link, useParams } from '@tanstack/react-router';
 import type { SessionsPage } from '@stitch/shared/chat/messages';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
-import { useSessionTitleUpdates } from '@/hooks/sse/use-session-title-updates';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions } from '@/lib/queries/chat';
 import { cn } from '@/lib/utils';
@@ -63,7 +62,6 @@ export function ChatSidebarContent() {
     ...sessionsInfiniteQueryOptions(deferredSearch),
     select: selectSidebarSessions,
   });
-  useSessionTitleUpdates();
   const streamingIds = useStreamingSessionIds();
   const streamingIdSet = React.useMemo(() => new Set(streamingIds), [streamingIds]);
   const sessions = data?.pages.flatMap((page) => page.sessions) ?? [];

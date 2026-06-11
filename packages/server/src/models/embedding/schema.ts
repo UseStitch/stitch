@@ -9,8 +9,14 @@ export const EmbeddingModelSchema = z.object({
   dimensions: z.number().int().positive(),
   release_date: z.string().min(1),
   context: z.number().int().positive(),
-  inputModalities: z.array(z.enum(['text', 'image', 'video', 'audio', 'pdf'])).min(1).optional(),
-  outputModalities: z.array(z.enum(['text'])).min(1).optional(),
+  inputModalities: z
+    .array(z.enum(['text', 'image', 'video', 'audio', 'pdf']))
+    .min(1)
+    .optional(),
+  outputModalities: z
+    .array(z.enum(['text']))
+    .min(1)
+    .optional(),
   cost: z.object({
     input: z.number(),
     inputImage: z.number().optional(),

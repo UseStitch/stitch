@@ -11,7 +11,6 @@ const connectionKeys = {
 
 export const serverConfigQueryOptions = queryOptions({
   queryKey: connectionKeys.config(),
-  staleTime: Infinity,
   queryFn: async (): Promise<ServerConnectionConfig> => {
     if (!window.api?.getServerConfig) {
       throw new Error('Server config is only available from the desktop app');

@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 
 import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/react-query';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export type {
   MemoryCategory,
@@ -37,11 +37,7 @@ type MemoryHealthStats = {
 
 export const memoryStatsQueryOptions = queryOptions({
   queryKey: memoriesKeys.stats(),
-  queryFn: async (): Promise<MemoryHealthStats> => {
-    const res = await serverFetch(`/memory/stats`);
-    if (!res.ok) throw new Error('Failed to fetch memory stats');
-    return res.json() as Promise<MemoryHealthStats>;
-  },
+  queryFn: () => serverRequest<MemoryHealthStats>(`/memory/stats`),
 });
 
 export const semanticMemoriesQueryOptions = (input: {
@@ -58,19 +54,15 @@ export const semanticMemoriesQueryOptions = (input: {
       input.page,
       input.pageSize,
     ],
-    queryFn: async (): Promise<
-      import('@stitch/shared/memory/types').ListSemanticMemoriesResponse
-    > => {
+    queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(input.page));
       params.set('pageSize', String(input.pageSize));
       if (input.source) params.set('source', input.source);
       if (input.category) params.set('category', input.category);
-      const res = await serverFetch(`/memory/semantic?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch memories');
-      return res.json() as Promise<
-        import('@stitch/shared/memory/types').ListSemanticMemoriesResponse
-      >;
+      return serverRequest<import('@stitch/shared/memory/types').ListSemanticMemoriesResponse>(
+        `/memory/semantic?${params.toString()}`,
+      );
     },
   });
 
@@ -89,9 +81,7 @@ export const semanticMemorySearchQueryOptions = (input: {
       input.page,
       input.pageSize,
     ],
-    queryFn: async (): Promise<
-      import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse
-    > => {
+    queryFn: () => {
       const params = new URLSearchParams({
         q: input.q,
         page: String(input.page),
@@ -99,11 +89,9 @@ export const semanticMemorySearchQueryOptions = (input: {
       });
       if (input.source) params.set('source', input.source);
       if (input.category) params.set('category', input.category);
-      const res = await serverFetch(`/memory/semantic?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to search memories');
-      return res.json() as Promise<
-        import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse
-      >;
+      return serverRequest<import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse>(
+        `/memory/semantic?${params.toString()}`,
+      );
     },
     enabled: input.q.trim().length > 0,
   });
@@ -112,14 +100,12 @@ export function updateMemoryMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, { id: string; updates: SemanticMemoryUpdate }> {
   return {
-    mutationFn: async ({ id, updates }) => {
-      const res = await serverFetch(`/memory/semantic/${id}`, {
+    mutationFn: ({ id, updates }) =>
+      serverRequest<void>(`/memory/semantic/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('Failed to update memory');
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       toast.success('Memory updated');
@@ -132,14 +118,12 @@ export function pinMemoryMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, { id: string; pinned: boolean }> {
   return {
-    mutationFn: async ({ id, pinned }) => {
-      const res = await serverFetch(`/memory/semantic/${id}/pin`, {
+    mutationFn: ({ id, pinned }) =>
+      serverRequest<void>(`/memory/semantic/${id}/pin`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pinned }),
-      });
-      if (!res.ok) throw new Error('Failed to pin memory');
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
     },
@@ -151,10 +135,7 @@ export function pruneMemoriesMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, void> {
   return {
-    mutationFn: async () => {
-      const res = await serverFetch('/memory/prune', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to prune memories');
-    },
+    mutationFn: () => serverRequest<void>('/memory/prune', { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       toast.success('Stale memories pruned');
@@ -167,10 +148,7 @@ export function deleteMemoryMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, string> {
   return {
-    mutationFn: async (id) => {
-      const res = await serverFetch(`/memory/semantic/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete memory');
-    },
+    mutationFn: (id) => serverRequest<void>(`/memory/semantic/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       toast.success('Memory deleted');
@@ -183,14 +161,12 @@ export function bulkDeleteMemoriesMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, string[]> {
   return {
-    mutationFn: async (ids) => {
-      const res = await serverFetch('/memory/semantic', {
+    mutationFn: (ids) =>
+      serverRequest<void>('/memory/semantic', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) throw new Error('Failed to delete memories');
-    },
+      }),
     onSuccess: (_, ids) => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`);
@@ -209,11 +185,7 @@ export function runMaintenanceMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<MaintenanceResult, Error, void> {
   return {
-    mutationFn: async () => {
-      const res = await serverFetch('/memory/maintenance', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to run memory maintenance');
-      return res.json() as Promise<MaintenanceResult>;
-    },
+    mutationFn: () => serverRequest<MaintenanceResult>('/memory/maintenance', { method: 'POST' }),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
       const parts: string[] = [];
@@ -233,10 +205,7 @@ export function resetMemoriesMutationOptions(
   queryClient: QueryClient,
 ): MutationOptions<void, Error, void> {
   return {
-    mutationFn: async () => {
-      const res = await serverFetch('/memory/reset', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to reset memories');
-    },
+    mutationFn: () => serverRequest<void>('/memory/reset', { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
     },

@@ -3,13 +3,13 @@ import type { RegisteredJob } from '@stitch/scheduler';
 
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
-import * as EmbeddingRegistry from '@/llm/provider/embedding-registry.js';
-import * as ModelsDev from '@/llm/provider/models.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
+import * as EmbeddingRegistry from '@/models/embedding/registry.js';
+import * as ModelsDev from '@/models/llm/registry.js';
+import * as SttRegistry from '@/models/stt/registry.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
-import * as SttRegistry from '@/stt/stt-registry.js';
 import * as ToolTruncation from '@/tools/runtime/truncation.js';
 
 const log = Log.create({ service: 'scheduler' });

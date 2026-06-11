@@ -1,11 +1,10 @@
-import type { BrowserWindow } from 'electron';
-
 import { createMeetingDetector, resolveMeetingWatcherBinaryPath } from '@stitch/audio-capture';
-
 import type {
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
-} from '@stitch/shared/chat/realtime';
+} from '@stitch/shared/recordings/meeting-ipc';
+
+import type { BrowserWindow } from 'electron';
 
 const detector = createMeetingDetector(process.platform, {
   activationThresholdMs: 5_000,

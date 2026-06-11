@@ -1,7 +1,7 @@
 import { app, shell } from 'electron';
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from 'electron-updater';
 
-import type { UpdaterStatePayload } from './ipc-types.js';
+import type { UpdaterStatePayload } from '@stitch/shared/ipc/types';
 
 const NETWORK_ERROR_CODES = [
   'ERR_INTERNET_DISCONNECTED',
