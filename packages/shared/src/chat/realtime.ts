@@ -30,10 +30,6 @@ export type StreamToolStatePayload = {
   error?: string;
 };
 
-export type DataChangePayload = {
-  queryKey: readonly unknown[];
-};
-
 export type PartUpdate =
   | TextStartPart
   | TextEndPart
@@ -190,7 +186,6 @@ export type RecordingTranscriptEntryPayload = {
 export const SSE_EVENT_NAMES = [
   'heartbeat',
   'connected',
-  'data-change',
   'session-title-update',
   'stream-start',
   'stream-part-update',
@@ -219,7 +214,6 @@ export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
 export type SseEventPayloadMap = {
   heartbeat: { ts: number };
   connected: { ts: number };
-  'data-change': DataChangePayload;
   'session-title-update': SessionTitleUpdatePayload;
   'stream-start': StreamStartPayload;
   'stream-part-update': StreamPartUpdatePayload;
