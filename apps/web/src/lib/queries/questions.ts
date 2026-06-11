@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export const questionKeys = {
   all: ['questions'] as const,
@@ -12,11 +12,7 @@ export const questionKeys = {
 export function questionsQueryOptions(sessionId: string) {
   return queryOptions({
     queryKey: questionKeys.list(sessionId),
-    queryFn: async (): Promise<QuestionRequest[]> => {
-      const res = await serverFetch(`/chat/sessions/${sessionId}/questions`);
-      if (!res.ok) throw new Error('Failed to fetch questions');
-      return res.json() as Promise<QuestionRequest[]>;
-    },
+    queryFn: () => serverRequest<QuestionRequest[]>(`/chat/sessions/${sessionId}/questions`),
   });
 }
 
@@ -35,18 +31,15 @@ export function useReplyQuestion() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: ReplyQuestionInput) => {
-      const res = await serverFetch(
+    mutationFn: (input: ReplyQuestionInput) =>
+      serverRequest<unknown>(
         `/chat/sessions/${input.sessionId}/questions/${input.questionId}/reply`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ answers: input.answers }),
         },
-      );
-      if (!res.ok) throw new Error('Failed to reply to question');
-      return res.json();
-    },
+      ),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(input.sessionId) });
     },
@@ -57,16 +50,13 @@ export function useRejectQuestion() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: RejectQuestionInput) => {
-      const res = await serverFetch(
+    mutationFn: (input: RejectQuestionInput) =>
+      serverRequest<unknown>(
         `/chat/sessions/${input.sessionId}/questions/${input.questionId}/reject`,
         {
           method: 'POST',
         },
-      );
-      if (!res.ok) throw new Error('Failed to reject question');
-      return res.json();
-    },
+      ),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(input.sessionId) });
     },

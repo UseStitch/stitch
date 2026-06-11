@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import type { SessionTodo } from '@stitch/shared/todos/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export const todoKeys = {
   all: ['todos'] as const,
@@ -12,10 +12,6 @@ export const todoKeys = {
 export function sessionTodosQueryOptions(sessionId: string) {
   return queryOptions({
     queryKey: todoKeys.list(sessionId),
-    queryFn: async (): Promise<SessionTodo[]> => {
-      const res = await serverFetch(`/chat/sessions/${sessionId}/todos`);
-      if (!res.ok) throw new Error('Failed to fetch todos');
-      return res.json() as Promise<SessionTodo[]>;
-    },
+    queryFn: () => serverRequest<SessionTodo[]>(`/chat/sessions/${sessionId}/todos`),
   });
 }

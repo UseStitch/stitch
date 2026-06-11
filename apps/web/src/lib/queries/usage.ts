@@ -6,7 +6,7 @@ import type {
   UsageDateRange,
 } from '@stitch/shared/usage/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 type UsageDashboardFilters = {
   providerId?: string;
@@ -38,13 +38,11 @@ function buildQueryString(filters: UsageDashboardFilters): string {
 export const usageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.dashboard(filters),
-    queryFn: async (): Promise<UsageDashboardResponse> => {
+    queryFn: () => {
       const query = buildQueryString(filters);
       const path = query.length > 0 ? `/usage?${query}` : '/usage';
 
-      const res = await serverFetch(path);
-      if (!res.ok) throw new Error('Failed to fetch usage dashboard');
-      return res.json() as Promise<UsageDashboardResponse>;
+      return serverRequest<UsageDashboardResponse>(path);
     },
     staleTime: 30_000,
   });
@@ -52,13 +50,11 @@ export const usageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
 export const sttUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.sttDashboard(filters),
-    queryFn: async (): Promise<SttUsageDashboardResponse> => {
+    queryFn: () => {
       const query = buildQueryString(filters);
       const path = query.length > 0 ? `/usage/stt?${query}` : '/usage/stt';
 
-      const res = await serverFetch(path);
-      if (!res.ok) throw new Error('Failed to fetch STT usage dashboard');
-      return res.json() as Promise<SttUsageDashboardResponse>;
+      return serverRequest<SttUsageDashboardResponse>(path);
     },
     staleTime: 30_000,
   });

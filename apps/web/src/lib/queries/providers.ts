@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
@@ -66,11 +66,7 @@ export const providersQueryOptions = queryOptions({
   queryKey: providerKeys.list(),
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
-  queryFn: async (): Promise<ProviderSummary[]> => {
-    const res = await serverFetch('/providers');
-    if (!res.ok) throw new Error('Failed to fetch providers');
-    return res.json() as Promise<ProviderSummary[]>;
-  },
+  queryFn: () => serverRequest<ProviderSummary[]>('/providers'),
 });
 
 export const enabledProviderModelsQueryOptions = queryOptions({
@@ -78,19 +74,19 @@ export const enabledProviderModelsQueryOptions = queryOptions({
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
   queryFn: async (): Promise<ProviderModels[]> => {
-    const providersRes = await serverFetch('/providers');
-    if (!providersRes.ok) throw new Error('Failed to fetch providers');
-    const providers = (await providersRes.json()) as ProviderSummary[];
+    const providers = await serverRequest<ProviderSummary[]>('/providers');
     const enabled = providers.filter((p) => p.enabled && p.capabilities.includes('llm'));
 
     if (enabled.length === 0) return [];
 
     const results = await Promise.all(
       enabled.map(async (provider) => {
-        const res = await serverFetch(`/llm/provider/${provider.id}/models`);
-        if (!res.ok) return { providerId: provider.id, providerName: provider.name, models: [] };
-        const models = (await res.json()) as ModelSummary[];
-        return { providerId: provider.id, providerName: provider.name, models };
+        try {
+          const models = await serverRequest<ModelSummary[]>(`/llm/provider/${provider.id}/models`);
+          return { providerId: provider.id, providerName: provider.name, models };
+        } catch {
+          return { providerId: provider.id, providerName: provider.name, models: [] };
+        }
       }),
     );
     return results.filter((r) => r.models.length > 0);
@@ -102,34 +98,32 @@ export const visibleProviderModelsQueryOptions = queryOptions({
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
   queryFn: async (): Promise<ProviderModels[]> => {
-    const [providersRes, visibilityRes] = await Promise.all([
-      serverFetch('/providers'),
-      serverFetch('/llm/models/visibility'),
+    const [providers, overridesList] = await Promise.all([
+      serverRequest<ProviderSummary[]>('/providers'),
+      serverRequest<
+        Array<{
+          providerId: string;
+          modelId: string;
+          visibility: 'show' | 'hide';
+        }>
+      >('/llm/models/visibility'),
     ]);
-    if (!providersRes.ok) throw new Error('Failed to fetch providers');
-    if (!visibilityRes.ok) throw new Error('Failed to fetch model visibility');
-
-    const providers = (await providersRes.json()) as ProviderSummary[];
-    const overridesList = (await visibilityRes.json()) as Array<{
-      providerId: string;
-      modelId: string;
-      visibility: 'show' | 'hide';
-    }>;
 
     const enabled = providers.filter((p) => p.enabled && p.capabilities.includes('llm'));
     if (enabled.length === 0) return [];
 
     const allProviderModels = await Promise.all(
       enabled.map(async (provider) => {
-        const res = await serverFetch(`/llm/provider/${provider.id}/models`);
-        if (!res.ok)
+        try {
+          const models = await serverRequest<ModelSummary[]>(`/llm/provider/${provider.id}/models`);
+          return { providerId: provider.id, providerName: provider.name, models };
+        } catch {
           return {
             providerId: provider.id,
             providerName: provider.name,
             models: [] as ModelSummary[],
           };
-        const models = (await res.json()) as ModelSummary[];
-        return { providerId: provider.id, providerName: provider.name, models };
+        }
       }),
     );
 
@@ -159,32 +153,25 @@ export const providerConfigQueryOptions = (providerId: string) =>
   queryOptions({
     queryKey: providerKeys.config(providerId),
     staleTime: Infinity,
-    queryFn: async (): Promise<ProviderCredentials | null> => {
-      const res = await serverFetch(`/llm/provider/${providerId}/config`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error('Failed to fetch provider config');
-      return res.json() as Promise<ProviderCredentials>;
-    },
+    queryFn: () =>
+      serverRequest<ProviderCredentials | null>(`/llm/provider/${providerId}/config`).catch(
+        (err) => {
+          if (err instanceof Error && err.message.includes('status 404')) return null;
+          throw err;
+        },
+      ),
   });
 
 export const embeddingProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.embeddingModels(),
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
-  queryFn: async (): Promise<ProviderModels[]> => {
-    const res = await serverFetch('/llm/provider/embedding-models');
-    if (!res.ok) throw new Error('Failed to fetch embedding models');
-    return res.json() as Promise<ProviderModels[]>;
-  },
+  queryFn: () => serverRequest<ProviderModels[]>('/llm/provider/embedding-models'),
 });
 
 export const sttProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.sttModels(),
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
-  queryFn: async (): Promise<SttProviderModels[]> => {
-    const res = await serverFetch('/providers/stt/models');
-    if (!res.ok) throw new Error('Failed to fetch STT models');
-    return res.json() as Promise<SttProviderModels[]>;
-  },
+  queryFn: () => serverRequest<SttProviderModels[]>('/providers/stt/models'),
 });

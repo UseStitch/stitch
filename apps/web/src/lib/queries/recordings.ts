@@ -9,7 +9,7 @@ import type {
   StopRecordingResponse,
 } from '@stitch/shared/recordings/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 const recordingsKeys = {
   all: ['recordings'] as const,
@@ -22,14 +22,12 @@ const recordingsKeys = {
 export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
     queryKey: recordingsKeys.list(input.page, input.pageSize),
-    queryFn: async (): Promise<ListRecordingsResponse> => {
+    queryFn: () => {
       const params = new URLSearchParams({
         page: String(input.page),
         pageSize: String(input.pageSize),
       });
-      const res = await serverFetch(`/recordings?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch recordings');
-      return res.json() as Promise<ListRecordingsResponse>;
+      return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
     },
   });
 }
@@ -138,18 +136,11 @@ export function useStartRecording() {
         return window.api.recording.start(input);
       }
 
-      const res = await serverFetch('/recordings/start', {
+      return serverRequest<StartRecordingResponse>('/recordings/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       });
-
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to start recording');
-      }
-
-      return res.json() as Promise<StartRecordingResponse>;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
@@ -161,21 +152,16 @@ export function useStopRecording() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (): Promise<StopRecordingResponse> => {
+    mutationFn: (): Promise<StopRecordingResponse> => {
       if (window.api?.recording?.stop) {
         return window.api.recording.stop();
       }
 
-      const res = await serverFetch('/recordings/stop', {
+      return serverRequest<StopRecordingResponse>('/recordings/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ durationMs: null, fileSizeBytes: null }),
       });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to stop recording');
-      }
-      return res.json() as Promise<StopRecordingResponse>;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
@@ -187,13 +173,8 @@ export function useDeleteRecording() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (recordingId: string): Promise<void> => {
-      const res = await serverFetch(`/recordings/${recordingId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to delete recording');
-      }
-    },
+    mutationFn: (recordingId: string) =>
+      serverRequest<void>(`/recordings/${recordingId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
@@ -203,11 +184,7 @@ export function useDeleteRecording() {
 export function recordingAnalysisQueryOptions(recordingId: string) {
   return queryOptions({
     queryKey: recordingsKeys.analysis(recordingId),
-    queryFn: async (): Promise<RecordingAnalysisResponse> => {
-      const res = await serverFetch(`/recordings/${recordingId}/analysis`);
-      if (!res.ok) throw new Error('Failed to fetch recording analysis');
-      return res.json() as Promise<RecordingAnalysisResponse>;
-    },
+    queryFn: () => serverRequest<RecordingAnalysisResponse>(`/recordings/${recordingId}/analysis`),
   });
 }
 
@@ -215,24 +192,16 @@ export function useStartRecordingAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: {
-      recordingId: string;
-      force?: boolean;
-    }): Promise<StartRecordingAnalysisResponse> => {
+    mutationFn: (input: { recordingId: string; force?: boolean }) => {
       const params = new URLSearchParams();
       if (input.force) {
         params.set('force', '1');
       }
       const suffix = params.toString();
-      const res = await serverFetch(
+      return serverRequest<StartRecordingAnalysisResponse>(
         `/recordings/${input.recordingId}/analyze${suffix ? `?${suffix}` : ''}`,
         { method: 'POST' },
       );
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to start recording analysis');
-      }
-      return res.json() as Promise<StartRecordingAnalysisResponse>;
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
@@ -246,15 +215,10 @@ export function useCancelRecordingAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (recordingId: string): Promise<void> => {
-      const res = await serverFetch(`/recordings/${recordingId}/analysis/cancel`, {
+    mutationFn: (recordingId: string) =>
+      serverRequest<void>(`/recordings/${recordingId}/analysis/cancel`, {
         method: 'POST',
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to cancel recording analysis');
-      }
-    },
+      }),
     onSuccess: (_, recordingId) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.analysis(recordingId) });
     },

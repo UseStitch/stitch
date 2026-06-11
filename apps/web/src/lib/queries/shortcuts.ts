@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import type { ShortcutCategory } from '@stitch/shared/shortcuts/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 export interface ShortcutEntry {
   actionId: string;
@@ -20,24 +20,18 @@ const shortcutKeys = {
 export const shortcutsQueryOptions = queryOptions({
   queryKey: shortcutKeys.list(),
   staleTime: Infinity,
-  queryFn: async (): Promise<ShortcutEntry[]> => {
-    const res = await serverFetch('/shortcuts');
-    if (!res.ok) throw new Error('Failed to fetch shortcuts');
-    return res.json() as Promise<ShortcutEntry[]>;
-  },
+  queryFn: () => serverRequest<ShortcutEntry[]>('/shortcuts'),
 });
 
 export function useSaveShortcut() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ actionId, hotkey }: { actionId: string; hotkey: string | null }) => {
-      const res = await serverFetch(`/shortcuts/${actionId}`, {
+    mutationFn: ({ actionId, hotkey }: { actionId: string; hotkey: string | null }) =>
+      serverRequest<void>(`/shortcuts/${actionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hotkey }),
-      });
-      if (!res.ok) throw new Error('Failed to save shortcut');
-    },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: shortcutKeys.all }),
   });
 }
@@ -45,10 +39,11 @@ export function useSaveShortcut() {
 export function useDeleteShortcut() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (actionId: string) => {
-      const res = await serverFetch(`/shortcuts/${actionId}`, { method: 'DELETE' });
-      if (!res.ok && res.status !== 404) throw new Error('Failed to delete shortcut');
-    },
+    mutationFn: (actionId: string) =>
+      serverRequest<void>(`/shortcuts/${actionId}`, { method: 'DELETE' }).catch((err) => {
+        if (err instanceof Error && err.message.includes('status 404')) return;
+        throw err;
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: shortcutKeys.all }),
   });
 }
@@ -56,10 +51,7 @@ export function useDeleteShortcut() {
 export function useResetAllShortcuts() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const res = await serverFetch('/shortcuts', { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to reset shortcuts');
-    },
+    mutationFn: () => serverRequest<void>('/shortcuts', { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: shortcutKeys.all }),
   });
 }
