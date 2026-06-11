@@ -1,8 +1,20 @@
 import * as React from 'react';
 
+import { useQuery } from '@tanstack/react-query';
+
+import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import type { DesktopNotificationEvent } from '@stitch/shared/ipc/types';
 
 import { MeetingDetectedNotification } from './meeting-detected-notification';
+
+import { settingsQueryOptions } from '@/lib/queries/settings';
+import {
+  applyAppearanceMode,
+  DEFAULT_MODE,
+  DEFAULT_THEME,
+  getTheme,
+  injectThemeCss,
+} from '@/lib/theme';
 
 const EXIT_ANIMATION_MS = 220;
 const NOTIFICATION_HASH_PREFIX = '#/desktop-notifications?';
@@ -32,6 +44,8 @@ export function DesktopNotificationRoot() {
     document.body.classList.add('desktop-notifications-window');
     return () => document.body.classList.remove('desktop-notifications-window');
   }, []);
+
+  useDesktopNotificationTheme();
 
   React.useEffect(() => {
     const element = contentRef.current;
@@ -77,4 +91,25 @@ export function DesktopNotificationRoot() {
       </div>
     </div>
   );
+}
+
+function useDesktopNotificationTheme(): void {
+  const { data: settings } = useQuery(settingsQueryOptions);
+  const themeName = settings?.['appearance.theme'] ?? DEFAULT_THEME;
+  const mode = (settings?.['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE;
+
+  React.useEffect(() => {
+    injectThemeCss(getTheme(themeName));
+  }, [themeName]);
+
+  React.useEffect(() => {
+    applyAppearanceMode(mode);
+
+    if (mode !== 'system') return;
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => applyAppearanceMode('system');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [mode]);
 }

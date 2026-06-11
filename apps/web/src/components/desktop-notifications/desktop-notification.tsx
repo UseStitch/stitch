@@ -58,14 +58,17 @@ function DesktopNotificationActions({ children }: { children: ReactNode }) {
 function DesktopNotificationAction({
   children,
   onClick,
+  variant = 'default',
 }: {
   children: ReactNode;
   onClick: () => void;
+  variant?: 'default' | 'ghost';
 }) {
   return (
     <Button
       type="button"
       size="sm"
+      variant={variant}
       onClick={onClick}
       className="h-7 min-w-0 px-2 text-xs shadow-sm"
     >

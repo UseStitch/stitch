@@ -53,6 +53,9 @@ export function MeetingDetectedNotification({
           >
             {startRecording.isPending ? 'Starting...' : 'Start recording'}
           </DesktopNotification.Action>
+          <DesktopNotification.Action variant="ghost" onClick={() => onDismiss(event.id)}>
+            Dismiss
+          </DesktopNotification.Action>
         </DesktopNotification.Actions>
       </DesktopNotification.Content>
     </DesktopNotification>

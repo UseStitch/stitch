@@ -7,7 +7,13 @@ import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react
 
 import { DesktopNotificationRoot } from '@/components/desktop-notifications/desktop-notification-root';
 import { SseProvider } from '@/hooks/sse/sse-context';
-import { applyAppearanceMode, DEFAULT_THEME, getTheme, injectThemeCss } from '@/lib/theme';
+import {
+  applyAppearanceMode,
+  DEFAULT_MODE,
+  DEFAULT_THEME,
+  getTheme,
+  injectThemeCss,
+} from '@/lib/theme';
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
 
@@ -40,7 +46,7 @@ const isDesktopNotificationWindow = window.location.hash.startsWith('#/desktop-n
 
 if (isDesktopNotificationWindow) {
   injectThemeCss(getTheme(DEFAULT_THEME));
-  applyAppearanceMode('light');
+  applyAppearanceMode(DEFAULT_MODE);
 }
 
 ReactDOM.createRoot(rootElement).render(
