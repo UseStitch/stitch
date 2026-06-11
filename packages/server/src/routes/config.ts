@@ -6,12 +6,11 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import { TOOL_ENABLED_SCOPES } from '@stitch/shared/tools/types';
 
-import { getBrowserKnownTools } from '@/lib/browser/tool-config.js';
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
 import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
+import { listKnownTools } from '@/tools/catalog.js';
 import { getToolEnabledStates, setToolEnabledState } from '@/tools/enabled-service.js';
-import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import type { ToolsetKind } from '@/tools/toolsets/types.js';
 import { toToolsetView } from '@/tools/toolsets/view.js';
@@ -34,21 +33,8 @@ export function getToolsetSource(toolset: { kind: ToolsetKind }): ToolsetKind {
   return toolset.kind;
 }
 
-configRouter.get('/tools', async (c) => {
-  const mcpServersWithTools = await getMcpServersWithCachedTools();
-  const mcpKnownTools = mcpServersWithTools.flatMap((server) =>
-    (server.tools ?? []).map((tool) => {
-      const presentation = getMcpServerPresentation(server.id);
-      const toolPresentation = presentation?.tools[tool.name];
-      return {
-        toolType: 'mcp' as const,
-        toolName: formatMcpToolName(server.id, tool.name),
-        displayName: toolPresentation?.title ?? tool.title ?? tool.annotations?.title ?? tool.name,
-      };
-    }),
-  );
-
-  return c.json({ tools: [...STITCH_KNOWN_TOOLS, ...mcpKnownTools, ...getBrowserKnownTools()] });
+configRouter.get('/tools', (c) => {
+  return c.json({ tools: listKnownTools() });
 });
 
 configRouter.get('/mcp-tools', async (c) => {
