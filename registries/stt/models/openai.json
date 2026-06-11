@@ -6,6 +6,7 @@
     {
       "modelId": "gpt-realtime-whisper",
       "displayName": "GPT Realtime Whisper",
+      "deprecated": false,
       "capabilities": {
         "partials": true,
         "word_timestamps": false,

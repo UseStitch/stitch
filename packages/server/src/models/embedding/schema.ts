@@ -6,6 +6,7 @@ export const EmbeddingModelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   family: z.string().optional(),
+  deprecated: z.boolean(),
   dimensions: z.number().int().positive(),
   release_date: z.string().min(1),
   context: z.number().int().positive(),

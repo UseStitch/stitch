@@ -17,7 +17,16 @@ const sttRegistryCache = createRegistryCache<SttRegistryPayload>({
   get url() {
     return getRegistryUrl();
   },
-  parse: (raw) => SttRegistryPayloadSchema.parse(raw),
+  parse: (raw) => {
+    const payload = SttRegistryPayloadSchema.parse(raw);
+    return {
+      ...payload,
+      providers: payload.providers.map((provider) => ({
+        ...provider,
+        models: provider.models.filter((model) => !model.deprecated),
+      })),
+    };
+  },
 });
 
 export async function getSttProvidersFromRegistry(fetchImpl = fetch): Promise<SttProvider[]> {

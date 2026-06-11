@@ -27,6 +27,7 @@
         "required": [
           "modelId",
           "displayName",
+          "deprecated",
           "capabilities",
           "inputFormat",
           "partialStrategy",
@@ -44,6 +45,10 @@
             "type": "string",
             "minLength": 1,
             "description": "Human-readable model name"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Whether this model is deprecated and should not be used for new workloads"
           },
           "capabilities": {
             "type": "object",

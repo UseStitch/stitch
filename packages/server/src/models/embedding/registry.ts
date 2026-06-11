@@ -61,7 +61,16 @@ const embeddingRegistryCache = createRegistryCache<EmbeddingRegistryPayload>({
   get url() {
     return getRegistryUrl();
   },
-  parse: (raw) => EmbeddingRegistryPayloadSchema.parse(raw),
+  parse: (raw) => {
+    const payload = EmbeddingRegistryPayloadSchema.parse(raw);
+    return {
+      ...payload,
+      providers: payload.providers.map((provider) => ({
+        ...provider,
+        models: provider.models.filter((model) => !model.deprecated),
+      })),
+    };
+  },
 });
 
 export async function getEmbeddingModelsFromRegistry(
