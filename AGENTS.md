@@ -305,6 +305,10 @@ function ProductList({ filters, minRating }: Props) {
       - Major documentation additions (if applicable)
       ```
 
+##### PR/Issue Text
+
+- Always write PR and issue bodies to a temp file and use `gh pr create --body-file` / `gh pr edit --body-file` — passing markdown directly via `--body` will mangle backticks and special characters.
+
 ##### Creating PRs
 
 1.  **Gather Context**:
