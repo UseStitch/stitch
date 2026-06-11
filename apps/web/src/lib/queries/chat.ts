@@ -5,7 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import type { InfiniteData } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 import type {
@@ -86,6 +86,38 @@ export const sessionQueryOptions = (id: string) =>
     },
     staleTime: Infinity,
   });
+
+function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
+  const cacheEntries = queryClient.getQueriesData<InfiniteData<SessionsPage>>({
+    queryKey: sessionKeys.list(),
+  });
+  for (const [, data] of cacheEntries) {
+    if (!data) continue;
+    for (const page of data.pages) {
+      const found = page.sessions.find((s) => s.id === id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+export async function loadSessionRoute(queryClient: QueryClient, id: string): Promise<Session> {
+  let session = queryClient.getQueryData<Session>(sessionKeys.detail(id));
+
+  if (!session) {
+    const fromList = findSessionInListCache(queryClient, id);
+    if (fromList) {
+      queryClient.setQueryData(sessionKeys.detail(id), fromList);
+      session = fromList;
+    }
+  }
+
+  if (!session) {
+    session = await queryClient.ensureQueryData(sessionQueryOptions(id));
+  }
+
+  return session;
+}
 
 export const sessionStatsQueryOptions = (id: string) =>
   queryOptions({

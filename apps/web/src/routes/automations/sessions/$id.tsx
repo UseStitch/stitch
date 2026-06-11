@@ -2,20 +2,25 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { SessionPage } from '@/components/session/session-page';
 import { useActions } from '@/lib/actions';
-import { sessionMessagesInfiniteQueryOptions, sessionQueryOptions } from '@/lib/queries/chat';
+import { loadSessionRoute, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
+import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { sessionTodosQueryOptions } from '@/lib/queries/todos';
 import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
 
 export const Route = createFileRoute('/automations/sessions/$id')({
-  loader: async ({ context, params }) => {
-    const session = await context.queryClient.ensureQueryData(sessionQueryOptions(params.id));
+  beforeLoad: async ({ context, params }) => {
+    const session = await loadSessionRoute(context.queryClient, params.id);
 
     if (session.type !== 'automation') {
       throw redirect({ to: '/session/$id', params: { id: params.id } });
     }
-
-    await context.queryClient.ensureInfiniteQueryData(
-      sessionMessagesInfiniteQueryOptions(params.id),
-    );
+  },
+  loader: ({ context, params }) => {
+    void Promise.all([
+      context.queryClient.ensureInfiniteQueryData(sessionMessagesInfiniteQueryOptions(params.id)),
+      context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
+      context.queryClient.ensureQueryData(sessionTodosQueryOptions(params.id)),
+    ]);
   },
   component: RouteComponent,
 });
