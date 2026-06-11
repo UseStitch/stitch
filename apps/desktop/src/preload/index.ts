@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   IpcContract,
   IpcEventContract,
+  DesktopNotificationEvent,
+  MeetingCallDismissedPayload,
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
   RecordingDeviceChangedPayload,
@@ -82,10 +84,13 @@ const api = {
     openScreenCaptureSettings: () => invokeIpc('permissions:openScreenCaptureSettings'),
   },
   meeting: {
+    dismissCall: (key: string) => invokeIpc('meeting:call-dismiss', key),
     onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) =>
       onIpc('meeting:call-detected', callback),
     onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) =>
       onIpc('meeting:call-ended', callback),
+    onCallDismissed: (callback: (payload: MeetingCallDismissedPayload) => void) =>
+      onIpc('meeting:call-dismissed', callback),
   },
   recording: {
     start: (input: StartRecordingInput) => invokeIpc('recording:start', input),
@@ -96,6 +101,13 @@ const api = {
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>
       onIpc('recording:device-changed', callback),
+  },
+  notifications: {
+    dismiss: (id: string) => invokeIpc('notifications:dismiss', id),
+    setHeight: (height: number) => invokeIpc('notifications:set-height', height),
+    onShow: (callback: (event: DesktopNotificationEvent) => void) =>
+      onIpc('notifications:show', callback),
+    onDismissed: (callback: (id: string) => void) => onIpc('notifications:dismissed', callback),
   },
 };
 
