@@ -1,25 +1,29 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import type {
+  IpcContract,
+  IpcEventContract,
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
-} from '@stitch/shared/chat/realtime';
-
-import type {
-  RecordingDevicesPayload,
-  RecordingPermissionsPayload,
   ServerConfigPayload,
-  ServerTestRemoteResult,
   StartRecordingInput,
-  StartRecordingResponse,
-  StopRecordingResponse,
-  UpdaterStatePayload,
-} from '../main/ipc-types.js';
+} from '@stitch/shared/ipc/types';
 
-function onIpc<TPayload>(channel: string, callback: (payload: TPayload) => void): () => void {
-  const subscription = (_event: Electron.IpcRendererEvent, payload: TPayload) => callback(payload);
+function invokeIpc<TKey extends keyof IpcContract>(
+  channel: TKey,
+  ...args: IpcContract[TKey]['args']
+): Promise<IpcContract[TKey]['return']> {
+  return ipcRenderer.invoke(channel, ...args);
+}
+
+function onIpc<TKey extends keyof IpcEventContract>(
+  channel: TKey,
+  callback: (...payload: IpcEventContract[TKey]) => void,
+): () => void {
+  const subscription = (_event: Electron.IpcRendererEvent, ...payload: IpcEventContract[TKey]) =>
+    callback(...payload);
   ipcRenderer.on(channel, subscription);
   return () => ipcRenderer.removeListener(channel, subscription);
 }
@@ -35,53 +39,47 @@ contextBridge.exposeInMainWorld('electron', {
   },
 });
 
-contextBridge.exposeInMainWorld('api', {
-  getServerConfig: () => ipcRenderer.invoke('get-server-config') as Promise<ServerConfigPayload>,
+const api = {
+  getServerConfig: () => invokeIpc('get-server-config'),
   server: {
-    testRemote: (url: string) =>
-      ipcRenderer.invoke('server:test-remote', url) as Promise<ServerTestRemoteResult>,
+    testRemote: (url: string) => invokeIpc('server:test-remote', url),
     setConfig: (config: { mode: 'local' | 'remote'; remoteUrl: string | null }) =>
-      ipcRenderer.invoke('server:set-config', config) as Promise<ServerConfigPayload>,
+      invokeIpc('server:set-config', config),
     onConfigChanged: (callback: (config: ServerConfigPayload) => void) =>
       onIpc('server:config-changed', callback),
   },
   window: {
-    minimize: () => ipcRenderer.invoke('window:minimize'),
-    maximize: () => ipcRenderer.invoke('window:maximize'),
-    close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
-    isFullScreen: () => ipcRenderer.invoke('window:isFullScreen') as Promise<boolean>,
+    minimize: () => invokeIpc('window:minimize'),
+    maximize: () => invokeIpc('window:maximize'),
+    close: () => invokeIpc('window:close'),
+    isMaximized: () => invokeIpc('window:isMaximized'),
+    isFullScreen: () => invokeIpc('window:isFullScreen'),
   },
   devtools: {
-    toggle: () => ipcRenderer.invoke('devtools:toggle'),
-    inspect: (x: number, y: number) => ipcRenderer.invoke('devtools:inspect', x, y),
+    toggle: () => invokeIpc('devtools:toggle'),
+    inspect: (x: number, y: number) => invokeIpc('devtools:inspect', x, y),
   },
   shell: {
-    openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+    openExternal: (url: string) => invokeIpc('shell:openExternal', url),
   },
   files: {
-    writeTmp: (data: ArrayBuffer, ext: string) =>
-      ipcRenderer.invoke('files:writeTmp', data, ext) as Promise<string>,
-    openPath: () => ipcRenderer.invoke('dialog:openPath') as Promise<string[]>,
+    writeTmp: (data: ArrayBuffer, ext: string) => invokeIpc('files:writeTmp', data, ext),
+    openPath: () => invokeIpc('dialog:openPath'),
   },
   updater: {
-    check: () => ipcRenderer.invoke('updater:check') as Promise<UpdaterStatePayload>,
-    getState: () => ipcRenderer.invoke('updater:getState') as Promise<UpdaterStatePayload>,
-    install: () => ipcRenderer.invoke('updater:install') as Promise<boolean>,
-    openManualUpdateAndQuit: () =>
-      ipcRenderer.invoke('updater:openManualUpdateAndQuit') as Promise<boolean>,
+    check: () => invokeIpc('updater:check'),
+    getState: () => invokeIpc('updater:getState'),
+    install: () => invokeIpc('updater:install'),
+    openManualUpdateAndQuit: () => invokeIpc('updater:openManualUpdateAndQuit'),
   },
   spellcheck: {
-    replaceMisspelling: (word: string) => ipcRenderer.invoke('spellcheck:replaceMisspelling', word),
-    addToDictionary: (word: string) => ipcRenderer.invoke('spellcheck:addToDictionary', word),
+    replaceMisspelling: (word: string) => invokeIpc('spellcheck:replaceMisspelling', word),
+    addToDictionary: (word: string) => invokeIpc('spellcheck:addToDictionary', word),
   },
   permissions: {
-    requestMicrophone: () =>
-      ipcRenderer.invoke('permissions:requestMicrophone') as Promise<boolean>,
-    getScreenCaptureStatus: () =>
-      ipcRenderer.invoke('permissions:getScreenCaptureStatus') as Promise<string>,
-    openScreenCaptureSettings: () =>
-      ipcRenderer.invoke('permissions:openScreenCaptureSettings') as Promise<void>,
+    requestMicrophone: () => invokeIpc('permissions:requestMicrophone'),
+    getScreenCaptureStatus: () => invokeIpc('permissions:getScreenCaptureStatus'),
+    openScreenCaptureSettings: () => invokeIpc('permissions:openScreenCaptureSettings'),
   },
   meeting: {
     onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) =>
@@ -90,16 +88,17 @@ contextBridge.exposeInMainWorld('api', {
       onIpc('meeting:call-ended', callback),
   },
   recording: {
-    start: (input: StartRecordingInput) =>
-      ipcRenderer.invoke('recording:start', input) as Promise<StartRecordingResponse>,
-    stop: () => ipcRenderer.invoke('recording:stop') as Promise<StopRecordingResponse>,
-    listDevices: () =>
-      ipcRenderer.invoke('recording:listDevices') as Promise<RecordingDevicesPayload>,
-    checkPermissions: () =>
-      ipcRenderer.invoke('recording:checkPermissions') as Promise<RecordingPermissionsPayload>,
+    start: (input: StartRecordingInput) => invokeIpc('recording:start', input),
+    stop: () => invokeIpc('recording:stop'),
+    listDevices: () => invokeIpc('recording:listDevices'),
+    checkPermissions: () => invokeIpc('recording:checkPermissions'),
     onWarning: (callback: (payload: RecordingWarningPayload) => void) =>
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>
       onIpc('recording:device-changed', callback),
   },
-});
+};
+
+contextBridge.exposeInMainWorld('api', api);
+
+export type DesktopApi = typeof api;

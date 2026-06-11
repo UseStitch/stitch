@@ -1,10 +1,15 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import type { ServerConfigPayload, ServerTestRemoteResult } from '@stitch/shared/ipc/types';
 
-import type { ServerConfigPayload, ServerTestRemoteResult } from '../ipc-types.js';
-import { normalizeRemoteUrl, writeServerConnectionConfig, type ServerConnectionConfig } from '../server-config.js';
-import { checkHealth } from '../sidecar.js';
 import { stopRecordingCapture } from '../recording-capture.js';
-import { killServer } from '../sidecar.js';
+import {
+  normalizeRemoteUrl,
+  writeServerConnectionConfig,
+  type ServerConnectionConfig,
+} from '../server-config.js';
+import { checkHealth, killServer } from '../sidecar.js';
+import { registerIpcHandler } from './register.js';
+
+import type { BrowserWindow } from 'electron';
 
 type ServerState = {
   serverUrl: string;
@@ -18,13 +23,16 @@ export function registerServerHandlers(
   startLocalServer: StartLocalServer,
   getWindow: () => BrowserWindow | null,
 ): void {
-  ipcMain.handle('get-server-config', (): ServerConfigPayload => ({
-    url: state.serverUrl,
-    mode: state.serverConnectionConfig.mode,
-    remoteUrl: state.serverConnectionConfig.remoteUrl,
-  }));
+  registerIpcHandler(
+    'get-server-config',
+    (): ServerConfigPayload => ({
+      url: state.serverUrl,
+      mode: state.serverConnectionConfig.mode,
+      remoteUrl: state.serverConnectionConfig.remoteUrl,
+    }),
+  );
 
-  ipcMain.handle(
+  registerIpcHandler(
     'server:test-remote',
     async (_event, rawUrl: string): Promise<ServerTestRemoteResult> => {
       try {
@@ -40,43 +48,39 @@ export function registerServerHandlers(
     },
   );
 
-  ipcMain.handle(
-    'server:set-config',
-    async (_event, config: ServerConnectionConfig): Promise<ServerConfigPayload> => {
-      let nextConfig: ServerConnectionConfig;
+  registerIpcHandler('server:set-config', async (_event, config): Promise<ServerConfigPayload> => {
+    let nextConfig: ServerConnectionConfig;
 
-      if (config.mode === 'remote') {
-        const remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
-        if (!(await checkHealth(remoteUrl))) {
-          throw new Error('Remote server health check failed');
-        }
-        nextConfig = { mode: 'remote', remoteUrl };
-      } else {
-        nextConfig = { mode: 'local', remoteUrl: config.remoteUrl?.trim() || null };
+    if (config.mode === 'remote') {
+      const remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
+      if (!(await checkHealth(remoteUrl))) {
+        throw new Error('Remote server health check failed');
       }
+      nextConfig = { mode: 'remote', remoteUrl };
+    } else {
+      nextConfig = { mode: 'local', remoteUrl: config.remoteUrl?.trim() || null };
+    }
 
-      await stopRecordingCapture().catch(() => null);
-      await killServer();
+    await stopRecordingCapture().catch(() => null);
+    await killServer();
 
-      const nextUrl =
-        nextConfig.mode === 'remote' ? nextConfig.remoteUrl! : await startLocalServer();
+    const nextUrl = nextConfig.mode === 'remote' ? nextConfig.remoteUrl! : await startLocalServer();
 
-      state.serverUrl = nextUrl;
-      state.serverConnectionConfig = nextConfig;
-      await writeServerConnectionConfig(nextConfig);
+    state.serverUrl = nextUrl;
+    state.serverConnectionConfig = nextConfig;
+    await writeServerConnectionConfig(nextConfig);
 
-      const payload: ServerConfigPayload = {
-        url: state.serverUrl,
-        mode: state.serverConnectionConfig.mode,
-        remoteUrl: state.serverConnectionConfig.remoteUrl,
-      };
+    const payload: ServerConfigPayload = {
+      url: state.serverUrl,
+      mode: state.serverConnectionConfig.mode,
+      remoteUrl: state.serverConnectionConfig.remoteUrl,
+    };
 
-      const win = getWindow();
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('server:config-changed', payload);
-      }
+    const win = getWindow();
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('server:config-changed', payload);
+    }
 
-      return payload;
-    },
-  );
+    return payload;
+  });
 }

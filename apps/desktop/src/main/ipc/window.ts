@@ -1,11 +1,13 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import { registerIpcHandler } from './register.js';
+
+import type { BrowserWindow } from 'electron';
 
 export function registerWindowHandlers(getWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('window:minimize', () => {
+  registerIpcHandler('window:minimize', () => {
     getWindow()?.minimize();
   });
 
-  ipcMain.handle('window:maximize', () => {
+  registerIpcHandler('window:maximize', () => {
     const win = getWindow();
     if (win?.isMaximized()) {
       win.unmaximize();
@@ -14,15 +16,15 @@ export function registerWindowHandlers(getWindow: () => BrowserWindow | null): v
     }
   });
 
-  ipcMain.handle('window:close', () => {
+  registerIpcHandler('window:close', () => {
     getWindow()?.hide();
   });
 
-  ipcMain.handle('window:isMaximized', () => {
+  registerIpcHandler('window:isMaximized', () => {
     return getWindow()?.isMaximized() ?? false;
   });
 
-  ipcMain.handle('window:isFullScreen', () => {
+  registerIpcHandler('window:isFullScreen', () => {
     return getWindow()?.isFullScreen() ?? false;
   });
 }

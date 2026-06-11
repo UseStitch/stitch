@@ -1,7 +1,9 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import type { UpdaterStatePayload } from '@stitch/shared/ipc/types';
 
-import type { UpdaterStatePayload } from '../ipc-types.js';
+import { registerIpcHandler } from './register.js';
+
 import type { createUpdater } from '../updater.js';
+import type { BrowserWindow } from 'electron';
 
 type Updater = ReturnType<typeof createUpdater>;
 
@@ -9,10 +11,10 @@ export function registerUpdaterHandlers(
   updater: Updater,
   getWindow: () => BrowserWindow | null,
 ): void {
-  ipcMain.handle('updater:check', () => updater.checkForUpdates());
-  ipcMain.handle('updater:getState', (): UpdaterStatePayload => updater.getState());
-  ipcMain.handle('updater:install', () => updater.installUpdate());
-  ipcMain.handle('updater:openManualUpdateAndQuit', () => updater.openManualUpdateAndQuit());
+  registerIpcHandler('updater:check', () => updater.checkForUpdates());
+  registerIpcHandler('updater:getState', (): UpdaterStatePayload => updater.getState());
+  registerIpcHandler('updater:install', () => updater.installUpdate());
+  registerIpcHandler('updater:openManualUpdateAndQuit', () => updater.openManualUpdateAndQuit());
 
   updater.onEvent((state) => {
     const win = getWindow();

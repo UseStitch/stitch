@@ -1,11 +1,13 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import { registerIpcHandler } from './register.js';
+
+import type { BrowserWindow } from 'electron';
 
 export function registerDevtoolsHandlers(getWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('devtools:toggle', () => {
+  registerIpcHandler('devtools:toggle', () => {
     getWindow()?.webContents.toggleDevTools();
   });
 
-  ipcMain.handle('devtools:inspect', (_event, x: number, y: number) => {
+  registerIpcHandler('devtools:inspect', (_event, x, y) => {
     getWindow()?.webContents.inspectElement(x, y);
   });
 }
