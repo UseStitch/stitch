@@ -5,8 +5,8 @@ import {
   type EmbeddingModel,
   type EmbeddingProvider,
   type EmbeddingRegistryPayload,
-} from '@/llm/provider/embedding-schema.js';
-import type { RawModel, RawProvider } from '@/llm/provider/models.js';
+} from '@/models/embedding/schema.js';
+import type { RawModel, RawProvider } from '@/models/llm/registry.js';
 
 const DEFAULT_EMBEDDING_REGISTRY_URL = 'https://usestitch.ai/embedding-models.json';
 

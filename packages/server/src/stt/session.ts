@@ -11,6 +11,7 @@ import type {
 import { getDb } from '@/db/client.js';
 import { sttUsageEvents, type SttService } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
+import { getModelDescriptor } from '@/models/stt/service.js';
 import { getSettings } from '@/settings/service.js';
 import type { STTConnection } from '@/stt/adapter-iface.js';
 import { resolveSttAuth } from '@/stt/auth.js';
@@ -21,7 +22,6 @@ import {
   type DiarizationFallback,
 } from '@/stt/fallbacks/diarization.js';
 import { createVadFallback, type VadFallback } from '@/stt/fallbacks/vad.js';
-import { getModelDescriptor } from '@/stt/models.js';
 import {
   createTranscriptOrderingBuffer,
   type SourcedTranscriptEvent,

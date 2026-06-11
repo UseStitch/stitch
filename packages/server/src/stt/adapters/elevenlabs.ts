@@ -1,9 +1,9 @@
 import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 
 import * as Log from '@/lib/log.js';
+import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
 import { createManagedConnection } from '@/stt/base-adapter.js';
-import { getModelDescriptor } from '@/stt/models.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 

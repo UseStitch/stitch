@@ -4,12 +4,11 @@ import { getDb } from '@/db/client.js';
 import { providerConfig, ollamaModels } from '@/db/schema/providers.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import * as EmbeddingModels from '@/llm/provider/embedding-models.js';
-import * as ProviderLogos from '@/llm/provider/logos.js';
-import { isAllowedProvider } from '@/llm/provider/models.js';
-import * as Models from '@/llm/provider/models.js';
-import * as OllamaModels from '@/llm/provider/ollama-models.js';
-import { ProviderCredentialsSchema } from '@/llm/provider/provider.js';
+import * as EmbeddingModels from '@/models/embedding/service.js';
+import * as OllamaModels from '@/models/llm/ollama.js';
+import { isAllowedProvider } from '@/models/llm/registry.js';
+import * as Models from '@/models/llm/registry.js';
+import * as ProviderLogos from '@/provider/logos.js';
 
 type ProviderSummary = {
   id: string;
@@ -201,66 +200,4 @@ export async function getProviderLogo(providerId: string): Promise<ServiceResult
   }
 
   return ok(logo);
-}
-
-export async function getProviderCredentials(providerId: string): Promise<ServiceResult<unknown>> {
-  if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
-  }
-
-  const db = getDb();
-  const [config] = await db
-    .select()
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
-  if (!config) {
-    return err('Provider not configured', 404);
-  }
-
-  return ok(config.credentials);
-}
-
-export async function upsertProviderCredentials(
-  providerId: string,
-  body: unknown,
-): Promise<ServiceResult<null>> {
-  if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
-  }
-
-  const parsed = ProviderCredentialsSchema.safeParse({
-    ...(body as Record<string, unknown>),
-    providerId,
-  });
-  if (!parsed.success) {
-    return err('Invalid credentials', 400, parsed.error.flatten());
-  }
-
-  const db = getDb();
-  await db
-    .insert(providerConfig)
-    .values({ providerId, credentials: parsed.data })
-    .onConflictDoUpdate({
-      target: providerConfig.providerId,
-      set: { credentials: parsed.data, updatedAt: Date.now() },
-    });
-
-  return ok(null);
-}
-
-export async function deleteProviderCredentials(providerId: string): Promise<ServiceResult<null>> {
-  if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
-  }
-
-  const db = getDb();
-  const result = await db
-    .delete(providerConfig)
-    .where(eq(providerConfig.providerId, providerId))
-    .returning({ providerId: providerConfig.providerId });
-  if (result.length === 0) {
-    return err('Provider not configured', 404);
-  }
-
-  return ok(null);
 }

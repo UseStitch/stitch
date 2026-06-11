@@ -3,9 +3,9 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
-import { isAllowedProvider } from '@/llm/provider/models.js';
-import * as Models from '@/llm/provider/models.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { isAllowedProvider } from '@/models/llm/registry.js';
+import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
 
 export type ResolvedModel = {

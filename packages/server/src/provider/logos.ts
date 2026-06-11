@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readCachedText, writeCachedText } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { isAllowedProvider } from '@/llm/provider/models.js';
+import { isAllowedProvider } from '@/models/llm/registry.js';
 
 const log = Log.create({ service: 'provider-logos' });
 const LOGO_BASE_URL = 'https://models.dev/logos';

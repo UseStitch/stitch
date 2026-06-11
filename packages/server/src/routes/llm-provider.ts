@@ -9,14 +9,16 @@ import * as Log from '@/lib/log.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import {
-  deleteProviderCredentials,
   getProvider,
-  getProviderCredentials,
   getProviderLogo,
   listEnabledProviderEmbeddingModels,
   listProviderModels,
-  upsertProviderCredentials,
 } from '@/llm/provider/service.js';
+import {
+  deleteProviderCredentials,
+  getProviderCredentials,
+  upsertProviderCredentials,
+} from '@/provider/config/service.js';
 
 const log = Log.create({ service: 'provider-routes' });
 
