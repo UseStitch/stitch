@@ -128,6 +128,10 @@ Naming Conventions
 - Only catch errors when you can handle them meaningfully (e.g., return null, retry, log and continue)
 - Let errors bubble up when there's no recovery strategy
 
+### TypeScript Types
+
+- Never add `?` or `| null` to a type field by default — only when the value is genuinely absent at runtime. If a field is always provided, make it required. Nullable types are a last resort, not a safety blanket.
+
 ### Do Not
 
 - Use `var` - always `const` or `let`

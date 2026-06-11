@@ -12,9 +12,9 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
+import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { getSettings } from '@/settings/service.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 
@@ -96,17 +96,6 @@ function collectToolsetContext(messageList: GenerationMessageContext[]): {
     usedToolNames: dedupeStrings(toolNames),
     inferredToolsets: [...inferredToolsets].sort(),
     availableToolsets,
-  };
-}
-
-async function getPromptUserContext(): Promise<{
-  userName: string | null;
-  userTimezone: string | null;
-}> {
-  const s = await getSettings(['profile.name', 'profile.timezone'] as const);
-  return {
-    userName: s['profile.name'] || null,
-    userTimezone: s['profile.timezone'] || null,
   };
 }
 
@@ -195,6 +184,8 @@ export async function generateAutomationDraft(
     systemPrompt: null,
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
+    memoryContext: null,
+    todoContext: null,
   });
 
   const resolved = await resolveCheapModel({
