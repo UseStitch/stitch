@@ -70,7 +70,6 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
       if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
       return oldest.createdAt;
     },
-    staleTime: Infinity,
     placeholderData: keepPreviousData,
   });
 
@@ -78,7 +77,6 @@ export const sessionQueryOptions = (id: string) =>
   queryOptions({
     queryKey: sessionKeys.detail(id),
     queryFn: () => serverRequest<Session>(`/chat/sessions/${id}`),
-    staleTime: Infinity,
   });
 
 function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
@@ -143,7 +141,6 @@ export const sessionMessagesInfiniteQueryOptions = (id: string) =>
       if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
       return oldest.createdAt;
     },
-    staleTime: Infinity,
   });
 
 /** Flatten all pages into a single chronological message array. */

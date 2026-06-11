@@ -23,7 +23,6 @@ const automationKeys = {
 export function automationsPageQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
     queryKey: automationKeys.page(input.page, input.pageSize),
-    staleTime: Infinity,
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(input.page),
@@ -36,7 +35,6 @@ export function automationsPageQueryOptions(input: { page: number; pageSize: num
 
 export const automationsSidebarListQueryOptions = queryOptions({
   queryKey: automationKeys.sidebarList(),
-  staleTime: Infinity,
   queryFn: async (): Promise<Automation[]> => {
     const params = new URLSearchParams({ page: '1', pageSize: '100' });
     const data = await serverRequest<ListAutomationsResponse>(`/automations?${params.toString()}`);
@@ -47,7 +45,6 @@ export const automationsSidebarListQueryOptions = queryOptions({
 export const automationQueryOptions = (automationId: string) =>
   queryOptions({
     queryKey: automationKeys.detail(automationId),
-    staleTime: Infinity,
     queryFn: () => serverRequest<Automation>(`/automations/${automationId}`),
   });
 

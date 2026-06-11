@@ -16,7 +16,6 @@ const modelVisibilityKeys = {
 
 export const modelVisibilityQueryOptions = queryOptions({
   queryKey: modelVisibilityKeys.list(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<VisibilityOverride[]>('/llm/models/visibility'),
 });
 

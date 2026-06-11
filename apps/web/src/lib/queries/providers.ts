@@ -152,7 +152,6 @@ export const visibleProviderModelsQueryOptions = queryOptions({
 export const providerConfigQueryOptions = (providerId: string) =>
   queryOptions({
     queryKey: providerKeys.config(providerId),
-    staleTime: Infinity,
     queryFn: () =>
       serverRequest<ProviderCredentials | null>(`/llm/provider/${providerId}/config`).catch(
         (err) => {
