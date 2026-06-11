@@ -26,6 +26,7 @@ import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
+import type { LanguageModel } from 'ai';
 
 const log = Log.create({ service: 'recordings-analysis' });
 const NOT_SPECIFIED_TEXT = 'not specified';
@@ -65,6 +66,13 @@ const analysisOutputSchema = z.object({
   summary: z.string(),
   topicSections: z.array(topicSectionSchema).default([]),
 });
+
+type AnalysisDeps = {
+  resolveModel: typeof resolveModel;
+  createProvider: (credentials: ProviderCredentials) => (modelId: string) => LanguageModel;
+};
+
+const defaultDeps: AnalysisDeps = { resolveModel, createProvider };
 
 type ActiveRun = {
   controller: AbortController;
@@ -184,6 +192,7 @@ export async function getRecordingAnalysis(
 export async function startRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
   input?: { force?: boolean },
+  deps: AnalysisDeps = defaultDeps,
 ): Promise<ServiceResult<StartRecordingAnalysisResponse>> {
   const db = getDb();
 
@@ -209,7 +218,7 @@ export async function startRecordingAnalysis(
     return err('No transcript available for this recording', 400);
   }
 
-  const analysisModel = await resolveModel({
+  const analysisModel = await deps.resolveModel({
     providerIdKey: 'recordings.analysis.providerId',
     modelIdKey: 'recordings.analysis.modelId',
   });
@@ -277,14 +286,18 @@ export async function startRecordingAnalysis(
     title: null,
   });
 
-  void runRecordingAnalysis(id, {
-    recordingId,
-    transcript,
-    analysisProviderId: analysisModel.data.providerId,
-    analysisModelId: analysisModel.data.modelId,
-    analysisCredentials: analysisModel.data.credentials,
-    preserveExistingUntilComplete,
-  });
+  void runRecordingAnalysis(
+    id,
+    {
+      recordingId,
+      transcript,
+      analysisProviderId: analysisModel.data.providerId,
+      analysisModelId: analysisModel.data.modelId,
+      analysisCredentials: analysisModel.data.credentials,
+      preserveExistingUntilComplete,
+    },
+    deps,
+  );
 
   const [created] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id));
   if (!created) {
@@ -369,6 +382,7 @@ async function runRecordingAnalysis(
     analysisCredentials: ProviderCredentials;
     preserveExistingUntilComplete: boolean;
   },
+  deps: AnalysisDeps,
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
@@ -403,7 +417,7 @@ async function runRecordingAnalysis(
       title: null,
     });
 
-    const analysisModel = createProvider(input.analysisCredentials)(input.analysisModelId);
+    const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
     const analysisRunId = `${analysisId}:analysis`;
     const analysisStart = Date.now();
     const analysisResult = await generateText({
