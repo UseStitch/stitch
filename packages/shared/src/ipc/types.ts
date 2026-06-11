@@ -47,6 +47,16 @@ export type RecordingPermissionsPayload = {
   screenCapture: 'granted' | 'denied' | 'unknown';
 };
 
+export type MeetingDetectedNotificationPayload = MeetingCallDetectedPayload;
+
+export type DesktopNotificationEvent = {
+  id: string;
+  type: 'meeting-detected';
+  createdAt: number;
+  autoDismissMs: number | null;
+  payload: MeetingDetectedNotificationPayload;
+};
+
 export interface IpcContract {
   'get-server-config': { args: []; return: ServerConfigPayload };
   'server:test-remote': { args: [url: string]; return: ServerTestRemoteResult };
@@ -77,6 +87,8 @@ export interface IpcContract {
   'recording:stop': { args: []; return: StopRecordingResponse };
   'recording:listDevices': { args: []; return: RecordingDevicesPayload };
   'recording:checkPermissions': { args: []; return: RecordingPermissionsPayload };
+  'notifications:dismiss': { args: [id: string]; return: void };
+  'notifications:set-height': { args: [height: number]; return: void };
 }
 
 export interface IpcEventContract {
@@ -85,4 +97,6 @@ export interface IpcEventContract {
   'meeting:call-ended': [payload: MeetingCallEndedPayload];
   'recording:warning': [payload: RecordingWarningPayload];
   'recording:device-changed': [payload: RecordingDeviceChangedPayload];
+  'notifications:show': [event: DesktopNotificationEvent];
+  'notifications:dismissed': [id: string];
 }

@@ -22,7 +22,11 @@ export function configureMeetingDetectionEnv(): void {
   process.env.STITCH_MEETING_WATCH_BIN = resolveMeetingWatcherBinaryPath();
 }
 
-export function startMeetingDetection(getWindow: () => BrowserWindow | null): void {
+export function startMeetingDetection(
+  getWindow: () => BrowserWindow | null,
+  onCallDetected?: (payload: MeetingCallDetectedPayload) => void,
+  onCallEnded?: (payload: MeetingCallEndedPayload) => void,
+): void {
   if (started) {
     return;
   }
@@ -30,16 +34,16 @@ export function startMeetingDetection(getWindow: () => BrowserWindow | null): vo
   started = true;
   unsubscribe = detector.subscribe((event) => {
     const webContents = getWindow()?.webContents;
-    if (!webContents || webContents.isDestroyed()) {
-      return;
-    }
 
     if (event.type === 'ended') {
       const payload: MeetingCallEndedPayload = {
         key: event.key,
         endedAt: event.endedAt,
       };
-      webContents.send('meeting:call-ended', payload);
+      if (webContents && !webContents.isDestroyed()) {
+        webContents.send('meeting:call-ended', payload);
+      }
+      onCallEnded?.(payload);
       return;
     }
 
@@ -52,7 +56,10 @@ export function startMeetingDetection(getWindow: () => BrowserWindow | null): vo
       windowTitle: event.detection.windowTitle,
       detectedAt: event.detectedAt,
     };
-    webContents.send('meeting:call-detected', payload);
+    if (webContents && !webContents.isDestroyed()) {
+      webContents.send('meeting:call-detected', payload);
+    }
+    onCallDetected?.(payload);
   });
 
   detector.start();

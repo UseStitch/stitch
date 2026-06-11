@@ -35,6 +35,21 @@ function resolveWindowIcon(): Electron.NativeImage | undefined {
     .find((image) => !image.isEmpty());
 }
 
+export async function loadRendererWindow(win: BrowserWindow, hash?: string): Promise<void> {
+  const devUrl = process.env['ELECTRON_RENDERER_URL'] ?? WEB_DEV_URL;
+  if (!app.isPackaged) {
+    await waitForDevServer(devUrl);
+    const url = new URL(devUrl);
+    if (hash) {
+      url.hash = hash;
+    }
+    await win.loadURL(url.toString());
+    return;
+  }
+
+  await win.loadFile(getPackagedWebDistPath(), hash ? { hash } : undefined);
+}
+
 export async function createWindow(
   onContextMenu: (params: Electron.ContextMenuParams) => void,
   onClose: () => 'allow' | 'prevent',
@@ -91,13 +106,10 @@ export async function createWindow(
     win.webContents.send('window:fullscreen-changed', false);
   });
 
-  const devUrl = process.env['ELECTRON_RENDERER_URL'] ?? WEB_DEV_URL;
+  await loadRendererWindow(win);
+
   if (!app.isPackaged) {
-    await waitForDevServer(devUrl);
-    void win.loadURL(devUrl);
     win.webContents.openDevTools();
-  } else {
-    void win.loadFile(getPackagedWebDistPath());
   }
 
   return win;

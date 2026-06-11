@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   IpcContract,
   IpcEventContract,
+  DesktopNotificationEvent,
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
   RecordingDeviceChangedPayload,
@@ -96,6 +97,13 @@ const api = {
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>
       onIpc('recording:device-changed', callback),
+  },
+  notifications: {
+    dismiss: (id: string) => invokeIpc('notifications:dismiss', id),
+    setHeight: (height: number) => invokeIpc('notifications:set-height', height),
+    onShow: (callback: (event: DesktopNotificationEvent) => void) =>
+      onIpc('notifications:show', callback),
+    onDismissed: (callback: (id: string) => void) => onIpc('notifications:dismissed', callback),
   },
 };
 
