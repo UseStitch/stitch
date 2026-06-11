@@ -15,14 +15,14 @@ import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-contr
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
-import * as Models from '@/llm/provider/models.js';
-import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import * as OllamaModels from '@/models/llm/ollama.js';
+import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';

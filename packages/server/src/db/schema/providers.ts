@@ -1,7 +1,7 @@
 import { blob, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { RawModel } from '@/llm/provider/models.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import type { RawModel } from '@/models/llm/registry.js';
+import type { ProviderCredentials } from '@/provider/config/schema.js';
 
 type OllamaModality = NonNullable<RawModel['modalities']>['input'][number];
 

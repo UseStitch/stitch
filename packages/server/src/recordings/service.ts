@@ -21,10 +21,10 @@ import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { getModelDescriptor } from '@/models/stt/service.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getSettings } from '@/settings/service.js';
-import { getModelDescriptor } from '@/stt/models.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
 

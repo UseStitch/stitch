@@ -10,7 +10,7 @@ import {
   getOllamaModel,
   listOllamaModels,
   upsertOllamaModel,
-} from '@/llm/provider/ollama-models.js';
+} from '@/models/llm/ollama.js';
 
 export const ollamaModelsRouter = new Hono();
 

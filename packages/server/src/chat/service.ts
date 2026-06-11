@@ -17,10 +17,10 @@ import * as Log from '@/lib/log.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildCompactedHistory, compact } from '@/llm/compaction.js';
-import * as Models from '@/llm/provider/models.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
+import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
 import {
   listProvidersWithCapabilities,

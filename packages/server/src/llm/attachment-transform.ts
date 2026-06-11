@@ -1,4 +1,4 @@
-import * as Models from '@/llm/provider/models.js';
+import * as Models from '@/models/llm/registry.js';
 import type { ModelMessage, FilePart, ImagePart, TextPart } from 'ai';
 
 type Modality = 'image' | 'video' | 'audio' | 'pdf';
