@@ -37,7 +37,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "dimensions", "release_date", "context", "cost"],
+        "required": ["id", "name", "deprecated", "dimensions", "release_date", "context", "cost"],
         "properties": {
           "id": {
             "type": "string",
@@ -46,6 +46,10 @@
           "name": {
             "type": "string",
             "minLength": 1
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Whether this model is deprecated and should not be used for new workloads"
           },
           "family": {
             "type": "string"

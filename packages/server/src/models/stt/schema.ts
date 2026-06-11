@@ -52,6 +52,7 @@ const PartialStrategySchema = z.enum(['cumulative', 'incremental']);
 export const SttModelSchema = z.object({
   modelId: z.string().min(1),
   displayName: z.string().min(1),
+  deprecated: z.boolean(),
   capabilities: z.record(SttCapabilitySchema, z.boolean()),
   inputFormat: InputFormatSchema,
   partialStrategy: PartialStrategySchema,
