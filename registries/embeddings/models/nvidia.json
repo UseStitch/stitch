@@ -5,21 +5,6 @@
   "env": ["NVIDIA_API_KEY"],
   "models": [
     {
-      "id": "nvidia/nv-embedcode-7b-v1",
-      "name": "NV-EmbedCode 7B v1",
-      "family": "nv-embed",
-      "deprecated": false,
-      "dimensions": 4096,
-      "release_date": "2025-05-01",
-      "context": 131072,
-      "inputModalities": ["text"],
-      "outputModalities": ["text"],
-      "cost": {
-        "input": 0,
-        "output": 0
-      }
-    },
-    {
       "id": "nvidia/nv-embed-v1",
       "name": "NV-Embed v1",
       "family": "nv-embed",
@@ -27,21 +12,6 @@
       "dimensions": 4096,
       "release_date": "2024-05-01",
       "context": 32768,
-      "inputModalities": ["text"],
-      "outputModalities": ["text"],
-      "cost": {
-        "input": 0,
-        "output": 0
-      }
-    },
-    {
-      "id": "meta/esm2-650m",
-      "name": "ESM2 650M",
-      "family": "esm2",
-      "deprecated": false,
-      "dimensions": 1280,
-      "release_date": "2023-01-01",
-      "context": 1024,
       "inputModalities": ["text"],
       "outputModalities": ["text"],
       "cost": {
