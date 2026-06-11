@@ -13,8 +13,8 @@ import { serverFetch } from '@/lib/api';
 
 const recordingsKeys = {
   all: ['recordings'] as const,
-  list: (page: number, pageSize: number) =>
-    [...recordingsKeys.all, 'list', page, pageSize] as const,
+  lists: () => [...recordingsKeys.all, 'list'] as const,
+  list: (page: number, pageSize: number) => [...recordingsKeys.lists(), page, pageSize] as const,
   analysis: (recordingId: string) => [...recordingsKeys.all, 'analysis', recordingId] as const,
   devices: () => [...recordingsKeys.all, 'devices'] as const,
 };
@@ -152,7 +152,7 @@ export function useStartRecording() {
       return res.json() as Promise<StartRecordingResponse>;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
   });
 }
@@ -178,7 +178,7 @@ export function useStopRecording() {
       return res.json() as Promise<StopRecordingResponse>;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
   });
 }
@@ -195,7 +195,7 @@ export function useDeleteRecording() {
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
   });
 }
@@ -207,10 +207,6 @@ export function recordingAnalysisQueryOptions(recordingId: string) {
       const res = await serverFetch(`/recordings/${recordingId}/analysis`);
       if (!res.ok) throw new Error('Failed to fetch recording analysis');
       return res.json() as Promise<RecordingAnalysisResponse>;
-    },
-    refetchInterval: (query) => {
-      const status = query.state.data?.analysis?.status;
-      return status === 'processing' ? 1_000 : false;
     },
   });
 }
@@ -242,7 +238,6 @@ export function useStartRecordingAnalysis() {
       void queryClient.invalidateQueries({
         queryKey: recordingsKeys.analysis(variables.recordingId),
       });
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
     },
   });
 }
@@ -262,7 +257,6 @@ export function useCancelRecordingAnalysis() {
     },
     onSuccess: (_, recordingId) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.analysis(recordingId) });
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.all });
     },
   });
 }

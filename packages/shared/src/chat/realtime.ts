@@ -169,6 +169,14 @@ export type RecordingDeviceChangedPayload = {
   deviceName: string | null;
 };
 
+export type RecordingStartedPayload = {
+  recordingId: PrefixedString<'rec'>;
+};
+
+export type RecordingStoppedPayload = {
+  recordingId: PrefixedString<'rec'>;
+};
+
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
   kind: 'partial' | 'final';
@@ -202,6 +210,8 @@ export const SSE_EVENT_NAMES = [
   'session-todos-updated',
   'recording-analysis-updated',
   'recording-transcript-entry',
+  'recording-started',
+  'recording-stopped',
 ] as const;
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
@@ -229,6 +239,8 @@ export type SseEventPayloadMap = {
   'session-todos-updated': SessionTodosUpdatedPayload;
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
   'recording-transcript-entry': RecordingTranscriptEntryPayload;
+  'recording-started': RecordingStartedPayload;
+  'recording-stopped': RecordingStoppedPayload;
 };
 
 export type SseHandlers = {

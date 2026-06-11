@@ -16,6 +16,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { userSettings } from '@/db/schema/settings.js';
+import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { PATHS } from '@/lib/paths.js';
@@ -271,6 +272,8 @@ export async function startRecording(
     return err('Recording not found', 404);
   }
 
+  Events.emit('recording-started', { recordingId: id });
+
   return ok({
     recording: toRecording(row),
     recordingId: id,
@@ -379,6 +382,8 @@ export async function stopRecording(
   if (!row) {
     return err('Recording not found', 404);
   }
+
+  Events.emit('recording-stopped', { recordingId: current.id });
 
   return ok({ recording: toRecording(row) });
 }
