@@ -1,5 +1,5 @@
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
@@ -7,6 +7,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
+import { ok } from '@/lib/service-result.js';
+import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
@@ -24,23 +26,6 @@ function createHangingAnalysisModel(): MockLanguageModelV3 {
     },
   });
 }
-
-void mock.module('@/llm/provider/provider.js', () => ({
-  createProvider: () => () => createHangingAnalysisModel(),
-}));
-
-void mock.module('@/llm/resolve-model.js', () => ({
-  resolveModel: async () => ({
-    data: {
-      providerId: 'test-provider',
-      modelId: 'test-model',
-      credentials: {
-        providerId: 'openai',
-        auth: { method: 'api-key', apiKey: 'test-key' },
-      },
-    },
-  }),
-}));
 
 setupTestDb();
 
@@ -118,10 +103,22 @@ describe('recording analysis reruns', () => {
   });
 
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
-    const { cancelRecordingAnalysis, startRecordingAnalysis } =
-      await import('@/recordings/analysis-service.js');
-
-    const startResult = await startRecordingAnalysis(recordingId, { force: true });
+    const startResult = await startRecordingAnalysis(
+      recordingId,
+      { force: true },
+      {
+        resolveModel: async () =>
+          ok({
+            providerId: 'test-provider',
+            modelId: 'test-model',
+            credentials: {
+              providerId: 'openai',
+              auth: { method: 'api-key', apiKey: 'test-key' },
+            },
+          }),
+        createProvider: () => () => createHangingAnalysisModel(),
+      },
+    );
 
     await waitForAnalysisModelCall();
 
