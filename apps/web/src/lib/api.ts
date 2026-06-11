@@ -170,5 +170,9 @@ export async function serverRequest<T>(path: string, init?: RequestInit): Promis
     }
     throw new Error(errorMsg);
   }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
   return res.json() as Promise<T>;
 }
