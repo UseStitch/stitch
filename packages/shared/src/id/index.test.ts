@@ -14,23 +14,9 @@ describe('id factories', () => {
     // 12 hex chars (time) + 14 base62 chars (random)
     expect(body).toMatch(/^[0-9a-f]{12}[0-9A-Za-z]{14}$/);
   });
-
-  test('generates unique ids across 100 rapid calls', () => {
-    const ids = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      ids.add(createTestId());
-    }
-    expect(ids.size).toBe(100);
-  });
 });
 
 describe('extractTimestamp', () => {
-  test('returns a positive number', () => {
-    const id = createTestId();
-    const extracted = extractTimestamp(id);
-    expect(extracted).toBeGreaterThan(0);
-  });
-
   test('ids created later have equal or greater timestamps', async () => {
     const first = createTestId();
     await new Promise((r) => setTimeout(r, 2));

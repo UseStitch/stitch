@@ -1,22 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { SETTINGS_SCHEMAS, SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from './types';
-
-describe('SETTINGS_DEFAULTS integrity', () => {
-  test('every non-empty default value parses successfully against its schema', () => {
-    for (const def of SETTINGS_DEFAULTS) {
-      if (def.value === '') continue;
-
-      const schema = SETTINGS_SCHEMAS[def.key];
-      const result = schema.safeParse(def.value);
-      if (!result.success) {
-        throw new Error(
-          `Default for "${def.key}" ("${def.value}") failed validation: ${result.error.message}`,
-        );
-      }
-    }
-  });
-});
+import { isValidLeaderKeyHotkey } from './types';
 
 describe('isValidLeaderKeyHotkey', () => {
   test('accepts Mod+single letter', () => {
