@@ -347,7 +347,10 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildCompactedHistory(input.sessionId);
+  const llmMessages = await buildCompactedHistory(input.sessionId, {
+    useBasePrompt: true,
+    systemPrompt: null,
+  });
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 

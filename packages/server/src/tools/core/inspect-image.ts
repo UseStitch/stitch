@@ -174,7 +174,10 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         duration: null,
       });
 
-      const llmMessages = await buildCompactedHistory(childSessionId);
+      const llmMessages = await buildCompactedHistory(childSessionId, {
+        useBasePrompt: true,
+        systemPrompt: null,
+      });
       const assistantMessageId = createMessageId();
 
       const childAbortSignal = AbortRegistry.register(childSessionId);

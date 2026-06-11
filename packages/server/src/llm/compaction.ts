@@ -13,6 +13,8 @@ import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
+import { getPromptUserContext } from '@/llm/prompt/builder.js';
+import type { PromptConfig } from '@/llm/prompt/builder.js';
 import * as Models from '@/llm/provider/models.js';
 import * as OllamaModels from '@/llm/provider/ollama-models.js';
 import { createProvider } from '@/llm/provider/provider.js';
@@ -55,17 +57,6 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
     auto: s['compaction.auto'],
     prune: s['compaction.prune'],
     reserved: s['compaction.reserved'],
-  };
-}
-
-async function getPromptUserContext(): Promise<{
-  userName: string | null;
-  userTimezone: string | null;
-}> {
-  const s = await getSettings(['profile.name', 'profile.timezone'] as const);
-  return {
-    userName: s['profile.name'] || null,
-    userTimezone: s['profile.timezone'] || null,
   };
 }
 
@@ -326,6 +317,7 @@ export async function compact(input: {
       systemPrompt: null,
       userName: promptUserContext.userName,
       userTimezone: promptUserContext.userTimezone,
+      memoryContext: null,
       todoContext,
     });
 
@@ -479,13 +471,7 @@ export async function compact(input: {
  */
 export async function buildCompactedHistory(
   sessionId: PrefixedString<'ses'>,
-  promptConfig?: {
-    useBasePrompt: boolean;
-    systemPrompt: string | null;
-    userName?: string | null;
-    userTimezone?: string | null;
-    codeModePrompt?: string | null;
-  },
+  promptConfig: Pick<PromptConfig, 'useBasePrompt' | 'systemPrompt'>,
 ): Promise<ModelMessage[]> {
   const db = getDb();
 
@@ -495,12 +481,7 @@ export async function buildCompactedHistory(
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
-    promptConfig?.userName !== undefined && promptConfig?.userTimezone !== undefined
-      ? Promise.resolve({
-          userName: promptConfig.userName ?? null,
-          userTimezone: promptConfig.userTimezone ?? null,
-        })
-      : getPromptUserContext(),
+    getPromptUserContext(),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
     getSessionTodosPromptBlock(sessionId),
   ]);
@@ -532,13 +513,12 @@ export async function buildCompactedHistory(
   }
 
   const historyMessages = buildHistoryMessages(msgs.slice(startIndex), {
-    useBasePrompt: promptConfig?.useBasePrompt ?? true,
-    systemPrompt: promptConfig?.systemPrompt ?? null,
+    useBasePrompt: promptConfig.useBasePrompt,
+    systemPrompt: promptConfig.systemPrompt,
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,
     todoContext,
-    codeModePrompt: promptConfig?.codeModePrompt ?? null,
   });
 
   const instructionsBlock = buildActiveToolsetInstructionsBlock(sessionId);

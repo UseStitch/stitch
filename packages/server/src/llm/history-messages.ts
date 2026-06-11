@@ -2,6 +2,7 @@ import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
 import { buildSystemPrompt } from '@/llm/prompt/builder.js';
+import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
@@ -63,15 +64,7 @@ function compactToolResultOutput(part: StoredPart & { type: 'tool-result' }): un
 
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
-  promptConfig?: {
-    useBasePrompt: boolean;
-    systemPrompt: string | null;
-    userName?: string | null;
-    userTimezone?: string | null;
-    memoryContext?: string | null;
-    todoContext?: string | null;
-    codeModePrompt?: string | null;
-  },
+  promptConfig: PromptConfig,
 ): ModelMessage[] {
   if (msgs.length === 0) {
     throw new Error('buildHistoryMessages requires at least one message');
@@ -271,16 +264,7 @@ export function buildHistoryMessages(
   if (llmMessages[0]?.role !== 'system') {
     llmMessages.unshift({
       role: 'system',
-      content: buildSystemPrompt({
-        useBasePrompt: promptConfig?.useBasePrompt ?? true,
-        systemPrompt: promptConfig?.systemPrompt ?? null,
-        userName: promptConfig?.userName ?? null,
-        userTimezone: promptConfig?.userTimezone ?? null,
-        memoryContext: promptConfig?.memoryContext ?? null,
-        todoContext: promptConfig?.todoContext ?? null,
-        codeModePrompt: promptConfig?.codeModePrompt ?? null,
-        liquidUiPromptSection: null,
-      }),
+      content: buildSystemPrompt(promptConfig),
     });
   }
 

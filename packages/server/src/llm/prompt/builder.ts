@@ -4,8 +4,29 @@ import { buildLiquidUiCatalogPrompt } from '@stitch/shared/liquid-ui/catalog';
 
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { buildPromptEnvironment } from '@/llm/prompt/env.js';
+import { getSettings } from '@/settings/service.js';
 
-const identity = (userName: string | null) => {
+export type PromptConfig = {
+  useBasePrompt: boolean;
+  systemPrompt: string | null;
+  userName: string;
+  userTimezone: string;
+  memoryContext: string | null;
+  todoContext: string | null;
+};
+
+export async function getPromptUserContext(): Promise<{
+  userName: string;
+  userTimezone: string;
+}> {
+  const s = await getSettings(['profile.name', 'profile.timezone'] as const);
+  return {
+    userName: s['profile.name'],
+    userTimezone: s['profile.timezone'],
+  };
+}
+
+const identity = (userName: string) => {
   const identityLine = userName
     ? `You are Stitch, a local machine assistant that helps ${userName} with day-to-day tasks on their computer.`
     : 'You are Stitch, a local machine assistant that helps users with day-to-day tasks on their computer.';
@@ -88,19 +109,8 @@ function buildEnforcementGuidance(): string {
 - Act, don't ask: act immediately when the request has an obvious safe default. Ask at most one focused question only when truly blocked.`;
 }
 
-export function buildSystemPrompt(input: {
-  useBasePrompt: boolean;
-  systemPrompt: string | null;
-  userName?: string | null;
-  userTimezone?: string | null;
-  memoryContext?: string | null;
-  todoContext?: string | null;
-  codeModePrompt?: string | null;
-  liquidUiPromptSection?: string | null;
-}): string {
+export function buildSystemPrompt(input: PromptConfig): string {
   const userPrompt = input.systemPrompt?.trim() ?? '';
-  const userName = input.userName?.trim() || null;
-  const userTimezone = input.userTimezone?.trim() || null;
 
   let promptBody = userPrompt;
   if (input.useBasePrompt) {
@@ -110,17 +120,11 @@ export function buildSystemPrompt(input: {
     }
   }
 
-  let result = `${identity(userName)}\n\n${buildPromptEnvironment({ userTimezone })}\n\n${promptBody}`;
+  let result = `${identity(input.userName)}\n\n${buildPromptEnvironment({ userTimezone: input.userTimezone })}\n\n${promptBody}`;
 
   result = `${result}\n\n${buildEnforcementGuidance()}`;
 
-  if (input.codeModePrompt?.trim()) {
-    result = `${result}\n\n${input.codeModePrompt.trim()}`;
-  }
-
-  if (!input.codeModePrompt?.trim()) {
-    result = `${result}\n\n${input.liquidUiPromptSection?.trim() || buildLiquidUiPromptSection()}`;
-  }
+  result = `${result}\n\n${buildLiquidUiPromptSection()}`;
 
   if (input.memoryContext) {
     result = `${result}\n\n<memory>\n${input.memoryContext}\n</memory>`;
