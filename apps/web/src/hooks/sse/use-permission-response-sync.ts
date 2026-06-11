@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useSSE } from '@/hooks/sse/sse-context';
+import { useSessionEvents } from '@/hooks/sse/sse-context';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 
 export function usePermissionResponseSync(sessionId: string): void {
@@ -10,7 +10,7 @@ export function usePermissionResponseSync(sessionId: string): void {
     void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(sessionId) });
   };
 
-  useSSE({
+  useSessionEvents(sessionId, {
     'permission-response-requested': () => {
       invalidate();
     },

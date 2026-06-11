@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useSSE } from '@/hooks/sse/sse-context';
+import { useSessionEvents } from '@/hooks/sse/sse-context';
 import { questionKeys } from '@/lib/queries/questions';
 
 export function useQuestionSync(sessionId: string): void {
@@ -10,7 +10,7 @@ export function useQuestionSync(sessionId: string): void {
     void queryClient.invalidateQueries({ queryKey: questionKeys.list(sessionId) });
   };
 
-  useSSE({
+  useSessionEvents(sessionId, {
     'question-asked': () => {
       invalidate();
     },
