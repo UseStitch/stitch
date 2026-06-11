@@ -150,3 +150,25 @@ export async function serverFetch(path: string, init?: RequestInit): Promise<Res
   const baseUrl = await getServerUrl();
   return fetch(`${baseUrl}${path}`, init);
 }
+
+export async function serverRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await serverFetch(path, init);
+  if (!res.ok) {
+    let errorMsg = `Request failed with status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (
+        errJson &&
+        typeof errJson === 'object' &&
+        'error' in errJson &&
+        typeof errJson.error === 'string'
+      ) {
+        errorMsg = errJson.error;
+      }
+    } catch {
+      // JSON parsing failed or wasn't an object; use status code fallback
+    }
+    throw new Error(errorMsg);
+  }
+  return res.json() as Promise<T>;
+}

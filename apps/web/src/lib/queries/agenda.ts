@@ -9,7 +9,7 @@ import type {
   ListAgendaItemsResponse,
 } from '@stitch/shared/agenda/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 const agendaKeys = {
   all: ['agenda'] as const,
@@ -23,12 +23,10 @@ const agendaKeys = {
 export function agendaListsQueryOptions(includeArchived = false) {
   return queryOptions({
     queryKey: [...agendaKeys.lists(), includeArchived],
-    queryFn: async (): Promise<{ lists: AgendaListWithCounts[] }> => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (includeArchived) params.set('includeArchived', 'true');
-      const res = await serverFetch(`/agenda/lists?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch agenda lists');
-      return res.json() as Promise<{ lists: AgendaListWithCounts[] }>;
+      return serverRequest<{ lists: AgendaListWithCounts[] }>(`/agenda/lists?${params.toString()}`);
     },
   });
 }
@@ -49,7 +47,7 @@ export function agendaItemsQueryOptions(input: {
       input.page,
       input.pageSize,
     ],
-    queryFn: async (): Promise<ListAgendaItemsResponse> => {
+    queryFn: () => {
       const params = new URLSearchParams({
         page: String(input.page),
         pageSize: String(input.pageSize),
@@ -57,9 +55,7 @@ export function agendaItemsQueryOptions(input: {
       if (input.listId) params.set('listId', input.listId);
       if (input.status) params.set('status', input.status);
       if (input.priority) params.set('priority', input.priority);
-      const res = await serverFetch(`/agenda/items?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch agenda items');
-      return res.json() as Promise<ListAgendaItemsResponse>;
+      return serverRequest<ListAgendaItemsResponse>(`/agenda/items?${params.toString()}`);
     },
   });
 }
@@ -68,18 +64,12 @@ export function useCreateAgendaList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { name: string; description?: string; color?: string }) => {
-      const res = await serverFetch('/agenda/lists', {
+    mutationFn: (input: { name: string; description?: string; color?: string }) =>
+      serverRequest<unknown>('/agenda/lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to create list');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
       toast.success('List created');
@@ -92,21 +82,15 @@ export function useUpdateAgendaList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       id: string;
       updates: { name?: string; description?: string; color?: string | null; isArchived?: boolean };
-    }) => {
-      const res = await serverFetch(`/agenda/lists/${input.id}`, {
+    }) =>
+      serverRequest<unknown>(`/agenda/lists/${input.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input.updates),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to update list');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
       toast.success('List updated');
@@ -119,13 +103,7 @@ export function useDeleteAgendaList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await serverFetch(`/agenda/lists/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to delete list');
-      }
-    },
+    mutationFn: (id: string) => serverRequest<void>(`/agenda/lists/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       // Items are cascade-deleted, so both caches are stale
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
@@ -139,7 +117,7 @@ export function useCreateAgendaItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       title: string;
       description?: string;
       status?: AgendaItemStatus;
@@ -147,18 +125,12 @@ export function useCreateAgendaItem() {
       dueAt?: number | null;
       listId?: string;
       listName?: string;
-    }) => {
-      const res = await serverFetch('/agenda/items', {
+    }) =>
+      serverRequest<unknown>('/agenda/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to create item');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       // New item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
@@ -172,7 +144,7 @@ export function useUpdateAgendaItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: {
+    mutationFn: (input: {
       id: string;
       updates: {
         title?: string;
@@ -182,18 +154,12 @@ export function useUpdateAgendaItem() {
         dueAt?: number | null;
         listId?: string;
       };
-    }) => {
-      const res = await serverFetch(`/agenda/items/${input.id}`, {
+    }) =>
+      serverRequest<unknown>(`/agenda/items/${input.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input.updates),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to update item');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: (_data, variables) => {
       // Status changes affect list counts; listId moves affect both caches
       const touchesListCounts =
@@ -213,13 +179,7 @@ export function useDeleteAgendaItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await serverFetch(`/agenda/items/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to delete item');
-      }
-    },
+    mutationFn: (id: string) => serverRequest<void>(`/agenda/items/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       // Deleted item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
@@ -233,18 +193,12 @@ export function useMergeAgendaLists() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { targetId: string; sourceId: string }) => {
-      const res = await serverFetch(`/agenda/lists/${input.targetId}/merge`, {
+    mutationFn: (input: { targetId: string; sourceId: string }) =>
+      serverRequest<unknown>(`/agenda/lists/${input.targetId}/merge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceId: input.sourceId }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to merge lists');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       toast.success('Lists merged');
@@ -257,17 +211,12 @@ export function useReorderAgendaItems() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (orderedIds: string[]) => {
-      const res = await serverFetch('/agenda/items/reorder', {
+    mutationFn: (orderedIds: string[]) =>
+      serverRequest<void>('/agenda/items/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to reorder items');
-      }
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.items() });
     },
@@ -279,17 +228,12 @@ export function useReorderAgendaLists() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (orderedIds: string[]) => {
-      const res = await serverFetch('/agenda/lists/reorder', {
+    mutationFn: (orderedIds: string[]) =>
+      serverRequest<void>('/agenda/lists/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'Failed to reorder lists');
-      }
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
     },

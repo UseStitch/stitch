@@ -11,7 +11,7 @@ import type {
   SkillUpdateInput,
 } from '@stitch/shared/skills/types';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 
 const skillKeys = {
   all: ['skills'] as const,
@@ -22,11 +22,7 @@ const skillKeys = {
 export const skillsQueryOptions = queryOptions({
   queryKey: skillKeys.list(),
   staleTime: Infinity,
-  queryFn: async (): Promise<Skill[]> => {
-    const res = await serverFetch('/skills');
-    if (!res.ok) throw new Error('Failed to fetch skills');
-    return res.json() as Promise<Skill[]>;
-  },
+  queryFn: () => serverRequest<Skill[]>('/skills'),
 });
 
 export function useSearchSkills(query: string) {
@@ -41,31 +37,20 @@ export function useSearchSkills(query: string) {
   return useQuery({
     queryKey: skillKeys.search(debouncedQuery),
     enabled: debouncedQuery.length >= 2,
-    queryFn: async (): Promise<SkillSearchResult[]> => {
-      const res = await serverFetch(`/skills/search?q=${encodeURIComponent(debouncedQuery)}`);
-      if (!res.ok) throw await parseError(res, 'Failed to search skills');
-      return res.json() as Promise<SkillSearchResult[]>;
-    },
+    queryFn: () =>
+      serverRequest<SkillSearchResult[]>(`/skills/search?q=${encodeURIComponent(debouncedQuery)}`),
   });
-}
-
-async function parseError(res: Response, fallback: string): Promise<Error> {
-  const body = (await res.json().catch(() => ({}))) as { error?: string };
-  return new Error(body.error ?? fallback);
 }
 
 export function useCreateSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: SkillCreateInput) => {
-      const res = await serverFetch('/skills', {
+    mutationFn: (input: SkillCreateInput) =>
+      serverRequest<Skill>('/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) throw await parseError(res, 'Failed to create skill');
-      return res.json() as Promise<Skill>;
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
       toast.success('Skill created');
@@ -77,15 +62,12 @@ export function useCreateSkill() {
 export function useUpdateSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ name, input }: { name: string; input: SkillUpdateInput }) => {
-      const res = await serverFetch(`/skills/${encodeURIComponent(name)}`, {
+    mutationFn: ({ name, input }: { name: string; input: SkillUpdateInput }) =>
+      serverRequest<Skill>(`/skills/${encodeURIComponent(name)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) throw await parseError(res, 'Failed to update skill');
-      return res.json() as Promise<Skill>;
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
       toast.success('Skill saved');
@@ -97,10 +79,8 @@ export function useUpdateSkill() {
 export function useDeleteSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (name: string) => {
-      const res = await serverFetch(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' });
-      if (!res.ok) throw await parseError(res, 'Failed to delete skill');
-    },
+    mutationFn: (name: string) =>
+      serverRequest<void>(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
       toast.success('Skill deleted');
@@ -112,15 +92,12 @@ export function useDeleteSkill() {
 export function useImportSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: SkillImportInput) => {
-      const res = await serverFetch('/skills/import', {
+    mutationFn: (input: SkillImportInput) =>
+      serverRequest<Skill>('/skills/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) throw await parseError(res, 'Failed to import skill');
-      return res.json() as Promise<Skill>;
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
       toast.success('Skill imported');
