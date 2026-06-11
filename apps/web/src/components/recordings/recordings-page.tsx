@@ -2,7 +2,7 @@ import { MicIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { SortingState } from '@tanstack/react-table';
 
@@ -38,16 +38,14 @@ export function RecordingsPage() {
   const [title, setTitle] = React.useState('');
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
 
-  const { data } = useSuspenseQuery(recordingsQueryOptions({ page, pageSize: PAGE_SIZE }));
+  const { data } = useSuspenseQuery({
+    ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
+    refetchInterval: (query) => (query.state.data?.activeRecordingId ? 1_000 : false),
+  });
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
   const deleteRecording = useDeleteRecording();
   const navigate = useNavigate();
-
-  useQuery({
-    ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
-    refetchInterval: data.activeRecordingId ? 1_000 : 2_000,
-  });
 
   const activeRecording = data.recordings.find(
     (recording) => recording.id === data.activeRecordingId,
