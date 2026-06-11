@@ -1,11 +1,13 @@
-import { ipcMain, dialog } from 'electron';
+import { dialog } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { writeFile, mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { registerIpcHandler } from './register.js';
+
 export function registerFilesHandlers(): void {
-  ipcMain.handle('files:writeTmp', async (_event, data: ArrayBuffer, ext: string) => {
+  registerIpcHandler('files:writeTmp', async (_event, data, ext) => {
     const dir = join(tmpdir(), 'stitch-paste');
     await mkdir(dir, { recursive: true });
     const filename = `${randomUUID()}.${ext}`;
@@ -14,7 +16,7 @@ export function registerFilesHandlers(): void {
     return filePath;
   });
 
-  ipcMain.handle('dialog:openPath', async () => {
+  registerIpcHandler('dialog:openPath', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'openDirectory', 'multiSelections'],
     });

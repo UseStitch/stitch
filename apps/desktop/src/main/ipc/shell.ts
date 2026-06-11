@@ -1,7 +1,9 @@
-import { ipcMain, shell } from 'electron';
+import { shell } from 'electron';
+
+import { registerIpcHandler } from './register.js';
 
 export function registerShellHandlers(): void {
-  ipcMain.handle('shell:openExternal', (_event, url: string) => {
+  registerIpcHandler('shell:openExternal', (_event, url) => {
     void shell.openExternal(url);
   });
 }

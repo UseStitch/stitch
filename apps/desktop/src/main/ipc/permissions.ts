@@ -1,17 +1,19 @@
-import { ipcMain, shell, systemPreferences } from 'electron';
+import { shell, systemPreferences } from 'electron';
+
+import { registerIpcHandler } from './register.js';
 
 export function registerPermissionsHandlers(): void {
-  ipcMain.handle('permissions:requestMicrophone', async () => {
+  registerIpcHandler('permissions:requestMicrophone', async () => {
     if (process.platform !== 'darwin') return true;
     return systemPreferences.askForMediaAccess('microphone');
   });
 
-  ipcMain.handle('permissions:getScreenCaptureStatus', () => {
+  registerIpcHandler('permissions:getScreenCaptureStatus', () => {
     if (process.platform !== 'darwin') return 'granted';
     return systemPreferences.getMediaAccessStatus('screen');
   });
 
-  ipcMain.handle('permissions:openScreenCaptureSettings', () => {
+  registerIpcHandler('permissions:openScreenCaptureSettings', () => {
     if (process.platform === 'darwin') {
       void shell.openExternal(
         'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',

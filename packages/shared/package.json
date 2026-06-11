@@ -10,6 +10,7 @@
     "./chat/messages": "./src/chat/messages.ts",
     "./chat/realtime": "./src/chat/realtime.ts",
     "./id": "./src/id/index.ts",
+    "./ipc/types": "./src/ipc/types.ts",
     "./liquid-ui/catalog": "./src/liquid-ui/catalog.ts",
     "./liquid-ui/constants": "./src/liquid-ui/constants.ts",
     "./liquid-ui/parse": "./src/liquid-ui/parse.ts",

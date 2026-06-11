@@ -1,6 +1,5 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import type { StartRecordingResponse, StopRecordingResponse } from '@stitch/shared/ipc/types';
 
-import type { StartRecordingInput, StartRecordingResponse, StopRecordingResponse } from '../ipc-types.js';
 import {
   checkRecordingPermissions,
   listRecordingDevices,
@@ -8,12 +7,15 @@ import {
   stopRecordingCapture,
 } from '../recording-capture.js';
 import { serverJson } from '../server-client.js';
+import { registerIpcHandler } from './register.js';
+
+import type { BrowserWindow } from 'electron';
 
 export function registerRecordingHandlers(
   getServerUrl: () => string,
   getWindow: () => BrowserWindow | null,
 ): void {
-  ipcMain.handle('recording:start', async (_event, input: StartRecordingInput) => {
+  registerIpcHandler('recording:start', async (_event, input) => {
     const serverUrl = getServerUrl();
     const startResponse = await serverJson<StartRecordingResponse>(serverUrl, '/recordings/start', {
       method: 'POST',
@@ -35,7 +37,7 @@ export function registerRecordingHandlers(
     return startResponse;
   });
 
-  ipcMain.handle('recording:stop', async () => {
+  registerIpcHandler('recording:stop', async () => {
     const serverUrl = getServerUrl();
     const stopInput = await stopRecordingCapture();
     return serverJson<StopRecordingResponse>(serverUrl, '/recordings/stop', {
@@ -45,6 +47,6 @@ export function registerRecordingHandlers(
     });
   });
 
-  ipcMain.handle('recording:listDevices', () => listRecordingDevices());
-  ipcMain.handle('recording:checkPermissions', () => checkRecordingPermissions());
+  registerIpcHandler('recording:listDevices', () => listRecordingDevices());
+  registerIpcHandler('recording:checkPermissions', () => checkRecordingPermissions());
 }
