@@ -4,6 +4,7 @@ import { registerDevtoolsHandlers } from './ipc/devtools.js';
 import { registerFilesHandlers } from './ipc/files.js';
 import { registerPermissionsHandlers } from './ipc/permissions.js';
 import { registerRecordingHandlers } from './ipc/recording.js';
+import { registerIpcHandler } from './ipc/register.js';
 import { registerServerHandlers } from './ipc/server.js';
 import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
@@ -112,7 +113,19 @@ function registerAllIpcHandlers(): void {
   registerRecordingHandlers(getServerUrl, getWindow);
   registerServerHandlers(serverState, startLocalServer, getWindow);
   registerUpdaterHandlers(updater, getWindow);
-  registerNotificationHandlers();
+  registerNotificationHandlers((event) => {
+    if (event.type === 'meeting-detected') {
+      dismissMeetingCall(event.payload.key);
+    }
+  });
+  registerIpcHandler('meeting:call-dismiss', (_event, key) => {
+    dismissMeetingCall(key);
+  });
+}
+
+function dismissMeetingCall(key: string): void {
+  mainWindow?.webContents.send('meeting:call-dismissed', { key });
+  dismissDesktopNotification(`meeting:${key}`);
 }
 
 function onContextMenu(params: Electron.ContextMenuParams): void {

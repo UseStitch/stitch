@@ -4,6 +4,7 @@ import type {
   IpcContract,
   IpcEventContract,
   DesktopNotificationEvent,
+  MeetingCallDismissedPayload,
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
   RecordingDeviceChangedPayload,
@@ -83,10 +84,13 @@ const api = {
     openScreenCaptureSettings: () => invokeIpc('permissions:openScreenCaptureSettings'),
   },
   meeting: {
+    dismissCall: (key: string) => invokeIpc('meeting:call-dismiss', key),
     onCallDetected: (callback: (payload: MeetingCallDetectedPayload) => void) =>
       onIpc('meeting:call-detected', callback),
     onCallEnded: (callback: (payload: MeetingCallEndedPayload) => void) =>
       onIpc('meeting:call-ended', callback),
+    onCallDismissed: (callback: (payload: MeetingCallDismissedPayload) => void) =>
+      onIpc('meeting:call-dismissed', callback),
   },
   recording: {
     start: (input: StartRecordingInput) => invokeIpc('recording:start', input),

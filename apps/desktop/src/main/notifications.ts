@@ -178,10 +178,16 @@ function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindo
   return win;
 }
 
-export function registerNotificationHandlers(): void {
+export function registerNotificationHandlers(
+  onDismiss?: (event: DesktopNotificationEvent) => void,
+): void {
   registerScreenListeners();
 
   registerIpcHandler('notifications:dismiss', (_event, id) => {
+    const entry = entries.get(id);
+    if (entry) {
+      onDismiss?.(entry.event);
+    }
     animateOutNotification(id);
   });
 

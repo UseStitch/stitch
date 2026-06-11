@@ -48,7 +48,9 @@ function DesktopNotificationTitle({ children }: { children: ReactNode }) {
 }
 
 function DesktopNotificationDescription({ children }: { children: ReactNode }) {
-  return <p className="mt-0.5 text-xs leading-4 break-words text-muted-foreground">{children}</p>;
+  return (
+    <p className="mt-0.5 text-xs leading-4 wrap-break-word text-muted-foreground">{children}</p>
+  );
 }
 
 function DesktopNotificationActions({ children }: { children: ReactNode }) {
