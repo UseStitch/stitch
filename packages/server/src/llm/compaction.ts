@@ -426,7 +426,6 @@ export async function compact(input: {
     );
 
     Events.emit('compaction-complete', { sessionId, summaryMessageId });
-    Events.emit('data-change', { queryKey: ['sessions', sessionId] });
 
     return 'continue';
   } catch (error) {
