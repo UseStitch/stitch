@@ -3,7 +3,6 @@
   "providerId": "openrouter",
   "providerName": "OpenRouter",
   "npm": "@openrouter/ai-sdk-provider",
-  "env": ["OPENROUTER_API_KEY"],
   "models": [
     {
       "id": "nvidia/llama-nemotron-embed-vl-1b-v2:free",

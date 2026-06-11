@@ -31,7 +31,6 @@ export const EmbeddingProviderSchema = z.object({
   providerName: z.string().min(1),
   api: z.string().optional(),
   npm: z.string().optional(),
-  env: z.array(z.string().min(1)).optional(),
   models: z.array(EmbeddingModelSchema).min(1),
 });
 
@@ -44,3 +43,26 @@ export const EmbeddingRegistryPayloadSchema = z.object({
 export type EmbeddingProvider = z.infer<typeof EmbeddingProviderSchema>;
 export type EmbeddingModel = z.infer<typeof EmbeddingModelSchema>;
 export type EmbeddingRegistryPayload = z.infer<typeof EmbeddingRegistryPayloadSchema>;
+
+/** Resolved embedding model ready for consumption by services. */
+export type ResolvedEmbeddingModel = {
+  id: string;
+  name: string;
+  family: string | undefined;
+  release_date: string;
+  dimensions: number;
+  context: number;
+  cost: EmbeddingModel['cost'];
+  modalities: {
+    input: string[];
+    output: string[];
+  };
+};
+
+/** Resolved embedding provider with its models keyed by ID. */
+export type ResolvedEmbeddingProvider = {
+  id: string;
+  name: string;
+  api: string | undefined;
+  models: Record<string, ResolvedEmbeddingModel>;
+};

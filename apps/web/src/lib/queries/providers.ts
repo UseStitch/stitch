@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
 import { serverRequest } from '@/lib/api';
@@ -165,7 +166,7 @@ export const embeddingProviderModelsQueryOptions = queryOptions({
   queryKey: providerKeys.embeddingModels(),
   staleTime: 60 * 60 * 1000,
   refetchOnWindowFocus: true,
-  queryFn: () => serverRequest<ProviderModels[]>('/llm/provider/embedding-models'),
+  queryFn: () => serverRequest<EmbeddingProviderModels[]>('/llm/provider/embedding-models'),
 });
 
 export const sttProviderModelsQueryOptions = queryOptions({

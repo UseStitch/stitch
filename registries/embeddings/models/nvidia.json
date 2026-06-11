@@ -2,7 +2,6 @@
   "$schema": "https://usestitch.ai/schemas/embedding-provider.schema.json",
   "providerId": "nvidia",
   "providerName": "NVIDIA",
-  "env": ["NVIDIA_API_KEY"],
   "models": [
     {
       "id": "nvidia/nv-embed-v1",
