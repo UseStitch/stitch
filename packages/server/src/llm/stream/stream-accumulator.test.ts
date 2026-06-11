@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import * as Events from '@/lib/events.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';

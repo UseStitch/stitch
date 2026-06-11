@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq, isNull } from 'drizzle-orm';
 
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import { getDb } from '@/db/client.js';
 import { toolPermissions } from '@/db/schema/permissions.js';

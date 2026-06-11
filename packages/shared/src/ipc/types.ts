@@ -1,9 +1,11 @@
 import type {
-  MeetingCallDetectedPayload,
-  MeetingCallEndedPayload,
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
-} from '../chat/realtime.js';
+} from '../recordings/events.js';
+import type {
+  MeetingCallDetectedPayload,
+  MeetingCallEndedPayload,
+} from '../recordings/meeting-ipc.js';
 import type {
   StartRecordingInput,
   StartRecordingResponse,

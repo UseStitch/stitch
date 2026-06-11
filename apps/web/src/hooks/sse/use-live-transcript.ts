@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { RecordingTranscriptEntryPayload } from '@stitch/shared/chat/realtime';
+import type { RecordingTranscriptEntryPayload } from '@stitch/shared/recordings/events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 

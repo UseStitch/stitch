@@ -1,13 +1,13 @@
-import { eq } from 'drizzle-orm';
 import { describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 
-import type { SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { SseEventPayloadMap } from '@stitch/shared/realtime';
 
-import { getDb } from '@/db/client.js';
-import { setupTestDb } from '@/db/test-helpers.js';
-import { messages, sessions } from '@/db/schema/sessions.js';
-import * as Events from '@/lib/events.js';
 import { saveAssistantMessage, markSessionUnread, saveTitleMessage } from '@/chat/message-store.js';
+import { getDb } from '@/db/client.js';
+import { messages, sessions } from '@/db/schema/sessions.js';
+import { setupTestDb } from '@/db/test-helpers.js';
+import * as Events from '@/lib/events.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 setupTestDb();
@@ -39,16 +39,15 @@ describe('saveAssistantMessage', () => {
       assistantMessageId,
       modelId: 'test-model',
       providerId: 'test-provider',
-      accumulatedParts: [{ type: 'text-delta', id: 'p1', text: 'Hello', startedAt, endedAt: startedAt } as never],
+      accumulatedParts: [
+        { type: 'text-delta', id: 'p1', text: 'Hello', startedAt, endedAt: startedAt } as never,
+      ],
       totalUsage: { ...ZERO_USAGE, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
       finalFinishReason: 'stop',
       startedAt,
     });
 
-    const rows = await getDb()
-      .select()
-      .from(messages)
-      .where(eq(messages.id, assistantMessageId));
+    const rows = await getDb().select().from(messages).where(eq(messages.id, assistantMessageId));
 
     expect(rows).toHaveLength(1);
     const row = rows[0];
@@ -115,7 +114,13 @@ describe('saveTitleMessage', () => {
     await seedSession(sessionId);
 
     const createdAt = Date.now();
-    const titlePart = { type: 'session-title', id: 'p1', title: 'My Title', startedAt: createdAt, endedAt: createdAt } as never;
+    const titlePart = {
+      type: 'session-title',
+      id: 'p1',
+      title: 'My Title',
+      startedAt: createdAt,
+      endedAt: createdAt,
+    } as never;
 
     await saveTitleMessage({
       sessionId,
