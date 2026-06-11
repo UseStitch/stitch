@@ -1,7 +1,5 @@
 import z from 'zod';
 
-const embeddingProviderIdSchema = z.enum(['google', 'openai']);
-
 export const EmbeddingModelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -29,7 +27,7 @@ export const EmbeddingModelSchema = z.object({
 
 export const EmbeddingProviderSchema = z.object({
   $schema: z.string().optional(),
-  providerId: embeddingProviderIdSchema,
+  providerId: z.string().min(1),
   providerName: z.string().min(1),
   api: z.string().optional(),
   npm: z.string().optional(),

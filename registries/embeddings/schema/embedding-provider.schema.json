@@ -12,7 +12,7 @@
     },
     "providerId": {
       "type": "string",
-      "enum": ["google", "openai"]
+      "minLength": 1
     },
     "providerName": {
       "type": "string",

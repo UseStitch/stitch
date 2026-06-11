@@ -4,6 +4,8 @@
   "type": "module",
   "exports": {
     "./models/google.json": "./models/google.json",
-    "./models/openai.json": "./models/openai.json"
+    "./models/nvidia.json": "./models/nvidia.json",
+    "./models/openai.json": "./models/openai.json",
+    "./models/openrouter.json": "./models/openrouter.json"
   }
 }
