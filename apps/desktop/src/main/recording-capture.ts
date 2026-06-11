@@ -177,3 +177,7 @@ export function listRecordingDevices() {
 export function checkRecordingPermissions() {
   return capture.checkPermissions();
 }
+
+export function primeRecordingSystemAudio() {
+  return capture.primeSystemAudio();
+}

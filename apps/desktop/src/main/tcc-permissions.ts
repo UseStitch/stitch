@@ -2,10 +2,8 @@ import { app } from 'electron';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// With adhoc code signing, macOS ties TCC permissions to the exact code signature hash.
-// After an app update the hash changes but old TCC entries remain, causing permissions
-// to appear granted in System Settings while being silently rejected at runtime.
-// This detects version changes and resets TCC so macOS will re-prompt.
+// With adhoc signing the TCC hash changes on every update; stale entries appear granted
+// but are silently rejected at runtime. Reset on version change so macOS re-prompts.
 export async function resetTccPermissionsIfVersionChanged(): Promise<boolean> {
   if (process.platform !== 'darwin' || !app.isPackaged) return false;
 
@@ -22,7 +20,7 @@ export async function resetTccPermissionsIfVersionChanged(): Promise<boolean> {
   const { execSync } = await import('node:child_process');
   const bundleId = 'com.stitch.desktop';
 
-  for (const service of ['Microphone', 'ScreenCapture']) {
+  for (const service of ['Microphone', 'ScreenCapture', 'AudioCapture']) {
     try {
       execSync(`tccutil reset ${service} ${bundleId}`, { timeout: 5_000 });
     } catch {

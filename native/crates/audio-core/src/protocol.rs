@@ -47,6 +47,7 @@ pub enum Command {
   ListDevices,
   Capabilities,
   CheckPermissions,
+  PrimeSystemAudio,
 }
 
 #[derive(Debug, Serialize)]
@@ -333,10 +334,13 @@ mod tests {
       serde_json::from_str(r#"{"type":"capabilities"}"#).expect("must parse capabilities");
     let perms: Command =
       serde_json::from_str(r#"{"type":"checkPermissions"}"#).expect("must parse checkPermissions");
+    let prime: Command =
+      serde_json::from_str(r#"{"type":"primeSystemAudio"}"#).expect("must parse primeSystemAudio");
 
     assert!(matches!(list, Command::ListDevices));
     assert!(matches!(caps, Command::Capabilities));
     assert!(matches!(perms, Command::CheckPermissions));
+    assert!(matches!(prime, Command::PrimeSystemAudio));
   }
 
   #[test]

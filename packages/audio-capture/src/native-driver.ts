@@ -24,6 +24,8 @@ import type {
 const START_TIMEOUT_MS = 10_000;
 const STOP_TIMEOUT_MS = 10_000;
 const ONE_SHOT_TIMEOUT_MS = 5_000;
+// Native side polls up to 10s; extra 5s is buffer for process startup.
+const PRIME_SYSTEM_AUDIO_TIMEOUT_MS = 15_000;
 
 function createController(processHandle: ActiveCapture['process']): NativeCaptureController {
   const pending = new Map<
@@ -140,6 +142,7 @@ function spawnBinary() {
 async function runOneShot<TSuccess extends NativeCaptureEvent['type']>(
   command: NativeCaptureCommand,
   successType: TSuccess,
+  timeoutMs: number = ONE_SHOT_TIMEOUT_MS,
 ): Promise<Extract<NativeCaptureEvent, { type: TSuccess }>> {
   const processHandle = spawnBinary();
   const controller = createController(processHandle);
@@ -147,8 +150,8 @@ async function runOneShot<TSuccess extends NativeCaptureEvent['type']>(
   try {
     controller.send(command);
     const result = (await Promise.race([
-      controller.waitFor(successType, ONE_SHOT_TIMEOUT_MS),
-      controller.waitFor('error', ONE_SHOT_TIMEOUT_MS),
+      controller.waitFor(successType, timeoutMs),
+      controller.waitFor('error', timeoutMs),
     ])) as NativeCaptureEvent;
 
     if (result.type === 'error') {
@@ -291,6 +294,15 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
 
     async checkPermissions(): Promise<AudioPermissionsStatus> {
       const event = await runOneShot({ type: 'checkPermissions' }, 'permissionsStatus');
+      return toPermissionsStatus(event);
+    },
+
+    async primeSystemAudio(): Promise<AudioPermissionsStatus> {
+      const event = await runOneShot(
+        { type: 'primeSystemAudio' },
+        'permissionsStatus',
+        PRIME_SYSTEM_AUDIO_TIMEOUT_MS,
+      );
       return toPermissionsStatus(event);
     },
   };

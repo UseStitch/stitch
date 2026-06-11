@@ -1,13 +1,19 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 
-import type { StartRecordingInput, StartRecordingResponse, StopRecordingResponse } from '../ipc-types.js';
 import {
   checkRecordingPermissions,
   listRecordingDevices,
+  primeRecordingSystemAudio,
   startRecordingCapture,
   stopRecordingCapture,
 } from '../recording-capture.js';
 import { serverJson } from '../server-client.js';
+
+import type {
+  StartRecordingInput,
+  StartRecordingResponse,
+  StopRecordingResponse,
+} from '../ipc-types.js';
 
 export function registerRecordingHandlers(
   getServerUrl: () => string,
@@ -47,4 +53,5 @@ export function registerRecordingHandlers(
 
   ipcMain.handle('recording:listDevices', () => listRecordingDevices());
   ipcMain.handle('recording:checkPermissions', () => checkRecordingPermissions());
+  ipcMain.handle('recording:primeSystemAudio', () => primeRecordingSystemAudio());
 }

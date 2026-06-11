@@ -78,9 +78,22 @@ async function preflightPermissionCheck(): Promise<void> {
       await window.api.permissions.requestMicrophone();
     }
 
+    // Prime system audio: the kTCCServiceAudioCapture prompt only fires once IO
+    // starts on a tap-backed device — there is no request-style API for it.
+    if (window.api?.recording?.primeSystemAudio) {
+      const status = await window.api.recording.primeSystemAudio();
+      if (status.screenCapture !== 'granted') {
+        if (window.api?.permissions?.openScreenCaptureSettings) {
+          void window.api.permissions.openScreenCaptureSettings();
+        }
+        throw new Error(
+          'Audio capture permission is needed. Allow "System Audio Recording" when prompted, or toggle on Stitch under "Screen & System Audio Recording" in System Settings, then click Start Recording again.',
+        );
+      }
+      return;
+    }
+
     // Check screen capture permission from the Electron main process.
-    // This is more reliable than the native binary's TCC check because it
-    // queries from the actual app process (correct code signing identity).
     if (window.api?.permissions?.getScreenCaptureStatus) {
       const status = await window.api.permissions.getScreenCaptureStatus();
       if (status !== 'granted') {

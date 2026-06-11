@@ -97,6 +97,8 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('recording:listDevices') as Promise<RecordingDevicesPayload>,
     checkPermissions: () =>
       ipcRenderer.invoke('recording:checkPermissions') as Promise<RecordingPermissionsPayload>,
+    primeSystemAudio: () =>
+      ipcRenderer.invoke('recording:primeSystemAudio') as Promise<RecordingPermissionsPayload>,
     onWarning: (callback: (payload: RecordingWarningPayload) => void) =>
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>

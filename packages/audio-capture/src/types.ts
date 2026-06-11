@@ -101,13 +101,18 @@ export type NativeCaptureCheckPermissionsCommand = {
   type: 'checkPermissions';
 };
 
+export type NativeCapturePrimeSystemAudioCommand = {
+  type: 'primeSystemAudio';
+};
+
 export type NativeCaptureCommand =
   | NativeCaptureStartCommand
   | NativeCaptureStopCommand
   | NativeCaptureStatusCommand
   | NativeCaptureListDevicesCommand
   | NativeCaptureCapabilitiesCommand
-  | NativeCaptureCheckPermissionsCommand;
+  | NativeCaptureCheckPermissionsCommand
+  | NativeCapturePrimeSystemAudioCommand;
 
 export type NativeCaptureErrorCode =
   | 'permission_denied'
@@ -259,6 +264,7 @@ export type AudioCaptureDriver = {
   stop: (capture: ActiveCapture) => Promise<StopCaptureResult>;
   listDevices: () => Promise<AudioDeviceList>;
   checkPermissions: () => Promise<AudioPermissionsStatus>;
+  primeSystemAudio: () => Promise<AudioPermissionsStatus>;
 };
 
 export type AudioDeviceList = {

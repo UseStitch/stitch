@@ -114,6 +114,10 @@ declare global {
           microphone: 'granted' | 'denied' | 'unknown';
           screenCapture: 'granted' | 'denied' | 'unknown';
         }>;
+        primeSystemAudio: () => Promise<{
+          microphone: 'granted' | 'denied' | 'unknown';
+          screenCapture: 'granted' | 'denied' | 'unknown';
+        }>;
         onWarning: (callback: (payload: RecordingWarningPayload) => void) => () => void;
         onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) => () => void;
       };
