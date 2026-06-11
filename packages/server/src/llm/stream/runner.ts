@@ -4,9 +4,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { markSessionUnread } from '@/chat/service.js';
-import { getDb } from '@/db/client.js';
-import { messages } from '@/db/schema/sessions.js';
+import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
@@ -35,64 +33,11 @@ import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
-import { calculateMessageCostUsd } from '@/usage/cost.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 
 const log = Log.create({ service: 'stream-runner' });
-
-async function saveAssistantMessage(opts: {
-  sessionId: PrefixedString<'ses'>;
-  assistantMessageId: PrefixedString<'msg'>;
-  modelId: string;
-  providerId: string;
-  accumulatedParts: StoredPart[];
-  totalUsage: LanguageModelUsage;
-  finalFinishReason: string;
-  startedAt: number;
-}) {
-  const {
-    sessionId,
-    assistantMessageId,
-    modelId,
-    providerId,
-    accumulatedParts,
-    totalUsage,
-    finalFinishReason,
-    startedAt,
-  } = opts;
-
-  const finishedAt = Date.now();
-  const db = getDb();
-  const costUsd = await calculateMessageCostUsd({
-    providerId,
-    modelId,
-    usage: totalUsage,
-  });
-
-  await db.insert(messages).values({
-    id: assistantMessageId,
-    sessionId,
-    role: 'assistant',
-    parts: accumulatedParts,
-    modelId,
-    providerId,
-    usage: totalUsage,
-    costUsd,
-    finishReason: finalFinishReason,
-    createdAt: startedAt,
-    startedAt,
-    duration: finishedAt - startedAt,
-  });
-
-  Events.emit('stream-finish', {
-    sessionId,
-    messageId: assistantMessageId,
-    finishReason: finalFinishReason,
-    usage: totalUsage,
-  });
-}
 
 const TRANSIENT_PART_TYPES = new Set([
   'text-delta',

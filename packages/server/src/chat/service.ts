@@ -7,6 +7,7 @@ import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { saveTitleMessage } from '@/chat/message-store.js';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -164,14 +165,6 @@ export async function renameSession(sessionId: PrefixedString<'ses'>, title: str
   return updated;
 }
 
-export async function markSessionUnread(sessionId: PrefixedString<'ses'>) {
-  const db = getDb();
-  await db
-    .update(sessions)
-    .set({ isUnread: true, updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId));
-}
-
 export async function markSessionRead(sessionId: PrefixedString<'ses'>) {
   const db = getDb();
   const [updated] = await db
@@ -233,21 +226,15 @@ async function maybeGenerateTitle(input: {
         durationMs: 0,
       });
 
-      await db.insert(messages).values({
-        id: titleMessageId,
+      await saveTitleMessage({
         sessionId: input.sessionId,
-        role: 'assistant',
-        parts: [titlePart],
+        messageId: titleMessageId,
         modelId: generatedTitle.modelId,
         providerId: generatedTitle.providerId,
+        parts: [titlePart],
         usage: generatedTitle.usage ?? undefined,
         costUsd,
-        finishReason: 'stop',
-        isSummary: false,
         createdAt: now,
-        updatedAt: now,
-        startedAt: now,
-        duration: 0,
       });
 
       await db
