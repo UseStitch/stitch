@@ -6,6 +6,7 @@ import type { UpdaterStatePayload } from '@stitch/shared/ipc/types';
 const NETWORK_ERROR_CODES = [
   'ERR_INTERNET_DISCONNECTED',
   'ERR_NETWORK_CHANGED',
+  'ERR_NETWORK_IO_SUSPENDED',
   'ERR_NAME_NOT_RESOLVED',
   'ERR_CONNECTION_REFUSED',
   'ERR_CONNECTION_TIMED_OUT',

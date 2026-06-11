@@ -112,6 +112,16 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setConnectionVersion((version) => version + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  React.useEffect(() => {
     let eventSource: EventSource | null = null;
     let cancelled = false;
 
