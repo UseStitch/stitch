@@ -2,7 +2,7 @@
  * Abstract interface for generating text embeddings.
  * Implementations use remote API providers.
  */
-export interface MemoryEmbedder {
+export interface Embedder {
   /** Generate an embedding vector for a single text. */
   embed(text: string): Promise<number[]>;
   /** Generate embedding vectors for multiple texts in a batch. */

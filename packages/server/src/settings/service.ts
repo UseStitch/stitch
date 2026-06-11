@@ -10,7 +10,7 @@ import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
-import { resetEmbedder } from '@/memory/embedding/factory.js';
+import { resetEmbedder } from '@/models/embedding/factory.js';
 import type { z } from 'zod';
 
 type SettingValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;

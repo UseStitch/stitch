@@ -9,14 +9,14 @@ import {
   hasConfiguredEmbeddingModel,
   invalidateMemoryConfig,
 } from '@/memory/config.js';
-import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
-import { ProviderEmbedder } from '@/memory/embedding/provider-embedder.js';
+import type { Embedder } from '@/models/embedding/embedder.js';
+import { ProviderEmbedder } from '@/models/embedding/provider-embedder.js';
 
-const log = Log.create({ service: 'memory-embedder' });
+const log = Log.create({ service: 'embedder' });
 
 const DEFAULT_DIMENSIONS = 1536;
 
-let cachedEmbedder: MemoryEmbedder | null = null;
+let cachedEmbedder: Embedder | null = null;
 
 export function resetEmbedder(): void {
   cachedEmbedder = null;
@@ -24,14 +24,14 @@ export function resetEmbedder(): void {
 }
 
 /**
- * Create a MemoryEmbedder based on the user's settings.
+ * Create an Embedder based on the user's settings.
  *
  * Uses the configured provider embedding model via AI SDK.
  *
  * The embedder is cached as a singleton and only recreated when settings change.
  * Reads embedding config from the already-cached MemoryConfig to avoid a duplicate DB query.
  */
-export async function createEmbedder(): Promise<MemoryEmbedder> {
+export async function createEmbedder(): Promise<Embedder> {
   if (cachedEmbedder) return cachedEmbedder;
 
   const config = await getMemoryConfig();
