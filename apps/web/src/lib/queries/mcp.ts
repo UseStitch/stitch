@@ -20,7 +20,6 @@ const mcpKeys = {
 
 export const mcpServersQueryOptions = queryOptions({
   queryKey: mcpKeys.list(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<McpServer[]>('/mcp'),
 });
 

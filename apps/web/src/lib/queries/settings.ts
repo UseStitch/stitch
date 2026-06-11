@@ -13,7 +13,6 @@ const settingsKeys = {
 
 export const settingsQueryOptions = queryOptions({
   queryKey: settingsKeys.list(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<UserSettings>('/settings'),
 });
 

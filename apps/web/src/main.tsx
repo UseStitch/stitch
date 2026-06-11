@@ -9,7 +9,13 @@ import { SseProvider } from '@/hooks/sse/sse-context';
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+    },
+  },
+});
 const isFileProtocol = window.location.protocol === 'file:';
 
 const router = createRouter({

@@ -13,7 +13,6 @@ const connectorKeys = {
 
 export const connectorDefinitionsQueryOptions = queryOptions({
   queryKey: connectorKeys.definitions(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<ConnectorDefinition[]>('/connectors/definitions'),
 });
 

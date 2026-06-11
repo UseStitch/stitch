@@ -44,7 +44,6 @@ export const toolKeys = {
 
 export const knownToolsQueryOptions = queryOptions({
   queryKey: toolKeys.knownTools(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownTool[]> => {
     const data = await serverRequest<{ tools: KnownTool[] }>('/config/tools');
     return data.tools;
@@ -53,7 +52,6 @@ export const knownToolsQueryOptions = queryOptions({
 
 export const knownMcpToolsQueryOptions = queryOptions({
   queryKey: toolKeys.knownMcpTools(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownMcpTool[]> => {
     const data = await serverRequest<{ tools: KnownMcpTool[] }>('/config/mcp-tools');
     return data.tools;
@@ -62,7 +60,6 @@ export const knownMcpToolsQueryOptions = queryOptions({
 
 export const knownToolsetsQueryOptions = queryOptions({
   queryKey: toolKeys.knownToolsets(),
-  staleTime: Infinity,
   queryFn: async (): Promise<KnownToolset[]> => {
     const data = await serverRequest<{ toolsets: KnownToolset[] }>('/config/toolsets');
     return data.toolsets;
@@ -71,13 +68,11 @@ export const knownToolsetsQueryOptions = queryOptions({
 
 export const toolPermissionsQueryOptions = queryOptions({
   queryKey: toolKeys.permissions(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<ToolPermission[]>('/config/permissions'),
 });
 
 export const toolEnabledStatesQueryOptions = queryOptions({
   queryKey: toolKeys.enabledStates(),
-  staleTime: Infinity,
   queryFn: async (): Promise<ToolEnabledState[]> => {
     const data = await serverRequest<{ states: ToolEnabledState[] }>('/config/tools/enabled');
     return data.states;

@@ -19,10 +19,7 @@ import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
-import { NotificationSound } from '@/hooks/sse/use-notification-sound';
-import { RecordingSync } from '@/hooks/sse/use-recording-sync';
-import { StreamSync } from '@/hooks/sse/use-stream-sync';
-import { UnreadSync } from '@/hooks/sse/use-unread-sync';
+import { ServerEventSync } from '@/hooks/sse/server-event-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { UpdaterSync } from '@/hooks/ui/use-updater-sync';
 import { useActions } from '@/lib/actions';
@@ -69,10 +66,7 @@ function RootLayout() {
             <div className="relative flex flex-1 overflow-hidden bg-sidebar">
               <AppSidebar />
               <SidebarInset className="overflow-hidden border-l border-border/50 bg-muted shadow-sm peer-data-[state=expanded]:rounded-tl-2xl">
-                <StreamSync />
-                <NotificationSound />
-                <UnreadSync />
-                <RecordingSync />
+                <ServerEventSync />
                 <RecordingEventListener />
                 <UpdaterSync />
                 <ServerConnectionSync />

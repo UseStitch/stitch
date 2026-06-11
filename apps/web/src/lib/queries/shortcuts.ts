@@ -19,7 +19,6 @@ const shortcutKeys = {
 
 export const shortcutsQueryOptions = queryOptions({
   queryKey: shortcutKeys.list(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<ShortcutEntry[]>('/shortcuts'),
 });
 

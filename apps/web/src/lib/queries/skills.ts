@@ -21,7 +21,6 @@ const skillKeys = {
 
 export const skillsQueryOptions = queryOptions({
   queryKey: skillKeys.list(),
-  staleTime: Infinity,
   queryFn: () => serverRequest<Skill[]>('/skills'),
 });
 
