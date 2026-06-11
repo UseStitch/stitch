@@ -1,5 +1,5 @@
-import { SSE_EVENT_NAMES } from '@stitch/shared/chat/realtime';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import { SSE_EVENT_NAMES } from '@stitch/shared/realtime';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import * as Events from '@/lib/events.js';
 import type { SSEStreamingApi } from 'hono/streaming';

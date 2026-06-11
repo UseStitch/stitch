@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import type { PartDelta } from '@stitch/shared/chat/realtime';
+import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { useStreamStore } from '@/stores/stream-store';

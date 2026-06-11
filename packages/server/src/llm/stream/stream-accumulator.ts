@@ -1,5 +1,5 @@
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
-import type { PartDelta, PartUpdate } from '@stitch/shared/chat/realtime';
+import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
 import { isToolErrorResult } from '@stitch/shared/tools/types';

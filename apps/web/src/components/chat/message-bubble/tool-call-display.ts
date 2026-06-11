@@ -1,5 +1,5 @@
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 

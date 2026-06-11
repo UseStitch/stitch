@@ -1,6 +1,7 @@
-import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+
+import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 
 import { StreamingMessageBubble } from './streaming-message-bubble.js';
 

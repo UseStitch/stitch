@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { Link } from '@tanstack/react-router';
 
-import type { ToolCallStatus } from '@stitch/shared/chat/realtime';
+import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 
 import {
   getToolCallActions,

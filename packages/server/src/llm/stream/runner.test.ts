@@ -2,7 +2,7 @@ import { simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/chat/realtime';
+import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import { setupTestDb } from '@/db/test-helpers.js';
 import * as Events from '@/lib/events.js';

@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { useQuery } from '@tanstack/react-query';
 
-import type { MeetingCallDetectedPayload } from '@stitch/shared/chat/realtime';
+import type { MeetingCallDetectedPayload } from '@stitch/shared/recordings/meeting-ipc';
 
 import { PLATFORM_CONFIG } from './shared/formatting';
 

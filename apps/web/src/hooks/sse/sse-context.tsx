@@ -6,7 +6,7 @@ import {
   type SseEventPayloadMap,
   type SseHandlers,
   type UseSseResult,
-} from '@stitch/shared/chat/realtime';
+} from '@stitch/shared/realtime';
 
 type SseContextValue = {
   isConnected: boolean;
