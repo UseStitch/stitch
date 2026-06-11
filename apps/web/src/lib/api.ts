@@ -157,16 +157,11 @@ export async function serverRequest<T>(path: string, init?: RequestInit): Promis
     let errorMsg = `Request failed with status ${res.status}`;
     try {
       const errJson = await res.json();
-      if (
-        errJson &&
-        typeof errJson === 'object' &&
-        'error' in errJson &&
-        typeof errJson.error === 'string'
-      ) {
+      if (errJson?.error) {
         errorMsg = errJson.error;
       }
     } catch {
-      // JSON parsing failed or wasn't an object; use status code fallback
+      // JSON parsing failed; use status code fallback
     }
     throw new Error(errorMsg);
   }
