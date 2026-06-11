@@ -40,6 +40,30 @@ function useStreamSync(): void {
     };
   }, []);
 
+  // Group by session+message to minimise store set() calls
+  function flushPendingDeltas() {
+    const batch = pendingDeltasRef.current;
+    pendingDeltasRef.current = [];
+
+    const groups = new Map<
+      string,
+      { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }
+    >();
+    for (const item of batch) {
+      const key = `${item.sessionId}:${item.messageId}`;
+      let group = groups.get(key);
+      if (!group) {
+        group = { sessionId: item.sessionId, messageId: item.messageId, deltas: [] };
+        groups.set(key, group);
+      }
+      group.deltas.push({ partId: item.partId, delta: item.delta });
+    }
+
+    for (const group of groups.values()) {
+      applyPartDeltas(group.sessionId, group.messageId, group.deltas);
+    }
+  }
+
   useSSE({
     'stream-start': ({ sessionId, messageId }) => {
       applyStreamStart(sessionId, messageId);
@@ -53,27 +77,7 @@ function useStreamSync(): void {
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
-          const batch = pendingDeltasRef.current;
-          pendingDeltasRef.current = [];
-
-          // Group by session+message to minimise store set() calls
-          const groups = new Map<
-            string,
-            { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }
-          >();
-          for (const item of batch) {
-            const key = `${item.sessionId}:${item.messageId}`;
-            let group = groups.get(key);
-            if (!group) {
-              group = { sessionId: item.sessionId, messageId: item.messageId, deltas: [] };
-              groups.set(key, group);
-            }
-            group.deltas.push({ partId: item.partId, delta: item.delta });
-          }
-
-          for (const group of groups.values()) {
-            applyPartDeltas(group.sessionId, group.messageId, group.deltas);
-          }
+          flushPendingDeltas();
         });
       }
     },
@@ -94,24 +98,7 @@ function useStreamSync(): void {
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
-        const batch = pendingDeltasRef.current;
-        pendingDeltasRef.current = [];
-        const groups = new Map<
-          string,
-          { sessionId: string; messageId: string; deltas: { partId: string; delta: PartDelta }[] }
-        >();
-        for (const item of batch) {
-          const key = `${item.sessionId}:${item.messageId}`;
-          let group = groups.get(key);
-          if (!group) {
-            group = { sessionId: item.sessionId, messageId: item.messageId, deltas: [] };
-            groups.set(key, group);
-          }
-          group.deltas.push({ partId: item.partId, delta: item.delta });
-        }
-        for (const group of groups.values()) {
-          applyPartDeltas(group.sessionId, group.messageId, group.deltas);
-        }
+        flushPendingDeltas();
       }
       finishStream(sessionId, messageId, finishReason, usage);
     },
