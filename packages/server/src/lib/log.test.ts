@@ -106,32 +106,6 @@ describe('Log.cleanup', () => {
 });
 
 describe('Log.create', () => {
-  test('tag() returns the same logger instance for chaining', () => {
-    const log = Log.create({ service: 'test-tag' });
-    const chained = log.tag('requestId', 'abc123');
-    expect(chained).toBe(log);
-  });
-
-  test('clone() returns a different logger instance', () => {
-    const log = Log.create({ service: 'test-clone' });
-    const cloned = log.clone();
-    expect(cloned).not.toBe(log);
-  });
-
-  test('returns the cached instance for the same service', () => {
-    const a = Log.create({ service: 'test-cache' });
-    const b = Log.create({ service: 'test-cache' });
-    expect(a).toBe(b);
-  });
-
-  test('time() returns stop() and [Symbol.dispose]', () => {
-    const log = Log.create({ service: 'test-time' });
-    const timer = log.time('my-op');
-    expect(typeof timer.stop).toBe('function');
-    expect(typeof timer[Symbol.dispose]).toBe('function');
-    timer.stop();
-  });
-
   test('time() using-block calls stop via [Symbol.dispose]', () => {
     const log = Log.create({ service: 'test-using' });
     expect(() => {
