@@ -1,14 +1,12 @@
-import { inArray } from 'drizzle-orm';
-
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
-import { userSettings } from '@/db/schema/settings.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/llm/provider/models.js';
 import * as Models from '@/llm/provider/models.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { getSettings } from '@/settings/service.js';
 
 export type ResolvedModel = {
   providerId: string;
@@ -51,19 +49,14 @@ export async function resolveModel(
 ): Promise<ServiceResult<ResolvedModel>> {
   const db = getDb();
 
-  const [settingsRows, configs, providers] = await Promise.all([
-    db
-      .select({ key: userSettings.key, value: userSettings.value })
-      .from(userSettings)
-      .where(inArray(userSettings.key, [input.providerIdKey, input.modelIdKey])),
+  const [settingsMap, configs, providers] = await Promise.all([
+    getSettings([input.providerIdKey, input.modelIdKey] as const),
     db.select().from(providerConfig),
     Models.get(),
   ]);
 
-  const configuredProviderId = settingsRows
-    .find((r) => r.key === input.providerIdKey)
-    ?.value?.trim();
-  const configuredModelId = settingsRows.find((r) => r.key === input.modelIdKey)?.value?.trim();
+  const configuredProviderId = (settingsMap[input.providerIdKey] as string)?.trim();
+  const configuredModelId = (settingsMap[input.modelIdKey] as string)?.trim();
 
   let targetProviderId: string | undefined;
   let targetModelId: string | undefined;

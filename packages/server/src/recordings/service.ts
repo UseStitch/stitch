@@ -15,7 +15,6 @@ import type {
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
-import { userSettings } from '@/db/schema/settings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
@@ -24,6 +23,7 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
+import { getSettings } from '@/settings/service.js';
 import { getModelDescriptor } from '@/stt/models.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
@@ -43,23 +43,16 @@ type RecordingCaptureSettings = {
 };
 
 async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
-  const db = getDb();
-  const rows = await db
-    .select({ key: userSettings.key, value: userSettings.value })
-    .from(userSettings)
-    .where(
-      sql`${userSettings.key} IN ('recordings.inputDeviceId', 'recordings.outputDeviceId', 'recordings.speakerGain')`,
-    );
-
-  const map = new Map(rows.map((r) => [r.key, r.value]));
-
-  const inputDeviceId = map.get('recordings.inputDeviceId') || null;
-  const outputDeviceId = map.get('recordings.outputDeviceId') || null;
-
-  const rawGain = Number.parseFloat(map.get('recordings.speakerGain') ?? '10');
-  const speakerGain = Number.isFinite(rawGain) ? Math.max(0.1, Math.min(50, rawGain)) : 10;
-
-  return { inputDeviceId, outputDeviceId, speakerGain };
+  const s = await getSettings([
+    'recordings.inputDeviceId',
+    'recordings.outputDeviceId',
+    'recordings.speakerGain',
+  ] as const);
+  return {
+    inputDeviceId: s['recordings.inputDeviceId'] || null,
+    outputDeviceId: s['recordings.outputDeviceId'] || null,
+    speakerGain: s['recordings.speakerGain'],
+  };
 }
 
 type ResolvedSttConfig = {
@@ -70,23 +63,19 @@ type ResolvedSttConfig = {
 };
 
 async function resolveSttConfig(): Promise<ResolvedSttConfig | null> {
-  const db = getDb();
-  const rows = await db
-    .select({ key: userSettings.key, value: userSettings.value })
-    .from(userSettings)
-    .where(
-      sql`${userSettings.key} IN ('recordings.transcription.providerId', 'recordings.transcription.modelId')`,
-    );
-
-  const map = new Map(rows.map((r) => [r.key, r.value]));
-  const providerId = map.get('recordings.transcription.providerId')?.trim();
-  const modelId = map.get('recordings.transcription.modelId')?.trim();
+  const s = await getSettings([
+    'recordings.transcription.providerId',
+    'recordings.transcription.modelId',
+  ] as const);
+  const providerId = s['recordings.transcription.providerId'].trim();
+  const modelId = s['recordings.transcription.modelId'].trim();
 
   if (!providerId || !modelId) {
     log.warn({ providerId, modelId }, 'transcription config missing providerId or modelId');
     return null;
   }
 
+  const db = getDb();
   const [config] = await db
     .select()
     .from(providerConfig)
@@ -351,12 +340,11 @@ export async function stopRecording(
       'recording stopped',
     );
 
-    const [autoAnalyzeSetting] = await db
-      .select({ value: userSettings.value })
-      .from(userSettings)
-      .where(eq(userSettings.key, 'recordings.autoAnalyze'));
+    const { 'recordings.autoAnalyze': autoAnalyze } = await getSettings([
+      'recordings.autoAnalyze',
+    ] as const);
 
-    if (autoAnalyzeSetting?.value === 'true') {
+    if (autoAnalyze) {
       void startRecordingAnalysis(current.id).then((result) => {
         if ('error' in result) {
           log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');

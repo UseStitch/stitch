@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import type {
@@ -10,9 +9,9 @@ import type {
 } from '@stitch/shared/stt/types';
 
 import { getDb } from '@/db/client.js';
-import { userSettings } from '@/db/schema/settings.js';
 import { sttUsageEvents, type SttService } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
+import { getSettings } from '@/settings/service.js';
 import type { STTConnection } from '@/stt/adapter-iface.js';
 import { resolveSttAuth } from '@/stt/auth.js';
 import { CapabilityNegotiationError, resolve } from '@/stt/capabilities.js';
@@ -129,12 +128,8 @@ export async function createSTTSession(
 
   let diarizationFallback: DiarizationFallback | null = null;
   if (capabilityResolution.satisfied.diarization !== 'unsupported') {
-    const db = getDb();
-    const [row] = await db
-      .select({ value: userSettings.value })
-      .from(userSettings)
-      .where(eq(userSettings.key, 'profile.name'));
-    const micName = row?.value?.trim() || 'You';
+    const { 'profile.name': profileName } = await getSettings(['profile.name'] as const);
+    const micName = profileName.trim() || 'You';
 
     diarizationFallback = createDiarizationFallback({
       micSpeakerName: micName,
