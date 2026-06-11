@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
+import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { serverRequest } from '@/lib/api';
 
@@ -36,18 +37,6 @@ export type ProviderModels = {
   providerId: string;
   providerName: string;
   models: ModelSummary[];
-};
-
-type SttModelSummary = {
-  id: string;
-  name: string;
-  sampleRateHz: number;
-};
-
-type SttProviderModels = {
-  providerId: string;
-  providerName: string;
-  models: SttModelSummary[];
 };
 
 type ProviderCredentials = Record<string, unknown>;

@@ -1,3 +1,5 @@
+import type { SttProviderModels } from '@stitch/shared/stt/types';
+
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { ok } from '@/lib/service-result.js';
@@ -14,18 +16,6 @@ export type ProviderWithCapabilities = {
   api: string | undefined;
   enabled: boolean;
   capabilities: ProviderCapability[];
-};
-
-type SttModelSummary = {
-  id: string;
-  name: string;
-  sampleRateHz: number;
-};
-
-type SttProviderModelsSummary = {
-  providerId: string;
-  providerName: string;
-  models: SttModelSummary[];
 };
 
 export async function listProvidersWithCapabilities(): Promise<
@@ -109,7 +99,7 @@ export async function listProvidersWithCapabilities(): Promise<
   return ok(results);
 }
 
-export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderModelsSummary[]>> {
+export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderModels[]>> {
   const db = getDb();
   const [configs, sttCatalog, llmProviders] = await Promise.all([
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
@@ -118,7 +108,7 @@ export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderM
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  const results: SttProviderModelsSummary[] = [];
+  const results: SttProviderModels[] = [];
   for (const entry of sttCatalog) {
     if (!enabledIds.has(entry.providerId)) continue;
     const providerName = llmProviders[entry.providerId]?.name ?? entry.providerId;

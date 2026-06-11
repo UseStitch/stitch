@@ -138,3 +138,15 @@ export type SttOutboundMessage =
   | SttTranscriptMessage
   | SttErrorMessage
   | SttDoneMessage;
+
+export type SttModelSummary = {
+  id: string;
+  name: string;
+  sampleRateHz: number;
+};
+
+export type SttProviderModels = {
+  providerId: string;
+  providerName: string;
+  models: SttModelSummary[];
+};
