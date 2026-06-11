@@ -87,8 +87,6 @@ const config: Configuration = {
     notarize: shouldNotarize,
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
-    // NSAudioCaptureUsageDescription is required on Tahoe for kTCCServiceAudioCapture;
-    // without it TCC denies silently and the app never appears in Privacy & Security.
     extendInfo: {
       NSMicrophoneUsageDescription:
         'Stitch needs microphone access to record audio during meetings and voice notes.',

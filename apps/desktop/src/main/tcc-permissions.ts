@@ -2,8 +2,6 @@ import { app } from 'electron';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// With adhoc signing the TCC hash changes on every update; stale entries appear granted
-// but are silently rejected at runtime. Reset on version change so macOS re-prompts.
 export async function resetTccPermissionsIfVersionChanged(): Promise<boolean> {
   if (process.platform !== 'darwin' || !app.isPackaged) return false;
 
