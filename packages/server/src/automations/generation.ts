@@ -1,5 +1,5 @@
 import { generateText, Output } from 'ai';
-import { asc, eq, inArray } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
@@ -9,12 +9,12 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { userSettings } from '@/db/schema/settings.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { getSettings } from '@/settings/service.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 
@@ -103,16 +103,10 @@ async function getPromptUserContext(): Promise<{
   userName: string | null;
   userTimezone: string | null;
 }> {
-  const db = getDb();
-  const rows = await db
-    .select({ key: userSettings.key, value: userSettings.value })
-    .from(userSettings)
-    .where(inArray(userSettings.key, ['profile.name', 'profile.timezone']));
-  const byKey = new Map(rows.map((row) => [row.key, row.value.trim()]));
-
+  const s = await getSettings(['profile.name', 'profile.timezone'] as const);
   return {
-    userName: byKey.get('profile.name') || null,
-    userTimezone: byKey.get('profile.timezone') || null,
+    userName: s['profile.name'] || null,
+    userTimezone: s['profile.timezone'] || null,
   };
 }
 

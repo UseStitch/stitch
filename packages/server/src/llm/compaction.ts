@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { eq, asc, like, inArray } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -8,7 +8,6 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { userSettings } from '@/db/schema/settings.js';
 import * as Events from '@/lib/events.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -22,6 +21,7 @@ import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -45,30 +45,16 @@ type CompactionSettings = {
 
 type StoredMessage = typeof messages.$inferSelect;
 
-function parseBooleanSetting(value: string | undefined): boolean | undefined {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
-function parseReservedSetting(value: string | undefined): number | undefined {
-  if (!value) return undefined;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return undefined;
-  }
-  return parsed;
-}
-
 export async function getCompactionSettings(): Promise<CompactionSettings> {
-  const db = getDb();
-  const rows = await db.select().from(userSettings).where(like(userSettings.key, 'compaction.%'));
-  const byKey = new Map(rows.map((row) => [row.key, row.value]));
-
+  const s = await getSettings([
+    'compaction.auto',
+    'compaction.prune',
+    'compaction.reserved',
+  ] as const);
   return {
-    auto: parseBooleanSetting(byKey.get('compaction.auto')) ?? true,
-    prune: parseBooleanSetting(byKey.get('compaction.prune')) ?? true,
-    reserved: parseReservedSetting(byKey.get('compaction.reserved')),
+    auto: s['compaction.auto'],
+    prune: s['compaction.prune'],
+    reserved: s['compaction.reserved'],
   };
 }
 
@@ -76,16 +62,10 @@ async function getPromptUserContext(): Promise<{
   userName: string | null;
   userTimezone: string | null;
 }> {
-  const db = getDb();
-  const rows = await db
-    .select({ key: userSettings.key, value: userSettings.value })
-    .from(userSettings)
-    .where(inArray(userSettings.key, ['profile.name', 'profile.timezone']));
-  const byKey = new Map(rows.map((row) => [row.key, row.value.trim()]));
-
+  const s = await getSettings(['profile.name', 'profile.timezone'] as const);
   return {
-    userName: byKey.get('profile.name') || null,
-    userTimezone: byKey.get('profile.timezone') || null,
+    userName: s['profile.name'] || null,
+    userTimezone: s['profile.timezone'] || null,
   };
 }
 
