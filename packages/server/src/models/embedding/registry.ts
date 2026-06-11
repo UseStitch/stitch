@@ -5,50 +5,46 @@ import {
   type EmbeddingModel,
   type EmbeddingProvider,
   type EmbeddingRegistryPayload,
+  type ResolvedEmbeddingModel,
+  type ResolvedEmbeddingProvider,
 } from '@/models/embedding/schema.js';
-import type { RawModel, RawProvider } from '@/models/llm/registry.js';
 
 const DEFAULT_EMBEDDING_REGISTRY_URL = 'https://usestitch.ai/embedding-models.json';
 
-function toRawModel(model: EmbeddingModel): RawModel {
+function toResolvedModel(model: EmbeddingModel): ResolvedEmbeddingModel {
   return {
     id: model.id,
     name: model.name,
     family: model.family,
     release_date: model.release_date,
-    attachment: false,
-    reasoning: false,
-    temperature: false,
-    tool_call: false,
+    dimensions: model.dimensions,
+    context: model.context,
     cost: model.cost,
-    limit: {
-      context: model.context,
-      output: model.dimensions,
-    },
     modalities: {
       input: model.inputModalities ?? ['text'],
       output: model.outputModalities ?? ['text'],
     },
-    options: {},
   };
 }
 
-function toRawProvider(provider: EmbeddingProvider): RawProvider {
-  const models = Object.fromEntries(provider.models.map((model) => [model.id, toRawModel(model)]));
+function toResolvedProvider(provider: EmbeddingProvider): ResolvedEmbeddingProvider {
+  const models = Object.fromEntries(
+    provider.models.map((model) => [model.id, toResolvedModel(model)]),
+  );
 
   return {
     id: provider.providerId,
     name: provider.providerName,
     api: provider.api,
-    npm: provider.npm,
-    env: provider.env ?? [],
     models,
   };
 }
 
-function toRawProviders(providers: EmbeddingProvider[]): Record<string, RawProvider> {
+function toResolvedProviders(
+  providers: EmbeddingProvider[],
+): Record<string, ResolvedEmbeddingProvider> {
   return Object.fromEntries(
-    providers.map((provider) => [provider.providerId, toRawProvider(provider)]),
+    providers.map((provider) => [provider.providerId, toResolvedProvider(provider)]),
   );
 }
 
@@ -75,9 +71,9 @@ const embeddingRegistryCache = createRegistryCache<EmbeddingRegistryPayload>({
 
 export async function getEmbeddingModelsFromRegistry(
   fetchImpl = fetch,
-): Promise<Record<string, RawProvider>> {
+): Promise<Record<string, ResolvedEmbeddingProvider>> {
   const payload = await embeddingRegistryCache.get(fetchImpl);
-  return toRawProviders(payload.providers);
+  return toResolvedProviders(payload.providers);
 }
 
 export async function refresh(fetchImpl = fetch): Promise<void> {

@@ -144,7 +144,7 @@ function assertEmbeddingModel(model, filePath) {
 
 function assertEmbeddingProviderConfig(provider, filePath) {
   assertObject(provider, filePath, 'config');
-  assertOneOf(provider.providerId, ['google', 'openai'], filePath, 'providerId');
+  assertNonEmptyString(provider.providerId, filePath, 'providerId');
   assertNonEmptyString(provider.providerName, filePath, 'providerName');
   assertNonEmptyArray(provider.models, filePath, 'models');
   assertUniqueIds(provider.models, (m) => m.id, filePath);

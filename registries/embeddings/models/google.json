@@ -3,7 +3,6 @@
   "providerId": "google",
   "providerName": "Google",
   "npm": "@ai-sdk/google",
-  "env": ["GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GEMINI_API_KEY"],
   "models": [
     {
       "id": "gemini-embedding-2",

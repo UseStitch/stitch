@@ -3,7 +3,6 @@
   "providerId": "openai",
   "providerName": "OpenAI",
   "npm": "@ai-sdk/openai",
-  "env": ["OPENAI_API_KEY"],
   "models": [
     {
       "id": "text-embedding-3-large",

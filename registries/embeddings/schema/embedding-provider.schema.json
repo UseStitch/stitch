@@ -12,7 +12,7 @@
     },
     "providerId": {
       "type": "string",
-      "enum": ["google", "openai"]
+      "minLength": 1
     },
     "providerName": {
       "type": "string",
@@ -23,13 +23,6 @@
     },
     "npm": {
       "type": "string"
-    },
-    "env": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
     },
     "models": {
       "type": "array",

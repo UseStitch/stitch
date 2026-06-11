@@ -1,0 +1,22 @@
+{
+  "$schema": "https://usestitch.ai/schemas/embedding-provider.schema.json",
+  "providerId": "nvidia",
+  "providerName": "NVIDIA",
+  "models": [
+    {
+      "id": "nvidia/nv-embed-v1",
+      "name": "NV-Embed v1",
+      "family": "nv-embed",
+      "deprecated": false,
+      "dimensions": 4096,
+      "release_date": "2024-05-01",
+      "context": 32768,
+      "inputModalities": ["text"],
+      "outputModalities": ["text"],
+      "cost": {
+        "input": 0,
+        "output": 0
+      }
+    }
+  ]
+}
