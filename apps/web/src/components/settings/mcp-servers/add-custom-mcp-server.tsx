@@ -74,13 +74,34 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
       backLabel="Back to MCP servers"
     >
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Name</Label>
-          <Input
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="e.g. GitHub MCP"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              placeholder="e.g. GitHub MCP"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
+            <Select
+              value={form.authType}
+              onValueChange={(v) => set('authType', v as AddFormState['authType'])}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {MCP_AUTH_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {AUTH_TYPE_LABELS[type].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -91,30 +112,6 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
             placeholder="https://mcp.example.com"
             type="url"
           />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-          <Select
-            value={form.authType}
-            onValueChange={(v) => set('authType', v as AddFormState['authType'])}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent className="w-72" alignItemWithTrigger={false}>
-              {MCP_AUTH_TYPES.map((type) => (
-                <SelectItem key={type} value={type} className="items-start py-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{AUTH_TYPE_LABELS[type].label}</span>
-                    <span className="text-xs leading-snug text-muted-foreground">
-                      {AUTH_TYPE_LABELS[type].description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {form.authType === 'api_key' && (
