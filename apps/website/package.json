@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ../../scripts/build-website-registries.mjs"
+    "dev": "vite",
+    "build": "vite build && bun run ../../scripts/build-website-registries.mjs"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite": "^8.0.16"
   }
 }
