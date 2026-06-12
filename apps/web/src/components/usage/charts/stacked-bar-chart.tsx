@@ -1,4 +1,5 @@
 import {
+  BarController,
   BarElement,
   CategoryScale,
   Chart as ChartJS,
@@ -13,7 +14,7 @@ import { Bar } from 'react-chartjs-2';
 import { EmptyChart, useChartTheme } from '@/components/usage/charts/usage-chart-utils';
 import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 type StackedBarDataset = {
   label: string;

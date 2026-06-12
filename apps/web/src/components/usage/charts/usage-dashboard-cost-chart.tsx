@@ -41,7 +41,8 @@ export function UsageDashboardCostChart({ usageData }: UsageDashboardCostChartPr
         label: getSourceLabel(source),
         data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
         backgroundColor: getSourceColor(source),
-        borderRadius: getStackSegmentRadius,
+        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) =>
+          getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,
       })),

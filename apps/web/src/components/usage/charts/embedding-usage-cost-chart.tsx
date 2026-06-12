@@ -46,7 +46,8 @@ export function EmbeddingUsageCostChart({ usageData }: EmbeddingUsageCostChartPr
         label: labelForModelKey(key),
         data: usageData?.buckets.map((b) => b.costUsdByModel[key] ?? 0) ?? [],
         backgroundColor: getModelColor(key, i),
-        borderRadius: getStackSegmentRadius,
+        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) =>
+          getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,
       })),

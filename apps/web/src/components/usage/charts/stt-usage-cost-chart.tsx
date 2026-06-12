@@ -48,7 +48,8 @@ export function SttUsageCostChart({ usageData }: SttUsageCostChartProps) {
         label: getServiceLabel(service),
         data: usageData?.buckets.map((b) => b.costUsdByService[service] ?? 0) ?? [],
         backgroundColor: getServiceColor(service),
-        borderRadius: getStackSegmentRadius,
+        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) =>
+          getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,
       })),
