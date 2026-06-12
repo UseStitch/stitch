@@ -2,11 +2,13 @@ import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
+import { ProviderCredentialsSchema } from '@/provider/config/schema.js';
 import type { ProviderAuth } from '@/stt/types.js';
 
 /**
  * Resolves STT provider credentials from the existing provider auth system.
- * Maps stored credentials -> the adapter's ProviderAuth shape.
+ * Parses stored credentials through the shared schema to extract the API key —
+ * no per-provider switch required; the schema shape determines the auth kind.
  */
 export async function resolveSttAuth(providerId: string): Promise<ProviderAuth | null> {
   const db = getDb();
@@ -17,24 +19,11 @@ export async function resolveSttAuth(providerId: string): Promise<ProviderAuth |
 
   if (!config) return null;
 
-  const credentials = config.credentials as Record<string, unknown>;
-  const auth = credentials['auth'] as Record<string, unknown> | undefined;
+  const parsed = ProviderCredentialsSchema.safeParse(config.credentials);
+  if (!parsed.success) return null;
 
-  if (!auth) return null;
+  const { auth } = parsed.data;
+  if ('apiKey' in auth) return { kind: 'apiKey', key: auth.apiKey };
 
-  switch (providerId) {
-    case 'openai': {
-      const apiKey = (auth as { apiKey?: string }).apiKey;
-      if (!apiKey) return null;
-      return { kind: 'apiKey', key: apiKey };
-    }
-    case 'elevenlabs':
-    case 'assemblyai': {
-      const apiKey = (auth as { apiKey?: string }).apiKey;
-      if (!apiKey) return null;
-      return { kind: 'apiKey', key: apiKey };
-    }
-    default:
-      return null;
-  }
+  return null;
 }

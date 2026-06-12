@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { AWS_BEDROCK_REGIONS } from '@stitch/shared/providers/types';
+import type { ProviderId } from '@stitch/shared/providers/types';
 
 const AWS_REGION_VALUES = AWS_BEDROCK_REGIONS.map((r) => r.value) as [string, ...string[]];
 
@@ -99,3 +100,13 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
 ]);
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
+
+// Compile-time guard: every ProviderId must have a credentials schema entry and vice versa.
+// If you add a new ID to PROVIDER_IDS without a schema, or a schema without an ID, this fails.
+type _CredentialsCoversAllProviders = [ProviderCredentials['providerId']] extends [ProviderId]
+  ? [ProviderId] extends [ProviderCredentials['providerId']]
+    ? true
+    : 'ERROR: PROVIDER_IDS has members missing from ProviderCredentialsSchema'
+  : 'ERROR: ProviderCredentialsSchema has members missing from PROVIDER_IDS';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _assertCredentialsDrift: _CredentialsCoversAllProviders = true;

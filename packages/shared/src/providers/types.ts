@@ -46,9 +46,13 @@ export type AuthMethodDef = {
   fields: FieldDef[];
 };
 
+export type ProviderCapability = 'llm' | 'stt' | 'embedding';
+
 export type ProviderMeta = {
   displayName: string;
   description?: string;
+  api?: string;
+  capabilities: ProviderCapability[];
   extraFields: FieldDef[];
   authMethods: AuthMethodDef[];
 };
