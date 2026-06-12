@@ -1,14 +1,18 @@
-import { Video } from 'lucide-react';
+import { ChevronDownIcon, Video } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 
 import type { MeetingCallDetectedPayload } from '@stitch/shared/recordings/meeting-ipc';
 
 import { PLATFORM_CONFIG } from './shared/formatting';
 
+import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
+import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { activeRecordingQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
@@ -40,9 +44,11 @@ export function RecordingEventListener() {
 export function MeetingRecordingBanner() {
   const [detection, setDetection] = React.useState<MeetingCallDetectedPayload | null>(null);
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
+  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   const startRecording = useStartRecording();
   const { data } = useQuery(activeRecordingQueryOptions);
+  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const activeRecordingId = data?.activeRecordingId ?? null;
 
   const activeRecordingIdRef = React.useRef(activeRecordingId);
@@ -148,25 +154,81 @@ export function MeetingRecordingBanner() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              void startRecording.mutateAsync({ platform: detection.platform }).then(
-                () => {
-                  requestDismissMeeting(detection.key);
-                  toast.success('Recording started');
-                },
-                (error: unknown) => {
-                  toast.error(error instanceof Error ? error.message : 'Failed to start recording');
-                },
-              );
-            }}
-            disabled={startRecording.isPending}
-            className="shadow-sm"
-          >
-            Start recording
-          </Button>
+          {sttProviders.length > 0 ? (
+            <ButtonGroup>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  void startRecording
+                    .mutateAsync({
+                      platform: detection.platform,
+                      sttProviderId: sttModelOverride?.providerId,
+                      sttModelId: sttModelOverride?.modelId,
+                    })
+                    .then(
+                      () => {
+                        requestDismissMeeting(detection.key);
+                        toast.success('Recording started');
+                      },
+                      (error: unknown) => {
+                        toast.error(
+                          error instanceof Error ? error.message : 'Failed to start recording',
+                        );
+                      },
+                    );
+                }}
+                disabled={startRecording.isPending}
+                className="shadow-sm"
+              >
+                Start recording
+              </Button>
+              <ButtonGroupSeparator />
+              <SttModelSelectorPopover
+                selectedValue={sttModelOverride}
+                onSelect={setSttModelOverride}
+                sttProviders={sttProviders}
+                triggerRender={
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={startRecording.isPending}
+                    className="px-1.5 shadow-sm"
+                  >
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                }
+              />
+            </ButtonGroup>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                void startRecording
+                  .mutateAsync({
+                    platform: detection.platform,
+                    sttProviderId: sttModelOverride?.providerId,
+                    sttModelId: sttModelOverride?.modelId,
+                  })
+                  .then(
+                    () => {
+                      requestDismissMeeting(detection.key);
+                      toast.success('Recording started');
+                    },
+                    (error: unknown) => {
+                      toast.error(
+                        error instanceof Error ? error.message : 'Failed to start recording',
+                      );
+                    },
+                  );
+              }}
+              disabled={startRecording.isPending}
+              className="shadow-sm"
+            >
+              Start recording
+            </Button>
+          )}
           <Button
             type="button"
             size="sm"
