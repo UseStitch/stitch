@@ -14,7 +14,6 @@ import {
 } from './shared';
 
 import { SettingSubPage } from '@/components/settings/settings-ui';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -115,71 +114,68 @@ export function InstallRegistryMcpServer({
   return (
     <SettingSubPage
       title={`Install ${server.name}`}
-      description="Review connection settings before adding."
+      description={server.description}
       onBack={onBack}
       backLabel="Back to marketplace"
+      actions={
+        <a
+          href={server.docsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-muted-foreground underline hover:text-foreground"
+        >
+          View docs
+        </a>
+      }
     >
       <div className="space-y-4">
-        <div className="rounded-lg border border-border/60 px-3 py-2.5 text-xs text-muted-foreground">
-          <p>{server.description}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{server.install.transport.toUpperCase()}</Badge>
-            <a href={server.docsUrl} target="_blank" rel="noreferrer" className="underline">
-              View docs
-            </a>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+            <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
           </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Name</Label>
-          <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
+          {authOptions.length > 1 ? (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
+              <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>{selectedAuthOption?.label ?? 'Select auth preset'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {authOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
+              <Select
+                value={form.authType}
+                onValueChange={(v) => set('authType', v as AddFormState['authType'])}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {MCP_AUTH_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {AUTH_TYPE_LABELS[type].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">URL</Label>
           <Input value={form.url} onChange={(e) => set('url', e.target.value)} type="url" />
-        </div>
-
-        {authOptions.length > 1 && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
-            <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{selectedAuthOption?.label ?? 'Select auth preset'}</SelectValue>
-              </SelectTrigger>
-              <SelectContent className="w-72" alignItemWithTrigger={false}>
-                {authOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-          <Select
-            value={form.authType}
-            onValueChange={(v) => set('authType', v as AddFormState['authType'])}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent className="w-72" alignItemWithTrigger={false}>
-              {MCP_AUTH_TYPES.map((type) => (
-                <SelectItem key={type} value={type} className="items-start py-2">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">{AUTH_TYPE_LABELS[type].label}</span>
-                    <span className="text-xs leading-snug text-muted-foreground">
-                      {AUTH_TYPE_LABELS[type].description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {form.authType === 'api_key' && (
