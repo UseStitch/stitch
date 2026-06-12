@@ -29,7 +29,6 @@ const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> 
   automation: { cssVar: '--chart-2', fallback: '#10b981' },
   automation_generation: { cssVar: '--chart-5', fallback: '#8b5cf6' },
   title_generation: { cssVar: '--chart-3', fallback: '#3b82f6' },
-  transcription: { cssVar: '--chart-4', fallback: '#f59e0b' },
   memory_extraction: { cssVar: '--chart-4', fallback: '#ec4899' },
   recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
 };

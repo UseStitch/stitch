@@ -20,7 +20,6 @@ const SOURCE_LABELS: Record<string, string> = {
   automation_generation: 'Automation Generation',
   title_generation: 'Title Generation',
   memory_extraction: 'Memory',
-  transcription: 'Transcription',
   recording_analysis: 'Recording Analysis',
 };
 
