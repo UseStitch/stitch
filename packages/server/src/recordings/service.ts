@@ -4,8 +4,10 @@ import path from 'node:path';
 
 import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
 import type {
+  ActiveRecordingResponse,
   ListRecordingsResponse,
   Recording,
+  RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingResponse,
   StopRecordingInput,
@@ -22,12 +24,11 @@ import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
-import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getSettings } from '@/settings/service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
-
 type ActiveRecording = {
   id: Recording['id'];
   filePath: string;
@@ -171,6 +172,36 @@ export async function listRecordings(input: {
     total,
     totalPages,
   };
+}
+
+export async function getRecordingDetails(
+  recordingId: Recording['id'],
+): Promise<ServiceResult<RecordingDetailsResponse>> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      recording: recordings,
+      analysis: recordingAnalyses,
+      analysisTitle: recordingAnalyses.title,
+      analysisCostUsd: recordingAnalyses.costUsd,
+    })
+    .from(recordings)
+    .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
+    .where(eq(recordings.id, recordingId));
+
+  if (!row) {
+    return err('Recording not found', 404);
+  }
+
+  return ok({
+    recording: toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
+    analysis: row.analysis ? toRecordingAnalysis(row.analysis) : null,
+    activeRecordingId: activeRecording?.id ?? null,
+  });
+}
+
+export function getActiveRecording(): ActiveRecordingResponse {
+  return { activeRecordingId: activeRecording?.id ?? null };
 }
 
 export async function startRecording(

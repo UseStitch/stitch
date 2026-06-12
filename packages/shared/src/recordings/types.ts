@@ -124,6 +124,16 @@ export type RecordingAnalysisResponse = {
   analysis: RecordingAnalysis | null;
 };
 
+export type RecordingDetailsResponse = {
+  recording: Recording;
+  analysis: RecordingAnalysis | null;
+  activeRecordingId: PrefixedString<'rec'> | null;
+};
+
+export type ActiveRecordingResponse = {
+  activeRecordingId: PrefixedString<'rec'> | null;
+};
+
 export type StartRecordingAnalysisResponse = {
   analysis: RecordingAnalysis;
 };

@@ -1,8 +1,15 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import type {
+  ActiveRecordingResponse,
   ListRecordingsResponse,
-  RecordingAnalysisResponse,
+  RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingAnalysisResponse,
   StartRecordingResponse,
@@ -15,9 +22,13 @@ const recordingsKeys = {
   all: ['recordings'] as const,
   lists: () => [...recordingsKeys.all, 'list'] as const,
   list: (page: number, pageSize: number) => [...recordingsKeys.lists(), page, pageSize] as const,
-  analysis: (recordingId: string) => [...recordingsKeys.all, 'analysis', recordingId] as const,
+  infiniteList: (pageSize: number) => [...recordingsKeys.lists(), 'infinite', pageSize] as const,
+  detail: (recordingId: string) => [...recordingsKeys.all, 'detail', recordingId] as const,
+  active: () => [...recordingsKeys.all, 'active'] as const,
   devices: () => [...recordingsKeys.all, 'devices'] as const,
 };
+
+const RECORDINGS_PAGE_SIZE = 12;
 
 export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
@@ -29,8 +40,32 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
       });
       return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
     },
+    placeholderData: keepPreviousData,
   });
 }
+
+export const recordingsInfiniteQueryOptions = () =>
+  infiniteQueryOptions({
+    queryKey: recordingsKeys.infiniteList(RECORDINGS_PAGE_SIZE),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({
+        page: String(pageParam),
+        pageSize: String(RECORDINGS_PAGE_SIZE),
+      });
+      return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page >= lastPage.totalPages) return undefined;
+      return lastPage.page + 1;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+export const activeRecordingQueryOptions = queryOptions({
+  queryKey: recordingsKeys.active(),
+  queryFn: () => serverRequest<ActiveRecordingResponse>('/recordings/active'),
+});
 
 type AudioDeviceList = {
   microphoneDevices: string[];
@@ -157,6 +192,7 @@ export function useStartRecording() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
   });
 }
@@ -178,6 +214,7 @@ export function useStopRecording() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
   });
 }
@@ -194,10 +231,10 @@ export function useDeleteRecording() {
   });
 }
 
-export function recordingAnalysisQueryOptions(recordingId: string) {
+export function recordingDetailsQueryOptions(recordingId: string) {
   return queryOptions({
-    queryKey: recordingsKeys.analysis(recordingId),
-    queryFn: () => serverRequest<RecordingAnalysisResponse>(`/recordings/${recordingId}/analysis`),
+    queryKey: recordingsKeys.detail(recordingId),
+    queryFn: () => serverRequest<RecordingDetailsResponse>(`/recordings/${recordingId}`),
   });
 }
 
@@ -218,7 +255,7 @@ export function useStartRecordingAnalysis() {
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: recordingsKeys.analysis(variables.recordingId),
+        queryKey: recordingsKeys.detail(variables.recordingId),
       });
     },
   });
@@ -233,7 +270,7 @@ export function useCancelRecordingAnalysis() {
         method: 'POST',
       }),
     onSuccess: (_, recordingId) => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.analysis(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
     },
   });
 }

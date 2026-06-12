@@ -10,14 +10,12 @@ import type { StartRecordingInput, StopRecordingInput } from '@stitch/shared/rec
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import { isServiceError } from '@/lib/service-result.js';
-import {
-  cancelRecordingAnalysis,
-  getRecordingAnalysis,
-  startRecordingAnalysis,
-} from '@/recordings/analysis-service.js';
+import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import {
   deleteRecording,
+  getActiveRecording,
   getRecordingAudioFile,
+  getRecordingDetails,
   listRecordings,
   startRecording,
   stopRecording,
@@ -69,6 +67,14 @@ recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), asy
   const { id } = c.req.valid('param');
   const result = await deleteRecording(id);
   return unwrapResult(c, result, 204);
+});
+
+recordingsRouter.get('/active', (c) => c.json(getActiveRecording()));
+
+recordingsRouter.get('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await getRecordingDetails(id);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.get('/:id/audio', zValidator('param', recordingIdParamSchema), async (c) => {
@@ -140,12 +146,6 @@ recordingsRouter.post(
     return unwrapResult(c, result, 202);
   },
 );
-
-recordingsRouter.get('/:id/analysis', zValidator('param', recordingIdParamSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  const result = await getRecordingAnalysis(id);
-  return unwrapResult(c, result);
-});
 
 recordingsRouter.post(
   '/:id/analysis/cancel',

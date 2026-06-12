@@ -131,12 +131,9 @@ function normalizeTopicSections(
   }));
 }
 
-function toResponse(
-  row: typeof recordingAnalyses.$inferSelect,
-  fallbackRecordingId: PrefixedString<'rec'>,
-): RecordingAnalysis {
+export function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): RecordingAnalysis {
   return {
-    recordingId: row.recordingId ?? fallbackRecordingId,
+    recordingId: row.recordingId,
     status: row.status,
     transcript: row.transcript ?? [],
     topicSections: row.topicSections ?? [],
@@ -186,7 +183,7 @@ export async function getRecordingAnalysis(
     .from(recordingAnalyses)
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
-  return ok({ analysis: analysis ? toResponse(analysis, recordingId) : null });
+  return ok({ analysis: analysis ? toRecordingAnalysis(analysis) : null });
 }
 
 export async function startRecordingAnalysis(
@@ -210,7 +207,7 @@ export async function startRecordingAnalysis(
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
   if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input?.force) {
-    return ok({ analysis: toResponse(existing, recordingId) });
+    return ok({ analysis: toRecordingAnalysis(existing) });
   }
 
   const transcript: RecordingTranscriptEntry[] = existing?.transcript ?? [];
@@ -304,7 +301,7 @@ export async function startRecordingAnalysis(
     return err('Failed to create recording analysis', 400);
   }
 
-  return ok({ analysis: toResponse(created, recordingId) });
+  return ok({ analysis: toRecordingAnalysis(created) });
 }
 
 export async function cancelRecordingAnalysis(

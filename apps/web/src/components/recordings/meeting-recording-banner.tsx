@@ -9,7 +9,7 @@ import type { MeetingCallDetectedPayload } from '@stitch/shared/recordings/meeti
 import { PLATFORM_CONFIG } from './shared/formatting';
 
 import { Button } from '@/components/ui/button';
-import { recordingsQueryOptions, useStartRecording } from '@/lib/queries/recordings';
+import { activeRecordingQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
   input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
@@ -42,10 +42,11 @@ export function MeetingRecordingBanner() {
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
 
   const startRecording = useStartRecording();
-  const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 10 }));
+  const { data } = useQuery(activeRecordingQueryOptions);
+  const activeRecordingId = data?.activeRecordingId ?? null;
 
-  const activeRecordingIdRef = React.useRef(data?.activeRecordingId ?? null);
-  activeRecordingIdRef.current = data?.activeRecordingId ?? null;
+  const activeRecordingIdRef = React.useRef(activeRecordingId);
+  activeRecordingIdRef.current = activeRecordingId;
 
   const dismissedKeysRef = React.useRef(dismissedKeys);
   dismissedKeysRef.current = dismissedKeys;
@@ -118,12 +119,12 @@ export function MeetingRecordingBanner() {
   }, []);
 
   React.useEffect(() => {
-    if (data?.activeRecordingId) {
+    if (activeRecordingId) {
       setDetection(null);
     }
-  }, [data?.activeRecordingId]);
+  }, [activeRecordingId]);
 
-  if (data === undefined || !detection || data.activeRecordingId) {
+  if (data === undefined || !detection || activeRecordingId) {
     return null;
   }
 
