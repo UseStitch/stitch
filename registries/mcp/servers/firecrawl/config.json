@@ -1,0 +1,18 @@
+{
+  "$schema": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "id": "firecrawl",
+  "name": "Firecrawl",
+  "description": "Web scraping, crawling, and data extraction tools from Firecrawl via remote MCP.",
+  "homepageUrl": "https://firecrawl.dev",
+  "docsUrl": "https://docs.firecrawl.dev",
+  "tags": ["scraping", "web", "crawling", "extraction"],
+  "install": {
+    "name": "Firecrawl",
+    "transport": "http",
+    "url": "https://mcp.firecrawl.dev/v2/mcp",
+    "authConfig": {
+      "type": "api_key",
+      "apiKey": "YOUR_API_KEY"
+    }
+  }
+}

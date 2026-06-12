@@ -105,10 +105,21 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
     }
   }
 
+  /**
+   * Reloads the registry from disk into memory, bypassing the network.
+   * Useful for picking up local edits to the cache file without a network round-trip.
+   * Returns the reloaded value, or null if the disk file is missing or invalid.
+   */
+  async function reloadFromDisk(): Promise<T | null> {
+    const fromDisk = await readFromDisk();
+    memory = fromDisk;
+    return fromDisk;
+  }
+
   /** Clears the in-memory singleton (primarily useful in tests). */
   function reset(): void {
     memory = null;
   }
 
-  return { get, refresh, reset };
+  return { get, refresh, reloadFromDisk, reset };
 }

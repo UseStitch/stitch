@@ -8,7 +8,7 @@ import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
-import { listMcpRegistryServers, refreshMcpRegistryCache } from '@/mcp/registry-service.js';
+import { listMcpRegistryServers, reloadMcpRegistryCacheFromDisk } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
 import { evictMcpClient, refreshMcpToolsets } from '@/mcp/tool-executor.js';
 
@@ -57,7 +57,7 @@ mcpRouter.get('/registry', async (c) => {
 });
 
 mcpRouter.post('/registry/refresh', async (c) => {
-  const result = await refreshMcpRegistryCache({ force: true });
+  const result = await reloadMcpRegistryCacheFromDisk();
   return unwrapResult(c, result, 204);
 });
 
