@@ -163,13 +163,8 @@ export function InstallRegistryMcpServer({
                 </SelectTrigger>
                 <SelectContent>
                   {MCP_AUTH_TYPES.map((type) => (
-                    <SelectItem key={type} value={type} className="items-start py-2">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium">{AUTH_TYPE_LABELS[type].label}</span>
-                        <span className="text-xs leading-snug text-muted-foreground">
-                          {AUTH_TYPE_LABELS[type].description}
-                        </span>
-                      </div>
+                    <SelectItem key={type} value={type}>
+                      {AUTH_TYPE_LABELS[type].label}
                     </SelectItem>
                   ))}
                 </SelectContent>
