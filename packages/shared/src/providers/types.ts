@@ -56,6 +56,7 @@ export type ProviderMeta = {
 export const PROVIDER_IDS = [
   'amazon-bedrock',
   'anthropic',
+  'assemblyai',
   'elevenlabs',
   'google',
   'google-vertex',

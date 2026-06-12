@@ -1,0 +1,42 @@
+{
+  "$schema": "../schema/stt-provider.schema.json",
+  "providerId": "assemblyai",
+  "providerName": "AssemblyAI",
+  "models": [
+    {
+      "modelId": "u3-rt-pro",
+      "displayName": "Universal-3 Pro Streaming",
+      "deprecated": false,
+      "capabilities": {
+        "partials": true,
+        "word_timestamps": true,
+        "utterance_timestamps": true,
+        "diarization": true,
+        "native_vad": true,
+        "language_detection": false,
+        "keyterm_biasing": true
+      },
+      "inputFormat": {
+        "encoding": "pcm_s16le",
+        "sampleRateHz": 16000,
+        "channels": 1
+      },
+      "partialStrategy": "cumulative",
+      "buffer": {
+        "maxChunkBytes": 32768,
+        "flushIntervalMs": 80,
+        "maxBufferedMs": 20000,
+        "paceRealtime": false
+      },
+      "reconnect": {
+        "enabled": true,
+        "maxRetries": 5,
+        "backoffMs": 500
+      },
+      "pricing": {
+        "type": "duration",
+        "perMinuteUsd": 0.011
+      }
+    }
+  ]
+}

@@ -101,5 +101,9 @@ export const createProvider = (credentials: ProviderCredentials) => {
     case 'elevenlabs':
       // ElevenLabs is STT-only, no LLM provider
       return undefined as never;
+
+    case 'assemblyai':
+      // AssemblyAI is STT-only, no LLM provider
+      return undefined as never;
   }
 };
