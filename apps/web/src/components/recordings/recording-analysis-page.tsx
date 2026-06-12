@@ -15,8 +15,7 @@ import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  recordingAnalysisQueryOptions,
-  recordingsQueryOptions,
+  recordingDetailsQueryOptions,
   useCancelRecordingAnalysis,
   useDeleteRecording,
   useStartRecordingAnalysis,
@@ -24,8 +23,7 @@ import {
 } from '@/lib/queries/recordings';
 
 export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) {
-  const { data: analysisResponse } = useSuspenseQuery(recordingAnalysisQueryOptions(recordingId));
-  const { data: recordings } = useSuspenseQuery(recordingsQueryOptions({ page: 1, pageSize: 100 }));
+  const { data } = useSuspenseQuery(recordingDetailsQueryOptions(recordingId));
 
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();
@@ -34,9 +32,8 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
-  const analysis = analysisResponse.analysis;
-  const recording = recordings.recordings.find((item) => item.id === recordingId);
-  const isActiveRecording = recording?.id === recordings.activeRecordingId;
+  const { analysis, recording } = data;
+  const isActiveRecording = recording.id === data.activeRecordingId;
   const analysisMarkdown = React.useMemo(
     () => buildAnalysisMarkdown(analysis, recording),
     [analysis, recording],
