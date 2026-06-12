@@ -75,7 +75,15 @@ function createAssemblyAIMessageParser(sessionStartMs: number) {
         return null;
 
       default:
-        log.debug({ messageType: msg.type }, 'unhandled AssemblyAI message type');
+        if ('error' in msg) {
+          const error = (msg as { error?: string; error_code?: number | string }).error;
+          const errorCode = (msg as { error?: string; error_code?: number | string }).error_code;
+          log.error({ error, errorCode }, 'AssemblyAI error');
+          const err = new Error(`AssemblyAI: ${error ?? msg.type}`);
+          (err as Error & { code?: string }).code = String(errorCode ?? '');
+          return { error: err };
+        }
+        log.warn({ messageType: msg.type }, 'unhandled AssemblyAI message type');
         return null;
     }
   };
@@ -95,14 +103,17 @@ function buildAssemblyAIUrl(config: STTConnectionConfig): string {
 
 function isFatalAssemblyAI(err: Error): boolean {
   const msg = err.message.toLowerCase();
+  const code = (err as Error & { code?: string }).code ?? '';
 
-  // WS close code 1008 = unauthorized
-  if (msg.includes('1008') || msg.includes('unauthorized')) return true;
+  // WS close code 1008 = unauthorized (can come as string "1008" from JSON error_code)
+  if (code === '1008' || msg.includes('1008') || msg.includes('unauthorized')) return true;
   if (msg.includes('401') || msg.includes('403')) return true;
   // Session expired (3-hour cap)
-  if (msg.includes('3008')) return true;
+  if (code === '3008' || msg.includes('3008')) return true;
   // Too many concurrent sessions
-  if (msg.includes('3009')) return true;
+  if (code === '3009' || msg.includes('3009')) return true;
+  // Invalid request
+  if (code === '3006' || msg.includes('invalid')) return true;
 
   return false;
 }
