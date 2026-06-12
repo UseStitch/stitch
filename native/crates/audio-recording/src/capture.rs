@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -528,10 +528,101 @@ fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
   }
 }
 
+fn write_aec_output(
+  start: &CaptureStart,
+  stop_flag: Arc<AtomicBool>,
+) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
+  let output_path = start.output_path.clone();
+  let target_sample_rate_hz = start.sample_rate_hz;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
+  let preferred_device = start.mic_device_id.clone();
+
+  let (aec_rx, aec_worker) = crate::aec::spawn_aec_mic_source(
+    preferred_device.as_deref(),
+    target_sample_rate_hz,
+    stop_flag.clone(),
+  )?;
+
+  let builder = thread::Builder::new().name("stitch-audio-aec-writer".to_string());
+  builder
+    .spawn(move || {
+      let mut writer = OggOpusWriter::create(&output_path)?;
+      let mut warnings = vec!["aec_mode_active".to_string()];
+
+      loop {
+        use std::sync::mpsc::RecvTimeoutError;
+        match aec_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
+          Ok(chunk) => {
+            emit_audio_chunk(
+              AudioChunkSource::Mic,
+              &chunk,
+              target_sample_rate_hz,
+              chunk_encoding,
+            );
+            writer.write_samples(&chunk)?;
+          }
+          Err(RecvTimeoutError::Disconnected) => {
+            if !stop_flag.load(Ordering::Relaxed) {
+              warnings.push("aec_source_disconnected_early".to_string());
+            }
+            break;
+          }
+          Err(RecvTimeoutError::Timeout) => {}
+        }
+
+        // Drain any additional buffered chunks.
+        while let Ok(chunk) = aec_rx.try_recv() {
+          emit_audio_chunk(
+            AudioChunkSource::Mic,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
+          writer.write_samples(&chunk)?;
+        }
+
+        if stop_flag.load(Ordering::Relaxed) {
+          break;
+        }
+      }
+
+      // Drain remaining samples after stop.
+      while let Ok(chunk) = aec_rx.try_recv() {
+        writer.write_samples(&chunk)?;
+      }
+
+      writer.finalize()?;
+
+      let aec_warnings = aec_worker
+        .join()
+        .map_err(|_| NativeError::Internal("AEC thread panicked".to_string()))??;
+      warnings.extend(aec_warnings);
+
+      Ok(warnings)
+    })
+    .map_err(|error| NativeError::Internal(format!("failed to spawn AEC writer thread: {error}")))
+}
+
 fn write_dual_realtime_output(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
+  // Try AEC first — if available, we get echo-cancelled mic audio directly from the OS.
+  match write_aec_output(start, stop_flag.clone()) {
+    Ok(handle) => return Ok(handle),
+    Err(error) => {
+      let _ = emit(Event::Warning {
+        code: "aec_unavailable".to_string(),
+        message: format!("AEC not available, falling back to software mixing: {error}"),
+      });
+    }
+  }
+
+  // Fallback: regular dual-source mixing without AEC.
   let output_path = start.output_path.clone();
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
@@ -646,7 +737,7 @@ pub(crate) fn spawn_capture_worker(
 
 #[cfg(test)]
 mod tests {
-  use super::{UNPAIRED_FLUSH_TICKS, drain_mixed_samples, mix_dual_samples, next_mix_len};
+  use super::{drain_mixed_samples, mix_dual_samples, next_mix_len, UNPAIRED_FLUSH_TICKS};
 
   #[test]
   fn next_mix_len_pairs_available_streams_and_resets_waits() {

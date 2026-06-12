@@ -1,3 +1,4 @@
+mod aec;
 mod capture;
 pub mod device;
 mod opus_writer;
