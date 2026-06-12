@@ -169,12 +169,12 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
         ));
       }
 
-      if let Some(ref cfg) = audio_chunk_config {
-        if cfg.sample_rate_hz == 0 {
-          return Err(NativeError::InvalidCommand(
-            "audioChunkConfig.sampleRateHz must be > 0".to_string(),
-          ));
-        }
+      if let Some(ref cfg) = audio_chunk_config
+        && cfg.sample_rate_hz == 0
+      {
+        return Err(NativeError::InvalidCommand(
+          "audioChunkConfig.sampleRateHz must be > 0".to_string(),
+        ));
       }
 
       Ok(CaptureStart {

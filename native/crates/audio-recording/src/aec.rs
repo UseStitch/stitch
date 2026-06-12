@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
 
@@ -17,13 +17,7 @@ pub(crate) fn spawn_aec_mic_source(
   preferred_device: Option<&str>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   #[cfg(target_os = "windows")]
   {
     return spawn_windows_aec_mic_source(preferred_device, target_sample_rate_hz, stop_flag);
@@ -61,13 +55,7 @@ fn spawn_windows_aec_mic_source(
   _preferred_device: Option<&str>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let (tx, rx) = mpsc::sync_channel(AEC_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-aec-source".to_string());
 
@@ -333,13 +321,7 @@ fn spawn_macos_aec_mic_source(
   _preferred_device: Option<&str>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let (tx, rx) = mpsc::sync_channel(AEC_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-aec-source".to_string());
 

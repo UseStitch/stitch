@@ -54,10 +54,10 @@ fn choose_input_device(
   }
 
   // Try the default input device (if it's not our tap)
-  if let Some(device) = host.default_input_device() {
-    if !device_name(&device).map_or(false, |n| crate::device::is_tap_device(&n)) {
-      return Ok(device);
-    }
+  if let Some(device) = host.default_input_device()
+    && !device_name(&device).is_some_and(|n| crate::device::is_tap_device(&n))
+  {
+    return Ok(device);
   }
 
   // Last resort: first non-tap input device
@@ -66,7 +66,7 @@ fn choose_input_device(
   })?;
 
   devices
-    .find(|d| !device_name(d).map_or(false, |n| crate::device::is_tap_device(&n)))
+    .find(|d| !device_name(d).is_some_and(|n| crate::device::is_tap_device(&n)))
     .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
 }
 
@@ -401,13 +401,7 @@ fn spawn_mic_capture(
 fn spawn_mic_source(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let desired_rate = start.sample_rate_hz;
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
