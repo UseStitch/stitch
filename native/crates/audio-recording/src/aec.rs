@@ -52,10 +52,11 @@ const WASAPI_AEC_EVENT_WAIT_MS: u32 = 250;
 
 #[cfg(target_os = "windows")]
 fn spawn_windows_aec_mic_source(
-  _preferred_device: Option<&str>,
+  preferred_device: Option<&str>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> crate::AudioSourceResult {
+  let preferred_device_name = preferred_device.map(|s| s.to_string());
   let (tx, rx) = mpsc::sync_channel(AEC_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-aec-source".to_string());
 
@@ -69,15 +70,31 @@ fn spawn_windows_aec_mic_source(
         NativeError::StreamFailed(format!("failed to create WASAPI enumerator: {error}"))
       })?;
 
-      // Use the Communications role capture device — this is the device Windows
-      // designates for VOIP/communications scenarios.
-      let device = enumerator
-        .get_default_device_for_role(&Direction::Capture, &Role::Communications)
-        .map_err(|error| {
-          NativeError::DeviceNotFound(format!(
-            "failed to get communications capture device: {error}"
-          ))
-        })?;
+      // Try the user's preferred device first, then fall back to the
+      // Communications role capture device (the one Windows designates for VOIP).
+      let device = if let Some(ref name) = preferred_device_name {
+        enumerator
+          .get_device_collection(&Direction::Capture)
+          .ok()
+          .and_then(|col| col.get_device_with_name(name).ok())
+          .unwrap_or(
+            enumerator
+              .get_default_device_for_role(&Direction::Capture, &Role::Communications)
+              .map_err(|error| {
+                NativeError::DeviceNotFound(format!(
+                  "failed to get communications capture device: {error}"
+                ))
+              })?,
+          )
+      } else {
+        enumerator
+          .get_default_device_for_role(&Direction::Capture, &Role::Communications)
+          .map_err(|error| {
+            NativeError::DeviceNotFound(format!(
+              "failed to get communications capture device: {error}"
+            ))
+          })?
+      };
 
       let mut audio_client = device.get_iaudioclient().map_err(|error| {
         NativeError::StreamFailed(format!("failed to get IAudioClient: {error}"))

@@ -528,18 +528,24 @@ fn write_aec_output(
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   let output_path = start.output_path.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
+  let speaker_gain = start.speaker_gain;
   let chunk_encoding = start
     .audio_chunk_config
     .as_ref()
     .map(|c| c.encoding)
     .unwrap_or(AudioChunkEncoding::F32Le);
   let preferred_device = start.mic_device_id.clone();
+  let speaker_device_id = start.speaker_device_id.clone();
 
   let (aec_rx, aec_worker) = crate::aec::spawn_aec_mic_source(
     preferred_device.as_deref(),
     target_sample_rate_hz,
     stop_flag.clone(),
   )?;
+
+  // Spawn a speaker source so the STT server receives both streams for diarization.
+  let (speaker_rx, speaker_worker) =
+    spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
 
   let builder = thread::Builder::new().name("stitch-audio-aec-writer".to_string());
   builder
@@ -568,7 +574,7 @@ fn write_aec_output(
           Err(RecvTimeoutError::Timeout) => {}
         }
 
-        // Drain any additional buffered chunks.
+        // Drain any additional buffered AEC mic chunks.
         while let Ok(chunk) = aec_rx.try_recv() {
           emit_audio_chunk(
             AudioChunkSource::Mic,
@@ -577,6 +583,21 @@ fn write_aec_output(
             chunk_encoding,
           );
           writer.write_samples(&chunk)?;
+        }
+
+        // Drain speaker chunks and emit them for STT diarization.
+        while let Ok(chunk) = speaker_rx.try_recv() {
+          emit_audio_chunk(
+            AudioChunkSource::Speaker,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
+          // Mix speaker into the recording file at the configured gain.
+          if speaker_gain > 0.0 {
+            let gained: Vec<f32> = chunk.iter().map(|s| s * speaker_gain).collect();
+            writer.write_samples(&gained)?;
+          }
         }
 
         if stop_flag.load(Ordering::Relaxed) {
@@ -588,13 +609,29 @@ fn write_aec_output(
       while let Ok(chunk) = aec_rx.try_recv() {
         writer.write_samples(&chunk)?;
       }
+      while let Ok(chunk) = speaker_rx.try_recv() {
+        emit_audio_chunk(
+          AudioChunkSource::Speaker,
+          &chunk,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+        if speaker_gain > 0.0 {
+          let gained: Vec<f32> = chunk.iter().map(|s| s * speaker_gain).collect();
+          writer.write_samples(&gained)?;
+        }
+      }
 
       writer.finalize()?;
 
       let aec_warnings = aec_worker
         .join()
         .map_err(|_| NativeError::Internal("AEC thread panicked".to_string()))??;
+      let speaker_warnings = speaker_worker
+        .join()
+        .map_err(|_| NativeError::Internal("speaker thread panicked".to_string()))??;
       warnings.extend(aec_warnings);
+      warnings.extend(speaker_warnings);
 
       Ok(warnings)
     })
