@@ -3,6 +3,7 @@ import type { StartRecordingResponse, StopRecordingResponse } from '@stitch/shar
 import {
   checkRecordingPermissions,
   listRecordingDevices,
+  primeRecordingSystemAudio,
   startRecordingCapture,
   stopRecordingCapture,
 } from '../recording-capture.js';
@@ -49,4 +50,5 @@ export function registerRecordingHandlers(
 
   registerIpcHandler('recording:listDevices', () => listRecordingDevices());
   registerIpcHandler('recording:checkPermissions', () => checkRecordingPermissions());
+  registerIpcHandler('recording:primeSystemAudio', () => primeRecordingSystemAudio());
 }

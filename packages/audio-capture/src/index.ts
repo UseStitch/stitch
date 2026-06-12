@@ -33,6 +33,7 @@ type AudioCaptureHandle = {
   getActive: () => ActiveCapture | null;
   listDevices: () => Promise<AudioDeviceList>;
   checkPermissions: () => Promise<AudioPermissionsStatus>;
+  primeSystemAudio: () => Promise<AudioPermissionsStatus>;
   onEvent: (listener: NativeCaptureEventListener) => void;
 };
 
@@ -74,6 +75,10 @@ export function createAudioCaptureHandle(
 
     async checkPermissions(): Promise<AudioPermissionsStatus> {
       return driver.checkPermissions();
+    },
+
+    async primeSystemAudio(): Promise<AudioPermissionsStatus> {
+      return driver.primeSystemAudio();
     },
 
     onEvent(listener: NativeCaptureEventListener): void {

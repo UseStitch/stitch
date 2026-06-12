@@ -44,7 +44,7 @@ checksum = "f93ebbf82d06013f4c41fe71303feb980cddd78496d904d06be627972de51a24"
 name = "audio-meeting-detect"
 version = "0.1.0"
 dependencies = [
- "cidre 0.14.2",
+ "cidre",
  "serde",
  "serde_json",
  "sysinfo",
@@ -57,7 +57,7 @@ name = "audio-recording"
 version = "0.1.0"
 dependencies = [
  "audio-core 0.1.0",
- "cidre 0.15.0",
+ "cidre",
  "cpal",
  "ogg",
  "opus-rs",
@@ -164,18 +164,6 @@ name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
-
-[[package]]
-name = "cidre"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c49de1cb1a7d9d19697c53a00fccde65f29b6757f4474055d0af0a0465c8ff0d"
-dependencies = [
- "cidre-macros",
- "half",
- "parking_lot",
- "tokio",
-]
 
 [[package]]
 name = "cidre"
@@ -904,7 +892,7 @@ dependencies = [
  "audio-core 0.1.0",
  "audio-meeting-detect",
  "audio-recording",
- "cidre 0.15.0",
+ "cidre",
  "cpal",
  "libc",
  "serde_json",

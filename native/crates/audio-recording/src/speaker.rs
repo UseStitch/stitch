@@ -276,6 +276,21 @@ fn start_process_tap(tx: SyncSender<Vec<f32>>, target_sample_rate_hz: u32) -> Op
   Some(ctx)
 }
 
+/// RAII guard that keeps a throwaway tap pipeline alive while the TCC prompt is shown.
+#[cfg(target_os = "macos")]
+pub struct SystemAudioPrime {
+  _ctx: Box<TapCtx>,
+}
+
+/// Starts a throwaway process-tap to trigger the kTCCServiceAudioCapture prompt.
+/// Returns None if the pipeline cannot be created.
+#[cfg(target_os = "macos")]
+pub fn prime_system_audio_tap() -> Option<SystemAudioPrime> {
+  let (tx, _rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
+  let ctx = start_process_tap(tx, 16_000)?;
+  Some(SystemAudioPrime { _ctx: ctx })
+}
+
 #[cfg(target_os = "macos")]
 fn spawn_macos_speaker_source(
   _speaker_device_id: Option<String>,

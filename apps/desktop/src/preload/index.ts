@@ -97,6 +97,7 @@ const api = {
     stop: () => invokeIpc('recording:stop'),
     listDevices: () => invokeIpc('recording:listDevices'),
     checkPermissions: () => invokeIpc('recording:checkPermissions'),
+    primeSystemAudio: () => invokeIpc('recording:primeSystemAudio'),
     onWarning: (callback: (payload: RecordingWarningPayload) => void) =>
       onIpc('recording:warning', callback),
     onDeviceChanged: (callback: (payload: RecordingDeviceChangedPayload) => void) =>

@@ -87,6 +87,12 @@ const config: Configuration = {
     notarize: shouldNotarize,
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
+    extendInfo: {
+      NSMicrophoneUsageDescription:
+        'Stitch needs microphone access to record audio during meetings and voice notes.',
+      NSAudioCaptureUsageDescription:
+        'Stitch needs system audio access to capture meeting audio from other applications.',
+    },
     binaries: [
       'Contents/Resources/stitch-server',
       'Contents/Resources/stitch-sandbox',

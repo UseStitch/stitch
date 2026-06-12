@@ -112,6 +112,31 @@ fn check_screen_capture_permission() -> &'static str {
   }
 }
 
+#[cfg(target_os = "macos")]
+const PRIME_POLL_INTERVAL: Duration = Duration::from_millis(500);
+#[cfg(target_os = "macos")]
+const PRIME_POLL_ATTEMPTS: u32 = 20;
+
+/// Triggers the kTCCServiceAudioCapture prompt, waits up to 10s for user response.
+/// Returns a guard that must stay alive until the permissions status is emitted.
+#[cfg(target_os = "macos")]
+fn prime_system_audio_permission() -> Option<audio_recording::SystemAudioPrime> {
+  if check_screen_capture_permission() == "granted" {
+    return None;
+  }
+
+  let prime = audio_recording::prime_system_audio_tap();
+  if prime.is_some() {
+    for _ in 0..PRIME_POLL_ATTEMPTS {
+      thread::sleep(PRIME_POLL_INTERVAL);
+      if tcc_preflight("kTCCServiceAudioCapture") == 0 {
+        break;
+      }
+    }
+  }
+  prime
+}
+
 fn default_input_device_name() -> Option<String> {
   let host = cpal::default_host();
   let name = host
@@ -258,6 +283,15 @@ fn main() -> io::Result<()> {
         })?;
       }
       Command::CheckPermissions => {
+        emit(Event::PermissionsStatus {
+          microphone: check_microphone_permission(),
+          screen_capture: check_screen_capture_permission(),
+        })?;
+      }
+      Command::PrimeSystemAudio => {
+        #[cfg(target_os = "macos")]
+        let _prime_guard = prime_system_audio_permission();
+
         emit(Event::PermissionsStatus {
           microphone: check_microphone_permission(),
           screen_capture: check_screen_capture_permission(),

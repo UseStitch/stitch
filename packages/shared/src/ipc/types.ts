@@ -92,6 +92,7 @@ export interface IpcContract {
   'recording:stop': { args: []; return: StopRecordingResponse };
   'recording:listDevices': { args: []; return: RecordingDevicesPayload };
   'recording:checkPermissions': { args: []; return: RecordingPermissionsPayload };
+  'recording:primeSystemAudio': { args: []; return: RecordingPermissionsPayload };
   'notifications:dismiss': { args: [id: string]; return: void };
   'notifications:set-height': { args: [height: number]; return: void };
 }
