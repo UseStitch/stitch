@@ -1,0 +1,23 @@
+{
+  "$schema": "https://usestitch.ai/schemas/embedding-provider.schema.json",
+  "providerId": "openrouter",
+  "providerName": "OpenRouter",
+  "npm": "@openrouter/ai-sdk-provider",
+  "models": [
+    {
+      "id": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+      "name": "Llama Nemotron Embed VL 1B V2",
+      "family": "llama-nemotron",
+      "deprecated": false,
+      "dimensions": 2048,
+      "release_date": "2025-02-01",
+      "context": 131072,
+      "inputModalities": ["text", "image"],
+      "outputModalities": ["text"],
+      "cost": {
+        "input": 0,
+        "output": 0
+      }
+    }
+  ]
+}

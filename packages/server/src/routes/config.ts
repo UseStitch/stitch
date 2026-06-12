@@ -29,7 +29,7 @@ const upsertToolEnabledSchema = z.object({
 
 export const configRouter = new Hono();
 
-export function getToolsetSource(toolset: { kind: ToolsetKind }): ToolsetKind {
+function getToolsetSource(toolset: { kind: ToolsetKind }): ToolsetKind {
   return toolset.kind;
 }
 

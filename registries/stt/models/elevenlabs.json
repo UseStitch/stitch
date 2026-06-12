@@ -6,6 +6,7 @@
     {
       "modelId": "scribe_v2_realtime",
       "displayName": "Scribe v2 Realtime",
+      "deprecated": false,
       "capabilities": {
         "partials": true,
         "word_timestamps": true,

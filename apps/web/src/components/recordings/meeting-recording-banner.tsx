@@ -50,6 +50,30 @@ export function MeetingRecordingBanner() {
   const dismissedKeysRef = React.useRef(dismissedKeys);
   dismissedKeysRef.current = dismissedKeys;
 
+  function dismissMeeting(key: string): void {
+    setDismissedKeys((current) => {
+      if (current.has(key)) return current;
+
+      const next = new Set(current);
+      next.add(key);
+      return next;
+    });
+    setDetection((current) => {
+      if (!current || current.key !== key) return current;
+
+      return null;
+    });
+  }
+
+  function requestDismissMeeting(key: string): void {
+    if (window.api?.meeting?.dismissCall) {
+      void window.api.meeting.dismissCall(key);
+      return;
+    }
+
+    dismissMeeting(key);
+  }
+
   React.useEffect(() => {
     const unsubscribeDetected = window.api?.meeting?.onCallDetected((payload) => {
       if (activeRecordingIdRef.current) {
@@ -82,10 +106,14 @@ export function MeetingRecordingBanner() {
         return next;
       });
     });
+    const unsubscribeDismissed = window.api?.meeting?.onCallDismissed(({ key }) => {
+      dismissMeeting(key);
+    });
 
     return () => {
       unsubscribeDetected?.();
       unsubscribeEnded?.();
+      unsubscribeDismissed?.();
     };
   }, []);
 
@@ -125,7 +153,7 @@ export function MeetingRecordingBanner() {
             onClick={() => {
               void startRecording.mutateAsync({ platform: detection.platform }).then(
                 () => {
-                  setDetection(null);
+                  requestDismissMeeting(detection.key);
                   toast.success('Recording started');
                 },
                 (error: unknown) => {
@@ -143,12 +171,7 @@ export function MeetingRecordingBanner() {
             size="sm"
             variant="ghost"
             onClick={() => {
-              setDismissedKeys((current) => {
-                const next = new Set(current);
-                next.add(detection.key);
-                return next;
-              });
-              setDetection(null);
+              requestDismissMeeting(detection.key);
             }}
             className="text-muted-foreground hover:bg-muted hover:text-foreground"
           >

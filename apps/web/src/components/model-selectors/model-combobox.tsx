@@ -12,11 +12,16 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
-import type { ProviderModels } from '@/lib/queries/providers';
 
 export type ModelSelection = {
   providerId: string;
   modelId: string;
+};
+
+type MinimalProviderModels = {
+  providerId: string;
+  providerName: string;
+  models: { id: string; name: string }[];
 };
 
 type ModelOption = {
@@ -31,7 +36,7 @@ type ModelGroup = {
   items: ModelOption[];
 };
 
-function buildGroups(providerModels: ProviderModels[]): ModelGroup[] {
+function buildGroups(providerModels: MinimalProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
     value: provider.providerName,
     items: provider.models.map((model) => ({
@@ -48,7 +53,7 @@ function flattenGroups(groups: ModelGroup[]): ModelOption[] {
 }
 
 type ModelComboboxProps = {
-  providerModels: ProviderModels[];
+  providerModels: MinimalProviderModels[];
   value: ModelSelection | null;
   onValueChange: (value: ModelSelection | null) => void;
   placeholder?: string;
@@ -65,12 +70,10 @@ export function ModelCombobox({
   const groups = React.useMemo(() => buildGroups(providerModels), [providerModels]);
   const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
 
-  const selectedOption =
-    value
-      ? (allOptions.find(
-          (o) => o.providerId === value.providerId && o.modelId === value.modelId,
-        ) ?? null)
-      : null;
+  const selectedOption = value
+    ? (allOptions.find((o) => o.providerId === value.providerId && o.modelId === value.modelId) ??
+      null)
+    : null;
 
   const resolvedShowClear = showClear ?? !!value;
 

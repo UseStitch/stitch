@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
-import { resetEmbedder } from '@/memory/embedding/factory.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import {
   getAllSemanticMemories,
@@ -19,6 +18,7 @@ import {
 } from '@/memory/service.js';
 import { dropSemanticTable } from '@/memory/store/tables.js';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES, MEMORY_SOURCES } from '@/memory/types.js';
+import { resetEmbedder } from '@/models/embedding/factory.js';
 import type { Context } from 'hono';
 
 const semanticQuerySchema = paginationQuerySchema({ pageSize: 20 }).extend({

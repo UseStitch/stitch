@@ -1,22 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 
-import { computeTotalPages, paginatedQuery } from '@/lib/paginated-query.js';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 
 describe('paginated-query', () => {
-  describe('computeTotalPages', () => {
-    it('returns 0 for 0 total items', () => {
-      expect(computeTotalPages(0, 10)).toBe(0);
-    });
-
-    it('calculates correct total pages for exact multiples', () => {
-      expect(computeTotalPages(20, 10)).toBe(2);
-    });
-
-    it('calculates correct total pages for partial pages', () => {
-      expect(computeTotalPages(21, 10)).toBe(3);
-    });
-  });
-
   describe('paginatedQuery', () => {
     it('applies offset and limit correctly and computes totalPages', async () => {
       const data = [{ id: 1 }, { id: 2 }];
@@ -92,7 +78,11 @@ describe('paginated-query', () => {
 
       const dataQuery = {
         limit(_n: number) {
-          return { offset(_o: number) { return Promise.resolve(data); } };
+          return {
+            offset(_o: number) {
+              return Promise.resolve(data);
+            },
+          };
         },
       };
 

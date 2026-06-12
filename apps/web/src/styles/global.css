@@ -115,6 +115,10 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  body.desktop-notifications-window {
+    @apply overflow-hidden bg-transparent;
+  }
 }
 
 @layer utilities {
@@ -155,5 +159,11 @@
 
   .shadow-info-glow {
     box-shadow: 0 0 8px var(--info);
+  }
+
+  .desktop-notification-surface {
+    background: var(--card, oklch(1 0 0));
+    color: var(--card-foreground, oklch(0.145 0 0));
+    border-color: var(--border, oklch(0.922 0 0));
   }
 }

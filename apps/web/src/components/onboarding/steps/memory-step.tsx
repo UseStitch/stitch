@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -11,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { embeddingProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
 type ModelOption = {
@@ -21,7 +23,7 @@ type ModelOption = {
   modelId: string;
 };
 
-function buildModelOptions(providerModels: ProviderModels[] | undefined): ModelOption[] {
+function buildModelOptions(providerModels: EmbeddingProviderModels[] | undefined): ModelOption[] {
   if (!providerModels) return [];
   const options: ModelOption[] = [];
   for (const provider of providerModels) {

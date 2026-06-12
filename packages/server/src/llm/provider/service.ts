@@ -1,9 +1,12 @@
 import { eq, count } from 'drizzle-orm';
 
+import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
+
 import { getDb } from '@/db/client.js';
 import { providerConfig, ollamaModels } from '@/db/schema/providers.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import type { ResolvedEmbeddingModel } from '@/models/embedding/schema.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as OllamaModels from '@/models/llm/ollama.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
@@ -26,12 +29,6 @@ type ModelSummary = {
   cost: Models.RawModel['cost'];
   limit: Models.RawModel['limit'];
   modalities: Models.RawModel['modalities'];
-};
-
-type ProviderModelsSummary = {
-  providerId: string;
-  providerName: string;
-  models: ModelSummary[];
 };
 
 function toProviderSummary(provider: Models.RawProvider, enabled: boolean): ProviderSummary {
@@ -158,8 +155,20 @@ export async function listProviderModels(
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
 }
 
+function toEmbeddingModelSummary(
+  model: ResolvedEmbeddingModel,
+): EmbeddingProviderModels['models'][number] {
+  return {
+    id: model.id,
+    name: model.name,
+    family: model.family,
+    dimensions: model.dimensions,
+    context: model.context,
+  };
+}
+
 export async function listEnabledProviderEmbeddingModels(): Promise<
-  ServiceResult<ProviderModelsSummary[]>
+  ServiceResult<EmbeddingProviderModels[]>
 > {
   const db = getDb();
   const [providers, configs] = await Promise.all([
@@ -174,7 +183,7 @@ export async function listEnabledProviderEmbeddingModels(): Promise<
       .map((provider) => ({
         providerId: provider.id,
         providerName: provider.name,
-        models: Object.values(provider.models).map(toModelSummary),
+        models: Object.values(provider.models).map(toEmbeddingModelSummary),
       })),
   );
 }

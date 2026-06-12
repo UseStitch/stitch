@@ -4,8 +4,6 @@ import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
 import { ok, err } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import type { MemoryEmbedder } from '@/memory/embedding/embedder.js';
-import { createEmbedder } from '@/memory/embedding/factory.js';
 import { getSemanticTable } from '@/memory/store/tables.js';
 import type {
   ListSemanticMemoriesResponse,
@@ -15,6 +13,8 @@ import type {
   MemorySource,
   ExtractedFact,
 } from '@/memory/types.js';
+import type { Embedder } from '@/models/embedding/embedder.js';
+import { createEmbedder } from '@/models/embedding/factory.js';
 import type { VectorQuery } from '@lancedb/lancedb';
 
 export type MemoryStats = {
@@ -35,7 +35,7 @@ function now(): string {
   return new Date().toISOString();
 }
 
-async function getEmbedder(): Promise<MemoryEmbedder> {
+async function getEmbedder(): Promise<Embedder> {
   return createEmbedder();
 }
 

@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
+
 import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -33,7 +35,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
-import { embeddingProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
+import { embeddingProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
 const CONFIDENCE_FILTER_OPTIONS = [
@@ -49,7 +51,7 @@ function EmbeddingModelSelect({
 }: {
   currentProviderId: string | undefined;
   currentModelId: string | undefined;
-  providerModels: ProviderModels[];
+  providerModels: EmbeddingProviderModels[];
 }) {
   const queryClient = useQueryClient();
   const [pendingValue, setPendingValue] = React.useState<ModelSelection | null | undefined>(

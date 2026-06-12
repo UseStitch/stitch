@@ -4,6 +4,7 @@ import { registerDevtoolsHandlers } from './ipc/devtools.js';
 import { registerFilesHandlers } from './ipc/files.js';
 import { registerPermissionsHandlers } from './ipc/permissions.js';
 import { registerRecordingHandlers } from './ipc/recording.js';
+import { registerIpcHandler } from './ipc/register.js';
 import { registerServerHandlers } from './ipc/server.js';
 import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
@@ -14,6 +15,12 @@ import {
   startMeetingDetection,
   stopMeetingDetection,
 } from './meeting-detection.js';
+import {
+  destroyNotificationWindow,
+  dismissDesktopNotification,
+  registerNotificationHandlers,
+  showDesktopNotification,
+} from './notifications.js';
 import { configureRecordingCaptureEnv, stopRecordingCapture } from './recording-capture.js';
 import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
 import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
@@ -80,6 +87,7 @@ async function shutdownRuntime(): Promise<void> {
     updateCheckInterval = null;
   }
   destroyTray();
+  destroyNotificationWindow();
   stopMeetingDetection();
   await stopRecordingCapture().catch(() => null);
   await killServer();
@@ -105,6 +113,19 @@ function registerAllIpcHandlers(): void {
   registerRecordingHandlers(getServerUrl, getWindow);
   registerServerHandlers(serverState, startLocalServer, getWindow);
   registerUpdaterHandlers(updater, getWindow);
+  registerNotificationHandlers((event) => {
+    if (event.type === 'meeting-detected') {
+      dismissMeetingCall(event.payload.key);
+    }
+  });
+  registerIpcHandler('meeting:call-dismiss', (_event, key) => {
+    dismissMeetingCall(key);
+  });
+}
+
+function dismissMeetingCall(key: string): void {
+  mainWindow?.webContents.send('meeting:call-dismissed', { key });
+  dismissDesktopNotification(`meeting:${key}`);
 }
 
 function onContextMenu(params: Electron.ContextMenuParams): void {
@@ -151,7 +172,21 @@ void app.whenReady().then(async () => {
     const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
 
     mainWindow = await spawnMainWindow();
-    startMeetingDetection(() => mainWindow);
+    startMeetingDetection(
+      () => mainWindow,
+      (payload) => {
+        void showDesktopNotification({
+          id: `meeting:${payload.key}`,
+          type: 'meeting-detected',
+          createdAt: Date.now(),
+          autoDismissMs: null,
+          payload,
+        });
+      },
+      (payload) => {
+        dismissDesktopNotification(`meeting:${payload.key}`);
+      },
+    );
 
     if (permissionsWereReset) {
       void dialog.showMessageBox(mainWindow, {
