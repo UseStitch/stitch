@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Badge, type badgeVariants } from '@/components/ui/badge';
+import { formatUsdCost } from '@/lib/format-cost';
 import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
 
@@ -46,8 +47,7 @@ function formatTableTime(value: number | string | Date, format: TableTimeFormat)
 
 function formatTableMoney(value: number | null): string {
   if (value === null) return '—';
-  if (value < 0.01) return `$${value.toFixed(4)}`;
-  return `$${value.toFixed(2)}`;
+  return formatUsdCost(value);
 }
 
 function TableContainer({ bordered = true, className, ...props }: TableContainerProps) {

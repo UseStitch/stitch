@@ -13,11 +13,11 @@ import {
   PageIcon,
   PageTitle,
 } from '@/components/ui/page';
+import { formatUsdCost } from '@/lib/format-cost';
 
 function formatCost(costUsd: number | null | undefined): string | null {
   if (costUsd === null || costUsd === undefined) return null;
-  if (costUsd < 0.01) return `$${costUsd.toFixed(4)}`;
-  return `$${costUsd.toFixed(2)}`;
+  return formatUsdCost(costUsd);
 }
 
 interface AnalysisHeaderProps {

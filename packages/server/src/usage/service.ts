@@ -288,7 +288,7 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
 function normalizeEventSource(
   source: string,
   sessionType: 'chat' | 'automation' | null,
-): UsageSource {
+): UsageSource | null {
   if (source === 'title_generation') {
     return 'title_generation';
   }
@@ -302,7 +302,7 @@ function normalizeEventSource(
   }
 
   if (source.startsWith('transcription')) {
-    return 'transcription';
+    return null;
   }
 
   if (sessionType === 'automation') {
@@ -370,7 +370,6 @@ export async function getUsageDashboard(
 
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
-  const recordingAnalysisCostByRecordingId = new Map<string, number>();
 
   const addUsageRow = (args: {
     createdAt: number;
@@ -398,63 +397,14 @@ export async function getUsageDashboard(
     usedProviderIds.add(row.providerId);
     usedModelKeys.add(`${row.providerId}::${row.modelId}`);
 
-    if (row.source === 'recording_analysis') {
-      const recordingId = row.metadata?.recordingId;
-      if (typeof recordingId === 'string') {
-        recordingAnalysisCostByRecordingId.set(
-          recordingId,
-          (recordingAnalysisCostByRecordingId.get(recordingId) ?? 0) + (row.costUsd ?? 0),
-        );
-      }
-    }
+    const source = normalizeEventSource(row.source, row.sessionType ?? null);
+    if (!source) continue;
 
     addUsageRow({
       createdAt: row.createdAt,
-      source: normalizeEventSource(row.source, row.sessionType ?? null),
+      source,
       usage: row.usage,
       costUsd: row.costUsd,
-    });
-  }
-
-  const transcriptionConditions = [
-    gte(recordingAnalyses.startedAt, window.from),
-    lt(recordingAnalyses.startedAt, window.to),
-    isNotNull(recordingAnalyses.transcriptionProviderId),
-    isNotNull(recordingAnalyses.transcriptionModelId),
-  ];
-  if (input.providerId) {
-    transcriptionConditions.push(eq(recordingAnalyses.transcriptionProviderId, input.providerId));
-  }
-  if (input.modelId) {
-    transcriptionConditions.push(eq(recordingAnalyses.transcriptionModelId, input.modelId));
-  }
-
-  const transcriptionRows = await db
-    .select({
-      recordingId: recordingAnalyses.recordingId,
-      createdAt: recordingAnalyses.startedAt,
-      providerId: recordingAnalyses.transcriptionProviderId,
-      modelId: recordingAnalyses.transcriptionModelId,
-      costUsd: recordingAnalyses.costUsd,
-    })
-    .from(recordingAnalyses)
-    .where(and(...transcriptionConditions));
-
-  for (const row of transcriptionRows) {
-    if (!row.createdAt || !row.providerId || !row.modelId) continue;
-
-    usedProviderIds.add(row.providerId);
-    usedModelKeys.add(`${row.providerId}::${row.modelId}`);
-
-    const analysisCost = recordingAnalysisCostByRecordingId.get(row.recordingId) ?? 0;
-    const transcriptionCost = Math.max(0, row.costUsd - analysisCost);
-    if (transcriptionCost === 0) continue;
-
-    addUsageRow({
-      createdAt: row.createdAt,
-      source: 'transcription',
-      usage: null,
-      costUsd: transcriptionCost,
     });
   }
 

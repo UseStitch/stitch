@@ -27,10 +27,38 @@ type OpenAIRealtimeMessage =
       transcript: string;
       item_id?: string;
       content_index?: number;
+      usage?:
+        | {
+            type: 'tokens';
+            input_tokens: number;
+            output_tokens: number;
+            input_token_details?: { audio_tokens?: number; text_tokens?: number };
+          }
+        | { type: 'duration'; seconds: number };
     }
   | { type: 'error'; error: { type: string; message: string; code?: string } };
 
-function createOpenAIMessageParser(sessionStartMs: number) {
+function parseUsage(
+  usage: Extract<
+    OpenAIRealtimeMessage,
+    { type: 'conversation.item.input_audio_transcription.completed' }
+  >['usage'],
+  durationMs: number,
+): STTUsage {
+  if (!usage) return { durationMs };
+
+  if (usage.type === 'tokens') {
+    return {
+      durationMs,
+      audioInputTokens: usage.input_token_details?.audio_tokens ?? usage.input_tokens,
+      textOutputTokens: usage.output_tokens,
+    };
+  }
+
+  return { durationMs: Math.round(usage.seconds * 1000) };
+}
+
+export function createOpenAIMessageParser(sessionStartMs: number) {
   // Monotonic offset tracker: OpenAI doesn't provide word timestamps,
   // so we use elapsed time since session start as the offset.
   // We track the last offset to ensure monotonicity even if messages arrive out of order.
@@ -50,7 +78,7 @@ function createOpenAIMessageParser(sessionStartMs: number) {
         const offsetMs = Math.max(Date.now() - sessionStartMs, lastOffsetMs + 1);
         lastOffsetMs = offsetMs;
         const transcript: TranscriptEvent = { kind: 'final', text: msg.transcript, offsetMs };
-        const usage: STTUsage = { durationMs: Date.now() - sessionStartMs };
+        const usage = parseUsage(msg.usage, Date.now() - sessionStartMs);
         return { transcript, usage };
       }
       case 'error': {
