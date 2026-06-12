@@ -80,3 +80,31 @@ export type SttUsageDashboardResponse = {
   };
   buckets: SttUsageBucket[];
 };
+
+export type EmbeddingUsageBucket = {
+  start: number;
+  end: number;
+  label: string;
+  costUsdByModel: Record<string, number>;
+  tokensByModel: Record<string, number>;
+};
+
+export type EmbeddingUsageDashboardResponse = {
+  range: {
+    from: number;
+    to: number;
+    granularity: UsageBucketGranularity;
+    bucketCount: number;
+  };
+  filters: {
+    providerId: string | null;
+    modelId: string | null;
+  };
+  usedProviders: string[];
+  usedModels: Array<{ providerId: string; modelId: string }>;
+  totals: {
+    costUsd: number;
+    totalTokens: number;
+  };
+  buckets: EmbeddingUsageBucket[];
+};

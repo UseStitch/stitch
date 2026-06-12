@@ -2,6 +2,7 @@ import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 
 import {
   USAGE_SOURCES,
+  type EmbeddingUsageDashboardResponse,
   type SttUsageDashboardResponse,
   type UsageDashboardResponse,
   type UsageBucketGranularity,
@@ -13,7 +14,7 @@ import {
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
-import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
+import { embeddingUsageEvents, llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';
@@ -556,6 +557,105 @@ export async function getSttUsageDashboard(
     totals: {
       costUsd: totalCostUsd,
       durationMs: totalDurationMs,
+    },
+    buckets,
+  });
+}
+
+export async function getEmbeddingUsageDashboard(
+  input: GetUsageDashboardInput,
+): Promise<ServiceResult<EmbeddingUsageDashboardResponse>> {
+  const db = getDb();
+  const window = await resolveWindow(input);
+  const granularity = inferGranularity(window);
+  const bucketRanges = buildBucketRanges(window, granularity);
+
+  const buckets = bucketRanges.map((range) => ({
+    start: range.start,
+    end: range.end,
+    label: formatBucketLabel(range, granularity),
+    costUsdByModel: {} as Record<string, number>,
+    tokensByModel: {} as Record<string, number>,
+  }));
+
+  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
+
+  let totalCostUsd = 0;
+  let totalTokens = 0;
+
+  const usedProviderIds = new Set<string>();
+  const usedModelKeys = new Set<string>();
+
+  const conditions = [
+    gte(embeddingUsageEvents.createdAt, window.from),
+    lt(embeddingUsageEvents.createdAt, window.to),
+  ];
+  if (input.providerId) {
+    conditions.push(eq(embeddingUsageEvents.providerId, input.providerId));
+  }
+  if (input.modelId) {
+    conditions.push(eq(embeddingUsageEvents.modelId, input.modelId));
+  }
+
+  const rows = await db
+    .select({
+      createdAt: embeddingUsageEvents.createdAt,
+      providerId: embeddingUsageEvents.providerId,
+      modelId: embeddingUsageEvents.modelId,
+      totalTokens: embeddingUsageEvents.totalTokens,
+      costUsd: embeddingUsageEvents.costUsd,
+    })
+    .from(embeddingUsageEvents)
+    .where(and(...conditions));
+
+  for (const row of rows) {
+    usedProviderIds.add(row.providerId);
+    const modelKey = `${row.providerId}::${row.modelId}`;
+    usedModelKeys.add(modelKey);
+
+    const costUsd = row.costUsd ?? 0;
+    const tokens = row.totalTokens ?? 0;
+
+    totalCostUsd += costUsd;
+    totalTokens += tokens;
+
+    const bucketStart = floorToGranularity(row.createdAt, granularity);
+    const bucketIndex = bucketIndexByStart.get(bucketStart);
+    if (bucketIndex === undefined) continue;
+
+    const bucket = buckets[bucketIndex];
+    if (!bucket) continue;
+
+    bucket.costUsdByModel[modelKey] = (bucket.costUsdByModel[modelKey] ?? 0) + costUsd;
+    bucket.tokensByModel[modelKey] = (bucket.tokensByModel[modelKey] ?? 0) + tokens;
+  }
+
+  return ok({
+    range: {
+      from: window.from,
+      to: window.to,
+      granularity,
+      bucketCount: buckets.length,
+    },
+    filters: {
+      providerId: input.providerId ?? null,
+      modelId: input.modelId ?? null,
+    },
+    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedModels: Array.from(usedModelKeys)
+      .map((key) => {
+        const separator = key.indexOf('::');
+        return {
+          providerId: key.slice(0, separator),
+          modelId: key.slice(separator + 2),
+        };
+      })
+      .sort(
+        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
+      ),
+    totals: {
+      costUsd: totalCostUsd,
+      totalTokens,
     },
     buckets,
   });
