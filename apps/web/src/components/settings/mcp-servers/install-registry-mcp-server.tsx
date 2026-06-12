@@ -14,7 +14,6 @@ import {
 } from './shared';
 
 import { SettingSubPage } from '@/components/settings/settings-ui';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -115,21 +114,21 @@ export function InstallRegistryMcpServer({
   return (
     <SettingSubPage
       title={`Install ${server.name}`}
-      description="Review connection settings before adding."
+      description={server.description}
       onBack={onBack}
       backLabel="Back to marketplace"
+      actions={
+        <a
+          href={server.docsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-muted-foreground underline hover:text-foreground"
+        >
+          View docs
+        </a>
+      }
     >
       <div className="space-y-4">
-        <div className="rounded-lg border border-border/60 px-3 py-2.5 text-xs text-muted-foreground">
-          <p>{server.description}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{server.install.transport.toUpperCase()}</Badge>
-            <a href={server.docsUrl} target="_blank" rel="noreferrer" className="underline">
-              View docs
-            </a>
-          </div>
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Name</Label>

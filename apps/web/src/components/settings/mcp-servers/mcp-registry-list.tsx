@@ -89,12 +89,9 @@ export function McpRegistryList({
           >
             <div className="flex min-w-0 items-start gap-3">
               <McpServerLogo registryId={server.id} name={server.name} className="mt-0.5 size-5" />
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 space-y-0.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-medium">{server.name}</p>
-                </div>
-                <p className="line-clamp-2 text-xs text-muted-foreground">{server.description}</p>
-                <div className="flex flex-wrap items-center gap-1.5">
                   {server.tags.slice(0, 4).map((tag) => (
                     <Badge
                       key={tag}
@@ -105,6 +102,7 @@ export function McpRegistryList({
                     </Badge>
                   ))}
                 </div>
+                <p className="line-clamp-2 text-xs text-muted-foreground">{server.description}</p>
               </div>
             </div>
 
