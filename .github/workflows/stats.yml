@@ -1,0 +1,25 @@
+name: stats
+
+on:
+  schedule:
+    - cron: "0 12 * * *" # Daily at 12:00 UTC
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  stats:
+    if: github.repository == 'UseStitch/stitch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Run stats script
+        run: bun scripts/stats.ts
+        env:
+          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
