@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { USAGE_SOURCES, type UsageDateRange } from '@stitch/shared/usage/types';
 
+import { formatUsdCost } from '@/lib/format-cost';
+
 export const ALL_FILTER = 'all';
 
 export const RANGE_LABELS: Record<UsageDateRange, string> = {
@@ -27,7 +29,7 @@ export function getSourceLabel(source: string): string {
 }
 
 export function formatCost(costUsd: number): string {
-  return `$${costUsd.toFixed(2)}`;
+  return formatUsdCost(costUsd);
 }
 
 export function formatTokens(value: number): string {
