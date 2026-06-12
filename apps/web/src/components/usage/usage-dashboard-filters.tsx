@@ -19,12 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type {
+  ModelOption,
+  ProviderOption,
+} from '@/components/usage/hooks/use-usage-dashboard-data';
 import {
   ALL_FILTER,
   encodeModelFilter,
   RANGE_LABELS,
-} from '@/components/usage/usage-dashboard-utils';
-import type { ModelOption, ProviderOption } from '@/components/usage/use-usage-dashboard-data';
+} from '@/components/usage/utils/usage-dashboard-utils';
 
 type UsageDashboardFiltersProps = {
   availableModels: ModelOption[];

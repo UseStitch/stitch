@@ -6,19 +6,19 @@ import type { UsageDateRange } from '@stitch/shared/usage/types';
 
 import {
   ALL_FILTER,
-  RANGE_LABELS,
   decodeModelFilter,
   encodeModelFilter,
-} from '@/components/usage/usage-dashboard-utils';
-import { embeddingProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { embeddingUsageDashboardQueryOptions } from '@/lib/queries/usage';
+  RANGE_LABELS,
+} from '@/components/usage/utils/usage-dashboard-utils';
+import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { usageDashboardQueryOptions } from '@/lib/queries/usage';
 
-type EmbeddingProviderOption = {
+export type ProviderOption = {
   providerId: string;
   providerName: string;
 };
 
-type EmbeddingModelOption = {
+export type ModelOption = {
   label: string;
   providerId: string;
   providerName: string;
@@ -26,52 +26,56 @@ type EmbeddingModelOption = {
   modelName: string;
 };
 
-export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
-  const { data: embeddingProviderModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
+export function useUsageDashboardData() {
+  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
 
   const [providerFilter, setProviderFilter] = React.useState<string>(ALL_FILTER);
   const [modelFilter, setModelFilter] = React.useState<string>(ALL_FILTER);
+  const [rangeFilter, setRangeFilter] = React.useState<UsageDateRange>('30d');
 
   const { data: usageRangeData } = useQuery({
-    ...embeddingUsageDashboardQueryOptions({ range: rangeFilter }),
+    ...usageDashboardQueryOptions({ range: rangeFilter }),
     placeholderData: keepPreviousData,
   });
 
   const providerById = React.useMemo(
-    () => new Map(embeddingProviderModels.map((p) => [p.providerId, p] as const)),
-    [embeddingProviderModels],
+    () => new Map(providerModels.map((provider) => [provider.providerId, provider] as const)),
+    [providerModels],
   );
 
   const modelNameByKey = React.useMemo(() => {
     const map = new Map<string, string>();
-    for (const provider of embeddingProviderModels) {
+    for (const provider of providerModels) {
       for (const model of provider.models) {
         map.set(encodeModelFilter(provider.providerId, model.id), model.name);
       }
     }
     return map;
-  }, [embeddingProviderModels]);
+  }, [providerModels]);
 
-  const availableProviders = React.useMemo<EmbeddingProviderOption[]>(() => {
+  const availableProviders = React.useMemo<ProviderOption[]>(() => {
     const used = new Set(usageRangeData?.usedProviders ?? []);
-    return embeddingProviderModels
-      .filter((p) => used.has(p.providerId))
-      .map((p) => ({ providerId: p.providerId, providerName: p.providerName }));
-  }, [embeddingProviderModels, usageRangeData?.usedProviders]);
+    return providerModels
+      .filter((provider) => used.has(provider.providerId))
+      .map((provider) => ({
+        providerId: provider.providerId,
+        providerName: provider.providerName,
+      }));
+  }, [providerModels, usageRangeData?.usedProviders]);
 
-  const availableModels = React.useMemo<EmbeddingModelOption[]>(() => {
+  const availableModels = React.useMemo<ModelOption[]>(() => {
     const usedModels = usageRangeData?.usedModels ?? [];
     return usedModels
-      .filter((m) => providerFilter === ALL_FILTER || m.providerId === providerFilter)
-      .map((m) => {
-        const provider = providerById.get(m.providerId);
-        const key = encodeModelFilter(m.providerId, m.modelId);
-        const modelName = modelNameByKey.get(key) ?? m.modelId;
+      .filter((model) => providerFilter === ALL_FILTER || model.providerId === providerFilter)
+      .map((model) => {
+        const provider = providerById.get(model.providerId);
+        const key = encodeModelFilter(model.providerId, model.modelId);
+        const modelName = modelNameByKey.get(key) ?? model.modelId;
         return {
           label: modelName,
-          providerId: m.providerId,
-          providerName: provider?.providerName ?? m.providerId,
-          modelId: m.modelId,
+          providerId: model.providerId,
+          providerName: provider?.providerName ?? model.providerId,
+          modelId: model.modelId,
           modelName,
         };
       });
@@ -106,7 +110,7 @@ export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
   }, [modelFilter, providerFilter, rangeFilter]);
 
   const { data: usageData, isFetching } = useQuery({
-    ...embeddingUsageDashboardQueryOptions(usageFilters),
+    ...usageDashboardQueryOptions(usageFilters),
     placeholderData: keepPreviousData,
   });
 
@@ -119,10 +123,10 @@ export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
     () =>
       new Map(
         availableModels.map(
-          (m) =>
+          (model) =>
             [
-              encodeModelFilter(m.providerId, m.modelId),
-              `${m.providerName} · ${m.modelName}`,
+              encodeModelFilter(model.providerId, model.modelId),
+              `${model.providerName} · ${model.modelName}`,
             ] as const,
         ),
       ),
@@ -149,6 +153,7 @@ export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
     isFetching,
     setModelFilter,
     setProviderFilter,
+    setRangeFilter,
     usageData,
   };
 }

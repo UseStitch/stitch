@@ -10,16 +10,16 @@ import {
   PageTitle,
 } from '@/components/ui/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EmbeddingUsageCostChart } from '@/components/usage/embedding-usage-cost-chart';
-import { EmbeddingUsageSummaryCards } from '@/components/usage/embedding-usage-summary-cards';
-import { SttUsageCostChart } from '@/components/usage/stt-usage-cost-chart';
-import { SttUsageSummaryCards } from '@/components/usage/stt-usage-summary-cards';
-import { UsageDashboardCostChart } from '@/components/usage/usage-dashboard-cost-chart';
+import { EmbeddingUsageSummaryCards } from '@/components/usage/cards/embedding-usage-summary-cards';
+import { SttUsageSummaryCards } from '@/components/usage/cards/stt-usage-summary-cards';
+import { UsageDashboardSummaryCards } from '@/components/usage/cards/usage-dashboard-summary-cards';
+import { EmbeddingUsageCostChart } from '@/components/usage/charts/embedding-usage-cost-chart';
+import { SttUsageCostChart } from '@/components/usage/charts/stt-usage-cost-chart';
+import { UsageDashboardCostChart } from '@/components/usage/charts/usage-dashboard-cost-chart';
+import { useEmbeddingUsageDashboardData } from '@/components/usage/hooks/use-embedding-usage-dashboard-data';
+import { useSttUsageDashboardData } from '@/components/usage/hooks/use-stt-usage-dashboard-data';
+import { useUsageDashboardData } from '@/components/usage/hooks/use-usage-dashboard-data';
 import { UsageDashboardFilters } from '@/components/usage/usage-dashboard-filters';
-import { UsageDashboardSummaryCards } from '@/components/usage/usage-dashboard-summary-cards';
-import { useEmbeddingUsageDashboardData } from '@/components/usage/use-embedding-usage-dashboard-data';
-import { useSttUsageDashboardData } from '@/components/usage/use-stt-usage-dashboard-data';
-import { useUsageDashboardData } from '@/components/usage/use-usage-dashboard-data';
 
 export function UsageDashboardPage() {
   const llm = useUsageDashboardData();
