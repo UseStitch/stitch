@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import type {
+  EmbeddingUsageDashboardResponse,
   SttUsageDashboardResponse,
   UsageDashboardResponse,
   UsageDateRange,
@@ -21,6 +22,8 @@ const usageKeys = {
   dashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'dashboard', filters] as const,
   sttDashboard: (filters: UsageDashboardFilters) =>
     [...usageKeys.all, 'stt-dashboard', filters] as const,
+  embeddingDashboard: (filters: UsageDashboardFilters) =>
+    [...usageKeys.all, 'embedding-dashboard', filters] as const,
 };
 
 function buildQueryString(filters: UsageDashboardFilters): string {
@@ -55,6 +58,18 @@ export const sttUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
       const path = query.length > 0 ? `/usage/stt?${query}` : '/usage/stt';
 
       return serverRequest<SttUsageDashboardResponse>(path);
+    },
+    staleTime: 30_000,
+  });
+
+export const embeddingUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
+  queryOptions({
+    queryKey: usageKeys.embeddingDashboard(filters),
+    queryFn: () => {
+      const query = buildQueryString(filters);
+      const path = query.length > 0 ? `/usage/embedding?${query}` : '/usage/embedding';
+
+      return serverRequest<EmbeddingUsageDashboardResponse>(path);
     },
     staleTime: 30_000,
   });

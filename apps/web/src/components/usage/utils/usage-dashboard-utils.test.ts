@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { formatCost } from '@/components/usage/usage-dashboard-utils';
+import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
 
 describe('formatCost', () => {
   test('keeps zero at cent precision', () => {
