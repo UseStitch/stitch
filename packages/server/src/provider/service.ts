@@ -71,6 +71,10 @@ export async function listProvidersWithCapabilities(): Promise<
     nameMap['elevenlabs'] = 'ElevenLabs';
     apiMap['elevenlabs'] = 'https://api.elevenlabs.io';
   }
+  if (!nameMap['assemblyai']) {
+    nameMap['assemblyai'] = 'AssemblyAI';
+    apiMap['assemblyai'] = 'https://api.assemblyai.com';
+  }
 
   const allIds = new Set([
     ...Object.keys(llmProviders),
@@ -111,7 +115,7 @@ export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderM
   const results: SttProviderModels[] = [];
   for (const entry of sttCatalog) {
     if (!enabledIds.has(entry.providerId)) continue;
-    const providerName = llmProviders[entry.providerId]?.name ?? entry.providerId;
+    const providerName = llmProviders[entry.providerId]?.name ?? entry.providerName;
     results.push({
       providerId: entry.providerId,
       providerName,

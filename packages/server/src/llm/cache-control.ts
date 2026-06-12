@@ -58,6 +58,8 @@ export function getCacheConfig(
     case 'nvidia':
     // ElevenLabs: STT-only, no LLM cache control
     case 'elevenlabs':
+    // AssemblyAI: STT-only, no LLM cache control
+    case 'assemblyai':
       return null;
   }
 }

@@ -79,7 +79,13 @@ const OllamaCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('none') }),
 });
 
+const AssemblyAICredentialsSchema = z.object({
+  providerId: z.literal('assemblyai'),
+  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
+});
+
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
+  AssemblyAICredentialsSchema,
   BedrockCredentialsSchema,
   AnthropicCredentialsSchema,
   ElevenLabsCredentialsSchema,

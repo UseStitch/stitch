@@ -3,6 +3,27 @@ import { AWS_BEDROCK_REGIONS } from './types.js';
 import type { ProviderId, ProviderMeta } from './types.js';
 
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
+  assemblyai: {
+    displayName: 'AssemblyAI',
+    description: 'Real-time speech-to-text with Universal-3 Pro Streaming',
+    extraFields: [],
+    authMethods: [
+      {
+        method: 'api-key',
+        label: 'API Key',
+        enabled: true,
+        fields: [
+          {
+            key: 'apiKey',
+            label: 'API Key',
+            placeholder: 'your-assemblyai-api-key',
+            required: true,
+            secret: true,
+          },
+        ],
+      },
+    ],
+  },
   anthropic: {
     displayName: 'Anthropic',
     description: 'Direct access to Claude models, including Pro and Max',

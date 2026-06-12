@@ -179,7 +179,7 @@ export function useStt(): UseSttReturn {
       };
 
       // Send start message
-      const startMsg: SttInboundMessage = {
+      send({
         type: 'start',
         sttSessionId: sessionId,
         providerId,
@@ -188,8 +188,7 @@ export function useStt(): UseSttReturn {
         recordingId: sessionId,
         capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
         audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
-      };
-      send(startMsg);
+      });
 
       // Wire up audio worklet message handler
       workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {

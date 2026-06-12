@@ -29,7 +29,7 @@ export type WsMessageResult = {
  */
 export function createWsTransport(
   config: WsTransportConfig,
-  buildAudioMessage: (chunk: { samplesB64: string; sampleRateHz: number }) => string,
+  buildAudioMessage: (chunk: { samplesB64: string; sampleRateHz: number }) => string | Uint8Array,
   buildCommitMessage: () => string,
 ): Promise<STTTransport> {
   return new Promise((resolve, reject) => {
@@ -109,9 +109,7 @@ export function createWsTransport(
     ws.addEventListener('close', (event) => {
       if (!opened) {
         reject(
-          new Error(
-            `${config.label} WebSocket failed to connect: ${event.code} ${event.reason}`,
-          ),
+          new Error(`${config.label} WebSocket failed to connect: ${event.code} ${event.reason}`),
         );
         return;
       }

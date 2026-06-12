@@ -4,6 +4,7 @@ import type { ModelDescriptor } from '@/stt/types.js';
 
 type CatalogEntry = {
   providerId: string;
+  providerName: string;
   models: ModelDescriptor[];
 };
 
@@ -14,6 +15,7 @@ function toModelDescriptor(model: SttModel): ModelDescriptor {
 function toCatalogEntry(provider: SttProvider): CatalogEntry {
   return {
     providerId: provider.providerId,
+    providerName: provider.providerName,
     models: provider.models.map(toModelDescriptor),
   };
 }
