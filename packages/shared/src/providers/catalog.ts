@@ -6,6 +6,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   assemblyai: {
     displayName: 'AssemblyAI',
     description: 'Real-time speech-to-text with Universal-3 Pro Streaming',
+    api: 'https://api.assemblyai.com',
+    capabilities: ['stt'],
     extraFields: [],
     authMethods: [
       {
@@ -27,6 +29,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   anthropic: {
     displayName: 'Anthropic',
     description: 'Direct access to Claude models, including Pro and Max',
+    api: 'https://api.anthropic.com',
+    capabilities: ['llm'],
     extraFields: [],
     authMethods: [
       {
@@ -56,6 +60,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   openai: {
     displayName: 'OpenAI',
     description: 'Access to GPT-4 and other OpenAI models',
+    api: 'https://api.openai.com',
+    capabilities: ['llm', 'stt', 'embedding'],
     extraFields: [
       {
         key: 'organization',
@@ -80,6 +86,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   elevenlabs: {
     displayName: 'ElevenLabs',
     description: 'Speech-to-text and audio intelligence',
+    api: 'https://api.elevenlabs.io',
+    capabilities: ['stt'],
     extraFields: [],
     authMethods: [
       {
@@ -101,6 +109,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   google: {
     displayName: 'Google AI',
     description: 'Access to Gemini and other Google AI models',
+    api: 'https://generativelanguage.googleapis.com',
+    capabilities: ['llm'],
     extraFields: [],
     authMethods: [
       {
@@ -116,6 +126,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   'google-vertex': {
     displayName: 'Google Vertex AI',
     description: 'Access to Gemini models via Google Cloud Vertex AI',
+    api: 'https://us-central1-aiplatform.googleapis.com',
+    capabilities: ['llm'],
     extraFields: [
       {
         key: 'project',
@@ -158,6 +170,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   'amazon-bedrock': {
     displayName: 'Amazon Bedrock',
     description: 'Access to foundation models via AWS',
+    api: 'https://bedrock.us-east-1.amazonaws.com',
+    capabilities: ['llm'],
     extraFields: [
       {
         key: 'region',
@@ -220,6 +234,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   nvidia: {
     displayName: 'NVIDIA',
     description: 'Access to NVIDIA NIM and foundation models',
+    api: 'https://integrate.api.nvidia.com',
+    capabilities: ['llm'],
     extraFields: [],
     authMethods: [
       {
@@ -241,6 +257,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   ollama_local: {
     displayName: 'Ollama',
     description: 'Run models locally with Ollama',
+    api: 'http://localhost:11434',
+    capabilities: ['llm'],
     extraFields: [
       {
         key: 'baseURL',
@@ -262,6 +280,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   openrouter: {
     displayName: 'OpenRouter',
     description: 'Unified API for multiple LLM providers',
+    api: 'https://openrouter.ai/api',
+    capabilities: ['llm'],
     extraFields: [],
     authMethods: [
       {
@@ -283,6 +303,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   vercel: {
     displayName: 'Vercel',
     description: 'Vercel AI Gateway',
+    api: 'https://ai.vercel.com',
+    capabilities: ['llm'],
     extraFields: [],
     authMethods: [
       {

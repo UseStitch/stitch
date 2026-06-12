@@ -160,6 +160,11 @@ export function getProviderOptions(
     case 'google-vertex':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
+    // ElevenLabs, AssemblyAI: STT-only, no LLM cache control
+    case 'elevenlabs':
+    case 'assemblyai':
+    // Ollama: local inference, no cache control support
+    case 'ollama_local':
       return undefined;
 
     // Vercel (AI Gateway): automatic caching based on underlying provider

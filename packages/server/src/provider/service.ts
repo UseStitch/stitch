@@ -1,3 +1,4 @@
+import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { getDb } from '@/db/client.js';
@@ -52,30 +53,6 @@ export async function listProvidersWithCapabilities(): Promise<
 
   ensureEntry('ollama_local').add('llm');
 
-  const nameMap: Record<string, string> = {};
-  const apiMap: Record<string, string | undefined> = {};
-
-  for (const [id, p] of Object.entries(llmProviders)) {
-    nameMap[id] = p.name;
-    apiMap[id] = p.api;
-  }
-  for (const [id, p] of Object.entries(embeddingProviders)) {
-    if (!nameMap[id]) {
-      nameMap[id] = p.name;
-      apiMap[id] = p.api;
-    }
-  }
-  nameMap['ollama_local'] = 'Ollama';
-  apiMap['ollama_local'] = 'http://localhost:11434';
-  if (!nameMap['elevenlabs']) {
-    nameMap['elevenlabs'] = 'ElevenLabs';
-    apiMap['elevenlabs'] = 'https://api.elevenlabs.io';
-  }
-  if (!nameMap['assemblyai']) {
-    nameMap['assemblyai'] = 'AssemblyAI';
-    apiMap['assemblyai'] = 'https://api.assemblyai.com';
-  }
-
   const allIds = new Set([
     ...Object.keys(llmProviders),
     ...Object.keys(embeddingProviders),
@@ -86,10 +63,12 @@ export async function listProvidersWithCapabilities(): Promise<
   for (const id of allIds) {
     const caps = capabilitiesMap.get(id);
     if (!caps || caps.size === 0) continue;
+
+    const meta = PROVIDER_META[id as keyof typeof PROVIDER_META];
     results.push({
       id,
-      name: nameMap[id] ?? id,
-      api: apiMap[id],
+      name: meta?.displayName ?? llmProviders[id]?.name ?? id,
+      api: meta?.api ?? llmProviders[id]?.api,
       enabled: enabledIds.has(id),
       capabilities: [...caps],
     });
@@ -105,17 +84,17 @@ export async function listProvidersWithCapabilities(): Promise<
 
 export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderModels[]>> {
   const db = getDb();
-  const [configs, sttCatalog, llmProviders] = await Promise.all([
+  const [configs, sttCatalog] = await Promise.all([
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
     getModelCatalog(),
-    Models.get(),
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
   const results: SttProviderModels[] = [];
   for (const entry of sttCatalog) {
     if (!enabledIds.has(entry.providerId)) continue;
-    const providerName = llmProviders[entry.providerId]?.name ?? entry.providerName;
+    const meta = PROVIDER_META[entry.providerId as keyof typeof PROVIDER_META];
+    const providerName = meta?.displayName ?? entry.providerName;
     results.push({
       providerId: entry.providerId,
       providerName,
