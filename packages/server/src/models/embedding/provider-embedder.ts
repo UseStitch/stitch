@@ -2,7 +2,7 @@ import { embed, embedMany, type EmbeddingModel } from 'ai';
 
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import type { Embedder } from '@/models/embedding/embedder.js';
+import type { EmbedManyResult, EmbedResult, Embedder } from '@/models/embedding/embedder.js';
 
 /**
  * Embedding implementation using AI SDK providers (OpenAI, Google, etc.).
@@ -10,21 +10,30 @@ import type { Embedder } from '@/models/embedding/embedder.js';
  */
 export class ProviderEmbedder implements Embedder {
   readonly dimensions: number;
+  readonly providerId: string;
+  readonly modelId: string;
   private readonly model: EmbeddingModel;
 
-  constructor(credentials: ProviderCredentials, modelId: string, dimensions: number) {
+  constructor(
+    credentials: ProviderCredentials,
+    providerId: string,
+    modelId: string,
+    dimensions: number,
+  ) {
     const embeddingProvider = createProvider(credentials);
     this.model = embeddingProvider.embeddingModel(modelId);
     this.dimensions = dimensions;
+    this.providerId = providerId;
+    this.modelId = modelId;
   }
 
-  async embed(text: string): Promise<number[]> {
+  async embed(text: string): Promise<EmbedResult> {
     const result = await embed({ model: this.model, value: text });
-    return result.embedding;
+    return { embedding: result.embedding, tokens: result.usage?.tokens ?? 0 };
   }
 
-  async embedMany(texts: string[]): Promise<number[][]> {
+  async embedMany(texts: string[]): Promise<EmbedManyResult> {
     const result = await embedMany({ model: this.model, values: texts });
-    return result.embeddings;
+    return { embeddings: result.embeddings, tokens: result.usage?.tokens ?? 0 };
   }
 }
