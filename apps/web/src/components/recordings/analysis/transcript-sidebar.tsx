@@ -34,11 +34,12 @@ export function TranscriptSidebar({
   recordingId,
   isRecording,
 }: TranscriptSidebarProps) {
-  const liveEntries = useLiveTranscript(isRecording ? recordingId : null);
+  const liveEntries = useLiveTranscript(recordingId, isRecording);
   const scrollParentRef = React.useRef<HTMLDivElement>(null);
 
   const staticTranscript = analysis?.transcript;
-  const showLive = isRecording && liveEntries.length > 0;
+  const hasStaticTranscript = staticTranscript && staticTranscript.length > 0;
+  const showLive = liveEntries.length > 0 && !hasStaticTranscript;
   const entries = React.useMemo<TranscriptEntryView[]>(() => {
     if (showLive) {
       return liveEntries.map((entry) => ({
