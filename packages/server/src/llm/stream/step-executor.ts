@@ -188,7 +188,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
         };
       }
 
-      await accumulator.handlePart(part);
+      accumulator.handlePart(part);
 
       if (abortSignal.aborted) {
         throw new StreamAbortedError();

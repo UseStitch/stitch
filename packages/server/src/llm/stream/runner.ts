@@ -233,7 +233,7 @@ class StreamRunner {
   }
 
   private logStart(): void {
-    const userPromptPreview = this.getLastUserPromptPreview();
+    const userPromptPreview = this.getLastUserText(200);
 
     log.info(
       {
@@ -250,7 +250,7 @@ class StreamRunner {
     );
   }
 
-  private getLastUserPromptPreview(): string | null {
+  private getLastUserText(maxLength?: number): string | null {
     for (let i = this.state.conversation.length - 1; i >= 0; i--) {
       const message = this.state.conversation[i];
       if (message?.role !== 'user') {
@@ -259,17 +259,24 @@ class StreamRunner {
 
       const { content } = message;
       if (typeof content === 'string') {
-        return content.slice(0, 200);
+        return maxLength ? content.slice(0, maxLength) : content;
       }
 
       if (Array.isArray(content)) {
         const textPart = content.find(
           (part) => typeof part === 'object' && part !== null && part.type === 'text',
         );
-        if (textPart && typeof textPart.text === 'string') {
-          return textPart.text.slice(0, 200);
+        if (
+          textPart &&
+          typeof textPart === 'object' &&
+          'text' in textPart &&
+          typeof textPart.text === 'string'
+        ) {
+          return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
         }
       }
+
+      return null;
     }
 
     return null;
@@ -1073,28 +1080,6 @@ class StreamRunner {
         'async memory processing failed',
       );
     });
-  }
-
-  private getLastUserText(): string | null {
-    for (let i = this.state.conversation.length - 1; i >= 0; i--) {
-      const msg = this.state.conversation[i];
-      if (msg?.role !== 'user') continue;
-
-      const { content } = msg;
-      if (typeof content === 'string') return content;
-
-      if (Array.isArray(content)) {
-        const textPart = content.find(
-          (part) => typeof part === 'object' && part !== null && part.type === 'text',
-        );
-        if (textPart && typeof textPart === 'object' && 'text' in textPart) {
-          return textPart.text;
-        }
-      }
-
-      return null;
-    }
-    return null;
   }
 
   private getAssistantText(): string | null {

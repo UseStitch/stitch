@@ -134,8 +134,10 @@ export async function checkAndHandleDoomLoop(opts: {
       content: DOOM_LOOP_MESSAGE,
     });
 
+    // Use empty tools for the summary step
     const summaryResult = await executeStepWithRetry({
       ...stepOptions,
+      tools: {},
       conversation,
       onAttemptFailure: onDoomLoopAttemptFailure,
     });
