@@ -15,6 +15,7 @@ import {
   isPermissionRejectedError,
 } from '@/llm/stream/errors.js';
 import { stableStringify } from '@/utils/stable-stringify.js';
+import type { TextStreamPart, ToolSet } from 'ai';
 
 const log = Log.create({ service: 'stream-accumulator' });
 
@@ -89,20 +90,20 @@ export class StreamAccumulator {
     });
   }
 
-  private async handleTextualStart(
+  private handleTextualStart(
     field: 'currentTextPart' | 'currentReasoningPart',
     part: unknown,
-  ): Promise<void> {
+  ): void {
     const partId = createPartId();
     this[field] = { id: partId, text: '', startedAt: Date.now() };
     this.broadcastPartUpdate(partId, part);
   }
 
-  private async handleTextualDelta(
+  private handleTextualDelta(
     field: 'currentTextPart' | 'currentReasoningPart',
     violationName: string,
     part: { text: string },
-  ): Promise<void> {
+  ): void {
     const current = this[field];
     if (current) {
       current.text += part.text;
@@ -123,11 +124,11 @@ export class StreamAccumulator {
     }
   }
 
-  private async handleTextualEnd(
+  private handleTextualEnd(
     field: 'currentTextPart' | 'currentReasoningPart',
     storedType: 'text-delta' | 'reasoning-delta',
     part: unknown,
-  ): Promise<void> {
+  ): void {
     const current = this[field];
     if (current) {
       const now = Date.now();
@@ -145,7 +146,7 @@ export class StreamAccumulator {
 
   // ─── Main dispatcher ──────────────────────────────────────────────────────
 
-  async handlePart(part: any): Promise<void> {
+  handlePart(part: TextStreamPart<ToolSet>): void {
     log.debug(
       {
         event: 'stream.part.received',
@@ -160,23 +161,23 @@ export class StreamAccumulator {
 
     switch (part.type) {
       case 'text-start':
-        await this.handleTextualStart('currentTextPart', part);
+        this.handleTextualStart('currentTextPart', part);
         break;
 
       case 'text-delta':
-        await this.handleTextualDelta('currentTextPart', 'text_delta_without_text_start', part);
+        this.handleTextualDelta('currentTextPart', 'text_delta_without_text_start', part);
         break;
 
       case 'text-end':
-        await this.handleTextualEnd('currentTextPart', 'text-delta', part);
+        this.handleTextualEnd('currentTextPart', 'text-delta', part);
         break;
 
       case 'reasoning-start':
-        await this.handleTextualStart('currentReasoningPart', part);
+        this.handleTextualStart('currentReasoningPart', part);
         break;
 
       case 'reasoning-delta':
-        await this.handleTextualDelta(
+        this.handleTextualDelta(
           'currentReasoningPart',
           'reasoning_delta_without_reasoning_start',
           part,
@@ -184,7 +185,7 @@ export class StreamAccumulator {
         break;
 
       case 'reasoning-end':
-        await this.handleTextualEnd('currentReasoningPart', 'reasoning-delta', part);
+        this.handleTextualEnd('currentReasoningPart', 'reasoning-delta', part);
         break;
 
       case 'source': {
@@ -346,8 +347,7 @@ export class StreamAccumulator {
             error: errorText,
             errorName,
             errorStack,
-            rawPartKeys:
-              part && typeof part === 'object' ? Object.keys(part as Record<string, unknown>) : [],
+            rawPartKeys: Object.keys(part as Record<string, unknown>),
           },
           'stream part error',
         );
@@ -370,6 +370,11 @@ export class StreamAccumulator {
         // Step lifecycle events are not broadcast or persisted — they add noise without UI value
         break;
 
+      case 'tool-output-denied':
+      case 'tool-approval-request':
+        // Not handled — approval flow is managed outside the accumulator
+        break;
+
       case 'start':
       case 'raw':
         break;
@@ -389,6 +394,11 @@ export class StreamAccumulator {
         startedAt: this.currentTextPart.startedAt,
         endedAt: now,
       });
+      // Signal to the client that the text part is finalized so it can exit streaming state
+      this.broadcastPartUpdate(this.currentTextPart.id, {
+        type: 'text-end',
+        id: this.currentTextPart.id,
+      });
       this.currentTextPart = null;
     }
     if (this.currentReasoningPart && this.currentReasoningPart.text) {
@@ -398,6 +408,11 @@ export class StreamAccumulator {
         id: this.currentReasoningPart.id,
         startedAt: this.currentReasoningPart.startedAt,
         endedAt: now,
+      });
+      // Signal to the client that the reasoning part is finalized so it can exit streaming state
+      this.broadcastPartUpdate(this.currentReasoningPart.id, {
+        type: 'reasoning-end',
+        id: this.currentReasoningPart.id,
       });
       this.currentReasoningPart = null;
     }
