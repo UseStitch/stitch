@@ -177,4 +177,40 @@ export function registerSseAdapter(): void {
       summaryMessageId: event.summaryMessageId,
     });
   });
+
+  // ─── Questions ────────────────────────────────────────────────────────────
+
+  internalBus.onSync('question.asked', (event) => {
+    broadcast('question-asked', { question: event.question });
+  });
+
+  internalBus.onSync('question.replied', (event) => {
+    broadcast('question-replied', {
+      questionId: event.questionId,
+      sessionId: event.sessionId,
+      answers: event.answers,
+    });
+  });
+
+  internalBus.onSync('question.rejected', (event) => {
+    broadcast('question-rejected', {
+      questionId: event.questionId,
+      sessionId: event.sessionId,
+    });
+  });
+
+  // ─── Permissions ──────────────────────────────────────────────────────────
+
+  internalBus.onSync('permission.requested', (event) => {
+    broadcast('permission-response-requested', {
+      permissionResponse: event.permissionResponse,
+    });
+  });
+
+  internalBus.onSync('permission.resolved', (event) => {
+    broadcast('permission-response-resolved', {
+      permissionResponseId: event.permissionResponseId,
+      sessionId: event.sessionId,
+    });
+  });
 }

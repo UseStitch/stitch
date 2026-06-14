@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq, isNull } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import { getDb } from '@/db/client.js';
 import { toolPermissions } from '@/db/schema/permissions.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import {
   abortPermissionResponses,
   allowPermissionResponse,
@@ -21,13 +21,13 @@ import {
 
 setupTestDb();
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
-function captureEvents(...names: SseEventName[]): void {
+function captureEvents(...names: InternalEventName[]): void {
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -50,9 +50,7 @@ async function waitForEvents(count: number): Promise<void> {
 }
 
 async function waitForRequestedEvents(count: number): Promise<void> {
-  while (
-    emittedEvents.filter(([name]) => name === 'permission-response-requested').length < count
-  ) {
+  while (emittedEvents.filter(([name]) => name === 'permission.requested').length < count) {
     await new Promise((r) => setTimeout(r, 5));
   }
 }
@@ -62,7 +60,7 @@ describe('permission service interactions', () => {
     emittedEvents = [];
     for (const cleanup of cleanups) cleanup();
     cleanups = [];
-    captureEvents('permission-response-requested', 'permission-response-resolved');
+    captureEvents('permission.requested', 'permission.resolved');
     await seedSessions();
   });
 
@@ -83,9 +81,9 @@ describe('permission service interactions', () => {
 
     await waitForEvents(1);
 
-    const requestedEvent = emittedEvents.find(([name]) => name === 'permission-response-requested');
+    const requestedEvent = emittedEvents.find(([name]) => name === 'permission.requested');
     expect(requestedEvent).toBeDefined();
-    const requestedData = requestedEvent![1] as SseEventPayloadMap['permission-response-requested'];
+    const requestedData = requestedEvent![1] as InternalEventMap['permission.requested'];
     expect(requestedData.permissionResponse).toMatchObject({
       sessionId,
       messageId,
@@ -98,7 +96,7 @@ describe('permission service interactions', () => {
     expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null });
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
-    const resolvedEvent = emittedEvents.find(([name]) => name === 'permission-response-resolved');
+    const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
     expect(resolvedEvent).toBeDefined();
     expect(resolvedEvent![1]).toEqual({
       permissionResponseId,
@@ -133,8 +131,8 @@ describe('permission service interactions', () => {
     await waitForRequestedEvents(1);
 
     const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-requested',
-    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+      ([name]) => name === 'permission.requested',
+    ) as Array<[string, InternalEventMap['permission.requested']]>;
     expect(requestedEvents).toHaveLength(1);
 
     await allowPermissionResponse(requestedEvents[0][1].permissionResponse.id);
@@ -166,8 +164,8 @@ describe('permission service interactions', () => {
     await waitForRequestedEvents(2);
 
     const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-requested',
-    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+      ([name]) => name === 'permission.requested',
+    ) as Array<[string, InternalEventMap['permission.requested']]>;
     expect(requestedEvents).toHaveLength(2);
 
     await rejectPermissionResponse(requestedEvents[0][1].permissionResponse.id);
@@ -192,8 +190,8 @@ describe('permission service interactions', () => {
 
     await waitForRequestedEvents(1);
     const firstRequested = emittedEvents.find(
-      ([name]) => name === 'permission-response-requested',
-    )![1] as SseEventPayloadMap['permission-response-requested'];
+      ([name]) => name === 'permission.requested',
+    )![1] as InternalEventMap['permission.requested'];
 
     await allowPermissionResponse(firstRequested.permissionResponse.id);
     expect(first).resolves.toEqual({ decision: 'allow' });
@@ -211,8 +209,8 @@ describe('permission service interactions', () => {
     await waitForRequestedEvents(2);
 
     const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-requested',
-    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+      ([name]) => name === 'permission.requested',
+    ) as Array<[string, InternalEventMap['permission.requested']]>;
     expect(requestedEvents).toHaveLength(2);
 
     await rejectPermissionResponse(requestedEvents[1][1].permissionResponse.id);
@@ -250,9 +248,7 @@ describe('permission service interactions', () => {
     await waitForRequestedEvents(1);
     await abortPermissionResponses(sessionId);
 
-    const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-requested',
-    );
+    const requestedEvents = emittedEvents.filter(([name]) => name === 'permission.requested');
     expect(requestedEvents).toHaveLength(1);
 
     const firstError = await firstResult;
@@ -276,8 +272,8 @@ describe('permission service interactions', () => {
     await waitForEvents(1);
 
     const requestedData = emittedEvents.find(
-      ([name]) => name === 'permission-response-requested',
-    )![1] as SseEventPayloadMap['permission-response-requested'];
+      ([name]) => name === 'permission.requested',
+    )![1] as InternalEventMap['permission.requested'];
     const permissionResponseId = requestedData.permissionResponse.id;
 
     expect(
@@ -312,8 +308,8 @@ describe('permission service interactions', () => {
     await waitForEvents(2);
 
     const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-requested',
-    ) as Array<[string, SseEventPayloadMap['permission-response-requested']]>;
+      ([name]) => name === 'permission.requested',
+    ) as Array<[string, InternalEventMap['permission.requested']]>;
 
     const firstId = requestedEvents.find(
       ([, data]) => data.permissionResponse.sessionId === sessionId,
@@ -326,12 +322,10 @@ describe('permission service interactions', () => {
 
     expect(first).rejects.toThrow('Permission response aborted by session abort');
 
-    const resolvedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission-response-resolved',
-    );
+    const resolvedEvents = emittedEvents.filter(([name]) => name === 'permission.resolved');
     expect(
       resolvedEvents.some(([, data]) => {
-        const d = data as SseEventPayloadMap['permission-response-resolved'];
+        const d = data as InternalEventMap['permission.resolved'];
         return d.permissionResponseId === firstId && d.sessionId === sessionId;
       }),
     ).toBe(true);

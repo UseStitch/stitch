@@ -2,6 +2,8 @@ import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { PermissionResponse } from '@stitch/shared/permissions/types';
+import type { QuestionRequest } from '@stitch/shared/questions/types';
 
 import type { LanguageModelUsage } from 'ai';
 
@@ -210,6 +212,34 @@ export type UsageDoomLoopSummaryEvent = {
   usage: LanguageModelUsage;
 };
 
+// ─── Questions ───────────────────────────────────────────────────────────────
+
+export type QuestionAskedEvent = {
+  question: QuestionRequest;
+};
+
+export type QuestionRepliedEvent = {
+  questionId: PrefixedString<'quest'>;
+  sessionId: PrefixedString<'ses'>;
+  answers: string[][];
+};
+
+export type QuestionRejectedEvent = {
+  questionId: PrefixedString<'quest'>;
+  sessionId: PrefixedString<'ses'>;
+};
+
+// ─── Permissions ─────────────────────────────────────────────────────────────
+
+export type PermissionRequestedEvent = {
+  permissionResponse: PermissionResponse;
+};
+
+export type PermissionResolvedEvent = {
+  permissionResponseId: PrefixedString<'permres'>;
+  sessionId: PrefixedString<'ses'>;
+};
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -247,4 +277,13 @@ export type InternalEventMap = {
   'usage.step.failed': UsageStepFailedEvent;
   'usage.doom_loop.failed': UsageDoomLoopFailedEvent;
   'usage.doom_loop.summary': UsageDoomLoopSummaryEvent;
+
+  // Questions
+  'question.asked': QuestionAskedEvent;
+  'question.replied': QuestionRepliedEvent;
+  'question.rejected': QuestionRejectedEvent;
+
+  // Permissions
+  'permission.requested': PermissionRequestedEvent;
+  'permission.resolved': PermissionResolvedEvent;
 };
