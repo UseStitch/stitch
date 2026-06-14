@@ -10,7 +10,7 @@ import { createSession } from '@/chat/service.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { buildCompactedHistory } from '@/llm/compaction.js';
@@ -75,12 +75,11 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
 
       const childSessionId = childSession.id;
 
-      Events.emit('stream-tool-state', {
+      internalBus.emit('tool.progress', {
         sessionId: context.sessionId,
         messageId: context.messageId,
         toolCallId,
         toolName: 'task',
-        status: 'in-progress',
         output: {
           childSessionId,
           childSessionName: childSession.title,

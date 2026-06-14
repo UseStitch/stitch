@@ -1,7 +1,8 @@
-import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
+import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
+
 import type { LanguageModelUsage } from 'ai';
 
 // ─── Stream Lifecycle ────────────────────────────────────────────────────────
@@ -112,6 +113,14 @@ export type ToolFailedEvent = {
   error: string;
 };
 
+export type ToolProgressEvent = {
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  toolCallId: string;
+  toolName: string;
+  output: unknown;
+};
+
 // ─── Session Lifecycle ───────────────────────────────────────────────────────
 
 export type SessionMessageSavedEvent = {
@@ -220,6 +229,7 @@ export type InternalEventMap = {
   'tool.started': ToolStartedEvent;
   'tool.completed': ToolCompletedEvent;
   'tool.failed': ToolFailedEvent;
+  'tool.progress': ToolProgressEvent;
 
   // Session lifecycle
   'session.message.saved': SessionMessageSavedEvent;

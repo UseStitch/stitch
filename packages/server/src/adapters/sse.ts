@@ -129,6 +129,17 @@ export function registerSseAdapter(): void {
     });
   });
 
+  internalBus.onSync('tool.progress', (event) => {
+    broadcast('stream-tool-state', {
+      sessionId: event.sessionId,
+      messageId: event.messageId,
+      toolCallId: event.toolCallId,
+      toolName: event.toolName,
+      status: 'in-progress',
+      output: event.output,
+    });
+  });
+
   // ─── Session Lifecycle ───────────────────────────────────────────────────
 
   internalBus.onSync('session.message.saved', (event) => {
