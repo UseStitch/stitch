@@ -4,26 +4,29 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
 function captureAllEvents(): void {
-  const names: SseEventName[] = [
-    'stream-part-update',
-    'stream-part-delta',
-    'stream-tool-state',
-    'stream-error',
-    'stream-retry',
+  const names: InternalEventName[] = [
+    'part.update',
+    'part.delta',
+    'tool.pending',
+    'tool.started',
+    'tool.completed',
+    'tool.failed',
+    'stream.failed',
+    'stream.retry',
   ];
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -311,8 +314,8 @@ describe('executeStepWithRetry', () => {
     await executeStepWithRetry(opts);
 
     const eventTypes = emittedEvents.map(([name]) => name);
-    expect(eventTypes).toContain('stream-part-update');
-    expect(eventTypes).toContain('stream-part-delta');
+    expect(eventTypes).toContain('part.update');
+    expect(eventTypes).toContain('part.delta');
   });
 
   test('handles abort signal during streaming', async () => {

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 
+import { registerSseConnection, unregisterSseConnection } from '@/adapters/sse.js';
 import * as Log from '@/lib/log.js';
 import * as Sse from '@/lib/sse.js';
 
@@ -14,9 +15,11 @@ eventsRouter.get('/', (c) => {
   return streamSSE(
     c,
     async (stream) => {
+      registerSseConnection(stream);
       Sse.registerConnection(stream);
 
       stream.onAbort(() => {
+        unregisterSseConnection(stream);
         Sse.unregisterConnection(stream);
       });
 

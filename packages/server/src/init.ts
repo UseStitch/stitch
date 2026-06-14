@@ -1,3 +1,4 @@
+import { registerAdapters } from '@/adapters/index.js';
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { initConnectorRuntime } from '@/connectors/runtime.js';
@@ -16,6 +17,7 @@ const log = Log.create({ service: 'init' });
 
 export async function init() {
   await Log.init({});
+  registerAdapters();
   initSseBridge();
 
   await initDb();

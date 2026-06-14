@@ -7,7 +7,7 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
@@ -321,10 +321,14 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       }
 
       if (!retryMessage || attempt >= MAX_RETRIES) {
-        Events.emit('stream-error', {
+        internalBus.emit('stream.failed', {
           sessionId: opts.sessionId,
           messageId: opts.messageId,
+          streamRunId: opts.streamRunId,
+          modelId: '',
+          providerId: opts.providerId,
           error: errorInfo.message,
+          errorCode: errorInfo.aiErrorName,
           details: {
             category: errorInfo.category,
             isRetryable: errorInfo.isRetryable,
@@ -351,7 +355,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         'retrying step',
       );
 
-      Events.emit('stream-retry', {
+      internalBus.emit('stream.retry', {
         sessionId: opts.sessionId,
         messageId: opts.messageId,
         attempt,

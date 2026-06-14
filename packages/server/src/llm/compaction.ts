@@ -8,7 +8,7 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
@@ -260,7 +260,7 @@ export async function compact(input: {
       getSessionTodosPromptBlock(sessionId),
     ]);
 
-    Events.emit('compaction-start', { sessionId, messageId: summaryMessageId });
+    internalBus.emit('session.compaction.started', { sessionId, messageId: summaryMessageId });
 
     const db = getDb();
     const now = Date.now();
@@ -417,7 +417,7 @@ export async function compact(input: {
       'compaction complete',
     );
 
-    Events.emit('compaction-complete', { sessionId, summaryMessageId });
+    internalBus.emit('session.compaction.completed', { sessionId, summaryMessageId });
 
     return 'continue';
   } catch (error) {
@@ -432,10 +432,14 @@ export async function compact(input: {
       'compaction failed',
     );
 
-    Events.emit('stream-error', {
+    internalBus.emit('stream.failed', {
       sessionId,
       messageId: summaryMessageId,
+      streamRunId: '',
+      modelId: '',
+      providerId: input.providerId,
       error: `Compaction failed: ${mappedError.message}`,
+      errorCode: mappedError.aiErrorName,
       details: toStreamErrorDetails(mappedError),
     });
 

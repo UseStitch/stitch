@@ -9,11 +9,12 @@ type Listener<K extends InternalEventName> = (data: InternalEventPayloadMap[K]) 
 const listeners = new Map<InternalEventName, Set<Listener<InternalEventName>>>();
 
 export function on<K extends InternalEventName>(event: K, listener: Listener<K>): () => void {
-  let set = listeners.get(event);
-  if (!set) {
-    set = new Set();
-    listeners.set(event, set);
+  let existing = listeners.get(event);
+  if (!existing) {
+    existing = new Set();
+    listeners.set(event, existing);
   }
+  const set = existing;
   set.add(listener as Listener<InternalEventName>);
   return () => {
     set.delete(listener as Listener<InternalEventName>);
