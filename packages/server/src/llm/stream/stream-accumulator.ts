@@ -4,7 +4,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
 import { isToolErrorResult } from '@stitch/shared/tools/types';
 
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
@@ -73,7 +73,7 @@ export class StreamAccumulator {
   }
 
   private broadcastPartUpdate(partId: PartId, part: unknown): void {
-    Events.emit('stream-part-update', {
+    internalBus.emit('part.update', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
@@ -82,7 +82,7 @@ export class StreamAccumulator {
   }
 
   private broadcastPartDelta(partId: PartId, delta: unknown): void {
-    Events.emit('stream-part-delta', {
+    internalBus.emit('part.delta', {
       sessionId: this.sessionId,
       messageId: this.messageId,
       partId,
@@ -205,12 +205,11 @@ export class StreamAccumulator {
       }
 
       case 'tool-input-start':
-        Events.emit('stream-tool-state', {
+        internalBus.emit('tool.pending', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.id,
           toolName: part.toolName,
-          status: 'pending',
         });
         break;
 
@@ -228,12 +227,11 @@ export class StreamAccumulator {
           inputJson: stableStringify(part.input),
         });
 
-        Events.emit('stream-tool-state', {
+        internalBus.emit('tool.started', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          status: 'in-progress',
           input: part.input,
         });
 
@@ -262,15 +260,24 @@ export class StreamAccumulator {
           (sanitizedOutput as { failed?: unknown }).failed === true;
         const isError = Boolean(fallbackError) || isBashFailure;
 
-        Events.emit('stream-tool-state', {
-          sessionId: this.sessionId,
-          messageId: this.messageId,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          status: isError ? 'error' : 'completed',
-          input: part.input,
-          ...(fallbackError ? { error: fallbackError } : { output: sanitizedOutput }),
-        });
+        if (isError) {
+          internalBus.emit('tool.failed', {
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            error: fallbackError ?? 'Tool execution failed',
+          });
+        } else {
+          internalBus.emit('tool.completed', {
+            sessionId: this.sessionId,
+            messageId: this.messageId,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: part.input,
+            output: sanitizedOutput,
+          });
+        }
 
         this.accumulatedParts.push({
           type: 'tool-result',
@@ -292,12 +299,11 @@ export class StreamAccumulator {
         const partId = createPartId();
         const errorText = String(part.error);
 
-        Events.emit('stream-tool-state', {
+        internalBus.emit('tool.failed', {
           sessionId: this.sessionId,
           messageId: this.messageId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          status: 'error',
           error: errorText,
         });
 
@@ -351,10 +357,14 @@ export class StreamAccumulator {
           },
           'stream part error',
         );
-        Events.emit('stream-error', {
+        internalBus.emit('stream.failed', {
           sessionId: this.sessionId,
           messageId: this.messageId,
+          streamRunId: this.streamRunId,
+          modelId: '',
+          providerId: '',
           error: errorText,
+          errorCode: part.error instanceof Error ? part.error.name : undefined,
           details: toStreamErrorDetails(mappedError),
         });
 

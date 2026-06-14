@@ -12,7 +12,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -242,7 +242,7 @@ async function maybeGenerateTitle(input: {
         .set({ title: generatedTitle.title, updatedAt: Date.now() })
         .where(eq(sessions.id, input.sessionId));
 
-      Events.emit('session-title-update', {
+      internalBus.emit('session.title.updated', {
         sessionId: input.sessionId,
         title: generatedTitle.title,
       });

@@ -6,8 +6,8 @@ import type { QuestionInfo, QuestionRequest } from '@stitch/shared/questions/typ
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema/questions.js';
-import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -124,7 +124,7 @@ export async function askQuestion(opts: {
     throw new Error(`Question not found after create: ${id}`);
   }
 
-  Events.emit('question-asked', {
+  internalBus.emit('question.asked', {
     question: toQuestionRequest(row),
   });
 
@@ -163,7 +163,7 @@ export async function replyQuestion(
     .where(eq(questions.id, questionId))
     .returning();
 
-  Events.emit('question-replied', {
+  internalBus.emit('question.replied', {
     questionId,
     sessionId: question.sessionId,
     answers,
@@ -206,7 +206,7 @@ export async function rejectQuestion(
     })
     .where(eq(questions.id, questionId));
 
-  Events.emit('question-rejected', {
+  internalBus.emit('question.rejected', {
     questionId,
     sessionId: question.sessionId,
   });
@@ -271,7 +271,7 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
   await Promise.all(
     pendingRows.map(async (q) => {
       const streamRunId = streamRunIds.get(q.id);
-      Events.emit('question-rejected', { questionId: q.id, sessionId });
+      internalBus.emit('question.rejected', { questionId: q.id, sessionId });
 
       log.info(
         {

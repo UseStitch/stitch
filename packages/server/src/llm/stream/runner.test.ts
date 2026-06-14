@@ -2,28 +2,31 @@ import { simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
-
 import { setupTestDb } from '@/db/test-helpers.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
 function captureAllEvents(): void {
-  const names: SseEventName[] = [
-    'stream-start',
-    'stream-finish',
-    'stream-part-update',
-    'stream-part-delta',
-    'stream-tool-state',
-    'stream-error',
+  const names: InternalEventName[] = [
+    'stream.started',
+    'stream.completed',
+    'stream.step.completed',
+    'part.update',
+    'part.delta',
+    'tool.pending',
+    'tool.started',
+    'tool.completed',
+    'tool.failed',
+    'stream.failed',
   ];
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -95,7 +98,7 @@ describe('runStream integration', () => {
     );
 
     const events = emittedEvents.map(([name]) => name);
-    expect(events).toContain('stream-start');
+    expect(events).toContain('stream.started');
   });
 
   test('persists aborted finish reason when abort signal is already aborted', async () => {

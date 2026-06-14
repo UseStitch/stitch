@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   PermissionRejectedError,
@@ -14,13 +14,13 @@ import {
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 import type { TextStreamPart, ToolSet } from 'ai';
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
-function captureEvents(...names: SseEventName[]): void {
+function captureEvents(...names: InternalEventName[]): void {
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -52,7 +52,15 @@ describe('StreamAccumulator', () => {
     emittedEvents = [];
     for (const cleanup of cleanups) cleanup();
     cleanups = [];
-    captureEvents('stream-part-update', 'stream-part-delta', 'stream-tool-state', 'stream-error');
+    captureEvents(
+      'part.update',
+      'part.delta',
+      'tool.pending',
+      'tool.started',
+      'tool.completed',
+      'tool.failed',
+      'stream.failed',
+    );
   });
 
   // ─── Text accumulation ──────────────────────────────────────────────
@@ -201,7 +209,7 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('broadcasts stream-tool-state for tool-call and tool-result lifecycle', () => {
+    test('broadcasts tool.started and tool.completed for tool-call and tool-result lifecycle', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
@@ -222,14 +230,16 @@ describe('StreamAccumulator', () => {
         }),
       );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
+      const startedCalls = getEmittedCalls('tool.started');
+      const completedCalls = getEmittedCalls('tool.completed');
 
-      expect(toolStateCalls).toHaveLength(2);
-      expect(toolStateCalls[0]).toMatchObject({ status: 'in-progress' });
-      expect(toolStateCalls[1]).toMatchObject({ status: 'completed' });
+      expect(startedCalls).toHaveLength(1);
+      expect(completedCalls).toHaveLength(1);
+      expect(startedCalls[0]).toMatchObject({ toolName: 'read' });
+      expect(completedCalls[0]).toMatchObject({ toolName: 'read' });
     });
 
-    test('broadcasts error status when a tool-result contains an error payload', () => {
+    test('broadcasts tool.failed when a tool-result contains an error payload', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
@@ -242,16 +252,15 @@ describe('StreamAccumulator', () => {
         }),
       );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({
-        status: 'error',
+      const failedCalls = getEmittedCalls('tool.failed');
+      expect(failedCalls).toHaveLength(1);
+      expect(failedCalls[0]).toMatchObject({
         toolName: 'browser',
         error: 'Navigation failed',
       });
     });
 
-    test('broadcasts stream-tool-state pending for tool-input-start', () => {
+    test('broadcasts tool.pending for tool-input-start', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
@@ -262,9 +271,9 @@ describe('StreamAccumulator', () => {
         }),
       );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({ status: 'pending', toolName: 'bash' });
+      const pendingCalls = getEmittedCalls('tool.pending');
+      expect(pendingCalls).toHaveLength(1);
+      expect(pendingCalls[0]).toMatchObject({ toolName: 'bash' });
     });
   });
 
@@ -327,7 +336,7 @@ describe('StreamAccumulator', () => {
       expect(acc.getPermissionRejected()).toBeNull();
     });
 
-    test('broadcasts error status for tool errors', () => {
+    test('broadcasts tool.failed for tool errors', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
@@ -340,10 +349,9 @@ describe('StreamAccumulator', () => {
         }),
       );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({
-        status: 'error',
+      const failedCalls = getEmittedCalls('tool.failed');
+      expect(failedCalls).toHaveLength(1);
+      expect(failedCalls[0]).toMatchObject({
         toolName: 'bash',
       });
     });
@@ -378,7 +386,7 @@ describe('StreamAccumulator', () => {
       ).toThrow(StreamPartError);
     });
 
-    test('broadcasts stream-error for error parts', () => {
+    test('broadcasts stream.failed for error parts', () => {
       const acc = createAccumulator();
 
       try {
@@ -392,7 +400,7 @@ describe('StreamAccumulator', () => {
         // expected to throw
       }
 
-      const errorCalls = getEmittedCalls('stream-error');
+      const errorCalls = getEmittedCalls('stream.failed');
       expect(errorCalls).toHaveLength(1);
       expect(errorCalls[0]).toMatchObject({
         sessionId: 'ses_1',
@@ -511,7 +519,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Hi' }));
       acc.handlePart(part({ type: 'text-end', id: 'id1' }));
 
-      const updateCalls = getEmittedCalls('stream-part-update');
+      const updateCalls = getEmittedCalls('part.update');
       expect(updateCalls).toHaveLength(2);
     });
 
@@ -522,7 +530,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'A' }));
       acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'B' }));
 
-      const deltaCalls = getEmittedCalls('stream-part-delta');
+      const deltaCalls = getEmittedCalls('part.delta');
       expect(deltaCalls).toHaveLength(2);
     });
 
@@ -533,7 +541,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Partial' }));
       acc.flush();
 
-      const updateCalls = getEmittedCalls('stream-part-update');
+      const updateCalls = getEmittedCalls('part.update');
       // text-start + text-end (from flush)
       expect(updateCalls).toHaveLength(2);
       expect(updateCalls[1]).toMatchObject({ part: { type: 'text-end' } });
@@ -546,7 +554,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Thinking' }));
       acc.flush();
 
-      const updateCalls = getEmittedCalls('stream-part-update');
+      const updateCalls = getEmittedCalls('part.update');
       // reasoning-start + reasoning-end (from flush)
       expect(updateCalls).toHaveLength(2);
       expect(updateCalls[1]).toMatchObject({ part: { type: 'reasoning-end' } });
