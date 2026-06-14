@@ -16,7 +16,7 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
@@ -158,7 +158,7 @@ function broadcastRecordingAnalysisUpdated(input: {
   status: RecordingAnalysis['status'];
   title: string | null;
 }): void {
-  Events.emit('recording-analysis-updated', {
+  internalBus.emit('recording.analysis.updated', {
     recordingId: input.recordingId,
     status: input.status,
     title: input.title,

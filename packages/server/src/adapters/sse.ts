@@ -213,4 +213,33 @@ export function registerSseAdapter(): void {
       sessionId: event.sessionId,
     });
   });
+
+  // ─── Recordings ─────────────────────────────────────────────────────────────
+
+  internalBus.onSync('recording.started', (event) => {
+    broadcast('recording-started', { recordingId: event.recordingId });
+  });
+
+  internalBus.onSync('recording.stopped', (event) => {
+    broadcast('recording-stopped', { recordingId: event.recordingId });
+  });
+
+  internalBus.onSync('recording.analysis.updated', (event) => {
+    broadcast('recording-analysis-updated', {
+      recordingId: event.recordingId,
+      status: event.status,
+      title: event.title,
+    });
+  });
+
+  internalBus.onSync('recording.transcript.entry', (event) => {
+    broadcast('recording-transcript-entry', {
+      recordingId: event.recordingId,
+      kind: event.kind,
+      source: event.source,
+      speaker: event.speaker,
+      content: event.content,
+      offsetMs: event.offsetMs,
+    });
+  });
 }

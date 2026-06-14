@@ -5,7 +5,6 @@ import { initConnectorRuntime } from '@/connectors/runtime.js';
 import { getDb, initDb } from '@/db/client.js';
 import { runPendingMigrations } from '@/db/lance-migrations.js';
 import * as Log from '@/lib/log.js';
-import { initSseBridge } from '@/lib/sse.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { syncDefaultPermissions } from '@/permission/default-permissions.js';
 import { startScheduler } from '@/scheduler/runtime.js';
@@ -18,7 +17,6 @@ const log = Log.create({ service: 'init' });
 export async function init() {
   await Log.init({});
   registerAdapters();
-  initSseBridge();
 
   await initDb();
   await runPendingMigrations(getDb());

@@ -4,6 +4,7 @@ import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
+import type { RecordingAnalysisStatus } from '@stitch/shared/recordings/types';
 
 import type { LanguageModelUsage } from 'ai';
 
@@ -240,6 +241,31 @@ export type PermissionResolvedEvent = {
   sessionId: PrefixedString<'ses'>;
 };
 
+// ─── Recordings ──────────────────────────────────────────────────────────────
+
+export type RecordingStartedEvent = {
+  recordingId: PrefixedString<'rec'>;
+};
+
+export type RecordingStoppedEvent = {
+  recordingId: PrefixedString<'rec'>;
+};
+
+export type RecordingAnalysisUpdatedEvent = {
+  recordingId: PrefixedString<'rec'>;
+  status: RecordingAnalysisStatus;
+  title: string | null;
+};
+
+export type RecordingTranscriptEntryEvent = {
+  recordingId: string;
+  kind: 'partial' | 'final';
+  source: 'mic' | 'speaker';
+  speaker: string;
+  content: string;
+  offsetMs: number;
+};
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -286,4 +312,10 @@ export type InternalEventMap = {
   // Permissions
   'permission.requested': PermissionRequestedEvent;
   'permission.resolved': PermissionResolvedEvent;
+
+  // Recordings
+  'recording.started': RecordingStartedEvent;
+  'recording.stopped': RecordingStoppedEvent;
+  'recording.analysis.updated': RecordingAnalysisUpdatedEvent;
+  'recording.transcript.entry': RecordingTranscriptEntryEvent;
 };
