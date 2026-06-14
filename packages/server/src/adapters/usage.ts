@@ -1,5 +1,51 @@
+import type { PrefixedString } from '@stitch/shared/id';
+
 import { internalBus } from '@/lib/internal-bus.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
+import type { LanguageModelUsage } from 'ai';
+
+type UsageBase = {
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  streamRunId: string;
+  providerId: string;
+  modelId: string;
+};
+
+function recordUsage(
+  event: UsageBase,
+  opts: {
+    source: string;
+    status: 'succeeded' | 'failed';
+    metadata: Record<string, unknown>;
+    usage?: LanguageModelUsage;
+    errorCode?: string;
+    stepIndex?: number;
+    attemptIndex?: number;
+    startedAt?: number;
+    endedAt?: number;
+    durationMs?: number;
+  },
+): Promise<{ costUsd: number }> {
+  const now = Date.now();
+  return recordLlmUsage({
+    runId: event.streamRunId,
+    sessionId: event.sessionId,
+    messageId: event.messageId,
+    providerId: event.providerId,
+    modelId: event.modelId,
+    source: opts.source,
+    status: opts.status,
+    metadata: opts.metadata,
+    usage: opts.usage,
+    errorCode: opts.errorCode,
+    stepIndex: opts.stepIndex,
+    attemptIndex: opts.attemptIndex,
+    startedAt: opts.startedAt ?? now,
+    endedAt: opts.endedAt ?? now,
+    durationMs: opts.durationMs ?? 0,
+  });
+}
 
 /**
  * Registers usage tracking subscriptions on the internal bus.
@@ -7,14 +53,9 @@ import { recordLlmUsage } from '@/usage/ledger.js';
  */
 export function registerUsageAdapter(): void {
   internalBus.on('stream.step.completed', async (event) => {
-    await recordLlmUsage({
-      runId: event.streamRunId,
+    await recordUsage(event, {
       source: 'chat',
       status: 'succeeded',
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      providerId: event.providerId,
-      modelId: event.modelId,
       usage: event.usage,
       stepIndex: event.step,
       attemptIndex: event.attemptCount,
@@ -30,15 +71,9 @@ export function registerUsageAdapter(): void {
   });
 
   internalBus.on('usage.step.failed', async (event) => {
-    const now = Date.now();
-    await recordLlmUsage({
-      runId: event.streamRunId,
+    await recordUsage(event, {
       source: 'chat',
       status: 'failed',
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      providerId: event.providerId,
-      modelId: event.modelId,
       errorCode: event.errorCode,
       stepIndex: event.step,
       attemptIndex: event.attempt,
@@ -48,22 +83,13 @@ export function registerUsageAdapter(): void {
         streamRunId: event.streamRunId,
         isRetryable: event.isRetryable,
       },
-      startedAt: now,
-      endedAt: now,
-      durationMs: 0,
     });
   });
 
   internalBus.on('usage.doom_loop.failed', async (event) => {
-    const now = Date.now();
-    await recordLlmUsage({
-      runId: event.streamRunId,
+    await recordUsage(event, {
       source: 'doom_loop_summary',
       status: 'failed',
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      providerId: event.providerId,
-      modelId: event.modelId,
       errorCode: event.errorCode,
       attemptIndex: event.attempt,
       metadata: {
@@ -72,30 +98,18 @@ export function registerUsageAdapter(): void {
         streamRunId: event.streamRunId,
         isRetryable: event.isRetryable,
       },
-      startedAt: now,
-      endedAt: now,
-      durationMs: 0,
     });
   });
 
   internalBus.on('usage.doom_loop.summary', async (event) => {
-    const now = Date.now();
-    await recordLlmUsage({
-      runId: event.streamRunId,
+    await recordUsage(event, {
       source: 'doom_loop_summary',
       status: 'succeeded',
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      providerId: event.providerId,
-      modelId: event.modelId,
       usage: event.usage,
       metadata: {
         phase: 'doom-loop',
         eventType: 'summary-after-stop',
       },
-      startedAt: now,
-      endedAt: now,
-      durationMs: 0,
     });
   });
 }
