@@ -214,6 +214,16 @@ export function registerSseAdapter(): void {
     });
   });
 
+  // ─── MCP ───────────────────────────────────────────────────────────────────
+
+  internalBus.onSync('mcp.tools.changed', (event) => {
+    broadcast('mcp-tools-changed', {
+      serverId: event.serverId,
+      serverName: event.serverName,
+      toolCount: event.toolCount,
+    });
+  });
+
   // ─── Recordings ─────────────────────────────────────────────────────────────
 
   internalBus.onSync('recording.started', (event) => {
