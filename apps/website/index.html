@@ -387,8 +387,8 @@
         </div>
 
         <p class="install-shared-note">
-          The warning appears because the Windows build isn't code-signed yet. We are working on it. Stitch is
-          fully open source. You can inspect the code or build from source on
+          The warning appears because the Windows build isn't code-signed yet. We are working on it.
+          Stitch is fully open source. You can inspect the code or build from source on
           <a href="https://github.com/UseStitch/stitch">GitHub</a>.
         </p>
       </div>
@@ -429,6 +429,35 @@
         <div class="install-grid">
           <div class="install-card">
             <div class="install-header">
+              <h3>Gemini AI Studio</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong
+                    ><a href="https://aistudio.google.com/live" target="_blank"
+                      >aistudio.google.com/live</a
+                    ></strong
+                  >
+                  and sign in with your Google account
+                </li>
+                <li>Click the API key button, which looks like a key</li>
+                <li>Create a Google Cloud project, or import one if you already have it</li>
+                <li>Click <strong>Create API key</strong></li>
+                <li>Copy the generated Gemini API key</li>
+                <li>Paste the key into Stitch settings under the Google Gemini provider</li>
+              </ol>
+              <p class="install-note">
+                Google AI Studio offers free Gemini API access with rate limits. No credit card is
+                required to generate an API key. Usage is subject to Google's Gemini API terms and
+                free tier limits.
+              </p>
+            </div>
+          </div>
+
+          <div class="install-card">
+            <div class="install-header">
               <h3>OpenRouter</h3>
             </div>
             <div class="install-steps">
@@ -438,11 +467,15 @@
                   <strong><a href="https://openrouter.ai" target="_blank">openrouter.ai</a></strong>
                   and sign up with email, GitHub, or Google
                 </li>
-                <li>Open <strong>Settings &rarr; Keys</strong> in the dashboard</li>
-                <li>Click <strong>Create Key</strong>, give it a name, and click Create</li>
                 <li>
-                  Copy the key (starts with <strong>sk-or-</strong>) &mdash; it's only shown once
+                  Open the top-right dropdown, then go to
+                  <strong>Preferences &rarr; API Keys</strong> in the sidebar
                 </li>
+                <li>
+                  Click <strong>New Key</strong>, give it a name, select
+                  <strong>No Expiration</strong>, and create it
+                </li>
+                <li>Copy the key &mdash; it's only shown once</li>
                 <li>Paste the key into Stitch settings under the OpenRouter provider</li>
               </ol>
               <p class="install-note">
@@ -466,8 +499,13 @@
                   >
                   and sign up for the free NVIDIA Developer Program
                 </li>
-                <li>Open any model page and click <strong>Get API Key</strong></li>
-                <li>Enter your email and follow the sign-up prompts</li>
+                <li>
+                  Open your profile from the top-right menu and click <strong>API Keys</strong>
+                </li>
+                <li>
+                  Click <strong>Generate API Key</strong>, give it a name, and select
+                  <strong>Never Expire</strong>
+                </li>
                 <li>Copy your API key (starts with <strong>nvapi-</strong>) from the popup</li>
                 <li>Paste the key into Stitch settings under the NVIDIA provider</li>
               </ol>
