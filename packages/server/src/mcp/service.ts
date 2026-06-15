@@ -76,7 +76,8 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
 
   let rawTools: Record<string, unknown>;
   try {
-    rawTools = await withMcpClient(server, (client) => client.tools());
+    const result = await withMcpClient(server, (client) => client.listTools());
+    rawTools = Object.fromEntries(result.tools.map((tool) => [tool.name, tool]));
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return err(`MCP server error: ${message}`, 400);

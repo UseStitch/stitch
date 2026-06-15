@@ -1,10 +1,11 @@
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import type { McpIcon, McpRegistryServer } from '@stitch/shared/mcp/types';
 
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
-import { getMcpClient, withMcpClient } from '@/mcp/client.js';
+import { getMcpClient, listMcpAiTools } from '@/mcp/client.js';
 import { buildServerPresentation } from '@/mcp/presentation.js';
 import type { McpServerLiveInfo, McpServerPresentation } from '@/mcp/presentation.js';
 import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
@@ -50,10 +51,7 @@ async function getToolsForServer(
   server: McpServerWithTools,
   context: ToolContext,
 ): Promise<Record<string, Tool>> {
-  const rawTools = await withMcpClient(
-    server,
-    (client) => client.tools() as Promise<Record<string, Tool>>,
-  );
+  const rawTools = await listMcpAiTools(server);
 
   const runtime = createToolRuntime(context).use(permissionMiddleware());
   const prefixed: Record<string, Tool> = {};
@@ -137,7 +135,7 @@ async function fetchServerInfo(server: McpServerWithTools): Promise<McpServerLiv
 async function fetchServerPrompts(server: McpServerWithTools): Promise<ToolsetPrompt[]> {
   try {
     const client = await getMcpClient(server);
-    const result = await client.experimental_listPrompts();
+    const result = await client.listPrompts();
     return (result.prompts ?? []).map((prompt) => ({
       name: prompt.name,
       description: prompt.description,
@@ -379,3 +377,8 @@ export async function refreshMcpToolsets(
 export function getMcpServerPresentation(serverId: string): McpServerPresentation | undefined {
   return getToolset(buildMcpToolsetId(serverId))?.presentation;
 }
+
+internalBus.on('mcp.tools.list_changed', async ({ serverId, serverName, toolCount }) => {
+  await refreshMcpToolsets({ serverIds: [serverId], refreshTools: true });
+  internalBus.emit('mcp.tools.changed', { serverId, serverName, toolCount });
+});

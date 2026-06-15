@@ -266,6 +266,14 @@ export type RecordingTranscriptEntryEvent = {
   offsetMs: number;
 };
 
+// ─── MCP ─────────────────────────────────────────────────────────────────────
+
+export type McpToolsChangedEvent = {
+  serverId: PrefixedString<'mcp'>;
+  serverName: string;
+  toolCount: number | null;
+};
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -318,4 +326,8 @@ export type InternalEventMap = {
   'recording.stopped': RecordingStoppedEvent;
   'recording.analysis.updated': RecordingAnalysisUpdatedEvent;
   'recording.transcript.entry': RecordingTranscriptEntryEvent;
+
+  // MCP
+  'mcp.tools.list_changed': McpToolsChangedEvent;
+  'mcp.tools.changed': McpToolsChangedEvent;
 };
