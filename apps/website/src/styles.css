@@ -1006,6 +1006,25 @@ footer a:hover {
   border: 1px solid var(--color-border);
 }
 
+.provider-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.provider-card-wide {
+  grid-column: 1 / -1;
+}
+
+.install-grid-single {
+  grid-template-columns: 1fr;
+  justify-content: center;
+  background: none;
+  border: 0;
+}
+
+.install-grid-single .install-card {
+  border: 1px solid var(--color-border);
+}
+
 .install-card {
   background: var(--color-bg);
   padding: 36px 32px;
