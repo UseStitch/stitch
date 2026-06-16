@@ -20,6 +20,7 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
+import { SessionContext } from '@/llm/stream/session-context.js';
 import {
   buildNextSessionToolsetState,
   getSessionToolsetState,
@@ -27,7 +28,6 @@ import {
   setSessionToolsetState,
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -1140,7 +1140,7 @@ export async function runStream(opts: {
   const streamRunId = randomUUID();
   const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const { messages, tools, toolsetManager } = await ToolAssembler.create({
+  const { messages, tools, toolsetManager } = await SessionContext.create({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,

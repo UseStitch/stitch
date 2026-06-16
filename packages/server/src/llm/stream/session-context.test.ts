@@ -5,7 +5,7 @@ import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { buildExpiredToolsetsPrompt, ToolAssembler } from '@/llm/stream/tool-assembler.js';
+import { buildExpiredToolsetsPrompt, SessionContext } from '@/llm/stream/session-context.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
@@ -63,7 +63,7 @@ describe('buildExpiredToolsetsPrompt', () => {
   });
 });
 
-describe('ToolAssembler expired toolset handling', () => {
+describe('SessionContext expired toolset handling', () => {
   beforeEach(() => {
     clearToolsets();
   });
@@ -86,7 +86,7 @@ describe('ToolAssembler expired toolset handling', () => {
       expired: [{ id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] }],
     });
 
-    const assembled = await ToolAssembler.create({
+    const assembled = await SessionContext.create({
       sessionId,
       messageId: 'msg_expired_toolsets' as never,
       streamRunId: 'run_expired_toolsets',
@@ -125,7 +125,7 @@ describe('ToolAssembler expired toolset handling', () => {
       expired: [],
     });
 
-    const restored = await ToolAssembler.create({
+    const restored = await SessionContext.create({
       sessionId,
       messageId: 'msg_ttl_restore' as never,
       streamRunId: 'run_ttl_restore',
@@ -143,7 +143,7 @@ describe('ToolAssembler expired toolset handling', () => {
       expired: [],
     });
 
-    const expired = await ToolAssembler.create({
+    const expired = await SessionContext.create({
       sessionId,
       messageId: 'msg_ttl_expire' as never,
       streamRunId: 'run_ttl_expire',

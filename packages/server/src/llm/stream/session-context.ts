@@ -21,9 +21,9 @@ import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import type { ModelMessage, Tool } from 'ai';
 
-const log = Log.create({ service: 'tool-assembler' });
+const log = Log.create({ service: 'session-context' });
 
-type ToolAssemblerOptions = {
+type SessionContextOptions = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -86,10 +86,10 @@ export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): st
   ].join('\n');
 }
 
-export class ToolAssembler {
+export class SessionContext {
   private readonly toolContext: ToolContext;
 
-  private constructor(private readonly opts: ToolAssemblerOptions) {
+  private constructor(private readonly opts: SessionContextOptions) {
     this.toolContext = {
       sessionId: opts.sessionId,
       messageId: opts.messageId,
@@ -97,14 +97,14 @@ export class ToolAssembler {
     };
   }
 
-  static create(opts: ToolAssemblerOptions): ToolAssembler {
-    return new ToolAssembler(opts);
+  static create(opts: SessionContextOptions): SessionContext {
+    return new SessionContext(opts);
   }
 
   async assemble(): Promise<AssembledResult> {
     const sessionState = getSessionToolsetState(this.opts.sessionId);
     const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) =>
-      ToolAssembler.getToolNames(toolsetId),
+      SessionContext.getToolNames(toolsetId),
     );
     const activeEntries = this.opts.activeToolsetIds
       ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
