@@ -1,6 +1,10 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
-import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
+import {
+  createRecordingAnalysisId,
+  createRecordingId,
+  type PrefixedString,
+} from '@stitch/shared/id';
 import type {
   ActiveRecordingResponse,
   ListRecordingsResponse,
@@ -255,7 +259,6 @@ export async function startRecording(
       recordingId: id,
       status: 'pending',
       transcript: [],
-      topicSections: [],
       summary: '',
       title: '',
       error: null,
@@ -350,12 +353,18 @@ export async function stopRecording(
       'recording stopped',
     );
 
-    const { 'recordings.autoAnalyze': autoAnalyze } = await getSettings([
+    const {
+      'recordings.autoAnalyze': autoAnalyze,
+      'recordings.analysis.defaultTemplateId': defaultTemplateId,
+    } = await getSettings([
       'recordings.autoAnalyze',
+      'recordings.analysis.defaultTemplateId',
     ] as const);
 
     if (autoAnalyze) {
-      void startRecordingAnalysis(current.id).then((result) => {
+      void startRecordingAnalysis(current.id, {
+        templateId: defaultTemplateId as PrefixedString<'mnt'>,
+      }).then((result) => {
         if ('error' in result) {
           log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');
         }

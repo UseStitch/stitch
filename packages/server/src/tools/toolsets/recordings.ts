@@ -5,6 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { getRecordingAnalysesByIds, searchRecordings } from '@/recordings/search-service.js';
+import { getSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
@@ -88,9 +89,6 @@ Use this first to find relevant recording IDs before fetching detailed analysis.
                     status: analysis.status,
                     title: analysis.title,
                     summary: analysis.summary.slice(0, 400),
-                    actionItemCount: analysis.actionItems.length,
-                    blockerCount: analysis.blockers.length,
-                    topicCount: analysis.topicSections.length,
                     updatedAt: analysis.updatedAt,
                   };
                 })()
@@ -101,9 +99,9 @@ Use this first to find relevant recording IDs before fetching detailed analysis.
   });
 
   const recordings_get_analysis = tool({
-    description: `Get structured recording analysis for one recording ID.
+    description: `Get recording analysis for one recording ID.
 
-Returns status, summary, topic sections, action items, and blockers.`,
+Returns status and Markdown meeting notes.`,
     inputSchema: z.object({
       recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
     }),
@@ -127,8 +125,6 @@ Returns status, summary, topic sections, action items, and blockers.`,
       }
 
       const analysis = result.data.analysis;
-      const actionItems = analysis.topicSections.flatMap((section) => section.actionItems);
-      const blockers = analysis.topicSections.flatMap((section) => section.blockers);
 
       return {
         recordingId: input.recordingId,
@@ -136,9 +132,6 @@ Returns status, summary, topic sections, action items, and blockers.`,
         status: analysis.status,
         title: analysis.title,
         summary: analysis.summary,
-        topicSections: analysis.topicSections,
-        actionItems,
-        blockers,
         error: analysis.error,
         updatedAt: analysis.updatedAt,
       };
@@ -154,8 +147,12 @@ Use this when analysis is missing or stale.`,
       force: z.boolean().optional().describe('Force re-run even if analysis already exists.'),
     }),
     execute: async (input) => {
+      const { 'recordings.analysis.defaultTemplateId': templateId } = await getSettings([
+        'recordings.analysis.defaultTemplateId',
+      ] as const);
       const result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
         force: input.force,
+        templateId: templateId as PrefixedString<'mnt'>,
       });
 
       if ('error' in result) {
@@ -187,8 +184,7 @@ export function createRecordingsToolset(): Toolset {
     id: RECORDINGS_TOOLSET_ID,
     kind: 'native',
     name: 'Recordings',
-    description:
-      'Search recordings and work with transcription/analysis results, including summaries, topics, and action items.',
+    description: 'Search recordings and work with transcription and Markdown analysis results.',
     instructions: [
       'Use recordings_search first to identify relevant recording IDs.',
       'Use recordings_get_analysis for details only after narrowing to one or a few recordings.',

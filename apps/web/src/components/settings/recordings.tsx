@@ -244,17 +244,27 @@ function RecordingsContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const { data: llmProviderModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const { data: templateData } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
   );
+  const saveDefaultTemplateMutation = useMutation(
+    saveSettingMutationOptions('recordings.analysis.defaultTemplateId', queryClient, {
+      silent: true,
+    }),
+  );
 
   const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
+  const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
+  const defaultTemplate =
+    templateData.templates.find((template) => template.id === defaultTemplateId) ??
+    templateData.templates[0];
   const hasTranscriptionModel =
     !!settings['recordings.transcription.providerId'] &&
     !!settings['recordings.transcription.modelId'];
   const hasAnalysisModel =
     !!settings['recordings.analysis.providerId'] && !!settings['recordings.analysis.modelId'];
-  const canEnableAutoAnalyze = hasTranscriptionModel && hasAnalysisModel;
+  const canEnableAutoAnalyze = hasTranscriptionModel && hasAnalysisModel && !!defaultTemplate;
   const autoAnalyzeDisabled =
     saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
 
@@ -288,6 +298,31 @@ function RecordingsContent() {
             disabled={autoAnalyzeDisabled}
           />
         </SettingRow>
+        <SettingRow
+          label="Default notes template"
+          description="Template used when recordings are analyzed automatically or from the default action."
+        >
+          <SettingRowControl>
+            <Select
+              value={defaultTemplate?.id ?? ''}
+              onValueChange={(value) => value && saveDefaultTemplateMutation.mutate(value)}
+              disabled={
+                saveDefaultTemplateMutation.isPending || templateData.templates.length === 0
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>{defaultTemplate?.name ?? 'No templates available'}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {templateData.templates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRowControl>
+        </SettingRow>
         {noModelsAvailable ? (
           <p className="py-3 text-sm text-muted-foreground">
             No audio-capable models are available for recording transcription.
@@ -310,7 +345,7 @@ function RecordingsContent() {
       </SettingRows>
       {!canEnableAutoAnalyze ? (
         <p className="mt-1 text-xs text-muted-foreground">
-          Select both a transcription model and an analysis model to enable auto analyze.
+          Select transcription, analysis, and notes template settings to enable auto analyze.
         </p>
       ) : null}
     </>

@@ -96,33 +96,10 @@ export type RecordingTranscriptEntry = {
   endMs: number;
 };
 
-export type RecordingActionItem = {
-  task: string;
-  dueDate: string | null;
-  topicName: string | null;
-};
-
-export type RecordingBlocker = {
-  description: string;
-  impact: string | null;
-  topicName: string | null;
-};
-
-export type RecordingAnalysisTopicSection = {
-  name: string;
-  analysis: string;
-  decisions: string[];
-  actionItems: RecordingActionItem[];
-  blockers: RecordingBlocker[];
-  openQuestions: string[];
-  nextSteps: string[];
-};
-
 export type RecordingAnalysis = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
   transcript: RecordingTranscriptEntry[];
-  topicSections: RecordingAnalysisTopicSection[];
   summary: string;
   title: string;
   error: string | null;

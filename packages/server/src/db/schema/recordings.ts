@@ -12,7 +12,6 @@ import {
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type {
-  RecordingAnalysisTopicSection,
   RecordingAnalysisStatus,
   RecordingPlatform,
   RecordingStatus,
@@ -57,11 +56,9 @@ export const recordingAnalyses = sqliteTable(
       .references(() => recordings.id, { onDelete: 'cascade' }),
     status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
     transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
-    topicSections: blob('topic_sections', { mode: 'json' }).$type<
-      RecordingAnalysisTopicSection[]
-    >(),
     summary: text('summary').notNull().default(''),
     title: text('title').notNull().default(''),
+    templateId: text('template_id').$type<PrefixedString<'mnt'>>(),
     error: text('error'),
     transcriptionProviderId: text('transcription_provider_id'),
     transcriptionModelId: text('transcription_model_id'),

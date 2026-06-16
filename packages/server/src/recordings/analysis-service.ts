@@ -1,14 +1,10 @@
-import { Output, generateText } from 'ai';
+import { generateText } from 'ai';
 import { and, eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
-import { z } from 'zod';
 
 import { createRecordingAnalysisId, type PrefixedString } from '@stitch/shared/id';
 import type {
-  RecordingActionItem,
   RecordingAnalysis,
-  RecordingAnalysisTopicSection,
-  RecordingBlocker,
   RecordingAnalysisResponse,
   RecordingTranscriptEntry,
   StartRecordingAnalysisResponse,
@@ -24,12 +20,13 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
+import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
+import { generateRecordingTitle } from '@/recordings/title-generator.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 import type { LanguageModel } from 'ai';
 
 const log = Log.create({ service: 'recordings-analysis' });
-const NOT_SPECIFIED_TEXT = 'not specified';
 
 const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   resolveRuntimeAssetPath(
@@ -38,34 +35,6 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   ),
   'utf8',
 ).trim();
-
-const actionItemSchema = z.object({
-  task: z.string().min(1),
-  dueDate: z.string().min(1).nullable(),
-  topicName: z.string().min(1).nullable(),
-});
-
-const blockerSchema = z.object({
-  description: z.string().min(1),
-  impact: z.string().min(1).nullable(),
-  topicName: z.string().min(1).nullable(),
-});
-
-const topicSectionSchema = z.object({
-  name: z.string().min(1),
-  analysis: z.string().min(1),
-  decisions: z.array(z.string().min(1)).default([]),
-  actionItems: z.array(actionItemSchema).default([]),
-  blockers: z.array(blockerSchema).default([]),
-  openQuestions: z.array(z.string().min(1)).default([]),
-  nextSteps: z.array(z.string().min(1)).default([]),
-});
-
-const analysisOutputSchema = z.object({
-  title: z.string().max(60),
-  summary: z.string(),
-  topicSections: z.array(topicSectionSchema).default([]),
-});
 
 type AnalysisDeps = {
   resolveModel: typeof resolveModel;
@@ -81,54 +50,15 @@ type ActiveRun = {
 
 const activeRuns = new Map<PrefixedString<'recan'>, ActiveRun>();
 
-function buildAnalysisPrompt(): string {
+function buildAnalysisPrompt(template: string): string {
   return ANALYSIS_PROMPT_TEMPLATE.replaceAll(
     '{{CURRENT_DATE}}',
     new Date().toISOString().slice(0, 10),
-  );
+  ).replaceAll('{{MEETING_NOTE_TEMPLATE}}', template);
 }
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
   return entries.map((entry, index) => `[${index}] ${entry.speaker}: ${entry.content}`).join('\n');
-}
-
-function normalizeNullableText(value: string | null): string | null {
-  if (!value) return null;
-  const normalized = value.trim();
-  if (!normalized) return null;
-  if (normalized.toLowerCase() === NOT_SPECIFIED_TEXT) return null;
-  return normalized;
-}
-
-function normalizeActionItem(
-  item: RecordingActionItem,
-  topicName: string | null,
-): RecordingActionItem {
-  const task = item.task.trim();
-
-  return {
-    task,
-    dueDate: normalizeNullableText(item.dueDate),
-    topicName: normalizeNullableText(item.topicName) ?? normalizeNullableText(topicName),
-  };
-}
-
-function normalizeBlocker(blocker: RecordingBlocker, topicName: string | null): RecordingBlocker {
-  return {
-    description: blocker.description.trim(),
-    impact: normalizeNullableText(blocker.impact),
-    topicName: normalizeNullableText(blocker.topicName) ?? normalizeNullableText(topicName),
-  };
-}
-
-function normalizeTopicSections(
-  sections: RecordingAnalysisTopicSection[],
-): RecordingAnalysisTopicSection[] {
-  return sections.map((section) => ({
-    ...section,
-    actionItems: section.actionItems.map((item) => normalizeActionItem(item, section.name)),
-    blockers: section.blockers.map((blocker) => normalizeBlocker(blocker, section.name)),
-  }));
 }
 
 export function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): RecordingAnalysis {
@@ -136,7 +66,6 @@ export function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect):
     recordingId: row.recordingId,
     status: row.status,
     transcript: row.transcript ?? [],
-    topicSections: row.topicSections ?? [],
     summary: row.summary,
     title: row.title,
     error: row.error,
@@ -188,7 +117,7 @@ export async function getRecordingAnalysis(
 
 export async function startRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
-  input?: { force?: boolean },
+  input: { force?: boolean; templateId: PrefixedString<'mnt'> },
   deps: AnalysisDeps = defaultDeps,
 ): Promise<ServiceResult<StartRecordingAnalysisResponse>> {
   const db = getDb();
@@ -206,8 +135,13 @@ export async function startRecordingAnalysis(
     .from(recordingAnalyses)
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
-  if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input?.force) {
+  if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input.force) {
     return ok({ analysis: toRecordingAnalysis(existing) });
+  }
+
+  const templateResult = await getMeetingNoteTemplate(input.templateId);
+  if (isServiceError(templateResult)) {
+    return templateResult;
   }
 
   const transcript: RecordingTranscriptEntry[] = existing?.transcript ?? [];
@@ -226,7 +160,7 @@ export async function startRecordingAnalysis(
 
   const now = Date.now();
   const id = existing?.id ?? createRecordingAnalysisId();
-  const preserveExistingUntilComplete = existing?.status === 'completed' && input?.force === true;
+  const preserveExistingUntilComplete = existing?.status === 'completed' && input.force === true;
 
   activeRuns.get(id)?.controller.abort();
 
@@ -238,9 +172,9 @@ export async function startRecordingAnalysis(
         recordingId,
         status: 'pending',
         transcript,
-        topicSections: [],
         summary: '',
         title: '',
+        templateId: input.templateId,
         error: null,
         transcriptionProviderId: existing?.transcriptionProviderId ?? null,
         transcriptionModelId: existing?.transcriptionModelId ?? null,
@@ -260,9 +194,9 @@ export async function startRecordingAnalysis(
           id,
           status: 'pending',
           transcript,
-          topicSections: [],
           summary: '',
           title: '',
+          templateId: input.templateId,
           error: null,
           transcriptionProviderId: existing?.transcriptionProviderId ?? null,
           transcriptionModelId: existing?.transcriptionModelId ?? null,
@@ -288,6 +222,8 @@ export async function startRecordingAnalysis(
     {
       recordingId,
       transcript,
+      templateId: input.templateId,
+      templateContent: templateResult.data.template.content,
       analysisProviderId: analysisModel.data.providerId,
       analysisModelId: analysisModel.data.modelId,
       analysisCredentials: analysisModel.data.credentials,
@@ -374,6 +310,8 @@ async function runRecordingAnalysis(
   input: {
     recordingId: PrefixedString<'rec'>;
     transcript: RecordingTranscriptEntry[];
+    templateId: PrefixedString<'mnt'>;
+    templateContent: string;
     analysisProviderId: string;
     analysisModelId: string;
     analysisCredentials: ProviderCredentials;
@@ -419,8 +357,7 @@ async function runRecordingAnalysis(
     const analysisStart = Date.now();
     const analysisResult = await generateText({
       model: analysisModel,
-      output: Output.object({ schema: analysisOutputSchema }),
-      system: buildAnalysisPrompt(),
+      system: buildAnalysisPrompt(input.templateContent),
       messages: [
         {
           role: 'user',
@@ -430,9 +367,9 @@ async function runRecordingAnalysis(
       abortSignal: abortController.signal,
     });
 
-    const analysisOutput = analysisResult.output;
-    if (!analysisOutput) {
-      throw new Error('Analysis did not return a structured output');
+    const summary = analysisResult.text.trim();
+    if (!summary) {
+      throw new Error('Analysis did not return markdown notes');
     }
 
     const analysisUsage = analysisResult.usage ?? ZERO_USAGE;
@@ -453,8 +390,33 @@ async function runRecordingAnalysis(
       durationMs: Date.now() - analysisStart,
     });
 
+    const titleStart = Date.now();
+    const titleResult = await generateRecordingTitle(
+      summary,
+      input.analysisProviderId,
+      input.analysisModelId,
+    );
+    const titleCost = titleResult
+      ? (
+          await recordLlmUsage({
+            runId: `${analysisId}:title`,
+            source: 'title_generation',
+            providerId: titleResult.providerId,
+            modelId: titleResult.modelId,
+            usage: titleResult.usage ?? ZERO_USAGE,
+            metadata: {
+              recordingId: input.recordingId,
+              analysisId,
+              phase: 'title-generation',
+            },
+            startedAt: titleStart,
+            endedAt: Date.now(),
+            durationMs: Date.now() - titleStart,
+          })
+        ).costUsd
+      : 0;
     const endedAt = Date.now();
-    const topicSections = normalizeTopicSections(analysisOutput.topicSections);
+    const title = titleResult?.title ?? 'Recording analysis';
 
     if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
@@ -472,14 +434,14 @@ async function runRecordingAnalysis(
       .set({
         status: 'completed',
         transcript: input.transcript,
-        topicSections,
-        title: analysisOutput.title,
-        summary: analysisOutput.summary,
+        templateId: input.templateId,
+        title,
+        summary,
         error: null,
         analysisProviderId: input.analysisProviderId,
         analysisModelId: input.analysisModelId,
         usage: analysisUsage,
-        costUsd: transcriptionCost + analysisCost,
+        costUsd: transcriptionCost + analysisCost + titleCost,
         startedAt,
         endedAt,
         durationMs: endedAt - startedAt,
@@ -490,7 +452,7 @@ async function runRecordingAnalysis(
     broadcastRecordingAnalysisUpdated({
       recordingId: input.recordingId,
       status: 'completed',
-      title: analysisOutput.title,
+      title,
     });
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');

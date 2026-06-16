@@ -79,6 +79,17 @@ export async function listMeetingNoteTemplates(): Promise<ListMeetingNoteTemplat
   return { templates: rows.map(toMeetingNoteTemplate) };
 }
 
+export async function getMeetingNoteTemplate(
+  id: MeetingNoteTemplate['id'],
+): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
+  const db = getDb();
+  const [row] = await db.select().from(meetingNoteTemplates).where(eq(meetingNoteTemplates.id, id));
+
+  if (!row) return err('Meeting note template not found', 404);
+
+  return ok({ template: toMeetingNoteTemplate(row) });
+}
+
 export async function createMeetingNoteTemplate(
   input: MeetingNoteTemplateInput,
 ): Promise<ServiceResult<MeetingNoteTemplateResponse>> {

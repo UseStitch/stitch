@@ -1,11 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { RecordingAnalysisPage } from '@/components/recordings/recording-analysis-page';
-import { recordingDetailsQueryOptions } from '@/lib/queries/recordings';
+import {
+  meetingNoteTemplatesQueryOptions,
+  recordingDetailsQueryOptions,
+} from '@/lib/queries/recordings';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/recordings/$id')({
-  loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(recordingDetailsQueryOptions(params.id)),
+  loader: async ({ context, params }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(recordingDetailsQueryOptions(params.id)),
+      context.queryClient.ensureQueryData(settingsQueryOptions),
+      context.queryClient.ensureQueryData(meetingNoteTemplatesQueryOptions),
+    ]);
+  },
   component: RouteComponent,
 });
 

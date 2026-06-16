@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
+import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { ok } from '@/lib/service-result.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
@@ -31,6 +31,7 @@ setupTestDb();
 
 const recordingId = 'rec_analysis_rerun' as PrefixedString<'rec'>;
 const analysisId = 'recan_analysis_rerun' as PrefixedString<'recan'>;
+const templateId = 'mnt_analysis_rerun' as PrefixedString<'mnt'>;
 
 async function seedCompletedAnalysis(): Promise<void> {
   const db = getDb();
@@ -46,24 +47,22 @@ async function seedCompletedAnalysis(): Promise<void> {
     endedAt: now,
   });
 
+  await db.insert(meetingNoteTemplates).values({
+    id: templateId,
+    name: 'Test Template',
+    content: '# Notes\n\n## Summary\n- ',
+    createdAt: now,
+    updatedAt: now,
+  });
+
   await db.insert(recordingAnalyses).values({
     id: analysisId,
     recordingId,
     status: 'completed',
     transcript: [{ speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 }],
-    topicSections: [
-      {
-        name: 'Existing Topic',
-        analysis: 'Existing topic analysis',
-        decisions: ['Existing decision'],
-        actionItems: [],
-        blockers: [],
-        openQuestions: [],
-        nextSteps: [],
-      },
-    ],
     summary: 'Existing summary',
     title: 'Existing title',
+    templateId,
     error: null,
     transcriptionProviderId: 'transcription-provider',
     transcriptionModelId: 'transcription-model',
@@ -103,7 +102,7 @@ describe('recording analysis reruns', () => {
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
     const startResult = await startRecordingAnalysis(
       recordingId,
-      { force: true },
+      { force: true, templateId },
       {
         resolveModel: async () =>
           ok({

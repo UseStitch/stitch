@@ -303,7 +303,7 @@ export function useStartRecordingAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { recordingId: string; force?: boolean }) => {
+    mutationFn: (input: { recordingId: string; force?: boolean; templateId: string }) => {
       const params = new URLSearchParams();
       if (input.force) {
         params.set('force', '1');
@@ -311,7 +311,11 @@ export function useStartRecordingAnalysis() {
       const suffix = params.toString();
       return serverRequest<StartRecordingAnalysisResponse>(
         `/recordings/${input.recordingId}/analyze${suffix ? `?${suffix}` : ''}`,
-        { method: 'POST' },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templateId: input.templateId }),
+        },
       );
     },
     onSuccess: (_, variables) => {

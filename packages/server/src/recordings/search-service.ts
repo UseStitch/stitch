@@ -1,13 +1,7 @@
 import { desc, eq, inArray } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type {
-  RecordingActionItem,
-  RecordingAnalysisTopicSection,
-  RecordingBlocker,
-  RecordingPlatform,
-  RecordingStatus,
-} from '@stitch/shared/recordings/types';
+import type { RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
@@ -200,9 +194,6 @@ export async function getRecordingAnalysesByIds(recordingIds: PrefixedString<'re
     status: 'pending' | 'processing' | 'completed' | 'failed';
     title: string;
     summary: string;
-    topicSections: RecordingAnalysisTopicSection[];
-    actionItems: RecordingActionItem[];
-    blockers: RecordingBlocker[];
     error: string | null;
     updatedAt: number;
   }>
@@ -217,19 +208,12 @@ export async function getRecordingAnalysesByIds(recordingIds: PrefixedString<'re
     .from(recordingAnalyses)
     .where(inArray(recordingAnalyses.recordingId, recordingIds));
 
-  return rows.map((row) => {
-    const topicSections = row.topicSections ?? [];
-
-    return {
-      recordingId: row.recordingId,
-      status: row.status,
-      title: row.title,
-      summary: row.summary,
-      topicSections,
-      actionItems: topicSections.flatMap((section) => section.actionItems),
-      blockers: topicSections.flatMap((section) => section.blockers),
-      error: row.error,
-      updatedAt: row.updatedAt,
-    };
-  });
+  return rows.map((row) => ({
+    recordingId: row.recordingId,
+    status: row.status,
+    title: row.title,
+    summary: row.summary,
+    error: row.error,
+    updatedAt: row.updatedAt,
+  }));
 }

@@ -48,6 +48,10 @@ const analyzeQuerySchema = z.object({
   force: z.enum(['1', 'true']).optional(),
 });
 
+const analyzeBodySchema = z.object({
+  templateId: z.templateLiteral([z.literal('mnt'), z.string()]),
+});
+
 export const recordingsRouter = new Hono();
 
 recordingsRouter.get(
@@ -123,10 +127,12 @@ recordingsRouter.post(
   '/:id/analyze',
   zValidator('param', recordingIdParamSchema),
   zValidator('query', analyzeQuerySchema),
+  zValidator('json', analyzeBodySchema),
   async (c) => {
     const { id } = c.req.valid('param');
     const { force } = c.req.valid('query');
-    const result = await startRecordingAnalysis(id, { force: !!force });
+    const { templateId } = c.req.valid('json');
+    const result = await startRecordingAnalysis(id, { force: !!force, templateId });
     return unwrapResult(c, result, 202);
   },
 );

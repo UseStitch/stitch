@@ -47,6 +47,7 @@ export const SETTINGS_KEYS = [
   'recordings.transcription.modelId',
   'recordings.analysis.providerId',
   'recordings.analysis.modelId',
+  'recordings.analysis.defaultTemplateId',
   'stt.default.providerId',
   'stt.default.modelId',
 ] as const;
@@ -100,6 +101,7 @@ export const SETTINGS_SCHEMAS = {
   'recordings.transcription.modelId': z.string(),
   'recordings.analysis.providerId': z.string(),
   'recordings.analysis.modelId': z.string(),
+  'recordings.analysis.defaultTemplateId': z.string(),
   'stt.default.providerId': z.string(),
   'stt.default.modelId': z.string(),
 } as const;
@@ -351,6 +353,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'recordings.analysis.modelId',
     value: '',
     description: 'Preferred model ID used for recording analysis and summaries.',
+  },
+  {
+    key: 'recordings.analysis.defaultTemplateId',
+    value: 'mnt_prebuilt_executive_summary',
+    description: 'Default meeting note template used for recording analysis.',
   },
   {
     key: 'stt.default.providerId',
