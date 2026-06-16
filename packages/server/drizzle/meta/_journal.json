@@ -243,29 +243,8 @@
     {
       "idx": 34,
       "version": "6",
-      "when": 1781647844983,
-      "tag": "0034_outstanding_bug",
-      "breakpoints": true
-    },
-    {
-      "idx": 35,
-      "version": "6",
-      "when": 1781649027277,
-      "tag": "0035_sad_storm",
-      "breakpoints": true
-    },
-    {
-      "idx": 36,
-      "version": "6",
-      "when": 1781650741102,
-      "tag": "0036_flaky_star_brand",
-      "breakpoints": true
-    },
-    {
-      "idx": 37,
-      "version": "6",
-      "when": 1781652432341,
-      "tag": "0037_mixed_microchip",
+      "when": 1781653056873,
+      "tag": "0034_acoustic_eternity",
       "breakpoints": true
     }
   ]
