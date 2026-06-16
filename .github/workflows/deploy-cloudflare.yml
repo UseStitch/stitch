@@ -33,6 +33,8 @@ jobs:
 
       - name: Build website
         run: bun run --cwd apps/website build
+        env:
+          VITE_POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

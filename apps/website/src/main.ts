@@ -1,4 +1,19 @@
+import posthog from 'posthog-js';
+
 import './styles.css';
+
+// PostHog init
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+if (posthogKey) {
+  posthog.init(posthogKey, {
+    api_host: '/ingest',
+    ui_host: 'https://us.posthog.com',
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    disable_session_recording: true,
+  });
+}
 
 // Close open dropdowns on outside click
 document.addEventListener('click', (e: MouseEvent) => {
@@ -27,5 +42,46 @@ document.addEventListener('click', (e: MouseEvent) => {
     const next = isLight ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
+  });
+})();
+
+// Waitlist dialog
+(() => {
+  const dialog = document.getElementById('waitlist-dialog') as HTMLDialogElement;
+  const openBtn = document.getElementById('open-waitlist-dialog')!;
+  const closeBtn = document.getElementById('close-waitlist-dialog')!;
+  const form = document.getElementById('waitlist-form') as HTMLFormElement;
+  const successMsg = document.getElementById('waitlist-success')!;
+
+  openBtn.addEventListener('click', () => {
+    dialog.showModal();
+  });
+
+  closeBtn.addEventListener('click', () => {
+    dialog.close();
+  });
+
+  dialog.addEventListener('click', (e: MouseEvent) => {
+    if (e.target === dialog) dialog.close();
+  });
+
+  form.addEventListener('submit', (e: SubmitEvent) => {
+    e.preventDefault();
+
+    const email = (document.getElementById('waitlist-email') as HTMLInputElement).value;
+    const inference = (form.elements.namedItem('interest-inference') as HTMLInputElement).checked;
+    const remote = (form.elements.namedItem('interest-remote') as HTMLInputElement).checked;
+
+    if (posthogKey) {
+      posthog.identify(email);
+      posthog.capture('waitlist_signup', {
+        email,
+        interest_inference: inference,
+        interest_remote: remote,
+      });
+    }
+
+    form.hidden = true;
+    successMsg.hidden = false;
   });
 })();

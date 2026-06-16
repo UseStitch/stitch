@@ -29,6 +29,59 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcement-banner">
+      <div class="container">
+        <button class="announcement-banner-btn" id="open-waitlist-dialog">
+          Managed services coming soon — get notified &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Waitlist Dialog -->
+    <dialog class="waitlist-dialog" id="waitlist-dialog">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h2>Get notified about managed services</h2>
+          <button class="dialog-close" id="close-waitlist-dialog" aria-label="Close">
+            &times;
+          </button>
+        </div>
+        <p class="dialog-desc">
+          We're building managed services so you don't have to bring your own API keys or run
+          anything locally. Enter your email and select what interests you.
+        </p>
+        <form id="waitlist-form">
+          <div class="form-field">
+            <label for="waitlist-email">Email</label>
+            <input
+              type="email"
+              id="waitlist-email"
+              name="email"
+              required
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <fieldset class="form-field">
+            <legend>I'm interested in:</legend>
+            <label class="checkbox-label">
+              <input type="checkbox" name="interest-inference" value="inference" />
+              <span>Inference service — one key, access to multiple models</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="interest-remote" value="remote" />
+              <span>Full remote version — Stitch hosted in the cloud</span>
+            </label>
+          </fieldset>
+          <button type="submit" class="btn btn-primary dialog-submit">Notify me</button>
+        </form>
+        <p class="dialog-success" id="waitlist-success" hidden>
+          You're on the list. We'll be in touch.
+        </p>
+      </div>
+    </dialog>
+
     <!-- Nav -->
     <nav>
       <div class="container">
