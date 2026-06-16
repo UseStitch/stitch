@@ -39,4 +39,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/website/dist --project-name=stitch --branch=master
+          workingDirectory: apps/website
+          command: pages deploy dist --project-name=stitch --branch=master

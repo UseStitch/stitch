@@ -1,22 +1,22 @@
 import './styles.css';
 
 // Close open dropdowns on outside click
-document.addEventListener('click', function (e) {
-  document.querySelectorAll('.btn-group[open]').forEach(function (d) {
-    if (!d.contains(e.target)) d.removeAttribute('open');
+document.addEventListener('click', (e: MouseEvent) => {
+  document.querySelectorAll('.btn-group[open]').forEach((d) => {
+    if (!d.contains(e.target as Node)) d.removeAttribute('open');
   });
 });
 
 // Theme toggle
-(function () {
-  var stored = localStorage.getItem('theme');
+(() => {
+  const stored = localStorage.getItem('theme');
   if (stored) {
     document.documentElement.setAttribute('data-theme', stored);
   }
 
-  document.getElementById('theme-toggle').addEventListener('click', function () {
-    var current = document.documentElement.getAttribute('data-theme');
-    var isLight;
+  document.getElementById('theme-toggle')!.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    let isLight: boolean;
 
     if (current) {
       isLight = current === 'light';
@@ -24,7 +24,7 @@ document.addEventListener('click', function (e) {
       isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
     }
 
-    var next = isLight ? 'dark' : 'light';
+    const next = isLight ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
   });
