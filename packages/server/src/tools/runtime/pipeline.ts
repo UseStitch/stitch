@@ -1,5 +1,4 @@
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
-import type { Tool } from 'ai';
 
 import {
   permissionMiddleware,
@@ -13,12 +12,8 @@ import type {
   ToolContext,
   ToolMiddleware,
 } from '@/tools/runtime/runtime.js';
+import type { Tool } from 'ai';
 
-/**
- * Declarative tool definition — pure data describing a tool.
- * Tools declare what they need (permission, truncation, source).
- * The pipeline applies middleware uniformly at assembly time.
- */
 export type ToolDefinition = {
   name: string;
   displayName: string;
@@ -32,11 +27,6 @@ export type ToolDefinition = {
   /** Extra middleware applied after the standard stack for this tool. */
   extraMiddleware?: ToolMiddleware[];
 };
-
-/**
- * A single pipeline that applies the standard middleware stack to tool definitions.
- * Replaces the repeated `createToolRuntime(ctx).use(...).wrapTool(...)` ceremony.
- */
 export class ToolPipeline {
   private constructor(private readonly context: ToolContext) {}
 
@@ -44,10 +34,6 @@ export class ToolPipeline {
     return new ToolPipeline(context);
   }
 
-  /**
-   * Register a single ToolDefinition, applying the standard middleware stack.
-   * Returns a wrapped Tool ready for the AI SDK.
-   */
   register(def: ToolDefinition): Tool {
     const middlewares = this.buildMiddlewareStack(def);
     const runtime = createToolRuntime(this.context);
@@ -63,10 +49,6 @@ export class ToolPipeline {
     return runtime.wrapTool(def.name, def.tool, metadata);
   }
 
-  /**
-   * Register multiple ToolDefinitions at once.
-   * Returns a Record<name, Tool> ready for the AI SDK.
-   */
   registerAll(defs: ToolDefinition[]): Record<string, Tool> {
     return Object.fromEntries(defs.map((def) => [def.name, this.register(def)]));
   }

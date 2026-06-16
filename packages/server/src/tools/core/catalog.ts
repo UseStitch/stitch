@@ -1,3 +1,7 @@
+import { isDbInitialized } from '@/db/client.js';
+import { isServiceError } from '@/lib/service-result.js';
+import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
+import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import { definition as bash } from '@/tools/core/bash.js';
 import { definition as edit } from '@/tools/core/edit.js';
 import { definition as glob } from '@/tools/core/glob.js';
@@ -10,18 +14,9 @@ import { definition as skill } from '@/tools/core/skill.js';
 import { createDefinition as createTodoDefinition } from '@/tools/core/todo.js';
 import { definition as webfetch } from '@/tools/core/webfetch.js';
 import { definition as write } from '@/tools/core/write.js';
-import { isDbInitialized } from '@/db/client.js';
-import { isServiceError } from '@/lib/service-result.js';
-import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
-import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
-/**
- * A catalog entry for a core tool.
- * - `static`: definition is context-free.
- * - `contextual`: definition requires a ToolContext at assembly time.
- */
 export type CatalogEntry =
   | { kind: 'static'; definition: ToolDefinition }
   | {
@@ -33,7 +28,6 @@ export type CatalogEntry =
       enabled?: () => Promise<boolean> | boolean;
     };
 
-/** Extract name/displayName from any catalog entry without needing context. */
 export function entryMeta(entry: CatalogEntry): { name: string; displayName: string } {
   if (entry.kind === 'static') {
     return { name: entry.definition.name, displayName: entry.definition.displayName };
@@ -41,12 +35,7 @@ export function entryMeta(entry: CatalogEntry): { name: string; displayName: str
   return { name: entry.name, displayName: entry.displayName };
 }
 
-/**
- * The core tool catalog — single source of truth for all core tools.
- * Adding a tool = adding one entry here + the tool file. No other edits needed.
- */
 export const CORE_TOOL_CATALOG: CatalogEntry[] = [
-  // Static tools (context-free definitions)
   { kind: 'static', definition: webfetch },
   { kind: 'static', definition: read },
   { kind: 'static', definition: bash },
@@ -56,8 +45,6 @@ export const CORE_TOOL_CATALOG: CatalogEntry[] = [
   { kind: 'static', definition: write },
   { kind: 'static', definition: renderUi },
   { kind: 'static', definition: skill },
-
-  // Contextual tools (need ToolContext to construct)
   {
     kind: 'contextual',
     name: 'question',

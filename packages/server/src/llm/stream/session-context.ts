@@ -137,7 +137,6 @@ export class SessionContext {
     const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
     const skillsPrompt = await buildSkillsSystemPrompt();
 
-    // Compose prompt fragments into the messages
     const composer = new PromptComposer();
     composer
       .semiStatic(codeModeResult.getSystemPrompt())
@@ -145,7 +144,6 @@ export class SessionContext {
       .semiStatic(toolsetsPrompt)
       .semiStatic(skillsPrompt);
 
-    // Toolset instructions go in the dynamic layer
     const instructionsBlock = buildActiveToolsetInstructionsBlock(this.opts.sessionId);
     composer.dynamic(instructionsBlock);
 

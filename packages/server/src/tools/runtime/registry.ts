@@ -12,16 +12,13 @@ export const MAX_STEPS_WARNING = (max: number) =>
 
 type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
-/** Tools that are always active regardless of user disable settings. */
 const ALWAYS_ACTIVE = new Set(['render_ui', 'skill']);
 
-/** Derive the known tools list from the catalog — no manual duplication. */
 export const STITCH_KNOWN_TOOLS: KnownTool[] = CORE_TOOL_CATALOG.map((entry) => {
   const { name, displayName } = entryMeta(entry);
   return { toolType: 'stitch', toolName: name, displayName };
 });
 
-/** Resolve a catalog entry into a ToolDefinition given a context. */
 function resolveEntry(entry: CatalogEntry, context: ToolContext): ToolDefinition {
   if (entry.kind === 'static') return entry.definition;
   return entry.create(context);
@@ -34,10 +31,8 @@ export async function createTools(context: ToolContext) {
   for (const entry of CORE_TOOL_CATALOG) {
     const { name } = entryMeta(entry);
 
-    // Check user-disabled list (unless always active)
     if (!ALWAYS_ACTIVE.has(name) && disabledTools.has(name)) continue;
 
-    // Check conditional enablement
     if (entry.kind === 'contextual' && entry.enabled) {
       const enabled = await entry.enabled();
       if (!enabled) continue;
