@@ -9,7 +9,6 @@ use std::time::Duration;
 #[cfg(target_os = "macos")]
 use std::sync::mpsc::SyncSender;
 
-use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 use audio_core::error::NativeError;
 
@@ -655,30 +654,38 @@ pub(crate) fn spawn_speaker_source(
 }
 
 pub(crate) fn spawn_speaker_capture(
-  output_path: String,
   speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
+  use audio_core::output::emit_audio_chunk;
+  use audio_core::protocol::{AudioChunkEncoding, AudioChunkSource};
+
   let (rx, source_worker) =
     spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
 
   let builder = thread::Builder::new().name("stitch-audio-speaker-capture".to_string());
   builder
     .spawn(move || {
-      let mut writer = OggOpusWriter::create(&output_path)?;
-
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(SPEAKER_CAPTURE_RECV_TIMEOUT) {
-          writer.write_samples(&samples)?;
+          emit_audio_chunk(
+            AudioChunkSource::Speaker,
+            &samples,
+            target_sample_rate_hz,
+            AudioChunkEncoding::F32Le,
+          );
         }
       }
 
       while let Ok(samples) = rx.try_recv() {
-        writer.write_samples(&samples)?;
+        emit_audio_chunk(
+          AudioChunkSource::Speaker,
+          &samples,
+          target_sample_rate_hz,
+          AudioChunkEncoding::F32Le,
+        );
       }
-
-      writer.finalize()?;
 
       let mut warnings = source_worker
         .join()

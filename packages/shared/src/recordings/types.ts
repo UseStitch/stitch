@@ -17,9 +17,6 @@ export type Recording = {
   source: string;
   status: RecordingStatus;
   platform: RecordingPlatform;
-  mimeType: string;
-  filePath: string;
-  fileSizeBytes: number | null;
   durationMs: number | null;
   costUsd: number | null;
   startedAt: number;
@@ -27,6 +24,27 @@ export type Recording = {
   error: string | null;
   createdAt: number;
   updatedAt: number;
+};
+
+export type MeetingNoteTemplate = {
+  id: PrefixedString<'mnt'>;
+  name: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type MeetingNoteTemplateInput = {
+  name: string;
+  content: string;
+};
+
+export type ListMeetingNoteTemplatesResponse = {
+  templates: MeetingNoteTemplate[];
+};
+
+export type MeetingNoteTemplateResponse = {
+  template: MeetingNoteTemplate;
 };
 
 export type StartRecordingInput = {
@@ -39,7 +57,6 @@ export type StartRecordingInput = {
 export type StartRecordingResponse = {
   recording: Recording;
   recordingId: PrefixedString<'rec'>;
-  outputPath: string;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
   speakerGain: number;
@@ -55,7 +72,6 @@ export type StartRecordingResponse = {
 
 export type StopRecordingInput = {
   durationMs: number | null;
-  fileSizeBytes: number | null;
 };
 
 export type StopRecordingResponse = {
@@ -80,33 +96,10 @@ export type RecordingTranscriptEntry = {
   endMs: number;
 };
 
-export type RecordingActionItem = {
-  task: string;
-  dueDate: string | null;
-  topicName: string | null;
-};
-
-export type RecordingBlocker = {
-  description: string;
-  impact: string | null;
-  topicName: string | null;
-};
-
-export type RecordingAnalysisTopicSection = {
-  name: string;
-  analysis: string;
-  decisions: string[];
-  actionItems: RecordingActionItem[];
-  blockers: RecordingBlocker[];
-  openQuestions: string[];
-  nextSteps: string[];
-};
-
 export type RecordingAnalysis = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
   transcript: RecordingTranscriptEntry[];
-  topicSections: RecordingAnalysisTopicSection[];
   summary: string;
   title: string;
   error: string | null;

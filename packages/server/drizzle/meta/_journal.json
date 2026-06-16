@@ -239,6 +239,13 @@
       "when": 1781297017613,
       "tag": "0033_glossy_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1781653056873,
+      "tag": "0034_acoustic_eternity",
+      "breakpoints": true
     }
   ]
 }

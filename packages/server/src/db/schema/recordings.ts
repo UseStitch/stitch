@@ -12,11 +12,9 @@ import {
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type {
-  RecordingAnalysisTopicSection,
   RecordingAnalysisStatus,
   RecordingPlatform,
   RecordingStatus,
-  RecordingTranscriptEntry,
 } from '@stitch/shared/recordings/types';
 
 import type { LanguageModelUsage } from 'ai';
@@ -29,9 +27,6 @@ export const recordings = sqliteTable(
     source: text('source').notNull().default('manual'),
     status: text('status').$type<RecordingStatus>().notNull().default('recording'),
     platform: text('platform').$type<RecordingPlatform>().notNull().default('manual'),
-    mimeType: text('mime_type').notNull().default('audio/ogg'),
-    filePath: text('file_path').notNull(),
-    fileSizeBytes: integer('file_size_bytes'),
     durationMs: integer('duration_ms'),
     startedAt: integer('started_at', { mode: 'number' }).notNull(),
     endedAt: integer('ended_at', { mode: 'number' }),
@@ -59,12 +54,8 @@ export const recordingAnalyses = sqliteTable(
       .notNull()
       .references(() => recordings.id, { onDelete: 'cascade' }),
     status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
-    transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
-    topicSections: blob('topic_sections', { mode: 'json' }).$type<
-      RecordingAnalysisTopicSection[]
-    >(),
-    summary: text('summary').notNull().default(''),
     title: text('title').notNull().default(''),
+    templateId: text('template_id').$type<PrefixedString<'mnt'>>(),
     error: text('error'),
     transcriptionProviderId: text('transcription_provider_id'),
     transcriptionModelId: text('transcription_model_id'),
@@ -90,4 +81,20 @@ export const recordingAnalyses = sqliteTable(
       sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
     ),
   ],
+);
+
+export const meetingNoteTemplates = sqliteTable(
+  'meeting_note_templates',
+  {
+    id: text('id').$type<PrefixedString<'mnt'>>().primaryKey(),
+    name: text('name').notNull(),
+    content: text('content').notNull(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index('meeting_note_templates_updated_at_idx').on(table.updatedAt)],
 );

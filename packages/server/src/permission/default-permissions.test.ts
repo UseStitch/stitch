@@ -22,6 +22,22 @@ describe('syncDefaultPermissions', () => {
     expect(skillsRule!.permission).toBe('allow');
   });
 
+  test('creates file tool permissions for recordings directory', async () => {
+    await syncDefaultPermissions();
+
+    const rows = await getDb().select().from(toolPermissions);
+    const expectedTools = ['read', 'write', 'grep', 'glob'];
+
+    for (const toolName of expectedTools) {
+      const rule = rows.find(
+        (r) => r.toolName === toolName && r.pattern === `${PATHS.dirPaths.recordings}${path.sep}*`,
+      );
+
+      expect(rule).toBeDefined();
+      expect(rule!.permission).toBe('allow');
+    }
+  });
+
   test('is idempotent', async () => {
     await syncDefaultPermissions();
     await syncDefaultPermissions();
@@ -30,7 +46,11 @@ describe('syncDefaultPermissions', () => {
     const skillsRules = rows.filter(
       (r) => r.toolName === 'read' && r.pattern === `${PATHS.dirPaths.skills}${path.sep}*`,
     );
+    const recordingsReadRules = rows.filter(
+      (r) => r.toolName === 'read' && r.pattern === `${PATHS.dirPaths.recordings}${path.sep}*`,
+    );
 
     expect(skillsRules).toHaveLength(1);
+    expect(recordingsReadRules).toHaveLength(1);
   });
 });

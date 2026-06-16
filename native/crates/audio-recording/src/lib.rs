@@ -1,6 +1,5 @@
 mod capture;
 pub mod device;
-mod opus_writer;
 mod resample;
 pub mod session;
 mod speaker;

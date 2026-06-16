@@ -8,6 +8,7 @@ import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import { keyboardShortcuts, userSettings } from '@/db/schema/settings.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { seedMeetingNoteTemplates } from '@/recordings/meeting-note-templates.js';
 import type { Database } from 'bun:sqlite';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
@@ -104,6 +105,7 @@ export async function initDb(): Promise<void> {
 
   seedShortcuts(_db);
   seedSettings(_db);
+  seedMeetingNoteTemplates(_db);
 
   log.info({ path: dbPath, migrationsDir, runtime: 'bun-sqlite' }, 'database initialized');
 }
