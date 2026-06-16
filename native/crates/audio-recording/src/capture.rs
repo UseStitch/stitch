@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -13,7 +13,6 @@ use audio_core::protocol::{
   AudioChunkEncoding, AudioChunkSource, CaptureMode, CaptureStart, Event,
 };
 
-use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 
@@ -351,10 +350,14 @@ fn spawn_mic_capture(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let output_path = start.output_path.clone();
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
   let sample_rate_hz = start.sample_rate_hz;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
 
   let builder = thread::Builder::new().name("stitch-audio-mic-capture".to_string());
   builder
@@ -365,8 +368,6 @@ fn spawn_mic_capture(
         warnings.push("channels_forced_to_mono".to_string());
       }
 
-      let mut writer = OggOpusWriter::create(&output_path)?;
-
       let (tx, rx): (SyncSender<Vec<f32>>, Receiver<Vec<f32>>) =
         mpsc::sync_channel(INPUT_QUEUE_CAPACITY);
 
@@ -376,7 +377,12 @@ fn spawn_mic_capture(
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(MIC_CAPTURE_RECV_TIMEOUT) {
-          writer.write_samples(&samples)?;
+          emit_audio_chunk(
+            AudioChunkSource::Mic,
+            &samples,
+            sample_rate_hz,
+            chunk_encoding,
+          );
           mic_stream.reset_reconnect_attempts();
           continue;
         }
@@ -387,11 +393,15 @@ fn spawn_mic_capture(
       }
 
       while let Ok(samples) = rx.try_recv() {
-        writer.write_samples(&samples)?;
+        emit_audio_chunk(
+          AudioChunkSource::Mic,
+          &samples,
+          sample_rate_hz,
+          chunk_encoding,
+        );
       }
 
       drop(mic_stream);
-      writer.finalize()?;
 
       Ok(warnings)
     })
@@ -450,17 +460,6 @@ fn spawn_mic_source(
   Ok((rx, worker))
 }
 
-fn append_audio_chunk(
-  buffer: &mut Vec<f32>,
-  source: AudioChunkSource,
-  chunk: Vec<f32>,
-  sample_rate_hz: u32,
-  encoding: AudioChunkEncoding,
-) {
-  emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
-  buffer.extend_from_slice(&chunk);
-}
-
 fn drain_available_audio_chunks(
   rx: &Receiver<Vec<f32>>,
   buffer: &mut Vec<f32>,
@@ -469,7 +468,8 @@ fn drain_available_audio_chunks(
   encoding: AudioChunkEncoding,
 ) {
   while let Ok(chunk) = rx.try_recv() {
-    append_audio_chunk(buffer, source, chunk, sample_rate_hz, encoding);
+    emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
+    buffer.extend_from_slice(&chunk);
   }
 }
 
@@ -528,11 +528,10 @@ fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
   }
 }
 
-fn write_dual_realtime_output(
+fn emit_dual_realtime(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let output_path = start.output_path.clone();
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;
@@ -549,8 +548,6 @@ fn write_dual_realtime_output(
   let builder = thread::Builder::new().name("stitch-audio-dual-mixer".to_string());
   builder
     .spawn(move || {
-      let mut writer = OggOpusWriter::create(&output_path)?;
-
       let mut warnings = vec!["dual_realtime_mixer_enabled".to_string()];
       let mut mic_buf: Vec<f32> = Vec::new();
       let mut speaker_buf: Vec<f32> = Vec::new();
@@ -560,13 +557,15 @@ fn write_dual_realtime_output(
       loop {
         use std::sync::mpsc::RecvTimeoutError;
         match mic_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
-          Ok(chunk) => append_audio_chunk(
-            &mut mic_buf,
-            AudioChunkSource::Mic,
-            chunk,
-            target_sample_rate_hz,
-            chunk_encoding,
-          ),
+          Ok(chunk) => {
+            emit_audio_chunk(
+              AudioChunkSource::Mic,
+              &chunk,
+              target_sample_rate_hz,
+              chunk_encoding,
+            );
+            mic_buf.extend_from_slice(&chunk);
+          }
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
               warnings.push("mic_source_disconnected_early".to_string());
@@ -600,8 +599,7 @@ fn write_dual_realtime_output(
         );
 
         if mix_len > 0 {
-          let out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
-          writer.write_samples(&out)?;
+          let _out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
           drain_mixed_samples(&mut mic_buf, mix_len);
           drain_mixed_samples(&mut speaker_buf, mix_len);
         }
@@ -610,8 +608,6 @@ fn write_dual_realtime_output(
           break;
         }
       }
-
-      writer.finalize()?;
 
       let mic_warnings = mic_worker
         .join()
@@ -634,9 +630,8 @@ pub(crate) fn spawn_capture_worker(
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   match start.mode {
     CaptureMode::Mic => spawn_mic_capture(start, stop_flag),
-    CaptureMode::Dual => write_dual_realtime_output(start, stop_flag),
+    CaptureMode::Dual => emit_dual_realtime(start, stop_flag),
     CaptureMode::Speaker => spawn_speaker_capture(
-      start.output_path.clone(),
       start.speaker_device_id.clone(),
       start.sample_rate_hz,
       stop_flag,
@@ -646,7 +641,7 @@ pub(crate) fn spawn_capture_worker(
 
 #[cfg(test)]
 mod tests {
-  use super::{UNPAIRED_FLUSH_TICKS, drain_mixed_samples, mix_dual_samples, next_mix_len};
+  use super::{drain_mixed_samples, mix_dual_samples, next_mix_len, UNPAIRED_FLUSH_TICKS};
 
   #[test]
   fn next_mix_len_pairs_available_streams_and_resets_waits() {

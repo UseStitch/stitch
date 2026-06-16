@@ -10,13 +10,7 @@ import type { BrowserWindow } from 'electron';
 
 type StartCaptureInput = Pick<
   StartRecordingResponse,
-  | 'recordingId'
-  | 'outputPath'
-  | 'micDeviceId'
-  | 'speakerDeviceId'
-  | 'speakerGain'
-  | 'audioChunkConfig'
-  | 'stt'
+  'recordingId' | 'micDeviceId' | 'speakerDeviceId' | 'speakerGain' | 'audioChunkConfig' | 'stt'
 > & {
   serverUrl: string;
 };
@@ -86,7 +80,6 @@ export async function startRecordingCapture(
     });
 
     await capture.start({
-      outputPath: input.outputPath,
       channels: 1,
       micDeviceId: input.micDeviceId,
       speakerDeviceId: input.speakerDeviceId,
@@ -162,7 +155,6 @@ export async function stopRecordingCapture(): Promise<StopRecordingInput> {
 
     return {
       durationMs: result?.durationMs ?? null,
-      fileSizeBytes: result?.fileSizeBytes ?? null,
     };
   } finally {
     // Give a brief moment for the stop message to send before closing

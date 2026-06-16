@@ -17,9 +17,6 @@ export type Recording = {
   source: string;
   status: RecordingStatus;
   platform: RecordingPlatform;
-  mimeType: string;
-  filePath: string;
-  fileSizeBytes: number | null;
   durationMs: number | null;
   costUsd: number | null;
   startedAt: number;
@@ -39,7 +36,6 @@ export type StartRecordingInput = {
 export type StartRecordingResponse = {
   recording: Recording;
   recordingId: PrefixedString<'rec'>;
-  outputPath: string;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
   speakerGain: number;
@@ -55,7 +51,6 @@ export type StartRecordingResponse = {
 
 export type StopRecordingInput = {
   durationMs: number | null;
-  fileSizeBytes: number | null;
 };
 
 export type StopRecordingResponse = {

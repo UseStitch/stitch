@@ -12,10 +12,14 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { formatClockDuration, getRecordingDisplayTitle, STATUS_LABELS, STATUS_VARIANTS } from '../shared/formatting';
+import {
+  formatClockDuration,
+  getRecordingDisplayTitle,
+  STATUS_LABELS,
+  STATUS_VARIANTS,
+} from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
-import { RecordingCopyButton } from '../shared/recording-copy-button';
 
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -86,7 +90,6 @@ export function RecordingsTable({
         header: () => <div className="pr-1 text-right">Actions</div>,
         cell: ({ row }) => (
           <Table.Actions className="-mr-1.5">
-            <RecordingCopyButton value={row.original.filePath} />
             <Button
               type="button"
               variant="ghost"
@@ -130,7 +133,7 @@ export function RecordingsTable({
                   key={header.id}
                   className={
                     header.column.id === 'title'
-                      ? 'w-full min-w-48 max-w-xs px-4 py-2 font-medium'
+                      ? 'w-full max-w-xs min-w-48 px-4 py-2 font-medium'
                       : 'px-4 py-2 font-medium whitespace-nowrap'
                   }
                 >
@@ -167,7 +170,7 @@ export function RecordingsTable({
                     key={cell.id}
                     className={
                       cell.column.id === 'title'
-                        ? 'w-full min-w-48 max-w-xs px-4 py-3'
+                        ? 'w-full max-w-xs min-w-48 px-4 py-3'
                         : 'px-4 py-3 whitespace-nowrap'
                     }
                   >

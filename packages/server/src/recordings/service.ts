@@ -1,6 +1,4 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
 import type {
@@ -20,7 +18,6 @@ import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
-import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
@@ -31,7 +28,6 @@ import { getSettings } from '@/settings/service.js';
 type RecordingRow = typeof recordings.$inferSelect;
 type ActiveRecording = {
   id: Recording['id'];
-  filePath: string;
 };
 
 let activeRecording: ActiveRecording | null = null;
@@ -137,9 +133,6 @@ function toRecording(
     source: row.source,
     status: row.status,
     platform: row.platform,
-    mimeType: row.mimeType,
-    filePath: row.filePath,
-    fileSizeBytes: row.fileSizeBytes,
     durationMs: row.durationMs,
     costUsd: analysisCostUsd,
     startedAt: row.startedAt,
@@ -226,8 +219,6 @@ export async function startRecording(
   const id = createRecordingId();
   const now = Date.now();
   const title = input.title?.trim() || defaultTitle();
-  const outputDir = path.join(PATHS.dirPaths.recordings, id);
-  const filePath = path.join(outputDir, 'raw_audio.ogg');
   let settings: RecordingCaptureSettings;
   let sttConfig: ResolvedSttConfig;
 
@@ -248,16 +239,12 @@ export async function startRecording(
     settings = resolvedSettings;
     sttConfig = resolvedSttConfig;
 
-    await fs.mkdir(outputDir, { recursive: true });
-
     await db.insert(recordings).values({
       id,
       title,
       source: 'manual',
       status: 'recording',
       platform: input.platform ?? 'manual',
-      mimeType: 'audio/ogg',
-      filePath,
       startedAt: now,
     });
 
@@ -285,11 +272,10 @@ export async function startRecording(
       updatedAt: Date.now(),
     });
 
-    activeRecording = { id, filePath };
+    activeRecording = { id };
     log.info(
       {
         recordingId: id,
-        filePath,
         speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,
@@ -312,31 +298,12 @@ export async function startRecording(
   return ok({
     recording: toRecording(row),
     recordingId: id,
-    outputPath: filePath,
     micDeviceId: settings.inputDeviceId,
     speakerDeviceId: settings.outputDeviceId,
     speakerGain: settings.speakerGain,
     audioChunkConfig: { encoding: sttConfig.encoding, sampleRateHz: sttConfig.sampleRateHz },
     stt: { providerId: sttConfig.providerId, modelId: sttConfig.modelId },
   });
-}
-
-export async function getRecordingAudioFile(
-  recordingId: Recording['id'],
-): Promise<ServiceResult<{ filePath: string; mimeType: string }>> {
-  const db = getDb();
-  const [row] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
-
-  if (!row) {
-    return err('Recording not found', 404);
-  }
-
-  const stat = await fs.stat(row.filePath).catch(() => null);
-  if (!stat?.isFile()) {
-    return err('Recording file not found', 404);
-  }
-
-  return ok({ filePath: row.filePath, mimeType: row.mimeType });
 }
 
 export async function stopRecording(
@@ -360,7 +327,6 @@ export async function stopRecording(
         status: 'completed',
         endedAt,
         durationMs,
-        fileSizeBytes: input.fileSizeBytes,
         updatedAt: Date.now(),
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
@@ -380,8 +346,6 @@ export async function stopRecording(
     log.info(
       {
         recordingId: current.id,
-        filePath: current.filePath,
-        fileSizeBytes: input.fileSizeBytes,
       },
       'recording stopped',
     );
@@ -432,19 +396,6 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
 
   if (!row) {
     return err('Recording not found', 404);
-  }
-
-  const recordingDir = path.dirname(row.filePath);
-  const relativeRecordingDir = path.relative(PATHS.dirPaths.recordings, recordingDir);
-  if (relativeRecordingDir.startsWith('..') || path.isAbsolute(relativeRecordingDir)) {
-    return err('Recording path is outside recordings directory', 400);
-  }
-
-  try {
-    await fs.rm(recordingDir, { recursive: true, force: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete recording files';
-    return err(message, 400);
   }
 
   await db.delete(recordings).where(eq(recordings.id, recordingId));

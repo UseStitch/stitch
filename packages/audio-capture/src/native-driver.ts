@@ -170,7 +170,6 @@ async function runOneShot<TSuccess extends NativeCaptureEvent['type']>(
 function startCommand(input: StartCaptureInput): Extract<NativeCaptureCommand, { type: 'start' }> {
   return {
     type: 'start',
-    outputPath: input.outputPath,
     format: input.format ?? 'opus',
     mode: 'dual',
     sampleRateHz: input.sampleRateHz ?? 16_000,
@@ -186,9 +185,6 @@ function toStopResult(event: NativeCaptureStoppedEvent): StopCaptureResult {
   return {
     endedAt: event.endedAt,
     durationMs: event.durationMs,
-    fileSizeBytes: event.fileSizeBytes,
-    sampleRateHz: event.sampleRateHz,
-    channels: event.channels,
     warnings: event.warnings,
   };
 }
@@ -262,8 +258,7 @@ export function createNativeDriver(platform: CapturePlatform): AudioCaptureDrive
       const started = startedOrError;
       return {
         startedAt: started.startedAt,
-        outputPath: started.outputPath,
-        sessionId: `${started.startedAt}:${started.outputPath}`,
+        sessionId: `${started.startedAt}`,
         process: processHandle,
         controller,
       };

@@ -2,8 +2,6 @@ import { FileTextIcon, Loader2Icon, SparklesIcon, SquareIcon, Trash2Icon } from 
 
 import type { RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
-import { AudioPlayer } from './audio-player';
-
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 import {
@@ -51,7 +49,6 @@ export function AnalysisHeader({
   onDelete,
   onStopRecording,
 }: AnalysisHeaderProps) {
-  const showPlayer = recording?.status === 'completed' && recording.id;
   const showRecordingControls = isRecording && onStopRecording;
   const hasCompletedAnalysis = analysis?.status === 'completed';
   const costLabel = formatCost(analysis?.costUsd ?? recording?.costUsd);
@@ -82,9 +79,6 @@ export function AnalysisHeader({
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop
           </Button>
-        ) : null}
-        {!showRecordingControls && showPlayer ? (
-          <AudioPlayer recordingId={recording.id} durationMs={recording.durationMs} />
         ) : null}
         {!showRecordingControls && analysisMarkdown ? (
           <CopyButton

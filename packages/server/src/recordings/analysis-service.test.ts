@@ -42,8 +42,6 @@ async function seedCompletedAnalysis(): Promise<void> {
     source: 'manual',
     status: 'completed',
     platform: 'manual',
-    mimeType: 'audio/ogg',
-    filePath: 'recording.ogg',
     startedAt: now - 1_000,
     endedAt: now,
   });
