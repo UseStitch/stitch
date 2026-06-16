@@ -11,13 +11,21 @@ type DefaultPermissionRule = {
   pattern: string;
 };
 
+function allowDirectory(toolName: string, directory: string): DefaultPermissionRule {
+  return {
+    toolName,
+    permission: 'allow',
+    pattern: `${directory}${path.sep}*`,
+  };
+}
+
 function getDefaultPermissionRules(): DefaultPermissionRule[] {
   return [
-    {
-      toolName: 'read',
-      permission: 'allow',
-      pattern: `${PATHS.dirPaths.skills}${path.sep}*`,
-    },
+    allowDirectory('read', PATHS.dirPaths.skills),
+    allowDirectory('read', PATHS.dirPaths.recordings),
+    allowDirectory('write', PATHS.dirPaths.recordings),
+    allowDirectory('grep', PATHS.dirPaths.recordings),
+    allowDirectory('glob', PATHS.dirPaths.recordings),
   ];
 }
 

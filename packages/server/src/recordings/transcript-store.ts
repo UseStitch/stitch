@@ -1,12 +1,9 @@
-import { eq } from 'drizzle-orm';
-
 import type { PrefixedString } from '@stitch/shared/id';
 import type { RecordingTranscriptEntry } from '@stitch/shared/recordings/types';
 import type { AudioSource } from '@stitch/shared/stt/types';
 
-import { getDb } from '@/db/client.js';
-import { recordingAnalyses } from '@/db/schema/recordings.js';
 import * as Log from '@/lib/log.js';
+import { writeRecordingTranscript } from '@/recordings/file-store.js';
 
 const log = Log.create({ service: 'transcript-store' });
 
@@ -141,17 +138,10 @@ async function flushTranscript(recordingId: PrefixedString<'rec'>): Promise<void
   state.dirty = false;
 
   try {
-    const db = getDb();
-    await db
-      .update(recordingAnalyses)
-      .set({
-        transcript: snapshot,
-        updatedAt: Date.now(),
-      })
-      .where(eq(recordingAnalyses.recordingId, recordingId));
+    await writeRecordingTranscript(recordingId, snapshot);
   } catch (error) {
     state.dirty = true;
-    log.error({ recordingId, error }, 'failed to flush transcript to database');
+    log.error({ recordingId, error }, 'failed to flush transcript to file');
   }
 }
 

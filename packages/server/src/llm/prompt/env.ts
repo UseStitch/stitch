@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 
+import { PATHS } from '@/lib/paths.js';
 import { resolvePreferredShell } from '@/lib/shell.js';
 
 const SHELL_RULES_REUSE_CONTEXT = `- Do not re-query information already present in prior tool results in the same conversation.`;
@@ -38,6 +39,7 @@ export function buildPromptEnvironment(input?: { userTimezone?: string | null })
     ...(userTimezone ? [`User timezone: ${userTimezone}`] : []),
     `Operating system: ${process.platform} ${os.release()}`,
     `Home directory: ${homeDir}`,
+    `Recordings directory: ${PATHS.dirPaths.recordings}`,
     `Preferred shell: ${preferredShell}`,
   ];
 

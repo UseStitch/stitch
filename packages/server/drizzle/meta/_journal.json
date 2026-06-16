@@ -260,6 +260,13 @@
       "when": 1781650741102,
       "tag": "0036_flaky_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1781652432341,
+      "tag": "0037_mixed_microchip",
+      "breakpoints": true
     }
   ]
 }

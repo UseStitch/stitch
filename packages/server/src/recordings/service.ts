@@ -26,6 +26,7 @@ import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
+import { deleteRecordingFiles } from '@/recordings/file-store.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getSettings } from '@/settings/service.js';
 
@@ -203,7 +204,7 @@ export async function getRecordingDetails(
 
   return ok({
     recording: toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
-    analysis: row.analysis ? toRecordingAnalysis(row.analysis) : null,
+    analysis: row.analysis ? await toRecordingAnalysis(row.analysis) : null,
     activeRecordingId: activeRecording?.id ?? null,
   });
 }
@@ -258,8 +259,6 @@ export async function startRecording(
       id: analysisId,
       recordingId: id,
       status: 'pending',
-      transcript: [],
-      summary: '',
       title: '',
       error: null,
       transcriptionProviderId: sttConfig.providerId,
@@ -343,7 +342,7 @@ export async function stopRecording(
       })
       .where(eq(recordingAnalyses.recordingId, current.id));
 
-    // Final flush of in-memory transcript to the database
+    // Final flush of in-memory transcript to the recordings directory
     await finalFlushAndCleanup(current.id);
 
     log.info(
@@ -408,6 +407,7 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   }
 
   await db.delete(recordings).where(eq(recordings.id, recordingId));
+  await deleteRecordingFiles(recordingId);
 
   return ok(null);
 }

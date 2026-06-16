@@ -15,7 +15,6 @@ import type {
   RecordingAnalysisStatus,
   RecordingPlatform,
   RecordingStatus,
-  RecordingTranscriptEntry,
 } from '@stitch/shared/recordings/types';
 
 import type { LanguageModelUsage } from 'ai';
@@ -55,8 +54,6 @@ export const recordingAnalyses = sqliteTable(
       .notNull()
       .references(() => recordings.id, { onDelete: 'cascade' }),
     status: text('status').$type<RecordingAnalysisStatus>().notNull().default('pending'),
-    transcript: blob('transcript', { mode: 'json' }).$type<RecordingTranscriptEntry[]>(),
-    summary: text('summary').notNull().default(''),
     title: text('title').notNull().default(''),
     templateId: text('template_id').$type<PrefixedString<'mnt'>>(),
     error: text('error'),

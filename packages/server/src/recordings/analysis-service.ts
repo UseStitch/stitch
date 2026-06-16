@@ -20,6 +20,11 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
+import {
+  readRecordingAnalysis,
+  readRecordingTranscript,
+  writeRecordingAnalysis,
+} from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
 import { generateRecordingTitle } from '@/recordings/title-generator.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -61,12 +66,14 @@ function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): strin
   return entries.map((entry, index) => `[${index}] ${entry.speaker}: ${entry.content}`).join('\n');
 }
 
-export function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): RecordingAnalysis {
+export async function toRecordingAnalysis(
+  row: typeof recordingAnalyses.$inferSelect,
+): Promise<RecordingAnalysis> {
   return {
     recordingId: row.recordingId,
     status: row.status,
-    transcript: row.transcript ?? [],
-    summary: row.summary,
+    transcript: await readRecordingTranscript(row.recordingId),
+    summary: await readRecordingAnalysis(row.recordingId),
     title: row.title,
     error: row.error,
     transcriptionProviderId: row.transcriptionProviderId,
@@ -112,7 +119,7 @@ export async function getRecordingAnalysis(
     .from(recordingAnalyses)
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
-  return ok({ analysis: analysis ? toRecordingAnalysis(analysis) : null });
+  return ok({ analysis: analysis ? await toRecordingAnalysis(analysis) : null });
 }
 
 export async function startRecordingAnalysis(
@@ -136,7 +143,7 @@ export async function startRecordingAnalysis(
     .where(eq(recordingAnalyses.recordingId, recordingId));
 
   if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input.force) {
-    return ok({ analysis: toRecordingAnalysis(existing) });
+    return ok({ analysis: await toRecordingAnalysis(existing) });
   }
 
   const templateResult = await getMeetingNoteTemplate(input.templateId);
@@ -144,7 +151,7 @@ export async function startRecordingAnalysis(
     return templateResult;
   }
 
-  const transcript: RecordingTranscriptEntry[] = existing?.transcript ?? [];
+  const transcript: RecordingTranscriptEntry[] = await readRecordingTranscript(recordingId);
   if (transcript.length === 0) {
     return err('No transcript available for this recording', 400);
   }
@@ -171,8 +178,6 @@ export async function startRecordingAnalysis(
         id,
         recordingId,
         status: 'pending',
-        transcript,
-        summary: '',
         title: '',
         templateId: input.templateId,
         error: null,
@@ -193,8 +198,6 @@ export async function startRecordingAnalysis(
         set: {
           id,
           status: 'pending',
-          transcript,
-          summary: '',
           title: '',
           templateId: input.templateId,
           error: null,
@@ -237,7 +240,7 @@ export async function startRecordingAnalysis(
     return err('Failed to create recording analysis', 400);
   }
 
-  return ok({ analysis: toRecordingAnalysis(created) });
+  return ok({ analysis: await toRecordingAnalysis(created) });
 }
 
 export async function cancelRecordingAnalysis(
@@ -429,14 +432,14 @@ async function runRecordingAnalysis(
       .where(eq(recordingAnalyses.id, analysisId));
     const transcriptionCost = currentRow?.costUsd ?? 0;
 
+    await writeRecordingAnalysis(input.recordingId, summary);
+
     await db
       .update(recordingAnalyses)
       .set({
         status: 'completed',
-        transcript: input.transcript,
         templateId: input.templateId,
         title,
-        summary,
         error: null,
         analysisProviderId: input.analysisProviderId,
         analysisModelId: input.analysisModelId,

@@ -9,6 +9,11 @@ import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema
 import { setupTestDb } from '@/db/test-helpers.js';
 import { ok } from '@/lib/service-result.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import {
+  readRecordingAnalysis,
+  writeRecordingAnalysis,
+  writeRecordingTranscript,
+} from '@/recordings/file-store.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
@@ -59,8 +64,6 @@ async function seedCompletedAnalysis(): Promise<void> {
     id: analysisId,
     recordingId,
     status: 'completed',
-    transcript: [{ speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 }],
-    summary: 'Existing summary',
     title: 'Existing title',
     templateId,
     error: null,
@@ -74,6 +77,11 @@ async function seedCompletedAnalysis(): Promise<void> {
     endedAt: now - 100,
     durationMs: 400,
   });
+
+  await writeRecordingTranscript(recordingId, [
+    { speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 },
+  ]);
+  await writeRecordingAnalysis(recordingId, 'Existing summary');
 }
 
 async function readAnalysis() {
@@ -124,10 +132,10 @@ describe('recording analysis reruns', () => {
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
       title: 'Existing title',
-      summary: 'Existing summary',
       analysisProviderId: 'old-provider',
       analysisModelId: 'old-model',
     });
+    expect(await readRecordingAnalysis(recordingId)).toBe('Existing summary');
 
     const cancelResult = await cancelRecordingAnalysis(recordingId);
 
@@ -135,9 +143,9 @@ describe('recording analysis reruns', () => {
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
       title: 'Existing title',
-      summary: 'Existing summary',
       analysisProviderId: 'old-provider',
       analysisModelId: 'old-model',
     });
+    expect(await readRecordingAnalysis(recordingId)).toBe('Existing summary');
   });
 });
