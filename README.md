@@ -6,16 +6,13 @@
 
 Think of it as an AI pair programmer for your entire operating system: it can read and write files, run shell commands, search code, browse the web, manage your calendar and email, record and summarize meetings, and execute recurring automations — all through a natural language chat interface.
 
-## Status
-
-Stitch is in **alpha**. Things will break, behavior will change quickly, and APIs are not stable yet. We do our best to keep things usable and improve reliability each release.
-
 ## Features
 
 - **AI Chat** — Full conversational interface with an LLM that has tool-use capabilities across your local machine
 - **Tool System** — The AI can read/write files, run bash, search code/glob/grep, browse the web, ask you questions, and delegate subtasks to child sessions
 - **Automations** — Turn any chat into a recurring workflow (daily summaries, cleanup tasks, scheduled reports)
-- **Meeting Analysis** — Records audio from Zoom, Meet, Teams, Slack, or Discord, transcribes it, and generates summaries with action items
+- **Agenda Management** — Built-in planning for todos, priorities, due dates, and daily schedules that Stitch can update from chats or meetings
+- **Meeting Recordings** — Granola-style local meeting capture from Zoom, Meet, Teams, Slack, or Discord, with transcription, summaries, and action items
 - **Memory System** — Semantic memory using LanceDB vector storage so the AI remembers your preferences, workflows, and key facts across conversations
 - **Connectors** — Integrate with external services (Google: Gmail, Drive, Calendar) via a pluggable connector framework
 - **MCP Support** — Model Context Protocol integration for additional tool ecosystems
@@ -32,6 +29,7 @@ stitch/
 │   ├── server/         # Hono-based local backend — LLM orchestration, tool execution, DB
 │   ├── shared/         # Zod schemas, TypeScript interfaces, constants
 │   ├── scheduler/      # Cron-like scheduling for automations
+│   ├── sandbox/        # Process-isolated TypeScript execution for Code Mode
 │   └── audio-capture/  # TypeScript wrapper around native Rust audio recording
 ├── native/             # Rust workspace (audio capture, meeting detection)
 │   └── crates/
@@ -50,17 +48,17 @@ stitch/
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Electron |
-| Frontend | React 19, TanStack Router, TanStack Query |
-| Backend | Hono (TypeScript), Bun runtime |
-| Database | SQLite via Drizzle ORM |
-| Vector Store | LanceDB |
-| AI SDK | Vercel AI SDK (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter) |
-| Audio Capture | Rust (cpal, WASAPI, CoreAudio) |
-| Monorepo | Bun workspaces, Turborepo |
-| Linting/Formatting | Oxlint, Oxfmt |
+| Layer              | Technology                                                         |
+| ------------------ | ------------------------------------------------------------------ |
+| Desktop Shell      | Electron                                                           |
+| Frontend           | React 19, TanStack Router, TanStack Query                          |
+| Backend            | Hono (TypeScript), Bun runtime                                     |
+| Database           | SQLite via Drizzle ORM                                             |
+| Vector Store       | LanceDB                                                            |
+| AI SDK             | Vercel AI SDK (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter) |
+| Audio Capture      | Rust (cpal, WASAPI, CoreAudio)                                     |
+| Monorepo           | Bun workspaces, Turborepo                                          |
+| Linting/Formatting | Oxlint, Oxfmt                                                      |
 
 ## Development
 
@@ -74,16 +72,17 @@ bun run audio-native:build  # Build native Rust audio binaries
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@stitch/desktop` | Electron desktop shell |
-| `@stitch/web` | React/TanStack web UI |
-| `@stitch/server` | Local backend service and AI orchestration |
-| `@stitch/shared` | Shared types and cross-package contracts |
-| `@stitch/scheduler` | Scheduling utilities and job-related logic |
-| `@stitch/audio-capture` | Native audio recording wrapper |
-| `@stitch-connectors/sdk` | Connector framework |
-| `@stitch-connectors/google` | Google connector implementation |
+| Package                     | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `@stitch/desktop`           | Electron desktop shell                     |
+| `@stitch/web`               | React/TanStack web UI                      |
+| `@stitch/server`            | Local backend service and AI orchestration |
+| `@stitch/shared`            | Shared types and cross-package contracts   |
+| `@stitch/scheduler`         | Scheduling utilities and job-related logic |
+| `@stitch/sandbox`           | Process-isolated Code Mode runtime         |
+| `@stitch/audio-capture`     | Native audio recording wrapper             |
+| `@stitch-connectors/sdk`    | Connector framework                        |
+| `@stitch-connectors/google` | Google connector implementation            |
 
 ## License
 
