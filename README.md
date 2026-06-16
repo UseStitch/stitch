@@ -6,10 +6,6 @@
 
 Think of it as an AI pair programmer for your entire operating system: it can read and write files, run shell commands, search code, browse the web, manage your calendar and email, record and summarize meetings, and execute recurring automations — all through a natural language chat interface.
 
-## Status
-
-Stitch is in **alpha**. Things will break, behavior will change quickly, and APIs are not stable yet. We do our best to keep things usable and improve reliability each release.
-
 ## Features
 
 - **AI Chat** — Full conversational interface with an LLM that has tool-use capabilities across your local machine
@@ -50,17 +46,17 @@ stitch/
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Electron |
-| Frontend | React 19, TanStack Router, TanStack Query |
-| Backend | Hono (TypeScript), Bun runtime |
-| Database | SQLite via Drizzle ORM |
-| Vector Store | LanceDB |
-| AI SDK | Vercel AI SDK (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter) |
-| Audio Capture | Rust (cpal, WASAPI, CoreAudio) |
-| Monorepo | Bun workspaces, Turborepo |
-| Linting/Formatting | Oxlint, Oxfmt |
+| Layer              | Technology                                                         |
+| ------------------ | ------------------------------------------------------------------ |
+| Desktop Shell      | Electron                                                           |
+| Frontend           | React 19, TanStack Router, TanStack Query                          |
+| Backend            | Hono (TypeScript), Bun runtime                                     |
+| Database           | SQLite via Drizzle ORM                                             |
+| Vector Store       | LanceDB                                                            |
+| AI SDK             | Vercel AI SDK (OpenAI, Anthropic, Google, AWS Bedrock, OpenRouter) |
+| Audio Capture      | Rust (cpal, WASAPI, CoreAudio)                                     |
+| Monorepo           | Bun workspaces, Turborepo                                          |
+| Linting/Formatting | Oxlint, Oxfmt                                                      |
 
 ## Development
 
@@ -74,16 +70,16 @@ bun run audio-native:build  # Build native Rust audio binaries
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `@stitch/desktop` | Electron desktop shell |
-| `@stitch/web` | React/TanStack web UI |
-| `@stitch/server` | Local backend service and AI orchestration |
-| `@stitch/shared` | Shared types and cross-package contracts |
-| `@stitch/scheduler` | Scheduling utilities and job-related logic |
-| `@stitch/audio-capture` | Native audio recording wrapper |
-| `@stitch-connectors/sdk` | Connector framework |
-| `@stitch-connectors/google` | Google connector implementation |
+| Package                     | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `@stitch/desktop`           | Electron desktop shell                     |
+| `@stitch/web`               | React/TanStack web UI                      |
+| `@stitch/server`            | Local backend service and AI orchestration |
+| `@stitch/shared`            | Shared types and cross-package contracts   |
+| `@stitch/scheduler`         | Scheduling utilities and job-related logic |
+| `@stitch/audio-capture`     | Native audio recording wrapper             |
+| `@stitch-connectors/sdk`    | Connector framework                        |
+| `@stitch-connectors/google` | Google connector implementation            |
 
 ## License
 
