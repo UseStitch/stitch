@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+
 import {
   infiniteQueryOptions,
   keepPreviousData,
@@ -8,7 +10,10 @@ import {
 
 import type {
   ActiveRecordingResponse,
+  ListMeetingNoteTemplatesResponse,
   ListRecordingsResponse,
+  MeetingNoteTemplateInput,
+  MeetingNoteTemplateResponse,
   RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingAnalysisResponse,
@@ -26,6 +31,7 @@ const recordingsKeys = {
   detail: (recordingId: string) => [...recordingsKeys.all, 'detail', recordingId] as const,
   active: () => [...recordingsKeys.all, 'active'] as const,
   devices: () => [...recordingsKeys.all, 'devices'] as const,
+  templates: () => [...recordingsKeys.all, 'templates'] as const,
 };
 
 const RECORDINGS_PAGE_SIZE = 12;
@@ -66,6 +72,61 @@ export const activeRecordingQueryOptions = queryOptions({
   queryKey: recordingsKeys.active(),
   queryFn: () => serverRequest<ActiveRecordingResponse>('/recordings/active'),
 });
+
+export const meetingNoteTemplatesQueryOptions = queryOptions({
+  queryKey: recordingsKeys.templates(),
+  queryFn: () => serverRequest<ListMeetingNoteTemplatesResponse>('/recordings/templates'),
+});
+
+export function useCreateMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: MeetingNoteTemplateInput) =>
+      serverRequest<MeetingNoteTemplateResponse>('/recordings/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template created');
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { id: string; template: MeetingNoteTemplateInput }) =>
+      serverRequest<MeetingNoteTemplateResponse>(`/recordings/templates/${input.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input.template),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template saved');
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      serverRequest<void>(`/recordings/templates/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template deleted');
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
 
 type AudioDeviceList = {
   microphoneDevices: string[];

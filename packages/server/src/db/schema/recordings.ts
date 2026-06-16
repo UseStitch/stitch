@@ -88,3 +88,19 @@ export const recordingAnalyses = sqliteTable(
     ),
   ],
 );
+
+export const meetingNoteTemplates = sqliteTable(
+  'meeting_note_templates',
+  {
+    id: text('id').$type<PrefixedString<'mnt'>>().primaryKey(),
+    name: text('name').notNull(),
+    content: text('content').notNull(),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+      .$defaultFn(() => Date.now()),
+  },
+  (table) => [index('meeting_note_templates_updated_at_idx').on(table.updatedAt)],
+);

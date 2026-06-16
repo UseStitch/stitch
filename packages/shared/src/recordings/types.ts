@@ -26,6 +26,27 @@ export type Recording = {
   updatedAt: number;
 };
 
+export type MeetingNoteTemplate = {
+  id: PrefixedString<'mnt'>;
+  name: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type MeetingNoteTemplateInput = {
+  name: string;
+  content: string;
+};
+
+export type ListMeetingNoteTemplatesResponse = {
+  templates: MeetingNoteTemplate[];
+};
+
+export type MeetingNoteTemplateResponse = {
+  template: MeetingNoteTemplate;
+};
+
 export type StartRecordingInput = {
   title?: string;
   platform?: RecordingPlatform;

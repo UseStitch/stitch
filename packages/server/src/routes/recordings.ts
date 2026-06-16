@@ -8,6 +8,12 @@ import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import {
+  createMeetingNoteTemplate,
+  deleteMeetingNoteTemplate,
+  listMeetingNoteTemplates,
+  updateMeetingNoteTemplate,
+} from '@/recordings/meeting-note-templates.js';
+import {
   deleteRecording,
   getActiveRecording,
   getRecordingDetails,
@@ -27,6 +33,15 @@ const stopRecordingSchema = z.object({
 
 const recordingIdParamSchema = z.object({
   id: z.templateLiteral([z.literal('rec'), z.string()]),
+});
+
+const meetingNoteTemplateIdParamSchema = z.object({
+  id: z.templateLiteral([z.literal('mnt'), z.string()]),
+});
+
+const meetingNoteTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  content: z.string().max(50_000),
 });
 
 const analyzeQuerySchema = z.object({
@@ -56,6 +71,39 @@ recordingsRouter.post('/stop', zValidator('json', stopRecordingSchema), async (c
   const result = await stopRecording(body);
   return unwrapResult(c, result);
 });
+
+recordingsRouter.get('/templates', async (c) => {
+  const result = await listMeetingNoteTemplates();
+  return c.json(result);
+});
+
+recordingsRouter.post('/templates', zValidator('json', meetingNoteTemplateSchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createMeetingNoteTemplate(body);
+  return unwrapResult(c, result, 201);
+});
+
+recordingsRouter.put(
+  '/templates/:id',
+  zValidator('param', meetingNoteTemplateIdParamSchema),
+  zValidator('json', meetingNoteTemplateSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = await updateMeetingNoteTemplate(id, body);
+    return unwrapResult(c, result);
+  },
+);
+
+recordingsRouter.delete(
+  '/templates/:id',
+  zValidator('param', meetingNoteTemplateIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await deleteMeetingNoteTemplate(id);
+    return unwrapResult(c, result, 204);
+  },
+);
 
 recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');

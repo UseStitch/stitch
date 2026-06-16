@@ -1,7 +1,9 @@
+import { HelpCircleIcon, PlusIcon, SaveIcon, TrashIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import ChatMarkdown from '@/components/chat/chat-markdown';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -13,6 +15,31 @@ import {
   SliderSettingRow,
 } from '@/components/settings/settings-ui';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,12 +47,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import {
   enabledProviderModelsQueryOptions,
   sttProviderModelsQueryOptions,
   type ProviderModels,
 } from '@/lib/queries/providers';
-import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
+import {
+  audioDevicesQueryOptions,
+  audioPermissionsQueryOptions,
+  meetingNoteTemplatesQueryOptions,
+  useCreateMeetingNoteTemplate,
+  useDeleteMeetingNoteTemplate,
+  useUpdateMeetingNoteTemplate,
+} from '@/lib/queries/recordings';
 import {
   deleteSettingMutationOptions,
   saveSettingMutationOptions,
@@ -48,6 +84,9 @@ const RECORDING_MODEL_PREFERENCES = [
 ] as const;
 
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
+
+const EMPTY_TEMPLATE_CONTENT =
+  '# Meeting Notes\n\n## Summary\n- \n\n## Decisions\n- \n\n## Action Items\n- [ ] \n';
 
 function PermissionStatus() {
   const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
@@ -278,6 +317,206 @@ function RecordingsContent() {
   );
 }
 
+function MarkdownHelpDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="icon-sm" aria-label="Markdown help" title="Markdown help">
+            <HelpCircleIcon />
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Markdown basics</DialogTitle>
+          <DialogDescription>
+            Use Markdown to shape how the note template should be filled in.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div>
+            <p className="font-medium">Headings</p>
+            <code className="text-xs text-muted-foreground"># Title, ## Section</code>
+          </div>
+          <div>
+            <p className="font-medium">Lists</p>
+            <code className="text-xs text-muted-foreground">- Bullet item</code>
+          </div>
+          <div>
+            <p className="font-medium">Tasks</p>
+            <code className="text-xs text-muted-foreground">- [ ] Owner: action item</code>
+          </div>
+          <div>
+            <p className="font-medium">Emphasis</p>
+            <code className="text-xs text-muted-foreground">**important** or _note_</code>
+          </div>
+        </div>
+        <DialogFooter showCloseButton />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MeetingNoteTemplatesSettings() {
+  const { data } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
+  const createMutation = useCreateMeetingNoteTemplate();
+  const updateMutation = useUpdateMeetingNoteTemplate();
+  const deleteMutation = useDeleteMeetingNoteTemplate();
+  const [selectedId, setSelectedId] = React.useState<string | null>(data.templates[0]?.id ?? null);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;
+  const [name, setName] = React.useState(selectedTemplate?.name ?? '');
+  const [content, setContent] = React.useState(selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT);
+
+  React.useEffect(() => {
+    if (!selectedTemplate) {
+      setName('');
+      setContent(EMPTY_TEMPLATE_CONTENT);
+      return;
+    }
+
+    setName(selectedTemplate.name);
+    setContent(selectedTemplate.content);
+  }, [selectedTemplate]);
+
+  React.useEffect(() => {
+    if (!selectedId && data.templates[0]) {
+      setSelectedId(data.templates[0].id);
+    }
+  }, [data.templates, selectedId]);
+
+  const canSave = name.trim().length > 0 && selectedTemplate !== null;
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  function handleCreateTemplate() {
+    createMutation.mutate(
+      { name: 'New Template', content: EMPTY_TEMPLATE_CONTENT },
+      { onSuccess: (response) => setSelectedId(response.template.id) },
+    );
+  }
+
+  function handleSaveTemplate() {
+    if (!selectedTemplate) return;
+    updateMutation.mutate({ id: selectedTemplate.id, template: { name, content } });
+  }
+
+  function handleDeleteTemplate() {
+    if (!selectedTemplate) return;
+
+    const nextTemplate = data.templates.find((template) => template.id !== selectedTemplate.id);
+    deleteMutation.mutate(selectedTemplate.id, {
+      onSuccess: () => {
+        setSelectedId(nextTemplate?.id ?? null);
+        setDeleteOpen(false);
+      },
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
+          <SelectTrigger className="w-full sm:w-80">
+            <SelectValue placeholder="Select a template">
+              {selectedTemplate?.name ?? 'Select a template'}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {data.templates.map((template) => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <ButtonGroup className="shrink-0">
+          <Button size="sm" onClick={handleCreateTemplate}>
+            <PlusIcon />
+            New Template
+          </Button>
+          <MarkdownHelpDialog />
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="icon-sm"
+                  aria-label="Delete template"
+                  title="Delete template"
+                  disabled={!selectedTemplate || deleteMutation.isPending}
+                >
+                  <TrashIcon />
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogMedia>
+                  <TrashIcon />
+                </AlertDialogMedia>
+                <AlertDialogTitle>Delete template?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete “{selectedTemplate?.name ?? 'this template'}”. This
+                  cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                  onClick={handleDeleteTemplate}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button
+            size="icon-sm"
+            aria-label="Save template"
+            title="Save template"
+            disabled={!canSave || isSaving}
+            onClick={handleSaveTemplate}
+          >
+            <SaveIcon />
+          </Button>
+        </ButtonGroup>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Title</Label>
+        <Input value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Editor</p>
+          <Textarea
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            className="min-h-96 resize-y font-mono text-sm"
+            placeholder="Write the markdown structure for this meeting note template."
+          />
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Preview</p>
+          <div className="min-h-96 rounded-lg border bg-card p-4">
+            {content.trim() ? (
+              <ChatMarkdown text={content} />
+            ) : (
+              <p className="text-sm text-muted-foreground">Preview appears here.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RecordingsSettings() {
   const page = SETTINGS_PAGE_BY_ID.recordings;
   const Icon = page.icon;
@@ -288,13 +527,32 @@ export function RecordingsSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
     >
-      <PermissionStatus />
-      <SettingSection title="Audio Devices" className="mt-4">
-        <AudioDeviceSettings />
-      </SettingSection>
-      <SettingSection title="Analysis">
-        <RecordingsContent />
-      </SettingSection>
+      <Tabs defaultValue="settings" className="min-h-0">
+        <TabsList variant="line">
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="pt-4">
+          <PermissionStatus />
+          <SettingSection title="Audio Devices" className="mt-4">
+            <AudioDeviceSettings />
+          </SettingSection>
+          <SettingSection title="Analysis">
+            <RecordingsContent />
+          </SettingSection>
+        </TabsContent>
+
+        <TabsContent value="templates" className="pt-4">
+          <SettingSection
+            title="Meeting Note Templates"
+            description="Create and edit markdown templates used to summarize meeting transcripts."
+            className="mt-0"
+          >
+            <MeetingNoteTemplatesSettings />
+          </SettingSection>
+        </TabsContent>
+      </Tabs>
     </SettingPage>
   );
 }
