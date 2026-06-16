@@ -28,6 +28,7 @@ stitch/
 │   ├── server/         # Hono-based local backend — LLM orchestration, tool execution, DB
 │   ├── shared/         # Zod schemas, TypeScript interfaces, constants
 │   ├── scheduler/      # Cron-like scheduling for automations
+│   ├── sandbox/        # Process-isolated TypeScript execution for Code Mode
 │   └── audio-capture/  # TypeScript wrapper around native Rust audio recording
 ├── native/             # Rust workspace (audio capture, meeting detection)
 │   └── crates/
@@ -77,6 +78,7 @@ bun run audio-native:build  # Build native Rust audio binaries
 | `@stitch/server`            | Local backend service and AI orchestration |
 | `@stitch/shared`            | Shared types and cross-package contracts   |
 | `@stitch/scheduler`         | Scheduling utilities and job-related logic |
+| `@stitch/sandbox`           | Process-isolated Code Mode runtime         |
 | `@stitch/audio-capture`     | Native audio recording wrapper             |
 | `@stitch-connectors/sdk`    | Connector framework                        |
 | `@stitch-connectors/google` | Google connector implementation            |
