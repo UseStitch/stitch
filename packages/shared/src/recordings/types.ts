@@ -32,6 +32,8 @@ export type Recording = {
 export type StartRecordingInput = {
   title?: string;
   platform?: RecordingPlatform;
+  sttProviderId?: string;
+  sttModelId?: string;
 };
 
 export type StartRecordingResponse = {

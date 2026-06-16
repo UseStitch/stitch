@@ -1,4 +1,11 @@
-import { ArrowUpIcon, MicIcon, MicOffIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
+import {
+  ArrowUpIcon,
+  ChevronDownIcon,
+  MicIcon,
+  MicOffIcon,
+  PaperclipIcon,
+  SquareIcon,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -14,7 +21,10 @@ import {
   buildProviderModelOptions,
   findProviderModelOption,
 } from '@/components/model-selectors/provider-model-utils';
+import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
+import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import {
   sttProviderModelsQueryOptions,
@@ -112,6 +122,7 @@ export function ChatInputInner({
   const sttBaseOffsetRef = React.useRef(0);
   const valueRef = React.useRef(value);
   valueRef.current = value;
+  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   async function handleMicClick() {
     if (stt.state === 'recording') {
@@ -124,8 +135,8 @@ export function ChatInputInner({
 
     if (stt.state !== 'idle') return;
 
-    const providerId = settings['stt.default.providerId'];
-    const modelId = settings['stt.default.modelId'];
+    const providerId = sttModelOverride?.providerId ?? settings['stt.default.providerId'];
+    const modelId = sttModelOverride?.modelId ?? settings['stt.default.modelId'];
     if (!providerId || !modelId) {
       toast.error('No STT model configured. Set one in Settings → General → STT Model.');
       return;
@@ -147,11 +158,12 @@ export function ChatInputInner({
     if (stt.state !== 'recording') return;
     const base = value.slice(0, sttBaseOffsetRef.current);
     const separator = base.trimEnd().length > 0 ? ' ' : '';
-    const next = base.trimEnd() + separator + stt.partialText;
+    const transcript = [stt.committedText, stt.partialText].filter(Boolean).join(' ');
+    const next = base.trimEnd() + separator + transcript;
     if (next !== value) onChange(next);
-    // Only re-run when partialText changes — value intentionally omitted to avoid loops
+    // Only re-run when STT text changes — value intentionally omitted to avoid loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stt.partialText, stt.state]);
+  }, [stt.committedText, stt.partialText, stt.state]);
 
   const isRecording = stt.state === 'recording';
   const isStopping = stt.state === 'stopping';
@@ -249,24 +261,71 @@ export function ChatInputInner({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              void handleMicClick();
-            }}
-            disabled={disabled || isStopping}
-            className={cn(
-              'flex items-center justify-center rounded-md p-1 transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-              isRecording
-                ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-              (disabled || isStopping) && 'pointer-events-none opacity-50',
-            )}
-            title={isRecording ? 'Stop recording' : 'Speak to type'}
-          >
-            {isRecording ? <MicOffIcon className="size-3.5" /> : <MicIcon className="size-3.5" />}
-          </button>
+          {sttProviders.length > 0 ? (
+            <ButtonGroup>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => {
+                  void handleMicClick();
+                }}
+                disabled={disabled || isStopping}
+                className={cn(
+                  isRecording
+                    ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
+                    : 'text-muted-foreground hover:text-foreground',
+                  (disabled || isStopping) && 'pointer-events-none opacity-50',
+                )}
+                title={isRecording ? 'Stop recording' : 'Speak to type'}
+              >
+                {isRecording ? (
+                  <MicOffIcon className="size-3.5" />
+                ) : (
+                  <MicIcon className="size-3.5" />
+                )}
+              </Button>
+              {!isRecording && (
+                <>
+                  <ButtonGroupSeparator />
+                  <SttModelSelectorPopover
+                    selectedValue={sttModelOverride}
+                    onSelect={setSttModelOverride}
+                    sttProviders={sttProviders}
+                    triggerRender={
+                      <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="ghost"
+                        className="w-4 px-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <ChevronDownIcon className="size-3" />
+                      </Button>
+                    }
+                  />
+                </>
+              )}
+            </ButtonGroup>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void handleMicClick();
+              }}
+              disabled={disabled || isStopping}
+              className={cn(
+                'flex items-center justify-center rounded-md p-1 transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                isRecording
+                  ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                (disabled || isStopping) && 'pointer-events-none opacity-50',
+              )}
+              title={isRecording ? 'Stop recording' : 'Speak to type'}
+            >
+              {isRecording ? <MicOffIcon className="size-3.5" /> : <MicIcon className="size-3.5" />}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">

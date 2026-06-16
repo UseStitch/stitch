@@ -14,6 +14,7 @@ import { RecordingsTable } from './list/recordings-table';
 import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
+import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import {
   Page,
   PageContent,
@@ -37,6 +38,7 @@ export function RecordingsPage() {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
+  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   const { data } = useSuspenseQuery({
     ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
@@ -99,14 +101,23 @@ export function RecordingsPage() {
           isStopping={stopRecording.isPending}
           title={title}
           onTitleChange={setTitle}
+          sttModelOverride={sttModelOverride}
+          onSttModelOverrideChange={setSttModelOverride}
           onStart={() => {
-            void startRecording.mutateAsync({ title: title.trim() || undefined }).then(
-              () => {
-                setTitle('');
-                toast.success('Recording started');
-              },
-              (error: unknown) => toast.error(getErrorMessage(error, 'Failed to start recording')),
-            );
+            void startRecording
+              .mutateAsync({
+                title: title.trim() || undefined,
+                sttProviderId: sttModelOverride?.providerId,
+                sttModelId: sttModelOverride?.modelId,
+              })
+              .then(
+                () => {
+                  setTitle('');
+                  toast.success('Recording started');
+                },
+                (error: unknown) =>
+                  toast.error(getErrorMessage(error, 'Failed to start recording')),
+              );
           }}
           onStop={() => {
             void stopRecording.mutateAsync().then(
