@@ -158,11 +158,12 @@ export function ChatInputInner({
     if (stt.state !== 'recording') return;
     const base = value.slice(0, sttBaseOffsetRef.current);
     const separator = base.trimEnd().length > 0 ? ' ' : '';
-    const next = base.trimEnd() + separator + stt.partialText;
+    const transcript = [stt.committedText, stt.partialText].filter(Boolean).join(' ');
+    const next = base.trimEnd() + separator + transcript;
     if (next !== value) onChange(next);
-    // Only re-run when partialText changes — value intentionally omitted to avoid loops
+    // Only re-run when STT text changes — value intentionally omitted to avoid loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stt.partialText, stt.state]);
+  }, [stt.committedText, stt.partialText, stt.state]);
 
   const isRecording = stt.state === 'recording';
   const isStopping = stt.state === 'stopping';
