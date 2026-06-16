@@ -9,13 +9,8 @@ function getStringContent(message: ModelMessage): string {
 export class PromptComposer {
   private readonly fragments: Array<{ layer: PromptLayer; content: string }> = [];
 
-  semiStatic(content: string): this {
-    if (content) this.fragments.push({ layer: 'semiStatic', content });
-    return this;
-  }
-
-  dynamic(content: string): this {
-    if (content) this.fragments.push({ layer: 'dynamic', content });
+  add(layer: PromptLayer, content: string): this {
+    if (content) this.fragments.push({ layer, content });
     return this;
   }
 

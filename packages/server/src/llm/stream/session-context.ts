@@ -139,13 +139,13 @@ export class SessionContext {
 
     const composer = new PromptComposer();
     composer
-      .semiStatic(codeModeResult.getSystemPrompt())
-      .semiStatic(expiredPrompt)
-      .semiStatic(toolsetsPrompt)
-      .semiStatic(skillsPrompt);
+      .add('semiStatic', codeModeResult.getSystemPrompt())
+      .add('semiStatic', expiredPrompt)
+      .add('semiStatic', toolsetsPrompt)
+      .add('semiStatic', skillsPrompt);
 
     const instructionsBlock = buildActiveToolsetInstructionsBlock(this.opts.sessionId);
-    composer.dynamic(instructionsBlock);
+    composer.add('dynamic', instructionsBlock);
 
     const tools = {
       ...this.mergeTools({
