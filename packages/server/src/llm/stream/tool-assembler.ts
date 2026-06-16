@@ -2,6 +2,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
+import { buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
+import { PromptComposer } from '@/llm/prompt/composer.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import {
   getCurrentSessionToolsetState,
@@ -17,7 +19,7 @@ import { createTools } from '@/tools/runtime/registry.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
-import type { Tool } from 'ai';
+import type { ModelMessage, Tool } from 'ai';
 
 const log = Log.create({ service: 'tool-assembler' });
 
@@ -28,14 +30,15 @@ type ToolAssemblerOptions = {
   credentials: ProviderCredentials;
   modelId: string;
   abortSignal: AbortSignal;
+  llmMessages: ModelMessage[];
   activeToolsetIds?: string[];
   allowTaskTool?: boolean;
 };
 
-type AssembledTools = {
-  staticTools: Record<string, Tool>;
+type AssembledResult = {
+  messages: ModelMessage[];
+  tools: Record<string, Tool>;
   toolsetManager: ToolsetManager;
-  promptAdditions: string[];
 };
 
 async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
@@ -98,7 +101,7 @@ export class ToolAssembler {
     return new ToolAssembler(opts);
   }
 
-  async assemble(): Promise<AssembledTools> {
+  async assemble(): Promise<AssembledResult> {
     const sessionState = getSessionToolsetState(this.opts.sessionId);
     const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) =>
       ToolAssembler.getToolNames(toolsetId),
@@ -134,23 +137,32 @@ export class ToolAssembler {
     const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
     const skillsPrompt = await buildSkillsSystemPrompt();
 
+    // Compose prompt fragments into the messages
+    const composer = new PromptComposer();
+    composer
+      .semiStatic(codeModeResult.getSystemPrompt())
+      .semiStatic(expiredPrompt)
+      .semiStatic(toolsetsPrompt)
+      .semiStatic(skillsPrompt);
+
+    // Toolset instructions go in the dynamic layer
+    const instructionsBlock = buildActiveToolsetInstructionsBlock(this.opts.sessionId);
+    composer.dynamic(instructionsBlock);
+
+    const tools = {
+      ...this.mergeTools({
+        staticTools: { ...coreTools, ...metaTools },
+        taskTool,
+        inspectImageTool,
+        dynamicTools: {},
+      }),
+      execute_typescript: codeModeResult.tool,
+    };
+
     return {
-      staticTools: {
-        ...this.mergeTools({
-          staticTools: { ...coreTools, ...metaTools },
-          taskTool,
-          inspectImageTool,
-          dynamicTools: {},
-        }),
-        execute_typescript: codeModeResult.tool,
-      },
+      messages: composer.compose(this.opts.llmMessages),
+      tools,
       toolsetManager,
-      promptAdditions: [
-        codeModeResult.getSystemPrompt(),
-        expiredPrompt,
-        toolsetsPrompt,
-        skillsPrompt,
-      ].filter(Boolean),
     };
   }
 

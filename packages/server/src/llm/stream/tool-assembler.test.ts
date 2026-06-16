@@ -8,12 +8,20 @@ import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/ses
 import { buildExpiredToolsetsPrompt, ToolAssembler } from '@/llm/stream/tool-assembler.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
-import type { Tool } from 'ai';
+import type { ModelMessage, Tool } from 'ai';
 
 const CREDENTIALS: ProviderCredentials = {
   providerId: 'openai',
   auth: { method: 'api-key', apiKey: 'test-key' },
 };
+
+/** Minimal system message layout matching buildHistoryMessages output. */
+const STUB_MESSAGES: ModelMessage[] = [
+  { role: 'system', content: 'static layer' },
+  { role: 'system', content: 'semiStatic layer' },
+  { role: 'system', content: 'dynamic layer' },
+  { role: 'user', content: 'Hello' },
+];
 
 setupTestDb();
 
@@ -85,9 +93,14 @@ describe('ToolAssembler expired toolset handling', () => {
       credentials: CREDENTIALS,
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
+      llmMessages: STUB_MESSAGES,
     }).assemble();
 
-    expect(assembled.promptAdditions.join('\n')).toContain('Toolset Expiry Notice');
+    const semiStaticContent = assembled.messages
+      .filter((m) => m.role === 'system')
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
+    expect(semiStaticContent).toContain('Toolset Expiry Notice');
     expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
     expect(getSessionToolsetState(sessionId).expired).toEqual([
       { id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] },
@@ -119,6 +132,7 @@ describe('ToolAssembler expired toolset handling', () => {
       credentials: CREDENTIALS,
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
+      llmMessages: STUB_MESSAGES,
     }).assemble();
 
     expect(restored.toolsetManager.getActiveTools()).toHaveProperty('browser_open');
@@ -136,9 +150,14 @@ describe('ToolAssembler expired toolset handling', () => {
       credentials: CREDENTIALS,
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
+      llmMessages: STUB_MESSAGES,
     }).assemble();
 
-    expect(expired.promptAdditions.join('\n')).toContain('Toolset Expiry Notice');
+    const semiStaticContent = expired.messages
+      .filter((m) => m.role === 'system')
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n');
+    expect(semiStaticContent).toContain('Toolset Expiry Notice');
     expect(expired.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
   });
 });

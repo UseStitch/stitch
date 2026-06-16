@@ -1140,29 +1140,17 @@ export async function runStream(opts: {
   const streamRunId = randomUUID();
   const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const { staticTools, toolsetManager, promptAdditions } = await ToolAssembler.create({
+  const { messages, tools, toolsetManager } = await ToolAssembler.create({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,
     credentials: opts.credentials,
     modelId: opts.modelId,
     abortSignal: opts.abortSignal,
+    llmMessages: opts.llmMessages,
     activeToolsetIds: opts.activeToolsetIds,
     allowTaskTool: canUseTaskTool,
   }).assemble();
-
-  const messages = opts.llmMessages;
-  if (messages.length > 0 && promptAdditions.length > 0) {
-    // Append to the semi-static system message (index 1) to avoid busting static cache
-    const semiStaticIndex = messages.findIndex((msg, i) => i > 0 && msg.role === 'system');
-    const targetIndex = semiStaticIndex !== -1 ? semiStaticIndex : 0;
-    const existingContent =
-      typeof messages[targetIndex].content === 'string' ? messages[targetIndex].content : '';
-    messages[targetIndex] = {
-      role: 'system',
-      content: `${existingContent}\n\n${promptAdditions.join('\n\n')}`,
-    };
-  }
 
   const transformedMessages = await transformAttachmentsForModel(
     messages,
@@ -1174,7 +1162,7 @@ export async function runStream(opts: {
     {
       ...opts,
       llmMessages: transformedMessages,
-      coreTools: staticTools,
+      coreTools: tools,
       toolsetManager,
       streamRunId,
     },
