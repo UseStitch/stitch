@@ -11,7 +11,8 @@ Think of it as an AI pair programmer for your entire operating system: it can re
 - **AI Chat** — Full conversational interface with an LLM that has tool-use capabilities across your local machine
 - **Tool System** — The AI can read/write files, run bash, search code/glob/grep, browse the web, ask you questions, and delegate subtasks to child sessions
 - **Automations** — Turn any chat into a recurring workflow (daily summaries, cleanup tasks, scheduled reports)
-- **Meeting Analysis** — Records audio from Zoom, Meet, Teams, Slack, or Discord, transcribes it, and generates summaries with action items
+- **Agenda Management** — Built-in planning for todos, priorities, due dates, and daily schedules that Stitch can update from chats or meetings
+- **Meeting Recordings** — Granola-style local meeting capture from Zoom, Meet, Teams, Slack, or Discord, with transcription, summaries, and action items
 - **Memory System** — Semantic memory using LanceDB vector storage so the AI remembers your preferences, workflows, and key facts across conversations
 - **Connectors** — Integrate with external services (Google: Gmail, Drive, Calendar) via a pluggable connector framework
 - **MCP Support** — Model Context Protocol integration for additional tool ecosystems
