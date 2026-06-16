@@ -55,30 +55,47 @@ export function RecordingStartStopBar({
         </div>
 
         {activeRecording ? (
-          <Button onClick={onStop} disabled={isStopping} variant="destructive">
+          <Button
+            onClick={onStop}
+            disabled={isStopping}
+            variant="destructive"
+            className="h-8 rounded-lg px-2.5 shadow-sm"
+          >
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
         ) : sttProviders.length > 0 ? (
-          <ButtonGroup>
-            <Button onClick={onStart} disabled={isStarting}>
+          <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
+            <Button
+              onClick={onStart}
+              disabled={isStarting}
+              className="h-8 rounded-none px-2.5 text-primary-foreground hover:bg-primary/90"
+            >
               <MicIcon data-icon="inline-start" className="size-4" />
               Start recording
             </Button>
-            <ButtonGroupSeparator />
+            <ButtonGroupSeparator className="bg-primary-foreground/20" />
             <SttModelSelectorPopover
               selectedValue={sttModelOverride}
               onSelect={onSttModelOverrideChange}
               sttProviders={sttProviders}
               triggerRender={
-                <Button disabled={isStarting} className="px-2">
+                <Button
+                  disabled={isStarting}
+                  className="h-8 rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                  title="Choose transcription model"
+                >
                   <ChevronDownIcon className="size-3.5" />
                 </Button>
               }
             />
           </ButtonGroup>
         ) : (
-          <Button onClick={onStart} disabled={isStarting}>
+          <Button
+            onClick={onStart}
+            disabled={isStarting}
+            className="h-8 rounded-lg px-2.5 shadow-sm"
+          >
             <MicIcon data-icon="inline-start" className="size-4" />
             Start recording
           </Button>

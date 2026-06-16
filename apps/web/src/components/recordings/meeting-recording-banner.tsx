@@ -135,7 +135,7 @@ export function MeetingRecordingBanner() {
   }
 
   return (
-    <div className="border-b border-border/40 bg-card px-4 py-3 shadow-sm transition-all">
+    <div className="border-b border-border/40 bg-card/95 px-4 py-3 shadow-sm backdrop-blur transition-all">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
@@ -155,7 +155,7 @@ export function MeetingRecordingBanner() {
         </div>
         <div className="flex items-center gap-2">
           {sttProviders.length > 0 ? (
-            <ButtonGroup>
+            <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
               <Button
                 type="button"
                 size="sm"
@@ -179,11 +179,11 @@ export function MeetingRecordingBanner() {
                     );
                 }}
                 disabled={startRecording.isPending}
-                className="shadow-sm"
+                className="rounded-none px-2.5 text-primary-foreground hover:bg-primary/90"
               >
                 Start recording
               </Button>
-              <ButtonGroupSeparator />
+              <ButtonGroupSeparator className="bg-primary-foreground/20" />
               <SttModelSelectorPopover
                 selectedValue={sttModelOverride}
                 onSelect={setSttModelOverride}
@@ -193,7 +193,8 @@ export function MeetingRecordingBanner() {
                     type="button"
                     size="sm"
                     disabled={startRecording.isPending}
-                    className="px-1.5 shadow-sm"
+                    className="rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                    title="Choose transcription model"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </Button>
@@ -224,7 +225,7 @@ export function MeetingRecordingBanner() {
                   );
               }}
               disabled={startRecording.isPending}
-              className="shadow-sm"
+              className="rounded-lg px-2.5 shadow-sm shadow-primary/10"
             >
               Start recording
             </Button>
