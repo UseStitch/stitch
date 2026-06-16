@@ -81,6 +81,7 @@ export class ToolsetManager {
         displayName: name,
         tool,
         source: toolSource,
+        truncation: toolset.truncation,
       })),
     );
     const disabledMcpTools =
