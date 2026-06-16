@@ -32,14 +32,11 @@
         "enabled": true,
         "maxRetries": 5,
         "backoffMs": 500,
-        "rotateBeforeMs": 1740000
+        "rotateBeforeMs": 3540000
       },
       "pricing": {
-        "type": "token",
-        "perMillionTokens": {
-          "audioInput": 40,
-          "textOutput": 10
-        }
+        "type": "duration",
+        "perMinuteUsd": 0.017
       }
     }
   ]

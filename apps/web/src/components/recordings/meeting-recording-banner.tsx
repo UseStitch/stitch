@@ -1,14 +1,18 @@
-import { Video } from 'lucide-react';
+import { ChevronDownIcon, Video } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 
 import type { MeetingCallDetectedPayload } from '@stitch/shared/recordings/meeting-ipc';
 
 import { PLATFORM_CONFIG } from './shared/formatting';
 
+import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
+import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { activeRecordingQueryOptions, useStartRecording } from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
@@ -40,9 +44,11 @@ export function RecordingEventListener() {
 export function MeetingRecordingBanner() {
   const [detection, setDetection] = React.useState<MeetingCallDetectedPayload | null>(null);
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
+  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   const startRecording = useStartRecording();
   const { data } = useQuery(activeRecordingQueryOptions);
+  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const activeRecordingId = data?.activeRecordingId ?? null;
 
   const activeRecordingIdRef = React.useRef(activeRecordingId);
@@ -129,7 +135,7 @@ export function MeetingRecordingBanner() {
   }
 
   return (
-    <div className="border-b border-border/40 bg-card px-4 py-3 shadow-sm transition-all">
+    <div className="border-b border-border/40 bg-card/95 px-4 py-3 shadow-sm backdrop-blur transition-all">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
@@ -148,25 +154,82 @@ export function MeetingRecordingBanner() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              void startRecording.mutateAsync({ platform: detection.platform }).then(
-                () => {
-                  requestDismissMeeting(detection.key);
-                  toast.success('Recording started');
-                },
-                (error: unknown) => {
-                  toast.error(error instanceof Error ? error.message : 'Failed to start recording');
-                },
-              );
-            }}
-            disabled={startRecording.isPending}
-            className="shadow-sm"
-          >
-            Start recording
-          </Button>
+          {sttProviders.length > 0 ? (
+            <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  void startRecording
+                    .mutateAsync({
+                      platform: detection.platform,
+                      sttProviderId: sttModelOverride?.providerId,
+                      sttModelId: sttModelOverride?.modelId,
+                    })
+                    .then(
+                      () => {
+                        requestDismissMeeting(detection.key);
+                        toast.success('Recording started');
+                      },
+                      (error: unknown) => {
+                        toast.error(
+                          error instanceof Error ? error.message : 'Failed to start recording',
+                        );
+                      },
+                    );
+                }}
+                disabled={startRecording.isPending}
+                className="rounded-none px-2.5 text-primary-foreground hover:bg-primary/90"
+              >
+                Start recording
+              </Button>
+              <ButtonGroupSeparator className="bg-primary-foreground/20" />
+              <SttModelSelectorPopover
+                selectedValue={sttModelOverride}
+                onSelect={setSttModelOverride}
+                sttProviders={sttProviders}
+                triggerRender={
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={startRecording.isPending}
+                    className="rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                    title="Choose transcription model"
+                  >
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                }
+              />
+            </ButtonGroup>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                void startRecording
+                  .mutateAsync({
+                    platform: detection.platform,
+                    sttProviderId: sttModelOverride?.providerId,
+                    sttModelId: sttModelOverride?.modelId,
+                  })
+                  .then(
+                    () => {
+                      requestDismissMeeting(detection.key);
+                      toast.success('Recording started');
+                    },
+                    (error: unknown) => {
+                      toast.error(
+                        error instanceof Error ? error.message : 'Failed to start recording',
+                      );
+                    },
+                  );
+              }}
+              disabled={startRecording.isPending}
+              className="rounded-lg px-2.5 shadow-sm shadow-primary/10"
+            >
+              Start recording
+            </Button>
+          )}
           <Button
             type="button"
             size="sm"

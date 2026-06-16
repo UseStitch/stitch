@@ -31,11 +31,12 @@
       "reconnect": {
         "enabled": true,
         "maxRetries": 5,
-        "backoffMs": 500
+        "backoffMs": 500,
+        "rotateBeforeMs": 10740000
       },
       "pricing": {
         "type": "duration",
-        "perMinuteUsd": 0.011
+        "perMinuteUsd": 0.0075
       }
     }
   ]

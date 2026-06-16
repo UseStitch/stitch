@@ -33,10 +33,14 @@ jobs:
 
       - name: Build website
         run: bun run --cwd apps/website build
+        env:
+          VITE_POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/website/dist --project-name=stitch --branch=master
+          workingDirectory: apps/website
+          packageManager: bun
+          command: pages deploy dist --project-name=stitch --branch=master

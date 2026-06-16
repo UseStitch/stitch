@@ -1,11 +1,17 @@
-import { MicIcon, SquareIcon } from 'lucide-react';
+import { ChevronDownIcon, MicIcon, SquareIcon } from 'lucide-react';
+
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
 import { LiveDurationText } from '../shared/live-duration';
+
+import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
+import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { Input } from '@/components/ui/input';
+import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 
 interface RecordingStartStopBarProps {
   activeRecording: Recording | undefined;
@@ -13,6 +19,8 @@ interface RecordingStartStopBarProps {
   isStopping: boolean;
   title: string;
   onTitleChange: (title: string) => void;
+  sttModelOverride: SttModelSelection | null;
+  onSttModelOverrideChange: (value: SttModelSelection | null) => void;
   onStart: () => void;
   onStop: () => void;
 }
@@ -23,9 +31,13 @@ export function RecordingStartStopBar({
   isStopping,
   title,
   onTitleChange,
+  sttModelOverride,
+  onSttModelOverrideChange,
   onStart,
   onStop,
 }: RecordingStartStopBarProps) {
+  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+
   return (
     <div className="rounded-xl border border-border/60 bg-card/70 p-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -43,12 +55,47 @@ export function RecordingStartStopBar({
         </div>
 
         {activeRecording ? (
-          <Button onClick={onStop} disabled={isStopping} variant="destructive">
+          <Button
+            onClick={onStop}
+            disabled={isStopping}
+            variant="destructive"
+            className="h-8 rounded-lg px-2.5 shadow-sm"
+          >
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
+        ) : sttProviders.length > 0 ? (
+          <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
+            <Button
+              onClick={onStart}
+              disabled={isStarting}
+              className="h-8 rounded-none px-2.5 text-primary-foreground hover:bg-primary/90"
+            >
+              <MicIcon data-icon="inline-start" className="size-4" />
+              Start recording
+            </Button>
+            <ButtonGroupSeparator className="bg-primary-foreground/20" />
+            <SttModelSelectorPopover
+              selectedValue={sttModelOverride}
+              onSelect={onSttModelOverrideChange}
+              sttProviders={sttProviders}
+              triggerRender={
+                <Button
+                  disabled={isStarting}
+                  className="h-8 rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                  title="Choose transcription model"
+                >
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              }
+            />
+          </ButtonGroup>
         ) : (
-          <Button onClick={onStart} disabled={isStarting}>
+          <Button
+            onClick={onStart}
+            disabled={isStarting}
+            className="h-8 rounded-lg px-2.5 shadow-sm"
+          >
             <MicIcon data-icon="inline-start" className="size-4" />
             Start recording
           </Button>

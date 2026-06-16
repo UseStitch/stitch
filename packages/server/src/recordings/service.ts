@@ -63,13 +63,24 @@ type ResolvedSttConfig = {
   sampleRateHz: number;
 };
 
-async function resolveSttConfig(): Promise<ResolvedSttConfig | null> {
-  const s = await getSettings([
-    'recordings.transcription.providerId',
-    'recordings.transcription.modelId',
-  ] as const);
-  const providerId = s['recordings.transcription.providerId'].trim();
-  const modelId = s['recordings.transcription.modelId'].trim();
+async function resolveSttConfig(override?: {
+  providerId: string;
+  modelId: string;
+}): Promise<ResolvedSttConfig | null> {
+  let providerId: string;
+  let modelId: string;
+
+  if (override?.providerId && override?.modelId) {
+    providerId = override.providerId;
+    modelId = override.modelId;
+  } else {
+    const s = await getSettings([
+      'recordings.transcription.providerId',
+      'recordings.transcription.modelId',
+    ] as const);
+    providerId = s['recordings.transcription.providerId'].trim();
+    modelId = s['recordings.transcription.modelId'].trim();
+  }
 
   if (!providerId || !modelId) {
     log.warn({ providerId, modelId }, 'transcription config missing providerId or modelId');
@@ -223,7 +234,11 @@ export async function startRecording(
   try {
     const [resolvedSettings, resolvedSttConfig] = await Promise.all([
       readCaptureSettings(),
-      resolveSttConfig(),
+      resolveSttConfig(
+        input.sttProviderId && input.sttModelId
+          ? { providerId: input.sttProviderId, modelId: input.sttModelId }
+          : undefined,
+      ),
     ]);
 
     if (!resolvedSttConfig) {
