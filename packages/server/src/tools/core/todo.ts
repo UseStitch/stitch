@@ -6,9 +6,8 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
 import { isServiceError } from '@/lib/service-result.js';
 import { listSessionTodos, replaceSessionTodos } from '@/todos/service.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-
-export const DISPLAY_NAME = 'Todo';
 
 const todoItemSchema = z.object({
   content: z.string().trim().min(1).describe('Specific task description.'),
@@ -40,7 +39,15 @@ function toAgentTodos(todos: SessionTodo[]): TodoInput[] {
   }));
 }
 
-export function createRegisteredTool(context: ToolContext) {
+export function createDefinition(context: ToolContext): ToolDefinition {
+  return {
+    name: 'todo',
+    displayName: 'Todo',
+    tool: createTodoTool(context),
+  };
+}
+
+function createTodoTool(context: ToolContext) {
   return tool({
     description: `Read or update the current session todo list. Use this for multi-step work, visible progress tracking, and scratchpad planning. For write, provide the complete desired list, not a partial patch. Keep exactly one todo in_progress when actively working. Mark completed only after the work is done.`,
     inputSchema: todoInputSchema,

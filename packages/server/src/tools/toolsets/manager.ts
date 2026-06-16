@@ -1,8 +1,7 @@
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
-import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
-import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
+import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import { toToolsetView, type ToolsetView } from '@/tools/toolsets/view.js';
@@ -73,12 +72,16 @@ export class ToolsetManager {
       return { status: 'disabled' };
     }
 
-    const runtime = createNormalizedToolRuntime(this.context);
+    const pipeline = ToolPipeline.create(this.context);
     const toolsetTools = await toolset.activate(this.context);
-    const allTools = runtime.toAiToolRecord(
-      Object.entries(toolsetTools).map(([name, tool]) =>
-        defineRuntimeTool(name, tool, { source: toolset.kind === 'mcp' ? 'mcp' : 'toolset' }),
-      ),
+    const toolSource = toolset.kind === 'mcp' ? 'mcp' : 'toolset';
+    const allTools = pipeline.registerAll(
+      Object.entries(toolsetTools).map(([name, tool]) => ({
+        name,
+        displayName: name,
+        tool,
+        source: toolSource,
+      })),
     );
     const disabledMcpTools =
       toolset.kind === 'mcp' ? await getDisabledToolIdentifiers('mcp_tool') : new Set<string>();

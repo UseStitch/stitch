@@ -11,8 +11,7 @@ import type { McpServerLiveInfo, McpServerPresentation } from '@/mcp/presentatio
 import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
 import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
-import { permissionMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import {
   getToolset,
@@ -53,11 +52,14 @@ async function getToolsForServer(
 ): Promise<Record<string, Tool>> {
   const rawTools = await listMcpAiTools(server);
 
-  const runtime = createToolRuntime(context).use(permissionMiddleware());
+  const pipeline = ToolPipeline.create(context);
   const prefixed: Record<string, Tool> = {};
   for (const [toolName, toolDef] of Object.entries(rawTools)) {
     const prefixedName = formatMcpToolName(server.id, toolName);
-    prefixed[prefixedName] = runtime.wrapTool(prefixedName, toolDef, {
+    prefixed[prefixedName] = pipeline.register({
+      name: prefixedName,
+      displayName: prefixedName,
+      tool: toolDef,
       source: 'mcp',
       permission: { getPatternTargets: () => [], getSuggestion: () => null },
     });

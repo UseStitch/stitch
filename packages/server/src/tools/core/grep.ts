@@ -3,9 +3,7 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import {
   isTextFileBuffer,
   truncateLine,
@@ -207,17 +205,9 @@ function getSuggestion() {
   return null;
 }
 
-export const DISPLAY_NAME = 'Text Search';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createGrepTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(truncationMiddleware())
-    .wrapTool('grep', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'grep',
+  displayName: 'Text Search',
+  tool: createGrepTool(),
+  permission: { getPatternTargets, getSuggestion },
+};

@@ -6,9 +6,7 @@ import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
 } from '@/tools/runtime/file-permissions.js';
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import {
   decodeTextFileBuffer,
   isKnownBinaryFilePath,
@@ -120,10 +118,6 @@ function createReadTool() {
   });
 }
 
-function createTool() {
-  return createReadTool();
-}
-
 function getPatternTargets(input: unknown): string[] {
   return getFilePathPatternTargets(input);
 }
@@ -132,17 +126,9 @@ function getSuggestion(input: unknown) {
   return getParentDirPermissionSuggestion(input);
 }
 
-export const DISPLAY_NAME = 'Read';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(truncationMiddleware())
-    .wrapTool('read', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'read',
+  displayName: 'Read',
+  tool: createReadTool(),
+  permission: { getPatternTargets, getSuggestion },
+};

@@ -12,9 +12,8 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
+import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import { createTools } from '@/tools/runtime/registry.js';
-import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -180,10 +179,15 @@ export class ToolAssembler {
   }
 
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.toAiToolRecord(
-      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) =>
-        defineRuntimeTool(name, tool, { source: 'meta' }),
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.registerAll(
+      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(
+        ([name, tool]) => ({
+          name,
+          displayName: name,
+          tool,
+          source: 'meta' as const,
+        }),
       ),
     );
   }
@@ -192,10 +196,11 @@ export class ToolAssembler {
     const canUseTaskTool = this.opts.allowTaskTool ?? true;
     if (!canUseTaskTool) return null;
 
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.wrapTool(
-      'task',
-      createTaskTool(this.toolContext, {
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.register({
+      name: 'task',
+      displayName: 'Task',
+      tool: createTaskTool(this.toolContext, {
         parentSessionId: this.opts.sessionId,
         parentAbortSignal: this.opts.abortSignal,
         credentials: this.opts.credentials,
@@ -203,23 +208,24 @@ export class ToolAssembler {
         providerId: this.opts.credentials.providerId,
         toolsetManager,
       }),
-      { source: 'task' },
-    );
+      source: 'task',
+    });
   }
 
   private buildInspectImageTool(): Tool {
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.wrapTool(
-      'inspect_image',
-      createInspectImageTool(this.toolContext, {
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.register({
+      name: 'inspect_image',
+      displayName: 'Inspect Image',
+      tool: createInspectImageTool(this.toolContext, {
         parentSessionId: this.opts.sessionId,
         parentAbortSignal: this.opts.abortSignal,
         credentials: this.opts.credentials,
         modelId: this.opts.modelId,
         providerId: this.opts.credentials.providerId,
       }),
-      { source: 'core' },
-    );
+      source: 'core',
+    });
   }
 
   private mergeTools(parts: {

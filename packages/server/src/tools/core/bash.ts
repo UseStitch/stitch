@@ -10,9 +10,7 @@ import {
   deriveCommandFamilies,
   getCommandFamilySuggestion,
 } from '@/tools/runtime/bash-families.js';
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
@@ -233,17 +231,9 @@ function getSuggestion(input: unknown): PermissionSuggestion | null {
   return getCommandFamilySuggestion(command);
 }
 
-export const DISPLAY_NAME = 'Bash';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createBashTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(truncationMiddleware())
-    .wrapTool('bash', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'bash',
+  displayName: 'Bash',
+  tool: createBashTool(),
+  permission: { getPatternTargets, getSuggestion },
+};

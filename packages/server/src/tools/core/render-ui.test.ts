@@ -2,13 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { liquidUiSpecSchema } from '@stitch/shared/liquid-ui/schema';
 
-import { createRegisteredTool } from './render-ui';
-
-const context = {
-  sessionId: 'ses_abcdefghijklmnopqrstuvwxyz' as const,
-  messageId: 'msg_abcdefghijklmnopqrstuvwxyz' as const,
-  streamRunId: 'run_test',
-};
+import { definition } from './render-ui';
 
 const validSpec = liquidUiSpecSchema.parse({
   root: 'n1',
@@ -21,9 +15,7 @@ const validSpec = liquidUiSpecSchema.parse({
 
 describe('render_ui tool', () => {
   test('returns the provided spec', async () => {
-    const registeredTool = createRegisteredTool(context);
-
-    const result = await registeredTool.execute?.(validSpec as never, {} as never);
+    const result = await definition.tool.execute?.(validSpec as never, {} as never);
 
     expect(result).toEqual({ output: 'Rendered render_ui.', spec: validSpec });
   });
