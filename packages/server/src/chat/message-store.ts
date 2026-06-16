@@ -5,7 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { calculateMessageCostUsd } from '@/usage/cost.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -62,11 +62,14 @@ export async function saveAssistantMessage(opts: SaveAssistantMessageOpts): Prom
     duration: finishedAt - startedAt,
   });
 
-  Events.emit('stream-finish', {
+  internalBus.emit('session.message.saved', {
     sessionId,
     messageId: assistantMessageId,
-    finishReason: finalFinishReason,
+    modelId,
+    providerId,
     usage: totalUsage,
+    costUsd,
+    finishReason: finalFinishReason,
   });
 }
 

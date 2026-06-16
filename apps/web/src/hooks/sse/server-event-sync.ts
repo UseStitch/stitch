@@ -9,10 +9,12 @@ import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
+import { mcpKeys } from '@/lib/queries/mcp';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 import { questionKeys } from '@/lib/queries/questions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { todoKeys } from '@/lib/queries/todos';
+import { toolKeys } from '@/lib/queries/tools';
 import { playNotificationSound } from '@/lib/sounds';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -230,6 +232,16 @@ function useServerEventSync(): void {
     },
     'permission-response-resolved': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(sessionId) });
+    },
+
+    // MCP Events
+    'mcp-tools-changed': ({ serverId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: mcpKeys.tools(serverId) }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownMcpTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
     },
   });
 }

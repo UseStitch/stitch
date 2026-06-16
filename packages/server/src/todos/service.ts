@@ -6,7 +6,7 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
 import { getDb } from '@/db/client.js';
 import { sessionTodos, sessions } from '@/db/schema/sessions.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
 
 export async function listSessionTodos(
@@ -54,7 +54,7 @@ export async function replaceSessionTodos(input: {
   });
 
   if (input.broadcastUpdate ?? true) {
-    Events.emit('session-todos-updated', { sessionId: input.sessionId });
+    internalBus.emit('session.todos.updated', { sessionId: input.sessionId });
   }
 
   return ok(updated);

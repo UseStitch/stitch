@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { pushTranscriptEvent, startTranscriptCollection } from '@/recordings/transcript-store.js';
 import { createDefaultResampler } from '@/stt/resampler.js';
@@ -145,7 +145,7 @@ async function handleStart(
       if (message.service === 'meeting-recording' && state.recordingId) {
         const source = evt.source;
 
-        Events.emit('recording-transcript-entry', {
+        internalBus.emit('recording.transcript.entry', {
           recordingId: state.recordingId,
           kind: evt.kind,
           source,

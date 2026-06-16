@@ -11,7 +11,7 @@ import type {
 import { serverRequest } from '@/lib/api';
 import { toolKeys } from '@/lib/queries/tools';
 
-const mcpKeys = {
+export const mcpKeys = {
   all: ['mcp'] as const,
   list: () => [...mcpKeys.all, 'list'] as const,
   registry: () => [...mcpKeys.all, 'registry'] as const,

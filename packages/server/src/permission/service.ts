@@ -12,8 +12,8 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { toolPermissions } from '@/db/schema/permissions.js';
-import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -120,7 +120,7 @@ async function createPermissionResponse(
 
   permissionResponseStore.set(id, permissionResponse);
 
-  Events.emit('permission-response-requested', { permissionResponse });
+  internalBus.emit('permission.requested', { permissionResponse });
 
   log.info(
     {
@@ -183,7 +183,7 @@ async function resolvePermissionResponse(opts: {
 
   permissionResponseStore.delete(opts.permissionResponseId);
 
-  Events.emit('permission-response-resolved', {
+  internalBus.emit('permission.resolved', {
     permissionResponseId: opts.permissionResponseId,
     sessionId: existing.sessionId,
   });
@@ -262,7 +262,7 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
   for (const row of pending) {
     const streamRunId = streamRunIds.get(row.id);
 
-    Events.emit('permission-response-resolved', {
+    internalBus.emit('permission.resolved', {
       permissionResponseId: row.id,
       sessionId,
     });
