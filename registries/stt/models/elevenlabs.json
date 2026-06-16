@@ -35,7 +35,7 @@
       },
       "pricing": {
         "type": "duration",
-        "perMinuteUsd": 0.007
+        "perMinuteUsd": 0.0065
       }
     }
   ]
