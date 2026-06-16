@@ -1,7 +1,7 @@
 import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
-import { buildSystemPrompt } from '@/llm/prompt/builder.js';
+import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
@@ -262,10 +262,15 @@ export function buildHistoryMessages(
   }
 
   if (llmMessages[0]?.role !== 'system') {
-    llmMessages.unshift({
-      role: 'system',
-      content: buildSystemPrompt(promptConfig),
-    });
+    const layers = buildSystemPromptLayers(promptConfig);
+    const systemMessages: ModelMessage[] = [
+      { role: 'system', content: layers.static },
+      { role: 'system', content: layers.semiStatic },
+    ];
+    if (layers.dynamic) {
+      systemMessages.push({ role: 'system', content: layers.dynamic });
+    }
+    llmMessages.unshift(...systemMessages);
   }
 
   return llmMessages;

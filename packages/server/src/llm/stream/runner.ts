@@ -1152,10 +1152,13 @@ export async function runStream(opts: {
   }).assemble();
 
   const messages = opts.llmMessages;
-  if (messages.length > 0 && messages[0]?.role === 'system') {
-    const sysMsg = messages[0];
-    const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    messages[0] = {
+  if (messages.length > 0 && promptAdditions.length > 0) {
+    // Append to the semi-static system message (index 1) to avoid busting static cache
+    const semiStaticIndex = messages.findIndex((msg, i) => i > 0 && msg.role === 'system');
+    const targetIndex = semiStaticIndex !== -1 ? semiStaticIndex : 0;
+    const existingContent =
+      typeof messages[targetIndex].content === 'string' ? messages[targetIndex].content : '';
+    messages[targetIndex] = {
       role: 'system',
       content: `${existingContent}\n\n${promptAdditions.join('\n\n')}`,
     };

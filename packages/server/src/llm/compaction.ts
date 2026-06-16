@@ -526,10 +526,16 @@ export async function buildCompactedHistory(
   });
 
   const instructionsBlock = buildActiveToolsetInstructionsBlock(sessionId);
-  if (instructionsBlock && historyMessages.length > 0 && historyMessages[0]?.role === 'system') {
-    const sysMsg = historyMessages[0];
-    const existing = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    historyMessages[0] = { role: 'system', content: `${existing}${instructionsBlock}` };
+  if (instructionsBlock && historyMessages.length > 0) {
+    // Append to the last system message (dynamic layer)
+    for (let i = historyMessages.length - 1; i >= 0; i--) {
+      const msg = historyMessages[i];
+      if (msg.role === 'system') {
+        const existing = typeof msg.content === 'string' ? msg.content : '';
+        historyMessages[i] = { role: 'system', content: `${existing}${instructionsBlock}` };
+        break;
+      }
+    }
   }
 
   return historyMessages;

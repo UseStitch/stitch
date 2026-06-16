@@ -2,10 +2,11 @@ import { describe, test, expect } from 'bun:test';
 
 import {
   addCacheControlToMessages,
+  addCacheControlToTools,
   getCacheConfig,
   getProviderOptions,
 } from '@/llm/cache-control.js';
-import type { ModelMessage } from 'ai';
+import type { ModelMessage, Tool } from 'ai';
 
 describe('getCacheConfig', () => {
   test('returns anthropic config for anthropic provider', () => {
@@ -14,6 +15,7 @@ describe('getCacheConfig', () => {
       namespace: 'anthropic',
       key: 'cacheControl',
       value: { type: 'ephemeral' },
+      breakpointCap: 4,
     });
   });
 
@@ -23,6 +25,7 @@ describe('getCacheConfig', () => {
       namespace: 'bedrock',
       key: 'cachePoint',
       value: { type: 'default' },
+      breakpointCap: 4,
     });
   });
 
@@ -32,6 +35,7 @@ describe('getCacheConfig', () => {
       namespace: 'openrouter',
       key: 'cacheControl',
       value: { type: 'ephemeral' },
+      breakpointCap: 4,
     });
   });
 
@@ -41,6 +45,7 @@ describe('getCacheConfig', () => {
       namespace: 'anthropic',
       key: 'cacheControl',
       value: { type: 'ephemeral' },
+      breakpointCap: 4,
     });
   });
 
@@ -50,6 +55,7 @@ describe('getCacheConfig', () => {
       namespace: 'anthropic',
       key: 'cacheControl',
       value: { type: 'ephemeral' },
+      breakpointCap: 4,
     });
   });
 
@@ -84,39 +90,14 @@ describe('addCacheControlToMessages', () => {
     expect(result).toEqual(messages);
   });
 
-  test('marks first system message and last 2 non-system messages', () => {
+  test('marks first system, second system, and latest user message', () => {
     const messages: ModelMessage[] = [
-      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'system', content: 'Static base prompt' },
+      { role: 'system', content: 'Semi-static env and catalogs' },
+      { role: 'system', content: 'Dynamic memory and todos' },
       { role: 'user', content: 'First message' },
       { role: 'assistant', content: 'Response' },
       { role: 'user', content: 'Second message' },
-    ];
-
-    const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
-
-    // System message (index 0) is marked
-    expect(result[0].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
-    // Index 1 is not in the last 2 non-system messages
-    expect(result[1].providerOptions).toBeUndefined();
-    // Index 2 is second-to-last non-system message — marked
-    expect(result[2].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
-    // Index 3 is last non-system message — marked
-    expect(result[3].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
-  });
-
-  test('marks both system messages when two are present', () => {
-    const messages: ModelMessage[] = [
-      { role: 'system', content: 'Base system prompt' },
-      { role: 'system', content: 'Agent system prompt' },
-      { role: 'user', content: 'Hello' },
-      { role: 'assistant', content: 'Hi' },
-      { role: 'user', content: 'Help me' },
     ];
 
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
@@ -127,18 +108,35 @@ describe('addCacheControlToMessages', () => {
     expect(result[1].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
-    // Index 2 is not in the last 2 non-system messages
     expect(result[2].providerOptions).toBeUndefined();
-    // Last 2 non-system messages
-    expect(result[3].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
-    expect(result[4].providerOptions).toEqual({
+    expect(result[3].providerOptions).toBeUndefined();
+    expect(result[4].providerOptions).toBeUndefined();
+    expect(result[5].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
   });
 
-  test('adds bedrock cachePoint to system and last 2 messages', () => {
+  test('marks only first system and latest user when one system message', () => {
+    const messages: ModelMessage[] = [
+      { role: 'system', content: 'System prompt' },
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'Hi' },
+      { role: 'user', content: 'Help me' },
+    ];
+
+    const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
+
+    expect(result[0].providerOptions).toEqual({
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    });
+    expect(result[1].providerOptions).toBeUndefined();
+    expect(result[2].providerOptions).toBeUndefined();
+    expect(result[3].providerOptions).toEqual({
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    });
+  });
+
+  test('adds bedrock cachePoint to system and latest user', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'You are a helpful assistant.' },
       { role: 'user', content: 'Hello' },
@@ -157,12 +155,10 @@ describe('addCacheControlToMessages', () => {
     expect(result[1].providerOptions).toEqual({
       bedrock: { cachePoint: { type: 'default' } },
     });
-    expect(result[2].providerOptions).toEqual({
-      bedrock: { cachePoint: { type: 'default' } },
-    });
+    expect(result[2].providerOptions).toBeUndefined();
   });
 
-  test('adds openrouter cacheControl to system and last 2 messages', () => {
+  test('adds openrouter cacheControl to system and latest user', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System prompt' },
       { role: 'user', content: 'Hello' },
@@ -175,11 +171,8 @@ describe('addCacheControlToMessages', () => {
     expect(result[0].providerOptions).toEqual({
       openrouter: { cacheControl: { type: 'ephemeral' } },
     });
-    // Index 1 is not in the last 2 non-system
     expect(result[1].providerOptions).toBeUndefined();
-    expect(result[2].providerOptions).toEqual({
-      openrouter: { cacheControl: { type: 'ephemeral' } },
-    });
+    expect(result[2].providerOptions).toBeUndefined();
     expect(result[3].providerOptions).toEqual({
       openrouter: { cacheControl: { type: 'ephemeral' } },
     });
@@ -190,13 +183,13 @@ describe('addCacheControlToMessages', () => {
 
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
-    // System message gets marked (no non-system messages to mark)
+    // System message gets marked (no user messages to mark)
     expect(result[0].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
   });
 
-  test('deduplicates when system and tail overlap in short conversation', () => {
+  test('marks both system and user in minimal conversation', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System prompt' },
       { role: 'user', content: 'Hello' },
@@ -204,7 +197,6 @@ describe('addCacheControlToMessages', () => {
 
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
-    // Both messages are marked, each only once
     expect(result[0].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
@@ -249,7 +241,7 @@ describe('addCacheControlToMessages', () => {
     expect(messages[1].providerOptions).toBeUndefined();
   });
 
-  test('marks only tail messages when no system messages exist', () => {
+  test('marks latest user message when no system messages exist', () => {
     const messages: ModelMessage[] = [
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: 'Hi' },
@@ -258,17 +250,14 @@ describe('addCacheControlToMessages', () => {
 
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
-    // No system messages; last 2 non-system messages are marked
     expect(result[0].providerOptions).toBeUndefined();
-    expect(result[1].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
+    expect(result[1].providerOptions).toBeUndefined();
     expect(result[2].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
   });
 
-  test('limits to at most 2 system messages even when more exist', () => {
+  test('respects budget cap of 3 message breakpoints with many system messages', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System 1' },
       { role: 'system', content: 'System 2' },
@@ -284,9 +273,7 @@ describe('addCacheControlToMessages', () => {
     expect(result[1].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
-    // Third system message is NOT marked
     expect(result[2].providerOptions).toBeUndefined();
-    // Last non-system message is marked
     expect(result[3].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
@@ -310,9 +297,7 @@ describe('addCacheControlToMessages', () => {
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
     expect(result[1].providerOptions).toBeUndefined();
-    expect(result[2].providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
+    expect(result[2].providerOptions).toBeUndefined();
     expect(result[3].providerOptions).toEqual({
       anthropic: { cacheControl: { type: 'ephemeral' } },
     });
@@ -328,6 +313,54 @@ describe('addCacheControlToMessages', () => {
 
     expect(result[0].providerOptions).toBeUndefined();
     expect(result[1].providerOptions).toBeUndefined();
+  });
+});
+
+describe('addCacheControlToTools', () => {
+  test('returns tools unchanged for implicit caching providers', () => {
+    const tools = { bash: { description: 'Run a command' } } as unknown as Record<string, Tool>;
+    const result = addCacheControlToTools(tools, 'openai', 'gpt-4o');
+    expect(result).toBe(tools);
+  });
+
+  test('returns empty tools unchanged', () => {
+    const tools: Record<string, Tool> = {};
+    const result = addCacheControlToTools(tools, 'anthropic', 'claude-sonnet-4-5');
+    expect(result).toBe(tools);
+  });
+
+  test('marks the last tool with anthropic cache control', () => {
+    const tools = {
+      bash: { description: 'Run a command' },
+      read: { description: 'Read a file' },
+      write: { description: 'Write a file' },
+    } as unknown as Record<string, Tool>;
+
+    const result = addCacheControlToTools(tools, 'anthropic', 'claude-sonnet-4-5');
+
+    expect((result.bash as { providerOptions?: unknown }).providerOptions).toBeUndefined();
+    expect((result.read as { providerOptions?: unknown }).providerOptions).toBeUndefined();
+    expect((result.write as { providerOptions?: unknown }).providerOptions).toEqual({
+      anthropic: { cacheControl: { type: 'ephemeral' } },
+    });
+  });
+
+  test('marks the last tool with bedrock cache point', () => {
+    const tools = {
+      bash: { description: 'Run a command' },
+      read: { description: 'Read a file' },
+    } as unknown as Record<string, Tool>;
+
+    const result = addCacheControlToTools(
+      tools,
+      'amazon-bedrock',
+      'anthropic.claude-3-7-sonnet-20250219-v1:0',
+    );
+
+    expect((result.bash as { providerOptions?: unknown }).providerOptions).toBeUndefined();
+    expect((result.read as { providerOptions?: unknown }).providerOptions).toEqual({
+      bedrock: { cachePoint: { type: 'default' } },
+    });
   });
 });
 

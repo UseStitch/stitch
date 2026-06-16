@@ -15,6 +15,16 @@ export type PromptConfig = {
   todoContext: string | null;
 };
 
+/**
+ * System prompt split into layers for optimal prompt caching.
+ * Static content stays cached regardless of memory/todo changes.
+ */
+type SystemPromptLayers = {
+  static: string;
+  semiStatic: string;
+  dynamic: string;
+};
+
 export async function getPromptUserContext(): Promise<{
   userName: string;
   userTimezone: string;
@@ -26,14 +36,10 @@ export async function getPromptUserContext(): Promise<{
   };
 }
 
-const identity = (userName: string) => {
-  const identityLine = userName
+const identity = (userName: string) =>
+  userName
     ? `You are Stitch, a local machine assistant that helps ${userName} with day-to-day tasks on their computer.`
     : 'You are Stitch, a local machine assistant that helps users with day-to-day tasks on their computer.';
-  return `
-  ${identityLine}
-  `;
-};
 
 const BASE_SYSTEM_PROMPT = readFileSync(
   resolveRuntimeAssetPath(
@@ -109,30 +115,35 @@ function buildEnforcementGuidance(): string {
 - Act, don't ask: act immediately when the request has an obvious safe default. Ask at most one focused question only when truly blocked.`;
 }
 
-export function buildSystemPrompt(input: PromptConfig): string {
+export function buildSystemPromptLayers(input: PromptConfig): SystemPromptLayers {
   const userPrompt = input.systemPrompt?.trim() ?? '';
 
-  let promptBody = userPrompt;
+  let staticContent: string;
   if (input.useBasePrompt) {
-    promptBody = BASE_SYSTEM_PROMPT;
-    if (userPrompt.length > 0) {
-      promptBody = `${promptBody}\n\n${userPrompt}`;
-    }
+    staticContent = `${identity(input.userName)}\n\n${BASE_SYSTEM_PROMPT}\n\n${buildEnforcementGuidance()}\n\n${buildLiquidUiPromptSection()}`;
+  } else {
+    staticContent = `${identity(input.userName)}\n\n${buildEnforcementGuidance()}\n\n${buildLiquidUiPromptSection()}`;
   }
 
-  let result = `${identity(input.userName)}\n\n${buildPromptEnvironment({ userTimezone: input.userTimezone })}\n\n${promptBody}`;
+  const envBlock = buildPromptEnvironment({ userTimezone: input.userTimezone });
+  const semiStaticParts = [envBlock];
+  if (userPrompt.length > 0) {
+    semiStaticParts.push(userPrompt);
+  }
+  const semiStaticContent = semiStaticParts.join('\n\n');
 
-  result = `${result}\n\n${buildEnforcementGuidance()}`;
-
-  result = `${result}\n\n${buildLiquidUiPromptSection()}`;
-
+  const dynamicParts: string[] = [];
   if (input.memoryContext) {
-    result = `${result}\n\n<memory>\n${input.memoryContext}\n</memory>`;
+    dynamicParts.push(`<memory>\n${input.memoryContext}\n</memory>`);
   }
-
   if (input.todoContext) {
-    result = `${result}\n\n${input.todoContext}`;
+    dynamicParts.push(input.todoContext);
   }
+  const dynamicContent = dynamicParts.join('\n\n');
 
-  return result;
+  return {
+    static: staticContent,
+    semiStatic: semiStaticContent,
+    dynamic: dynamicContent,
+  };
 }

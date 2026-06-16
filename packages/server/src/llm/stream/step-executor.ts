@@ -10,7 +10,11 @@ import type { ToolCallRecord } from './doom-loop.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
-import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
+import {
+  addCacheControlToMessages,
+  addCacheControlToTools,
+  getProviderOptions,
+} from '@/llm/cache-control.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import {
   ContextOverflowError,
@@ -76,12 +80,13 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     opts.providerId as ProviderId,
     model.modelId,
   );
+  const cachedTools = addCacheControlToTools(tools, opts.providerId as ProviderId, model.modelId);
   const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
 
   const result = streamText({
     model,
     messages: cachedMessages,
-    tools,
+    tools: cachedTools,
     providerOptions,
     experimental_repairToolCall: async (failed) => {
       const toolName = String(failed.toolCall.toolName ?? '');
