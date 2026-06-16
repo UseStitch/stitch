@@ -2,6 +2,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
+import { buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
+import { PromptComposer } from '@/llm/prompt/composer.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import {
   getCurrentSessionToolsetState,
@@ -12,31 +14,31 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { createNormalizedToolRuntime } from '@/tools/runtime/normalized-runtime.js';
+import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import { createTools } from '@/tools/runtime/registry.js';
-import { defineRuntimeTool } from '@/tools/runtime/runtime.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
-import type { Tool } from 'ai';
+import type { ModelMessage, Tool } from 'ai';
 
-const log = Log.create({ service: 'tool-assembler' });
+const log = Log.create({ service: 'session-context' });
 
-type ToolAssemblerOptions = {
+type SessionContextOptions = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
   credentials: ProviderCredentials;
   modelId: string;
   abortSignal: AbortSignal;
+  llmMessages: ModelMessage[];
   activeToolsetIds?: string[];
   allowTaskTool?: boolean;
 };
 
-type AssembledTools = {
-  staticTools: Record<string, Tool>;
+type AssembledResult = {
+  messages: ModelMessage[];
+  tools: Record<string, Tool>;
   toolsetManager: ToolsetManager;
-  promptAdditions: string[];
 };
 
 async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
@@ -84,10 +86,10 @@ export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): st
   ].join('\n');
 }
 
-export class ToolAssembler {
+export class SessionContext {
   private readonly toolContext: ToolContext;
 
-  private constructor(private readonly opts: ToolAssemblerOptions) {
+  private constructor(private readonly opts: SessionContextOptions) {
     this.toolContext = {
       sessionId: opts.sessionId,
       messageId: opts.messageId,
@@ -95,14 +97,14 @@ export class ToolAssembler {
     };
   }
 
-  static create(opts: ToolAssemblerOptions): ToolAssembler {
-    return new ToolAssembler(opts);
+  static create(opts: SessionContextOptions): SessionContext {
+    return new SessionContext(opts);
   }
 
-  async assemble(): Promise<AssembledTools> {
+  async assemble(): Promise<AssembledResult> {
     const sessionState = getSessionToolsetState(this.opts.sessionId);
     const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) =>
-      ToolAssembler.getToolNames(toolsetId),
+      SessionContext.getToolNames(toolsetId),
     );
     const activeEntries = this.opts.activeToolsetIds
       ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
@@ -135,23 +137,30 @@ export class ToolAssembler {
     const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
     const skillsPrompt = await buildSkillsSystemPrompt();
 
+    const composer = new PromptComposer();
+    composer
+      .add('semiStatic', codeModeResult.getSystemPrompt())
+      .add('semiStatic', expiredPrompt)
+      .add('semiStatic', toolsetsPrompt)
+      .add('semiStatic', skillsPrompt);
+
+    const instructionsBlock = buildActiveToolsetInstructionsBlock(this.opts.sessionId);
+    composer.add('dynamic', instructionsBlock);
+
+    const tools = {
+      ...this.mergeTools({
+        staticTools: { ...coreTools, ...metaTools },
+        taskTool,
+        inspectImageTool,
+        dynamicTools: {},
+      }),
+      execute_typescript: codeModeResult.tool,
+    };
+
     return {
-      staticTools: {
-        ...this.mergeTools({
-          staticTools: { ...coreTools, ...metaTools },
-          taskTool,
-          inspectImageTool,
-          dynamicTools: {},
-        }),
-        execute_typescript: codeModeResult.tool,
-      },
+      messages: composer.compose(this.opts.llmMessages),
+      tools,
       toolsetManager,
-      promptAdditions: [
-        codeModeResult.getSystemPrompt(),
-        expiredPrompt,
-        toolsetsPrompt,
-        skillsPrompt,
-      ].filter(Boolean),
     };
   }
 
@@ -180,10 +189,15 @@ export class ToolAssembler {
   }
 
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.toAiToolRecord(
-      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) =>
-        defineRuntimeTool(name, tool, { source: 'meta' }),
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.registerAll(
+      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(
+        ([name, tool]) => ({
+          name,
+          displayName: name,
+          tool,
+          source: 'meta' as const,
+        }),
       ),
     );
   }
@@ -192,10 +206,11 @@ export class ToolAssembler {
     const canUseTaskTool = this.opts.allowTaskTool ?? true;
     if (!canUseTaskTool) return null;
 
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.wrapTool(
-      'task',
-      createTaskTool(this.toolContext, {
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.register({
+      name: 'task',
+      displayName: 'Task',
+      tool: createTaskTool(this.toolContext, {
         parentSessionId: this.opts.sessionId,
         parentAbortSignal: this.opts.abortSignal,
         credentials: this.opts.credentials,
@@ -203,23 +218,24 @@ export class ToolAssembler {
         providerId: this.opts.credentials.providerId,
         toolsetManager,
       }),
-      { source: 'task' },
-    );
+      source: 'task',
+    });
   }
 
   private buildInspectImageTool(): Tool {
-    const runtime = createNormalizedToolRuntime(this.toolContext);
-    return runtime.wrapTool(
-      'inspect_image',
-      createInspectImageTool(this.toolContext, {
+    const pipeline = ToolPipeline.create(this.toolContext);
+    return pipeline.register({
+      name: 'inspect_image',
+      displayName: 'Inspect Image',
+      tool: createInspectImageTool(this.toolContext, {
         parentSessionId: this.opts.sessionId,
         parentAbortSignal: this.opts.abortSignal,
         credentials: this.opts.credentials,
         modelId: this.opts.modelId,
         providerId: this.opts.credentials.providerId,
       }),
-      { source: 'core' },
-    );
+      source: 'core',
+    });
   }
 
   private mergeTools(parts: {

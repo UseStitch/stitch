@@ -48,6 +48,8 @@ export type Toolset = {
    * toolsets. Owned by the toolset so registry and presentation never desync.
    */
   presentation?: McpServerPresentation;
+  /** Output truncation limits applied to all tools in this toolset. */
+  truncation?: { maxLines?: number; maxBytes?: number };
   /** Return brief summaries of all tools in this toolset (for list_toolsets) */
   tools: () => ToolSummary[];
   /** Instantiate and return the actual AI SDK Tool objects */

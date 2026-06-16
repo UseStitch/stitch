@@ -10,9 +10,8 @@ import {
   getAllSemanticMemories,
 } from '@/memory/service.js';
 import { MEMORY_CATEGORIES } from '@/memory/types.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-
-export const DISPLAY_NAME = 'Memory';
 
 const memoryInputSchema = z.object({
   action: z
@@ -130,6 +129,10 @@ function createMemoryTool(context: ToolContext) {
   });
 }
 
-export function createRegisteredTool(context: ToolContext) {
-  return createMemoryTool(context);
+export function createDefinition(context: ToolContext): ToolDefinition {
+  return {
+    name: 'memory',
+    displayName: 'Memory',
+    tool: createMemoryTool(context),
+  };
 }

@@ -2,9 +2,7 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -239,10 +237,6 @@ Parameter sourcing:
   });
 }
 
-function createTool() {
-  return createWebfetchTool();
-}
-
 function getPatternTargets(input: unknown): string[] {
   const url = (input as { url?: unknown })?.url;
   if (typeof url !== 'string' || url.length === 0) return [];
@@ -261,22 +255,10 @@ function getSuggestion(input: unknown) {
   };
 }
 
-export const DISPLAY_NAME = 'Web Fetch';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(
-      truncationMiddleware({
-        maxLines: 1200,
-        maxBytes: 24 * 1024,
-      }),
-    )
-    .wrapTool('webfetch', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'webfetch',
+  displayName: 'Web Fetch',
+  tool: createWebfetchTool(),
+  permission: { getPatternTargets, getSuggestion },
+  truncation: { maxLines: 1200, maxBytes: 24 * 1024 },
+};

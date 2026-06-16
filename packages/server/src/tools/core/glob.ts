@@ -3,9 +3,7 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_RESULTS = 100;
@@ -104,17 +102,9 @@ function getSuggestion() {
   return null;
 }
 
-export const DISPLAY_NAME = 'File Search';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createGlobTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(truncationMiddleware())
-    .wrapTool('glob', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'glob',
+  displayName: 'File Search',
+  tool: createGlobTool(),
+  permission: { getPatternTargets, getSuggestion },
+};

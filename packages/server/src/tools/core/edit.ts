@@ -6,9 +6,7 @@ import {
   getFilePathPatternTargets,
   getParentDirPermissionSuggestion,
 } from '@/tools/runtime/file-permissions.js';
-import { permissionMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
 const MULTIPLE_MATCHES_ERROR =
@@ -99,10 +97,6 @@ Parameter sourcing:
   });
 }
 
-function createTool() {
-  return createEditTool();
-}
-
 function getPatternTargets(input: unknown): string[] {
   return getFilePathPatternTargets(input);
 }
@@ -111,19 +105,11 @@ function getSuggestion(input: unknown) {
   return getParentDirPermissionSuggestion(input);
 }
 
-export const DISPLAY_NAME = 'Edit';
-
-export function createRegisteredTool(context: ToolContext) {
-  const baseTool = createTool();
-  return createToolRuntime(context)
-    .use(permissionMiddleware())
-    .use(truncationMiddleware())
-    .wrapTool('edit', baseTool, {
-      permission: {
-        getPatternTargets,
-        getSuggestion,
-      },
-    });
-}
+export const definition: ToolDefinition = {
+  name: 'edit',
+  displayName: 'Edit',
+  tool: createEditTool(),
+  permission: { getPatternTargets, getSuggestion },
+};
 
 export { MULTIPLE_MATCHES_ERROR };
