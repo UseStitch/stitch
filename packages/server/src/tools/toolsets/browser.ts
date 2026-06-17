@@ -16,19 +16,10 @@ const descriptionField = z
   .string()
   .describe('Short description of the task this browser action is performing. Shown to the user.');
 
-const headlessField = z
-  .boolean()
-  .optional()
-  .default(true)
-  .describe(
-    'Deprecated. Browser tools run in the Stitch desktop in-app browser and are always visible when used.',
-  );
-
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
 
 const browserSnapshotInputSchema = z.object({
   description: descriptionField,
-  headless: headlessField,
 });
 
 const browserNavigateInputSchema = z.object({
@@ -50,7 +41,6 @@ const browserNavigateInputSchema = z.object({
   engine: z.string().optional().describe('Search engine: google, duckduckgo, bing.'),
   tabId: z.string().optional().describe('Tab ID for tab_focus or tab_close actions.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserInteractInputSchema = z.object({
@@ -90,7 +80,6 @@ const browserInteractInputSchema = z.object({
     .optional()
     .describe('JavaScript expression to evaluate. Required for evaluate action.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserWaitInputSchema = z.object({
@@ -101,7 +90,6 @@ const browserWaitInputSchema = z.object({
   timeMs: z.number().optional().describe('Time to wait in milliseconds. Required for time mode.'),
   selector: z.string().optional().describe('CSS selector to wait for. Required for selector mode.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserScreenshotInputSchema = z.object({
@@ -110,7 +98,6 @@ const browserScreenshotInputSchema = z.object({
   format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format. Default png.'),
   quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg/webp.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot.'),
-  headless: headlessField,
 });
 
 const browserDialogInputSchema = z.object({
@@ -121,7 +108,6 @@ const browserDialogInputSchema = z.object({
     .optional()
     .describe('Whether to accept or dismiss a dialog.'),
   promptText: z.string().optional().describe('Optional prompt text when accepting prompt dialogs.'),
-  headless: headlessField,
 });
 
 const browserContentInputSchema = z.object({
@@ -157,7 +143,6 @@ const browserContentInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Include text content for find_elements action. Default true.'),
-  headless: headlessField,
 });
 
 const browserBatchActionSchema = z.object({
@@ -222,7 +207,6 @@ const browserBatchInputSchema = z.object({
     .optional()
     .default(true)
     .describe('Stop executing remaining actions when an action fails.'),
-  headless: headlessField,
 });
 
 const SNAPSHOT_DESCRIPTION = `Capture the current browser state as a fresh snapshot.
@@ -298,7 +282,7 @@ async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-async function runBrowserTool<TInput extends { headless?: boolean }>(
+async function runBrowserTool<TInput>(
   input: TInput,
   execContext: { toolCallId: string; abortSignal?: AbortSignal },
   sessionId: string,
@@ -307,7 +291,7 @@ async function runBrowserTool<TInput extends { headless?: boolean }>(
   return runSerialized(async () => {
     try {
       const browser = getBrowserManager(sessionId);
-      await browser.launch({ headless: input.headless });
+      await browser.launch();
       return await execute(execContext.abortSignal);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
@@ -595,7 +579,7 @@ function createSnapshotTool(context: ToolContext) {
   );
 }
 
-function createBrowserTool<TInput extends { headless?: boolean }>(
+function createBrowserTool<TInput>(
   context: ToolContext,
   description: string,
   inputSchema: z.ZodType<TInput>,

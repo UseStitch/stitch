@@ -11,7 +11,6 @@ export type ScreenshotResult = {
 };
 
 export type LaunchOptions = {
-  headless?: boolean;
   port?: number;
   width?: number;
   height?: number;
