@@ -1,5 +1,7 @@
-import { app, dialog, type BrowserWindow } from 'electron';
+import { app, dialog, session, type BrowserWindow } from 'electron';
 
+import { ElectronBrowserManager } from './browser-manager.js';
+import { registerBrowserHandlers } from './ipc/browser.js';
 import { registerDevtoolsHandlers } from './ipc/devtools.js';
 import { registerFilesHandlers } from './ipc/files.js';
 import { registerPermissionsHandlers } from './ipc/permissions.js';
@@ -50,6 +52,8 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let isShuttingDown = false;
 let updateCheckInterval: NodeJS.Timeout | null = null;
+let browserManager: ElectronBrowserManager | null = null;
+let browserBridgePort = 0;
 
 // Shared mutable server state — passed by reference to IPC handlers that own it.
 const serverState = {
@@ -59,7 +63,7 @@ const serverState = {
 
 async function startLocalServer(): Promise<string> {
   const port = await findAvailablePort();
-  return spawnServer(port);
+  return spawnServer(port, { STITCH_BROWSER_BRIDGE_PORT: String(browserBridgePort) });
 }
 
 async function resolveServerUrl(): Promise<string> {
@@ -87,6 +91,7 @@ async function shutdownRuntime(): Promise<void> {
     updateCheckInterval = null;
   }
   destroyTray();
+  browserManager?.stopBridge();
   destroyNotificationWindow();
   stopMeetingDetection();
   await stopRecordingCapture().catch(() => null);
@@ -105,6 +110,7 @@ function registerAllIpcHandlers(): void {
   const getServerUrl = () => serverState.serverUrl;
 
   registerWindowHandlers(getWindow);
+  if (browserManager) registerBrowserHandlers(browserManager);
   registerDevtoolsHandlers(getWindow);
   registerSpellcheckHandlers(getWindow);
   registerShellHandlers();
@@ -153,6 +159,9 @@ void app.whenReady().then(async () => {
     configureMeetingDetectionEnv();
     configureRecordingCaptureEnv();
 
+    browserBridgePort = await findAvailablePort();
+    browserManager = new ElectronBrowserManager(() => mainWindow);
+    browserManager.startBridge(browserBridgePort);
     registerAllIpcHandlers();
 
     if (app.isPackaged) {
@@ -230,7 +239,12 @@ app.on('before-quit', (event) => {
   isQuitting = true;
   if (!isShuttingDown) {
     event.preventDefault();
-    void shutdownRuntime().then(() => app.quit());
+    browserManager?.persistToDisk();
+    void session
+      .fromPartition('persist:stitch-browser')
+      .cookies.flushStore()
+      .then(() => shutdownRuntime())
+      .then(() => app.quit());
   }
 });
 

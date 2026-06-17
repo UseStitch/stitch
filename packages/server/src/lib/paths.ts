@@ -99,11 +99,6 @@ export const PATHS = {
     mcpIcons: path.join(paths.cache, 'mcp-icons'),
     connectorIcons: path.join(paths.cache, 'connector-icons'),
     simpleIcons: path.join(paths.cache, 'simple-icons'),
-    browsers: path.join(paths.data, 'browsers'),
     recordings: path.join(paths.data, 'recordings'),
   },
 } as const;
-
-export function getBrowserProfilePath(browser: string, profileId: string): string {
-  return path.join(PATHS.dirPaths.browsers, browser, profileId);
-}

@@ -2,7 +2,6 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
-import { importChromeProfile, listChromeProfiles } from '@/lib/browser/chrome-profile-importer.js';
 import { BROWSER_TOOL_INSTRUCTIONS } from '@/lib/browser/tool-config.js';
 import type {
   BrowserTab,
@@ -10,10 +9,6 @@ import type {
   ScrollDirection,
   SearchPageResult,
 } from '@/lib/browser/types.js';
-import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
-import { askQuestion } from '@/question/service.js';
-import { listSettings, saveSetting } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 
@@ -21,19 +16,10 @@ const descriptionField = z
   .string()
   .describe('Short description of the task this browser action is performing. Shown to the user.');
 
-const headlessField = z
-  .boolean()
-  .optional()
-  .default(true)
-  .describe(
-    'Run the browser without a visible window. Defaults to true. Set to false only when you need to show the browser to the user.',
-  );
-
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
 
 const browserSnapshotInputSchema = z.object({
   description: descriptionField,
-  headless: headlessField,
 });
 
 const browserNavigateInputSchema = z.object({
@@ -55,7 +41,6 @@ const browserNavigateInputSchema = z.object({
   engine: z.string().optional().describe('Search engine: google, duckduckgo, bing.'),
   tabId: z.string().optional().describe('Tab ID for tab_focus or tab_close actions.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserInteractInputSchema = z.object({
@@ -95,7 +80,6 @@ const browserInteractInputSchema = z.object({
     .optional()
     .describe('JavaScript expression to evaluate. Required for evaluate action.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserWaitInputSchema = z.object({
@@ -106,7 +90,6 @@ const browserWaitInputSchema = z.object({
   timeMs: z.number().optional().describe('Time to wait in milliseconds. Required for time mode.'),
   selector: z.string().optional().describe('CSS selector to wait for. Required for selector mode.'),
   timeoutMs: timeoutField,
-  headless: headlessField,
 });
 
 const browserScreenshotInputSchema = z.object({
@@ -115,7 +98,6 @@ const browserScreenshotInputSchema = z.object({
   format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format. Default png.'),
   quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg/webp.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot.'),
-  headless: headlessField,
 });
 
 const browserDialogInputSchema = z.object({
@@ -126,7 +108,6 @@ const browserDialogInputSchema = z.object({
     .optional()
     .describe('Whether to accept or dismiss a dialog.'),
   promptText: z.string().optional().describe('Optional prompt text when accepting prompt dialogs.'),
-  headless: headlessField,
 });
 
 const browserContentInputSchema = z.object({
@@ -162,7 +143,6 @@ const browserContentInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Include text content for find_elements action. Default true.'),
-  headless: headlessField,
 });
 
 const browserBatchActionSchema = z.object({
@@ -227,7 +207,6 @@ const browserBatchInputSchema = z.object({
     .optional()
     .default(true)
     .describe('Stop executing remaining actions when an action fails.'),
-  headless: headlessField,
 });
 
 const SNAPSHOT_DESCRIPTION = `Capture the current browser state as a fresh snapshot.
@@ -283,8 +262,6 @@ const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized cal
 
 Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default.`;
 
-const log = Log.create({ service: 'tools.browser' });
-
 let queueTail: Promise<void> = Promise.resolve();
 
 async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
@@ -305,117 +282,16 @@ async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-let hasPromptedImport = false;
-
-async function maybePromptProfileImport(
-  context: ToolContext,
-  toolCallId: string,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  if (hasPromptedImport) return;
-
-  const settingsResult = await listSettings();
-  const imported =
-    !isServiceError(settingsResult) && settingsResult.data['browser.profileImported'];
-  if (imported) {
-    hasPromptedImport = true;
-    return;
-  }
-
-  const profiles = await listChromeProfiles();
-  if (profiles.length === 0) {
-    hasPromptedImport = true;
-    return;
-  }
-
-  hasPromptedImport = true;
-
-  const answers = await askQuestion({
-    sessionId: context.sessionId,
-    messageId: context.messageId,
-    streamRunId: context.streamRunId,
-    toolCallId,
-    abortSignal,
-    questions: [
-      {
-        question:
-          'Would you like to import your Chrome profile? This lets the browser use your existing logins, cookies, and sessions.',
-        header: 'Chrome Profile',
-        options: [
-          {
-            label: 'Import Chrome profile',
-            description: 'Copy your Chrome logins and cookies into the Stitch browser',
-          },
-          { label: 'Skip', description: 'Use a clean browser without existing logins' },
-        ],
-      },
-    ],
-  });
-
-  const answer = answers[0]?.[0];
-  if (!answer || answer === 'Skip') {
-    await saveSetting('browser.profileImported', 'skipped');
-    return;
-  }
-
-  let profileId: string;
-  if (profiles.length === 1) {
-    profileId = profiles[0].id;
-  } else {
-    const profileAnswers = await askQuestion({
-      sessionId: context.sessionId,
-      messageId: context.messageId,
-      streamRunId: context.streamRunId,
-      toolCallId,
-      abortSignal,
-      questions: [
-        {
-          question: 'Which Chrome profile would you like to import?',
-          header: 'Select Profile',
-          options: profiles.map((p) => ({
-            label: p.name,
-            description: p.email || p.id,
-          })),
-        },
-      ],
-    });
-
-    const selectedName = profileAnswers[0]?.[0];
-    const selected = profiles.find((p) => p.name === selectedName);
-    profileId = selected?.id ?? profiles[0].id;
-  }
-
-  const profile = profiles.find((p) => p.id === profileId);
-  const profileLabel = profile
-    ? `${profile.name}${profile.email ? ` (${profile.email})` : ''}`
-    : profileId;
-
-  log.info({ profileId, profileLabel }, 'Importing Chrome profile from first-use prompt');
-  await importChromeProfile(profileId);
-  const timestamp = new Date().toISOString();
-  await saveSetting('browser.profileImported', `${profileLabel} - ${timestamp}`);
-  await saveSetting('browser.activeProfile', `chrome/${profileId}`);
-}
-
-async function runBrowserTool<TInput extends { headless?: boolean }>(
-  context: ToolContext,
+async function runBrowserTool<TInput>(
   input: TInput,
   execContext: { toolCallId: string; abortSignal?: AbortSignal },
+  sessionId: string,
   execute: (signal?: AbortSignal) => Promise<unknown>,
 ): Promise<unknown> {
   return runSerialized(async () => {
     try {
-      await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
-    } catch (error) {
-      log.info(
-        { error: error instanceof Error ? error.message : String(error) },
-        'Profile import prompt skipped',
-      );
-    }
-
-    try {
-      const browser = getBrowserManager();
-      await browser.launch({ headless: input.headless });
+      const browser = getBrowserManager(sessionId);
+      await browser.launch();
       return await execute(execContext.abortSignal);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
@@ -703,7 +579,7 @@ function createSnapshotTool(context: ToolContext) {
   );
 }
 
-function createBrowserTool<TInput extends { headless?: boolean }>(
+function createBrowserTool<TInput>(
   context: ToolContext,
   description: string,
   inputSchema: z.ZodType<TInput>,
@@ -713,7 +589,9 @@ function createBrowserTool<TInput extends { headless?: boolean }>(
     description,
     inputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(context, input, execContext, (signal) => executeAction(input, signal));
+      return runBrowserTool(input, execContext, context.sessionId, (signal) =>
+        executeAction(input, signal),
+      );
     },
   });
 }
@@ -784,7 +662,7 @@ function createBatchTool(context: ToolContext) {
     description: BATCH_DESCRIPTION,
     inputSchema: browserBatchInputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(context, input, execContext, async (signal) => {
+      return runBrowserTool(input, execContext, context.sessionId, async (signal) => {
         const browser = getBrowserManager();
         const results: Array<{
           index: number;

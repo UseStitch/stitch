@@ -1,40 +1,8 @@
-export type CDPRequest = {
-  id: number;
-  method: string;
-  params?: Record<string, unknown>;
-  sessionId?: string;
-};
-
-export type CDPResponse = {
-  id: number;
-  result?: Record<string, unknown>;
-  error?: { code: number; message: string; data?: string };
-  sessionId?: string;
-};
-
-export type CDPEvent = {
-  method: string;
-  params?: Record<string, unknown>;
-  sessionId?: string;
-};
-
-export type CDPMessage = CDPResponse | CDPEvent;
-
 export type BrowserTab = {
   id: string;
   title: string;
   url: string;
   type: string;
-  webSocketDebuggerUrl?: string;
-};
-
-export type BrowserVersionInfo = {
-  Browser: string;
-  'Protocol-Version': string;
-  'User-Agent': string;
-  'V8-Version': string;
-  'WebKit-Version': string;
-  webSocketDebuggerUrl: string;
 };
 
 export type ScreenshotResult = {
@@ -43,20 +11,12 @@ export type ScreenshotResult = {
 };
 
 export type LaunchOptions = {
-  headless?: boolean;
   port?: number;
   width?: number;
   height?: number;
 };
 
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
-
-/** Server-side ref entry mapping a snapshot ref (e.g. "e5") to a CDP node. */
-export type RefEntry = {
-  backendNodeId: number | null;
-  role: string;
-  name: string;
-};
 
 export type SearchPageMatch = {
   match: string;
@@ -78,22 +38,4 @@ export type FindElementEntry = {
 export type FindElementsResult = {
   elements: FindElementEntry[];
   total: number;
-};
-
-/** Scroll position metadata returned by the snapshot script. */
-export type ScrollInfo = {
-  scrollTop: number;
-  scrollHeight: number;
-  viewportHeight: number;
-  pagesAbove: number;
-  pagesBelow: number;
-};
-
-/** Page statistics extracted during snapshot. */
-export type PageStats = {
-  links: number;
-  interactive: number;
-  iframes: number;
-  images: number;
-  totalElements: number;
 };

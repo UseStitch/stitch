@@ -21,7 +21,6 @@ export const SETTINGS_KEYS = [
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
-  'browser.headless',
   'shortcuts.leaderKey',
   'memory.enabled',
   'memory.autoExtract',
@@ -75,7 +74,6 @@ export const SETTINGS_SCHEMAS = {
   'notifications.sound.enabled': z.coerce.boolean(),
   'browser.profileImported': z.string(),
   'browser.activeProfile': z.string(),
-  'browser.headless': z.coerce.boolean(),
   'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
   'memory.enabled': z.coerce.boolean(),
   'memory.autoExtract': z.coerce.boolean(),
@@ -217,11 +215,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
-  },
-  {
-    key: 'browser.headless',
-    value: 'true',
-    description: 'Run the browser in headless mode (no visible window).',
   },
   {
     key: 'shortcuts.leaderKey',
