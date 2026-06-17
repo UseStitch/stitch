@@ -2,9 +2,10 @@ import {
   ArrowLeftIcon,
   BotIcon,
   EllipsisIcon,
-  SparklesIcon,
+  GlobeIcon,
   InfoIcon,
   PencilLineIcon,
+  SparklesIcon,
   Trash2Icon,
 } from 'lucide-react';
 
@@ -25,7 +26,9 @@ import { cn } from '@/lib/utils';
 export type SessionPageHeaderProps = {
   sessionId: string;
   rightPanel: 'closed' | 'details' | 'browser';
+  hasBrowser: boolean;
   onToggleDetails: () => void;
+  onToggleBrowser: () => void;
   onDeleteSession: () => void;
   onGenerateAutomation: () => void;
   generateAutomationPending?: boolean;
@@ -34,7 +37,9 @@ export type SessionPageHeaderProps = {
 export function SessionPageHeader({
   sessionId,
   rightPanel,
+  hasBrowser,
   onToggleDetails,
+  onToggleBrowser,
   onDeleteSession,
   onGenerateAutomation,
   generateAutomationPending = false,
@@ -71,6 +76,17 @@ export function SessionPageHeader({
 
         {isChildSession ? null : (
           <div className="flex items-center gap-1">
+            {hasBrowser ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
+                onClick={onToggleBrowser}
+                aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}
+              >
+                <GlobeIcon className="size-4" />
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               size="icon-sm"

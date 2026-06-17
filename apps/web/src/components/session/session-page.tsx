@@ -49,8 +49,14 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
   const rightPanelOpen = rightPanel !== 'closed';
 
+  const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser);
+
   const toggleDetails = React.useCallback(() => {
     setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
+  }, []);
+
+  const toggleBrowser = React.useCallback(() => {
+    setRightPanel((previous) => (previous === 'browser' ? 'closed' : 'browser'));
   }, []);
 
   React.useEffect(() => {
@@ -107,7 +113,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
         <SessionPageHeader
           sessionId={sessionId}
           rightPanel={rightPanel}
+          hasBrowser={hasBrowser}
           onToggleDetails={toggleDetails}
+          onToggleBrowser={toggleBrowser}
           onDeleteSession={() => setDeleteDialogOpen(true)}
           onGenerateAutomation={() => void handleGenerateAutomation()}
           generateAutomationPending={generateAutomation.isPending}
