@@ -69,24 +69,34 @@ function formatValue(value: unknown): string {
 }
 
 let stream: WriteStream | undefined;
-let write = (_msg: string) => {};
+let currentDate: string | undefined;
+let prefix = 'app';
+let initialized = false;
 let last = Date.now();
 const loggers = new Map<string, Logger>();
 
+function openStream(date: string): void {
+  const logFile = path.join(PATHS.logDir, `${prefix}.${date}.1.log`);
+  stream?.end();
+  stream = createWriteStream(logFile, { flags: 'a' });
+  currentDate = date;
+}
+
+function write(msg: string): void {
+  if (!initialized) return;
+  const today = formatDate(new Date());
+  if (today !== currentDate) openStream(today);
+  stream?.write(msg);
+}
+
 export async function init(options: Options): Promise<void> {
   level = options.level ?? 'INFO';
+  prefix = options.dev ? 'dev' : 'app';
 
   await fs.mkdir(PATHS.logDir, { recursive: true });
 
-  const prefix = options.dev ? 'dev' : 'app';
-  const logFile = path.join(PATHS.logDir, `${prefix}.${formatDate(new Date())}.1.log`);
-
-  await fs.truncate(logFile).catch(() => {});
-  stream?.end();
-  stream = createWriteStream(logFile, { flags: 'a' });
-  write = (msg: string) => {
-    stream?.write(msg);
-  };
+  openStream(formatDate(new Date()));
+  initialized = true;
 }
 
 // Log filename format: <prefix>.<date>.<count>.log
