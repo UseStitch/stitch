@@ -18,6 +18,80 @@ const BROWSER_READY_TIMEOUT_MS = 20_000;
 const BROWSER_READY_POLL_MS = 50;
 const DEFAULT_SCROLL_PX = 650;
 
+/** Domains whose popups are auth-related and should open in the system browser. */
+const AUTH_POPUP_DOMAINS = [
+  'accounts.google.com',
+  'login.microsoftonline.com',
+  'login.live.com',
+  'appleid.apple.com',
+  'github.com/login',
+  'github.com/sessions',
+  'auth0.com',
+  'okta.com',
+  'login.yahoo.com',
+  'id.atlassian.com',
+];
+
+/**
+ * Script injected into the webview to detect WebAuthn/passkey calls.
+ * When navigator.credentials.create/get is called with publicKey options,
+ * we notify the main process via a console message so it can open the page
+ * in the system browser.
+ */
+const WEBAUTHN_INTERCEPT_SCRIPT = `
+  if (window.__stitchWebAuthnPatched) { /* already patched */ } else {
+    window.__stitchWebAuthnPatched = true;
+    const origCreate = navigator.credentials?.create?.bind(navigator.credentials);
+    const origGet = navigator.credentials?.get?.bind(navigator.credentials);
+
+    function notifyMainProcess() {
+      console.log('__stitch_webauthn_request__' + location.href);
+    }
+
+    function patchedCreate(options) {
+      if (options?.publicKey) {
+        notifyMainProcess();
+        return Promise.reject(new DOMException(
+          'Passkeys are not supported in this browser. The page has been opened in your system browser.',
+          'NotAllowedError'
+        ));
+      }
+      return origCreate?.(options) ?? Promise.reject(new DOMException('Not supported', 'NotSupportedError'));
+    }
+
+    function patchedGet(options) {
+      if (options?.publicKey) {
+        notifyMainProcess();
+        return Promise.reject(new DOMException(
+          'Passkeys are not supported in this browser. The page has been opened in your system browser.',
+          'NotAllowedError'
+        ));
+      }
+      return origGet?.(options) ?? Promise.reject(new DOMException('Not supported', 'NotSupportedError'));
+    }
+
+    if (navigator.credentials) {
+      Object.defineProperty(navigator.credentials, 'create', { value: patchedCreate, writable: false, configurable: true });
+      Object.defineProperty(navigator.credentials, 'get', { value: patchedGet, writable: false, configurable: true });
+    }
+  }
+`;
+
+function isAuthPopupUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const fullHost = parsed.hostname + parsed.pathname;
+    return AUTH_POPUP_DOMAINS.some(
+      (domain) =>
+        parsed.hostname === domain ||
+        parsed.hostname.endsWith('.' + domain) ||
+        fullHost.startsWith(domain),
+    );
+  } catch {
+    return false;
+  }
+}
+
 type RefEntry = { selector: string; role: string; name: string };
 type TabInfo = { id: string; title: string; url: string };
 type SessionTabState = { tabs: TabInfo[]; activeTabId: string | null };
@@ -260,6 +334,29 @@ export class ElectronBrowserManager {
     contents.on('page-title-updated', () => this.updateTabFromContents());
     contents.on('render-process-gone', () => this.broadcastState());
     contents.session.on('will-download', (_event, item) => this.handleDownload(item));
+
+    // Open auth-related popups in the system browser (passkey/OAuth flows)
+    contents.setWindowOpenHandler(({ url }) => {
+      if (isAuthPopupUrl(url)) {
+        void shell.openExternal(url);
+        return { action: 'deny' };
+      }
+      // Non-auth popups: navigate the webview itself
+      void contents.loadURL(url);
+      return { action: 'deny' };
+    });
+
+    // Inject WebAuthn intercept script on every page load
+    contents.on('did-finish-load', () => this.injectWebAuthnIntercept(contents));
+
+    // Listen for WebAuthn detection signal from the injected script
+    const WEBAUTHN_SIGNAL = '__stitch_webauthn_request__';
+    contents.on('console-message', (_event, _level, message) => {
+      if (message.startsWith(WEBAUTHN_SIGNAL)) {
+        const url = message.slice(WEBAUTHN_SIGNAL.length);
+        void shell.openExternal(url || contents.getURL());
+      }
+    });
 
     this.broadcastState();
     return this.getState();
@@ -601,6 +698,13 @@ export class ElectronBrowserManager {
     });
     this.broadcastState();
     this.debouncedPersist();
+  }
+
+  private injectWebAuthnIntercept(contents: WebContents): void {
+    if (contents.isDestroyed()) return;
+    const currentUrl = contents.getURL();
+    if (!currentUrl || currentUrl === 'about:blank' || currentUrl.startsWith('devtools://')) return;
+    void contents.executeJavaScript(WEBAUTHN_INTERCEPT_SCRIPT, true).catch(() => {});
   }
 
   private persistTimer: NodeJS.Timeout | null = null;
