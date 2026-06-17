@@ -182,13 +182,22 @@ export class ElectronBrowserManager {
       return this.getState();
     }
 
-    // New webview element — reset tab state cleanly
+    // New webview element — reattach without clearing existing tabs
     this.browser = contents;
     this.registeredWebContentsId = webContentsId;
-    this.tabs.clear();
-    const tabId = `tab-${Date.now()}`;
-    this.activeTabId = tabId;
-    this.tabs.set(tabId, { id: tabId, title: contents.getTitle(), url: contents.getURL() });
+
+    if (this.tabs.size > 0 && this.activeTabId) {
+      // Restore active tab by navigating the new webview to its URL
+      const activeTab = this.tabs.get(this.activeTabId);
+      if (activeTab?.url && activeTab.url !== 'about:blank') {
+        void contents.loadURL(activeTab.url);
+      }
+    } else {
+      // First time — create a fresh tab
+      const tabId = `tab-${Date.now()}`;
+      this.activeTabId = tabId;
+      this.tabs.set(tabId, { id: tabId, title: '', url: contents.getURL() });
+    }
 
     contents.on('did-navigate', () => this.updateTabFromContents());
     contents.on('did-navigate-in-page', () => this.updateTabFromContents());

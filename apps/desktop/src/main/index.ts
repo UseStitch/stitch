@@ -1,4 +1,4 @@
-import { app, dialog, type BrowserWindow } from 'electron';
+import { app, dialog, session, type BrowserWindow } from 'electron';
 
 import { ElectronBrowserManager } from './browser-manager.js';
 import { registerBrowserHandlers } from './ipc/browser.js';
@@ -239,7 +239,11 @@ app.on('before-quit', (event) => {
   isQuitting = true;
   if (!isShuttingDown) {
     event.preventDefault();
-    void shutdownRuntime().then(() => app.quit());
+    void session
+      .fromPartition('persist:stitch-browser')
+      .cookies.flushStore()
+      .then(() => shutdownRuntime())
+      .then(() => app.quit());
   }
 });
 
