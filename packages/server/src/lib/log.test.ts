@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, setSystemTime } from 'bun:test';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -10,6 +10,14 @@ async function fileExists(filepath: string): Promise<boolean> {
     .access(filepath)
     .then(() => true)
     .catch(() => false);
+}
+
+// Mirrors the production formatDate in log.ts (local date components)
+function formatDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 async function clearLogDir() {
@@ -146,5 +154,78 @@ describe('Log.create', () => {
     expect(output).toContain('formatted message');
 
     await clearLogDir();
+  });
+});
+
+describe('Log rotation', () => {
+  beforeEach(async () => {
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    await clearLogDir();
+  });
+
+  afterEach(async () => {
+    setSystemTime();
+    await clearLogDir();
+  });
+
+  test('init does not truncate an existing same-day file', async () => {
+    const today = formatDate(new Date());
+    const logFile = path.join(PATHS.logDir, `app.${today}.1.log`);
+    await fs.writeFile(logFile, 'existing line\n', 'utf-8');
+
+    const log = Log.create({ service: 'test-no-truncate' });
+    await Log.init({});
+    log.info('new line after init');
+
+    const output = await waitForLogOutput('new line after init');
+    expect(output).toContain('existing line');
+    expect(output).toContain('new line after init');
+  });
+
+  test('rolls to a new file when the date changes', async () => {
+    const day1 = new Date('2030-03-01T12:00:00.000Z');
+    const day2 = new Date('2030-03-02T12:00:00.000Z');
+
+    setSystemTime(day1);
+    const log = Log.create({ service: 'test-roll' });
+    await Log.init({});
+    log.info('day one message');
+    await waitForLogOutput('day one message');
+
+    setSystemTime(day2);
+    log.info('day two message');
+    await waitForLogOutput('day two message');
+
+    const day1File = path.join(PATHS.logDir, `app.${formatDate(day1)}.1.log`);
+    const day2File = path.join(PATHS.logDir, `app.${formatDate(day2)}.1.log`);
+
+    expect(await fileExists(day1File)).toBe(true);
+    expect(await fileExists(day2File)).toBe(true);
+
+    const day1Content = await fs.readFile(day1File, 'utf-8');
+    const day2Content = await fs.readFile(day2File, 'utf-8');
+
+    expect(day1Content).toContain('day one message');
+    expect(day1Content).not.toContain('day two message');
+    expect(day2Content).toContain('day two message');
+    expect(day2Content).not.toContain('day one message');
+  });
+
+  test('same-day restart appends instead of truncating', async () => {
+    const today = formatDate(new Date());
+    const logFile = path.join(PATHS.logDir, `app.${today}.1.log`);
+
+    const log = Log.create({ service: 'test-restart' });
+    await Log.init({});
+    log.info('message A');
+    await waitForLogOutput('message A');
+
+    await Log.init({});
+    log.info('message B');
+    await waitForLogOutput('message B');
+
+    const content = await fs.readFile(logFile, 'utf-8');
+    expect(content).toContain('message A');
+    expect(content).toContain('message B');
   });
 });
