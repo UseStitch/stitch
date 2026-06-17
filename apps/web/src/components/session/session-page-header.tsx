@@ -11,7 +11,6 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
-import type { RightPanel } from '@/components/session/session-page-types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,9 +22,9 @@ import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
 import { cn } from '@/lib/utils';
 
-type SessionPageHeaderProps = {
+export type SessionPageHeaderProps = {
   sessionId: string;
-  rightPanel: RightPanel;
+  rightPanel: 'closed' | 'details' | 'browser';
   onToggleDetails: () => void;
   onDeleteSession: () => void;
   onGenerateAutomation: () => void;

@@ -2,7 +2,6 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
-import { importChromeProfile, listChromeProfiles } from '@/lib/browser/chrome-profile-importer.js';
 import { BROWSER_TOOL_INSTRUCTIONS } from '@/lib/browser/tool-config.js';
 import type {
   BrowserTab,
@@ -10,10 +9,6 @@ import type {
   ScrollDirection,
   SearchPageResult,
 } from '@/lib/browser/types.js';
-import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
-import { askQuestion } from '@/question/service.js';
-import { listSettings, saveSetting } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 
@@ -26,7 +21,7 @@ const headlessField = z
   .optional()
   .default(true)
   .describe(
-    'Run the browser without a visible window. Defaults to true. Set to false only when you need to show the browser to the user.',
+    'Deprecated. Browser tools run in the Stitch desktop in-app browser and are always visible when used.',
   );
 
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
@@ -283,8 +278,6 @@ const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized cal
 
 Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default.`;
 
-const log = Log.create({ service: 'tools.browser' });
-
 let queueTail: Promise<void> = Promise.resolve();
 
 async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
@@ -305,114 +298,12 @@ async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-let hasPromptedImport = false;
-
-async function maybePromptProfileImport(
-  context: ToolContext,
-  toolCallId: string,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  if (hasPromptedImport) return;
-
-  const settingsResult = await listSettings();
-  const imported =
-    !isServiceError(settingsResult) && settingsResult.data['browser.profileImported'];
-  if (imported) {
-    hasPromptedImport = true;
-    return;
-  }
-
-  const profiles = await listChromeProfiles();
-  if (profiles.length === 0) {
-    hasPromptedImport = true;
-    return;
-  }
-
-  hasPromptedImport = true;
-
-  const answers = await askQuestion({
-    sessionId: context.sessionId,
-    messageId: context.messageId,
-    streamRunId: context.streamRunId,
-    toolCallId,
-    abortSignal,
-    questions: [
-      {
-        question:
-          'Would you like to import your Chrome profile? This lets the browser use your existing logins, cookies, and sessions.',
-        header: 'Chrome Profile',
-        options: [
-          {
-            label: 'Import Chrome profile',
-            description: 'Copy your Chrome logins and cookies into the Stitch browser',
-          },
-          { label: 'Skip', description: 'Use a clean browser without existing logins' },
-        ],
-      },
-    ],
-  });
-
-  const answer = answers[0]?.[0];
-  if (!answer || answer === 'Skip') {
-    await saveSetting('browser.profileImported', 'skipped');
-    return;
-  }
-
-  let profileId: string;
-  if (profiles.length === 1) {
-    profileId = profiles[0].id;
-  } else {
-    const profileAnswers = await askQuestion({
-      sessionId: context.sessionId,
-      messageId: context.messageId,
-      streamRunId: context.streamRunId,
-      toolCallId,
-      abortSignal,
-      questions: [
-        {
-          question: 'Which Chrome profile would you like to import?',
-          header: 'Select Profile',
-          options: profiles.map((p) => ({
-            label: p.name,
-            description: p.email || p.id,
-          })),
-        },
-      ],
-    });
-
-    const selectedName = profileAnswers[0]?.[0];
-    const selected = profiles.find((p) => p.name === selectedName);
-    profileId = selected?.id ?? profiles[0].id;
-  }
-
-  const profile = profiles.find((p) => p.id === profileId);
-  const profileLabel = profile
-    ? `${profile.name}${profile.email ? ` (${profile.email})` : ''}`
-    : profileId;
-
-  log.info({ profileId, profileLabel }, 'Importing Chrome profile from first-use prompt');
-  await importChromeProfile(profileId);
-  const timestamp = new Date().toISOString();
-  await saveSetting('browser.profileImported', `${profileLabel} - ${timestamp}`);
-  await saveSetting('browser.activeProfile', `chrome/${profileId}`);
-}
-
 async function runBrowserTool<TInput extends { headless?: boolean }>(
-  context: ToolContext,
   input: TInput,
   execContext: { toolCallId: string; abortSignal?: AbortSignal },
   execute: (signal?: AbortSignal) => Promise<unknown>,
 ): Promise<unknown> {
   return runSerialized(async () => {
-    try {
-      await maybePromptProfileImport(context, execContext.toolCallId, execContext.abortSignal);
-    } catch (error) {
-      log.info(
-        { error: error instanceof Error ? error.message : String(error) },
-        'Profile import prompt skipped',
-      );
-    }
-
     try {
       const browser = getBrowserManager();
       await browser.launch({ headless: input.headless });
@@ -704,7 +595,7 @@ function createSnapshotTool(context: ToolContext) {
 }
 
 function createBrowserTool<TInput extends { headless?: boolean }>(
-  context: ToolContext,
+  _context: ToolContext,
   description: string,
   inputSchema: z.ZodType<TInput>,
   executeAction: (input: TInput, signal?: AbortSignal) => Promise<unknown>,
@@ -713,7 +604,7 @@ function createBrowserTool<TInput extends { headless?: boolean }>(
     description,
     inputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(context, input, execContext, (signal) => executeAction(input, signal));
+      return runBrowserTool(input, execContext, (signal) => executeAction(input, signal));
     },
   });
 }
@@ -779,12 +670,12 @@ function createContentTool(context: ToolContext) {
   );
 }
 
-function createBatchTool(context: ToolContext) {
+function createBatchTool(_context: ToolContext) {
   return tool({
     description: BATCH_DESCRIPTION,
     inputSchema: browserBatchInputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(context, input, execContext, async (signal) => {
+      return runBrowserTool(input, execContext, async (signal) => {
         const browser = getBrowserManager();
         const results: Array<{
           index: number;

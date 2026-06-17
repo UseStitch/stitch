@@ -115,7 +115,7 @@ function killStaleServers(): void {
   }
 }
 
-export async function spawnServer(port: number): Promise<string> {
+export async function spawnServer(port: number, extraEnv: NodeJS.ProcessEnv = {}): Promise<string> {
   if (app.isPackaged) {
     killStaleServers();
   }
@@ -127,6 +127,7 @@ export async function spawnServer(port: number): Promise<string> {
 
   const sidecarEnv: NodeJS.ProcessEnv = {
     ...process.env,
+    ...extraEnv,
     NODE_ENV: app.isPackaged ? 'production' : 'development',
     STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
   };
