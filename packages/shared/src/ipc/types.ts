@@ -99,7 +99,11 @@ export interface IpcContract {
   'notifications:dismiss': { args: [id: string]; return: void };
   'notifications:set-height': { args: [height: number]; return: void };
   'browser:getState': { args: []; return: ElectronBrowserState };
-  'browser:registerWebview': { args: [webContentsId: number]; return: ElectronBrowserState };
+  'browser:registerWebview': {
+    args: [webContentsId: number, sessionId: string];
+    return: ElectronBrowserState;
+  };
+  'browser:switchSession': { args: [sessionId: string]; return: ElectronBrowserState };
   'browser:show': { args: []; return: ElectronBrowserState };
   'browser:hide': { args: []; return: ElectronBrowserState };
   'browser:userNavigate': { args: [url: string]; return: BrowserNavigateResult };

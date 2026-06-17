@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type BrowserPanelProps = {
+  sessionId: string;
   onClose: () => void;
 };
 
@@ -33,7 +34,7 @@ function getStandardChromeUserAgent(): string {
     .trim();
 }
 
-export function BrowserPanel({ onClose }: BrowserPanelProps) {
+export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
   const webviewRef = React.useRef<WebviewElement | null>(null);
   const [state, setState] = React.useState<ElectronBrowserState>(DEFAULT_STATE);
   const [address, setAddress] = React.useState('about:blank');
@@ -47,11 +48,17 @@ export function BrowserPanel({ onClose }: BrowserPanelProps) {
     });
   }, []);
 
+  // When sessionId changes while panel is already open, switch sessions
+  React.useEffect(() => {
+    if (!sessionId || !window.api?.browser) return;
+    void window.api.browser.switchSession(sessionId).then(setState);
+  }, [sessionId]);
+
   const registerWebview = React.useCallback(() => {
     const webview = webviewRef.current;
     if (!webview || !window.api?.browser) return;
-    void window.api.browser.registerWebview(webview.getWebContentsId()).then(setState);
-  }, []);
+    void window.api.browser.registerWebview(webview.getWebContentsId(), sessionId).then(setState);
+  }, [sessionId]);
 
   React.useEffect(() => {
     const webview = webviewRef.current;
@@ -120,7 +127,7 @@ export function BrowserPanel({ onClose }: BrowserPanelProps) {
                 {tab.title || tab.url || 'New tab'}
               </button>
               <button
-                className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:!opacity-100"
+                className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
                 onClick={() => void window.api?.browser.closeTab(tab.id)}
                 type="button"
                 aria-label="Close tab"

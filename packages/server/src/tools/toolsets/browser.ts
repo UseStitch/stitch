@@ -301,11 +301,12 @@ async function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
 async function runBrowserTool<TInput extends { headless?: boolean }>(
   input: TInput,
   execContext: { toolCallId: string; abortSignal?: AbortSignal },
+  sessionId: string,
   execute: (signal?: AbortSignal) => Promise<unknown>,
 ): Promise<unknown> {
   return runSerialized(async () => {
     try {
-      const browser = getBrowserManager();
+      const browser = getBrowserManager(sessionId);
       await browser.launch({ headless: input.headless });
       return await execute(execContext.abortSignal);
     } catch (error) {
@@ -595,7 +596,7 @@ function createSnapshotTool(context: ToolContext) {
 }
 
 function createBrowserTool<TInput extends { headless?: boolean }>(
-  _context: ToolContext,
+  context: ToolContext,
   description: string,
   inputSchema: z.ZodType<TInput>,
   executeAction: (input: TInput, signal?: AbortSignal) => Promise<unknown>,
@@ -604,7 +605,9 @@ function createBrowserTool<TInput extends { headless?: boolean }>(
     description,
     inputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(input, execContext, (signal) => executeAction(input, signal));
+      return runBrowserTool(input, execContext, context.sessionId, (signal) =>
+        executeAction(input, signal),
+      );
     },
   });
 }
@@ -670,12 +673,12 @@ function createContentTool(context: ToolContext) {
   );
 }
 
-function createBatchTool(_context: ToolContext) {
+function createBatchTool(context: ToolContext) {
   return tool({
     description: BATCH_DESCRIPTION,
     inputSchema: browserBatchInputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(input, execContext, async (signal) => {
+      return runBrowserTool(input, execContext, context.sessionId, async (signal) => {
         const browser = getBrowserManager();
         const results: Array<{
           index: number;

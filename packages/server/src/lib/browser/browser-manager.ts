@@ -27,7 +27,11 @@ class DesktopBrowserBridge {
   private connectPromise: Promise<void> | null = null;
   private pending = new Map<string, PendingRequest>();
 
-  async send(command: ElectronBrowserCommand, signal?: AbortSignal): Promise<unknown> {
+  async send(
+    command: ElectronBrowserCommand,
+    sessionId: string,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
     await this.connect();
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -37,7 +41,7 @@ class DesktopBrowserBridge {
     }
 
     const id = crypto.randomUUID();
-    const message = JSON.stringify({ id, type: 'browser:command', command });
+    const message = JSON.stringify({ id, type: 'browser:command', sessionId, command });
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -133,9 +137,24 @@ class DesktopBrowserBridge {
 
 class BrowserManager {
   private bridge = new DesktopBrowserBridge();
+  private _sessionId: string | null = null;
+
+  set sessionId(id: string) {
+    this._sessionId = id;
+  }
+
+  private getSessionId(): string {
+    if (!this._sessionId)
+      throw new Error('Browser sessionId must be set before executing commands.');
+    return this._sessionId;
+  }
+
+  private send(command: ElectronBrowserCommand, signal?: AbortSignal): Promise<unknown> {
+    return this.bridge.send(command, this.getSessionId(), signal);
+  }
 
   async launch(_options: LaunchOptions = {}): Promise<void> {
-    await this.bridge.send({ action: 'ensure' });
+    await this.send({ action: 'ensure' });
   }
 
   async close(): Promise<void> {
@@ -148,14 +167,14 @@ class BrowserManager {
     signal?: AbortSignal,
   ): Promise<string> {
     return String(
-      await this.bridge.send({ action: 'handleDialog', dialogAction: action, promptText }, signal),
+      await this.send({ action: 'handleDialog', dialogAction: action, promptText }, signal),
     );
   }
 
   async getDialogState(
     signal?: AbortSignal,
   ): Promise<{ open: boolean; type?: string; message?: string }> {
-    return (await this.bridge.send({ action: 'dialogState' }, signal)) as {
+    return (await this.send({ action: 'dialogState' }, signal)) as {
       open: boolean;
       type?: string;
       message?: string;
@@ -177,14 +196,14 @@ class BrowserManager {
   }
 
   async listTabs(signal?: AbortSignal): Promise<BrowserTab[]> {
-    return (await this.bridge.send({ action: 'listTabs' }, signal)) as BrowserTab[];
+    return (await this.send({ action: 'listTabs' }, signal)) as BrowserTab[];
   }
 
   async newTab(
     url?: string,
     options: { signal?: AbortSignal; timeoutMs?: number } = {},
   ): Promise<BrowserTab> {
-    await this.bridge.send({ action: 'newTab', url, timeoutMs: options.timeoutMs }, options.signal);
+    await this.send({ action: 'newTab', url, timeoutMs: options.timeoutMs }, options.signal);
     const tabs = await this.listTabs(options.signal);
     return tabs.find((tab) => tab.type === 'page') ?? tabs[0];
   }
@@ -193,26 +212,23 @@ class BrowserManager {
     tabId: string,
     options: { signal?: AbortSignal; timeoutMs?: number } = {},
   ): Promise<void> {
-    await this.bridge.send(
-      { action: 'focusTab', tabId, timeoutMs: options.timeoutMs },
-      options.signal,
-    );
+    await this.send({ action: 'focusTab', tabId, timeoutMs: options.timeoutMs }, options.signal);
   }
 
   async closeTab(tabId?: string, signal?: AbortSignal): Promise<void> {
-    await this.bridge.send({ action: 'closeTab', tabId }, signal);
+    await this.send({ action: 'closeTab', tabId }, signal);
   }
 
   async navigate(url: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.bridge.send({ action: 'navigate', url, timeoutMs }, signal));
+    return String(await this.send({ action: 'navigate', url, timeoutMs }, signal));
   }
 
   async goBack(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.bridge.send({ action: 'goBack', timeoutMs }, signal));
+    return String(await this.send({ action: 'goBack', timeoutMs }, signal));
   }
 
   async goForward(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.bridge.send({ action: 'goForward', timeoutMs }, signal));
+    return String(await this.send({ action: 'goForward', timeoutMs }, signal));
   }
 
   async click(
@@ -225,11 +241,11 @@ class BrowserManager {
       timeoutMs?: number;
     } = {},
   ): Promise<string> {
-    return String(await this.bridge.send({ action: 'click', ref, ...options }, options.signal));
+    return String(await this.send({ action: 'click', ref, ...options }, options.signal));
   }
 
   async hover(ref: string, signal?: AbortSignal): Promise<string> {
-    return String(await this.bridge.send({ action: 'hover', ref }, signal));
+    return String(await this.send({ action: 'hover', ref }, signal));
   }
 
   async type(
@@ -237,17 +253,15 @@ class BrowserManager {
     text: string,
     options: { slowly?: boolean; submit?: boolean; clear?: boolean; signal?: AbortSignal } = {},
   ): Promise<string> {
-    return String(
-      await this.bridge.send({ action: 'type', ref, text, ...options }, options.signal),
-    );
+    return String(await this.send({ action: 'type', ref, text, ...options }, options.signal));
   }
 
   async press(key: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.bridge.send({ action: 'press', key, timeoutMs }, signal));
+    return String(await this.send({ action: 'press', key, timeoutMs }, signal));
   }
 
   async select(ref: string, values: string[], signal?: AbortSignal): Promise<string> {
-    return String(await this.bridge.send({ action: 'select', ref, values }, signal));
+    return String(await this.send({ action: 'select', ref, values }, signal));
   }
 
   async scroll(
@@ -255,11 +269,11 @@ class BrowserManager {
     direction: ScrollDirection,
     signal?: AbortSignal,
   ): Promise<string> {
-    return String(await this.bridge.send({ action: 'scroll', ref, direction }, signal));
+    return String(await this.send({ action: 'scroll', ref, direction }, signal));
   }
 
   async snapshot(signal?: AbortSignal): Promise<string> {
-    return String(await this.bridge.send({ action: 'snapshot' }, signal));
+    return String(await this.send({ action: 'snapshot' }, signal));
   }
 
   async screenshot(
@@ -271,14 +285,14 @@ class BrowserManager {
       ref?: string;
     } = {},
   ): Promise<ScreenshotResult> {
-    return (await this.bridge.send(
+    return (await this.send(
       { action: 'screenshot', ...options },
       options.signal,
     )) as ScreenshotResult;
   }
 
   async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
-    return this.bridge.send({ action: 'evaluate', expression }, signal);
+    return this.send({ action: 'evaluate', expression }, signal);
   }
 
   async searchPage(
@@ -292,10 +306,7 @@ class BrowserManager {
     },
     signal?: AbortSignal,
   ): Promise<SearchPageResult> {
-    return (await this.bridge.send(
-      { action: 'searchPage', ...options },
-      signal,
-    )) as SearchPageResult;
+    return (await this.send({ action: 'searchPage', ...options }, signal)) as SearchPageResult;
   }
 
   async findElements(
@@ -307,18 +318,15 @@ class BrowserManager {
     },
     signal?: AbortSignal,
   ): Promise<FindElementsResult> {
-    return (await this.bridge.send(
-      { action: 'findElements', ...options },
-      signal,
-    )) as FindElementsResult;
+    return (await this.send({ action: 'findElements', ...options }, signal)) as FindElementsResult;
   }
 
   async resize(width: number, height: number, signal?: AbortSignal): Promise<string> {
-    return String(await this.bridge.send({ action: 'resize', width, height }, signal));
+    return String(await this.send({ action: 'resize', width, height }, signal));
   }
 
   async wait(timeMs?: number, selector?: string, signal?: AbortSignal): Promise<string> {
-    return String(await this.bridge.send({ action: 'wait', timeMs, selector }, signal));
+    return String(await this.send({ action: 'wait', timeMs, selector }, signal));
   }
 
   async search(
@@ -327,17 +335,18 @@ class BrowserManager {
     signal?: AbortSignal,
     timeoutMs?: number,
   ): Promise<string> {
-    return String(await this.bridge.send({ action: 'search', query, engine, timeoutMs }, signal));
+    return String(await this.send({ action: 'search', query, engine, timeoutMs }, signal));
   }
 
   async extractPageContent(signal?: AbortSignal, selector?: string): Promise<string> {
-    return String(await this.bridge.send({ action: 'extractPageContent', selector }, signal));
+    return String(await this.send({ action: 'extractPageContent', selector }, signal));
   }
 }
 
 let singleton: BrowserManager | null = null;
 
-export function getBrowserManager(): BrowserManager {
+export function getBrowserManager(sessionId?: string): BrowserManager {
   singleton ??= new BrowserManager();
+  if (sessionId) singleton.sessionId = sessionId;
   return singleton;
 }

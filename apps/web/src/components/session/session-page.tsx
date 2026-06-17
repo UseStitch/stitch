@@ -135,7 +135,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (
-                  <BrowserPanel onClose={() => setRightPanel('closed')} />
+                  <BrowserPanel sessionId={sessionId} onClose={() => setRightPanel('closed')} />
                 ) : (
                   <SessionDetailsSheet
                     {...details}

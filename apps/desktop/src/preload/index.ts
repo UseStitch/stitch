@@ -114,7 +114,9 @@ const api = {
   },
   browser: {
     getState: () => invokeIpc('browser:getState'),
-    registerWebview: (webContentsId: number) => invokeIpc('browser:registerWebview', webContentsId),
+    registerWebview: (webContentsId: number, sessionId: string) =>
+      invokeIpc('browser:registerWebview', webContentsId, sessionId),
+    switchSession: (sessionId: string) => invokeIpc('browser:switchSession', sessionId),
     show: () => invokeIpc('browser:show'),
     hide: () => invokeIpc('browser:hide'),
     userNavigate: (url: string): Promise<BrowserNavigateResult> =>

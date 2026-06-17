@@ -239,6 +239,7 @@ app.on('before-quit', (event) => {
   isQuitting = true;
   if (!isShuttingDown) {
     event.preventDefault();
+    browserManager?.persistToDisk();
     void session
       .fromPartition('persist:stitch-browser')
       .cookies.flushStore()

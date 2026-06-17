@@ -39,14 +39,34 @@ export type ElectronBrowserCommand =
   | { action: 'listTabs' }
   | { action: 'focusTab'; tabId: string; timeoutMs?: number }
   | { action: 'closeTab'; tabId?: string }
-  | { action: 'click'; ref: string; doubleClick?: boolean; button?: string; modifiers?: string[]; timeoutMs?: number }
+  | {
+      action: 'click';
+      ref: string;
+      doubleClick?: boolean;
+      button?: string;
+      modifiers?: string[];
+      timeoutMs?: number;
+    }
   | { action: 'hover'; ref: string }
-  | { action: 'type'; ref: string; text: string; slowly?: boolean; submit?: boolean; clear?: boolean }
+  | {
+      action: 'type';
+      ref: string;
+      text: string;
+      slowly?: boolean;
+      submit?: boolean;
+      clear?: boolean;
+    }
   | { action: 'press'; key: string; timeoutMs?: number }
   | { action: 'select'; ref: string; values: string[] }
   | { action: 'scroll'; ref?: string; direction: 'up' | 'down' | 'left' | 'right' }
   | { action: 'resize'; width: number; height: number }
-  | { action: 'screenshot'; ref?: string; format?: 'png' | 'jpeg' | 'webp'; quality?: number; fullPage?: boolean }
+  | {
+      action: 'screenshot';
+      ref?: string;
+      format?: 'png' | 'jpeg' | 'webp';
+      quality?: number;
+      fullPage?: boolean;
+    }
   | { action: 'evaluate'; expression: string }
   | { action: 'wait'; timeMs?: number; selector?: string; timeoutMs?: number }
   | { action: 'extractPageContent'; selector?: string }
@@ -72,6 +92,7 @@ export type ElectronBrowserCommand =
 export type ElectronBrowserCommandMessage = {
   id: string;
   type: 'browser:command';
+  sessionId: string;
   command: ElectronBrowserCommand;
 };
 

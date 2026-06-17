@@ -1,5 +1,5 @@
 import { app, shell, webContents, type BrowserWindow, type WebContents } from 'electron';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { WebSocketServer, type RawData, type WebSocket } from 'ws';
 
@@ -19,6 +19,28 @@ const BROWSER_READY_POLL_MS = 50;
 const DEFAULT_SCROLL_PX = 650;
 
 type RefEntry = { selector: string; role: string; name: string };
+type TabInfo = { id: string; title: string; url: string };
+type SessionTabState = { tabs: TabInfo[]; activeTabId: string | null };
+type PersistedBrowserState = { sessions: Record<string, SessionTabState> };
+
+function getStatePath(): string {
+  return join(app.getPath('home'), '.stitch', 'browser-state.json');
+}
+
+function loadPersistedState(): PersistedBrowserState {
+  try {
+    const raw = readFileSync(getStatePath(), 'utf8');
+    return JSON.parse(raw) as PersistedBrowserState;
+  } catch {
+    return { sessions: {} };
+  }
+}
+
+function savePersistedState(state: PersistedBrowserState): void {
+  const dir = join(app.getPath('home'), '.stitch');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(getStatePath(), JSON.stringify(state, null, 2), 'utf8');
+}
 
 const SNAPSHOT_SCRIPT = String.raw`
 (() => {
@@ -141,8 +163,10 @@ export class ElectronBrowserManager {
   private windowGetter: () => BrowserWindow | null;
   private browser: WebContents | null = null;
   private registeredWebContentsId: number | null = null;
+  private currentSessionId: string | null = null;
   private activeTabId: string | null = null;
-  private tabs = new Map<string, { id: string; title: string; url: string }>();
+  private tabs = new Map<string, TabInfo>();
+  private sessionTabs = new Map<string, SessionTabState>();
   private refs = new Map<string, RefEntry>();
   private downloads = new Map<string, ElectronBrowserDownload>();
   private controller: ElectronBrowserState['controller'] = 'none';
@@ -152,6 +176,7 @@ export class ElectronBrowserManager {
 
   constructor(windowGetter: () => BrowserWindow | null) {
     this.windowGetter = windowGetter;
+    this.loadFromDisk();
   }
 
   startBridge(port: number): void {
@@ -169,7 +194,31 @@ export class ElectronBrowserManager {
     this.wss = null;
   }
 
-  registerWebview(webContentsId: number): ElectronBrowserState {
+  switchSession(sessionId: string): ElectronBrowserState {
+    if (sessionId === this.currentSessionId) return this.getState();
+    this.saveCurrentSessionToMemory();
+    this.loadSessionTabs(sessionId);
+    if (this.browser && !this.browser.isDestroyed() && this.activeTabId) {
+      const activeTab = this.tabs.get(this.activeTabId);
+      if (activeTab?.url && activeTab.url !== 'about:blank') {
+        void this.browser.loadURL(activeTab.url);
+      }
+    }
+    this.persistToDisk();
+    this.broadcastState();
+    return this.getState();
+  }
+
+  persistToDisk(): void {
+    this.saveCurrentSessionToMemory();
+    const persisted: PersistedBrowserState = { sessions: {} };
+    for (const [id, state] of this.sessionTabs) {
+      persisted.sessions[id] = state;
+    }
+    savePersistedState(persisted);
+  }
+
+  registerWebview(webContentsId: number, sessionId: string): ElectronBrowserState {
     const contents = webContents.fromId(webContentsId);
     if (!contents) throw new Error(`Browser webview ${webContentsId} was not found`);
 
@@ -179,12 +228,19 @@ export class ElectronBrowserManager {
       this.browser &&
       !this.browser.isDestroyed()
     ) {
+      // Session may have changed even if webview is the same
+      if (sessionId !== this.currentSessionId) {
+        this.switchSession(sessionId);
+      }
       return this.getState();
     }
 
-    // New webview element — reattach without clearing existing tabs
+    // New webview element — reattach
     this.browser = contents;
     this.registeredWebContentsId = webContentsId;
+
+    // Switch to requested session (restores tabs from memory/disk)
+    this.loadSessionTabs(sessionId);
 
     if (this.tabs.size > 0 && this.activeTabId) {
       // Restore active tab by navigating the new webview to its URL
@@ -295,6 +351,7 @@ export class ElectronBrowserManager {
         this.activeTabId = newTabId;
         this.broadcastState();
         await browser.loadURL(newUrl);
+        this.debouncedPersist();
         return this.getState();
       }
       case 'listTabs':
@@ -328,6 +385,7 @@ export class ElectronBrowserManager {
           }
         }
         this.broadcastState();
+        this.debouncedPersist();
         return this.getState();
       }
       case 'snapshot':
@@ -542,6 +600,13 @@ export class ElectronBrowserManager {
       url: this.browser.getURL(),
     });
     this.broadcastState();
+    this.debouncedPersist();
+  }
+
+  private persistTimer: NodeJS.Timeout | null = null;
+  private debouncedPersist(): void {
+    if (this.persistTimer) clearTimeout(this.persistTimer);
+    this.persistTimer = setTimeout(() => this.persistToDisk(), 2000);
   }
 
   private handleDownload(item: Electron.DownloadItem): void {
@@ -574,10 +639,44 @@ export class ElectronBrowserManager {
     this.windowGetter()?.webContents.send('browser:state-changed', this.getState());
   }
 
+  private saveCurrentSessionToMemory(): void {
+    if (!this.currentSessionId) return;
+    this.sessionTabs.set(this.currentSessionId, {
+      tabs: Array.from(this.tabs.values()),
+      activeTabId: this.activeTabId,
+    });
+  }
+
+  private loadSessionTabs(sessionId: string): void {
+    this.saveCurrentSessionToMemory();
+    this.currentSessionId = sessionId;
+    const stored = this.sessionTabs.get(sessionId);
+    this.tabs.clear();
+    if (stored && stored.tabs.length > 0) {
+      for (const tab of stored.tabs) {
+        this.tabs.set(tab.id, tab);
+      }
+      this.activeTabId = stored.activeTabId;
+    } else {
+      this.activeTabId = null;
+    }
+  }
+
+  private loadFromDisk(): void {
+    const persisted = loadPersistedState();
+    for (const [id, state] of Object.entries(persisted.sessions)) {
+      this.sessionTabs.set(id, state);
+    }
+  }
+
   private async handleSocketMessage(socket: WebSocket, raw: string): Promise<void> {
     const message = JSON.parse(raw) as ElectronBrowserCommandMessage;
     if (message.type !== 'browser:command') return;
     try {
+      // Switch to the requesting session's tab state before executing
+      if (message.sessionId !== this.currentSessionId) {
+        this.switchSession(message.sessionId);
+      }
       const result = await this.execute(message.command);
       socket.send(JSON.stringify({ id: message.id, type: 'browser:result', ok: true, result }));
     } catch (error) {

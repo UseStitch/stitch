@@ -1,10 +1,14 @@
-import type { ElectronBrowserManager } from '../browser-manager.js';
 import { registerIpcHandler } from './register.js';
+
+import type { ElectronBrowserManager } from '../browser-manager.js';
 
 export function registerBrowserHandlers(manager: ElectronBrowserManager): void {
   registerIpcHandler('browser:getState', () => manager.getState());
-  registerIpcHandler('browser:registerWebview', (_event, webContentsId) =>
-    manager.registerWebview(webContentsId),
+  registerIpcHandler('browser:registerWebview', (_event, webContentsId, sessionId) =>
+    manager.registerWebview(webContentsId, sessionId),
+  );
+  registerIpcHandler('browser:switchSession', (_event, sessionId) =>
+    manager.switchSession(sessionId),
   );
   registerIpcHandler('browser:show', () => manager.requestShow());
   registerIpcHandler('browser:hide', () => manager.getState());
