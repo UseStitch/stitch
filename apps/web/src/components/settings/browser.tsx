@@ -72,21 +72,6 @@ export function BrowserSettings() {
           />
         </SettingRows>
       </SettingSection>
-
-      <SettingSection title="In-app browser profile">
-        <p className="text-sm text-muted-foreground">
-          Stitch now uses a built-in Electron browser. Sign in manually inside the browser panel;
-          cookies, localStorage, IndexedDB, and cache persist across app restarts in one shared
-          Stitch browser profile.
-        </p>
-      </SettingSection>
-
-      <SettingSection title="Downloads">
-        <p className="text-sm text-muted-foreground">
-          Browser downloads are saved to ~/.stitch/downloads and shown at the bottom of the browser
-          panel.
-        </p>
-      </SettingSection>
     </SettingPage>
   );
 }
