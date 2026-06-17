@@ -14,6 +14,8 @@ const HOST = '127.0.0.1';
 const DEFAULT_URL = 'about:blank';
 const HUMAN_CONTROL_IDLE_MS = 750;
 const LOAD_TIMEOUT_MS = 15_000;
+const BROWSER_READY_TIMEOUT_MS = 20_000;
+const BROWSER_READY_POLL_MS = 50;
 const DEFAULT_SCROLL_PX = 650;
 
 type RefEntry = { selector: string; role: string; name: string };
@@ -154,7 +156,10 @@ export class ElectronBrowserManager {
   startBridge(port: number): void {
     this.wss = new WebSocketServer({ host: HOST, port });
     this.wss.on('connection', (socket) => {
-      socket.on('message', (data) => void this.handleSocketMessage(socket, rawSocketDataToString(data)));
+      socket.on(
+        'message',
+        (data) => void this.handleSocketMessage(socket, rawSocketDataToString(data)),
+      );
     });
   }
 
@@ -168,7 +173,11 @@ export class ElectronBrowserManager {
     if (!contents) throw new Error(`Browser webview ${webContentsId} was not found`);
     this.browser = contents;
     this.activeTabId = String(webContentsId);
-    this.tabs.set(this.activeTabId, { id: this.activeTabId, title: contents.getTitle(), url: contents.getURL() });
+    this.tabs.set(this.activeTabId, {
+      id: this.activeTabId,
+      title: contents.getTitle(),
+      url: contents.getURL(),
+    });
 
     contents.on('did-navigate', () => this.updateTabFromContents());
     contents.on('did-navigate-in-page', () => this.updateTabFromContents());
@@ -182,7 +191,11 @@ export class ElectronBrowserManager {
 
   getState(): ElectronBrowserState {
     return {
-      tabs: Array.from(this.tabs.values()).map((tab) => ({ ...tab, type: 'page', active: tab.id === this.activeTabId })),
+      tabs: Array.from(this.tabs.values()).map((tab) => ({
+        ...tab,
+        type: 'page',
+        active: tab.id === this.activeTabId,
+      })),
       activeTabId: this.activeTabId,
       visible: true,
       controller: this.controller,
@@ -217,29 +230,31 @@ export class ElectronBrowserManager {
 
   async userNavigate(url: string): Promise<{ url: string }> {
     this.recordHumanInput();
-    await this.requireBrowser().loadURL(normalizeUrl(url));
-    return { url: this.requireBrowser().getURL() };
+    const browser = await this.waitForBrowser();
+    await browser.loadURL(normalizeUrl(url));
+    return { url: browser.getURL() };
   }
 
   async userGoBack(): Promise<void> {
     this.recordHumanInput();
-    const browser = this.requireBrowser();
+    const browser = await this.waitForBrowser();
     if (browser.navigationHistory.canGoBack()) browser.navigationHistory.goBack();
   }
 
   async userGoForward(): Promise<void> {
     this.recordHumanInput();
-    const browser = this.requireBrowser();
+    const browser = await this.waitForBrowser();
     if (browser.navigationHistory.canGoForward()) browser.navigationHistory.goForward();
   }
 
-  userReload(): void {
+  async userReload(): Promise<void> {
     this.recordHumanInput();
-    this.requireBrowser().reload();
+    const browser = await this.waitForBrowser();
+    browser.reload();
   }
 
   private async executeWithBrowser(command: ElectronBrowserCommand): Promise<unknown> {
-    const browser = this.requireBrowser();
+    const browser = await this.waitForBrowser();
     switch (command.action) {
       case 'navigate':
         await browser.loadURL(normalizeUrl(command.url));
@@ -266,10 +281,17 @@ export class ElectronBrowserManager {
       case 'snapshot':
         return this.snapshot(browser);
       case 'click':
-        await this.runOnRef(command.ref, (selector) => `document.querySelector(${JSON.stringify(selector)})?.click()`);
+        await this.runOnRef(
+          command.ref,
+          (selector) => `document.querySelector(${JSON.stringify(selector)})?.click()`,
+        );
         return `Clicked ${command.ref}`;
       case 'hover':
-        await this.runOnRef(command.ref, (selector) => `document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`);
+        await this.runOnRef(
+          command.ref,
+          (selector) =>
+            `document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`,
+        );
         return `Hovered ${command.ref}`;
       case 'type':
         await this.typeIntoRef(command.ref, command.text, command.clear, command.submit);
@@ -279,7 +301,11 @@ export class ElectronBrowserManager {
         browser.sendInputEvent({ type: 'keyUp', keyCode: command.key });
         return `Pressed ${command.key}`;
       case 'select':
-        await this.runOnRef(command.ref, (selector) => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; for (const option of el.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await this.runOnRef(
+          command.ref,
+          (selector) =>
+            `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; for (const option of el.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+        );
         return `Selected ${command.values.join(', ')} in ${command.ref}`;
       case 'scroll':
         await this.scroll(command.ref, command.direction);
@@ -289,15 +315,26 @@ export class ElectronBrowserManager {
       case 'screenshot': {
         const image = await browser.capturePage();
         const format = command.format ?? 'png';
-        return { data: format === 'png' ? image.toPNG().toString('base64') : image.toJPEG(command.quality ?? 90).toString('base64'), format };
+        return {
+          data:
+            format === 'png'
+              ? image.toPNG().toString('base64')
+              : image.toJPEG(command.quality ?? 90).toString('base64'),
+          format,
+        };
       }
       case 'evaluate':
         return browser.executeJavaScript(command.expression, true);
       case 'wait':
         await this.wait(command.timeMs, command.selector, command.timeoutMs);
-        return command.selector ? `Selector appeared: ${command.selector}` : `Waited ${command.timeMs ?? 0}ms`;
+        return command.selector
+          ? `Selector appeared: ${command.selector}`
+          : `Waited ${command.timeMs ?? 0}ms`;
       case 'extractPageContent':
-        return browser.executeJavaScript(`(() => (document.querySelector(${JSON.stringify(command.selector ?? 'body')})?.innerText || '').trim())()`, true);
+        return browser.executeJavaScript(
+          `(() => (document.querySelector(${JSON.stringify(command.selector ?? 'body')})?.innerText || '').trim())()`,
+          true,
+        );
       case 'searchPage':
         return browser.executeJavaScript(this.searchPageScript(command), true);
       case 'findElements':
@@ -310,46 +347,84 @@ export class ElectronBrowserManager {
   }
 
   private async snapshot(browser: WebContents): Promise<string> {
-    const result = (await browser.executeJavaScript(SNAPSHOT_SCRIPT, true)) as { tree: string; refs: Record<string, RefEntry>; scroll: { pagesAbove: number; pagesBelow: number } };
+    const result = (await browser.executeJavaScript(SNAPSHOT_SCRIPT, true)) as {
+      tree: string;
+      refs: Record<string, RefEntry>;
+      scroll: { pagesAbove: number; pagesBelow: number };
+    };
     this.refs = new Map(Object.entries(result.refs));
-    const tabs = this.getState().tabs.map((tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`).join('\n');
+    const tabs = this.getState()
+      .tabs.map(
+        (tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`,
+      )
+      .join('\n');
     return `URL: ${browser.getURL()}\nTitle: ${browser.getTitle()}\nTabs:\n${tabs}\nScroll: ${result.scroll.pagesAbove} page(s) above, ${result.scroll.pagesBelow} page(s) below\n\n${result.tree || '(empty page)'}`;
   }
 
   private async runOnRef(ref: string, buildScript: (selector: string) => string): Promise<unknown> {
     const entry = this.refs.get(ref);
     if (!entry) throw new Error(`Unknown ref: ${ref}. Take a fresh browser_snapshot first.`);
-    return this.requireBrowser().executeJavaScript(buildScript(entry.selector), true);
+    return (await this.waitForBrowser()).executeJavaScript(buildScript(entry.selector), true);
   }
 
-  private async typeIntoRef(ref: string, text: string, clear?: boolean, submit?: boolean): Promise<void> {
-    await this.runOnRef(ref, (selector) => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; el.focus(); ${clear ? 'el.value = "";' : ''} el.value = (el.value || '') + ${JSON.stringify(text)}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); ${submit ? "el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));" : ''} })()`);
+  private async typeIntoRef(
+    ref: string,
+    text: string,
+    clear?: boolean,
+    submit?: boolean,
+  ): Promise<void> {
+    await this.runOnRef(
+      ref,
+      (selector) =>
+        `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; el.focus(); ${clear ? 'el.value = "";' : ''} el.value = (el.value || '') + ${JSON.stringify(text)}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); ${submit ? "el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));" : ''} })()`,
+    );
   }
 
-  private async scroll(ref: string | undefined, direction: 'up' | 'down' | 'left' | 'right'): Promise<void> {
-    const delta = direction === 'up' || direction === 'left' ? -DEFAULT_SCROLL_PX : DEFAULT_SCROLL_PX;
+  private async scroll(
+    ref: string | undefined,
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<void> {
+    const delta =
+      direction === 'up' || direction === 'left' ? -DEFAULT_SCROLL_PX : DEFAULT_SCROLL_PX;
     if (ref) {
-      await this.runOnRef(ref, (selector) => `document.querySelector(${JSON.stringify(selector)})?.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`);
+      await this.runOnRef(
+        ref,
+        (selector) =>
+          `document.querySelector(${JSON.stringify(selector)})?.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`,
+      );
       return;
     }
-    await this.requireBrowser().executeJavaScript(`window.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`, true);
+    await (
+      await this.waitForBrowser()
+    ).executeJavaScript(
+      `window.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`,
+      true,
+    );
   }
 
-  private async wait(timeMs?: number, selector?: string, timeoutMs = LOAD_TIMEOUT_MS): Promise<void> {
+  private async wait(
+    timeMs?: number,
+    selector?: string,
+    timeoutMs = LOAD_TIMEOUT_MS,
+  ): Promise<void> {
     if (!selector) {
       await new Promise((resolve) => setTimeout(resolve, timeMs ?? 0));
       return;
     }
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      const found = await this.requireBrowser().executeJavaScript(`Boolean(document.querySelector(${JSON.stringify(selector)}))`, true);
+      const found = await (
+        await this.waitForBrowser()
+      ).executeJavaScript(`Boolean(document.querySelector(${JSON.stringify(selector)}))`, true);
       if (found) return;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error(`Timed out waiting for selector: ${selector}`);
   }
 
-  private searchPageScript(command: Extract<ElectronBrowserCommand, { action: 'searchPage' }>): string {
+  private searchPageScript(
+    command: Extract<ElectronBrowserCommand, { action: 'searchPage' }>,
+  ): string {
     return `(() => {
       const text = (document.querySelector(${JSON.stringify(command.cssScope ?? 'body')})?.innerText || '');
       const pattern = ${JSON.stringify(command.pattern)};
@@ -376,7 +451,9 @@ export class ElectronBrowserManager {
     })()`;
   }
 
-  private findElementsScript(command: Extract<ElectronBrowserCommand, { action: 'findElements' }>): string {
+  private findElementsScript(
+    command: Extract<ElectronBrowserCommand, { action: 'findElements' }>,
+  ): string {
     return `(() => { const nodes = Array.from(document.querySelectorAll(${JSON.stringify(command.selector)})); const attrs = ${JSON.stringify(command.attributes ?? [])}; const includeText = ${command.includeText !== false}; const elements = nodes.slice(0, ${command.maxResults ?? 20}).map((el) => ({ tag: el.tagName.toLowerCase(), text: includeText ? (el.innerText || el.textContent || '').trim().slice(0, 200) : undefined, attributes: Object.fromEntries(attrs.map((name) => [name, el.getAttribute(name) || '']).filter(([, value]) => value)) })); return { elements, total: nodes.length }; })()`;
   }
 
@@ -385,23 +462,33 @@ export class ElectronBrowserManager {
     this.controller = 'agent';
     this.broadcastState();
     const result = await fn();
-    if (this.controlEpoch !== epoch) throw new Error('Browser control interrupted by user input. Take a fresh snapshot before continuing.');
+    if (this.controlEpoch !== epoch)
+      throw new Error(
+        'Browser control interrupted by user input. Take a fresh snapshot before continuing.',
+      );
     this.controller = 'none';
     this.broadcastState();
     return result;
   }
 
-  private requireBrowser(): WebContents {
-    if (!this.browser || this.browser.isDestroyed()) {
-      this.requestShow();
-      throw new Error('Browser panel is not ready yet. The app opened it; retry after the webview finishes loading.');
+  private async waitForBrowser(): Promise<WebContents> {
+    const deadline = Date.now() + BROWSER_READY_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      if (this.browser && !this.browser.isDestroyed()) return this.browser;
+      await new Promise((resolve) => setTimeout(resolve, BROWSER_READY_POLL_MS));
     }
-    return this.browser;
+    throw new Error(
+      'Browser panel did not become ready in time. Please ensure the browser panel is open and try again.',
+    );
   }
 
   private updateTabFromContents(): void {
     if (!this.browser || !this.activeTabId) return;
-    this.tabs.set(this.activeTabId, { id: this.activeTabId, title: this.browser.getTitle(), url: this.browser.getURL() });
+    this.tabs.set(this.activeTabId, {
+      id: this.activeTabId,
+      title: this.browser.getTitle(),
+      url: this.browser.getURL(),
+    });
     this.broadcastState();
   }
 
@@ -412,11 +499,22 @@ export class ElectronBrowserManager {
     const targetPath = join(downloadsDir, basename(item.getFilename()));
     item.setSavePath(targetPath);
     const update = (state: ElectronBrowserDownload['state']) => {
-      this.downloads.set(id, { id, filename: item.getFilename(), path: targetPath, url: item.getURL(), receivedBytes: item.getReceivedBytes(), totalBytes: item.getTotalBytes(), state, createdAt: Date.now() });
+      this.downloads.set(id, {
+        id,
+        filename: item.getFilename(),
+        path: targetPath,
+        url: item.getURL(),
+        receivedBytes: item.getReceivedBytes(),
+        totalBytes: item.getTotalBytes(),
+        state,
+        createdAt: Date.now(),
+      });
       this.broadcastState();
     };
     update('progressing');
-    item.on('updated', (_event, state) => update(state === 'interrupted' ? 'interrupted' : 'progressing'));
+    item.on('updated', (_event, state) =>
+      update(state === 'interrupted' ? 'interrupted' : 'progressing'),
+    );
     item.once('done', (_event, state) => update(state));
   }
 
@@ -431,7 +529,14 @@ export class ElectronBrowserManager {
       const result = await this.execute(message.command);
       socket.send(JSON.stringify({ id: message.id, type: 'browser:result', ok: true, result }));
     } catch (error) {
-      socket.send(JSON.stringify({ id: message.id, type: 'browser:result', ok: false, error: error instanceof Error ? error.message : String(error) }));
+      socket.send(
+        JSON.stringify({
+          id: message.id,
+          type: 'browser:result',
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
     }
   }
 
