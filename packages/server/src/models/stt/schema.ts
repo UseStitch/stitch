@@ -29,6 +29,7 @@ const ReconnectConfigSchema = z.object({
   enabled: z.boolean(),
   maxRetries: z.number().int().nonnegative(),
   backoffMs: z.number().int().nonnegative(),
+  maxBackoffMs: z.number().int().positive().optional(),
   rotateBeforeMs: z.number().int().positive().optional(),
 });
 

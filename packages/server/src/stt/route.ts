@@ -175,6 +175,18 @@ async function handleStart(
       });
     });
 
+    session.onUnrecoverable((reason) => {
+      log.error({ reason, sttSessionId: message.sttSessionId }, 'session unrecoverable');
+      send(ws, { type: 'unrecoverable', sttSessionId: message.sttSessionId, reason });
+
+      if (message.service === 'meeting-recording' && state.recordingId) {
+        internalBus.emit('recording.unrecoverable', {
+          recordingId: state.recordingId as PrefixedString<'rec'>,
+          reason,
+        });
+      }
+    });
+
     send(ws, {
       type: 'ready',
       sttSessionId: message.sttSessionId,

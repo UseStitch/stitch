@@ -133,11 +133,18 @@ export type SttDoneMessage = {
   usage: STTUsage;
 };
 
+export type SttUnrecoverableMessage = {
+  type: 'unrecoverable';
+  sttSessionId: string;
+  reason: string;
+};
+
 export type SttOutboundMessage =
   | SttReadyMessage
   | SttTranscriptMessage
   | SttErrorMessage
-  | SttDoneMessage;
+  | SttDoneMessage
+  | SttUnrecoverableMessage;
 
 export type SttModelSummary = {
   id: string;

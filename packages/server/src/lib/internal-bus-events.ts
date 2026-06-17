@@ -251,6 +251,11 @@ export type RecordingStoppedEvent = {
   recordingId: PrefixedString<'rec'>;
 };
 
+export type RecordingUnrecoverableEvent = {
+  recordingId: PrefixedString<'rec'>;
+  reason: string;
+};
+
 export type RecordingAnalysisUpdatedEvent = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
@@ -324,6 +329,7 @@ export type InternalEventMap = {
   // Recordings
   'recording.started': RecordingStartedEvent;
   'recording.stopped': RecordingStoppedEvent;
+  'recording.unrecoverable': RecordingUnrecoverableEvent;
   'recording.analysis.updated': RecordingAnalysisUpdatedEvent;
   'recording.transcript.entry': RecordingTranscriptEntryEvent;
 

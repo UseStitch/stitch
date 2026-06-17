@@ -58,6 +58,7 @@ export type STTSession = {
   stop(): Promise<STTSessionResult>;
   onTranscript(cb: (e: SourcedTranscriptEvent) => void): void;
   onError(cb: (err: Error) => void): void;
+  onUnrecoverable(cb: (reason: string) => void): void;
 };
 
 type STTSessionDeps = {
@@ -156,6 +157,7 @@ export async function createSTTSession(
   // Open connections eagerly
   const transcriptListeners: ((e: SourcedTranscriptEvent) => void)[] = [];
   const errorListeners: ((err: Error) => void)[] = [];
+  const unrecoverableListeners: ((reason: string) => void)[] = [];
 
   const connections = new Map<AudioSource, STTConnection>();
 
@@ -191,6 +193,10 @@ export async function createSTTSession(
 
     conn.onError((err) => {
       for (const cb of errorListeners) cb(err);
+    });
+
+    conn.onUnrecoverable((reason) => {
+      for (const cb of unrecoverableListeners) cb(reason);
     });
   }
 
@@ -293,6 +299,9 @@ export async function createSTTSession(
     },
     onError(cb) {
       errorListeners.push(cb);
+    },
+    onUnrecoverable(cb) {
+      unrecoverableListeners.push(cb);
     },
   };
 }

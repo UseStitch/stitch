@@ -58,11 +58,23 @@ export function createWsTransport(
 
       const transport: STTTransport = {
         sendAudio(chunk) {
-          if (ws.readyState !== WebSocket.OPEN) return;
+          if (ws.readyState !== WebSocket.OPEN) {
+            log.warn(
+              { label: config.label, readyState: ws.readyState },
+              'dropping audio, socket not open',
+            );
+            return;
+          }
           ws.send(buildAudioMessage(chunk));
         },
         commit() {
-          if (ws.readyState !== WebSocket.OPEN) return;
+          if (ws.readyState !== WebSocket.OPEN) {
+            log.warn(
+              { label: config.label, readyState: ws.readyState },
+              'dropping commit, socket not open',
+            );
+            return;
+          }
           ws.send(buildCommitMessage());
         },
         async close() {

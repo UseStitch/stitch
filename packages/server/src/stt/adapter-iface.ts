@@ -10,6 +10,7 @@ export type STTConnection = {
   onUsage(cb: (u: STTUsage) => void): void;
   onError(cb: (err: Error) => void): void;
   onClose(cb: () => void): void;
+  onUnrecoverable(cb: (reason: string) => void): void;
 };
 
 /**
