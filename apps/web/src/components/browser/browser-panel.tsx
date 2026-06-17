@@ -1,6 +1,13 @@
+import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, RotateCwIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
+import type {
+  ElectronBrowserDownload,
+  ElectronBrowserState,
+} from '@stitch/shared/browser/electron';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type BrowserPanelProps = {
   onClose: () => void;
@@ -77,25 +84,90 @@ export function BrowserPanel({ onClose }: BrowserPanelProps) {
     [address],
   );
 
-  const controllerLabel =
+  const controllerBadgeClass =
     state.controller === 'agent'
-      ? 'Agent controlling'
+      ? 'bg-warning/20 text-warning'
       : state.controller === 'human'
-        ? "You're in control"
-        : 'Ready';
+        ? 'bg-success/20 text-success'
+        : 'bg-muted text-muted-foreground';
+
+  const controllerLabel =
+    state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background">
+      {/* Tab strip */}
+      <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1">
+        {state.tabs.length === 0 ? (
+          <span className="px-2 text-xs text-muted-foreground">Starting...</span>
+        ) : (
+          state.tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className={cn(
+                'group flex h-6 max-w-40 shrink-0 items-center rounded text-xs',
+                tab.active
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted/60',
+              )}
+            >
+              <button
+                className="min-w-0 flex-1 truncate px-2 py-0.5 text-left"
+                onClick={() => void window.api?.browser.focusTab(tab.id)}
+                type="button"
+                title={tab.url}
+              >
+                {tab.title || tab.url || 'New tab'}
+              </button>
+              <button
+                className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:!opacity-100"
+                onClick={() => void window.api?.browser.closeTab(tab.id)}
+                type="button"
+                aria-label="Close tab"
+              >
+                <XIcon className="size-2.5" />
+              </button>
+            </div>
+          ))
+        )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="ml-0.5 shrink-0"
+          onClick={() => void window.api?.browser.newTab()}
+          aria-label="New tab"
+        >
+          <PlusIcon className="size-3.5" />
+        </Button>
+      </div>
+
+      {/* Nav bar */}
       <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
-        <button className="rounded px-2 py-1 text-xs hover:bg-muted" onClick={() => void window.api?.browser.goBack()} type="button">
-          Back
-        </button>
-        <button className="rounded px-2 py-1 text-xs hover:bg-muted" onClick={() => void window.api?.browser.goForward()} type="button">
-          Forward
-        </button>
-        <button className="rounded px-2 py-1 text-xs hover:bg-muted" onClick={() => void window.api?.browser.reload()} type="button">
-          Reload
-        </button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => void window.api?.browser.goBack()}
+          aria-label="Back"
+        >
+          <ArrowLeftIcon className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => void window.api?.browser.goForward()}
+          aria-label="Forward"
+        >
+          <ArrowRightIcon className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => void window.api?.browser.reload()}
+          aria-label="Reload"
+        >
+          <RotateCwIcon className="size-4" />
+        </Button>
+
         <form className="min-w-0 flex-1" onSubmit={submitAddress}>
           <input
             className="h-7 w-full rounded border border-border bg-muted/40 px-2 text-xs outline-none focus:border-primary"
@@ -103,33 +175,19 @@ export function BrowserPanel({ onClose }: BrowserPanelProps) {
             onChange={(event) => setAddress(event.target.value)}
           />
         </form>
-        <span className="shrink-0 rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+
+        <span
+          className={cn(
+            'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium',
+            controllerBadgeClass,
+          )}
+        >
           {controllerLabel}
         </span>
-        <button className="rounded px-2 py-1 text-xs hover:bg-muted" onClick={onClose} type="button">
-          Close
-        </button>
-      </div>
 
-      <div className="flex h-8 shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-2">
-        {state.tabs.length === 0 ? (
-          <span className="text-xs text-muted-foreground">Browser starting...</span>
-        ) : (
-          state.tabs.map((tab) => (
-            <button
-              className={`max-w-48 truncate rounded px-2 py-1 text-xs ${tab.active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60'}`}
-              key={tab.id}
-              onClick={() => void window.api?.browser.focusTab(tab.id)}
-              type="button"
-              title={tab.url}
-            >
-              {tab.title || tab.url || 'New tab'}
-            </button>
-          ))
-        )}
-        <button className="rounded px-2 py-1 text-xs hover:bg-muted" onClick={() => void window.api?.browser.newTab()} type="button">
-          +
-        </button>
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close browser">
+          <XIcon className="size-4" />
+        </Button>
       </div>
 
       <webview

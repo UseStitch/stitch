@@ -140,6 +140,7 @@ function rawSocketDataToString(data: RawData): string {
 export class ElectronBrowserManager {
   private windowGetter: () => BrowserWindow | null;
   private browser: WebContents | null = null;
+  private registeredWebContentsId: number | null = null;
   private activeTabId: string | null = null;
   private tabs = new Map<string, { id: string; title: string; url: string }>();
   private refs = new Map<string, RefEntry>();
@@ -171,13 +172,23 @@ export class ElectronBrowserManager {
   registerWebview(webContentsId: number): ElectronBrowserState {
     const contents = webContents.fromId(webContentsId);
     if (!contents) throw new Error(`Browser webview ${webContentsId} was not found`);
+
+    // Same webview re-registering (panel remount) — skip duplicate setup
+    if (
+      this.registeredWebContentsId === webContentsId &&
+      this.browser &&
+      !this.browser.isDestroyed()
+    ) {
+      return this.getState();
+    }
+
+    // New webview element — reset tab state cleanly
     this.browser = contents;
-    this.activeTabId = String(webContentsId);
-    this.tabs.set(this.activeTabId, {
-      id: this.activeTabId,
-      title: contents.getTitle(),
-      url: contents.getURL(),
-    });
+    this.registeredWebContentsId = webContentsId;
+    this.tabs.clear();
+    const tabId = `tab-${Date.now()}`;
+    this.activeTabId = tabId;
+    this.tabs.set(tabId, { id: tabId, title: contents.getTitle(), url: contents.getURL() });
 
     contents.on('did-navigate', () => this.updateTabFromContents());
     contents.on('did-navigate-in-page', () => this.updateTabFromContents());
@@ -268,16 +279,48 @@ export class ElectronBrowserManager {
       case 'goForward':
         if (browser.navigationHistory.canGoForward()) browser.navigationHistory.goForward();
         return `Went forward to ${browser.getURL()}`;
-      case 'newTab':
-        await browser.loadURL(normalizeUrl(command.url ?? DEFAULT_URL));
+      case 'newTab': {
+        const newTabId = `tab-${Date.now()}`;
+        const newUrl = normalizeUrl(command.url ?? DEFAULT_URL);
+        this.tabs.set(newTabId, { id: newTabId, title: '', url: newUrl });
+        this.activeTabId = newTabId;
+        this.broadcastState();
+        await browser.loadURL(newUrl);
         return this.getState();
+      }
       case 'listTabs':
         return this.getState().tabs;
-      case 'focusTab':
+      case 'focusTab': {
+        const target = this.tabs.get(command.tabId);
+        if (!target) return this.getState();
+        this.activeTabId = command.tabId;
+        this.broadcastState();
+        await browser.loadURL(normalizeUrl(target.url) || DEFAULT_URL);
         return this.getState();
-      case 'closeTab':
-        await browser.loadURL(DEFAULT_URL);
+      }
+      case 'closeTab': {
+        const tabId = command.tabId ?? this.activeTabId;
+        if (!tabId || !this.tabs.has(tabId)) return this.getState();
+        this.tabs.delete(tabId);
+        if (this.activeTabId === tabId) {
+          const remaining = Array.from(this.tabs.keys());
+          if (remaining.length > 0) {
+            this.activeTabId = remaining[remaining.length - 1]!;
+            const next = this.tabs.get(this.activeTabId)!;
+            this.broadcastState();
+            await browser.loadURL(normalizeUrl(next.url) || DEFAULT_URL);
+          } else {
+            // No tabs left — create a fresh one
+            const freshId = `tab-${Date.now()}`;
+            this.tabs.set(freshId, { id: freshId, title: '', url: DEFAULT_URL });
+            this.activeTabId = freshId;
+            this.broadcastState();
+            await browser.loadURL(DEFAULT_URL);
+          }
+        }
+        this.broadcastState();
         return this.getState();
+      }
       case 'snapshot':
         return this.snapshot(browser);
       case 'click':

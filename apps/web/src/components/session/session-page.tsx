@@ -133,7 +133,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             <>
               <ResizableHandle className="hidden bg-foreground/25 after:w-0 lg:flex" />
 
-              <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
+              <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (
                   <BrowserPanel onClose={() => setRightPanel('closed')} />
                 ) : (
