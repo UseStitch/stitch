@@ -5,6 +5,7 @@ import type { STTConnection, STTTransport } from '@/stt/adapter-iface.js';
 import type { BufferConfig, PartialStrategy, ReconnectConfig } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.base-adapter' });
+const MAX_SEND_BATCH_MS = 900;
 
 export type STTErrorClassification = { fatal: false } | { fatal: true; reason: string };
 
@@ -27,6 +28,21 @@ function chunkByteSize(chunk: AudioChunk): number {
 
 function chunkDurationMs(chunk: AudioChunk): number {
   return (chunk.numSamples / chunk.sampleRateHz) * 1000;
+}
+
+function mergeChunks(chunks: AudioChunk[]): AudioChunk | null {
+  if (chunks.length === 0) return null;
+  if (chunks.length === 1) return chunks[0];
+
+  const [first] = chunks;
+  return {
+    samplesB64: Buffer.concat(
+      chunks.map((chunk) => Buffer.from(chunk.samplesB64, 'base64')),
+    ).toString('base64'),
+    sampleRateHz: first.sampleRateHz,
+    numSamples: chunks.reduce((total, chunk) => total + chunk.numSamples, 0),
+    encoding: first.encoding,
+  };
 }
 
 export async function createManagedConnection(
@@ -101,6 +117,39 @@ export async function createManagedConnection(
     totalBufferedMs = 0;
   }
 
+  function sendChunkBatch(target: STTTransport, chunks: AudioChunk[]): void {
+    let batch: AudioChunk[] = [];
+    let batchBytes = 0;
+    let batchMs = 0;
+
+    function flushBatch(): void {
+      const merged = mergeChunks(batch);
+      if (merged) target.sendAudio(merged);
+      batch = [];
+      batchBytes = 0;
+      batchMs = 0;
+    }
+
+    for (const chunk of chunks) {
+      const bytes = chunkByteSize(chunk);
+      const durationMs = chunkDurationMs(chunk);
+
+      if (
+        batch.length > 0 &&
+        (batchBytes + bytes > bufferConfig.maxChunkBytes ||
+          batchMs + durationMs > MAX_SEND_BATCH_MS)
+      ) {
+        flushBatch();
+      }
+
+      batch.push(chunk);
+      batchBytes += bytes;
+      batchMs += durationMs;
+    }
+
+    flushBatch();
+  }
+
   function wireTransport(conn: STTTransport): void {
     conn.onTranscript((e) => {
       const normalized = normalizeTranscript(e);
@@ -173,9 +222,7 @@ export async function createManagedConnection(
       wireTransport(newTransport);
 
       const replay = getReplayChunks();
-      for (const chunk of replay) {
-        newTransport.sendAudio(chunk);
-      }
+      sendChunkBatch(newTransport, replay);
 
       await oldTransport?.close();
       log.info({ rotationCount, replayedChunks: replay.length }, 'proactive rotation complete');
@@ -242,9 +289,7 @@ export async function createManagedConnection(
         wireTransport(newTransport);
 
         const replay = getReplayChunks();
-        for (const chunk of replay) {
-          newTransport.sendAudio(chunk);
-        }
+        sendChunkBatch(newTransport, replay);
 
         scheduleRotation();
         log.info({ attempt, replayedChunks: replay.length }, 'reactive reconnect succeeded');
@@ -269,9 +314,7 @@ export async function createManagedConnection(
   function flushPending(): void {
     if (pendingChunks.length === 0 || !transport || closed) return;
 
-    for (const chunk of pendingChunks) {
-      transport.sendAudio(chunk);
-    }
+    sendChunkBatch(transport, pendingChunks);
 
     pendingChunks = [];
     pendingBytes = 0;

@@ -16,6 +16,15 @@ function makeChunk(index: number): AudioChunk {
   };
 }
 
+function makePcmChunk(index: number): AudioChunk {
+  return {
+    samplesB64: Buffer.from([index]).toString('base64'),
+    sampleRateHz: 16_000,
+    numSamples: 160,
+    encoding: 'pcm_s16le',
+  };
+}
+
 type FakeTransport = STTTransport & {
   received: AudioChunk[];
   closed: boolean;
@@ -89,6 +98,32 @@ function sleep(ms: number): Promise<void> {
 }
 
 describe('createManagedConnection recovery', () => {
+  test('coalesces pending chunks before sending to transport', async () => {
+    const transports: FakeTransport[] = [];
+    const conn = await createManagedConnection({
+      buffer: { ...baseBuffer, maxChunkBytes: 1_000_000, flushIntervalMs: 5 },
+      reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
+      partialStrategy: 'cumulative',
+      classifyError: () => ({ fatal: false }),
+      openConnection: async () => {
+        const t = createFakeTransport();
+        transports.push(t);
+        return t;
+      },
+    });
+
+    conn.sendAudio(makePcmChunk(1));
+    conn.sendAudio(makePcmChunk(2));
+    conn.sendAudio(makePcmChunk(3));
+    await sleep(20);
+
+    expect(transports[0].received).toHaveLength(1);
+    expect(transports[0].received[0].numSamples).toBe(480);
+    expect([...Buffer.from(transports[0].received[0].samplesB64, 'base64')]).toEqual([1, 2, 3]);
+
+    await conn.close();
+  });
+
   test('recovers when the new transport drops mid-rotation (no permanent wedge)', async () => {
     const transports: FakeTransport[] = [];
     const conn = await createManagedConnection({
@@ -197,16 +232,18 @@ describe('createManagedConnection recovery', () => {
     // Queue chunks that sit in the pending buffer (not yet flushed by size/time).
     const total = 5;
     for (let i = 0; i < total; i++) {
-      conn.sendAudio(makeChunk(i));
+      conn.sendAudio(makePcmChunk(i));
     }
 
     // Trigger rotation while chunks are pending; flush-before-rotate must preserve them.
     await sleep(40);
     await conn.close();
 
-    const allReceived = new Set(transports.flatMap((t) => t.received.map((c) => c.samplesB64)));
+    const allReceived = transports.flatMap((t) =>
+      t.received.flatMap((c) => [...Buffer.from(c.samplesB64, 'base64')]),
+    );
     for (let i = 0; i < total; i++) {
-      expect(allReceived.has(`chunk-${i}`)).toBe(true);
+      expect(allReceived).toContain(i);
     }
   });
 
