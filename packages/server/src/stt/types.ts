@@ -9,6 +9,7 @@ export type ReconnectConfig = {
   enabled: boolean;
   maxRetries: number;
   backoffMs: number;
+  maxBackoffMs?: number;
   rotateBeforeMs?: number;
 };
 

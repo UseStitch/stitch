@@ -12,8 +12,13 @@ import type { SttModelSelection } from '@/components/model-selectors/stt-model-s
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { useRecordingEvents } from '@/hooks/sse/sse-context';
 import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
-import { activeRecordingQueryOptions, useStartRecording } from '@/lib/queries/recordings';
+import {
+  activeRecordingQueryOptions,
+  useStartRecording,
+  useStopRecording,
+} from '@/lib/queries/recordings';
 
 const WARNING_LABELS: Record<string, string> = {
   input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
@@ -22,6 +27,10 @@ const WARNING_LABELS: Record<string, string> = {
 };
 
 export function RecordingEventListener() {
+  const { data } = useQuery(activeRecordingQueryOptions);
+  const activeRecordingId = data?.activeRecordingId ?? null;
+  const stopRecording = useStopRecording();
+
   React.useEffect(() => {
     const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
       const label = WARNING_LABELS[payload.code] ?? payload.message;
@@ -37,6 +46,15 @@ export function RecordingEventListener() {
       unsubscribeDeviceChanged?.();
     };
   }, []);
+
+  useRecordingEvents(activeRecordingId, {
+    'recording-unrecoverable': ({ reason }) => {
+      toast.error(reason);
+      void stopRecording.mutateAsync().catch(() => {
+        toast.error('Failed to finalize the recording.');
+      });
+    },
+  });
 
   return null;
 }

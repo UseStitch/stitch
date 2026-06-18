@@ -53,6 +53,8 @@ export const SETTINGS_KEYS = [
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
+const booleanSetting = z.enum(['true', 'false']).transform((value) => value === 'true');
+
 export const SETTINGS_SCHEMAS = {
   'model.default.providerId': z.string(),
   'model.default.modelId': z.string(),
@@ -60,8 +62,8 @@ export const SETTINGS_SCHEMAS = {
   'model.compaction.modelId': z.string(),
   'model.title.providerId': z.string(),
   'model.title.modelId': z.string(),
-  'compaction.auto': z.coerce.boolean(),
-  'compaction.prune': z.coerce.boolean(),
+  'compaction.auto': booleanSetting,
+  'compaction.prune': booleanSetting,
   'compaction.reserved': z.coerce.number().int().min(0),
   'toolsets.defaultScope': z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
   'toolsets.ttlTurns': z.coerce.number().int().min(1),
@@ -71,12 +73,12 @@ export const SETTINGS_SCHEMAS = {
   'onboarding.version': z.string().regex(/^\d+$/),
   'profile.name': z.string().min(1).max(80),
   'profile.timezone': z.string().min(1).max(120),
-  'notifications.sound.enabled': z.coerce.boolean(),
+  'notifications.sound.enabled': booleanSetting,
   'browser.profileImported': z.string(),
   'browser.activeProfile': z.string(),
   'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
-  'memory.enabled': z.coerce.boolean(),
-  'memory.autoExtract': z.coerce.boolean(),
+  'memory.enabled': booleanSetting,
+  'memory.autoExtract': booleanSetting,
   'memory.embedding.providerId': z.string(),
   'memory.embedding.modelId': z.string(),
   'memory.extraction.maxFactsPerTurn': z.coerce.number().int().min(1),
@@ -87,11 +89,11 @@ export const SETTINGS_SCHEMAS = {
   'memory.extraction.minTurnsBetweenWrites': z.coerce.number().int().min(0),
   'memory.retention.maxMemories': z.coerce.number().int().min(10),
   'memory.retention.staleDays': z.coerce.number().int().min(1),
-  'memory.retention.autoprune': z.coerce.boolean(),
+  'memory.retention.autoprune': booleanSetting,
   'memory.retrieval.maxResults': z.coerce.number().int().min(1),
   'memory.retrieval.minScore': z.coerce.number().min(0).max(1),
-  'memory.retrieval.recencyBoost': z.coerce.boolean(),
-  'recordings.autoAnalyze': z.coerce.boolean(),
+  'memory.retrieval.recencyBoost': booleanSetting,
+  'recordings.autoAnalyze': booleanSetting,
   'recordings.inputDeviceId': z.string(),
   'recordings.outputDeviceId': z.string(),
   'recordings.speakerGain': z.coerce.number().min(0.1).max(50),

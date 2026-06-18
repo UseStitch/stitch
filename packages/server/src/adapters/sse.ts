@@ -234,6 +234,13 @@ export function registerSseAdapter(): void {
     broadcast('recording-stopped', { recordingId: event.recordingId });
   });
 
+  internalBus.onSync('recording.unrecoverable', (event) => {
+    broadcast('recording-unrecoverable', {
+      recordingId: event.recordingId,
+      reason: event.reason,
+    });
+  });
+
   internalBus.onSync('recording.analysis.updated', (event) => {
     broadcast('recording-analysis-updated', {
       recordingId: event.recordingId,

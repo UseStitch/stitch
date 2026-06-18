@@ -25,6 +25,11 @@ export type RecordingStoppedPayload = {
   recordingId: PrefixedString<'rec'>;
 };
 
+export type RecordingUnrecoverablePayload = {
+  recordingId: PrefixedString<'rec'>;
+  reason: string;
+};
+
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;
   kind: 'partial' | 'final';
@@ -40,6 +45,7 @@ export const RECORDING_EVENT_NAMES = [
   'recording-transcript-entry',
   'recording-started',
   'recording-stopped',
+  'recording-unrecoverable',
 ] as const;
 
 export type RecordingEvents = {
@@ -47,4 +53,5 @@ export type RecordingEvents = {
   'recording-transcript-entry': RecordingTranscriptEntryPayload;
   'recording-started': RecordingStartedPayload;
   'recording-stopped': RecordingStoppedPayload;
+  'recording-unrecoverable': RecordingUnrecoverablePayload;
 };

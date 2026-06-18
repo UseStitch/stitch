@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isValidLeaderKeyHotkey } from './types';
+import { SETTINGS_SCHEMAS, isValidLeaderKeyHotkey } from './types';
+
+describe('SETTINGS_SCHEMAS', () => {
+  test('parses boolean setting strings', () => {
+    expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('true')).toBe(true);
+    expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('false')).toBe(false);
+  });
+});
 
 describe('isValidLeaderKeyHotkey', () => {
   test('accepts Mod+single letter', () => {
