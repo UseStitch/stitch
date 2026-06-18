@@ -245,7 +245,7 @@ Actions:
 - go_back / go_forward: history navigation
 - tab_new / tab_list / tab_focus / tab_close: tab management
 
-Use timeoutMs for navigation-sensitive operations.`;
+Use timeoutMs for navigation-sensitive operations. Page-changing actions return an updated snapshot in the result.`;
 
 const INTERACT_DESCRIPTION = `Interact with page elements and keyboard/mouse controls.
 
@@ -256,7 +256,7 @@ Actions:
 - resize (viewport)
 - evaluate (JavaScript, last resort)
 
-Use refs from the latest snapshot for element-targeted actions.`;
+Use refs from the latest snapshot for element-targeted actions. Navigation-capable interactions return an updated snapshot in the result.`;
 
 const WAIT_DESCRIPTION = `Wait for page conditions.
 
@@ -286,7 +286,7 @@ Actions:
 
 const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized call.
 
-Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default.`;
+Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default. If the batch changes page state, the result includes an updated snapshot.`;
 
 let queueTail: Promise<void> = Promise.resolve();
 
@@ -348,6 +348,40 @@ function actionTerminatesSequence(action: BatchAction, op: string): boolean {
     return op === 'evaluate';
   }
   return false;
+}
+
+function shouldReturnFreshSnapshot(input: OperationInput): boolean {
+  if (input.tool === 'navigate') {
+    const op = input.op;
+    return op !== 'tab_list';
+  }
+
+  if (input.tool === 'interact') {
+    return (
+      input.op === 'click' ||
+      input.op === 'press' ||
+      input.op === 'select_dropdown' ||
+      input.op === 'evaluate' ||
+      (input.op === 'type' && input.submit === true)
+    );
+  }
+
+  return false;
+}
+
+async function withFreshSnapshot(
+  result: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const browser = getBrowserManager();
+  const snapshot = await browser.snapshot(signal);
+  const output =
+    typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+  return {
+    ...result,
+    output: `${output}\n\n### Updated Snapshot\n${snapshot}`,
+    snapshot,
+  };
 }
 
 function formatTabsOutput(tabs: BrowserTab[]) {
@@ -679,8 +713,11 @@ function createNavigateTool(context: ToolContext) {
     context,
     NAVIGATE_DESCRIPTION,
     browserNavigateInputSchema,
-    (input, signal) => {
-      return executeOperation({ ...input, tool: 'navigate', op: input.action }, signal);
+    async (input, signal) => {
+      const operation = { ...input, tool: 'navigate' as const, op: input.action };
+      const result = await executeOperation(operation, signal);
+      if (!shouldReturnFreshSnapshot(operation)) return result;
+      return withFreshSnapshot(result as Record<string, unknown>, signal);
     },
   );
 }
@@ -690,8 +727,11 @@ function createInteractTool(context: ToolContext) {
     context,
     INTERACT_DESCRIPTION,
     browserInteractInputSchema,
-    (input, signal) => {
-      return executeOperation({ ...input, tool: 'interact', op: input.action }, signal);
+    async (input, signal) => {
+      const operation = { ...input, tool: 'interact' as const, op: input.action };
+      const result = await executeOperation(operation, signal);
+      if (!shouldReturnFreshSnapshot(operation)) return result;
+      return withFreshSnapshot(result as Record<string, unknown>, signal);
     },
   );
 }
@@ -752,6 +792,8 @@ function createBatchTool(context: ToolContext) {
         }> = [];
 
         let stoppedReason: string | null = null;
+        let freshSnapshot: string | null = null;
+        let lastSuccessfulAction: OperationInput | null = null;
 
         for (let i = 0; i < input.actions.length; i++) {
           const action = input.actions[i];
@@ -782,6 +824,7 @@ function createBatchTool(context: ToolContext) {
               resultRecord.op = op;
             }
             results.push(resultRecord);
+            lastSuccessfulAction = action;
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             const errorRecord: {
@@ -814,6 +857,7 @@ function createBatchTool(context: ToolContext) {
 
           if (op && actionTerminatesSequence(action, op)) {
             stoppedReason = `Stopped after ${action.tool}.${op}: terminates sequence.`;
+            freshSnapshot = await browser.snapshot(signal);
             break;
           }
 
@@ -827,17 +871,29 @@ function createBatchTool(context: ToolContext) {
 
             if (beforeState && afterState && beforeState !== afterState) {
               stoppedReason = `Stopped after action ${i + 1}: page state changed.`;
+              freshSnapshot = await browser.snapshot(signal);
               break;
             }
           }
         }
 
+        if (
+          !freshSnapshot &&
+          lastSuccessfulAction &&
+          shouldReturnFreshSnapshot(lastSuccessfulAction)
+        ) {
+          freshSnapshot = await browser.snapshot(signal);
+        }
+
         const executed = results.length;
         const total = input.actions.length;
         const skipped = Math.max(total - executed, 0);
-        const summary = stoppedReason
+        const summaryText = stoppedReason
           ? `Batch executed ${executed}/${total} action(s). ${stoppedReason}`
           : `Batch executed ${executed}/${total} action(s) successfully.`;
+        const summary = freshSnapshot
+          ? `${summaryText}\n\n### Updated Snapshot\n${freshSnapshot}`
+          : summaryText;
 
         return {
           output: summary,
@@ -845,6 +901,7 @@ function createBatchTool(context: ToolContext) {
           stoppedReason,
           executed,
           skipped,
+          snapshot: freshSnapshot ?? undefined,
         };
       });
     },
