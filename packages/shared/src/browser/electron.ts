@@ -37,6 +37,15 @@ export type ElectronBrowserExecutionState = {
   bodyTextHash: string;
 };
 
+export type ElectronBrowserDialogState = {
+  open: boolean;
+  type?: 'alert' | 'confirm' | 'prompt' | 'beforeunload' | 'popup';
+  message?: string;
+  defaultPromptText?: string;
+  url?: string;
+  disposition?: 'pending' | 'auto-dismissed' | 'external' | 'redirected';
+};
+
 export type ElectronBrowserCommand =
   | { action: 'ensure' }
   | { action: 'state' }

@@ -2,6 +2,7 @@ import { shell, webContents, type BrowserWindow, type WebContents } from 'electr
 
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserDialogState,
   ElectronBrowserDownload,
   ElectronBrowserState,
 } from '@stitch/shared/browser/electron';
@@ -13,6 +14,7 @@ import { ControlArbiter } from './control.js';
 import { DownloadTracker } from './downloads.js';
 import { waitForNonEmptyHttpPage } from './page-stability.js';
 import { RefResolver } from './ref-resolver.js';
+import { DIALOG_INTERCEPT_SCRIPT, DIALOG_SIGNAL } from './scripts/dialogs.injected.js';
 import { buildSnapshotScript } from './scripts/snapshot.injected.js';
 import { WEBAUTHN_INTERCEPT_SCRIPT, WEBAUTHN_SIGNAL } from './scripts/webauthn.injected.js';
 import { SessionStore } from './session-store.js';
@@ -31,6 +33,7 @@ export class ElectronBrowserManager {
   private readonly refResolver = new RefResolver(() => this.waitForBrowser());
   private readonly control = new ControlArbiter(() => this.broadcastState());
   private readonly downloads = new DownloadTracker(() => this.broadcastState());
+  private dialogState: ElectronBrowserDialogState = { open: false };
   private readonly bridge = new BrowserBridge((sessionId, command) =>
     this.handleBridgeCommand(sessionId, command),
   );
@@ -99,16 +102,44 @@ export class ElectronBrowserManager {
 
     contents.setWindowOpenHandler(({ url }) => {
       if (isAuthPopupUrl(url)) {
+        this.dialogState = {
+          open: false,
+          type: 'popup',
+          message: 'Authentication popup opened in the system browser.',
+          url,
+          disposition: 'external',
+        };
         void shell.openExternal(url);
         return { action: 'deny' };
       }
-      void contents.loadURL(url);
+      this.dialogState = {
+        open: true,
+        type: 'popup',
+        message: 'Page requested a popup window.',
+        url,
+        disposition: 'pending',
+      };
       return { action: 'deny' };
     });
 
-    contents.on('did-finish-load', () => this.injectWebAuthnIntercept(contents));
+    contents.on('dom-ready', () => this.injectBrowserScripts(contents));
+    contents.on('did-finish-load', () => this.injectBrowserScripts(contents));
+    contents.on('will-prevent-unload', (event) => {
+      this.dialogState = {
+        open: false,
+        type: 'beforeunload',
+        message: 'Page attempted to block navigation with beforeunload.',
+        url: contents.getURL(),
+        disposition: 'auto-dismissed',
+      };
+      event.preventDefault();
+    });
 
     contents.on('console-message', (_event, _level, message) => {
+      if (message.startsWith(DIALOG_SIGNAL)) {
+        this.recordDialogMessage(message.slice(DIALOG_SIGNAL.length));
+        return;
+      }
       if (message.startsWith(WEBAUTHN_SIGNAL)) {
         const url = message.slice(WEBAUTHN_SIGNAL.length);
         void shell.openExternal(url || contents.getURL());
@@ -177,10 +208,34 @@ export class ElectronBrowserManager {
         refResolver: this.refResolver,
         getBrowser: () => this.waitForBrowser(),
         getState: () => this.getState(),
+        getDialogState: () => this.dialogState,
+        handleDialog: (action, promptText) => this.handleDialog(action, promptText),
         snapshot: (snapshotBrowser) => this.snapshot(snapshotBrowser),
       },
       command,
     );
+  }
+
+  private async handleDialog(action: 'accept' | 'dismiss', promptText?: string): Promise<string> {
+    const state = this.dialogState;
+    this.dialogState = { open: false };
+
+    if (!state.type) return 'No dialog or popup is pending.';
+
+    if (state.type === 'popup' && state.url && state.disposition === 'pending') {
+      if (action === 'accept') {
+        const browser = await this.waitForBrowser();
+        await browser.loadURL(normalizeUrl(state.url));
+        return `Accepted popup and opened ${browser.getURL()}`;
+      }
+      return `Dismissed popup: ${state.url}`;
+    }
+
+    if (state.type === 'prompt' && action === 'accept') {
+      return `Recorded prompt response: ${promptText ?? state.defaultPromptText ?? ''}`;
+    }
+
+    return `${action === 'accept' ? 'Accepted' : 'Dismissed'} ${state.type} dialog.`;
   }
 
   private async snapshot(browser: WebContents): Promise<string> {
@@ -230,11 +285,33 @@ export class ElectronBrowserManager {
     this.store.updateActiveTab(this.browser.getTitle(), this.browser.getURL());
   }
 
-  private injectWebAuthnIntercept(contents: WebContents): void {
+  private injectBrowserScripts(contents: WebContents): void {
     if (contents.isDestroyed()) return;
     const currentUrl = contents.getURL();
     if (!currentUrl || currentUrl === DEFAULT_URL || currentUrl.startsWith('devtools://')) return;
+    void contents.executeJavaScript(DIALOG_INTERCEPT_SCRIPT, true).catch(() => {});
     void contents.executeJavaScript(WEBAUTHN_INTERCEPT_SCRIPT, true).catch(() => {});
+  }
+
+  private recordDialogMessage(payload: string): void {
+    try {
+      const parsed = JSON.parse(payload) as ElectronBrowserDialogState;
+      this.dialogState = {
+        open: true,
+        type: parsed.type,
+        message: parsed.message,
+        defaultPromptText: parsed.defaultPromptText,
+        url: parsed.url,
+        disposition: 'auto-dismissed',
+      };
+    } catch {
+      this.dialogState = {
+        open: true,
+        type: 'alert',
+        message: payload,
+        disposition: 'auto-dismissed',
+      };
+    }
   }
 
   private broadcastState(): void {

@@ -634,11 +634,19 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
     const op = getRequiredOp(input);
     if (op === 'state') {
       const state = await browser.getDialogState(signal);
-      if (!state.open) {
+      if (!state.type) {
         return { output: 'No open dialog found.' };
       }
+      const status = state.open ? 'open' : 'recent';
       const message = state.message ? `\nMessage: ${state.message}` : '';
-      return { output: `Dialog is open (${state.type ?? 'unknown'})${message}` };
+      const url = state.url ? `\nURL: ${state.url}` : '';
+      const disposition = state.disposition ? `\nDisposition: ${state.disposition}` : '';
+      const defaultPrompt = state.defaultPromptText
+        ? `\nDefault prompt text: ${state.defaultPromptText}`
+        : '';
+      return {
+        output: `Dialog/popup state: ${status} (${state.type})${message}${url}${disposition}${defaultPrompt}`,
+      };
     }
     if (op === 'handle') {
       if (!input.dialogAction) throw new Error('Missing required field: dialogAction');

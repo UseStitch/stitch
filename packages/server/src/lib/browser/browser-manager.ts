@@ -1,5 +1,6 @@
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserDialogState,
   ElectronBrowserErrorMessage,
   ElectronBrowserExecutionState,
   ElectronBrowserResultMessage,
@@ -174,14 +175,8 @@ class BrowserManager {
     );
   }
 
-  async getDialogState(
-    signal?: AbortSignal,
-  ): Promise<{ open: boolean; type?: string; message?: string }> {
-    return (await this.send({ action: 'dialogState' }, signal)) as {
-      open: boolean;
-      type?: string;
-      message?: string;
-    };
+  async getDialogState(signal?: AbortSignal): Promise<ElectronBrowserDialogState> {
+    return (await this.send({ action: 'dialogState' }, signal)) as ElectronBrowserDialogState;
   }
 
   async getExecutionState(signal?: AbortSignal): Promise<string> {

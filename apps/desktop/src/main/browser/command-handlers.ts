@@ -1,5 +1,6 @@
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserDialogState,
   ElectronBrowserExecutionState,
   ElectronBrowserState,
 } from '@stitch/shared/browser/electron';
@@ -27,6 +28,8 @@ type CommandContext = {
   refResolver: RefResolver;
   getBrowser: () => Promise<WebContents>;
   getState: () => ElectronBrowserState;
+  getDialogState: () => ElectronBrowserDialogState;
+  handleDialog: (action: 'accept' | 'dismiss', promptText?: string) => Promise<string>;
   snapshot: (browser: WebContents) => Promise<string>;
 };
 
@@ -154,9 +157,9 @@ export async function executeBrowserCommand(
     case 'findElements':
       return ctx.browser.executeJavaScript(buildFindElementsScript(command), true);
     case 'dialogState':
-      return { open: false };
+      return ctx.getDialogState();
     case 'handleDialog':
-      return 'No dialog handling is required.';
+      return ctx.handleDialog(command.dialogAction, command.promptText);
     case 'ensure':
     case 'state':
       return ctx.getState();
