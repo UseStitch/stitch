@@ -11,12 +11,14 @@ import { BrowserBridge } from './bridge.js';
 import { executeBrowserCommand } from './command-handlers.js';
 import { ControlArbiter } from './control.js';
 import { DownloadTracker } from './downloads.js';
+import { waitForNonEmptyHttpPage } from './page-stability.js';
 import { RefResolver } from './ref-resolver.js';
-import { SessionStore } from './session-store.js';
 import { buildSnapshotScript } from './scripts/snapshot.injected.js';
 import { WEBAUTHN_INTERCEPT_SCRIPT, WEBAUTHN_SIGNAL } from './scripts/webauthn.injected.js';
-import type { RefEntry } from './types.js';
+import { SessionStore } from './session-store.js';
 import { normalizeUrl } from './url.js';
+
+import type { RefEntry } from './types.js';
 
 const DEFAULT_URL = 'about:blank';
 const BROWSER_READY_TIMEOUT_MS = 20_000;
@@ -47,7 +49,12 @@ export class ElectronBrowserManager {
     if (sessionId === this.store.getCurrentSessionId()) return this.getState();
     this.store.switchSession(sessionId);
     const activeTab = this.store.getActiveTab();
-    if (this.browser && !this.browser.isDestroyed() && activeTab?.url && activeTab.url !== DEFAULT_URL) {
+    if (
+      this.browser &&
+      !this.browser.isDestroyed() &&
+      activeTab?.url &&
+      activeTab.url !== DEFAULT_URL
+    ) {
       void this.browser.loadURL(activeTab.url);
     }
     this.broadcastState();
@@ -163,26 +170,40 @@ export class ElectronBrowserManager {
 
   private async executeWithBrowser(command: ElectronBrowserCommand): Promise<unknown> {
     const browser = await this.waitForBrowser();
-    return executeBrowserCommand({
-      browser,
-      store: this.store,
-      refResolver: this.refResolver,
-      getBrowser: () => this.waitForBrowser(),
-      getState: () => this.getState(),
-      snapshot: (snapshotBrowser) => this.snapshot(snapshotBrowser),
-    }, command);
+    return executeBrowserCommand(
+      {
+        browser,
+        store: this.store,
+        refResolver: this.refResolver,
+        getBrowser: () => this.waitForBrowser(),
+        getState: () => this.getState(),
+        snapshot: (snapshotBrowser) => this.snapshot(snapshotBrowser),
+      },
+      command,
+    );
   }
 
   private async snapshot(browser: WebContents): Promise<string> {
-    const result = (await browser.executeJavaScript(
-      buildSnapshotScript(this.store.getSnapshotIdentities()),
-      true,
-    )) as {
-      tree: string;
-      refs: Record<string, RefEntry>;
-      identities: string[];
-      scroll: { pagesAbove: number; pagesBelow: number };
-    };
+    const readSnapshot = async () =>
+      (await browser.executeJavaScript(
+        buildSnapshotScript(this.store.getSnapshotIdentities()),
+        true,
+      )) as {
+        tree: string;
+        refs: Record<string, RefEntry>;
+        identities: string[];
+        scroll: { pagesAbove: number; pagesBelow: number };
+      };
+
+    let result = await readSnapshot();
+    if (!result.tree.trim()) {
+      await waitForNonEmptyHttpPage(browser, async () => {
+        const probe = await readSnapshot();
+        return !probe.tree.trim();
+      });
+      result = await readSnapshot();
+    }
+
     this.refResolver.setRefs(result.refs);
     this.store.setSnapshotIdentities(result.identities);
     const tabs = this.getState()
