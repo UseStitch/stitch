@@ -1,7 +1,7 @@
-import type { WebContents } from 'electron';
+import { buildRefActionScript } from './scripts/ref-action.injected.js';
 
 import type { RefEntry } from './types.js';
-import { buildRefActionScript } from './scripts/ref-action.injected.js';
+import type { WebContents } from 'electron';
 
 export class RefResolver {
   private refs = new Map<string, RefEntry>();
@@ -15,7 +15,10 @@ export class RefResolver {
   async runOnRef(ref: string, buildScript: (element: string) => string): Promise<unknown> {
     const result = await (
       await this.getBrowser()
-    ).executeJavaScript(this.refActionScript(ref, (element) => buildScript(element)), true);
+    ).executeJavaScript(
+      this.refActionScript(ref, (element) => buildScript(element)),
+      true,
+    );
     return this.unwrapRefResult(ref, result);
   }
 
@@ -30,7 +33,7 @@ export class RefResolver {
       ),
       true,
     );
-    return this.unwrapRefResult(ref, result) as { x: number; y: number };
+    return this.unwrapRefCoordinates(ref, result);
   }
 
   async focusRef(ref: string, clear?: boolean): Promise<void> {
@@ -63,7 +66,22 @@ export class RefResolver {
     return buildRefActionScript(entry, buildScript);
   }
 
+  private unwrapRefCoordinates(ref: string, result: unknown): { x: number; y: number } {
+    const success = this.unwrapRefSuccess(ref, result);
+    if (typeof success.x !== 'number' || typeof success.y !== 'number') {
+      throw new Error(`Browser interaction on ${ref} did not return coordinates.`);
+    }
+    return { x: success.x, y: success.y };
+  }
+
   private unwrapRefResult(ref: string, result: unknown): unknown {
+    return this.unwrapRefSuccess(ref, result).result;
+  }
+
+  private unwrapRefSuccess(
+    ref: string,
+    result: unknown,
+  ): { result: unknown; x?: unknown; y?: unknown } {
     if (!result || typeof result !== 'object' || !('ok' in result)) {
       throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
     }
@@ -73,10 +91,6 @@ export class RefResolver {
       throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
     }
 
-    const success = result as unknown as { result: unknown; x?: unknown; y?: unknown };
-    if (typeof success.x === 'number' && typeof success.y === 'number') {
-      return { x: success.x, y: success.y };
-    }
-    return success.result;
+    return result as unknown as { result: unknown; x?: unknown; y?: unknown };
   }
 }

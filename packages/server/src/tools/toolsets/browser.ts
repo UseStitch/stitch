@@ -5,6 +5,8 @@ import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { BROWSER_TOOL_INSTRUCTIONS } from '@/lib/browser/tool-config.js';
 import type {
   BrowserTab,
+  DropdownOptionsResult,
+  ExtractContentResult,
   FindElementsResult,
   ScrollDirection,
   SearchPageResult,
@@ -17,6 +19,11 @@ const descriptionField = z
   .describe('Short description of the task this browser action is performing. Shown to the user.');
 
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
+
+const outputSchemaField = z
+  .record(z.string(), z.unknown())
+  .optional()
+  .describe('Optional JSON Schema object. Supported properties are returned in a data object.');
 
 const browserSnapshotInputSchema = z.object({
   description: descriptionField,
@@ -46,15 +53,26 @@ const browserNavigateInputSchema = z.object({
 const browserInteractInputSchema = z.object({
   description: descriptionField,
   action: z
-    .enum(['click', 'type', 'press', 'hover', 'select', 'scroll', 'resize', 'evaluate'])
+    .enum([
+      'click',
+      'type',
+      'press',
+      'hover',
+      'select',
+      'get_dropdown_options',
+      'select_dropdown',
+      'scroll',
+      'resize',
+      'evaluate',
+    ])
     .describe('Interaction action to perform.'),
   ref: z
     .string()
     .optional()
     .describe(
-      'Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select.',
+      'Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select/dropdown actions.',
     ),
-  text: z.string().optional().describe('Text to type. Required for type action.'),
+  text: z.string().optional().describe('Text to type, or dropdown option text to select.'),
   key: z
     .string()
     .optional()
@@ -143,6 +161,9 @@ const browserContentInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Include text content for find_elements action. Default true.'),
+  includeLinks: z.boolean().optional().describe('Include links for extract action.'),
+  includeImages: z.boolean().optional().describe('Include images for extract action.'),
+  outputSchema: outputSchemaField,
 });
 
 const browserBatchActionSchema = z.object({
@@ -188,6 +209,9 @@ const browserBatchActionSchema = z.object({
     .boolean()
     .optional()
     .describe('Whether find_elements should include text content.'),
+  includeLinks: z.boolean().optional().describe('Include links for extract operation.'),
+  includeImages: z.boolean().optional().describe('Include images for extract operation.'),
+  outputSchema: outputSchemaField,
 });
 
 const browserBatchInputSchema = z.object({
@@ -227,6 +251,7 @@ const INTERACT_DESCRIPTION = `Interact with page elements and keyboard/mouse con
 
 Actions:
 - click / type / hover / select / scroll
+- get_dropdown_options / select_dropdown for dropdown discovery and text selection
 - press (keyboard)
 - resize (viewport)
 - evaluate (JavaScript, last resort)
@@ -255,6 +280,7 @@ const CONTENT_DESCRIPTION = `Query or extract content from the current page.
 
 Actions:
 - extract: extract page content for a query
+- extract: extract page text, optionally with links/images/schema-shaped data
 - search_page: fast visible-text pattern search
 - find_elements: query DOM elements by CSS selector`;
 
@@ -362,6 +388,42 @@ function formatFindElementsSummary(selector: string, result: FindElementsResult)
   return `Found ${total} element${total !== 1 ? 's' : ''} matching "${selector}"${showing < total ? ` (showing ${showing})` : ''}:\n${elemLines.join('\n')}`;
 }
 
+function formatDropdownOptionsSummary(ref: string, result: DropdownOptionsResult) {
+  if (result.options.length === 0) {
+    return `No dropdown options found for ${ref}.`;
+  }
+
+  const lines = result.options.map((option) => {
+    const selected = option.selected ? ' selected' : '';
+    const disabled = option.disabled ? ' disabled' : '';
+    return `  ${option.index}. "${option.text}" value="${option.value}"${selected}${disabled}`;
+  });
+  return `Dropdown options for ${ref} (${result.type}):\n${lines.join('\n')}\nUse browser_interact action="select_dropdown" with text to choose one.`;
+}
+
+function formatExtractContent(query: string | undefined, result: string | ExtractContentResult) {
+  if (typeof result === 'string') {
+    return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${result}`;
+  }
+
+  const sections = [
+    `### Extracted Content`,
+    `**Query:** ${query ?? 'page content'}`,
+    '',
+    result.text,
+  ];
+  if (result.links) {
+    sections.push('', `### Links`, JSON.stringify(result.links, null, 2));
+  }
+  if (result.images) {
+    sections.push('', `### Images`, JSON.stringify(result.images, null, 2));
+  }
+  if (result.data) {
+    sections.push('', `### Data`, JSON.stringify(result.data, null, 2));
+  }
+  return sections.join('\n');
+}
+
 async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
 
@@ -456,6 +518,18 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
         if (!input.values) throw new Error('Missing required field: values');
         return { output: await browser.select(input.ref, input.values, signal) };
       }
+      case 'get_dropdown_options': {
+        if (!input.ref) throw new Error('Missing required field: ref');
+        const result = await browser.getDropdownOptions(input.ref, signal);
+        return { output: formatDropdownOptionsSummary(input.ref, result), options: result.options };
+      }
+      case 'select_dropdown': {
+        if (!input.ref) throw new Error('Missing required field: ref');
+        if (!input.text) throw new Error('Missing required field: text');
+        return {
+          output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs),
+        };
+      }
       case 'scroll': {
         if (!input.direction) throw new Error('Missing required field: direction');
         return {
@@ -525,11 +599,15 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
     const op = getRequiredOp(input);
     switch (op) {
       case 'extract': {
-        if (!input.query) throw new Error('Missing required field: query');
-        const content = await browser.extractPageContent(signal, input.selector);
+        const content = await browser.extractPageContent(signal, {
+          selector: input.selector,
+          includeLinks: input.includeLinks,
+          includeImages: input.includeImages,
+          outputSchema: input.outputSchema,
+        });
         const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
         return {
-          output: `### Extracted Content\n**Query:** ${input.query}${selectorNote}\n\n${content}`,
+          output: `${formatExtractContent(input.query, content)}${selectorNote}`,
         };
       }
       case 'search_page': {

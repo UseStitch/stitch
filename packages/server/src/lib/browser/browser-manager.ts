@@ -6,6 +6,8 @@ import type {
 
 import type {
   BrowserTab,
+  DropdownOptionsResult,
+  ExtractContentResult,
   FindElementsResult,
   LaunchOptions,
   ScreenshotResult,
@@ -264,6 +266,22 @@ class BrowserManager {
     return String(await this.send({ action: 'select', ref, values }, signal));
   }
 
+  async getDropdownOptions(ref: string, signal?: AbortSignal): Promise<DropdownOptionsResult> {
+    return (await this.send(
+      { action: 'getDropdownOptions', ref },
+      signal,
+    )) as DropdownOptionsResult;
+  }
+
+  async selectDropdown(
+    ref: string,
+    text: string,
+    signal?: AbortSignal,
+    timeoutMs?: number,
+  ): Promise<string> {
+    return String(await this.send({ action: 'selectDropdown', ref, text, timeoutMs }, signal));
+  }
+
   async scroll(
     ref: string | undefined,
     direction: ScrollDirection,
@@ -338,8 +356,17 @@ class BrowserManager {
     return String(await this.send({ action: 'search', query, engine, timeoutMs }, signal));
   }
 
-  async extractPageContent(signal?: AbortSignal, selector?: string): Promise<string> {
-    return String(await this.send({ action: 'extractPageContent', selector }, signal));
+  async extractPageContent(
+    signal?: AbortSignal,
+    options: {
+      selector?: string;
+      includeLinks?: boolean;
+      includeImages?: boolean;
+      outputSchema?: Record<string, unknown>;
+    } = {},
+  ): Promise<string | ExtractContentResult> {
+    const result = await this.send({ action: 'extractPageContent', ...options }, signal);
+    return typeof result === 'string' ? result : (result as ExtractContentResult);
   }
 }
 

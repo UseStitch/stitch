@@ -39,3 +39,23 @@ export type FindElementsResult = {
   elements: FindElementEntry[];
   total: number;
 };
+
+export type DropdownOption = {
+  index: number;
+  text: string;
+  value: string;
+  selected: boolean;
+  disabled: boolean;
+};
+
+export type DropdownOptionsResult = {
+  type: string;
+  options: DropdownOption[];
+};
+
+export type ExtractContentResult = {
+  text: string;
+  links?: Array<{ text: string; href: string }>;
+  images?: Array<{ alt: string; src: string }>;
+  data?: Record<string, string | string[]>;
+};

@@ -1,14 +1,19 @@
-import type { WebContents } from 'electron';
-
 import type { ElectronBrowserCommand, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
 import { clickRef, hoverRef, scroll, typeIntoRef } from './input-actions.js';
 import { waitForPageStability } from './page-stability.js';
-import type { RefResolver } from './ref-resolver.js';
-import type { SessionStore } from './session-store.js';
+import {
+  buildGetDropdownOptionsScript,
+  buildSelectDropdownScript,
+} from './scripts/dropdown.injected.js';
+import { buildExtractContentScript } from './scripts/extract-content.injected.js';
 import { buildFindElementsScript } from './scripts/find-elements.injected.js';
 import { buildSearchPageScript } from './scripts/search-page.injected.js';
 import { DEFAULT_URL, normalizeUrl, searchUrl } from './url.js';
+
+import type { RefResolver } from './ref-resolver.js';
+import type { SessionStore } from './session-store.js';
+import type { WebContents } from 'electron';
 
 const LOAD_TIMEOUT_MS = 15_000;
 
@@ -70,7 +75,13 @@ export async function executeBrowserCommand(
     case 'snapshot':
       return ctx.snapshot(ctx.browser);
     case 'click':
-      await clickRef(ctx.browser, ctx.refResolver, command.ref, command.doubleClick, command.button);
+      await clickRef(
+        ctx.browser,
+        ctx.refResolver,
+        command.ref,
+        command.doubleClick,
+        command.button,
+      );
       await waitForPageStability(ctx.browser, command.timeoutMs);
       return `Clicked ${command.ref}`;
     case 'hover':
@@ -99,6 +110,18 @@ export async function executeBrowserCommand(
           `for (const option of ${element}.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); ${element}.dispatchEvent(new Event('input', { bubbles: true })); ${element}.dispatchEvent(new Event('change', { bubbles: true })); return true;`,
       );
       return `Selected ${command.values.join(', ')} in ${command.ref}`;
+    case 'getDropdownOptions':
+      return ctx.refResolver.runOnRef(command.ref, buildGetDropdownOptionsScript);
+    case 'selectDropdown': {
+      const result = (await ctx.refResolver.runOnRef(command.ref, (element) =>
+        buildSelectDropdownScript(element, command.text),
+      )) as { selected?: boolean; error?: string; text?: string };
+      if (!result.selected) {
+        throw new Error(result.error ?? `Dropdown option not found: ${command.text}`);
+      }
+      await waitForPageStability(ctx.browser, command.timeoutMs);
+      return `Selected dropdown option "${result.text ?? command.text}" in ${command.ref}`;
+    }
     case 'scroll':
       await scroll(ctx.getBrowser, ctx.refResolver, command.ref, command.direction);
       return `Scrolled ${command.direction}`;
@@ -123,10 +146,7 @@ export async function executeBrowserCommand(
         ? `Selector appeared: ${command.selector}`
         : `Waited ${command.timeMs ?? 0}ms`;
     case 'extractPageContent':
-      return ctx.browser.executeJavaScript(
-        `(() => (document.querySelector(${JSON.stringify(command.selector ?? 'body')})?.innerText || '').trim())()`,
-        true,
-      );
+      return ctx.browser.executeJavaScript(buildExtractContentScript(command), true);
     case 'searchPage':
       return ctx.browser.executeJavaScript(buildSearchPageScript(command), true);
     case 'findElements':

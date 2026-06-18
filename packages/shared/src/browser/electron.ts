@@ -58,6 +58,8 @@ export type ElectronBrowserCommand =
     }
   | { action: 'press'; key: string; timeoutMs?: number }
   | { action: 'select'; ref: string; values: string[] }
+  | { action: 'getDropdownOptions'; ref: string }
+  | { action: 'selectDropdown'; ref: string; text: string; timeoutMs?: number }
   | { action: 'scroll'; ref?: string; direction: 'up' | 'down' | 'left' | 'right' }
   | { action: 'resize'; width: number; height: number }
   | {
@@ -69,7 +71,13 @@ export type ElectronBrowserCommand =
     }
   | { action: 'evaluate'; expression: string }
   | { action: 'wait'; timeMs?: number; selector?: string; timeoutMs?: number }
-  | { action: 'extractPageContent'; selector?: string }
+  | {
+      action: 'extractPageContent';
+      selector?: string;
+      includeLinks?: boolean;
+      includeImages?: boolean;
+      outputSchema?: Record<string, unknown>;
+    }
   | {
       action: 'searchPage';
       pattern: string;
