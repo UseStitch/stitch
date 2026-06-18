@@ -98,6 +98,8 @@ type RefEntry = {
   tag: string;
   role: string;
   name: string;
+  identity: string;
+  inViewport: boolean;
   x: number;
   y: number;
 };
@@ -124,12 +126,16 @@ function savePersistedState(state: PersistedBrowserState): void {
   writeFileSync(getStatePath(), JSON.stringify(state, null, 2), 'utf8');
 }
 
-const SNAPSHOT_SCRIPT = String.raw`
+function buildSnapshotScript(previousSnapshotIdentities: string[]): string {
+  return String.raw`
 (() => {
   let refCounter = 0;
   const refs = {};
   const lines = [];
   const maxNodes = 3000;
+  const previousIdentities = new Set(${JSON.stringify(previousSnapshotIdentities)});
+  const hasPreviousSnapshot = previousIdentities.size > 0;
+  const currentIdentities = new Set();
   let count = 0;
 
   function cssPath(el) {
@@ -178,6 +184,15 @@ const SNAPSHOT_SCRIPT = String.raw`
     return ['a', 'button', 'input', 'textarea', 'select', 'summary'].includes(tag) || ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio'].includes(r) || el.hasAttribute('onclick') || el.hasAttribute('tabindex') || getComputedStyle(el).cursor === 'pointer';
   }
 
+  function identity(el, r, label) {
+    const tag = el.tagName.toLowerCase();
+    return [tag, r, label, el.getAttribute('href') || '', el.getAttribute('type') || '', el.getAttribute('name') || ''].join('|');
+  }
+
+  function inViewport(rect) {
+    return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
+  }
+
   function walk(el, depth) {
     if (!el || count > maxNodes || el.nodeType !== 1) return;
     const tag = el.tagName.toLowerCase();
@@ -188,16 +203,21 @@ const SNAPSHOT_SCRIPT = String.raw`
     const r = role(el);
     const label = name(el);
     const isTarget = interactable(el);
+    const elementIdentity = identity(el, r, label);
+    const rect = el.getBoundingClientRect();
+    const isInViewport = inViewport(rect);
+    currentIdentities.add(elementIdentity);
     let ref = null;
     if (isTarget) {
       refCounter++;
       ref = 'e' + refCounter;
-      const rect = el.getBoundingClientRect();
       refs[ref] = {
         selector: cssPath(el),
         tag,
         role: r,
         name: label,
+        identity: elementIdentity,
+        inViewport: isInViewport,
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
       };
@@ -205,6 +225,8 @@ const SNAPSHOT_SCRIPT = String.raw`
     if (isTarget || label || r !== 'generic') {
       const attrs = [];
       if (ref) attrs.push('ref=' + ref);
+      if (isInViewport) attrs.push('viewport');
+      if (hasPreviousSnapshot && !previousIdentities.has(elementIdentity)) attrs.push('new');
       if (el.disabled) attrs.push('disabled');
       const suffix = attrs.length ? ' [' + attrs.join(' ') + ']' : '';
       lines.push('  '.repeat(depth) + '- ' + r + (label ? ' ' + JSON.stringify(label) : '') + suffix);
@@ -218,6 +240,7 @@ const SNAPSHOT_SCRIPT = String.raw`
     title: document.title,
     tree: lines.join('\n'),
     refs,
+    identities: Array.from(currentIdentities),
     scroll: {
       scrollTop: window.scrollY,
       scrollHeight: document.documentElement.scrollHeight,
@@ -228,6 +251,7 @@ const SNAPSHOT_SCRIPT = String.raw`
   };
 })()
 `;
+}
 
 function normalizeUrl(value: string): string {
   const trimmed = value.trim();
@@ -258,6 +282,7 @@ export class ElectronBrowserManager {
   private tabs = new Map<string, TabInfo>();
   private sessionTabs = new Map<string, SessionTabState>();
   private refs = new Map<string, RefEntry>();
+  private snapshotIdentities = new Set<string>();
   private downloads = new Map<string, ElectronBrowserDownload>();
   private controller: ElectronBrowserState['controller'] = 'none';
   private controlEpoch = 0;
@@ -580,12 +605,17 @@ export class ElectronBrowserManager {
   }
 
   private async snapshot(browser: WebContents): Promise<string> {
-    const result = (await browser.executeJavaScript(SNAPSHOT_SCRIPT, true)) as {
+    const result = (await browser.executeJavaScript(
+      buildSnapshotScript(Array.from(this.snapshotIdentities)),
+      true,
+    )) as {
       tree: string;
       refs: Record<string, RefEntry>;
+      identities: string[];
       scroll: { pagesAbove: number; pagesBelow: number };
     };
     this.refs = new Map(Object.entries(result.refs));
+    this.snapshotIdentities = new Set(result.identities);
     const tabs = this.getState()
       .tabs.map(
         (tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`,
@@ -1045,6 +1075,7 @@ export class ElectronBrowserManager {
   private loadSessionTabs(sessionId: string): void {
     this.saveCurrentSessionToMemory();
     this.currentSessionId = sessionId;
+    this.snapshotIdentities.clear();
     const stored = this.sessionTabs.get(sessionId);
     this.tabs.clear();
     if (stored && stored.tabs.length > 0) {

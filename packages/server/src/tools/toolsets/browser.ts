@@ -211,7 +211,7 @@ const browserBatchInputSchema = z.object({
 
 const SNAPSHOT_DESCRIPTION = `Capture the current browser state as a fresh snapshot.
 
-Use this before interactions to get current refs. The snapshot includes URL, tabs, scroll metadata, page stats, and a YAML accessibility tree with refs like [ref=e12].`;
+Use this before interactions to get current refs. The snapshot includes URL, tabs, scroll metadata, page stats, and a YAML accessibility tree with refs like [ref=e12], plus viewport/new markers.`;
 
 const NAVIGATE_DESCRIPTION = `Run browser navigation and tab actions.
 
