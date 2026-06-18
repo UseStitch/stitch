@@ -16,6 +16,7 @@ const HUMAN_CONTROL_IDLE_MS = 750;
 const LOAD_TIMEOUT_MS = 15_000;
 const BROWSER_READY_TIMEOUT_MS = 20_000;
 const BROWSER_READY_POLL_MS = 50;
+const PAGE_STABILITY_IDLE_MS = 500;
 const DEFAULT_SCROLL_PX = 650;
 
 /** Domains whose popups are auth-related and should open in the system browser. */
@@ -446,15 +447,19 @@ export class ElectronBrowserManager {
     switch (command.action) {
       case 'navigate':
         await browser.loadURL(normalizeUrl(command.url));
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Navigated to ${browser.getURL()}`;
       case 'search':
         await browser.loadURL(searchUrl(command.query, command.engine));
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Searched for ${command.query}`;
       case 'goBack':
         if (browser.navigationHistory.canGoBack()) browser.navigationHistory.goBack();
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Went back to ${browser.getURL()}`;
       case 'goForward':
         if (browser.navigationHistory.canGoForward()) browser.navigationHistory.goForward();
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Went forward to ${browser.getURL()}`;
       case 'newTab': {
         const newTabId = `tab-${Date.now()}`;
@@ -463,6 +468,7 @@ export class ElectronBrowserManager {
         this.activeTabId = newTabId;
         this.broadcastState();
         await browser.loadURL(newUrl);
+        await this.waitForPageStability(browser, command.timeoutMs);
         this.debouncedPersist();
         return this.getState();
       }
@@ -474,6 +480,7 @@ export class ElectronBrowserManager {
         this.activeTabId = command.tabId;
         this.broadcastState();
         await browser.loadURL(normalizeUrl(target.url) || DEFAULT_URL);
+        await this.waitForPageStability(browser, command.timeoutMs);
         return this.getState();
       }
       case 'closeTab': {
@@ -487,6 +494,7 @@ export class ElectronBrowserManager {
             const next = this.tabs.get(this.activeTabId)!;
             this.broadcastState();
             await browser.loadURL(normalizeUrl(next.url) || DEFAULT_URL);
+            await this.waitForPageStability(browser);
           } else {
             // No tabs left — create a fresh one
             const freshId = `tab-${Date.now()}`;
@@ -494,6 +502,7 @@ export class ElectronBrowserManager {
             this.activeTabId = freshId;
             this.broadcastState();
             await browser.loadURL(DEFAULT_URL);
+            await this.waitForPageStability(browser);
           }
         }
         this.broadcastState();
@@ -504,6 +513,7 @@ export class ElectronBrowserManager {
         return this.snapshot(browser);
       case 'click':
         await this.clickRef(browser, command.ref, command.doubleClick, command.button);
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Clicked ${command.ref}`;
       case 'hover':
         await this.hoverRef(browser, command.ref);
@@ -521,6 +531,7 @@ export class ElectronBrowserManager {
       case 'press':
         browser.sendInputEvent({ type: 'keyDown', keyCode: command.key });
         browser.sendInputEvent({ type: 'keyUp', keyCode: command.key });
+        await this.waitForPageStability(browser, command.timeoutMs);
         return `Pressed ${command.key}`;
       case 'select':
         await this.runOnRef(
@@ -882,6 +893,91 @@ export class ElectronBrowserManager {
     throw new Error(
       'Browser panel did not become ready in time. Please ensure the browser panel is open and try again.',
     );
+  }
+
+  private async waitForPageStability(
+    browser: WebContents,
+    timeoutMs = LOAD_TIMEOUT_MS,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    await this.waitForLoadIdle(browser, deadline);
+    await this.waitForDomIdle(browser, deadline);
+  }
+
+  private async waitForLoadIdle(browser: WebContents, deadline: number): Promise<void> {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) throw new Error('Timed out waiting for page stability.');
+
+    await new Promise<void>((resolve, reject) => {
+      let idleTimer: NodeJS.Timeout | null = null;
+      const timeoutTimer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timed out waiting for page stability.'));
+      }, remainingMs);
+
+      const cleanup = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        clearTimeout(timeoutTimer);
+        browser.off('did-start-loading', onStartLoading);
+        browser.off('did-stop-loading', onStopLoading);
+        browser.off('did-fail-load', onStopLoading);
+      };
+
+      const finishAfterIdle = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          cleanup();
+          resolve();
+        }, PAGE_STABILITY_IDLE_MS);
+      };
+
+      const onStopLoading = () => finishAfterIdle();
+
+      const onStartLoading = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        if (!browser.isLoading()) finishAfterIdle();
+      };
+
+      browser.on('did-start-loading', onStartLoading);
+      browser.on('did-stop-loading', onStopLoading);
+      browser.on('did-fail-load', onStopLoading);
+
+      if (browser.isLoading()) return;
+      finishAfterIdle();
+    });
+  }
+
+  private async waitForDomIdle(browser: WebContents, deadline: number): Promise<void> {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) throw new Error('Timed out waiting for page stability.');
+
+    const script = `new Promise((resolve) => {
+      let idleTimer = null;
+      const timeoutTimer = setTimeout(finish, ${remainingMs});
+      const observer = new MutationObserver(reset);
+
+      function finish() {
+        if (idleTimer) clearTimeout(idleTimer);
+        clearTimeout(timeoutTimer);
+        observer.disconnect();
+        resolve(true);
+      }
+
+      function reset() {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(finish, ${PAGE_STABILITY_IDLE_MS});
+      }
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      reset();
+    })`;
+
+    await browser.executeJavaScript(script, true);
   }
 
   private updateTabFromContents(): void {
