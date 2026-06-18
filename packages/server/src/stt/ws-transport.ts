@@ -119,12 +119,18 @@ export function createWsTransport(
     });
 
     ws.addEventListener('close', (event) => {
+      const err = new Error(`${config.label} WebSocket closed: ${event.code} ${event.reason}`);
+      (err as Error & { code?: string }).code = String(event.code);
+
       if (!opened) {
-        reject(
-          new Error(`${config.label} WebSocket failed to connect: ${event.code} ${event.reason}`),
-        );
+        reject(err);
         return;
       }
+
+      if (event.code !== 1000) {
+        for (const cb of errorListeners) cb(err);
+      }
+
       for (const cb of closeListeners) cb();
     });
 

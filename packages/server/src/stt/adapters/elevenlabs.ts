@@ -3,13 +3,18 @@ import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
-import { createManagedConnection } from '@/stt/base-adapter.js';
+import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
 const log = Log.create({ service: 'stt.elevenlabs' });
 
 const ELEVENLABS_STT_BASE_URL = 'wss://api.elevenlabs.io/v1/speech-to-text/realtime';
+const CREDENTIALS_ERROR_REASON =
+  'Invalid transcription API credentials. Please check your settings.';
+const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
+const TERMS_ERROR_REASON = 'ElevenLabs transcription terms must be accepted before recording.';
+const SESSION_LIMIT_REASON = 'ElevenLabs transcription session reached its time limit.';
 
 type ElevenLabsMessage =
   | { message_type: 'partial_transcript'; text: string; language_code?: string }
@@ -83,7 +88,7 @@ function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps
       default: {
         if ('error' in msg && msg.error) {
           const err = new Error(`ElevenLabs STT: ${msg.error}`);
-          (err as Error & { code?: string }).code = msg.code;
+          (err as Error & { code?: string }).code = msg.code ?? msg.message_type;
           return { error: err };
         }
         log.debug({ messageType: msg.message_type }, 'unhandled ElevenLabs message type');
@@ -127,15 +132,32 @@ function buildKeytermsConfig(keyterms: string[]): string {
   });
 }
 
-function isFatalElevenLabs(err: Error): boolean {
+function classifyElevenLabsError(err: Error): STTErrorClassification {
   const msg = err.message.toLowerCase();
-  const code = (err as Error & { code?: string }).code;
+  const code = (err as Error & { code?: string }).code ?? '';
 
-  if (code === 'invalid_api_key' || code === 'quota_exceeded') return true;
-  if (msg.includes('401') || msg.includes('403') || msg.includes('quota')) return true;
-  if (msg.includes('invalid_model')) return true;
+  if (
+    code === 'auth_error' ||
+    code === 'invalid_api_key' ||
+    msg.includes('401') ||
+    msg.includes('403')
+  ) {
+    return { fatal: true, reason: CREDENTIALS_ERROR_REASON };
+  }
 
-  return false;
+  if (code === 'quota_exceeded' || msg.includes('quota')) {
+    return { fatal: true, reason: QUOTA_ERROR_REASON };
+  }
+
+  if (code === 'unaccepted_terms') {
+    return { fatal: true, reason: TERMS_ERROR_REASON };
+  }
+
+  if (code === 'session_time_limit_exceeded') {
+    return { fatal: true, reason: SESSION_LIMIT_REASON };
+  }
+
+  return { fatal: false };
 }
 
 function createElevenLabsTransport(config: STTConnectionConfig) {
@@ -180,7 +202,7 @@ export const elevenlabsAdapter: STTAdapter = {
       buffer: config.buffer,
       reconnect: config.reconnect,
       partialStrategy: config.partialStrategy,
-      isFatal: isFatalElevenLabs,
+      classifyError: classifyElevenLabsError,
       openConnection: () => createElevenLabsTransport(config),
     });
   },

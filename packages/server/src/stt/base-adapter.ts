@@ -6,11 +6,13 @@ import type { BufferConfig, PartialStrategy, ReconnectConfig } from '@/stt/types
 
 const log = Log.create({ service: 'stt.base-adapter' });
 
+export type STTErrorClassification = { fatal: false } | { fatal: true; reason: string };
+
 type ManagedConnectionConfig = {
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   partialStrategy: PartialStrategy;
-  isFatal: (err: Error) => boolean;
+  classifyError: (err: Error) => STTErrorClassification;
   openConnection: () => Promise<STTTransport>;
 };
 
@@ -34,7 +36,7 @@ export async function createManagedConnection(
     buffer: bufferConfig,
     reconnect: reconnectConfig,
     partialStrategy,
-    isFatal,
+    classifyError,
     openConnection,
   } = config;
 
@@ -204,8 +206,10 @@ export async function createManagedConnection(
   }
 
   function handleError(err: Error): void {
-    if (isFatal(err)) {
-      emitUnrecoverable(`fatal adapter error: ${err.message}`);
+    const classification = classifyError(err);
+    if (classification.fatal) {
+      log.error({ error: err }, 'fatal adapter error');
+      emitUnrecoverable(classification.reason);
       for (const cb of errorListeners) cb(err);
       return;
     }
@@ -247,9 +251,12 @@ export async function createManagedConnection(
         reconnecting = false;
         return;
       } catch (err) {
-        if (isFatal(err instanceof Error ? err : new Error(String(err)))) {
+        const asError = err instanceof Error ? err : new Error(String(err));
+        const classification = classifyError(asError);
+        if (classification.fatal) {
           reconnecting = false;
-          emitUnrecoverable(`fatal error during reconnect: ${String(err)}`);
+          log.error({ error: err, attempt }, 'fatal error during reconnect');
+          emitUnrecoverable(classification.reason);
           return;
         }
         log.warn({ error: err, attempt }, 'reconnect attempt failed');

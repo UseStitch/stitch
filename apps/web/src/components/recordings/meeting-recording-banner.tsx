@@ -48,8 +48,8 @@ export function RecordingEventListener() {
   }, []);
 
   useRecordingEvents(activeRecordingId, {
-    'recording-unrecoverable': () => {
-      toast.error('Transcription disconnected and could not recover. Finalizing the recording.');
+    'recording-unrecoverable': ({ reason }) => {
+      toast.error(reason);
       void stopRecording.mutateAsync().catch(() => {
         toast.error('Failed to finalize the recording.');
       });

@@ -3,13 +3,18 @@ import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
-import { createManagedConnection } from '@/stt/base-adapter.js';
+import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
 const log = Log.create({ service: 'stt.openai' });
 
 const OPENAI_REALTIME_BASE_URL = 'wss://api.openai.com/v1/realtime';
+const CREDENTIALS_ERROR_REASON =
+  'Invalid transcription API credentials. Please check your settings.';
+const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
+const MODEL_ERROR_REASON =
+  'Selected transcription model is unavailable. Please check your settings.';
 
 type OpenAIRealtimeMessage =
   | { type: 'session.created' }
@@ -112,15 +117,33 @@ function buildSessionConfig(config: STTConnectionConfig): string {
   });
 }
 
-function isFatalOpenAI(err: Error): boolean {
+function classifyOpenAIError(err: Error): STTErrorClassification {
   const msg = err.message.toLowerCase();
-  const code = (err as Error & { code?: string }).code;
+  const code = (err as Error & { code?: string }).code ?? '';
 
-  if (code === 'invalid_api_key' || code === 'insufficient_quota') return true;
-  if (msg.includes('401') || msg.includes('403') || msg.includes('quota')) return true;
-  if (msg.includes('invalid_model') || msg.includes('model_not_found')) return true;
+  if (
+    code === 'invalid_api_key' ||
+    code === 'auth_error' ||
+    msg.includes('401') ||
+    msg.includes('403')
+  ) {
+    return { fatal: true, reason: CREDENTIALS_ERROR_REASON };
+  }
 
-  return false;
+  if (
+    code === 'insufficient_quota' ||
+    msg.includes('exceeded your quota') ||
+    msg.includes('quota exceeded') ||
+    msg.includes('insufficient_quota')
+  ) {
+    return { fatal: true, reason: QUOTA_ERROR_REASON };
+  }
+
+  if (code === 'model_not_found' || msg.includes('model_not_found')) {
+    return { fatal: true, reason: MODEL_ERROR_REASON };
+  }
+
+  return { fatal: false };
 }
 
 function createOpenAITransport(config: STTConnectionConfig) {
@@ -158,7 +181,7 @@ export const openaiAdapter: STTAdapter = {
       buffer: config.buffer,
       reconnect: config.reconnect,
       partialStrategy: config.partialStrategy,
-      isFatal: isFatalOpenAI,
+      classifyError: classifyOpenAIError,
       openConnection: () => createOpenAITransport(config),
     });
   },

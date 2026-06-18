@@ -95,7 +95,7 @@ describe('createManagedConnection recovery', () => {
       buffer: baseBuffer,
       reconnect: baseReconnect,
       partialStrategy: 'cumulative',
-      isFatal: () => false,
+      classifyError: () => ({ fatal: false }),
       openConnection: async () => {
         const t = createFakeTransport();
         transports.push(t);
@@ -129,7 +129,7 @@ describe('createManagedConnection recovery', () => {
       buffer: baseBuffer,
       reconnect: baseReconnect,
       partialStrategy: 'cumulative',
-      isFatal: () => false,
+      classifyError: () => ({ fatal: false }),
       openConnection: async () => {
         openCount++;
         // Fail the first rotation attempt (2nd open) once.
@@ -156,7 +156,7 @@ describe('createManagedConnection recovery', () => {
       buffer: { ...baseBuffer },
       reconnect: { ...baseReconnect, rotateBeforeMs: undefined, maxRetries: 2 },
       partialStrategy: 'cumulative',
-      isFatal: () => false,
+      classifyError: () => ({ fatal: false }),
       openConnection: async () => {
         openCount++;
         // Initial open succeeds; then fail more times than maxRetries before succeeding.
@@ -186,7 +186,7 @@ describe('createManagedConnection recovery', () => {
       buffer: { ...baseBuffer, maxChunkBytes: 1_000_000, flushIntervalMs: 1000 }, // force pending
       reconnect: baseReconnect,
       partialStrategy: 'cumulative',
-      isFatal: () => false,
+      classifyError: () => ({ fatal: false }),
       openConnection: async () => {
         const t = createFakeTransport();
         transports.push(t);
@@ -204,9 +204,7 @@ describe('createManagedConnection recovery', () => {
     await sleep(40);
     await conn.close();
 
-    const allReceived = new Set(
-      transports.flatMap((t) => t.received.map((c) => c.samplesB64)),
-    );
+    const allReceived = new Set(transports.flatMap((t) => t.received.map((c) => c.samplesB64)));
     for (let i = 0; i < total; i++) {
       expect(allReceived.has(`chunk-${i}`)).toBe(true);
     }
@@ -219,7 +217,10 @@ describe('createManagedConnection recovery', () => {
       buffer: baseBuffer,
       reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
       partialStrategy: 'cumulative',
-      isFatal: (err) => err.message.includes('FATAL'),
+      classifyError: (err) =>
+        err.message.includes('FATAL')
+          ? { fatal: true, reason: 'adapter classified auth as fatal' }
+          : { fatal: false },
       openConnection: async () => {
         openCount++;
         if (openCount === 1) {
@@ -240,7 +241,7 @@ describe('createManagedConnection recovery', () => {
     await sleep(40);
 
     expect(reasons.length).toBe(1);
-    expect(reasons[0]).toContain('FATAL');
+    expect(reasons[0]).toBe('adapter classified auth as fatal');
 
     await conn.close();
   });

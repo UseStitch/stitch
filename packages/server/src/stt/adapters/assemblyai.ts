@@ -3,13 +3,17 @@ import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
-import { createManagedConnection } from '@/stt/base-adapter.js';
+import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
 const log = Log.create({ service: 'stt.assemblyai' });
 
 const ASSEMBLYAI_STREAMING_URL = 'wss://streaming.assemblyai.com/v3/ws';
+const CREDENTIALS_ERROR_REASON =
+  'Invalid transcription API credentials. Please check your settings.';
+const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
+const STREAM_LIMIT_REASON = 'AssemblyAI transcription stream limit reached.';
 
 // https://www.assemblyai.com/docs/streaming/
 type AssemblyAIMessage =
@@ -101,21 +105,26 @@ function buildAssemblyAIUrl(config: STTConnectionConfig): string {
   return `${ASSEMBLYAI_STREAMING_URL}?${params.toString()}`;
 }
 
-function isFatalAssemblyAI(err: Error): boolean {
+function classifyAssemblyAIError(err: Error): STTErrorClassification {
   const msg = err.message.toLowerCase();
   const code = (err as Error & { code?: string }).code ?? '';
 
-  // WS close code 1008 = unauthorized (can come as string "1008" from JSON error_code)
-  if (code === '1008' || msg.includes('1008') || msg.includes('unauthorized')) return true;
-  if (msg.includes('401') || msg.includes('403')) return true;
-  // Session expired (3-hour cap)
-  if (code === '3008' || msg.includes('3008')) return true;
-  // Too many concurrent sessions
-  if (code === '3009' || msg.includes('3009')) return true;
-  // Invalid request
-  if (code === '3006' || msg.includes('invalid')) return true;
+  // 4001 = not authorized (WS close code as string)
+  if (code === '4001' || msg.includes('4001') || msg.includes('not authorized')) {
+    return { fatal: true, reason: CREDENTIALS_ERROR_REASON };
+  }
 
-  return false;
+  // 4002 = insufficient funds, 4003 = free tier user (paid-only feature)
+  if (code === '4002' || code === '4003' || msg.includes('4002') || msg.includes('4003')) {
+    return { fatal: true, reason: QUOTA_ERROR_REASON };
+  }
+
+  // 4102 = account has exceeded number of allowed streams
+  if (code === '4102' || msg.includes('4102')) {
+    return { fatal: true, reason: STREAM_LIMIT_REASON };
+  }
+
+  return { fatal: false };
 }
 
 function createAssemblyAITransport(config: STTConnectionConfig) {
@@ -152,7 +161,7 @@ export const assemblyaiAdapter: STTAdapter = {
       buffer: config.buffer,
       reconnect: config.reconnect,
       partialStrategy: config.partialStrategy,
-      isFatal: isFatalAssemblyAI,
+      classifyError: classifyAssemblyAIError,
       openConnection: () => createAssemblyAITransport(config),
     });
   },
