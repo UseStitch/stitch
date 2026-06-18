@@ -247,7 +247,15 @@ export class ElectronBrowserManager {
         tree: string;
         refs: Record<string, RefEntry>;
         identities: string[];
-        scroll: { pagesAbove: number; pagesBelow: number };
+        viewport: { width: number; height: number; deviceScaleFactor: number };
+        scroll: {
+          pagesAbove: number;
+          pagesBelow: number;
+          scrollTop: number;
+          scrollLeft: number;
+          scrollHeight: number;
+          scrollWidth: number;
+        };
       };
 
     let result = await readSnapshot();
@@ -266,7 +274,7 @@ export class ElectronBrowserManager {
         (tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`,
       )
       .join('\n');
-    return `URL: ${browser.getURL()}\nTitle: ${browser.getTitle()}\nTabs:\n${tabs}\nScroll: ${result.scroll.pagesAbove} page(s) above, ${result.scroll.pagesBelow} page(s) below\n\n${result.tree || '(empty page)'}`;
+    return `URL: ${browser.getURL()}\nTitle: ${browser.getTitle()}\nViewport: ${result.viewport.width}x${result.viewport.height} @ ${result.viewport.deviceScaleFactor}x\nTabs:\n${tabs}\nScroll: ${result.scroll.pagesAbove} page(s) above, ${result.scroll.pagesBelow} page(s) below (${result.scroll.scrollLeft},${result.scroll.scrollTop} of ${result.scroll.scrollWidth}x${result.scroll.scrollHeight})\n\n${result.tree || '(empty page)'}`;
   }
 
   private async waitForBrowser(): Promise<WebContents> {

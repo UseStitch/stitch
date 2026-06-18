@@ -1,6 +1,6 @@
-import type { RefEntry } from '../types.js';
-
 import { DOM_HELPERS_SCRIPT } from './dom-helpers.injected.js';
+
+import type { RefEntry } from '../types.js';
 
 export function buildRefActionScript(
   entry: RefEntry,
@@ -28,9 +28,17 @@ export function buildRefActionScript(
         if (current && matchesIdentity(current)) return current;
       } catch {}
 
-      const candidates = Array.from(document.querySelectorAll(target.tag)).filter(matchesIdentity);
+      const candidates = allElements(document).filter((element) => element.tagName.toLowerCase() === target.tag && matchesIdentity(element));
       candidates.sort((a, b) => distanceFromSnapshot(a) - distanceFromSnapshot(b));
       return candidates[0] || null;
+    }
+
+    function allElements(root) {
+      const elements = Array.from(root.querySelectorAll('*'));
+      for (const element of [...elements]) {
+        if (element.shadowRoot) elements.push(...allElements(element.shadowRoot));
+      }
+      return elements;
     }
 
     const el = resolveElement();
@@ -42,6 +50,8 @@ export function buildRefActionScript(
       result: actionResult,
       x: Math.round(rect.left + rect.width / 2),
       y: Math.round(rect.top + rect.height / 2),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
     };
   })()`;
 }

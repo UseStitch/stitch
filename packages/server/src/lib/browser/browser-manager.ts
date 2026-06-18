@@ -295,7 +295,7 @@ class BrowserManager {
   async screenshot(
     options: {
       signal?: AbortSignal;
-      format?: 'png' | 'jpeg' | 'webp';
+      format?: 'png' | 'jpeg';
       quality?: number;
       fullPage?: boolean;
       ref?: string;
@@ -337,10 +337,6 @@ class BrowserManager {
     return (await this.send({ action: 'findElements', ...options }, signal)) as FindElementsResult;
   }
 
-  async resize(width: number, height: number, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'resize', width, height }, signal));
-  }
-
   async wait(timeMs?: number, selector?: string, signal?: AbortSignal): Promise<string> {
     return String(await this.send({ action: 'wait', timeMs, selector }, signal));
   }
@@ -358,6 +354,7 @@ class BrowserManager {
     signal?: AbortSignal,
     options: {
       selector?: string;
+      query?: string;
       includeLinks?: boolean;
       includeImages?: boolean;
       outputSchema?: Record<string, unknown>;

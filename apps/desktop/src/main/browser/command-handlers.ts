@@ -18,7 +18,7 @@ import { DEFAULT_URL, normalizeUrl, searchUrl } from './url.js';
 
 import type { RefResolver } from './ref-resolver.js';
 import type { SessionStore } from './session-store.js';
-import type { WebContents } from 'electron';
+import type { Rectangle, WebContents } from 'electron';
 
 const LOAD_TIMEOUT_MS = 15_000;
 
@@ -90,6 +90,7 @@ export async function executeBrowserCommand(
         command.ref,
         command.doubleClick,
         command.button,
+        command.modifiers,
       );
       await waitForPageStability(ctx.browser, command.timeoutMs);
       return `Clicked ${command.ref}`;
@@ -130,10 +131,9 @@ export async function executeBrowserCommand(
     case 'scroll':
       await scroll(ctx.getBrowser, ctx.refResolver, command.ref, command.direction);
       return `Scrolled ${command.direction}`;
-    case 'resize':
-      return `Resize requested: ${command.width}x${command.height}`;
     case 'screenshot': {
-      const image = await ctx.browser.capturePage();
+      const rect = await getScreenshotRect(ctx, command.ref, command.fullPage);
+      const image = rect ? await ctx.browser.capturePage(rect) : await ctx.browser.capturePage();
       const format = command.format ?? 'png';
       return {
         data:
@@ -208,6 +208,34 @@ async function getExecutionState(browser: WebContents): Promise<ElectronBrowserE
     })()`,
     true,
   )) as ElectronBrowserExecutionState;
+}
+
+async function getScreenshotRect(
+  ctx: CommandContext,
+  ref?: string,
+  fullPage?: boolean,
+): Promise<Rectangle | undefined> {
+  if (ref) {
+    const bounds = await ctx.refResolver.resolveRefBounds(ref);
+    return {
+      x: Math.max(0, Math.round(bounds.x - bounds.width / 2)),
+      y: Math.max(0, Math.round(bounds.y - bounds.height / 2)),
+      width: Math.max(1, Math.round(bounds.width)),
+      height: Math.max(1, Math.round(bounds.height)),
+    };
+  }
+
+  if (!fullPage) return undefined;
+
+  return (await ctx.browser.executeJavaScript(
+    `(() => ({
+      x: 0,
+      y: 0,
+      width: Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0, window.innerWidth),
+      height: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, window.innerHeight),
+    }))()`,
+    true,
+  )) as Rectangle;
 }
 
 async function wait(

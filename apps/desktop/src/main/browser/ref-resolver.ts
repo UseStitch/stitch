@@ -36,6 +36,27 @@ export class RefResolver {
     return this.unwrapRefCoordinates(ref, result);
   }
 
+  async resolveRefBounds(
+    ref: string,
+  ): Promise<{ x: number; y: number; width: number; height: number }> {
+    const result = await (
+      await this.getBrowser()
+    ).executeJavaScript(
+      this.refActionScript(
+        ref,
+        (element) =>
+          `${element}.scrollIntoView({ block: 'center', inline: 'center' }); return true;`,
+      ),
+      true,
+    );
+    const coordinates = this.unwrapRefCoordinates(ref, result);
+    const { width, height } = coordinates;
+    if (typeof width !== 'number' || typeof height !== 'number') {
+      throw new Error(`Browser interaction on ${ref} did not return bounds.`);
+    }
+    return { x: coordinates.x, y: coordinates.y, width, height };
+  }
+
   async focusRef(ref: string): Promise<void> {
     const result = await (
       await this.getBrowser()
@@ -59,12 +80,20 @@ export class RefResolver {
     return buildRefActionScript(entry, buildScript);
   }
 
-  private unwrapRefCoordinates(ref: string, result: unknown): { x: number; y: number } {
+  private unwrapRefCoordinates(
+    ref: string,
+    result: unknown,
+  ): { x: number; y: number; width?: number; height?: number } {
     const success = this.unwrapRefSuccess(ref, result);
     if (typeof success.x !== 'number' || typeof success.y !== 'number') {
       throw new Error(`Browser interaction on ${ref} did not return coordinates.`);
     }
-    return { x: success.x, y: success.y };
+    return {
+      x: success.x,
+      y: success.y,
+      width: typeof success.width === 'number' ? success.width : undefined,
+      height: typeof success.height === 'number' ? success.height : undefined,
+    };
   }
 
   private unwrapRefResult(ref: string, result: unknown): unknown {
@@ -74,7 +103,7 @@ export class RefResolver {
   private unwrapRefSuccess(
     ref: string,
     result: unknown,
-  ): { result: unknown; x?: unknown; y?: unknown } {
+  ): { result: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown } {
     if (!result || typeof result !== 'object' || !('ok' in result)) {
       throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
     }
@@ -84,6 +113,12 @@ export class RefResolver {
       throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
     }
 
-    return result as unknown as { result: unknown; x?: unknown; y?: unknown };
+    return result as unknown as {
+      result: unknown;
+      x?: unknown;
+      y?: unknown;
+      width?: unknown;
+      height?: unknown;
+    };
   }
 }

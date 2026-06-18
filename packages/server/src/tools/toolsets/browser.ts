@@ -62,7 +62,6 @@ const browserInteractInputSchema = z.object({
       'get_dropdown_options',
       'select_dropdown',
       'scroll',
-      'resize',
       'evaluate',
     ])
     .describe('Interaction action to perform.'),
@@ -91,8 +90,6 @@ const browserInteractInputSchema = z.object({
     .enum(['up', 'down', 'left', 'right'])
     .optional()
     .describe('Direction to scroll. Required for scroll action.'),
-  width: z.number().optional().describe('Viewport width in pixels. Required for resize action.'),
-  height: z.number().optional().describe('Viewport height in pixels. Required for resize action.'),
   fn: z
     .string()
     .optional()
@@ -113,8 +110,8 @@ const browserWaitInputSchema = z.object({
 const browserScreenshotInputSchema = z.object({
   description: descriptionField,
   ref: z.string().optional().describe('Element ref for element screenshot.'),
-  format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format. Default png.'),
-  quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg/webp.'),
+  format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format. Default png.'),
+  quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot.'),
 });
 
@@ -186,15 +183,13 @@ const browserBatchActionSchema = z.object({
   button: z.string().optional().describe('Mouse button for click operation.'),
   modifiers: z.array(z.string()).optional().describe('Modifier keys for click operation.'),
   direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Scroll direction.'),
-  width: z.number().optional().describe('Width for resize operation.'),
-  height: z.number().optional().describe('Height for resize operation.'),
   fn: z.string().optional().describe('Expression for evaluate operation.'),
   mode: z.enum(['time', 'selector']).optional().describe('Mode for wait tool.'),
   timeMs: z.number().optional().describe('Duration in ms for wait time mode.'),
   selector: z.string().optional().describe('CSS selector for wait/find/extract scope.'),
   timeoutMs: timeoutField,
-  format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format.'),
-  quality: z.number().optional().describe('Screenshot quality for jpeg/webp.'),
+  format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format.'),
+  quality: z.number().optional().describe('Screenshot quality for jpeg.'),
   fullPage: z.boolean().optional().describe('Full-page screenshot mode.'),
   dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Dialog handling action.'),
   promptText: z.string().optional().describe('Prompt text when accepting prompt dialogs.'),
@@ -235,7 +230,7 @@ const browserBatchInputSchema = z.object({
 
 const SNAPSHOT_DESCRIPTION = `Capture the current browser state as a fresh snapshot.
 
-Use this before interactions to get current refs. The snapshot includes URL, tabs, scroll metadata, page stats, and a YAML accessibility tree with refs like [ref=e12], plus viewport/new markers.`;
+Use this before interactions to get current refs. The snapshot includes URL, tabs, viewport and scroll metadata, element bounds, visible/interactable nodes, shadow DOM where accessible, same-origin iframe summaries, and refs like [ref=e12].`;
 
 const NAVIGATE_DESCRIPTION = `Run browser navigation and tab actions.
 
@@ -253,7 +248,6 @@ Actions:
 - click / type / hover / select / scroll
 - get_dropdown_options / select_dropdown for dropdown discovery and text selection
 - press (keyboard)
-- resize (viewport)
 - evaluate (JavaScript, last resort)
 
 Use refs from the latest snapshot for element-targeted actions. Navigation-capable interactions return an updated snapshot in the result.`;
@@ -268,7 +262,7 @@ Use timeoutMs to cap the maximum wait.`;
 
 const SCREENSHOT_DESCRIPTION = `Take a browser screenshot.
 
-Supports viewport, full-page, and element screenshots (via ref). Returns base64 image data and format.`;
+Supports viewport, full-page, and element screenshots (via ref). Returns base64 PNG or JPEG image data and format.`;
 
 const DIALOG_DESCRIPTION = `Inspect and control browser dialogs (alert/confirm/prompt).
 
@@ -279,7 +273,6 @@ Actions:
 const CONTENT_DESCRIPTION = `Query or extract content from the current page.
 
 Actions:
-- extract: extract page content for a query
 - extract: extract page text, optionally with links/images/schema-shaped data
 - search_page: fast visible-text pattern search
 - find_elements: query DOM elements by CSS selector`;
@@ -588,11 +581,6 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
           output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal),
         };
       }
-      case 'resize': {
-        if (!input.width) throw new Error('Missing required field: width');
-        if (!input.height) throw new Error('Missing required field: height');
-        return { output: await browser.resize(input.width, input.height, signal) };
-      }
       case 'evaluate': {
         if (!input.fn) throw new Error('Missing required field: fn');
         const result = await browser.evaluate(input.fn, signal);
@@ -661,6 +649,7 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
       case 'extract': {
         const content = await browser.extractPageContent(signal, {
           selector: input.selector,
+          query: input.query,
           includeLinks: input.includeLinks,
           includeImages: input.includeImages,
           outputSchema: input.outputSchema,

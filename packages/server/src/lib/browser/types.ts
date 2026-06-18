@@ -7,7 +7,7 @@ export type BrowserTab = {
 
 export type ScreenshotResult = {
   data: string;
-  format: 'png' | 'jpeg' | 'webp';
+  format: 'png' | 'jpeg';
 };
 
 export type LaunchOptions = {

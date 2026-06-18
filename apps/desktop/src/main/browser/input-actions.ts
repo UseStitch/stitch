@@ -10,16 +10,24 @@ export async function clickRef(
   ref: string,
   doubleClick?: boolean,
   button: string = 'left',
+  modifiers?: string[],
 ): Promise<void> {
   const target = await refResolver.resolveRef(ref);
   const mouseButton = button === 'right' || button === 'middle' ? button : 'left';
-  browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
+  const inputModifiers = normalizeModifiers(modifiers);
+  browser.sendInputEvent({
+    type: 'mouseMove',
+    x: target.x,
+    y: target.y,
+    modifiers: inputModifiers,
+  });
   browser.sendInputEvent({
     type: 'mouseDown',
     x: target.x,
     y: target.y,
     button: mouseButton,
     clickCount: 1,
+    modifiers: inputModifiers,
   });
   browser.sendInputEvent({
     type: 'mouseUp',
@@ -27,6 +35,7 @@ export async function clickRef(
     y: target.y,
     button: mouseButton,
     clickCount: 1,
+    modifiers: inputModifiers,
   });
   if (doubleClick) {
     browser.sendInputEvent({
@@ -35,6 +44,7 @@ export async function clickRef(
       y: target.y,
       button: mouseButton,
       clickCount: 2,
+      modifiers: inputModifiers,
     });
     browser.sendInputEvent({
       type: 'mouseUp',
@@ -42,6 +52,7 @@ export async function clickRef(
       y: target.y,
       button: mouseButton,
       clickCount: 2,
+      modifiers: inputModifiers,
     });
   }
 }
@@ -134,6 +145,15 @@ function sendShortcut(browser: WebContents, keyCode: string): void {
   const modifier = process.platform === 'darwin' ? 'meta' : 'control';
   browser.sendInputEvent({ type: 'keyDown', keyCode, modifiers: [modifier] });
   browser.sendInputEvent({ type: 'keyUp', keyCode, modifiers: [modifier] });
+}
+
+function normalizeModifiers(
+  modifiers: string[] | undefined,
+): Array<'shift' | 'control' | 'alt' | 'meta'> {
+  const allowed = new Set(['shift', 'control', 'alt', 'meta']);
+  return (modifiers ?? [])
+    .map((modifier) => modifier.toLowerCase())
+    .filter((modifier): modifier is 'shift' | 'control' | 'alt' | 'meta' => allowed.has(modifier));
 }
 
 async function selectSingleValueWithKeyboard(

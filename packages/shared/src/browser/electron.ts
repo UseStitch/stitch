@@ -81,11 +81,10 @@ export type ElectronBrowserCommand =
   | { action: 'getDropdownOptions'; ref: string }
   | { action: 'selectDropdown'; ref: string; text: string; timeoutMs?: number }
   | { action: 'scroll'; ref?: string; direction: 'up' | 'down' | 'left' | 'right' }
-  | { action: 'resize'; width: number; height: number }
   | {
       action: 'screenshot';
       ref?: string;
-      format?: 'png' | 'jpeg' | 'webp';
+      format?: 'png' | 'jpeg';
       quality?: number;
       fullPage?: boolean;
     }
@@ -93,6 +92,7 @@ export type ElectronBrowserCommand =
   | { action: 'wait'; timeMs?: number; selector?: string; timeoutMs?: number }
   | {
       action: 'extractPageContent';
+      query?: string;
       selector?: string;
       includeLinks?: boolean;
       includeImages?: boolean;

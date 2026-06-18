@@ -5,10 +5,24 @@ export function buildExtractContentScript(
 ): string {
   return `(() => {
     const root = document.querySelector(${JSON.stringify(command.selector ?? 'body')}) || document.body || document.documentElement;
-    const result = { text: (root.innerText || '').trim() };
+    const query = ${JSON.stringify(command.query ?? '')}.trim().toLowerCase();
+    function normalize(text) {
+      return (text || '').trim().replace(/\\s+/g, ' ');
+    }
+    function queryText() {
+      if (!query) return normalize(root.innerText || '');
+      const terms = query.split(/\\s+/).filter(Boolean);
+      const nodes = Array.from(root.querySelectorAll('article,section,h1,h2,h3,h4,h5,h6,p,li,dt,dd,tr,[role="row"],[role="listitem"]'));
+      const matches = nodes
+        .map((node) => normalize(node.innerText || node.textContent || ''))
+        .filter((text) => text && terms.every((term) => text.toLowerCase().includes(term)))
+        .slice(0, 80);
+      return matches.length > 0 ? matches.join('\n') : normalize(root.innerText || '');
+    }
+    const result = { text: queryText() };
     if (${command.includeLinks ? 'true' : 'false'}) {
       result.links = Array.from(root.querySelectorAll('a[href]')).slice(0, 200).map((link) => ({
-        text: (link.innerText || link.textContent || '').trim().replace(/s+/g, ' ').slice(0, 200),
+        text: normalize(link.innerText || link.textContent || '').slice(0, 200),
         href: link.href,
       })).filter((link) => link.href);
     }

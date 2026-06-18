@@ -7,6 +7,8 @@ export type RefEntry = {
   inViewport: boolean;
   x: number;
   y: number;
+  width: number;
+  height: number;
 };
 
 export type TabInfo = { id: string; title: string; url: string };
