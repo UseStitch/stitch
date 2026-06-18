@@ -286,7 +286,7 @@ Actions:
 
 const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized call.
 
-Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default. If the batch changes page state, the result includes an updated snapshot.`;
+Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error, sequence-terminating actions, or a lightweight DOM/page fingerprint change by default. Results are concise; if the batch changes page state, the result includes an updated snapshot.`;
 
 let queueTail: Promise<void> = Promise.resolve();
 
@@ -456,6 +456,24 @@ function formatExtractContent(query: string | undefined, result: string | Extrac
     sections.push('', `### Data`, JSON.stringify(result.data, null, 2));
   }
   return sections.join('\n');
+}
+
+function summarizeOperationResult(result: unknown): string {
+  if (!result || typeof result !== 'object' || !('output' in result)) {
+    return summarizeValue(result);
+  }
+
+  return summarizeValue((result as { output: unknown }).output);
+}
+
+function summarizeValue(value: unknown): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  if (!text) return '';
+  return text.length > 500 ? `${text.slice(0, 500)}...` : text;
+}
+
+function formatBatchActionLabel(index: number, action: BatchAction): string {
+  return `${index}. ${action.tool}${action.op ? `.${action.op}` : ''}`;
 }
 
 async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
@@ -787,7 +805,7 @@ function createBatchTool(context: ToolContext) {
           tool: string;
           op?: string;
           status: 'ok' | 'error';
-          output?: unknown;
+          output?: string;
           error?: string;
         }> = [];
 
@@ -813,12 +831,12 @@ function createBatchTool(context: ToolContext) {
               tool: string;
               op?: string;
               status: 'ok';
-              output: unknown;
+              output: string;
             } = {
               index: i + 1,
               tool: action.tool,
               status: 'ok',
-              output: result,
+              output: summarizeOperationResult(result),
             };
             if (op) {
               resultRecord.op = op;
@@ -891,9 +909,19 @@ function createBatchTool(context: ToolContext) {
         const summaryText = stoppedReason
           ? `Batch executed ${executed}/${total} action(s). ${stoppedReason}`
           : `Batch executed ${executed}/${total} action(s) successfully.`;
+        const resultLines = results.map((result) => {
+          const action = input.actions[result.index - 1];
+          const label = action
+            ? formatBatchActionLabel(result.index, action)
+            : `${result.index}. action`;
+          if (result.status === 'error') return `${label}: error - ${result.error}`;
+          return `${label}: ok${result.output ? ` - ${result.output}` : ''}`;
+        });
+        const outputText =
+          resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
         const summary = freshSnapshot
-          ? `${summaryText}\n\n### Updated Snapshot\n${freshSnapshot}`
-          : summaryText;
+          ? `${outputText}\n\n### Updated Snapshot\n${freshSnapshot}`
+          : outputText;
 
         return {
           output: summary,

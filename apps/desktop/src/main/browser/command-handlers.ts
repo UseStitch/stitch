@@ -1,4 +1,8 @@
-import type { ElectronBrowserCommand, ElectronBrowserState } from '@stitch/shared/browser/electron';
+import type {
+  ElectronBrowserCommand,
+  ElectronBrowserExecutionState,
+  ElectronBrowserState,
+} from '@stitch/shared/browser/electron';
 
 import { clickRef, hoverRef, scroll, selectRef, typeIntoRef } from './input-actions.js';
 import { waitForPageStability } from './page-stability.js';
@@ -74,6 +78,8 @@ export async function executeBrowserCommand(
     }
     case 'snapshot':
       return ctx.snapshot(ctx.browser);
+    case 'executionState':
+      return getExecutionState(ctx.browser);
     case 'click':
       await clickRef(
         ctx.browser,
@@ -155,6 +161,50 @@ export async function executeBrowserCommand(
     case 'state':
       return ctx.getState();
   }
+}
+
+async function getExecutionState(browser: WebContents): Promise<ElectronBrowserExecutionState> {
+  return (await browser.executeJavaScript(
+    `(() => {
+      function hash(value) {
+        let h = 2166136261;
+        for (let i = 0; i < value.length; i++) {
+          h ^= value.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0).toString(16);
+      }
+
+      function visible(el) {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      }
+
+      function elementLabel(el) {
+        const rect = el.getBoundingClientRect();
+        const text = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').trim().replace(/s+/g, ' ').slice(0, 80);
+        return [el.tagName.toLowerCase(), el.getAttribute('role') || '', el.id || '', el.name || '', text, Math.round(rect.top), Math.round(rect.left)].join('|');
+      }
+
+      const selector = 'a,button,input,textarea,select,summary,[role="button"],[role="link"],[role="tab"],[role="menuitem"],[role="checkbox"],[role="radio"],[onclick],[tabindex]';
+      const interactive = Array.from(document.querySelectorAll(selector)).filter(visible).slice(0, 300).map(elementLabel);
+      const active = document.activeElement;
+      const focusedElement = active && active !== document.body ? elementLabel(active) : '';
+      const bodyText = (document.body?.innerText || '').trim().replace(/s+/g, ' ').slice(0, 4000);
+
+      return {
+        url: location.href,
+        title: document.title,
+        readyState: document.readyState,
+        focusedElement,
+        interactiveCount: interactive.length,
+        interactiveHash: hash(interactive.join('\n')),
+        bodyTextHash: hash(bodyText),
+      };
+    })()`,
+    true,
+  )) as ElectronBrowserExecutionState;
 }
 
 async function wait(

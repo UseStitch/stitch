@@ -27,9 +27,20 @@ export type ElectronBrowserState = {
   downloads: ElectronBrowserDownload[];
 };
 
+export type ElectronBrowserExecutionState = {
+  url: string;
+  title: string;
+  readyState: string;
+  focusedElement: string;
+  interactiveCount: number;
+  interactiveHash: string;
+  bodyTextHash: string;
+};
+
 export type ElectronBrowserCommand =
   | { action: 'ensure' }
   | { action: 'state' }
+  | { action: 'executionState' }
   | { action: 'snapshot' }
   | { action: 'navigate'; url: string; timeoutMs?: number }
   | { action: 'search'; query: string; engine?: string; timeoutMs?: number }

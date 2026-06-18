@@ -1,6 +1,7 @@
 import type {
   ElectronBrowserCommand,
   ElectronBrowserErrorMessage,
+  ElectronBrowserExecutionState,
   ElectronBrowserResultMessage,
 } from '@stitch/shared/browser/electron';
 
@@ -184,9 +185,11 @@ class BrowserManager {
   }
 
   async getExecutionState(signal?: AbortSignal): Promise<string> {
-    const tabs = (await this.listTabs(signal)).filter((tab) => tab.type === 'page');
-    const active = tabs[0];
-    return active ? `${active.id}:${active.url}:${active.title}` : 'no-active-tab';
+    const state = (await this.send(
+      { action: 'executionState' },
+      signal,
+    )) as ElectronBrowserExecutionState;
+    return JSON.stringify(state);
   }
 
   async saveStorageState() {
