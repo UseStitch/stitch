@@ -25,6 +25,8 @@ import {
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
+  sttProviderId: z.string().min(1).optional(),
+  sttModelId: z.string().min(1).optional(),
 });
 
 const stopRecordingSchema = z.object({
