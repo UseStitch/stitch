@@ -36,7 +36,7 @@ export class RefResolver {
     return this.unwrapRefCoordinates(ref, result);
   }
 
-  async focusRef(ref: string, clear?: boolean): Promise<void> {
+  async focusRef(ref: string): Promise<void> {
     const result = await (
       await this.getBrowser()
     ).executeJavaScript(
@@ -45,13 +45,6 @@ export class RefResolver {
         (element) => `
           ${element}.scrollIntoView({ block: 'center', inline: 'center' });
           ${element}.focus();
-          if (${clear ? 'true' : 'false'} && 'value' in ${element}) {
-            const valueSetter = Object.getOwnPropertyDescriptor(${element}.constructor.prototype, 'value')?.set;
-            if (valueSetter) valueSetter.call(${element}, '');
-            else ${element}.value = '';
-            ${element}.dispatchEvent(new Event('input', { bubbles: true }));
-            ${element}.dispatchEvent(new Event('change', { bubbles: true }));
-          }
           return true;
         `,
       ),

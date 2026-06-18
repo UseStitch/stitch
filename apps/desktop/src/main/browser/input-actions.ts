@@ -1,8 +1,8 @@
+import type { RefResolver } from './ref-resolver.js';
 import type { WebContents } from 'electron';
 
-import type { RefResolver } from './ref-resolver.js';
-
 const DEFAULT_SCROLL_PX = 650;
+const SELECT_CHANGE_DELAY_MS = 10;
 
 export async function clickRef(
   browser: WebContents,
@@ -64,7 +64,11 @@ export async function typeIntoRef(
   submit?: boolean,
   slowly?: boolean,
 ): Promise<void> {
-  await refResolver.focusRef(ref, clear);
+  await refResolver.focusRef(ref);
+  if (clear) {
+    sendShortcut(browser, 'A');
+    sendKey(browser, 'Backspace');
+  }
   if (slowly) {
     for (const char of text) {
       await browser.insertText(char);
@@ -74,9 +78,28 @@ export async function typeIntoRef(
     await browser.insertText(text);
   }
   if (submit) {
-    browser.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
-    browser.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+    sendKey(browser, 'Enter');
   }
+}
+
+export async function selectRef(
+  browser: WebContents,
+  refResolver: RefResolver,
+  ref: string,
+  values: string[],
+): Promise<void> {
+  if (
+    values.length === 1 &&
+    (await selectSingleValueWithKeyboard(browser, refResolver, ref, values[0]))
+  ) {
+    return;
+  }
+
+  await refResolver.runOnRef(
+    ref,
+    (element) =>
+      `for (const option of ${element}.options || []) option.selected = ${JSON.stringify(values)}.includes(option.value) || ${JSON.stringify(values)}.includes(option.textContent?.trim()); ${element}.dispatchEvent(new Event('input', { bubbles: true })); ${element}.dispatchEvent(new Event('change', { bubbles: true })); return true;`,
+  );
 }
 
 export async function scroll(
@@ -94,8 +117,54 @@ export async function scroll(
     );
     return;
   }
-  await (await browserGetter()).executeJavaScript(
+  await (
+    await browserGetter()
+  ).executeJavaScript(
     `window.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`,
     true,
   );
+}
+
+function sendKey(browser: WebContents, keyCode: string): void {
+  browser.sendInputEvent({ type: 'keyDown', keyCode });
+  browser.sendInputEvent({ type: 'keyUp', keyCode });
+}
+
+function sendShortcut(browser: WebContents, keyCode: string): void {
+  const modifier = process.platform === 'darwin' ? 'meta' : 'control';
+  browser.sendInputEvent({ type: 'keyDown', keyCode, modifiers: [modifier] });
+  browser.sendInputEvent({ type: 'keyUp', keyCode, modifiers: [modifier] });
+}
+
+async function selectSingleValueWithKeyboard(
+  browser: WebContents,
+  refResolver: RefResolver,
+  ref: string,
+  value: string,
+): Promise<boolean> {
+  const result = (await refResolver.runOnRef(
+    ref,
+    (element) => `
+      if (${element}.tagName?.toLowerCase() !== 'select' || ${element}.multiple) return { usable: false };
+      const options = Array.from(${element}.options || []);
+      const targetIndex = options.findIndex((option) => option.value === ${JSON.stringify(value)} || option.textContent?.trim() === ${JSON.stringify(value)});
+      if (targetIndex < 0) return { usable: false };
+      ${element}.scrollIntoView({ block: 'center', inline: 'center' });
+      ${element}.focus();
+      return { usable: true, targetIndex };
+    `,
+  )) as { usable?: boolean; targetIndex?: number };
+
+  if (!result.usable || typeof result.targetIndex !== 'number') {
+    return false;
+  }
+
+  sendKey(browser, 'Home');
+  await new Promise((resolve) => setTimeout(resolve, SELECT_CHANGE_DELAY_MS));
+  for (let i = 0; i < result.targetIndex; i++) {
+    sendKey(browser, 'ArrowDown');
+    await new Promise((resolve) => setTimeout(resolve, SELECT_CHANGE_DELAY_MS));
+  }
+  sendKey(browser, 'Enter');
+  return true;
 }

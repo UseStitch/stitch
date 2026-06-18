@@ -1,6 +1,6 @@
 import type { ElectronBrowserCommand, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
-import { clickRef, hoverRef, scroll, typeIntoRef } from './input-actions.js';
+import { clickRef, hoverRef, scroll, selectRef, typeIntoRef } from './input-actions.js';
 import { waitForPageStability } from './page-stability.js';
 import {
   buildGetDropdownOptionsScript,
@@ -104,11 +104,7 @@ export async function executeBrowserCommand(
       await waitForPageStability(ctx.browser, command.timeoutMs);
       return `Pressed ${command.key}`;
     case 'select':
-      await ctx.refResolver.runOnRef(
-        command.ref,
-        (element) =>
-          `for (const option of ${element}.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); ${element}.dispatchEvent(new Event('input', { bubbles: true })); ${element}.dispatchEvent(new Event('change', { bubbles: true })); return true;`,
-      );
+      await selectRef(ctx.browser, ctx.refResolver, command.ref, command.values);
       return `Selected ${command.values.join(', ')} in ${command.ref}`;
     case 'getDropdownOptions':
       return ctx.refResolver.runOnRef(command.ref, buildGetDropdownOptionsScript);
