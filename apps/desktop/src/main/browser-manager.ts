@@ -92,7 +92,14 @@ function isAuthPopupUrl(url: string): boolean {
   }
 }
 
-type RefEntry = { selector: string; role: string; name: string };
+type RefEntry = {
+  selector: string;
+  tag: string;
+  role: string;
+  name: string;
+  x: number;
+  y: number;
+};
 type TabInfo = { id: string; title: string; url: string };
 type SessionTabState = { tabs: TabInfo[]; activeTabId: string | null };
 type PersistedBrowserState = { sessions: Record<string, SessionTabState> };
@@ -184,7 +191,15 @@ const SNAPSHOT_SCRIPT = String.raw`
     if (isTarget) {
       refCounter++;
       ref = 'e' + refCounter;
-      refs[ref] = { selector: cssPath(el), role: r, name: label };
+      const rect = el.getBoundingClientRect();
+      refs[ref] = {
+        selector: cssPath(el),
+        tag,
+        role: r,
+        name: label,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
     }
     if (isTarget || label || r !== 'generic') {
       const attrs = [];
@@ -488,20 +503,20 @@ export class ElectronBrowserManager {
       case 'snapshot':
         return this.snapshot(browser);
       case 'click':
-        await this.runOnRef(
-          command.ref,
-          (selector) => `document.querySelector(${JSON.stringify(selector)})?.click()`,
-        );
+        await this.clickRef(browser, command.ref, command.doubleClick, command.button);
         return `Clicked ${command.ref}`;
       case 'hover':
-        await this.runOnRef(
-          command.ref,
-          (selector) =>
-            `document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`,
-        );
+        await this.hoverRef(browser, command.ref);
         return `Hovered ${command.ref}`;
       case 'type':
-        await this.typeIntoRef(command.ref, command.text, command.clear, command.submit);
+        await this.typeIntoRef(
+          browser,
+          command.ref,
+          command.text,
+          command.clear,
+          command.submit,
+          command.slowly,
+        );
         return `Typed into ${command.ref}`;
       case 'press':
         browser.sendInputEvent({ type: 'keyDown', keyCode: command.key });
@@ -510,8 +525,8 @@ export class ElectronBrowserManager {
       case 'select':
         await this.runOnRef(
           command.ref,
-          (selector) =>
-            `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; for (const option of el.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+          (element) =>
+            `for (const option of ${element}.options || []) option.selected = ${JSON.stringify(command.values)}.includes(option.value) || ${JSON.stringify(command.values)}.includes(option.textContent?.trim()); ${element}.dispatchEvent(new Event('input', { bubbles: true })); ${element}.dispatchEvent(new Event('change', { bubbles: true })); return true;`,
         );
         return `Selected ${command.values.join(', ')} in ${command.ref}`;
       case 'scroll':
@@ -568,23 +583,203 @@ export class ElectronBrowserManager {
     return `URL: ${browser.getURL()}\nTitle: ${browser.getTitle()}\nTabs:\n${tabs}\nScroll: ${result.scroll.pagesAbove} page(s) above, ${result.scroll.pagesBelow} page(s) below\n\n${result.tree || '(empty page)'}`;
   }
 
-  private async runOnRef(ref: string, buildScript: (selector: string) => string): Promise<unknown> {
+  private async runOnRef(ref: string, buildScript: (element: string) => string): Promise<unknown> {
+    const result = await (
+      await this.waitForBrowser()
+    ).executeJavaScript(
+      this.refActionScript(ref, (element) => buildScript(element)),
+      true,
+    );
+    return this.unwrapRefResult(ref, result);
+  }
+
+  private async resolveRef(ref: string): Promise<{ x: number; y: number }> {
+    const result = await (
+      await this.waitForBrowser()
+    ).executeJavaScript(
+      this.refActionScript(
+        ref,
+        (element) =>
+          `${element}.scrollIntoView({ block: 'center', inline: 'center' }); ${element}.focus?.(); return true;`,
+      ),
+      true,
+    );
+    return this.unwrapRefResult(ref, result) as { x: number; y: number };
+  }
+
+  private async focusRef(ref: string, clear?: boolean): Promise<void> {
+    const result = await (
+      await this.waitForBrowser()
+    ).executeJavaScript(
+      this.refActionScript(
+        ref,
+        (element) => `
+          ${element}.scrollIntoView({ block: 'center', inline: 'center' });
+          ${element}.focus();
+          if (${clear ? 'true' : 'false'} && 'value' in ${element}) {
+            const valueSetter = Object.getOwnPropertyDescriptor(${element}.constructor.prototype, 'value')?.set;
+            if (valueSetter) valueSetter.call(${element}, '');
+            else ${element}.value = '';
+            ${element}.dispatchEvent(new Event('input', { bubbles: true }));
+            ${element}.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          return true;
+        `,
+      ),
+      true,
+    );
+    this.unwrapRefResult(ref, result);
+  }
+
+  private refActionScript(ref: string, buildScript: (element: string) => string): string {
     const entry = this.refs.get(ref);
     if (!entry) throw new Error(`Unknown ref: ${ref}. Take a fresh browser_snapshot first.`);
-    return (await this.waitForBrowser()).executeJavaScript(buildScript(entry.selector), true);
+    return `(() => {
+      const target = ${JSON.stringify(entry)};
+
+      function visible(el) {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      }
+
+      function role(el) {
+        const explicit = el.getAttribute('role');
+        if (explicit) return explicit;
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'a' && el.hasAttribute('href')) return 'link';
+        if (tag === 'button') return 'button';
+        if (tag === 'input') return ['checkbox', 'radio', 'button', 'submit'].includes(el.type) ? el.type : 'textbox';
+        if (tag === 'textarea') return 'textbox';
+        if (tag === 'select') return 'combobox';
+        if (/^h[1-6]$/.test(tag)) return 'heading';
+        if (tag === 'img') return 'img';
+        return 'generic';
+      }
+
+      function name(el) {
+        return el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('placeholder') || el.innerText?.trim().replace(/\\s+/g, ' ').slice(0, 100) || '';
+      }
+
+      function matchesIdentity(el) {
+        return el.tagName.toLowerCase() === target.tag && role(el) === target.role && name(el) === target.name && visible(el);
+      }
+
+      function distanceFromSnapshot(el) {
+        const rect = el.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        return Math.hypot(x - target.x, y - target.y);
+      }
+
+      function resolveElement() {
+        try {
+          const current = document.querySelector(target.selector);
+          if (current && matchesIdentity(current)) return current;
+        } catch {}
+
+        const candidates = Array.from(document.querySelectorAll(target.tag)).filter(matchesIdentity);
+        candidates.sort((a, b) => distanceFromSnapshot(a) - distanceFromSnapshot(b));
+        return candidates[0] || null;
+      }
+
+      const el = resolveElement();
+      if (!el) return { ok: false, error: 'Element not found' };
+      const actionResult = (() => { ${buildScript('el')} })();
+      const rect = el.getBoundingClientRect();
+      return {
+        ok: true,
+        result: actionResult,
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+      };
+    })()`;
+  }
+
+  private unwrapRefResult(ref: string, result: unknown): unknown {
+    if (!result || typeof result !== 'object' || !('ok' in result)) {
+      throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
+    }
+
+    if (!(result as { ok: boolean }).ok) {
+      const error = (result as { error?: string }).error ?? 'Element interaction failed';
+      throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
+    }
+
+    const success = result as unknown as { result: unknown; x?: unknown; y?: unknown };
+    if (typeof success.x === 'number' && typeof success.y === 'number') {
+      return { x: success.x, y: success.y };
+    }
+    return success.result;
+  }
+
+  private async clickRef(
+    browser: WebContents,
+    ref: string,
+    doubleClick?: boolean,
+    button: string = 'left',
+  ): Promise<void> {
+    const target = await this.resolveRef(ref);
+    const mouseButton = button === 'right' || button === 'middle' ? button : 'left';
+    browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
+    browser.sendInputEvent({
+      type: 'mouseDown',
+      x: target.x,
+      y: target.y,
+      button: mouseButton,
+      clickCount: 1,
+    });
+    browser.sendInputEvent({
+      type: 'mouseUp',
+      x: target.x,
+      y: target.y,
+      button: mouseButton,
+      clickCount: 1,
+    });
+    if (doubleClick) {
+      browser.sendInputEvent({
+        type: 'mouseDown',
+        x: target.x,
+        y: target.y,
+        button: mouseButton,
+        clickCount: 2,
+      });
+      browser.sendInputEvent({
+        type: 'mouseUp',
+        x: target.x,
+        y: target.y,
+        button: mouseButton,
+        clickCount: 2,
+      });
+    }
+  }
+
+  private async hoverRef(browser: WebContents, ref: string): Promise<void> {
+    const target = await this.resolveRef(ref);
+    browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
   }
 
   private async typeIntoRef(
+    browser: WebContents,
     ref: string,
     text: string,
     clear?: boolean,
     submit?: boolean,
+    slowly?: boolean,
   ): Promise<void> {
-    await this.runOnRef(
-      ref,
-      (selector) =>
-        `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return; el.focus(); ${clear ? 'el.value = "";' : ''} el.value = (el.value || '') + ${JSON.stringify(text)}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); ${submit ? "el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));" : ''} })()`,
-    );
+    await this.focusRef(ref, clear);
+    if (slowly) {
+      for (const char of text) {
+        await browser.insertText(char);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    } else {
+      await browser.insertText(text);
+    }
+    if (submit) {
+      browser.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+      browser.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+    }
   }
 
   private async scroll(
@@ -596,8 +791,8 @@ export class ElectronBrowserManager {
     if (ref) {
       await this.runOnRef(
         ref,
-        (selector) =>
-          `document.querySelector(${JSON.stringify(selector)})?.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0})`,
+        (element) =>
+          `${element}.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0}); return true;`,
       );
       return;
     }
