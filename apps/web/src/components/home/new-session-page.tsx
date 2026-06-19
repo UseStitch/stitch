@@ -12,6 +12,7 @@ import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { sessionKeys, useCreateSession, useSendMessage } from '@/lib/queries/chat';
+import { todoKeys } from '@/lib/queries/todos';
 import { useStreamStore } from '@/stores/stream-store';
 
 export function NewSessionPage() {
@@ -41,6 +42,7 @@ export function NewSessionPage() {
       pages: [{ messages: [], hasMore: false }],
       pageParams: [undefined],
     });
+    queryClient.setQueryData(todoKeys.list(session.id), []);
 
     startStream(session.id, assistantMessageId);
     void sendMessage.mutateAsync({

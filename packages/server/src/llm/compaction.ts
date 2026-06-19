@@ -14,13 +14,11 @@ import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
-import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { retrieveMemoryContext } from '@/memory/retriever.js';
 import * as OllamaModels from '@/models/llm/ollama.js';
 import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
@@ -467,65 +465,6 @@ export async function compact(input: {
   } finally {
     activeCompactions.delete(sessionId);
   }
-}
-
-/**
- * Build the LLM message history for a session, respecting compaction
- * boundaries. Returns messages starting from the most recent summary.
- */
-export async function buildCompactedHistory(
-  sessionId: PrefixedString<'ses'>,
-  promptConfig: Pick<PromptConfig, 'useBasePrompt' | 'systemPrompt'>,
-): Promise<ModelMessage[]> {
-  const db = getDb();
-
-  const [msgs, promptUserContext, sessionRow, todoContext] = await Promise.all([
-    db
-      .select()
-      .from(messages)
-      .where(eq(messages.sessionId, sessionId))
-      .orderBy(asc(messages.createdAt)),
-    getPromptUserContext(),
-    db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
-    getSessionTodosPromptBlock(sessionId),
-  ]);
-
-  // Automations can read all memories; chat only sees 'chat' memories
-  const memorySourceFilter = sessionRow[0]?.type === 'automation' ? undefined : ('chat' as const);
-
-  // Find the last compaction boundary (summary message)
-  let startIndex = 0;
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    if (msgs[i].isSummary) {
-      startIndex = i;
-      break;
-    }
-  }
-
-  // Extract the latest user message text for memory retrieval
-  let memoryContext: string | null = null;
-  const latestUserMsg = [...msgs].reverse().find((m) => m.role === 'user');
-  if (latestUserMsg) {
-    const userText = latestUserMsg.parts
-      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-      .map((p) => p.text)
-      .join('');
-
-    if (userText.length > 0) {
-      memoryContext = await retrieveMemoryContext(userText, memorySourceFilter).catch(() => null);
-    }
-  }
-
-  const historyMessages = buildHistoryMessages(msgs.slice(startIndex), {
-    useBasePrompt: promptConfig.useBasePrompt,
-    systemPrompt: promptConfig.systemPrompt,
-    userName: promptUserContext.userName,
-    userTimezone: promptUserContext.userTimezone,
-    memoryContext,
-    todoContext,
-  });
-
-  return historyMessages;
 }
 
 export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'ses'>): string {

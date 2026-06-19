@@ -13,8 +13,8 @@ import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { isServiceError } from '@/lib/service-result.js';
-import { buildCompactedHistory } from '@/llm/compaction.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -123,7 +123,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       });
 
       // Build history (just the system prompt + user message)
-      const llmMessages = await buildCompactedHistory(childSessionId, {
+      const llmMessages = await buildSessionLlmMessages(childSessionId, {
         useBasePrompt: true,
         systemPrompt: null,
       });

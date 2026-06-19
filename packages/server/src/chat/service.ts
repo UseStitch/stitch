@@ -16,7 +16,8 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, isServiceError, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { buildCompactedHistory, compact } from '@/llm/compaction.js';
+import { compact } from '@/llm/compaction.js';
+import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
@@ -347,7 +348,7 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildCompactedHistory(input.sessionId, {
+  const llmMessages = await buildSessionLlmMessages(input.sessionId, {
     useBasePrompt: true,
     systemPrompt: null,
   });
