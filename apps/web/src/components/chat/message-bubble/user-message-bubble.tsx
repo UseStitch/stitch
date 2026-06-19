@@ -30,7 +30,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
 
   return (
     <div className="group flex justify-end">
-      <div className="max-w-[80%] space-y-2">
+      <div className="min-w-0 max-w-[80%] space-y-2">
         {hasAttachments && (
           <div className="flex flex-wrap justify-end gap-2">
             {imageParts.map((part) => (
@@ -70,7 +70,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
 
         {text && (
           <div className="rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
-            <p className="whitespace-pre-wrap">{text}</p>
+            <p className="whitespace-pre-wrap wrap-break-word">{text}</p>
           </div>
         )}
 
