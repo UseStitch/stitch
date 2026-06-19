@@ -11,6 +11,7 @@ export const SHORTCUT_ACTION_IDS = [
   'rename-session',
   'compact-session',
   'stop-stream',
+  'toggle-dictation',
 ] as const;
 
 export type ShortcutActionId = (typeof SHORTCUT_ACTION_IDS)[number];
@@ -110,6 +111,13 @@ export const SHORTCUT_DEFAULTS: ShortcutDefault[] = [
     hotkey: 'Escape',
     isSequence: true,
     label: 'Stop stream (double press)',
+    category: 'Chat',
+  },
+  {
+    actionId: 'toggle-dictation',
+    hotkey: 'Mod+Space',
+    isSequence: false,
+    label: 'Toggle dictation',
     category: 'Chat',
   },
 ];

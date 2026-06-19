@@ -11,9 +11,24 @@ type UseSttReturn = {
   state: SttState;
   committedText: string;
   partialText: string;
+  audioLevel: number;
+  startedAt: number | null;
   start: (providerId: string, modelId: string, sampleRateHz: number) => Promise<void>;
   stop: () => Promise<string>;
+  cancel: () => void;
 };
+
+/** Root-mean-square amplitude of a PCM frame, normalized to a usable 0–1 meter range. */
+export function computeAudioLevel(f32: Float32Array): number {
+  if (f32.length === 0) return 0;
+  let sumSquares = 0;
+  for (let i = 0; i < f32.length; i++) {
+    sumSquares += f32[i] * f32[i];
+  }
+  const rms = Math.sqrt(sumSquares / f32.length);
+  // Speech RMS rarely exceeds ~0.3; scale so normal speaking fills the meter.
+  return Math.min(1, rms * 3);
+}
 
 function toWsUrl(serverUrl: string): string {
   const url = new URL('/stt/stream', serverUrl);
@@ -49,6 +64,8 @@ export function useStt(): UseSttReturn {
   const [state, setState] = React.useState<SttState>('idle');
   const [committedText, setCommittedText] = React.useState('');
   const [partialText, setPartialText] = React.useState('');
+  const [audioLevel, setAudioLevel] = React.useState(0);
+  const [startedAt, setStartedAt] = React.useState<number | null>(null);
 
   // Refs hold the live session state so callbacks don't capture stale closures.
   const wsRef = React.useRef<WebSocket | null>(null);
@@ -59,9 +76,18 @@ export function useStt(): UseSttReturn {
   const finalTextRef = React.useRef<string>('');
   const stopResolveRef = React.useRef<((text: string) => void) | null>(null);
   const stopRejectRef = React.useRef<((err: Error) => void) | null>(null);
+  const levelRef = React.useRef(0);
+  const levelRafRef = React.useRef<number | null>(null);
 
   // Cleanup all audio and WS resources.
   const cleanup = React.useCallback(() => {
+    if (levelRafRef.current !== null) {
+      cancelAnimationFrame(levelRafRef.current);
+      levelRafRef.current = null;
+    }
+    levelRef.current = 0;
+    setAudioLevel(0);
+    setStartedAt(null);
     workletRef.current?.disconnect();
     workletRef.current?.port.close();
     workletRef.current = null;
@@ -201,6 +227,13 @@ export function useStt(): UseSttReturn {
       workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
         const f32 = new Float32Array(e.data);
+        levelRef.current = computeAudioLevel(f32);
+        if (levelRafRef.current === null) {
+          levelRafRef.current = requestAnimationFrame(() => {
+            levelRafRef.current = null;
+            setAudioLevel(levelRef.current);
+          });
+        }
         const pcm = encodeF32ToPcmS16le(f32);
         send({
           type: 'chunk',
@@ -215,6 +248,7 @@ export function useStt(): UseSttReturn {
       source.connect(workletNode);
       workletNode.connect(audioCtx.destination);
 
+      setStartedAt(Date.now());
       setState('recording');
     },
     [state, send, cleanup],
@@ -233,6 +267,21 @@ export function useStt(): UseSttReturn {
     });
   }, [state, send]);
 
+  // Discard the in-progress recording without committing any transcript.
+  const cancel = React.useCallback(() => {
+    if (state === 'idle') return;
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      send({ type: 'stop', sttSessionId: sessionIdRef.current });
+    }
+    stopResolveRef.current = null;
+    stopRejectRef.current = null;
+    finalTextRef.current = '';
+    setState('idle');
+    setCommittedText('');
+    setPartialText('');
+    cleanup();
+  }, [state, send, cleanup]);
+
   // Clean up on unmount
   React.useEffect(() => {
     return () => {
@@ -240,5 +289,5 @@ export function useStt(): UseSttReturn {
     };
   }, [cleanup]);
 
-  return { state, committedText, partialText, start, stop };
+  return { state, committedText, partialText, audioLevel, startedAt, start, stop, cancel };
 }

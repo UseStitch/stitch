@@ -1,20 +1,14 @@
-import {
-  ArrowUpIcon,
-  ChevronDownIcon,
-  MicIcon,
-  MicOffIcon,
-  PaperclipIcon,
-  SquareIcon,
-} from 'lucide-react';
+import { ArrowUpIcon, ChevronDownIcon, MicIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { AttachmentPreview } from './attachment-preview';
 import { ModelSelectorPopover } from './model-selector-popover';
+import { RecordingBar } from './recording-bar';
 import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
-import { useStt } from './use-stt';
+import { useDictation } from './use-dictation';
 
 import type { Attachment, ModelSpec } from './types';
 import {
@@ -31,6 +25,7 @@ import {
   visibleProviderModelsQueryOptions,
 } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { useShortcuts } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 
 type ChatInputInnerProps = {
@@ -67,6 +62,7 @@ export function ChatInputInner({
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const shortcuts = useShortcuts();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -102,7 +98,7 @@ export function ChatInputInner({
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if ((value.trim() || attachments.length > 0) && !disabled) {
+      if ((value.trim() || attachments.length > 0) && !disabled && !dictation.isRecording) {
         submit();
       }
     }
@@ -117,64 +113,46 @@ export function ChatInputInner({
 
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !disabled;
 
-  // STT
-  const stt = useStt();
-  const sttBaseOffsetRef = React.useRef(0);
-  const valueRef = React.useRef(value);
-  valueRef.current = value;
+  // Dictation
+  const dictation = useDictation({
+    value,
+    onChange,
+    sttProviders,
+    defaultProviderId: settings['stt.default.providerId'],
+    defaultModelId: settings['stt.default.modelId'],
+  });
+  const { isRecording, isStopping } = dictation;
 
   const defaultSttModel: SttModelSelection | null =
     settings['stt.default.providerId'] && settings['stt.default.modelId']
       ? { providerId: settings['stt.default.providerId'], modelId: settings['stt.default.modelId'] }
       : null;
 
-  function startStt(model?: SttModelSelection) {
-    if (stt.state !== 'idle') return;
+  const dictationHotkey = shortcuts.get('toggle-dictation');
+  const holdToTalk = settings['stt.holdToTalk'] === 'true';
+  const dictationEnabled = sttProviders.length > 0 && !!dictationHotkey?.hotkey && !disabled;
 
-    const providerId = model?.providerId ?? settings['stt.default.providerId'];
-    const modelId = model?.modelId ?? settings['stt.default.modelId'];
-    if (!providerId || !modelId) {
-      toast.error('No STT model configured. Set one in Settings → General → STT Model.');
-      return;
-    }
+  // Toggle mode: press once to start, again to finalize.
+  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.toggle(), {
+    preventDefault: true,
+    enabled: dictationEnabled && !holdToTalk,
+  });
 
-    const provider = sttProviders.find((p) => p.providerId === providerId);
-    const foundModel = provider?.models.find((m) => m.id === modelId);
-    if (!foundModel) {
-      toast.error('Configured STT model not found. Check Settings → General → STT Model.');
-      return;
-    }
+  // Hold-to-talk mode: record while held, finalize on release.
+  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.start(), {
+    preventDefault: true,
+    requireReset: true,
+    enabled: dictationEnabled && holdToTalk,
+  });
+  useHotkey(
+    dictationHotkey?.hotkey ?? 'Mod+Space',
+    () => {
+      void dictation.stopAndCommit();
+    },
+    { eventType: 'keyup', enabled: dictationEnabled && holdToTalk },
+  );
 
-    sttBaseOffsetRef.current = value.length;
-    void stt.start(providerId, modelId, foundModel.sampleRateHz);
-  }
-
-  async function handleMicClick() {
-    if (stt.state === 'recording') {
-      const transcript = await stt.stop();
-      const base = valueRef.current.slice(0, sttBaseOffsetRef.current);
-      const separator = base.trimEnd().length > 0 ? ' ' : '';
-      onChange(base.trimEnd() + separator + transcript);
-      return;
-    }
-
-    startStt();
-  }
-
-  // Splice partial text into textarea value while recording
-  React.useEffect(() => {
-    if (stt.state !== 'recording') return;
-    const base = value.slice(0, sttBaseOffsetRef.current);
-    const separator = base.trimEnd().length > 0 ? ' ' : '';
-    const transcript = [stt.committedText, stt.partialText].filter(Boolean).join(' ');
-    const next = base.trimEnd() + separator + transcript;
-    if (next !== value) onChange(next);
-    // Only re-run when STT text changes — value intentionally omitted to avoid loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stt.committedText, stt.partialText, stt.state]);
-
-  const isRecording = stt.state === 'recording';
-  const isStopping = stt.state === 'stopping';
+  const canSend = canSubmit && !isRecording && !isStopping;
 
   return (
     <div
@@ -243,98 +221,79 @@ export function ChatInputInner({
       />
 
       <div className="flex items-center justify-between px-3 pt-1 pb-3">
-        <div className="flex items-center gap-1">
-          {providerModels.length > 0 && (
-            <ModelSelectorPopover
-              selectedValue={selectedModel}
-              onSelect={onModelChange}
-              providerModels={providerModels}
-            />
-          )}
+        {isRecording || isStopping ? (
+          <RecordingBar
+            audioLevel={dictation.audioLevel}
+            startedAt={dictation.startedAt}
+            isStopping={isStopping}
+            onCancel={dictation.cancel}
+            onStop={() => {
+              void dictation.stopAndCommit();
+            }}
+          />
+        ) : (
+          <div className="flex items-center gap-1">
+            {providerModels.length > 0 && (
+              <ModelSelectorPopover
+                selectedValue={selectedModel}
+                onSelect={onModelChange}
+                providerModels={providerModels}
+              />
+            )}
 
-          {canAttach && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
-              className={cn(
-                'flex items-center justify-center rounded-md p-1 transition-colors',
-                'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                disabled && 'pointer-events-none',
-              )}
-              title="Attach files"
-            >
-              <PaperclipIcon className="size-3.5" />
-            </button>
-          )}
-
-          {sttProviders.length > 0 ? (
-            <ButtonGroup>
-              <Button
+            {canAttach && (
+              <button
                 type="button"
-                size="icon-xs"
-                variant="ghost"
-                onClick={() => {
-                  void handleMicClick();
-                }}
-                disabled={disabled || isStopping}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled}
                 className={cn(
-                  isRecording
-                    ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
-                    : 'text-muted-foreground hover:text-foreground',
-                  (disabled || isStopping) && 'pointer-events-none opacity-50',
+                  'flex items-center justify-center rounded-md p-1 transition-colors',
+                  'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                  disabled && 'pointer-events-none',
                 )}
-                title={isRecording ? 'Stop recording' : 'Speak to type'}
+                title="Attach files"
               >
-                {isRecording ? (
-                  <MicOffIcon className="size-3.5" />
-                ) : (
+                <PaperclipIcon className="size-3.5" />
+              </button>
+            )}
+
+            {sttProviders.length > 0 ? (
+              <ButtonGroup>
+                <Button
+                  type="button"
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => dictation.toggle()}
+                  disabled={disabled}
+                  className={cn(
+                    'text-muted-foreground hover:text-foreground',
+                    disabled && 'pointer-events-none opacity-50',
+                  )}
+                  title="Speak to type"
+                >
                   <MicIcon className="size-3.5" />
-                )}
-              </Button>
-              {!isRecording && (
-                <>
-                  <ButtonGroupSeparator />
-                  <SttModelSelectorPopover
-                    defaultValue={defaultSttModel}
-                    onSelect={(model) => startStt(model)}
-                    sttProviders={sttProviders}
-                    triggerRender={
-                      <Button
-                        type="button"
-                        size="icon-xs"
-                        variant="ghost"
-                        className="w-4 px-0 text-muted-foreground hover:text-foreground"
-                      >
-                        <ChevronDownIcon className="size-3" />
-                      </Button>
-                    }
-                  />
-                </>
-              )}
-            </ButtonGroup>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                void handleMicClick();
-              }}
-              disabled={disabled || isStopping}
-              className={cn(
-                'flex items-center justify-center rounded-md p-1 transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                isRecording
-                  ? 'text-destructive hover:text-destructive/80 hover:bg-destructive/10 animate-pulse'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                (disabled || isStopping) && 'pointer-events-none opacity-50',
-              )}
-              title={isRecording ? 'Stop recording' : 'Speak to type'}
-            >
-              {isRecording ? <MicOffIcon className="size-3.5" /> : <MicIcon className="size-3.5" />}
-            </button>
-          )}
-        </div>
+                </Button>
+                <ButtonGroupSeparator />
+                <SttModelSelectorPopover
+                  defaultValue={defaultSttModel}
+                  onSelect={(model) => dictation.start(model)}
+                  sttProviders={sttProviders}
+                  triggerRender={
+                    <Button
+                      type="button"
+                      size="icon-xs"
+                      variant="ghost"
+                      className="w-4 px-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <ChevronDownIcon className="size-3" />
+                    </Button>
+                  }
+                />
+              </ButtonGroup>
+            ) : null}
+          </div>
+        )}
 
         <div className="flex items-center gap-1">
           {isStreaming ? (
@@ -353,12 +312,12 @@ export function ChatInputInner({
             <Button
               type="button"
               size="icon-xs"
-              variant={canSubmit ? 'default' : 'outline'}
-              disabled={!canSubmit}
+              variant={canSend ? 'default' : 'outline'}
+              disabled={!canSend}
               onClick={() => {
-                if (canSubmit) submit();
+                if (canSend) submit();
               }}
-              className={cn('shrink-0 transition-all', canSubmit && 'shadow-sm')}
+              className={cn('shrink-0 transition-all', canSend && 'shadow-sm')}
               title="Send message"
             >
               <ArrowUpIcon className="size-3.5" />
