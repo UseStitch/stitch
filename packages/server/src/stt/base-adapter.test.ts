@@ -282,4 +282,23 @@ describe('createManagedConnection recovery', () => {
 
     await conn.close();
   });
+
+  test('replays unrecoverable reason to listeners registered after a fatal error', async () => {
+    const transport = createFakeTransport();
+    const conn = await createManagedConnection({
+      buffer: baseBuffer,
+      reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
+      partialStrategy: 'cumulative',
+      classifyError: () => ({ fatal: true, reason: 'adapter classified auth as fatal' }),
+      openConnection: async () => transport,
+    });
+
+    transport.emitError(new Error('auth rejected'));
+
+    const reasons: string[] = [];
+    conn.onUnrecoverable((reason) => reasons.push(reason));
+
+    expect(reasons).toEqual(['adapter classified auth as fatal']);
+    expect(transport.closed).toBe(true);
+  });
 });
