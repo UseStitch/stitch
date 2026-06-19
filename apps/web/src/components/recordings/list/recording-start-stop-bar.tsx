@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 interface RecordingStartStopBarProps {
   activeRecording: Recording | undefined;
@@ -19,9 +20,7 @@ interface RecordingStartStopBarProps {
   isStopping: boolean;
   title: string;
   onTitleChange: (title: string) => void;
-  sttModelOverride: SttModelSelection | null;
-  onSttModelOverrideChange: (value: SttModelSelection | null) => void;
-  onStart: () => void;
+  onStart: (sttModel?: SttModelSelection) => void;
   onStop: () => void;
 }
 
@@ -31,12 +30,19 @@ export function RecordingStartStopBar({
   isStopping,
   title,
   onTitleChange,
-  sttModelOverride,
-  onSttModelOverrideChange,
   onStart,
   onStop,
 }: RecordingStartStopBarProps) {
   const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+
+  const defaultSttModel: SttModelSelection | null =
+    settings['recordings.transcription.providerId'] && settings['recordings.transcription.modelId']
+      ? {
+          providerId: settings['recordings.transcription.providerId'],
+          modelId: settings['recordings.transcription.modelId'],
+        }
+      : null;
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/70 p-4">
@@ -67,7 +73,7 @@ export function RecordingStartStopBar({
         ) : sttProviders.length > 0 ? (
           <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
             <Button
-              onClick={onStart}
+              onClick={() => onStart()}
               disabled={isStarting}
               className="h-8 rounded-none px-2.5 text-primary-foreground hover:bg-primary/90"
             >
@@ -76,14 +82,14 @@ export function RecordingStartStopBar({
             </Button>
             <ButtonGroupSeparator className="bg-primary-foreground/20" />
             <SttModelSelectorPopover
-              selectedValue={sttModelOverride}
-              onSelect={onSttModelOverrideChange}
+              defaultValue={defaultSttModel}
+              onSelect={(value) => onStart(value)}
               sttProviders={sttProviders}
               triggerRender={
                 <Button
                   disabled={isStarting}
                   className="h-8 rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
-                  title="Choose transcription model"
+                  title="Choose transcription model and start"
                 >
                   <ChevronDownIcon className="size-3.5" />
                 </Button>
@@ -92,7 +98,7 @@ export function RecordingStartStopBar({
           </ButtonGroup>
         ) : (
           <Button
-            onClick={onStart}
+            onClick={() => onStart()}
             disabled={isStarting}
             className="h-8 rounded-lg px-2.5 shadow-sm"
           >

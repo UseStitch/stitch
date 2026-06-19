@@ -122,7 +122,32 @@ export function ChatInputInner({
   const sttBaseOffsetRef = React.useRef(0);
   const valueRef = React.useRef(value);
   valueRef.current = value;
-  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
+
+  const defaultSttModel: SttModelSelection | null =
+    settings['stt.default.providerId'] && settings['stt.default.modelId']
+      ? { providerId: settings['stt.default.providerId'], modelId: settings['stt.default.modelId'] }
+      : null;
+
+  function startStt(model?: SttModelSelection) {
+    if (stt.state !== 'idle') return;
+
+    const providerId = model?.providerId ?? settings['stt.default.providerId'];
+    const modelId = model?.modelId ?? settings['stt.default.modelId'];
+    if (!providerId || !modelId) {
+      toast.error('No STT model configured. Set one in Settings → General → STT Model.');
+      return;
+    }
+
+    const provider = sttProviders.find((p) => p.providerId === providerId);
+    const foundModel = provider?.models.find((m) => m.id === modelId);
+    if (!foundModel) {
+      toast.error('Configured STT model not found. Check Settings → General → STT Model.');
+      return;
+    }
+
+    sttBaseOffsetRef.current = value.length;
+    void stt.start(providerId, modelId, foundModel.sampleRateHz);
+  }
 
   async function handleMicClick() {
     if (stt.state === 'recording') {
@@ -133,24 +158,7 @@ export function ChatInputInner({
       return;
     }
 
-    if (stt.state !== 'idle') return;
-
-    const providerId = sttModelOverride?.providerId ?? settings['stt.default.providerId'];
-    const modelId = sttModelOverride?.modelId ?? settings['stt.default.modelId'];
-    if (!providerId || !modelId) {
-      toast.error('No STT model configured. Set one in Settings → General → STT Model.');
-      return;
-    }
-
-    const provider = sttProviders.find((p) => p.providerId === providerId);
-    const model = provider?.models.find((m) => m.id === modelId);
-    if (!model) {
-      toast.error('Configured STT model not found. Check Settings → General → STT Model.');
-      return;
-    }
-
-    sttBaseOffsetRef.current = value.length;
-    await stt.start(providerId, modelId, model.sampleRateHz);
+    startStt();
   }
 
   // Splice partial text into textarea value while recording
@@ -289,8 +297,8 @@ export function ChatInputInner({
                 <>
                   <ButtonGroupSeparator />
                   <SttModelSelectorPopover
-                    selectedValue={sttModelOverride}
-                    onSelect={setSttModelOverride}
+                    defaultValue={defaultSttModel}
+                    onSelect={(model) => startStt(model)}
                     sttProviders={sttProviders}
                     triggerRender={
                       <Button
