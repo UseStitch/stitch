@@ -19,6 +19,10 @@ import type { SttModelSelection } from '@/components/model-selectors/stt-model-s
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import {
+  TextareaCompletions,
+  type TextareaCompletionGroup,
+} from '@/components/ui/textarea-completions';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import {
   sttProviderModelsQueryOptions,
@@ -43,6 +47,8 @@ type ChatInputInnerProps = {
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
 };
+
+const CHAT_COMPLETION_GROUPS: TextareaCompletionGroup[] = [];
 
 export function ChatInputInner({
   value,
@@ -200,25 +206,35 @@ export function ChatInputInner({
         }}
       />
 
-      <textarea
-        ref={textareaRef}
+      <TextareaCompletions
+        textareaRef={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={handleKeyDown}
-        onPaste={(event) => {
-          void handlePaste(event);
-        }}
-        placeholder={placeholder}
+        onChange={onChange}
+        groups={CHAT_COMPLETION_GROUPS}
         disabled={disabled}
-        rows={1}
-        className={cn(
-          'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
-          'placeholder:text-muted-foreground/60',
-          'max-h-48 overflow-y-auto thin-scrollbar',
-          'field-sizing-content',
-          disabled && 'cursor-not-allowed',
+        onKeyDown={handleKeyDown}
+      >
+        {({ textareaProps }) => (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            {...textareaProps}
+            onPaste={(event) => {
+              void handlePaste(event);
+            }}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={1}
+            className={cn(
+              'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
+              'placeholder:text-muted-foreground/60',
+              'max-h-48 overflow-y-auto thin-scrollbar',
+              'field-sizing-content',
+              disabled && 'cursor-not-allowed',
+            )}
+          />
         )}
-      />
+      </TextareaCompletions>
 
       <div className="flex items-center justify-between px-3 pt-1 pb-3">
         {isRecording || isStopping ? (
