@@ -7,11 +7,14 @@ import { useNavigate } from '@tanstack/react-router';
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 
 import { AutomationDialog } from '@/components/automations/automation-dialog';
+import { BrowserPanel } from '@/components/browser/browser-panel';
 import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
 import { SessionDetailsSheet } from '@/components/session/session-details-sheet';
-import { SessionPageHeader } from '@/components/session/session-page-header';
-import type { RightPanel } from '@/components/session/session-page-types';
+import {
+  SessionPageHeader,
+  type SessionPageHeaderProps,
+} from '@/components/session/session-page-header';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
@@ -33,7 +36,8 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const generateAutomation = useGenerateAutomationDraft();
   const details = useSessionDetailsStats(sessionId);
   const streamState = useSessionStreamState(sessionId);
-  const [rightPanel, setRightPanel] = React.useState<RightPanel>('closed');
+  const [rightPanel, setRightPanel] =
+    React.useState<SessionPageHeaderProps['rightPanel']>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
@@ -45,8 +49,18 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
   const rightPanelOpen = rightPanel !== 'closed';
 
+  const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser);
+
   const toggleDetails = React.useCallback(() => {
     setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
+  }, []);
+
+  const toggleBrowser = React.useCallback(() => {
+    setRightPanel((previous) => (previous === 'browser' ? 'closed' : 'browser'));
+  }, []);
+
+  React.useEffect(() => {
+    return window.api?.browser.onShowRequested(() => setRightPanel('browser'));
   }, []);
 
   React.useEffect(() => {
@@ -99,7 +113,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
         <SessionPageHeader
           sessionId={sessionId}
           rightPanel={rightPanel}
+          hasBrowser={hasBrowser}
           onToggleDetails={toggleDetails}
+          onToggleBrowser={toggleBrowser}
           onDeleteSession={() => setDeleteDialogOpen(true)}
           onGenerateAutomation={() => void handleGenerateAutomation()}
           generateAutomationPending={generateAutomation.isPending}
@@ -117,12 +133,16 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             <>
               <ResizableHandle className="hidden bg-foreground/25 after:w-0 lg:flex" />
 
-              <ResizablePanel defaultSize="30%" minSize="24%" maxSize="38%">
-                <SessionDetailsSheet
-                  {...details}
-                  sessionId={sessionId}
-                  className="hidden lg:block"
-                />
+              <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
+                {rightPanel === 'browser' ? (
+                  <BrowserPanel sessionId={sessionId} onClose={() => setRightPanel('closed')} />
+                ) : (
+                  <SessionDetailsSheet
+                    {...details}
+                    sessionId={sessionId}
+                    className="hidden lg:block"
+                  />
+                )}
               </ResizablePanel>
             </>
           ) : null}

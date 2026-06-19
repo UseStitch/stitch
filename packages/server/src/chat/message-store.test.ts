@@ -1,13 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
-import type { SseEventPayloadMap } from '@stitch/shared/realtime';
-
 import { saveAssistantMessage, markSessionUnread, saveTitleMessage } from '@/chat/message-store.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import * as Events from '@/lib/events.js';
+import type { InternalEventMap } from '@/lib/internal-bus-events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 setupTestDb();
@@ -61,13 +60,13 @@ describe('saveAssistantMessage', () => {
     expect(row.duration).toBeGreaterThanOrEqual(0);
   });
 
-  test('emits stream-finish event with correct payload', async () => {
+  test('emits session.message.saved event with correct payload', async () => {
     const sessionId = 'ses_test_save_2' as never;
     const assistantMessageId = 'msg_test_save_2' as never;
     await seedSession(sessionId);
 
-    const emitted: SseEventPayloadMap['stream-finish'][] = [];
-    const cleanup = Events.on('stream-finish', (data) => emitted.push(data));
+    const emitted: InternalEventMap['session.message.saved'][] = [];
+    const cleanup = internalBus.onSync('session.message.saved', (data) => emitted.push(data));
 
     const startedAt = Date.now();
     await saveAssistantMessage({

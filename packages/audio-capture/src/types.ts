@@ -70,7 +70,6 @@ export type AudioChunkConfig = {
 
 export type NativeCaptureStartCommand = {
   type: 'start';
-  outputPath: string;
   format: CaptureFormat;
   mode: CaptureMode;
   sampleRateHz: number;
@@ -126,7 +125,6 @@ export type NativeCaptureErrorCode =
 export type NativeCaptureStartedEvent = {
   type: 'started';
   startedAt: number;
-  outputPath: string;
 };
 
 export type NativeCaptureProgressEvent = {
@@ -150,10 +148,6 @@ export type NativeCaptureStoppedEvent = {
   type: 'stopped';
   endedAt: number;
   durationMs: number;
-  outputPath: string;
-  fileSizeBytes: number | null;
-  sampleRateHz: number;
-  channels: number;
   warnings: string[];
 };
 
@@ -231,7 +225,6 @@ export type NativeCaptureController = {
 };
 
 export type StartCaptureInput = {
-  outputPath: string;
   format?: CaptureFormat;
   sampleRateHz?: number;
   channels?: number;
@@ -243,7 +236,6 @@ export type StartCaptureInput = {
 
 export type ActiveCapture = {
   startedAt: number;
-  outputPath: string;
   sessionId: string;
   process: ChildProcessWithoutNullStreams;
   controller: NativeCaptureController;
@@ -252,9 +244,6 @@ export type ActiveCapture = {
 export type StopCaptureResult = {
   endedAt: number;
   durationMs: number;
-  fileSizeBytes: number | null;
-  sampleRateHz: number;
-  channels: number;
   warnings: string[];
 };
 

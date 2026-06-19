@@ -5,7 +5,11 @@ import {
   enabledProviderModelsQueryOptions,
   sttProviderModelsQueryOptions,
 } from '@/lib/queries/providers';
-import { audioDevicesQueryOptions, audioPermissionsQueryOptions } from '@/lib/queries/recordings';
+import {
+  audioDevicesQueryOptions,
+  audioPermissionsQueryOptions,
+  meetingNoteTemplatesQueryOptions,
+} from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/settings/recordings')({
@@ -16,6 +20,7 @@ export const Route = createFileRoute('/settings/recordings')({
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(audioDevicesQueryOptions),
       context.queryClient.ensureQueryData(audioPermissionsQueryOptions),
+      context.queryClient.ensureQueryData(meetingNoteTemplatesQueryOptions),
     ]),
   component: RecordingsSettings,
 });

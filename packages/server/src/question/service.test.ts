@@ -2,24 +2,24 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import { getDb } from '@/db/client.js';
 import { questions } from '@/db/schema/questions.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 
 setupTestDb();
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
-function captureEvents(...names: SseEventName[]): void {
+function captureEvents(...names: InternalEventName[]): void {
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -46,7 +46,7 @@ describe('question service interactions', () => {
     emittedEvents = [];
     for (const cleanup of cleanups) cleanup();
     cleanups = [];
-    captureEvents('question-asked', 'question-replied', 'question-rejected');
+    captureEvents('question.asked', 'question.replied', 'question.rejected');
     await seedSessions();
   });
 
@@ -67,9 +67,9 @@ describe('question service interactions', () => {
 
     await waitForEvents(1);
 
-    const askedEvent = emittedEvents.find(([name]) => name === 'question-asked');
+    const askedEvent = emittedEvents.find(([name]) => name === 'question.asked');
     expect(askedEvent).toBeDefined();
-    const askedData = askedEvent![1] as SseEventPayloadMap['question-asked'];
+    const askedData = askedEvent![1] as InternalEventMap['question.asked'];
     expect(askedData.question).toMatchObject({
       sessionId,
       messageId,
@@ -84,7 +84,7 @@ describe('question service interactions', () => {
 
     expect(promise).resolves.toEqual([['A']]);
 
-    const repliedEvent = emittedEvents.find(([name]) => name === 'question-replied');
+    const repliedEvent = emittedEvents.find(([name]) => name === 'question.replied');
     expect(repliedEvent).toBeDefined();
     expect(repliedEvent![1]).toEqual({
       questionId,
@@ -111,8 +111,8 @@ describe('question service interactions', () => {
     await waitForEvents(1);
 
     const askedData = emittedEvents.find(
-      ([name]) => name === 'question-asked',
-    )![1] as SseEventPayloadMap['question-asked'];
+      ([name]) => name === 'question.asked',
+    )![1] as InternalEventMap['question.asked'];
     const questionId = askedData.question.id;
 
     const rejectResult = await rejectQuestion(questionId);
@@ -120,7 +120,7 @@ describe('question service interactions', () => {
 
     expect(promise).rejects.toThrow('Question rejected by user');
 
-    const rejectedEvent = emittedEvents.find(([name]) => name === 'question-rejected');
+    const rejectedEvent = emittedEvents.find(([name]) => name === 'question.rejected');
     expect(rejectedEvent).toBeDefined();
     expect(rejectedEvent![1]).toEqual({
       questionId,
@@ -219,8 +219,8 @@ describe('question service interactions', () => {
     // Wait for both askQuestion broadcasts to fire
     await waitForEvents(2);
 
-    const askedEvents = emittedEvents.filter(([name]) => name === 'question-asked') as Array<
-      [string, SseEventPayloadMap['question-asked']]
+    const askedEvents = emittedEvents.filter(([name]) => name === 'question.asked') as Array<
+      [string, InternalEventMap['question.asked']]
     >;
 
     const firstId = askedEvents.find(([, data]) => data.question.sessionId === sessionId)?.[1]
@@ -232,10 +232,10 @@ describe('question service interactions', () => {
 
     expect(first).rejects.toThrow('Question aborted by session abort');
 
-    const rejectedEvents = emittedEvents.filter(([name]) => name === 'question-rejected');
+    const rejectedEvents = emittedEvents.filter(([name]) => name === 'question.rejected');
     expect(
       rejectedEvents.some(([, data]) => {
-        const d = data as SseEventPayloadMap['question-rejected'];
+        const d = data as InternalEventMap['question.rejected'];
         return d.questionId === firstId && d.sessionId === sessionId;
       }),
     ).toBe(true);

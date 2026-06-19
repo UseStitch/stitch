@@ -2,8 +2,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { executeStepWithRetry, type StepOptions } from './step-executor.js';
 
-import * as Events from '@/lib/events.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import * as Usage from '@/utils/usage.js';
 import type { LanguageModelUsage, ModelMessage } from 'ai';
@@ -117,7 +117,7 @@ export async function checkAndHandleDoomLoop(opts: {
     'doom loop detected',
   );
 
-  Events.emit('doom-loop-detected', {
+  internalBus.emit('stream.doom_loop.detected', {
     sessionId,
     messageId,
     toolName: repeatedTool,
@@ -134,8 +134,10 @@ export async function checkAndHandleDoomLoop(opts: {
       content: DOOM_LOOP_MESSAGE,
     });
 
+    // Use empty tools for the summary step
     const summaryResult = await executeStepWithRetry({
       ...stepOptions,
+      tools: {},
       conversation,
       onAttemptFailure: onDoomLoopAttemptFailure,
     });

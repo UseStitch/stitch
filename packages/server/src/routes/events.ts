@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 
+import { registerSseConnection, unregisterSseConnection } from '@/adapters/sse.js';
 import * as Log from '@/lib/log.js';
-import * as Sse from '@/lib/sse.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const RECONNECT_DELAY_MS = 10_000;
@@ -14,10 +14,10 @@ eventsRouter.get('/', (c) => {
   return streamSSE(
     c,
     async (stream) => {
-      Sse.registerConnection(stream);
+      registerSseConnection(stream);
 
       stream.onAbort(() => {
-        Sse.unregisterConnection(stream);
+        unregisterSseConnection(stream);
       });
 
       await stream.writeSSE({

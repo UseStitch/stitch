@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
 
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
+import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
   PermissionRejectedError,
@@ -12,14 +12,15 @@ import {
   StreamPartError,
 } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
+import type { TextStreamPart, ToolSet } from 'ai';
 
-type EmittedEvent = [SseEventName, SseEventPayloadMap[SseEventName]];
+type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
 let cleanups: Array<() => void> = [];
 
-function captureEvents(...names: SseEventName[]): void {
+function captureEvents(...names: InternalEventName[]): void {
   for (const name of names) {
-    cleanups.push(Events.on(name, (data) => emittedEvents.push([name, data])));
+    cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
 
@@ -41,25 +42,38 @@ function createAccumulator(
   );
 }
 
+/** Minimal valid part factory helpers — only include fields our code actually reads */
+function part<T extends TextStreamPart<ToolSet>>(p: T): T {
+  return p;
+}
+
 describe('StreamAccumulator', () => {
   beforeEach(() => {
     emittedEvents = [];
     for (const cleanup of cleanups) cleanup();
     cleanups = [];
-    captureEvents('stream-part-update', 'stream-part-delta', 'stream-tool-state', 'stream-error');
+    captureEvents(
+      'part.update',
+      'part.delta',
+      'tool.pending',
+      'tool.started',
+      'tool.completed',
+      'tool.failed',
+      'stream.failed',
+    );
   });
 
   // ─── Text accumulation ──────────────────────────────────────────────
 
   describe('text accumulation', () => {
-    test('accumulates text-start → text-delta → text-end into a stored part', async () => {
+    test('accumulates text-start → text-delta → text-end into a stored part', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'text-start' });
-      await acc.handlePart({ type: 'text-delta', text: 'Hello' });
-      await acc.handlePart({ type: 'text-delta', text: ', world!' });
-      await acc.handlePart({ type: 'text-end' });
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Hello' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: ', world!' }));
+      acc.handlePart(part({ type: 'text-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
@@ -68,12 +82,12 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('flush() emits buffered text when no text-end arrives', async () => {
+    test('flush() emits buffered text when no text-end arrives', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'text-start' });
-      await acc.handlePart({ type: 'text-delta', text: 'Incomplete' });
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Incomplete' }));
       acc.flush();
 
       expect(parts).toHaveLength(1);
@@ -83,20 +97,20 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('flush() does nothing when text buffer is empty', async () => {
+    test('flush() does nothing when text buffer is empty', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'text-start' });
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
       acc.flush();
 
       expect(parts).toHaveLength(0);
     });
 
-    test('text-delta without text-start increments protocol violation count', async () => {
+    test('text-delta without text-start increments protocol violation count', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({ type: 'text-delta', text: 'orphan delta' });
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'orphan delta' }));
 
       expect(acc.getProtocolViolationCount()).toBe(1);
     });
@@ -105,14 +119,14 @@ describe('StreamAccumulator', () => {
   // ─── Reasoning accumulation ─────────────────────────────────────────
 
   describe('reasoning accumulation', () => {
-    test('accumulates reasoning into a stored reasoning-delta part', async () => {
+    test('accumulates reasoning into a stored reasoning-delta part', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'reasoning-start' });
-      await acc.handlePart({ type: 'reasoning-delta', text: 'Thinking step 1' });
-      await acc.handlePart({ type: 'reasoning-delta', text: '. Thinking step 2' });
-      await acc.handlePart({ type: 'reasoning-end' });
+      acc.handlePart(part({ type: 'reasoning-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Thinking step 1' }));
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: '. Thinking step 2' }));
+      acc.handlePart(part({ type: 'reasoning-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
@@ -121,20 +135,20 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('reasoning-delta without reasoning-start increments protocol violation', async () => {
+    test('reasoning-delta without reasoning-start increments protocol violation', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({ type: 'reasoning-delta', text: 'orphan' });
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'orphan' }));
 
       expect(acc.getProtocolViolationCount()).toBe(1);
     });
 
-    test('flush() emits buffered reasoning when no reasoning-end arrives', async () => {
+    test('flush() emits buffered reasoning when no reasoning-end arrives', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'reasoning-start' });
-      await acc.handlePart({ type: 'reasoning-delta', text: 'Partial reasoning' });
+      acc.handlePart(part({ type: 'reasoning-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Partial reasoning' }));
       acc.flush();
 
       expect(parts).toHaveLength(1);
@@ -148,17 +162,19 @@ describe('StreamAccumulator', () => {
   // ─── Tool call handling ─────────────────────────────────────────────
 
   describe('tool calls', () => {
-    test('records tool-call in both accumulatedParts and toolCalls', async () => {
+    test('records tool-call in both accumulatedParts and toolCalls', () => {
       const parts: StoredPart[] = [];
       const toolCalls: ToolCallRecord[] = [];
       const acc = createAccumulator(parts, toolCalls);
 
-      await acc.handlePart({
-        type: 'tool-call',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        input: { command: 'pwd' },
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+        }),
+      );
 
       expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
       expect(parts).toHaveLength(1);
@@ -169,17 +185,19 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('records tool-result in accumulatedParts', async () => {
+    test('records tool-result in accumulatedParts', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({
-        type: 'tool-result',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        input: { command: 'pwd' },
-        output: { result: '/home/user' },
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          output: { result: '/home/user' },
+        }),
+      );
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
@@ -191,78 +209,90 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('broadcasts stream-tool-state for tool-call and tool-result lifecycle', async () => {
+    test('broadcasts tool.started and tool.completed for tool-call and tool-result lifecycle', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({
-        type: 'tool-call',
-        toolCallId: 'call_1',
-        toolName: 'read',
-        input: { filePath: 'README.md' },
-      });
-      await acc.handlePart({
-        type: 'tool-result',
-        toolCallId: 'call_1',
-        toolName: 'read',
-        input: { filePath: 'README.md' },
-        output: { content: '# Hello' },
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'read',
+          input: { filePath: 'README.md' },
+        }),
+      );
+      acc.handlePart(
+        part({
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'read',
+          input: { filePath: 'README.md' },
+          output: { content: '# Hello' },
+        }),
+      );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
+      const startedCalls = getEmittedCalls('tool.started');
+      const completedCalls = getEmittedCalls('tool.completed');
 
-      expect(toolStateCalls).toHaveLength(2);
-      expect(toolStateCalls[0]).toMatchObject({ status: 'in-progress' });
-      expect(toolStateCalls[1]).toMatchObject({ status: 'completed' });
+      expect(startedCalls).toHaveLength(1);
+      expect(completedCalls).toHaveLength(1);
+      expect(startedCalls[0]).toMatchObject({ toolName: 'read' });
+      expect(completedCalls[0]).toMatchObject({ toolName: 'read' });
     });
 
-    test('broadcasts error status when a tool-result contains an error payload', async () => {
+    test('broadcasts tool.failed when a tool-result contains an error payload', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({
-        type: 'tool-result',
-        toolCallId: 'call_1',
-        toolName: 'browser',
-        input: { action: 'snapshot' },
-        output: { error: 'Navigation failed' },
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'browser',
+          input: { action: 'snapshot' },
+          output: { error: 'Navigation failed' },
+        }),
+      );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({
-        status: 'error',
+      const failedCalls = getEmittedCalls('tool.failed');
+      expect(failedCalls).toHaveLength(1);
+      expect(failedCalls[0]).toMatchObject({
         toolName: 'browser',
         error: 'Navigation failed',
       });
     });
 
-    test('broadcasts stream-tool-state pending for tool-input-start', async () => {
+    test('broadcasts tool.pending for tool-input-start', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({
-        type: 'tool-input-start',
-        id: 'call_1',
-        toolName: 'bash',
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-input-start',
+          id: 'call_1',
+          toolName: 'bash',
+        }),
+      );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({ status: 'pending', toolName: 'bash' });
+      const pendingCalls = getEmittedCalls('tool.pending');
+      expect(pendingCalls).toHaveLength(1);
+      expect(pendingCalls[0]).toMatchObject({ toolName: 'bash' });
     });
   });
 
   // ─── Tool error handling ────────────────────────────────────────────
 
   describe('tool errors', () => {
-    test('converts tool-error to tool-result with error output', async () => {
+    test('converts tool-error to tool-result with error output', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({
-        type: 'tool-error',
-        toolCallId: 'call_1',
-        toolName: 'webfetch',
-        error: 'connection refused',
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-error',
+          toolCallId: 'call_1',
+          toolName: 'webfetch',
+          input: {},
+          error: 'connection refused',
+        }),
+      );
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
@@ -273,47 +303,55 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('captures PermissionRejectedError from tool-error', async () => {
+    test('captures PermissionRejectedError from tool-error', () => {
       const acc = createAccumulator();
       const permError = new PermissionRejectedError('webfetch');
 
-      await acc.handlePart({
-        type: 'tool-error',
-        toolCallId: 'call_1',
-        toolName: 'webfetch',
-        error: permError,
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-error',
+          toolCallId: 'call_1',
+          toolName: 'webfetch',
+          input: {},
+          error: permError,
+        }),
+      );
 
       expect(acc.getPermissionRejected()).toBeInstanceOf(PermissionRejectedError);
     });
 
-    test('does not set permissionRejected for non-permission errors', async () => {
+    test('does not set permissionRejected for non-permission errors', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({
-        type: 'tool-error',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        error: new Error('command failed'),
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-error',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: {},
+          error: new Error('command failed'),
+        }),
+      );
 
       expect(acc.getPermissionRejected()).toBeNull();
     });
 
-    test('broadcasts error status for tool errors', async () => {
+    test('broadcasts tool.failed for tool errors', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({
-        type: 'tool-error',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        error: 'something went wrong',
-      });
+      acc.handlePart(
+        part({
+          type: 'tool-error',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: {},
+          error: 'something went wrong',
+        }),
+      );
 
-      const toolStateCalls = getEmittedCalls('stream-tool-state');
-      expect(toolStateCalls).toHaveLength(1);
-      expect(toolStateCalls[0]).toMatchObject({
-        status: 'error',
+      const failedCalls = getEmittedCalls('tool.failed');
+      expect(failedCalls).toHaveLength(1);
+      expect(failedCalls[0]).toMatchObject({
         toolName: 'bash',
       });
     });
@@ -322,41 +360,47 @@ describe('StreamAccumulator', () => {
   // ─── Error parts ────────────────────────────────────────────────────
 
   describe('error parts', () => {
-    test('throws StreamPartError for error parts with Error cause', async () => {
+    test('throws StreamPartError for error parts with Error cause', () => {
       const acc = createAccumulator();
 
-      expect(
-        acc.handlePart({
-          type: 'error',
-          error: new Error('stream broke'),
-        }),
-      ).rejects.toBeInstanceOf(StreamPartError);
+      expect(() =>
+        acc.handlePart(
+          part({
+            type: 'error',
+            error: new Error('stream broke'),
+          }),
+        ),
+      ).toThrow(StreamPartError);
     });
 
-    test('throws StreamPartError for non-Error error parts', async () => {
+    test('throws StreamPartError for non-Error error parts', () => {
       const acc = createAccumulator();
 
-      expect(
-        acc.handlePart({
-          type: 'error',
-          error: 'string error message',
-        }),
-      ).rejects.toBeInstanceOf(StreamPartError);
+      expect(() =>
+        acc.handlePart(
+          part({
+            type: 'error',
+            error: 'string error message',
+          }),
+        ),
+      ).toThrow(StreamPartError);
     });
 
-    test('broadcasts stream-error for error parts', async () => {
+    test('broadcasts stream.failed for error parts', () => {
       const acc = createAccumulator();
 
       try {
-        await acc.handlePart({
-          type: 'error',
-          error: new Error('provider error'),
-        });
+        acc.handlePart(
+          part({
+            type: 'error',
+            error: new Error('provider error'),
+          }),
+        );
       } catch {
         // expected to throw
       }
 
-      const errorCalls = getEmittedCalls('stream-error');
+      const errorCalls = getEmittedCalls('stream.failed');
       expect(errorCalls).toHaveLength(1);
       expect(errorCalls[0]).toMatchObject({
         sessionId: 'ses_1',
@@ -368,26 +412,29 @@ describe('StreamAccumulator', () => {
   // ─── Abort handling ─────────────────────────────────────────────────
 
   describe('abort handling', () => {
-    test('throws StreamAbortedError on abort part', async () => {
+    test('throws StreamAbortedError on abort part', () => {
       const acc = createAccumulator();
 
-      expect(acc.handlePart({ type: 'abort' })).rejects.toBeInstanceOf(StreamAbortedError);
+      expect(() => acc.handlePart(part({ type: 'abort' }))).toThrow(StreamAbortedError);
     });
   });
 
   // ─── Source and file parts ──────────────────────────────────────────
 
   describe('source and file parts', () => {
-    test('stores source parts', async () => {
+    test('stores source parts', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({
-        type: 'source',
-        sourceType: 'url',
-        url: 'https://example.com',
-        title: 'Example',
-      });
+      acc.handlePart(
+        part({
+          type: 'source',
+          sourceType: 'url',
+          id: 'src_1',
+          url: 'https://example.com',
+          title: 'Example',
+        }),
+      );
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
@@ -396,20 +443,20 @@ describe('StreamAccumulator', () => {
       });
     });
 
-    test('stores file parts', async () => {
+    test('stores file parts', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({
-        type: 'file',
-        data: 'base64data',
-        mediaType: 'image/png',
-      });
+      acc.handlePart(
+        part({
+          type: 'file',
+          file: { uint8Array: new Uint8Array(), mediaType: 'image/png', base64: '' } as any,
+        }),
+      );
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({
         type: 'file',
-        mediaType: 'image/png',
       });
     });
   });
@@ -417,25 +464,46 @@ describe('StreamAccumulator', () => {
   // ─── Ignored/passthrough parts ──────────────────────────────────────
 
   describe('passthrough parts', () => {
-    test('silently ignores start-step and finish-step parts', async () => {
+    test('silently ignores start-step and finish-step parts', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'start-step' });
-      await acc.handlePart({ type: 'finish-step' });
-      await acc.handlePart({ type: 'start' });
-      await acc.handlePart({ type: 'raw', rawValue: {} });
+      acc.handlePart(
+        part({
+          type: 'start-step',
+          request: {} as any,
+          warnings: [],
+        }),
+      );
+      acc.handlePart(
+        part({
+          type: 'finish-step',
+          response: {} as any,
+          usage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            inputTokenDetails: {},
+            outputTokenDetails: {},
+          } as any,
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          providerMetadata: undefined,
+        }),
+      );
+      acc.handlePart(part({ type: 'start' }));
+      acc.handlePart(part({ type: 'raw', rawValue: {} }));
 
       expect(parts).toHaveLength(0);
       expect(acc.getProtocolViolationCount()).toBe(0);
     });
 
-    test('tool-input-delta and tool-input-end do not create stored parts', async () => {
+    test('tool-input-delta and tool-input-end do not create stored parts', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      await acc.handlePart({ type: 'tool-input-delta', id: 'call_1', delta: '{}' });
-      await acc.handlePart({ type: 'tool-input-end', id: 'call_1' });
+      acc.handlePart(part({ type: 'tool-input-delta', id: 'call_1', delta: '{}' }));
+      acc.handlePart(part({ type: 'tool-input-end', id: 'call_1' }));
 
       expect(parts).toHaveLength(0);
     });
@@ -444,56 +512,86 @@ describe('StreamAccumulator', () => {
   // ─── SSE broadcasting ──────────────────────────────────────────────
 
   describe('SSE broadcasting', () => {
-    test('broadcasts stream-part-update on text-start and text-end', async () => {
+    test('broadcasts stream-part-update on text-start and text-end', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({ type: 'text-start' });
-      await acc.handlePart({ type: 'text-delta', text: 'Hi' });
-      await acc.handlePart({ type: 'text-end' });
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Hi' }));
+      acc.handlePart(part({ type: 'text-end', id: 'id1' }));
 
-      const updateCalls = getEmittedCalls('stream-part-update');
+      const updateCalls = getEmittedCalls('part.update');
       expect(updateCalls).toHaveLength(2);
     });
 
-    test('broadcasts stream-part-delta for each text-delta', async () => {
+    test('broadcasts stream-part-delta for each text-delta', () => {
       const acc = createAccumulator();
 
-      await acc.handlePart({ type: 'text-start' });
-      await acc.handlePart({ type: 'text-delta', text: 'A' });
-      await acc.handlePart({ type: 'text-delta', text: 'B' });
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'A' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'B' }));
 
-      const deltaCalls = getEmittedCalls('stream-part-delta');
+      const deltaCalls = getEmittedCalls('part.delta');
       expect(deltaCalls).toHaveLength(2);
+    });
+
+    test('flush() broadcasts text-end signal for buffered text parts', () => {
+      const acc = createAccumulator();
+
+      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Partial' }));
+      acc.flush();
+
+      const updateCalls = getEmittedCalls('part.update');
+      // text-start + text-end (from flush)
+      expect(updateCalls).toHaveLength(2);
+      expect(updateCalls[1]).toMatchObject({ part: { type: 'text-end' } });
+    });
+
+    test('flush() broadcasts reasoning-end signal for buffered reasoning parts', () => {
+      const acc = createAccumulator();
+
+      acc.handlePart(part({ type: 'reasoning-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Thinking' }));
+      acc.flush();
+
+      const updateCalls = getEmittedCalls('part.update');
+      // reasoning-start + reasoning-end (from flush)
+      expect(updateCalls).toHaveLength(2);
+      expect(updateCalls[1]).toMatchObject({ part: { type: 'reasoning-end' } });
     });
   });
 
   // ─── Mixed content ─────────────────────────────────────────────────
 
   describe('mixed content', () => {
-    test('handles interleaved reasoning + text + tool calls', async () => {
+    test('handles interleaved reasoning + text + tool calls', () => {
       const parts: StoredPart[] = [];
       const toolCalls: ToolCallRecord[] = [];
       const acc = createAccumulator(parts, toolCalls);
 
-      await acc.handlePart({ type: 'reasoning-start' });
-      await acc.handlePart({ type: 'reasoning-delta', text: 'Analyzing...' });
-      await acc.handlePart({ type: 'reasoning-end' });
-      await acc.handlePart({ type: 'text-start' });
-      await acc.handlePart({ type: 'text-delta', text: 'Let me check.' });
-      await acc.handlePart({ type: 'text-end' });
-      await acc.handlePart({
-        type: 'tool-call',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        input: { command: 'ls' },
-      });
-      await acc.handlePart({
-        type: 'tool-result',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-        input: { command: 'ls' },
-        output: { files: ['a.ts', 'b.ts'] },
-      });
+      acc.handlePart(part({ type: 'reasoning-start', id: 'id1' }));
+      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Analyzing...' }));
+      acc.handlePart(part({ type: 'reasoning-end', id: 'id1' }));
+      acc.handlePart(part({ type: 'text-start', id: 'id2' }));
+      acc.handlePart(part({ type: 'text-delta', id: 'id2', text: 'Let me check.' }));
+      acc.handlePart(part({ type: 'text-end', id: 'id2' }));
+      acc.handlePart(
+        part({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+        }),
+      );
+      acc.handlePart(
+        part({
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'bash',
+          input: { command: 'ls' },
+          output: { files: ['a.ts', 'b.ts'] },
+        }),
+      );
 
       expect(parts).toHaveLength(4);
       expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Analyzing...' });

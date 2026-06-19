@@ -1,49 +1,19 @@
-export type CDPRequest = {
-  id: number;
-  method: string;
-  params?: Record<string, unknown>;
-  sessionId?: string;
-};
-
-export type CDPResponse = {
-  id: number;
-  result?: Record<string, unknown>;
-  error?: { code: number; message: string; data?: string };
-  sessionId?: string;
-};
-
-export type CDPEvent = {
-  method: string;
-  params?: Record<string, unknown>;
-  sessionId?: string;
-};
-
-export type CDPMessage = CDPResponse | CDPEvent;
+import type {
+  ElectronBrowserDropdownOptionsResult,
+  ElectronBrowserExtractContentResult,
+  ElectronBrowserFindElementsResult,
+  ElectronBrowserScreenshotResult,
+  ElectronBrowserSearchPageResult,
+} from '@stitch/shared/browser/electron';
 
 export type BrowserTab = {
   id: string;
   title: string;
   url: string;
   type: string;
-  webSocketDebuggerUrl?: string;
-};
-
-export type BrowserVersionInfo = {
-  Browser: string;
-  'Protocol-Version': string;
-  'User-Agent': string;
-  'V8-Version': string;
-  'WebKit-Version': string;
-  webSocketDebuggerUrl: string;
-};
-
-export type ScreenshotResult = {
-  data: string;
-  format: 'png' | 'jpeg' | 'webp';
 };
 
 export type LaunchOptions = {
-  headless?: boolean;
   port?: number;
   width?: number;
   height?: number;
@@ -51,49 +21,10 @@ export type LaunchOptions = {
 
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
-/** Server-side ref entry mapping a snapshot ref (e.g. "e5") to a CDP node. */
-export type RefEntry = {
-  backendNodeId: number | null;
-  role: string;
-  name: string;
-};
-
-export type SearchPageMatch = {
-  match: string;
-  context: string;
-  index: number;
-};
-
-export type SearchPageResult = {
-  matches: SearchPageMatch[];
-  total: number;
-};
-
-export type FindElementEntry = {
-  tag: string;
-  text?: string;
-  attributes?: Record<string, string>;
-};
-
-export type FindElementsResult = {
-  elements: FindElementEntry[];
-  total: number;
-};
-
-/** Scroll position metadata returned by the snapshot script. */
-export type ScrollInfo = {
-  scrollTop: number;
-  scrollHeight: number;
-  viewportHeight: number;
-  pagesAbove: number;
-  pagesBelow: number;
-};
-
-/** Page statistics extracted during snapshot. */
-export type PageStats = {
-  links: number;
-  interactive: number;
-  iframes: number;
-  images: number;
-  totalElements: number;
-};
+// Wire-result shapes are defined once in @stitch/shared/browser/electron (the
+// server-to-desktop contract). These aliases keep the server's existing names.
+export type ScreenshotResult = ElectronBrowserScreenshotResult;
+export type SearchPageResult = ElectronBrowserSearchPageResult;
+export type FindElementsResult = ElectronBrowserFindElementsResult;
+export type DropdownOptionsResult = ElectronBrowserDropdownOptionsResult;
+export type ExtractContentResult = ElectronBrowserExtractContentResult;

@@ -69,6 +69,7 @@ export async function createWindow(
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
     },
   });
 
@@ -79,6 +80,13 @@ export async function createWindow(
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  win.webContents.on('will-attach-webview', (_event, webPreferences, params) => {
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+    webPreferences.sandbox = true;
+    params.partition = params.partition || 'persist:stitch-browser';
   });
 
   win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {

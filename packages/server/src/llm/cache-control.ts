@@ -1,29 +1,33 @@
 import type { ProviderId } from '@stitch/shared/providers/types';
 
-import type { ModelMessage, JSONValue } from 'ai';
+import type { ModelMessage, JSONValue, Tool } from 'ai';
 
 type ProviderCacheConfig = {
   namespace: string;
   key: string;
   value: JSONValue;
+  breakpointCap: number;
 };
 
 const ANTHROPIC_CACHE: ProviderCacheConfig = {
   namespace: 'anthropic',
   key: 'cacheControl',
   value: { type: 'ephemeral' },
+  breakpointCap: 4,
 };
 
 const BEDROCK_CACHE: ProviderCacheConfig = {
   namespace: 'bedrock',
   key: 'cachePoint',
   value: { type: 'default' },
+  breakpointCap: 4,
 };
 
 const OPENROUTER_CACHE: ProviderCacheConfig = {
   namespace: 'openrouter',
   key: 'cacheControl',
   value: { type: 'ephemeral' },
+  breakpointCap: 4,
 };
 
 export function getCacheConfig(
@@ -58,6 +62,8 @@ export function getCacheConfig(
     case 'nvidia':
     // ElevenLabs: STT-only, no LLM cache control
     case 'elevenlabs':
+    // AssemblyAI: STT-only, no LLM cache control
+    case 'assemblyai':
       return null;
   }
 }
@@ -78,12 +84,9 @@ function withCacheMarker(message: ModelMessage, config: ProviderCacheConfig): Mo
 /**
  * Adds provider-specific prompt caching markers to messages.
  *
- * For providers with explicit caching (Anthropic, Bedrock, OpenRouter),
- * this marks the first two system messages and the last two non-system
- * messages with cache control directives. System prompts are large and
- * static, making them ideal for caching. The last two messages are marked
- * to give the provider more flexibility to cache the longest matching
- * conversation prefix (per Anthropic's recommended pattern).
+ * Marks the first two system messages and the latest user message with
+ * cache control directives, reserving one breakpoint for tools (applied
+ * separately via `addCacheControlToTools`).
  *
  * For providers with implicit caching (OpenAI, Google, Vercel),
  * messages are returned unchanged.
@@ -98,24 +101,49 @@ export function addCacheControlToMessages(
   const config = getCacheConfig(providerId, modelId);
   if (!config) return messages;
 
-  // Collect up to 2 system messages and up to 2 trailing non-system messages
-  const systemIndices: number[] = [];
-  for (let i = 0; i < messages.length && systemIndices.length < 2; i++) {
-    if (messages[i].role === 'system') {
-      systemIndices.push(i);
+  // Budget: reserve 1 slot for tools, use remaining for messages
+  let remaining = config.breakpointCap - 1;
+
+  const toMark = new Set<number>();
+
+  // First system message
+  if (remaining > 0) {
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'system') {
+        toMark.add(i);
+        remaining--;
+        break;
+      }
     }
   }
 
-  const tailIndices: number[] = [];
-  for (let i = messages.length - 1; i >= 0 && tailIndices.length < 2; i--) {
-    if (messages[i].role !== 'system') {
-      tailIndices.push(i);
+  // Second system message
+  if (remaining > 0) {
+    let systemCount = 0;
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'system') {
+        systemCount++;
+        if (systemCount === 2) {
+          toMark.add(i);
+          remaining--;
+          break;
+        }
+      }
     }
   }
 
-  // Deduplicate indices (a system message could overlap with a tail message
-  // in very short conversations)
-  const toMark = new Set([...systemIndices, ...tailIndices]);
+  // Latest user message
+  if (remaining > 0) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        toMark.add(i);
+        remaining--;
+        break;
+      }
+    }
+  }
+
+  if (toMark.size === 0) return messages;
 
   const result = [...messages];
   for (const index of toMark) {
@@ -123,6 +151,37 @@ export function addCacheControlToMessages(
   }
 
   return result;
+}
+
+/**
+ * Marks the last tool definition with a cache control breakpoint.
+ * For providers with implicit caching, tools are returned unchanged.
+ */
+export function addCacheControlToTools(
+  tools: Record<string, Tool>,
+  providerId: ProviderId,
+  modelId: string,
+): Record<string, Tool> {
+  const config = getCacheConfig(providerId, modelId);
+  if (!config) return tools;
+
+  const entries = Object.entries(tools);
+  if (entries.length === 0) return tools;
+
+  const [lastKey, lastTool] = entries[entries.length - 1];
+
+  const markedTool = {
+    ...lastTool,
+    providerOptions: {
+      ...(lastTool as { providerOptions?: Record<string, Record<string, JSONValue>> })
+        .providerOptions,
+      [config.namespace]: {
+        [config.key]: config.value,
+      },
+    },
+  } as Tool;
+
+  return { ...tools, [lastKey]: markedTool };
 }
 
 /**
@@ -158,6 +217,11 @@ export function getProviderOptions(
     case 'google-vertex':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
+    // ElevenLabs, AssemblyAI: STT-only, no LLM cache control
+    case 'elevenlabs':
+    case 'assemblyai':
+    // Ollama: local inference, no cache control support
+    case 'ollama_local':
       return undefined;
 
     // Vercel (AI Gateway): automatic caching based on underlying provider

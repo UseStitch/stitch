@@ -5,10 +5,15 @@ import { eq } from 'drizzle-orm';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
-import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
+import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { ok } from '@/lib/service-result.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import {
+  readRecordingAnalysis,
+  writeRecordingAnalysis,
+  writeRecordingTranscript,
+} from '@/recordings/file-store.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
@@ -31,6 +36,7 @@ setupTestDb();
 
 const recordingId = 'rec_analysis_rerun' as PrefixedString<'rec'>;
 const analysisId = 'recan_analysis_rerun' as PrefixedString<'recan'>;
+const templateId = 'mnt_analysis_rerun' as PrefixedString<'mnt'>;
 
 async function seedCompletedAnalysis(): Promise<void> {
   const db = getDb();
@@ -42,30 +48,24 @@ async function seedCompletedAnalysis(): Promise<void> {
     source: 'manual',
     status: 'completed',
     platform: 'manual',
-    mimeType: 'audio/ogg',
-    filePath: 'recording.ogg',
     startedAt: now - 1_000,
     endedAt: now,
+  });
+
+  await db.insert(meetingNoteTemplates).values({
+    id: templateId,
+    name: 'Test Template',
+    content: '# Notes\n\n## Summary\n- ',
+    createdAt: now,
+    updatedAt: now,
   });
 
   await db.insert(recordingAnalyses).values({
     id: analysisId,
     recordingId,
     status: 'completed',
-    transcript: [{ speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 }],
-    topicSections: [
-      {
-        name: 'Existing Topic',
-        analysis: 'Existing topic analysis',
-        decisions: ['Existing decision'],
-        actionItems: [],
-        blockers: [],
-        openQuestions: [],
-        nextSteps: [],
-      },
-    ],
-    summary: 'Existing summary',
     title: 'Existing title',
+    templateId,
     error: null,
     transcriptionProviderId: 'transcription-provider',
     transcriptionModelId: 'transcription-model',
@@ -77,6 +77,11 @@ async function seedCompletedAnalysis(): Promise<void> {
     endedAt: now - 100,
     durationMs: 400,
   });
+
+  await writeRecordingTranscript(recordingId, [
+    { speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 },
+  ]);
+  await writeRecordingAnalysis(recordingId, 'Existing summary');
 }
 
 async function readAnalysis() {
@@ -105,7 +110,7 @@ describe('recording analysis reruns', () => {
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
     const startResult = await startRecordingAnalysis(
       recordingId,
-      { force: true },
+      { force: true, templateId },
       {
         resolveModel: async () =>
           ok({
@@ -127,10 +132,10 @@ describe('recording analysis reruns', () => {
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
       title: 'Existing title',
-      summary: 'Existing summary',
       analysisProviderId: 'old-provider',
       analysisModelId: 'old-model',
     });
+    expect(await readRecordingAnalysis(recordingId)).toBe('Existing summary');
 
     const cancelResult = await cancelRecordingAnalysis(recordingId);
 
@@ -138,9 +143,9 @@ describe('recording analysis reruns', () => {
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
       title: 'Existing title',
-      summary: 'Existing summary',
       analysisProviderId: 'old-provider',
       analysisModelId: 'old-model',
     });
+    expect(await readRecordingAnalysis(recordingId)).toBe('Existing summary');
   });
 });

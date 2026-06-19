@@ -1,17 +1,20 @@
+import { useEffect, useRef } from 'react';
+
 import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
 
 import type { Session, SessionsPage } from '@stitch/shared/chat/messages';
 import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
-import { todoKeys } from '@/lib/queries/todos';
-import { questionKeys } from '@/lib/queries/questions';
+import { mcpKeys } from '@/lib/queries/mcp';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
+import { questionKeys } from '@/lib/queries/questions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { todoKeys } from '@/lib/queries/todos';
+import { toolKeys } from '@/lib/queries/tools';
 import { playNotificationSound } from '@/lib/sounds';
 import { useStreamStore } from '@/stores/stream-store';
 
@@ -167,12 +170,16 @@ function useServerEventSync(): void {
     // Recording Events
     'recording-started': () => {
       void queryClient.invalidateQueries({ queryKey: ['recordings', 'list'] });
+      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['recordings', 'active'] });
     },
     'recording-stopped': () => {
       void queryClient.invalidateQueries({ queryKey: ['recordings', 'list'] });
+      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['recordings', 'active'] });
     },
     'recording-analysis-updated': ({ recordingId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'analysis', recordingId] });
+      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail', recordingId] });
     },
 
     // Session Events
@@ -190,8 +197,9 @@ function useServerEventSync(): void {
           };
         },
       );
-      queryClient.setQueryData<Session>(sessionKeys.detail(sessionId), (prev: Session | undefined) =>
-        prev ? { ...prev, title } : prev,
+      queryClient.setQueryData<Session>(
+        sessionKeys.detail(sessionId),
+        (prev: Session | undefined) => (prev ? { ...prev, title } : prev),
       );
     },
     'session-todos-updated': ({ sessionId }) => {
@@ -224,6 +232,16 @@ function useServerEventSync(): void {
     },
     'permission-response-resolved': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(sessionId) });
+    },
+
+    // MCP Events
+    'mcp-tools-changed': ({ serverId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: mcpKeys.tools(serverId) }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownMcpTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
     },
   });
 }

@@ -32,7 +32,6 @@ pub struct AudioChunkConfig {
 )]
 pub enum Command {
   Start {
-    output_path: String,
     format: String,
     mode: String,
     sample_rate_hz: u32,
@@ -59,7 +58,6 @@ pub enum Command {
 pub enum Event {
   Started {
     started_at: u64,
-    output_path: String,
   },
   Progress {
     duration_ms: u64,
@@ -71,10 +69,6 @@ pub enum Event {
   Stopped {
     ended_at: u64,
     duration_ms: u64,
-    output_path: String,
-    file_size_bytes: Option<u64>,
-    sample_rate_hz: u32,
-    channels: u16,
     warnings: Vec<String>,
   },
   Status {
@@ -117,7 +111,6 @@ pub enum CaptureMode {
 
 #[derive(Debug, Clone)]
 pub struct CaptureStart {
-  pub output_path: String,
   pub mode: CaptureMode,
   pub sample_rate_hz: u32,
   pub channels: u16,
@@ -141,7 +134,6 @@ fn parse_mode(raw: &str) -> Result<CaptureMode, NativeError> {
 pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError> {
   match command {
     Command::Start {
-      output_path,
       format,
       mode,
       sample_rate_hz,
@@ -178,7 +170,6 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
       }
 
       Ok(CaptureStart {
-        output_path,
         mode: parse_mode(&mode)?,
         sample_rate_hz,
         channels,
@@ -197,13 +188,12 @@ pub fn parse_start_command(command: Command) -> Result<CaptureStart, NativeError
 #[cfg(test)]
 mod tests {
   use super::{
-    AudioChunkEncoding, AudioChunkSource, CaptureMode, Command, Event, parse_start_command,
+    parse_start_command, AudioChunkEncoding, AudioChunkSource, CaptureMode, Command, Event,
   };
 
   #[test]
   fn parse_start_command_accepts_valid_payload() {
     let command = Command::Start {
-      output_path: "tmp/audio.ogg".to_string(),
       format: "opus".to_string(),
       mode: "dual".to_string(),
       sample_rate_hz: 16_000,
@@ -215,7 +205,6 @@ mod tests {
     };
 
     let parsed = parse_start_command(command).expect("start command should parse");
-    assert_eq!(parsed.output_path, "tmp/audio.ogg");
     assert!(matches!(parsed.mode, CaptureMode::Dual));
     assert_eq!(parsed.sample_rate_hz, 16_000);
     assert_eq!(parsed.channels, 1);
@@ -228,7 +217,6 @@ mod tests {
   #[test]
   fn parse_start_command_accepts_audio_chunk_config() {
     let command = Command::Start {
-      output_path: "tmp/audio.ogg".to_string(),
       format: "opus".to_string(),
       mode: "dual".to_string(),
       sample_rate_hz: 16_000,
@@ -251,7 +239,6 @@ mod tests {
   #[test]
   fn parse_start_command_rejects_zero_chunk_sample_rate() {
     let command = Command::Start {
-      output_path: "tmp/audio.ogg".to_string(),
       format: "opus".to_string(),
       mode: "dual".to_string(),
       sample_rate_hz: 16_000,
@@ -272,7 +259,6 @@ mod tests {
   #[test]
   fn parse_start_command_rejects_invalid_format() {
     let command = Command::Start {
-      output_path: "tmp/audio.wav".to_string(),
       format: "wav".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
@@ -290,7 +276,6 @@ mod tests {
   #[test]
   fn parse_start_command_rejects_zero_values() {
     let zero_rate = Command::Start {
-      output_path: "tmp/audio.ogg".to_string(),
       format: "opus".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 0,
@@ -301,7 +286,6 @@ mod tests {
       audio_chunk_config: None,
     };
     let zero_channels = Command::Start {
-      output_path: "tmp/audio.ogg".to_string(),
       format: "opus".to_string(),
       mode: "mic".to_string(),
       sample_rate_hz: 16_000,
@@ -359,18 +343,16 @@ mod tests {
   #[test]
   fn command_deserializes_start_payload_with_camel_case_fields() {
     let command: Command = serde_json::from_str(
-      r#"{"type":"start","outputPath":"tmp/audio.ogg","format":"opus","mode":"mic","sampleRateHz":16000,"channels":1,"micDeviceId":null,"speakerDeviceId":null}"#,
+      r#"{"type":"start","format":"opus","mode":"mic","sampleRateHz":16000,"channels":1,"micDeviceId":null,"speakerDeviceId":null}"#,
     )
     .expect("must parse start command with camelCase fields (no chunk config)");
 
     match command {
       Command::Start {
-        output_path,
         sample_rate_hz,
         audio_chunk_config,
         ..
       } => {
-        assert_eq!(output_path, "tmp/audio.ogg");
         assert_eq!(sample_rate_hz, 16_000);
         assert!(audio_chunk_config.is_none());
       }
@@ -381,7 +363,7 @@ mod tests {
   #[test]
   fn command_deserializes_start_with_audio_chunk_config() {
     let command: Command = serde_json::from_str(
-      r#"{"type":"start","outputPath":"tmp/audio.ogg","format":"opus","mode":"dual","sampleRateHz":16000,"channels":1,"micDeviceId":null,"speakerDeviceId":null,"audioChunkConfig":{"encoding":"pcm_s16le","sampleRateHz":16000}}"#,
+      r#"{"type":"start","format":"opus","mode":"dual","sampleRateHz":16000,"channels":1,"micDeviceId":null,"speakerDeviceId":null,"audioChunkConfig":{"encoding":"pcm_s16le","sampleRateHz":16000}}"#,
     )
     .expect("must parse start command with audioChunkConfig");
 

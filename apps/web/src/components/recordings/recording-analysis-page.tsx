@@ -5,27 +5,27 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
 import { AnalysisHeader } from './analysis/analysis-header';
-import { buildAnalysisMarkdown } from './analysis/build-analysis-markdown';
-import { SummarySection } from './analysis/summary-section';
-import { TopicList } from './analysis/topic-list';
 import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
+import ChatMarkdown from '@/components/chat/chat-markdown';
 import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  recordingAnalysisQueryOptions,
-  recordingsQueryOptions,
+  recordingDetailsQueryOptions,
+  meetingNoteTemplatesQueryOptions,
   useCancelRecordingAnalysis,
   useDeleteRecording,
   useStartRecordingAnalysis,
   useStopRecording,
 } from '@/lib/queries/recordings';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) {
-  const { data: analysisResponse } = useSuspenseQuery(recordingAnalysisQueryOptions(recordingId));
-  const { data: recordings } = useSuspenseQuery(recordingsQueryOptions({ page: 1, pageSize: 100 }));
+  const { data } = useSuspenseQuery(recordingDetailsQueryOptions(recordingId));
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: templateData } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
 
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();
@@ -34,13 +34,18 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
-  const analysis = analysisResponse.analysis;
-  const recording = recordings.recordings.find((item) => item.id === recordingId);
-  const isActiveRecording = recording?.id === recordings.activeRecordingId;
-  const analysisMarkdown = React.useMemo(
-    () => buildAnalysisMarkdown(analysis, recording),
-    [analysis, recording],
+  const { analysis, recording } = data;
+  const isActiveRecording = recording.id === data.activeRecordingId;
+  const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
+  const defaultTemplate =
+    templateData.templates.find((template) => template.id === defaultTemplateId) ??
+    templateData.templates[0];
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>(
+    defaultTemplate?.id ?? '',
   );
+  const selectedTemplate =
+    templateData.templates.find((template) => template.id === selectedTemplateId) ??
+    defaultTemplate;
 
   const isRunning = analysis?.status === 'processing';
 
@@ -56,10 +61,18 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   }, [deleteRecording, navigate, recordingId]);
 
   const handleStartAnalysis = () => {
-    void startAnalysis.mutateAsync({ recordingId, force: true }).then(
-      () => toast.success('Analysis started'),
-      (error: unknown) => toast.error(getErrorMessage(error, 'Failed to start recording analysis')),
-    );
+    if (!selectedTemplate) {
+      toast.error('Select a meeting note template first');
+      return;
+    }
+
+    void startAnalysis
+      .mutateAsync({ recordingId, force: true, templateId: selectedTemplate.id })
+      .then(
+        () => toast.success('Analysis started'),
+        (error: unknown) =>
+          toast.error(getErrorMessage(error, 'Failed to start recording analysis')),
+      );
   };
 
   const handleCancelAnalysis = () => {
@@ -75,8 +88,10 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
       <PageContent className="min-h-0 overflow-hidden">
         <AnalysisHeader
           analysis={analysis}
-          analysisMarkdown={analysisMarkdown}
+          analysisMarkdown={analysis?.summary || null}
           recording={recording}
+          templates={templateData.templates}
+          selectedTemplateId={selectedTemplate?.id ?? ''}
           isRunning={isRunning}
           isStarting={startAnalysis.isPending}
           isCancelling={cancelAnalysis.isPending}
@@ -84,6 +99,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
           isRecording={isActiveRecording}
           isStopping={stopRecording.isPending}
           onStartAnalysis={handleStartAnalysis}
+          onTemplateChange={(templateId) => setSelectedTemplateId(templateId)}
           onCancelAnalysis={handleCancelAnalysis}
           onStopRecording={() => {
             void stopRecording.mutateAsync().then(
@@ -111,8 +127,17 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
           <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-2 xl:col-span-8 2xl:col-span-9">
             <ScrollArea className="h-0 flex-1 rounded-xl">
               <div className="space-y-8 pr-6 pb-12">
-                <SummarySection analysis={analysis} isRunning={isRunning} />
-                <TopicList sections={analysis?.topicSections} isRunning={isRunning} />
+                {analysis?.summary ? (
+                  <div className="rounded-xl border bg-card p-5">
+                    <ChatMarkdown text={analysis.summary} />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-sm text-muted-foreground">
+                    {isRunning
+                      ? 'Analysis is running. Meeting notes will appear here.'
+                      : 'No analysis yet. Choose a template and run analysis to generate meeting notes.'}
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>

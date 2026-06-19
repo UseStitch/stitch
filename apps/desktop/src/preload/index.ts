@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+import type { ElectronBrowserState } from '@stitch/shared/browser/electron';
 import type {
   IpcContract,
   IpcEventContract,
   DesktopNotificationEvent,
+  BrowserNavigateResult,
   MeetingCallDismissedPayload,
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
@@ -109,6 +111,26 @@ const api = {
     onShow: (callback: (event: DesktopNotificationEvent) => void) =>
       onIpc('notifications:show', callback),
     onDismissed: (callback: (id: string) => void) => onIpc('notifications:dismissed', callback),
+  },
+  browser: {
+    getState: () => invokeIpc('browser:getState'),
+    registerWebview: (webContentsId: number, sessionId: string) =>
+      invokeIpc('browser:registerWebview', webContentsId, sessionId),
+    switchSession: (sessionId: string) => invokeIpc('browser:switchSession', sessionId),
+    show: () => invokeIpc('browser:show'),
+    hide: () => invokeIpc('browser:hide'),
+    userNavigate: (url: string): Promise<BrowserNavigateResult> =>
+      invokeIpc('browser:userNavigate', url),
+    goBack: () => invokeIpc('browser:goBack'),
+    goForward: () => invokeIpc('browser:goForward'),
+    reload: () => invokeIpc('browser:reload'),
+    newTab: (url?: string) => invokeIpc('browser:newTab', url),
+    focusTab: (tabId: string) => invokeIpc('browser:focusTab', tabId),
+    closeTab: (tabId: string) => invokeIpc('browser:closeTab', tabId),
+    recordHumanInput: () => invokeIpc('browser:recordHumanInput'),
+    onStateChanged: (callback: (state: ElectronBrowserState) => void) =>
+      onIpc('browser:state-changed', callback),
+    onShowRequested: (callback: () => void) => onIpc('browser:show-requested', callback),
   },
 };
 

@@ -3,107 +3,25 @@ import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
+import { PATHS } from '@/lib/paths.js';
 import { getRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
-import { getRecordingAnalysesByIds, searchRecordings } from '@/recordings/search-service.js';
+import {
+  getRecordingAnalysisPath,
+  getRecordingTranscriptPath,
+  readRecordingTranscript,
+} from '@/recordings/file-store.js';
+import { getSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const RECORDINGS_TOOLSET_ID = 'recordings';
-const RECORDING_STATUSES = ['recording', 'completed', 'failed'] as const;
-const RECORDING_PLATFORMS = ['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet'] as const;
 
 function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
-  const recordings_search = tool({
-    description: `Search recording history using title, analysis summary, and transcript-derived content.
-
-Use this first to find relevant recording IDs before fetching detailed analysis.`,
-    inputSchema: z.object({
-      query: z
-        .string()
-        .optional()
-        .describe('Natural language query. Leave empty to list recent recordings.'),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(10)
-        .optional()
-        .describe('Maximum results (default 5, max 10).'),
-      statuses: z
-        .array(z.enum(RECORDING_STATUSES))
-        .optional()
-        .describe('Filter by recording status.'),
-      platforms: z
-        .array(z.enum(RECORDING_PLATFORMS))
-        .optional()
-        .describe('Filter by recording platform.'),
-      includeAnalysisSnapshot: z
-        .boolean()
-        .optional()
-        .describe('Include compact analysis snapshot for each hit (default false).'),
-    }),
-    execute: async (input) => {
-      const hits = await searchRecordings({
-        query: input.query,
-        limit: input.limit ?? 5,
-        statuses: input.statuses,
-        platforms: input.platforms,
-      });
-
-      let analysisByRecordingId = new Map<
-        string,
-        Awaited<ReturnType<typeof getRecordingAnalysesByIds>>[number]
-      >();
-      if (input.includeAnalysisSnapshot === true && hits.length > 0) {
-        const analyses = await getRecordingAnalysesByIds(hits.map((hit) => hit.recordingId));
-        analysisByRecordingId = new Map(
-          analyses.map((analysis) => [analysis.recordingId, analysis]),
-        );
-      }
-
-      return {
-        query: input.query ?? null,
-        total: hits.length,
-        recordings: hits.map((hit) => ({
-          recordingId: hit.recordingId,
-          title: hit.title,
-          status: hit.status,
-          platform: hit.platform,
-          durationMs: hit.durationMs,
-          startedAt: hit.startedAt,
-          endedAt: hit.endedAt,
-          createdAt: hit.createdAt,
-          relevance: hit.relevance,
-          analysis: hit.analysis,
-          snippet: hit.snippet,
-          analysisSnapshot:
-            input.includeAnalysisSnapshot === true
-              ? (() => {
-                  const analysis = analysisByRecordingId.get(hit.recordingId);
-                  if (!analysis) {
-                    return null;
-                  }
-                  return {
-                    status: analysis.status,
-                    title: analysis.title,
-                    summary: analysis.summary.slice(0, 400),
-                    actionItemCount: analysis.actionItems.length,
-                    blockerCount: analysis.blockers.length,
-                    topicCount: analysis.topicSections.length,
-                    updatedAt: analysis.updatedAt,
-                  };
-                })()
-              : null,
-        })),
-      };
-    },
-  });
-
   const recordings_get_analysis = tool({
-    description: `Get structured recording analysis for one recording ID.
+    description: `Get recording analysis for one recording ID.
 
-Returns status, summary, topic sections, action items, and blockers.`,
+Returns status, file path, and Markdown meeting notes.`,
     inputSchema: z.object({
       recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
     }),
@@ -127,20 +45,35 @@ Returns status, summary, topic sections, action items, and blockers.`,
       }
 
       const analysis = result.data.analysis;
-      const actionItems = analysis.topicSections.flatMap((section) => section.actionItems);
-      const blockers = analysis.topicSections.flatMap((section) => section.blockers);
 
       return {
         recordingId: input.recordingId,
         found: true,
         status: analysis.status,
         title: analysis.title,
+        filePath: getRecordingAnalysisPath(input.recordingId as PrefixedString<'rec'>),
         summary: analysis.summary,
-        topicSections: analysis.topicSections,
-        actionItems,
-        blockers,
         error: analysis.error,
         updatedAt: analysis.updatedAt,
+      };
+    },
+  });
+
+  const recordings_get_transcript = tool({
+    description:
+      'Get recording transcript for one recording ID. Returns the file path and transcript entries.',
+    inputSchema: z.object({
+      recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
+    }),
+    execute: async (input) => {
+      const recordingId = input.recordingId as PrefixedString<'rec'>;
+      const transcript = await readRecordingTranscript(recordingId);
+
+      return {
+        recordingId: input.recordingId,
+        found: transcript.length > 0,
+        filePath: getRecordingTranscriptPath(recordingId),
+        transcript,
       };
     },
   });
@@ -154,8 +87,12 @@ Use this when analysis is missing or stale.`,
       force: z.boolean().optional().describe('Force re-run even if analysis already exists.'),
     }),
     execute: async (input) => {
+      const { 'recordings.analysis.defaultTemplateId': templateId } = await getSettings([
+        'recordings.analysis.defaultTemplateId',
+      ] as const);
       const result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
         force: input.force,
+        templateId: templateId as PrefixedString<'mnt'>,
       });
 
       if ('error' in result) {
@@ -176,8 +113,8 @@ Use this when analysis is missing or stale.`,
   });
 
   return {
-    recordings_search,
     recordings_get_analysis,
+    recordings_get_transcript,
     recordings_start_analysis,
   };
 }
@@ -187,11 +124,12 @@ export function createRecordingsToolset(): Toolset {
     id: RECORDINGS_TOOLSET_ID,
     kind: 'native',
     name: 'Recordings',
-    description:
-      'Search recordings and work with transcription/analysis results, including summaries, topics, and action items.',
+    description: 'Work with recording transcription and Markdown analysis results.',
     instructions: [
-      'Use recordings_search first to identify relevant recording IDs.',
-      'Use recordings_get_analysis for details only after narrowing to one or a few recordings.',
+      `Recordings may be found at ${PATHS.dirPaths.recordings}. Search that location for recordings.`,
+      'Use grep/glob/read to find relevant recording IDs and files before fetching details.',
+      'Use recordings_get_analysis for Markdown notes for one recording.',
+      'Use recordings_get_transcript for transcript entries for one recording.',
       'Use recordings_start_analysis when a completed recording has no analysis or needs a forced refresh.',
     ].join('\n'),
     tools: () => summarizeTools(createRecordingsTools(TOOLSET_SUMMARY_CONTEXT)),

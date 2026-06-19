@@ -131,6 +131,22 @@ export async function refreshMcpRegistryCache(
   }
 }
 
+export async function reloadMcpRegistryCacheFromDisk(
+  options: {
+    cacheFilePath?: string;
+  } = {},
+): Promise<ServiceResult<McpRegistryPayload>> {
+  const cacheFilePath = options.cacheFilePath ?? PATHS.filePaths.mcpRegistry;
+
+  const fromDisk = await readRegistryFromDisk(cacheFilePath);
+  if (!fromDisk) {
+    return err('No registry cache found on disk', 404);
+  }
+
+  inMemoryRegistry = fromDisk;
+  return ok(fromDisk);
+}
+
 export async function listMcpRegistryServers(
   options: ListRegistryOptions = {},
 ): Promise<ServiceResult<McpRegistryServer[]>> {

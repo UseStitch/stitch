@@ -1,6 +1,6 @@
 {
   "name": "@stitch/desktop",
-  "version": "0.5.4",
+  "version": "0.5.8",
   "private": true,
   "description": "Stitch desktop application",
   "author": "Stitch",
@@ -20,8 +20,10 @@
   "dependencies": {
     "@stitch/audio-capture": "workspace:*",
     "@stitch/shared": "workspace:*",
+    "@types/ws": "^8.18.1",
     "electron-updater": "^6.8.3",
-    "tree-kill": "1.2.2"
+    "tree-kill": "1.2.2",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "25.5.0",

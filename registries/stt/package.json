@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./models/openai.json": "./models/openai.json",
-    "./models/elevenlabs.json": "./models/elevenlabs.json"
+    "./models/elevenlabs.json": "./models/elevenlabs.json",
+    "./models/assemblyai.json": "./models/assemblyai.json"
   }
 }

@@ -48,7 +48,6 @@ export const providerKeys = {
   enabledModels: () => [...providerKeys.all, 'enabled-models'] as const,
   visibleModels: () => [...providerKeys.all, 'visible-models'] as const,
   embeddingModels: () => [...providerKeys.all, 'embedding-models'] as const,
-  audioModels: () => [...providerKeys.all, 'audio-models'] as const,
   sttModels: () => [...providerKeys.all, 'stt-models'] as const,
 };
 

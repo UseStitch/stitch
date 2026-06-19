@@ -9,6 +9,7 @@ type SttState = 'idle' | 'recording' | 'stopping';
 
 type UseSttReturn = {
   state: SttState;
+  committedText: string;
   partialText: string;
   start: (providerId: string, modelId: string, sampleRateHz: number) => Promise<void>;
   stop: () => Promise<string>;
@@ -46,6 +47,7 @@ function nextSessionId(): string {
 
 export function useStt(): UseSttReturn {
   const [state, setState] = React.useState<SttState>('idle');
+  const [committedText, setCommittedText] = React.useState('');
   const [partialText, setPartialText] = React.useState('');
 
   // Refs hold the live session state so callbacks don't capture stale closures.
@@ -83,6 +85,7 @@ export function useStt(): UseSttReturn {
       const sessionId = nextSessionId();
       sessionIdRef.current = sessionId;
       finalTextRef.current = '';
+      setCommittedText('');
       setPartialText('');
 
       // Open mic
@@ -136,6 +139,7 @@ export function useStt(): UseSttReturn {
               setPartialText(msg.text);
             } else {
               finalTextRef.current += (finalTextRef.current ? ' ' : '') + msg.text;
+              setCommittedText(finalTextRef.current);
               setPartialText('');
             }
             break;
@@ -146,6 +150,7 @@ export function useStt(): UseSttReturn {
             stopResolveRef.current = null;
             stopRejectRef.current = null;
             setState('idle');
+            setCommittedText('');
             setPartialText('');
             cleanup();
             break;
@@ -160,6 +165,7 @@ export function useStt(): UseSttReturn {
               toast.error(`STT error: ${msg.message}`);
             }
             setState('idle');
+            setCommittedText('');
             setPartialText('');
             cleanup();
             break;
@@ -174,12 +180,13 @@ export function useStt(): UseSttReturn {
           stopRejectRef.current = null;
         }
         setState('idle');
+        setCommittedText('');
         setPartialText('');
         cleanup();
       };
 
       // Send start message
-      const startMsg: SttInboundMessage = {
+      send({
         type: 'start',
         sttSessionId: sessionId,
         providerId,
@@ -188,8 +195,7 @@ export function useStt(): UseSttReturn {
         recordingId: sessionId,
         capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
         audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
-      };
-      send(startMsg);
+      });
 
       // Wire up audio worklet message handler
       workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
@@ -234,5 +240,5 @@ export function useStt(): UseSttReturn {
     };
   }, [cleanup]);
 
-  return { state, partialText, start, stop };
+  return { state, committedText, partialText, start, stop };
 }

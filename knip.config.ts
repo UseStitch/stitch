@@ -12,6 +12,11 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
       ignore: ['src/components/ui/**'],
     },
+    'apps/website': {
+      entry: ['src/main.ts', 'functions/**/*.ts'],
+      project: ['src/**/*.ts', 'functions/**/*.ts'],
+      ignore: ['functions/**/*.ts'],
+    },
     'apps/desktop': {
       entry: ['src/main/index.ts', 'src/preload/index.ts'],
       project: ['src/**/*.{ts,tsx}'],

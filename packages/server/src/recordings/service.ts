@@ -1,11 +1,15 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
-import { createRecordingAnalysisId, createRecordingId } from '@stitch/shared/id';
+import {
+  createRecordingAnalysisId,
+  createRecordingId,
+  type PrefixedString,
+} from '@stitch/shared/id';
 import type {
+  ActiveRecordingResponse,
   ListRecordingsResponse,
   Recording,
+  RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingResponse,
   StopRecordingInput,
@@ -15,22 +19,20 @@ import type {
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { computeTotalPages } from '@/lib/paginated-query.js';
-import { PATHS } from '@/lib/paths.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
-import { startRecordingAnalysis } from '@/recordings/analysis-service.js';
+import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
+import { deleteRecordingFiles } from '@/recordings/file-store.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getSettings } from '@/settings/service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
-
 type ActiveRecording = {
   id: Recording['id'];
-  filePath: string;
 };
 
 let activeRecording: ActiveRecording | null = null;
@@ -62,13 +64,24 @@ type ResolvedSttConfig = {
   sampleRateHz: number;
 };
 
-async function resolveSttConfig(): Promise<ResolvedSttConfig | null> {
-  const s = await getSettings([
-    'recordings.transcription.providerId',
-    'recordings.transcription.modelId',
-  ] as const);
-  const providerId = s['recordings.transcription.providerId'].trim();
-  const modelId = s['recordings.transcription.modelId'].trim();
+async function resolveSttConfig(override?: {
+  providerId: string;
+  modelId: string;
+}): Promise<ResolvedSttConfig | null> {
+  let providerId: string;
+  let modelId: string;
+
+  if (override?.providerId && override?.modelId) {
+    providerId = override.providerId;
+    modelId = override.modelId;
+  } else {
+    const s = await getSettings([
+      'recordings.transcription.providerId',
+      'recordings.transcription.modelId',
+    ] as const);
+    providerId = s['recordings.transcription.providerId'].trim();
+    modelId = s['recordings.transcription.modelId'].trim();
+  }
 
   if (!providerId || !modelId) {
     log.warn({ providerId, modelId }, 'transcription config missing providerId or modelId');
@@ -125,9 +138,6 @@ function toRecording(
     source: row.source,
     status: row.status,
     platform: row.platform,
-    mimeType: row.mimeType,
-    filePath: row.filePath,
-    fileSizeBytes: row.fileSizeBytes,
     durationMs: row.durationMs,
     costUsd: analysisCostUsd,
     startedAt: row.startedAt,
@@ -173,6 +183,36 @@ export async function listRecordings(input: {
   };
 }
 
+export async function getRecordingDetails(
+  recordingId: Recording['id'],
+): Promise<ServiceResult<RecordingDetailsResponse>> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      recording: recordings,
+      analysis: recordingAnalyses,
+      analysisTitle: recordingAnalyses.title,
+      analysisCostUsd: recordingAnalyses.costUsd,
+    })
+    .from(recordings)
+    .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
+    .where(eq(recordings.id, recordingId));
+
+  if (!row) {
+    return err('Recording not found', 404);
+  }
+
+  return ok({
+    recording: toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
+    analysis: row.analysis ? await toRecordingAnalysis(row.analysis) : null,
+    activeRecordingId: activeRecording?.id ?? null,
+  });
+}
+
+export function getActiveRecording(): ActiveRecordingResponse {
+  return { activeRecordingId: activeRecording?.id ?? null };
+}
+
 export async function startRecording(
   input: StartRecordingInput,
 ): Promise<ServiceResult<StartRecordingResponse>> {
@@ -184,15 +224,17 @@ export async function startRecording(
   const id = createRecordingId();
   const now = Date.now();
   const title = input.title?.trim() || defaultTitle();
-  const outputDir = path.join(PATHS.dirPaths.recordings, id);
-  const filePath = path.join(outputDir, 'raw_audio.ogg');
   let settings: RecordingCaptureSettings;
   let sttConfig: ResolvedSttConfig;
 
   try {
     const [resolvedSettings, resolvedSttConfig] = await Promise.all([
       readCaptureSettings(),
-      resolveSttConfig(),
+      resolveSttConfig(
+        input.sttProviderId && input.sttModelId
+          ? { providerId: input.sttProviderId, modelId: input.sttModelId }
+          : undefined,
+      ),
     ]);
 
     if (!resolvedSttConfig) {
@@ -202,16 +244,12 @@ export async function startRecording(
     settings = resolvedSettings;
     sttConfig = resolvedSttConfig;
 
-    await fs.mkdir(outputDir, { recursive: true });
-
     await db.insert(recordings).values({
       id,
       title,
       source: 'manual',
       status: 'recording',
       platform: input.platform ?? 'manual',
-      mimeType: 'audio/ogg',
-      filePath,
       startedAt: now,
     });
 
@@ -221,9 +259,6 @@ export async function startRecording(
       id: analysisId,
       recordingId: id,
       status: 'pending',
-      transcript: [],
-      topicSections: [],
-      summary: '',
       title: '',
       error: null,
       transcriptionProviderId: sttConfig.providerId,
@@ -239,11 +274,10 @@ export async function startRecording(
       updatedAt: Date.now(),
     });
 
-    activeRecording = { id, filePath };
+    activeRecording = { id };
     log.info(
       {
         recordingId: id,
-        filePath,
         speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,
@@ -261,36 +295,17 @@ export async function startRecording(
     return err('Recording not found', 404);
   }
 
-  Events.emit('recording-started', { recordingId: id });
+  internalBus.emit('recording.started', { recordingId: id });
 
   return ok({
     recording: toRecording(row),
     recordingId: id,
-    outputPath: filePath,
     micDeviceId: settings.inputDeviceId,
     speakerDeviceId: settings.outputDeviceId,
     speakerGain: settings.speakerGain,
     audioChunkConfig: { encoding: sttConfig.encoding, sampleRateHz: sttConfig.sampleRateHz },
     stt: { providerId: sttConfig.providerId, modelId: sttConfig.modelId },
   });
-}
-
-export async function getRecordingAudioFile(
-  recordingId: Recording['id'],
-): Promise<ServiceResult<{ filePath: string; mimeType: string }>> {
-  const db = getDb();
-  const [row] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
-
-  if (!row) {
-    return err('Recording not found', 404);
-  }
-
-  const stat = await fs.stat(row.filePath).catch(() => null);
-  if (!stat?.isFile()) {
-    return err('Recording file not found', 404);
-  }
-
-  return ok({ filePath: row.filePath, mimeType: row.mimeType });
 }
 
 export async function stopRecording(
@@ -314,7 +329,6 @@ export async function stopRecording(
         status: 'completed',
         endedAt,
         durationMs,
-        fileSizeBytes: input.fileSizeBytes,
         updatedAt: Date.now(),
       })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
@@ -328,24 +342,28 @@ export async function stopRecording(
       })
       .where(eq(recordingAnalyses.recordingId, current.id));
 
-    // Final flush of in-memory transcript to the database
+    // Final flush of in-memory transcript to the recordings directory
     await finalFlushAndCleanup(current.id);
 
     log.info(
       {
         recordingId: current.id,
-        filePath: current.filePath,
-        fileSizeBytes: input.fileSizeBytes,
       },
       'recording stopped',
     );
 
-    const { 'recordings.autoAnalyze': autoAnalyze } = await getSettings([
+    const {
+      'recordings.autoAnalyze': autoAnalyze,
+      'recordings.analysis.defaultTemplateId': defaultTemplateId,
+    } = await getSettings([
       'recordings.autoAnalyze',
+      'recordings.analysis.defaultTemplateId',
     ] as const);
 
     if (autoAnalyze) {
-      void startRecordingAnalysis(current.id).then((result) => {
+      void startRecordingAnalysis(current.id, {
+        templateId: defaultTemplateId as PrefixedString<'mnt'>,
+      }).then((result) => {
         if ('error' in result) {
           log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');
         }
@@ -371,7 +389,7 @@ export async function stopRecording(
     return err('Recording not found', 404);
   }
 
-  Events.emit('recording-stopped', { recordingId: current.id });
+  internalBus.emit('recording.stopped', { recordingId: current.id });
 
   return ok({ recording: toRecording(row) });
 }
@@ -388,20 +406,8 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
     return err('Recording not found', 404);
   }
 
-  const recordingDir = path.dirname(row.filePath);
-  const relativeRecordingDir = path.relative(PATHS.dirPaths.recordings, recordingDir);
-  if (relativeRecordingDir.startsWith('..') || path.isAbsolute(relativeRecordingDir)) {
-    return err('Recording path is outside recordings directory', 400);
-  }
-
-  try {
-    await fs.rm(recordingDir, { recursive: true, force: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete recording files';
-    return err(message, 400);
-  }
-
   await db.delete(recordings).where(eq(recordings.id, recordingId));
+  await deleteRecordingFiles(recordingId);
 
   return ok(null);
 }

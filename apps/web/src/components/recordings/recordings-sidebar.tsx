@@ -1,6 +1,7 @@
-import { LibraryIcon, MicIcon } from 'lucide-react';
+import { LibraryIcon, Loader2Icon, MicIcon } from 'lucide-react';
+import * as React from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import {
@@ -11,14 +12,31 @@ import {
 } from './shared/formatting';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
-import { recordingsQueryOptions } from '@/lib/queries/recordings';
+import { recordingsInfiniteQueryOptions } from '@/lib/queries/recordings';
 
 export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
   const selectedRecordingId = typeof params.id === 'string' ? params.id : null;
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
-  const { data } = useQuery(recordingsQueryOptions({ page: 1, pageSize: 100 }));
-  const recordings = data?.recordings ?? [];
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(
+    recordingsInfiniteQueryOptions(),
+  );
+  const recordings = data?.pages.flatMap((page) => page.recordings) ?? [];
+
+  React.useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
     <>
@@ -76,6 +94,13 @@ export function RecordingsSidebarContent() {
                 );
               })}
             </InternalSidebar.List>
+            {hasNextPage ? (
+              <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
+                {isFetchingNextPage ? (
+                  <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                ) : null}
+              </div>
+            ) : null}
           </InternalSidebar.Group>
         ) : (
           <InternalSidebar.EmptyState

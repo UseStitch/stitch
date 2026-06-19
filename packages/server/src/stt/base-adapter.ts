@@ -5,12 +5,15 @@ import type { STTConnection, STTTransport } from '@/stt/adapter-iface.js';
 import type { BufferConfig, PartialStrategy, ReconnectConfig } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.base-adapter' });
+const MAX_SEND_BATCH_MS = 900;
+
+export type STTErrorClassification = { fatal: false } | { fatal: true; reason: string };
 
 type ManagedConnectionConfig = {
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   partialStrategy: PartialStrategy;
-  isFatal: (err: Error) => boolean;
+  classifyError: (err: Error) => STTErrorClassification;
   openConnection: () => Promise<STTTransport>;
 };
 
@@ -27,9 +30,21 @@ function chunkDurationMs(chunk: AudioChunk): number {
   return (chunk.numSamples / chunk.sampleRateHz) * 1000;
 }
 
-/**
- * Creates a managed STTConnection with bounded buffer, pacing, and reconnect/rotation.
- */
+function mergeChunks(chunks: AudioChunk[]): AudioChunk | null {
+  if (chunks.length === 0) return null;
+  if (chunks.length === 1) return chunks[0];
+
+  const [first] = chunks;
+  return {
+    samplesB64: Buffer.concat(
+      chunks.map((chunk) => Buffer.from(chunk.samplesB64, 'base64')),
+    ).toString('base64'),
+    sampleRateHz: first.sampleRateHz,
+    numSamples: chunks.reduce((total, chunk) => total + chunk.numSamples, 0),
+    encoding: first.encoding,
+  };
+}
+
 export async function createManagedConnection(
   config: ManagedConnectionConfig,
 ): Promise<STTConnection> {
@@ -37,14 +52,17 @@ export async function createManagedConnection(
     buffer: bufferConfig,
     reconnect: reconnectConfig,
     partialStrategy,
-    isFatal,
+    classifyError,
     openConnection,
   } = config;
+
+  const maxBackoffMs = reconnectConfig.maxBackoffMs ?? 30_000;
 
   const transcriptListeners: ((e: TranscriptEvent) => void)[] = [];
   const usageListeners: ((u: STTUsage) => void)[] = [];
   const errorListeners: ((err: Error) => void)[] = [];
   const closeListeners: (() => void)[] = [];
+  const unrecoverableListeners: ((reason: string) => void)[] = [];
 
   // Bounded ring buffer for replay on reconnect
   const ringBuffer: BufferedChunk[] = [];
@@ -60,8 +78,23 @@ export async function createManagedConnection(
 
   let transport: STTTransport | null = null;
   let closed = false;
+  let rotating = false;
   let reconnecting = false;
+  let recoveryQueued = false;
   let rotationTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const sessionStartedAt = Date.now();
+  let rotationCount = 0;
+
+  function sessionAgeMs(): number {
+    return Date.now() - sessionStartedAt;
+  }
+
+  function emitUnrecoverable(reason: string): void {
+    log.error({ reason, rotationCount, sessionAgeMs: sessionAgeMs() }, 'connection unrecoverable');
+    for (const cb of unrecoverableListeners) cb(reason);
+    void close();
+  }
 
   function addToBuffer(chunk: AudioChunk): void {
     const duration = chunkDurationMs(chunk);
@@ -84,6 +117,39 @@ export async function createManagedConnection(
     totalBufferedMs = 0;
   }
 
+  function sendChunkBatch(target: STTTransport, chunks: AudioChunk[]): void {
+    let batch: AudioChunk[] = [];
+    let batchBytes = 0;
+    let batchMs = 0;
+
+    function flushBatch(): void {
+      const merged = mergeChunks(batch);
+      if (merged) target.sendAudio(merged);
+      batch = [];
+      batchBytes = 0;
+      batchMs = 0;
+    }
+
+    for (const chunk of chunks) {
+      const bytes = chunkByteSize(chunk);
+      const durationMs = chunkDurationMs(chunk);
+
+      if (
+        batch.length > 0 &&
+        (batchBytes + bytes > bufferConfig.maxChunkBytes ||
+          batchMs + durationMs > MAX_SEND_BATCH_MS)
+      ) {
+        flushBatch();
+      }
+
+      batch.push(chunk);
+      batchBytes += bytes;
+      batchMs += durationMs;
+    }
+
+    flushBatch();
+  }
+
   function wireTransport(conn: STTTransport): void {
     conn.onTranscript((e) => {
       const normalized = normalizeTranscript(e);
@@ -93,11 +159,11 @@ export async function createManagedConnection(
       for (const cb of usageListeners) cb(u);
     });
     conn.onError((err) => {
-      if (closed) return;
+      if (closed || conn !== transport) return;
       handleError(err);
     });
     conn.onClose(() => {
-      if (closed) return;
+      if (closed || conn !== transport) return;
       void handleDisconnect();
     });
   }
@@ -122,6 +188,7 @@ export async function createManagedConnection(
   function scheduleRotation(): void {
     if (!reconnectConfig.enabled || !reconnectConfig.rotateBeforeMs) return;
 
+    if (rotationTimer) clearTimeout(rotationTimer);
     rotationTimer = setTimeout(() => {
       if (closed) return;
       void proactiveRotate();
@@ -129,12 +196,24 @@ export async function createManagedConnection(
   }
 
   async function proactiveRotate(): Promise<void> {
-    if (closed || reconnecting) return;
-    reconnecting = true;
+    if (closed || rotating || reconnecting) return;
+    rotating = true;
+    rotationCount++;
 
-    log.info('proactive session rotation starting');
+    log.info(
+      {
+        rotationCount,
+        sessionAgeMs: sessionAgeMs(),
+        pendingChunks: pendingChunks.length,
+        pendingBytes,
+        bufferedChunks: ringBuffer.length,
+        totalBufferedMs: Math.round(totalBufferedMs),
+      },
+      'proactive session rotation starting',
+    );
 
     const oldTransport = transport;
+    flushPending();
     oldTransport?.commit();
 
     try {
@@ -143,48 +222,63 @@ export async function createManagedConnection(
       wireTransport(newTransport);
 
       const replay = getReplayChunks();
-      for (const chunk of replay) {
-        newTransport.sendAudio(chunk);
-      }
+      sendChunkBatch(newTransport, replay);
 
       await oldTransport?.close();
-      scheduleRotation();
-      log.info({ replayedChunks: replay.length }, 'proactive rotation complete');
+      log.info({ rotationCount, replayedChunks: replay.length }, 'proactive rotation complete');
     } catch (err) {
-      log.error({ error: err }, 'proactive rotation failed, continuing on existing connection');
+      log.error({ error: err, rotationCount }, 'proactive rotation failed, retaining connection');
     } finally {
-      reconnecting = false;
+      rotating = false;
+      scheduleRotation();
+      if (recoveryQueued && !closed) {
+        recoveryQueued = false;
+        void reactiveReconnect();
+      }
     }
   }
 
   async function handleDisconnect(): Promise<void> {
-    if (closed || reconnecting) return;
+    if (closed) return;
     if (!reconnectConfig.enabled) {
       for (const cb of closeListeners) cb();
+      return;
+    }
+    if (rotating || reconnecting) {
+      recoveryQueued = true;
+      log.warn({ rotating, reconnecting }, 'disconnect during recovery, deferring reconnect');
       return;
     }
     await reactiveReconnect();
   }
 
   function handleError(err: Error): void {
-    if (isFatal(err)) {
-      log.error({ error: err }, 'fatal adapter error, closing');
+    const classification = classifyError(err);
+    if (classification.fatal) {
+      log.error({ error: err }, 'fatal adapter error');
+      emitUnrecoverable(classification.reason);
       for (const cb of errorListeners) cb(err);
-      void close();
       return;
     }
     log.warn({ error: err }, 'transient adapter error');
   }
 
   async function reactiveReconnect(): Promise<void> {
+    if (reconnecting) return;
     reconnecting = true;
     let attempt = 0;
+    const reconnectStartedAt = Date.now();
 
-    while (attempt < reconnectConfig.maxRetries && !closed) {
+    while (!closed) {
       attempt++;
-      const delay =
-        reconnectConfig.backoffMs * Math.pow(2, attempt - 1) * (0.5 + Math.random() * 0.5);
-      log.info({ attempt, delay: Math.round(delay) }, 'reactive reconnect attempt');
+      const delay = Math.min(
+        reconnectConfig.backoffMs * Math.pow(2, attempt - 1) * (0.5 + Math.random() * 0.5),
+        maxBackoffMs,
+      );
+      log.info(
+        { attempt, delay: Math.round(delay), elapsedMs: Date.now() - reconnectStartedAt },
+        'reactive reconnect attempt',
+      );
 
       await new Promise((r) => setTimeout(r, delay));
       if (closed) break;
@@ -195,33 +289,32 @@ export async function createManagedConnection(
         wireTransport(newTransport);
 
         const replay = getReplayChunks();
-        for (const chunk of replay) {
-          newTransport.sendAudio(chunk);
-        }
+        sendChunkBatch(newTransport, replay);
 
         scheduleRotation();
         log.info({ attempt, replayedChunks: replay.length }, 'reactive reconnect succeeded');
         reconnecting = false;
         return;
       } catch (err) {
+        const asError = err instanceof Error ? err : new Error(String(err));
+        const classification = classifyError(asError);
+        if (classification.fatal) {
+          reconnecting = false;
+          log.error({ error: err, attempt }, 'fatal error during reconnect');
+          emitUnrecoverable(classification.reason);
+          return;
+        }
         log.warn({ error: err, attempt }, 'reconnect attempt failed');
       }
     }
 
     reconnecting = false;
-    if (!closed) {
-      const error = new Error(`Reconnect failed after ${reconnectConfig.maxRetries} attempts`);
-      for (const cb of errorListeners) cb(error);
-      for (const cb of closeListeners) cb();
-    }
   }
 
   function flushPending(): void {
     if (pendingChunks.length === 0 || !transport || closed) return;
 
-    for (const chunk of pendingChunks) {
-      transport.sendAudio(chunk);
-    }
+    sendChunkBatch(transport, pendingChunks);
 
     pendingChunks = [];
     pendingBytes = 0;
@@ -308,6 +401,9 @@ export async function createManagedConnection(
     },
     onClose(cb) {
       closeListeners.push(cb);
+    },
+    onUnrecoverable(cb) {
+      unrecoverableListeners.push(cb);
     },
   };
 }

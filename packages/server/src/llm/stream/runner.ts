@@ -5,7 +5,7 @@ import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
@@ -20,6 +20,7 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
+import { SessionContext } from '@/llm/stream/session-context.js';
 import {
   buildNextSessionToolsetState,
   getSessionToolsetState,
@@ -27,13 +28,10 @@ import {
   setSessionToolsetState,
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
-import { ToolAssembler } from '@/llm/stream/tool-assembler.js';
-import { processMemories } from '@/memory/processor.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
 
@@ -180,9 +178,12 @@ class StreamRunner {
 
   async run(): Promise<void> {
     this.logStart();
-    Events.emit('stream-start', {
+    internalBus.emit('stream.started', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
+      modelId: this.ctx.modelId,
+      providerId: this.ctx.providerId,
+      streamRunId: this.ctx.streamRunId,
     });
 
     try {
@@ -204,7 +205,7 @@ class StreamRunner {
     }
 
     await this.maybeRunCompaction();
-    this.maybeProcessMemories();
+    this.emitStreamCompleted();
   }
 
   /**
@@ -233,7 +234,7 @@ class StreamRunner {
   }
 
   private logStart(): void {
-    const userPromptPreview = this.getLastUserPromptPreview();
+    const userPromptPreview = this.getLastUserText(200);
 
     log.info(
       {
@@ -250,7 +251,7 @@ class StreamRunner {
     );
   }
 
-  private getLastUserPromptPreview(): string | null {
+  private getLastUserText(maxLength?: number): string | null {
     for (let i = this.state.conversation.length - 1; i >= 0; i--) {
       const message = this.state.conversation[i];
       if (message?.role !== 'user') {
@@ -259,17 +260,24 @@ class StreamRunner {
 
       const { content } = message;
       if (typeof content === 'string') {
-        return content.slice(0, 200);
+        return maxLength ? content.slice(0, maxLength) : content;
       }
 
       if (Array.isArray(content)) {
         const textPart = content.find(
           (part) => typeof part === 'object' && part !== null && part.type === 'text',
         );
-        if (textPart && typeof textPart.text === 'string') {
-          return textPart.text.slice(0, 200);
+        if (
+          textPart &&
+          typeof textPart === 'object' &&
+          'text' in textPart &&
+          typeof textPart.text === 'string'
+        ) {
+          return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
         }
       }
+
+      return null;
     }
 
     return null;
@@ -304,27 +312,16 @@ class StreamRunner {
         ...this.buildStepOptions(step),
         tools: isLastStep ? ({} as StepOptions['tools']) : this.getCurrentTools(),
         onAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
-          const now = this.deps.now();
-          await recordLlmUsage({
-            runId: this.ctx.streamRunId,
-            source: 'chat',
-            status: 'failed',
+          internalBus.emit('usage.step.failed', {
             sessionId: this.ctx.sessionId,
             messageId: this.ctx.assistantMessageId,
+            streamRunId: this.ctx.streamRunId,
             providerId: this.ctx.providerId,
             modelId: this.ctx.modelId,
+            step: step + 1,
+            attempt,
             errorCode,
-            stepIndex: step + 1,
-            attemptIndex: attempt,
-            metadata: {
-              phase: 'chat-step',
-              eventType: 'attempt-failure',
-              streamRunId: this.ctx.streamRunId,
-              isRetryable,
-            },
-            startedAt: now,
-            endedAt: now,
-            durationMs: 0,
+            isRetryable,
           });
         },
       });
@@ -354,24 +351,18 @@ class StreamRunner {
       );
 
       const stepFinishedAt = this.deps.now();
-      await recordLlmUsage({
-        runId: this.ctx.streamRunId,
-        source: 'chat',
-        status: 'succeeded',
+      internalBus.emit('stream.step.completed', {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
+        streamRunId: this.ctx.streamRunId,
         providerId: this.ctx.providerId,
         modelId: this.ctx.modelId,
+        step: step + 1,
         usage: stepResult.usage,
-        stepIndex: step + 1,
-        attemptIndex: stepResult.attemptCount,
-        metadata: {
-          phase: 'chat-step',
-          eventType: 'step-success',
-          finishReason: stepResult.finishReason,
-        },
+        finishReason: stepResult.finishReason,
+        toolCallCount: stepResult.toolCalls.length,
+        attemptCount: stepResult.attemptCount,
         startedAt: stepStartedAt,
-        endedAt: stepFinishedAt,
         durationMs: stepFinishedAt - stepStartedAt,
       });
 
@@ -461,26 +452,15 @@ class StreamRunner {
           isStopped: false,
         },
         onDoomLoopAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
-          const now = this.deps.now();
-          await recordLlmUsage({
-            runId: this.ctx.streamRunId,
-            source: 'doom_loop_summary',
-            status: 'failed',
+          internalBus.emit('usage.doom_loop.failed', {
             sessionId: this.ctx.sessionId,
             messageId: this.ctx.assistantMessageId,
+            streamRunId: this.ctx.streamRunId,
             providerId: this.ctx.providerId,
             modelId: this.ctx.modelId,
+            attempt,
             errorCode,
-            attemptIndex: attempt,
-            metadata: {
-              phase: 'doom-loop',
-              eventType: 'attempt-failure',
-              streamRunId: this.ctx.streamRunId,
-              isRetryable,
-            },
-            startedAt: now,
-            endedAt: now,
-            durationMs: 0,
+            isRetryable,
           });
         },
       });
@@ -488,23 +468,13 @@ class StreamRunner {
       this.state.totalUsage = doomLoopState.totalUsage;
       this.setFinishReason(doomLoopState.finalFinishReason, 'doom-loop');
       if (doomLoopState.summaryUsage) {
-        const now = this.deps.now();
-        await recordLlmUsage({
-          runId: this.ctx.streamRunId,
-          source: 'doom_loop_summary',
-          status: 'succeeded',
+        internalBus.emit('usage.doom_loop.summary', {
           sessionId: this.ctx.sessionId,
           messageId: this.ctx.assistantMessageId,
+          streamRunId: this.ctx.streamRunId,
           providerId: this.ctx.providerId,
           modelId: this.ctx.modelId,
           usage: doomLoopState.summaryUsage,
-          metadata: {
-            phase: 'doom-loop',
-            eventType: 'summary-after-stop',
-          },
-          startedAt: now,
-          endedAt: now,
-          durationMs: 0,
         });
       }
       if (doomLoopState.isStopped) {
@@ -623,12 +593,11 @@ class StreamRunner {
     }
 
     for (const part of unresolvedParts) {
-      Events.emit('stream-tool-state', {
+      internalBus.emit('tool.failed', {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         toolCallId: part.toolCallId,
         toolName: part.toolName,
-        status: 'error',
         error: 'Aborted',
       });
     }
@@ -670,12 +639,11 @@ class StreamRunner {
     );
 
     for (const call of unresolvedToolCalls) {
-      Events.emit('stream-tool-state', {
+      internalBus.emit('tool.failed', {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         toolCallId: call.toolCallId,
         toolName: call.toolName,
-        status: 'error',
         error: 'Blocked before completion',
       });
     }
@@ -733,10 +701,14 @@ class StreamRunner {
       endedAt: this.deps.now(),
     } as StoredPart);
 
-    Events.emit('stream-error', {
+    internalBus.emit('stream.failed', {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
+      streamRunId: this.ctx.streamRunId,
+      modelId: this.ctx.modelId,
+      providerId: this.ctx.providerId,
       error: mappedError.message,
+      errorCode: getErrorCode(error),
       details: toStreamErrorDetails(mappedError),
     });
 
@@ -1046,55 +1018,29 @@ class StreamRunner {
   }
 
   /**
-   * Fire-and-forget async memory extraction from the conversation turn.
-   * Extracts the last user message and the assistant's response text,
-   * then hands them to the memory processor.
+   * Emit the stream.completed lifecycle event.
+   * Downstream adapters (memory, analytics, etc.) react to this.
    */
-  private maybeProcessMemories(): void {
+  private emitStreamCompleted(): void {
     const userMessage = this.getLastUserText();
     const assistantMessage = this.getAssistantText();
+    const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
 
-    if (!userMessage || !assistantMessage) return;
-
-    processMemories({
+    internalBus.emit('stream.completed', {
       sessionId: this.ctx.sessionId,
+      messageId: this.ctx.assistantMessageId,
+      streamRunId: this.ctx.streamRunId,
+      modelId: this.ctx.modelId,
+      providerId: this.ctx.providerId,
+      totalUsage: this.state.totalUsage,
+      finishReason: this.state.finalFinishReason,
+      durationMs: this.deps.now() - this.ctx.startedAt,
+      stepCount: this.state.stepCount,
+      toolCallCount,
+      accumulatedParts: this.state.accumulatedParts,
       userMessage,
       assistantMessage,
-      providerId: this.ctx.providerId,
-      modelId: this.ctx.modelId,
-    }).catch((error) => {
-      log.warn(
-        {
-          event: 'stream.memory_processing.failed',
-          streamRunId: this.ctx.streamRunId,
-          sessionId: this.ctx.sessionId,
-          error,
-        },
-        'async memory processing failed',
-      );
     });
-  }
-
-  private getLastUserText(): string | null {
-    for (let i = this.state.conversation.length - 1; i >= 0; i--) {
-      const msg = this.state.conversation[i];
-      if (msg?.role !== 'user') continue;
-
-      const { content } = msg;
-      if (typeof content === 'string') return content;
-
-      if (Array.isArray(content)) {
-        const textPart = content.find(
-          (part) => typeof part === 'object' && part !== null && part.type === 'text',
-        );
-        if (textPart && typeof textPart === 'object' && 'text' in textPart) {
-          return textPart.text;
-        }
-      }
-
-      return null;
-    }
-    return null;
   }
 
   private getAssistantText(): string | null {
@@ -1194,26 +1140,17 @@ export async function runStream(opts: {
   const streamRunId = randomUUID();
   const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const { staticTools, toolsetManager, promptAdditions } = await ToolAssembler.create({
+  const { messages, tools, toolsetManager } = await SessionContext.create({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,
     credentials: opts.credentials,
     modelId: opts.modelId,
     abortSignal: opts.abortSignal,
+    llmMessages: opts.llmMessages,
     activeToolsetIds: opts.activeToolsetIds,
     allowTaskTool: canUseTaskTool,
   }).assemble();
-
-  const messages = opts.llmMessages;
-  if (messages.length > 0 && messages[0]?.role === 'system') {
-    const sysMsg = messages[0];
-    const existingContent = typeof sysMsg.content === 'string' ? sysMsg.content : '';
-    messages[0] = {
-      role: 'system',
-      content: `${existingContent}\n\n${promptAdditions.join('\n\n')}`,
-    };
-  }
 
   const transformedMessages = await transformAttachmentsForModel(
     messages,
@@ -1225,7 +1162,7 @@ export async function runStream(opts: {
     {
       ...opts,
       llmMessages: transformedMessages,
-      coreTools: staticTools,
+      coreTools: tools,
       toolsetManager,
       streamRunId,
     },

@@ -55,6 +55,6 @@ export async function createEmbedder(): Promise<Embedder> {
 
   const dimensions = (await getEmbeddingModelDimensions(providerId, modelId)) ?? DEFAULT_DIMENSIONS;
   log.info({ providerId, modelId, dimensions }, 'using provider embedder');
-  cachedEmbedder = new ProviderEmbedder(config_.credentials, modelId, dimensions);
+  cachedEmbedder = new ProviderEmbedder(config_.credentials, providerId, modelId, dimensions);
   return cachedEmbedder;
 }

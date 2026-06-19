@@ -132,6 +132,27 @@ describe('getUsageDashboard', () => {
     expect(result.data.totals.costUsd).toBeCloseTo(0.03);
   });
 
+  test('excludes transcription from LLM usage totals', async () => {
+    const now = Date.now();
+    const from = now - 10_000;
+
+    await insertEvent({
+      source: 'transcription_recording',
+      providerId: 'openai',
+      modelId: 'gpt-realtime-whisper',
+      costUsd: 0.25,
+      startedAt: from + 1_000,
+    });
+
+    const result = await getUsageDashboard({ from, to: now });
+
+    expect(isServiceError(result)).toBe(false);
+    if (isServiceError(result)) return;
+
+    expect(result.data.totals.costUsd).toBe(0);
+    expect(result.data.sources).not.toContain('transcription');
+  });
+
   test('excludes events outside the time range', async () => {
     const now = Date.now();
     const from = now - 10_000;

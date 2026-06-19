@@ -7,10 +7,14 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 import { StreamAccumulator } from './stream-accumulator.js';
 
 import type { ToolCallRecord } from './doom-loop.js';
-import * as Events from '@/lib/events.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
-import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
+import {
+  addCacheControlToMessages,
+  addCacheControlToTools,
+  getProviderOptions,
+} from '@/llm/cache-control.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import {
   ContextOverflowError,
@@ -76,12 +80,13 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     opts.providerId as ProviderId,
     model.modelId,
   );
+  const cachedTools = addCacheControlToTools(tools, opts.providerId as ProviderId, model.modelId);
   const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
 
   const result = streamText({
     model,
     messages: cachedMessages,
-    tools,
+    tools: cachedTools,
     providerOptions,
     experimental_repairToolCall: async (failed) => {
       const toolName = String(failed.toolCall.toolName ?? '');
@@ -188,7 +193,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
         };
       }
 
-      await accumulator.handlePart(part);
+      accumulator.handlePart(part);
 
       if (abortSignal.aborted) {
         throw new StreamAbortedError();
@@ -321,10 +326,14 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       }
 
       if (!retryMessage || attempt >= MAX_RETRIES) {
-        Events.emit('stream-error', {
+        internalBus.emit('stream.failed', {
           sessionId: opts.sessionId,
           messageId: opts.messageId,
+          streamRunId: opts.streamRunId,
+          modelId: '',
+          providerId: opts.providerId,
           error: errorInfo.message,
+          errorCode: errorInfo.aiErrorName,
           details: {
             category: errorInfo.category,
             isRetryable: errorInfo.isRetryable,
@@ -351,7 +360,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
         'retrying step',
       );
 
-      Events.emit('stream-retry', {
+      internalBus.emit('stream.retry', {
         sessionId: opts.sessionId,
         messageId: opts.messageId,
         attempt,

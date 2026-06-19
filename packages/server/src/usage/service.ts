@@ -2,6 +2,7 @@ import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 
 import {
   USAGE_SOURCES,
+  type EmbeddingUsageDashboardResponse,
   type SttUsageDashboardResponse,
   type UsageDashboardResponse,
   type UsageBucketGranularity,
@@ -13,7 +14,7 @@ import {
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
-import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
+import { embeddingUsageEvents, llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { LanguageModelUsage } from 'ai';
@@ -288,7 +289,7 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
 function normalizeEventSource(
   source: string,
   sessionType: 'chat' | 'automation' | null,
-): UsageSource {
+): UsageSource | null {
   if (source === 'title_generation') {
     return 'title_generation';
   }
@@ -302,7 +303,7 @@ function normalizeEventSource(
   }
 
   if (source.startsWith('transcription')) {
-    return 'transcription';
+    return null;
   }
 
   if (sessionType === 'automation') {
@@ -370,7 +371,6 @@ export async function getUsageDashboard(
 
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
-  const recordingAnalysisCostByRecordingId = new Map<string, number>();
 
   const addUsageRow = (args: {
     createdAt: number;
@@ -398,63 +398,14 @@ export async function getUsageDashboard(
     usedProviderIds.add(row.providerId);
     usedModelKeys.add(`${row.providerId}::${row.modelId}`);
 
-    if (row.source === 'recording_analysis') {
-      const recordingId = row.metadata?.recordingId;
-      if (typeof recordingId === 'string') {
-        recordingAnalysisCostByRecordingId.set(
-          recordingId,
-          (recordingAnalysisCostByRecordingId.get(recordingId) ?? 0) + (row.costUsd ?? 0),
-        );
-      }
-    }
+    const source = normalizeEventSource(row.source, row.sessionType ?? null);
+    if (!source) continue;
 
     addUsageRow({
       createdAt: row.createdAt,
-      source: normalizeEventSource(row.source, row.sessionType ?? null),
+      source,
       usage: row.usage,
       costUsd: row.costUsd,
-    });
-  }
-
-  const transcriptionConditions = [
-    gte(recordingAnalyses.startedAt, window.from),
-    lt(recordingAnalyses.startedAt, window.to),
-    isNotNull(recordingAnalyses.transcriptionProviderId),
-    isNotNull(recordingAnalyses.transcriptionModelId),
-  ];
-  if (input.providerId) {
-    transcriptionConditions.push(eq(recordingAnalyses.transcriptionProviderId, input.providerId));
-  }
-  if (input.modelId) {
-    transcriptionConditions.push(eq(recordingAnalyses.transcriptionModelId, input.modelId));
-  }
-
-  const transcriptionRows = await db
-    .select({
-      recordingId: recordingAnalyses.recordingId,
-      createdAt: recordingAnalyses.startedAt,
-      providerId: recordingAnalyses.transcriptionProviderId,
-      modelId: recordingAnalyses.transcriptionModelId,
-      costUsd: recordingAnalyses.costUsd,
-    })
-    .from(recordingAnalyses)
-    .where(and(...transcriptionConditions));
-
-  for (const row of transcriptionRows) {
-    if (!row.createdAt || !row.providerId || !row.modelId) continue;
-
-    usedProviderIds.add(row.providerId);
-    usedModelKeys.add(`${row.providerId}::${row.modelId}`);
-
-    const analysisCost = recordingAnalysisCostByRecordingId.get(row.recordingId) ?? 0;
-    const transcriptionCost = Math.max(0, row.costUsd - analysisCost);
-    if (transcriptionCost === 0) continue;
-
-    addUsageRow({
-      createdAt: row.createdAt,
-      source: 'transcription',
-      usage: null,
-      costUsd: transcriptionCost,
     });
   }
 
@@ -606,6 +557,105 @@ export async function getSttUsageDashboard(
     totals: {
       costUsd: totalCostUsd,
       durationMs: totalDurationMs,
+    },
+    buckets,
+  });
+}
+
+export async function getEmbeddingUsageDashboard(
+  input: GetUsageDashboardInput,
+): Promise<ServiceResult<EmbeddingUsageDashboardResponse>> {
+  const db = getDb();
+  const window = await resolveWindow(input);
+  const granularity = inferGranularity(window);
+  const bucketRanges = buildBucketRanges(window, granularity);
+
+  const buckets = bucketRanges.map((range) => ({
+    start: range.start,
+    end: range.end,
+    label: formatBucketLabel(range, granularity),
+    costUsdByModel: {} as Record<string, number>,
+    tokensByModel: {} as Record<string, number>,
+  }));
+
+  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
+
+  let totalCostUsd = 0;
+  let totalTokens = 0;
+
+  const usedProviderIds = new Set<string>();
+  const usedModelKeys = new Set<string>();
+
+  const conditions = [
+    gte(embeddingUsageEvents.createdAt, window.from),
+    lt(embeddingUsageEvents.createdAt, window.to),
+  ];
+  if (input.providerId) {
+    conditions.push(eq(embeddingUsageEvents.providerId, input.providerId));
+  }
+  if (input.modelId) {
+    conditions.push(eq(embeddingUsageEvents.modelId, input.modelId));
+  }
+
+  const rows = await db
+    .select({
+      createdAt: embeddingUsageEvents.createdAt,
+      providerId: embeddingUsageEvents.providerId,
+      modelId: embeddingUsageEvents.modelId,
+      totalTokens: embeddingUsageEvents.totalTokens,
+      costUsd: embeddingUsageEvents.costUsd,
+    })
+    .from(embeddingUsageEvents)
+    .where(and(...conditions));
+
+  for (const row of rows) {
+    usedProviderIds.add(row.providerId);
+    const modelKey = `${row.providerId}::${row.modelId}`;
+    usedModelKeys.add(modelKey);
+
+    const costUsd = row.costUsd ?? 0;
+    const tokens = row.totalTokens ?? 0;
+
+    totalCostUsd += costUsd;
+    totalTokens += tokens;
+
+    const bucketStart = floorToGranularity(row.createdAt, granularity);
+    const bucketIndex = bucketIndexByStart.get(bucketStart);
+    if (bucketIndex === undefined) continue;
+
+    const bucket = buckets[bucketIndex];
+    if (!bucket) continue;
+
+    bucket.costUsdByModel[modelKey] = (bucket.costUsdByModel[modelKey] ?? 0) + costUsd;
+    bucket.tokensByModel[modelKey] = (bucket.tokensByModel[modelKey] ?? 0) + tokens;
+  }
+
+  return ok({
+    range: {
+      from: window.from,
+      to: window.to,
+      granularity,
+      bucketCount: buckets.length,
+    },
+    filters: {
+      providerId: input.providerId ?? null,
+      modelId: input.modelId ?? null,
+    },
+    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedModels: Array.from(usedModelKeys)
+      .map((key) => {
+        const separator = key.indexOf('::');
+        return {
+          providerId: key.slice(0, separator),
+          modelId: key.slice(separator + 2),
+        };
+      })
+      .sort(
+        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
+      ),
+    totals: {
+      costUsd: totalCostUsd,
+      totalTokens,
     },
     buckets,
   });

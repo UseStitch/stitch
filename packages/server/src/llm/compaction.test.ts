@@ -189,13 +189,18 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result).toHaveLength(3);
+    // 2 system messages (static + semi-static) + assistant + tool
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
     expect(result[0]).toMatchObject({ role: 'system' });
-    expect(result[1]).toMatchObject({
+
+    const nonSystem = result.filter((m) => m.role !== 'system');
+    expect(nonSystem).toHaveLength(2);
+    expect(nonSystem[0]).toMatchObject({
       role: 'assistant',
       content: [{ type: 'tool-call', toolCallId: 'tc_1' }],
     });
-    expect(result[2]).toMatchObject({
+    expect(nonSystem[1]).toMatchObject({
       role: 'tool',
       content: [{ type: 'tool-result', toolCallId: 'tc_1' }],
     });
@@ -221,7 +226,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result).toHaveLength(1);
+    // Unmatched tool-call is dropped
+    const nonSystem = result.filter((m) => m.role !== 'system');
+    expect(nonSystem).toHaveLength(0);
     expect(result[0]).toMatchObject({ role: 'system' });
   });
 
@@ -245,9 +252,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(result[1]).toMatchObject({
+    const nonSystem = result.filter((m) => m.role !== 'system');
+    expect(nonSystem).toHaveLength(1);
+    expect(nonSystem[0]).toMatchObject({
       role: 'assistant',
       content: [{ type: 'text', text: 'hello' }],
     });
@@ -276,7 +283,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[2]).toMatchObject({
+    const toolMessages = result.filter((m) => m.role === 'tool');
+    expect(toolMessages).toHaveLength(1);
+    expect(toolMessages[0]).toMatchObject({
       role: 'tool',
       content: [
         {
@@ -308,11 +317,14 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(typeof result[0]?.content).toBe('string');
-    expect(result[0]?.content).toContain('<env>');
-    expect(result[0]?.content).toContain('Preferred shell:');
-    expect(result[0]?.content).toContain('You are Stitch, a local machine assistant');
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
+
+    // Static layer contains identity
+    expect(systemMessages[0].content).toContain('You are Stitch, a local machine assistant');
+    // Semi-static layer contains env
+    expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).toContain('Preferred shell:');
   });
 
   test('uses custom system prompt when base prompt is disabled', () => {
@@ -335,10 +347,11 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(typeof result[0]?.content).toBe('string');
-    expect(result[0]?.content).toContain('<env>');
-    expect(result[0]?.content).toContain('Custom system prompt for testing');
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
+    // Semi-static layer contains env and custom prompt
+    expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).toContain('Custom system prompt for testing');
   });
 
   test('appends custom system prompt when base prompt is enabled', () => {
@@ -361,10 +374,11 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(typeof result[0]?.content).toBe('string');
-    expect(result[0]?.content).toContain('<env>');
-    expect(result[0]?.content).toContain('Extra user instruction');
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
+    // Semi-static layer contains env and user instruction
+    expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).toContain('Extra user instruction');
   });
 
   test('includes user profile name in system prompt when provided', () => {
@@ -387,9 +401,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(typeof result[0]?.content).toBe('string');
-    expect(result[0]?.content).toContain('helps Jane with day-to-day tasks');
+    // Static layer contains identity with user name
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages[0].content).toContain('helps Jane with day-to-day tasks');
   });
 
   test('includes user timezone in system prompt environment when provided', () => {
@@ -412,9 +426,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    expect(result[0]).toMatchObject({ role: 'system' });
-    expect(typeof result[0]?.content).toBe('string');
-    expect(result[0]?.content).toContain('User timezone: America/New_York');
+    // Semi-static layer contains env with timezone
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages[1].content).toContain('User timezone: America/New_York');
   });
 
   test('throws when called with empty history', () => {

@@ -3,7 +3,12 @@ import { mapAIError, OVERLOADED_PATTERN } from '@/llm/stream/ai-error-mapper.js'
 const RETRY_INITIAL_DELAY = 2000;
 const RETRY_BACKOFF_FACTOR = 2;
 const RETRY_MAX_DELAY_NO_HEADERS = 30000;
+const RETRY_MAX_DELAY = 2_147_483_647;
 export const MAX_RETRIES = 5;
+
+function cap(ms: number): number {
+  return Math.min(ms, RETRY_MAX_DELAY);
+}
 
 type ErrorInfo = ReturnType<typeof mapAIError>;
 
@@ -27,7 +32,7 @@ export function delay(attempt: number, headers?: Record<string, string>): number
     if (retryAfterMs) {
       const parsedMs = Number.parseFloat(retryAfterMs);
       if (!Number.isNaN(parsedMs)) {
-        return parsedMs;
+        return cap(parsedMs);
       }
     }
 
@@ -35,15 +40,15 @@ export function delay(attempt: number, headers?: Record<string, string>): number
     if (retryAfter) {
       const parsedSeconds = Number.parseFloat(retryAfter);
       if (!Number.isNaN(parsedSeconds)) {
-        return Math.ceil(parsedSeconds * 1000);
+        return cap(Math.ceil(parsedSeconds * 1000));
       }
       const parsed = Date.parse(retryAfter) - Date.now();
       if (!Number.isNaN(parsed) && parsed > 0) {
-        return Math.ceil(parsed);
+        return cap(Math.ceil(parsed));
       }
     }
 
-    return RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1);
+    return cap(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1));
   }
 
   return Math.min(

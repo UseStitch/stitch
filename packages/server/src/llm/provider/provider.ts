@@ -99,7 +99,8 @@ export const createProvider = (credentials: ProviderCredentials) => {
       });
 
     case 'elevenlabs':
-      // ElevenLabs is STT-only, no LLM provider
-      return undefined as never;
+    case 'assemblyai':
+      // STT-only providers — must not be used to create an LLM provider
+      throw new Error(`${credentials.providerId} is STT-only and has no LLM provider`);
   }
 };

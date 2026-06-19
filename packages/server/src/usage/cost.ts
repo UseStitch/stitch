@@ -1,3 +1,4 @@
+import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -45,5 +46,18 @@ export async function calculateMessageCostUsd(input: {
       cacheWriteTokens * (effectiveCost.cache_write ?? effectiveCost.input)) /
     TOKENS_PER_MILLION;
 
+  return Number.isFinite(costUsd) ? costUsd : 0;
+}
+
+export async function calculateEmbeddingCostUsd(input: {
+  providerId: string;
+  modelId: string;
+  tokens: number;
+}): Promise<number> {
+  const providers = await EmbeddingModels.getEmbeddingModels();
+  const model = providers[input.providerId]?.models[input.modelId];
+  if (!model) return 0;
+
+  const costUsd = (input.tokens * model.cost.input) / TOKENS_PER_MILLION;
   return Number.isFinite(costUsd) ? costUsd : 0;
 }

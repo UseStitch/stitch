@@ -1,23 +1,22 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { createReadStream } from 'node:fs';
-import fs from 'node:fs/promises';
-import { Readable } from 'node:stream';
 import { z } from 'zod';
 
 import type { StartRecordingInput, StopRecordingInput } from '@stitch/shared/recordings/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
-import { isServiceError } from '@/lib/service-result.js';
+import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import {
-  cancelRecordingAnalysis,
-  getRecordingAnalysis,
-  startRecordingAnalysis,
-} from '@/recordings/analysis-service.js';
+  createMeetingNoteTemplate,
+  deleteMeetingNoteTemplate,
+  listMeetingNoteTemplates,
+  updateMeetingNoteTemplate,
+} from '@/recordings/meeting-note-templates.js';
 import {
   deleteRecording,
-  getRecordingAudioFile,
+  getActiveRecording,
+  getRecordingDetails,
   listRecordings,
   startRecording,
   stopRecording,
@@ -26,19 +25,33 @@ import {
 const startRecordingSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   platform: z.enum(['manual', 'zoom', 'teams', 'slack', 'discord', 'google-meet']).optional(),
+  sttProviderId: z.string().min(1).optional(),
+  sttModelId: z.string().min(1).optional(),
 });
 
 const stopRecordingSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable(),
-  fileSizeBytes: z.number().int().nonnegative().nullable(),
 });
 
 const recordingIdParamSchema = z.object({
   id: z.templateLiteral([z.literal('rec'), z.string()]),
 });
 
+const meetingNoteTemplateIdParamSchema = z.object({
+  id: z.templateLiteral([z.literal('mnt'), z.string()]),
+});
+
+const meetingNoteTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  content: z.string().max(50_000),
+});
+
 const analyzeQuerySchema = z.object({
   force: z.enum(['1', 'true']).optional(),
+});
+
+const analyzeBodySchema = z.object({
+  templateId: z.templateLiteral([z.literal('mnt'), z.string()]),
 });
 
 export const recordingsRouter = new Hono();
@@ -65,87 +78,66 @@ recordingsRouter.post('/stop', zValidator('json', stopRecordingSchema), async (c
   return unwrapResult(c, result);
 });
 
+recordingsRouter.get('/templates', async (c) => {
+  const result = await listMeetingNoteTemplates();
+  return c.json(result);
+});
+
+recordingsRouter.post('/templates', zValidator('json', meetingNoteTemplateSchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createMeetingNoteTemplate(body);
+  return unwrapResult(c, result, 201);
+});
+
+recordingsRouter.put(
+  '/templates/:id',
+  zValidator('param', meetingNoteTemplateIdParamSchema),
+  zValidator('json', meetingNoteTemplateSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = await updateMeetingNoteTemplate(id, body);
+    return unwrapResult(c, result);
+  },
+);
+
+recordingsRouter.delete(
+  '/templates/:id',
+  zValidator('param', meetingNoteTemplateIdParamSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const result = await deleteMeetingNoteTemplate(id);
+    return unwrapResult(c, result, 204);
+  },
+);
+
 recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await deleteRecording(id);
   return unwrapResult(c, result, 204);
 });
 
-recordingsRouter.get('/:id/audio', zValidator('param', recordingIdParamSchema), async (c) => {
+recordingsRouter.get('/active', (c) => c.json(getActiveRecording()));
+
+recordingsRouter.get('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  const result = await getRecordingAudioFile(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
-
-  const stat = await fs.stat(result.data.filePath);
-  const range = c.req.header('range');
-
-  if (range?.startsWith('bytes=')) {
-    const [startToken, endToken] = range.slice('bytes='.length).split('-');
-    const start = startToken ? Number.parseInt(startToken, 10) : 0;
-    const end = endToken ? Number.parseInt(endToken, 10) : stat.size - 1;
-
-    if (
-      Number.isNaN(start) ||
-      Number.isNaN(end) ||
-      start < 0 ||
-      end < start ||
-      start >= stat.size
-    ) {
-      return new Response(null, {
-        status: 416,
-        headers: {
-          'content-range': `bytes */${stat.size}`,
-        },
-      });
-    }
-
-    const boundedEnd = Math.min(end, stat.size - 1);
-    const chunkSize = boundedEnd - start + 1;
-    const stream = createReadStream(result.data.filePath, { start, end: boundedEnd });
-
-    return new Response(Readable.toWeb(stream) as ReadableStream, {
-      status: 206,
-      headers: {
-        'accept-ranges': 'bytes',
-        'cache-control': 'no-store',
-        'content-disposition': `inline; filename="${id}.ogg"`,
-        'content-length': String(chunkSize),
-        'content-range': `bytes ${start}-${boundedEnd}/${stat.size}`,
-        'content-type': result.data.mimeType,
-      },
-    });
-  }
-
-  const stream = createReadStream(result.data.filePath);
-
-  return new Response(Readable.toWeb(stream) as ReadableStream, {
-    headers: {
-      'accept-ranges': 'bytes',
-      'cache-control': 'no-store',
-      'content-disposition': `inline; filename="${id}.ogg"`,
-      'content-length': String(stat.size),
-      'content-type': result.data.mimeType,
-    },
-  });
+  const result = await getRecordingDetails(id);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.post(
   '/:id/analyze',
   zValidator('param', recordingIdParamSchema),
   zValidator('query', analyzeQuerySchema),
+  zValidator('json', analyzeBodySchema),
   async (c) => {
     const { id } = c.req.valid('param');
     const { force } = c.req.valid('query');
-    const result = await startRecordingAnalysis(id, { force: !!force });
+    const { templateId } = c.req.valid('json');
+    const result = await startRecordingAnalysis(id, { force: !!force, templateId });
     return unwrapResult(c, result, 202);
   },
 );
-
-recordingsRouter.get('/:id/analysis', zValidator('param', recordingIdParamSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  const result = await getRecordingAnalysis(id);
-  return unwrapResult(c, result);
-});
 
 recordingsRouter.post(
   '/:id/analysis/cancel',

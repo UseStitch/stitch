@@ -26,1057 +26,62 @@
         if (t) document.documentElement.setAttribute('data-theme', t);
       })();
     </script>
-    <style>
-      /* ── Reset ── */
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html {
-        scroll-behavior: smooth;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-
-      /* ── Color tokens ── */
-      :root {
-        --color-bg: #000;
-        --color-bg-subtle: #0a0a0a;
-        --color-bg-muted: #111;
-        --color-text: #fff;
-        --color-text-secondary: #888;
-        --color-text-muted: #777;
-        --color-text-faint: #555;
-        --color-text-ghost: #444;
-        --color-border: #1a1a1a;
-        --color-border-mid: #222;
-        --color-border-strong: #333;
-        --color-border-nav: #111;
-        --color-step-number: #1a1a1a;
-        --color-dot: #555;
-        --color-success: #4a9;
-        --color-btn-bg: #fff;
-        --color-btn-text: #000;
-        --color-btn-hover-bg: #ddd;
-        --color-btn-outline-border: #fff;
-        --color-dropdown-bg: #000;
-        --color-dropdown-hover: #fff;
-        --color-dropdown-text: #fff;
-        --color-dropdown-hover-text: #000;
-        --color-nav-bg: rgba(0, 0, 0, 0.85);
-        --color-cursor: #fff;
-        --color-prompt: #fff;
-        --color-cmd: #aaa;
-        --color-output: #555;
-        --color-terminal-body: #666;
-        --color-icon-stroke: #fff;
-        --color-chip-text: #aaa;
-        --color-chip-hover: #fff;
-        --color-note-link: #888;
-        --color-footer-text: #555;
-        --color-footer-hover: #fff;
-      }
-
-      @media (prefers-color-scheme: light) {
-        :root:not([data-theme='dark']) {
-          --color-bg: #fff;
-          --color-bg-subtle: #f8f8f8;
-          --color-bg-muted: #f0f0f0;
-          --color-text: #111;
-          --color-text-secondary: #666;
-          --color-text-muted: #777;
-          --color-text-faint: #999;
-          --color-text-ghost: #aaa;
-          --color-border: #e0e0e0;
-          --color-border-mid: #ddd;
-          --color-border-strong: #ccc;
-          --color-border-nav: #e8e8e8;
-          --color-step-number: #e0e0e0;
-          --color-dot: #999;
-          --color-success: #2a7;
-          --color-btn-bg: #111;
-          --color-btn-text: #fff;
-          --color-btn-hover-bg: #333;
-          --color-btn-outline-border: #111;
-          --color-dropdown-bg: #fff;
-          --color-dropdown-hover: #111;
-          --color-dropdown-text: #333;
-          --color-dropdown-hover-text: #fff;
-          --color-nav-bg: rgba(255, 255, 255, 0.85);
-          --color-cursor: #111;
-          --color-prompt: #111;
-          --color-cmd: #444;
-          --color-output: #999;
-          --color-terminal-body: #888;
-          --color-icon-stroke: #333;
-          --color-chip-text: #666;
-          --color-chip-hover: #111;
-          --color-note-link: #555;
-          --color-footer-text: #999;
-          --color-footer-hover: #111;
-        }
-      }
-
-      :root[data-theme='light'] {
-        --color-bg: #fff;
-        --color-bg-subtle: #f8f8f8;
-        --color-bg-muted: #f0f0f0;
-        --color-text: #111;
-        --color-text-secondary: #666;
-        --color-text-muted: #777;
-        --color-text-faint: #999;
-        --color-text-ghost: #aaa;
-        --color-border: #e0e0e0;
-        --color-border-mid: #ddd;
-        --color-border-strong: #ccc;
-        --color-border-nav: #e8e8e8;
-        --color-step-number: #e0e0e0;
-        --color-dot: #999;
-        --color-success: #2a7;
-        --color-btn-bg: #111;
-        --color-btn-text: #fff;
-        --color-btn-hover-bg: #333;
-        --color-btn-outline-border: #111;
-        --color-dropdown-bg: #fff;
-        --color-dropdown-hover: #111;
-        --color-dropdown-text: #333;
-        --color-dropdown-hover-text: #fff;
-        --color-nav-bg: rgba(255, 255, 255, 0.85);
-        --color-cursor: #111;
-        --color-prompt: #111;
-        --color-cmd: #444;
-        --color-output: #999;
-        --color-terminal-body: #888;
-        --color-icon-stroke: #333;
-        --color-chip-text: #666;
-        --color-chip-hover: #111;
-        --color-note-link: #555;
-        --color-footer-text: #999;
-        --color-footer-hover: #111;
-      }
-
-      body {
-        font-family:
-          'Inter',
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          Helvetica,
-          Arial,
-          sans-serif;
-        background: var(--color-bg);
-        color: var(--color-text);
-        font-size: 16px;
-        line-height: 1.6;
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      /* ── Layout ── */
-      .container {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 0 24px;
-        width: 100%;
-      }
-
-      /* ── Nav ── */
-      nav {
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        padding: 16px 0;
-        background: var(--color-nav-bg);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--color-border-nav);
-      }
-
-      nav .container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .nav-brand {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--color-text);
-        text-decoration: none;
-        letter-spacing: -0.01em;
-      }
-
-      .nav-brand svg {
-        width: 22px;
-        height: 22px;
-      }
-
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-      }
-
-      .nav-links a {
-        font-size: 0.8rem;
-        color: var(--color-text-secondary);
-        text-decoration: none;
-        transition: color 0.15s;
-      }
-
-      .nav-links a:hover {
-        color: var(--color-text);
-      }
-
-      .nav-cta {
-        padding: 6px 16px;
-        border: 1px solid var(--color-border-strong);
-        color: var(--color-text) !important;
-        font-size: 0.8rem !important;
-        font-weight: 500;
-        text-decoration: none;
-        transition:
-          background 0.15s,
-          border-color 0.15s;
-      }
-
-      .nav-cta:hover {
-        background: var(--color-bg-muted);
-        border-color: var(--color-text-faint);
-      }
-
-      .theme-toggle {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-text-secondary);
-        transition: color 0.15s;
-      }
-
-      .theme-toggle:hover {
-        color: var(--color-text);
-      }
-
-      .theme-toggle svg {
-        width: 16px;
-        height: 16px;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .theme-toggle .icon-sun {
-        display: none;
-      }
-      .theme-toggle .icon-moon {
-        display: block;
-      }
-
-      :root[data-theme='light'] .theme-toggle .icon-sun {
-        display: block;
-      }
-      :root[data-theme='light'] .theme-toggle .icon-moon {
-        display: none;
-      }
-
-      @media (prefers-color-scheme: light) {
-        :root:not([data-theme='dark']) .theme-toggle .icon-sun {
-          display: block;
-        }
-        :root:not([data-theme='dark']) .theme-toggle .icon-moon {
-          display: none;
-        }
-      }
-
-      /* ── Hero ── */
-      .hero {
-        padding: 100px 0 80px;
-        text-align: center;
-      }
-
-      .hero h1 {
-        font-size: 3rem;
-        font-weight: 600;
-        letter-spacing: -0.03em;
-        line-height: 1.1;
-        margin-bottom: 20px;
-      }
-
-      .hero .subtitle {
-        font-size: 1.15rem;
-        color: var(--color-text-secondary);
-        max-width: 540px;
-        margin: 0 auto 40px;
-        line-height: 1.7;
-      }
-
-      .hero-ctas {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px;
-        margin-bottom: 20px;
-        scroll-margin-top: 80px;
-      }
-
-      .hero-meta {
-        font-size: 0.75rem;
-        color: var(--color-text-ghost);
-        margin-top: 4px;
-      }
-
-      .hero-meta a {
-        color: var(--color-text-faint);
-        text-decoration: none;
-        border-bottom: 1px solid var(--color-border-strong);
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-
-      .hero-meta a:hover {
-        color: var(--color-text);
-        border-color: var(--color-text);
-      }
-
-      /* ── Terminal mockup ── */
-      .terminal {
-        max-width: 640px;
-        margin: 48px auto 0;
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        overflow: hidden;
-        text-align: left;
-      }
-
-      .terminal-bar {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 12px 16px;
-        background: var(--color-bg-subtle);
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .terminal-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--color-border);
-      }
-
-      .terminal-body {
-        padding: 20px 20px 24px;
-        font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
-        font-size: 0.8125rem;
-        line-height: 1.8;
-        color: var(--color-terminal-body);
-        min-height: 180px;
-      }
-
-      .terminal-body .prompt {
-        color: var(--color-prompt);
-      }
-      .terminal-body .cmd {
-        color: var(--color-cmd);
-      }
-      .terminal-body .output {
-        color: var(--color-output);
-      }
-      .terminal-body .success {
-        color: var(--color-success);
-      }
-
-      .terminal-cursor {
-        display: inline-block;
-        width: 8px;
-        height: 15px;
-        background: var(--color-cursor);
-        vertical-align: text-bottom;
-        animation: blink 1s step-end infinite;
-      }
-
-      @keyframes blink {
-        50% {
-          opacity: 0;
-        }
-      }
-
-      /* ── Buttons ── */
-      .btn {
-        display: inline-block;
-        padding: 12px 28px;
-        border: 1px solid var(--color-btn-outline-border);
-        text-decoration: none;
-        color: var(--color-text);
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition:
-          background 0.15s,
-          color 0.15s;
-        white-space: nowrap;
-      }
-
-      .btn:hover {
-        background: var(--color-btn-bg);
-        color: var(--color-btn-text);
-      }
-
-      .btn-primary {
-        background: var(--color-btn-bg);
-        color: var(--color-btn-text);
-      }
-
-      .btn-primary:hover {
-        background: var(--color-btn-hover-bg);
-        border-color: var(--color-btn-hover-bg);
-      }
-
-      .btn-group {
-        position: relative;
-        display: inline-block;
-      }
-
-      .btn-group summary {
-        display: inline-block;
-        padding: 12px 28px;
-        border: 1px solid var(--color-btn-outline-border);
-        background: var(--color-btn-bg);
-        text-decoration: none;
-        color: var(--color-btn-text);
-        font-size: 0.875rem;
-        font-weight: 500;
-        transition:
-          background 0.15s,
-          color 0.15s;
-        white-space: nowrap;
-        cursor: pointer;
-        list-style: none;
-      }
-
-      .btn-group summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .btn-group summary::after {
-        content: '';
-        display: inline-block;
-        width: 0;
-        height: 0;
-        margin-left: 8px;
-        vertical-align: middle;
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-top: 5px solid currentColor;
-      }
-
-      .btn-group[open] summary {
-        background: var(--color-btn-hover-bg);
-        color: var(--color-btn-text);
-        border-bottom-color: transparent;
-      }
-
-      .btn-group summary:hover {
-        background: var(--color-btn-hover-bg);
-        border-color: var(--color-btn-hover-bg);
-        color: var(--color-btn-text);
-      }
-
-      .btn-dropdown {
-        position: absolute;
-        top: 100%;
-        left: -1px;
-        right: -1px;
-        display: flex;
-        flex-direction: column;
-        z-index: 10;
-        border: 1px solid var(--color-btn-outline-border);
-        border-top: none;
-        background: var(--color-dropdown-bg);
-      }
-
-      .btn-dropdown a {
-        display: block;
-        padding: 10px 24px;
-        text-decoration: none;
-        color: var(--color-dropdown-text);
-        font-size: 0.8rem;
-        font-weight: 400;
-        white-space: nowrap;
-        text-align: center;
-        transition:
-          background 0.15s,
-          color 0.15s;
-      }
-
-      .btn-dropdown a + a {
-        border-top: 1px solid var(--color-border-mid);
-      }
-
-      .btn-dropdown a:hover {
-        background: var(--color-dropdown-hover);
-        color: var(--color-dropdown-hover-text);
-      }
-
-      /* ── Sections ── */
-      section {
-        padding: 80px 0;
-      }
-
-      section + section {
-        border-top: 1px solid var(--color-border-nav);
-      }
-
-      .section-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        color: var(--color-text-faint);
-        margin-bottom: 16px;
-      }
-
-      .section-heading {
-        font-size: 1.75rem;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        margin-bottom: 16px;
-        line-height: 1.2;
-      }
-
-      .section-desc {
-        font-size: 1rem;
-        color: var(--color-text-secondary);
-        max-width: 560px;
-        margin-bottom: 48px;
-        line-height: 1.7;
-      }
-
-      .section-desc a {
-        color: var(--color-note-link);
-        text-decoration: none;
-        border-bottom: 1px solid var(--color-border-strong);
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-
-      .section-desc a:hover {
-        color: var(--color-text);
-        border-color: var(--color-text);
-      }
-
-      /* ── Feature Grid ── */
-      .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1px;
-        background: var(--color-border);
-        border: 1px solid var(--color-border);
-      }
-
-      .feature-card:last-child {
-        grid-column: span 1;
-      }
-
-      .feature-card {
-        background: var(--color-bg);
-        padding: 32px 28px;
-      }
-
-      .feature-icon {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--color-bg-muted);
-        border: 1px solid var(--color-border);
-      }
-
-      .feature-icon svg {
-        width: 20px;
-        height: 20px;
-        stroke: var(--color-icon-stroke);
-        fill: none;
-        stroke-width: 1.75;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .feature-card h3 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-        letter-spacing: -0.01em;
-      }
-
-      .feature-card p {
-        font-size: 0.82rem;
-        color: var(--color-text-muted);
-        line-height: 1.6;
-      }
-
-      .feature-card-soon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .feature-card-soon p {
-        font-size: 0.85rem;
-        color: var(--color-text-ghost);
-        font-weight: 500;
-      }
-
-      /* ── Steps / How It Works ── */
-      .steps {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 48px;
-        counter-reset: step;
-      }
-
-      .step {
-        counter-increment: step;
-      }
-
-      .step-number {
-        display: block;
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--color-step-number);
-        margin-bottom: 16px;
-        letter-spacing: -0.02em;
-        width: auto;
-        height: auto;
-        background: none;
-        border: none;
-        border-radius: 0;
-      }
-
-      .step h3 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-      }
-
-      .step p {
-        font-size: 0.82rem;
-        color: var(--color-text-muted);
-        line-height: 1.6;
-      }
-
-      /* ── Use Cases ── */
-      .use-cases {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .use-case {
-        display: flex;
-        gap: 20px;
-        padding: 24px 0;
-        border-bottom: 1px solid var(--color-border);
-        align-items: flex-start;
-      }
-
-      .use-case:first-child {
-        border-top: 1px solid var(--color-border);
-      }
-
-      .use-case-icon {
-        flex-shrink: 0;
-        width: 36px;
-        height: 36px;
-        background: var(--color-bg-muted);
-        border: 1px solid var(--color-border);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .use-case-icon svg {
-        width: 18px;
-        height: 18px;
-        stroke: var(--color-icon-stroke);
-        fill: none;
-        stroke-width: 1.75;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .use-case h3 {
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-
-      .use-case p {
-        font-size: 0.8rem;
-        color: var(--color-text-muted);
-        line-height: 1.6;
-      }
-
-      /* ── Privacy Grid ── */
-      .privacy-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0;
-      }
-
-      .privacy-item {
-        padding: 24px 0 24px 20px;
-        border-left: 2px solid var(--color-border);
-        border-bottom: 1px solid var(--color-border-nav);
-      }
-
-      .privacy-item:nth-child(odd) {
-        padding-right: 32px;
-      }
-
-      .privacy-item:nth-child(even) {
-        margin-left: 32px;
-      }
-
-      .privacy-item:nth-last-child(-n + 2) {
-        border-bottom: none;
-      }
-
-      .privacy-item h3 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-bottom: 6px;
-      }
-
-      .privacy-item p {
-        font-size: 0.82rem;
-        color: var(--color-text-muted);
-        line-height: 1.6;
-      }
-
-      /* ── Integrations ── */
-      .integrations-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 24px;
-      }
-
-      .integration-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 18px;
-        border: 1px solid var(--color-border);
-        font-size: 0.8rem;
-        color: var(--color-chip-text);
-        transition:
-          border-color 0.15s,
-          color 0.15s;
-      }
-
-      .integration-chip:hover {
-        border-color: var(--color-border-strong);
-        color: var(--color-chip-hover);
-      }
-
-      .integration-chip .dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--color-dot);
-      }
-
-      .integrations-note {
-        font-size: 0.8rem;
-        color: var(--color-text-faint);
-      }
-
-      .integrations-note a {
-        color: var(--color-note-link);
-        text-decoration: none;
-        border-bottom: 1px solid var(--color-border-strong);
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-
-      .integrations-note a:hover {
-        color: var(--color-text);
-        border-color: var(--color-text);
-      }
-
-      /* ── CTA Section ── */
-      .cta-section {
-        text-align: center;
-        padding: 100px 0;
-      }
-
-      .cta-section h2 {
-        font-size: 2rem;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        margin-bottom: 16px;
-      }
-
-      .cta-section p {
-        font-size: 1rem;
-        color: var(--color-text-secondary);
-        margin-bottom: 36px;
-        max-width: 480px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      .cta-section .hero-ctas {
-        margin-bottom: 0;
-      }
-
-      /* ── Footer ── */
-      footer {
-        text-align: center;
-        padding: 24px;
-        font-size: 0.8rem;
-        color: var(--color-footer-text);
-        border-top: 1px solid var(--color-border-mid);
-      }
-
-      footer a {
-        color: var(--color-footer-text);
-        text-decoration: none;
-      }
-
-      footer a:hover {
-        color: var(--color-footer-hover);
-      }
-
-      /* ── Installation Grid ── */
-      .install-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1px;
-        background: var(--color-border);
-        border: 1px solid var(--color-border);
-      }
-
-      .install-card {
-        background: var(--color-bg);
-        padding: 36px 32px;
-      }
-
-      .install-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 24px;
-      }
-
-      .install-icon {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--color-bg-muted);
-        border: 1px solid var(--color-border);
-        flex-shrink: 0;
-      }
-
-      .install-icon svg {
-        width: 20px;
-        height: 20px;
-        fill: var(--color-icon-stroke);
-      }
-
-      .install-card h3 {
-        font-size: 1.1rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-      }
-
-      .install-steps ol {
-        list-style: none;
-        counter-reset: install-step;
-        padding: 0;
-      }
-
-      .install-steps li {
-        counter-increment: install-step;
-        position: relative;
-        padding-left: 28px;
-        margin-bottom: 12px;
-        font-size: 0.85rem;
-        color: var(--color-text-secondary);
-        line-height: 1.6;
-      }
-
-      .install-steps li::before {
-        content: counter(install-step);
-        position: absolute;
-        left: 0;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: var(--color-text-faint);
-        width: 18px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--color-border-mid);
-        margin-top: 2px;
-      }
-
-      .install-steps li strong {
-        color: var(--color-text);
-        font-weight: 600;
-      }
-
-      .install-note {
-        margin-top: 16px;
-        font-size: 0.8rem;
-        color: var(--color-text-faint);
-        line-height: 1.6;
-        padding-top: 16px;
-        border-top: 1px solid var(--color-border);
-      }
-
-      .install-note a {
-        color: var(--color-note-link);
-        text-decoration: none;
-        border-bottom: 1px solid var(--color-border-strong);
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-
-      .install-note a:hover {
-        color: var(--color-text);
-        border-color: var(--color-text);
-      }
-
-      .install-shared-note {
-        margin-top: 24px;
-        font-size: 0.8rem;
-        color: var(--color-text-faint);
-        line-height: 1.6;
-      }
-
-      .install-shared-note a {
-        color: var(--color-note-link);
-        text-decoration: none;
-        border-bottom: 1px solid var(--color-border-strong);
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-
-      .install-shared-note a:hover {
-        color: var(--color-text);
-        border-color: var(--color-text);
-      }
-
-      /* ── Responsive ── */
-      @media (max-width: 768px) {
-        .hero {
-          padding: 64px 0 56px;
-        }
-
-        .hero h1 {
-          font-size: 2rem;
-        }
-
-        .hero .subtitle {
-          font-size: 1rem;
-        }
-
-        .terminal {
-          margin-top: 32px;
-        }
-
-        section {
-          padding: 56px 0;
-        }
-
-        .feature-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .steps {
-          grid-template-columns: 1fr;
-          gap: 32px;
-        }
-
-        .use-cases {
-          grid-template-columns: 1fr;
-        }
-
-        .privacy-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .install-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .privacy-item:nth-child(even) {
-          margin-left: 0;
-        }
-
-        .privacy-item:nth-last-child(2) {
-          border-bottom: 1px solid var(--color-border-nav);
-        }
-
-        .section-heading {
-          font-size: 1.4rem;
-        }
-
-        .nav-links .hide-mobile {
-          display: none;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .hero h1 {
-          font-size: 1.65rem;
-        }
-
-        .hero-ctas {
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .hero-ctas .btn,
-        .hero-ctas .btn-group {
-          width: 100%;
-          text-align: center;
-        }
-
-        .hero-ctas .btn-group summary {
-          width: 100%;
-          text-align: center;
-        }
-      }
-    </style>
+    <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcement-banner">
+      <div class="container">
+        <button class="announcement-banner-btn" id="open-waitlist-dialog">
+          Managed services coming soon — get notified &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- Waitlist Dialog -->
+    <dialog class="waitlist-dialog" id="waitlist-dialog">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h2>Get notified about managed services</h2>
+          <button class="dialog-close" id="close-waitlist-dialog" aria-label="Close">
+            &times;
+          </button>
+        </div>
+        <p class="dialog-desc">
+          We're building managed services so you don't have to bring your own API keys or run
+          anything locally. Enter your email and select what interests you.
+        </p>
+        <form id="waitlist-form">
+          <div class="form-field">
+            <label for="waitlist-email">Email</label>
+            <input
+              type="email"
+              id="waitlist-email"
+              name="email"
+              required
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <fieldset class="form-field">
+            <legend>I'm interested in:</legend>
+            <label class="checkbox-label">
+              <input type="checkbox" name="interest-inference" value="inference" />
+              <span>Inference service — one key, access to multiple models</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="interest-remote" value="remote" />
+              <span>Full remote version — Stitch hosted in the cloud</span>
+            </label>
+          </fieldset>
+          <button type="submit" class="btn btn-primary dialog-submit">Notify me</button>
+        </form>
+        <p class="dialog-success" id="waitlist-success" hidden>
+          You're on the list. We'll be in touch.
+        </p>
+      </div>
+    </dialog>
+
     <!-- Nav -->
     <nav>
       <div class="container">
@@ -1111,6 +116,7 @@
         <div class="nav-links">
           <a href="#features" class="hide-mobile">Features</a>
           <a href="#installation" class="hide-mobile">Install</a>
+          <a href="#free-api-keys" class="hide-mobile">Free API Keys</a>
           <a href="#privacy" class="hide-mobile">Privacy</a>
           <a href="https://github.com/UseStitch/stitch" class="hide-mobile">GitHub</a>
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
@@ -1306,26 +312,28 @@
           <div class="feature-card">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                <polyline points="13 2 13 9 20 9"></polyline>
+                <path d="M4 7h16"></path>
+                <path d="M7 7v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"></path>
+                <path d="M19 7v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7"></path>
+                <path d="M10 12l2 2 4-4"></path>
               </svg>
             </div>
-            <h3>File management</h3>
+            <h3>MCP servers</h3>
             <p>
-              Organize, rename, move, and search through files and folders. Stitch works with your
-              local documents, spreadsheets, PDFs, and more.
+              Extend Stitch with any Model Context Protocol server. Add tools, data sources, and
+              integrations from the growing MCP ecosystem — no plugin development needed.
             </p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
               </svg>
             </div>
-            <h3>Plain language</h3>
+            <h3>Skills</h3>
             <p>
-              No code, no complex setup. Just tell Stitch what you need in everyday language and it
-              figures out how to get it done.
+              Install community-built skills that teach Stitch new capabilities — from code review
+              to data analysis. Plug in expertise on demand.
             </p>
           </div>
           <div class="feature-card feature-card-soon">
@@ -1400,12 +408,7 @@
               <ol>
                 <li>Download the <strong>.dmg</strong> file and open it</li>
                 <li>Drag Stitch into your <strong>Applications</strong> folder</li>
-                <li>Double-click to open. macOS will block it the first time</li>
-                <li>Go to <strong>System Settings &rarr; Privacy &amp; Security</strong></li>
-                <li>
-                  Scroll down and click <strong>"Open Anyway"</strong> next to the Stitch message
-                </li>
-                <li>Click <strong>Open</strong> in the confirmation dialog</li>
+                <li>Open Stitch from your Applications folder</li>
               </ol>
             </div>
           </div>
@@ -1437,8 +440,8 @@
         </div>
 
         <p class="install-shared-note">
-          The warning appears because the app isn't code-signed yet. Stitch is fully open source.
-          You can inspect the code or build from source on
+          The warning appears because the Windows build isn't code-signed yet. We are working on it.
+          Stitch is fully open source. You can inspect the code or build from source on
           <a href="https://github.com/UseStitch/stitch">GitHub</a>.
         </p>
       </div>
@@ -1448,7 +451,7 @@
     <section id="extensibility">
       <div class="container">
         <p class="section-label">Extensibility</p>
-        <h2 class="section-heading">Bring your own models and tools</h2>
+        <h2 class="section-heading">Bring your own models</h2>
         <p class="section-desc">
           Stitch is not locked to a single provider. Use the models and integrations that work for
           you.
@@ -1459,14 +462,153 @@
           <div class="integration-chip"><span class="dot"></span> Anthropic</div>
           <div class="integration-chip"><span class="dot"></span> Google Gemini</div>
           <div class="integration-chip"><span class="dot"></span> Local models</div>
-          <div class="integration-chip"><span class="dot"></span> MCP servers</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Free API Keys -->
+    <section id="free-api-keys">
+      <div class="container">
+        <p class="section-label">Get started for free</p>
+        <h2 class="section-heading">Free API keys for LLM &amp; Speech-to-Text</h2>
+        <p class="section-desc">
+          You don't need to spend a cent to use Stitch. These providers offer free tiers with
+          generous limits &mdash; no credit card required.
+        </p>
+
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
+          Free LLM providers
+        </p>
+        <div class="install-grid provider-grid">
+          <div class="install-card provider-card-wide">
+            <div class="install-header">
+              <h3>Gemini AI Studio</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong
+                    ><a href="https://aistudio.google.com/live" target="_blank"
+                      >aistudio.google.com/live</a
+                    ></strong
+                  >
+                  and sign in with your Google account
+                </li>
+                <li>Click the API key button, which looks like a key</li>
+                <li>Create a Google Cloud project, or import one if you already have it</li>
+                <li>Click <strong>Create API key</strong></li>
+                <li>Copy the generated Gemini API key</li>
+                <li>Paste the key into Stitch settings under the Google Gemini provider</li>
+              </ol>
+              <p class="install-note">
+                Google AI Studio offers free Gemini API access with rate limits. No credit card is
+                required to generate an API key. Usage is subject to Google's Gemini API terms and
+                free tier limits.
+              </p>
+            </div>
+          </div>
+
+          <div class="install-card">
+            <div class="install-header">
+              <h3>OpenRouter</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong><a href="https://openrouter.ai" target="_blank">openrouter.ai</a></strong>
+                  and sign up with email, GitHub, or Google
+                </li>
+                <li>
+                  Open the top-right dropdown, then go to
+                  <strong>Preferences &rarr; API Keys</strong> in the sidebar
+                </li>
+                <li>
+                  Click <strong>New Key</strong>, give it a name, select
+                  <strong>No Expiration</strong>, and create it
+                </li>
+                <li>Copy the key &mdash; it's only shown once</li>
+                <li>Paste the key into Stitch settings under the OpenRouter provider</li>
+              </ol>
+              <p class="install-note">
+                Free tier includes 28+ models (DeepSeek R1, Gemma 3, Gemini Flash, and more) at 20
+                requests/min. No credit card needed. Use the <strong>:free</strong> model variant
+                for zero-cost access.
+              </p>
+            </div>
+          </div>
+
+          <div class="install-card">
+            <div class="install-header">
+              <h3>NVIDIA NIM</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong
+                    ><a href="https://build.nvidia.com" target="_blank">build.nvidia.com</a></strong
+                  >
+                  and sign up for the free NVIDIA Developer Program
+                </li>
+                <li>
+                  Open your profile from the top-right menu and click <strong>API Keys</strong>
+                </li>
+                <li>
+                  Click <strong>Generate API Key</strong>, give it a name, and select
+                  <strong>Never Expire</strong>
+                </li>
+                <li>Copy your API key (starts with <strong>nvapi-</strong>) from the popup</li>
+                <li>Paste the key into Stitch settings under the NVIDIA provider</li>
+              </ol>
+              <p class="install-note">
+                Free tier gives you 1,000 inference credits on signup (up to 5,000 on request) with
+                a 40 requests/min rate limit. Includes models like Nemotron, Llama, and DeepSeek. No
+                credit card required. OpenAI-compatible endpoint.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <p class="integrations-note">
-          Stitch supports the
-          <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener"
-            >Model Context Protocol</a
-          >, so you can add new tools and capabilities from the growing MCP ecosystem.
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
+          Free Speech-to-Text provider
+        </p>
+        <div class="install-grid install-grid-single">
+          <div class="install-card">
+            <div class="install-header">
+              <h3>ElevenLabs</h3>
+            </div>
+            <div class="install-steps">
+              <ol>
+                <li>
+                  Go to
+                  <strong><a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a></strong>
+                  and create a free account
+                </li>
+                <li>Click <strong>Developers</strong> in the left sidebar</li>
+                <li>Select the <strong>API Keys</strong> tab</li>
+                <li>
+                  Click <strong>Create API Key</strong>, give it a name, and enable Speech-to-Text
+                  access
+                </li>
+                <li>Copy the key immediately &mdash; it's only shown in full once</li>
+                <li>Paste the key into Stitch settings under the ElevenLabs STT provider</li>
+              </ol>
+              <p class="install-note">
+                The free plan includes 10,000 credits/month which covers both Text-to-Speech and
+                Speech-to-Text (Scribe). No credit card required. Used for transcribing meeting
+                recordings in Stitch.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="install-shared-note">
+          These providers are independent third-party services and are not affiliated with or
+          endorsed by Stitch. Each provider has its own terms of service, privacy policy, and data
+          handling practices. Please review the respective provider's website for details on how
+          your data is used.
         </p>
       </div>
     </section>
@@ -1563,37 +705,5 @@
         <a href="https://github.com/UseStitch/stitch">GitHub</a>
       </p>
     </footer>
-
-    <script>
-      // Close open dropdowns on outside click
-      document.addEventListener('click', function (e) {
-        document.querySelectorAll('.btn-group[open]').forEach(function (d) {
-          if (!d.contains(e.target)) d.removeAttribute('open');
-        });
-      });
-
-      // Theme toggle
-      (function () {
-        var stored = localStorage.getItem('theme');
-        if (stored) {
-          document.documentElement.setAttribute('data-theme', stored);
-        }
-
-        document.getElementById('theme-toggle').addEventListener('click', function () {
-          var current = document.documentElement.getAttribute('data-theme');
-          var isLight;
-
-          if (current) {
-            isLight = current === 'light';
-          } else {
-            isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-          }
-
-          var next = isLight ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', next);
-          localStorage.setItem('theme', next);
-        });
-      })();
-    </script>
   </body>
 </html>

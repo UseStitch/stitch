@@ -1,3 +1,4 @@
+import type { ElectronBrowserState } from '../browser/electron.js';
 import type {
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
@@ -29,6 +30,8 @@ export type ServerConfigPayload = {
 };
 
 export type ServerTestRemoteResult = { ok: true; url: string } | { ok: false; error: string };
+
+export type BrowserNavigateResult = { url: string };
 
 export type UpdaterStatePayload = {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'no-update' | 'error';
@@ -95,6 +98,22 @@ export interface IpcContract {
   'recording:primeSystemAudio': { args: []; return: RecordingPermissionsPayload };
   'notifications:dismiss': { args: [id: string]; return: void };
   'notifications:set-height': { args: [height: number]; return: void };
+  'browser:getState': { args: []; return: ElectronBrowserState };
+  'browser:registerWebview': {
+    args: [webContentsId: number, sessionId: string];
+    return: ElectronBrowserState;
+  };
+  'browser:switchSession': { args: [sessionId: string]; return: ElectronBrowserState };
+  'browser:show': { args: []; return: ElectronBrowserState };
+  'browser:hide': { args: []; return: ElectronBrowserState };
+  'browser:userNavigate': { args: [url: string]; return: BrowserNavigateResult };
+  'browser:goBack': { args: []; return: void };
+  'browser:goForward': { args: []; return: void };
+  'browser:reload': { args: []; return: void };
+  'browser:newTab': { args: [url?: string]; return: ElectronBrowserState };
+  'browser:focusTab': { args: [tabId: string]; return: ElectronBrowserState };
+  'browser:closeTab': { args: [tabId: string]; return: ElectronBrowserState };
+  'browser:recordHumanInput': { args: []; return: void };
 }
 
 export interface IpcEventContract {
@@ -106,4 +125,6 @@ export interface IpcEventContract {
   'recording:device-changed': [payload: RecordingDeviceChangedPayload];
   'notifications:show': [event: DesktopNotificationEvent];
   'notifications:dismissed': [id: string];
+  'browser:state-changed': [state: ElectronBrowserState];
+  'browser:show-requested': [];
 }

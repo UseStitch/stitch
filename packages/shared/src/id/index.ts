@@ -15,6 +15,7 @@ export const ID_PREFIXES = {
   scheduledJobRun: 'schrun',
   recording: 'rec',
   recordingAnalysis: 'recan',
+  meetingNoteTemplate: 'mnt',
   agendaList: 'alist',
   agendaItem: 'aitm',
   todo: 'todo',
@@ -77,6 +78,7 @@ export const createScheduledJobId = createIdFactory(ID_PREFIXES.scheduledJob);
 export const createScheduledJobRunId = createIdFactory(ID_PREFIXES.scheduledJobRun);
 export const createRecordingId = createIdFactory(ID_PREFIXES.recording);
 export const createRecordingAnalysisId = createIdFactory(ID_PREFIXES.recordingAnalysis);
+export const createMeetingNoteTemplateId = createIdFactory(ID_PREFIXES.meetingNoteTemplate);
 export const createAgendaListId = createIdFactory(ID_PREFIXES.agendaList);
 export const createAgendaItemId = createIdFactory(ID_PREFIXES.agendaItem);
 export const createTodoId = createIdFactory(ID_PREFIXES.todo);

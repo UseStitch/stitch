@@ -15,6 +15,7 @@ import type {
 } from '@/memory/types.js';
 import type { Embedder } from '@/models/embedding/embedder.js';
 import { createEmbedder } from '@/models/embedding/factory.js';
+import { recordEmbeddingUsage } from '@/usage/ledger.js';
 import type { VectorQuery } from '@lancedb/lancedb';
 
 export type MemoryStats = {
@@ -54,10 +55,15 @@ export async function addSemanticMemory(
   sourceId: string,
 ): Promise<SemanticMemory> {
   const embedder = await getEmbedder();
-  const [vector, table] = await Promise.all([
+  const [embedResult, table] = await Promise.all([
     embedder.embed(fact.content),
     getSemanticTable(embedder.dimensions),
   ]);
+  void recordEmbeddingUsage({
+    providerId: embedder.providerId,
+    modelId: embedder.modelId,
+    tokens: embedResult.tokens,
+  });
   const timestamp = now();
   const id = randomUUID();
 
@@ -73,7 +79,7 @@ export async function addSemanticMemory(
     accessCount: 0,
     lastAccessedAt: timestamp,
     pinned: 0,
-    vector,
+    vector: embedResult.embedding,
   };
 
   await table.add([record]);
@@ -109,7 +115,12 @@ export async function updateSemanticMemory(
 
   if (updates.content !== undefined) {
     // Content change requires re-embedding; vector is not a SQL scalar so fall back to delete+add.
-    const vector = await embedder.embed(updates.content);
+    const embedResult = await embedder.embed(updates.content);
+    void recordEmbeddingUsage({
+      providerId: embedder.providerId,
+      modelId: embedder.modelId,
+      tokens: embedResult.tokens,
+    });
 
     const existing = await table
       .query()
@@ -132,7 +143,7 @@ export async function updateSemanticMemory(
       accessCount: row.accessCount as number,
       lastAccessedAt: row.lastAccessedAt as string,
       pinned: row.pinned as number,
-      vector,
+      vector: embedResult.embedding,
     };
 
     await table.delete(`id = '${escapeSql(id)}'`);
@@ -175,7 +186,12 @@ export async function searchSemanticMemories(input: {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  const [count, vector] = await Promise.all([table.countRows(), embedder.embed(input.query)]);
+  const [count, embedResult] = await Promise.all([table.countRows(), embedder.embed(input.query)]);
+  void recordEmbeddingUsage({
+    providerId: embedder.providerId,
+    modelId: embedder.modelId,
+    tokens: embedResult.tokens,
+  });
   if (count === 0) {
     return ok({
       memories: [],
@@ -186,7 +202,7 @@ export async function searchSemanticMemories(input: {
     });
   }
 
-  let search = (table.search(vector) as VectorQuery)
+  let search = (table.search(embedResult.embedding) as VectorQuery)
     .distanceType('cosine')
     .limit(MAX_SEARCH_RESULTS);
 

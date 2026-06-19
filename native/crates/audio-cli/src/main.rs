@@ -1,13 +1,13 @@
 use std::io::{self, BufRead};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use audio_core::output::emit;
-use audio_core::protocol::{Command, Event, parse_start_command};
+use audio_core::protocol::{parse_start_command, Command, Event};
 use audio_recording::{
-  ActiveSession, device_display_name, is_tap_device, start_session, stop_session,
+  device_display_name, is_tap_device, start_session, stop_session, ActiveSession,
 };
 use cpal::traits::{DeviceTrait, HostTrait};
 
@@ -220,7 +220,6 @@ fn main() -> io::Result<()> {
           Ok(session) => {
             let event = Event::Started {
               started_at: session.started_at,
-              output_path: session.output_path.clone(),
             };
             active = Some(session);
 

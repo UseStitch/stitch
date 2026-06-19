@@ -1,8 +1,20 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import type {
+  ActiveRecordingResponse,
+  ListMeetingNoteTemplatesResponse,
   ListRecordingsResponse,
-  RecordingAnalysisResponse,
+  MeetingNoteTemplateInput,
+  MeetingNoteTemplateResponse,
+  RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingAnalysisResponse,
   StartRecordingResponse,
@@ -15,9 +27,14 @@ const recordingsKeys = {
   all: ['recordings'] as const,
   lists: () => [...recordingsKeys.all, 'list'] as const,
   list: (page: number, pageSize: number) => [...recordingsKeys.lists(), page, pageSize] as const,
-  analysis: (recordingId: string) => [...recordingsKeys.all, 'analysis', recordingId] as const,
+  infiniteList: (pageSize: number) => [...recordingsKeys.lists(), 'infinite', pageSize] as const,
+  detail: (recordingId: string) => [...recordingsKeys.all, 'detail', recordingId] as const,
+  active: () => [...recordingsKeys.all, 'active'] as const,
   devices: () => [...recordingsKeys.all, 'devices'] as const,
+  templates: () => [...recordingsKeys.all, 'templates'] as const,
 };
+
+const RECORDINGS_PAGE_SIZE = 12;
 
 export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
@@ -29,6 +46,85 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
       });
       return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
     },
+    placeholderData: keepPreviousData,
+  });
+}
+
+export const recordingsInfiniteQueryOptions = () =>
+  infiniteQueryOptions({
+    queryKey: recordingsKeys.infiniteList(RECORDINGS_PAGE_SIZE),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({
+        page: String(pageParam),
+        pageSize: String(RECORDINGS_PAGE_SIZE),
+      });
+      return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page >= lastPage.totalPages) return undefined;
+      return lastPage.page + 1;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+export const activeRecordingQueryOptions = queryOptions({
+  queryKey: recordingsKeys.active(),
+  queryFn: () => serverRequest<ActiveRecordingResponse>('/recordings/active'),
+});
+
+export const meetingNoteTemplatesQueryOptions = queryOptions({
+  queryKey: recordingsKeys.templates(),
+  queryFn: () => serverRequest<ListMeetingNoteTemplatesResponse>('/recordings/templates'),
+});
+
+export function useCreateMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: MeetingNoteTemplateInput) =>
+      serverRequest<MeetingNoteTemplateResponse>('/recordings/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template created');
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { id: string; template: MeetingNoteTemplateInput }) =>
+      serverRequest<MeetingNoteTemplateResponse>(`/recordings/templates/${input.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input.template),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template saved');
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}
+
+export function useDeleteMeetingNoteTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      serverRequest<void>(`/recordings/templates/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
+      toast.success('Template deleted');
+    },
+    onError: (error) => toast.error(error.message),
   });
 }
 
@@ -157,6 +253,7 @@ export function useStartRecording() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
   });
 }
@@ -178,6 +275,7 @@ export function useStopRecording() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
   });
 }
@@ -194,10 +292,10 @@ export function useDeleteRecording() {
   });
 }
 
-export function recordingAnalysisQueryOptions(recordingId: string) {
+export function recordingDetailsQueryOptions(recordingId: string) {
   return queryOptions({
-    queryKey: recordingsKeys.analysis(recordingId),
-    queryFn: () => serverRequest<RecordingAnalysisResponse>(`/recordings/${recordingId}/analysis`),
+    queryKey: recordingsKeys.detail(recordingId),
+    queryFn: () => serverRequest<RecordingDetailsResponse>(`/recordings/${recordingId}`),
   });
 }
 
@@ -205,7 +303,7 @@ export function useStartRecordingAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { recordingId: string; force?: boolean }) => {
+    mutationFn: (input: { recordingId: string; force?: boolean; templateId: string }) => {
       const params = new URLSearchParams();
       if (input.force) {
         params.set('force', '1');
@@ -213,12 +311,16 @@ export function useStartRecordingAnalysis() {
       const suffix = params.toString();
       return serverRequest<StartRecordingAnalysisResponse>(
         `/recordings/${input.recordingId}/analyze${suffix ? `?${suffix}` : ''}`,
-        { method: 'POST' },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templateId: input.templateId }),
+        },
       );
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: recordingsKeys.analysis(variables.recordingId),
+        queryKey: recordingsKeys.detail(variables.recordingId),
       });
     },
   });
@@ -233,7 +335,7 @@ export function useCancelRecordingAnalysis() {
         method: 'POST',
       }),
     onSuccess: (_, recordingId) => {
-      void queryClient.invalidateQueries({ queryKey: recordingsKeys.analysis(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
     },
   });
 }

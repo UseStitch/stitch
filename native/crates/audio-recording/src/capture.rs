@@ -13,7 +13,6 @@ use audio_core::protocol::{
   AudioChunkEncoding, AudioChunkSource, CaptureMode, CaptureStart, Event,
 };
 
-use crate::opus_writer::OggOpusWriter;
 use crate::resample::StreamResampler;
 use crate::speaker::{spawn_speaker_capture, spawn_speaker_source};
 
@@ -351,10 +350,14 @@ fn spawn_mic_capture(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let output_path = start.output_path.clone();
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
   let sample_rate_hz = start.sample_rate_hz;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
 
   let builder = thread::Builder::new().name("stitch-audio-mic-capture".to_string());
   builder
@@ -365,8 +368,6 @@ fn spawn_mic_capture(
         warnings.push("channels_forced_to_mono".to_string());
       }
 
-      let mut writer = OggOpusWriter::create(&output_path)?;
-
       let (tx, rx): (SyncSender<Vec<f32>>, Receiver<Vec<f32>>) =
         mpsc::sync_channel(INPUT_QUEUE_CAPACITY);
 
@@ -376,7 +377,12 @@ fn spawn_mic_capture(
 
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(MIC_CAPTURE_RECV_TIMEOUT) {
-          writer.write_samples(&samples)?;
+          emit_audio_chunk(
+            AudioChunkSource::Mic,
+            &samples,
+            sample_rate_hz,
+            chunk_encoding,
+          );
           mic_stream.reset_reconnect_attempts();
           continue;
         }
@@ -387,11 +393,15 @@ fn spawn_mic_capture(
       }
 
       while let Ok(samples) = rx.try_recv() {
-        writer.write_samples(&samples)?;
+        emit_audio_chunk(
+          AudioChunkSource::Mic,
+          &samples,
+          sample_rate_hz,
+          chunk_encoding,
+        );
       }
 
       drop(mic_stream);
-      writer.finalize()?;
 
       Ok(warnings)
     })
@@ -444,17 +454,6 @@ fn spawn_mic_source(
   Ok((rx, worker))
 }
 
-fn append_audio_chunk(
-  buffer: &mut Vec<f32>,
-  source: AudioChunkSource,
-  chunk: Vec<f32>,
-  sample_rate_hz: u32,
-  encoding: AudioChunkEncoding,
-) {
-  emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
-  buffer.extend_from_slice(&chunk);
-}
-
 fn drain_available_audio_chunks(
   rx: &Receiver<Vec<f32>>,
   buffer: &mut Vec<f32>,
@@ -463,7 +462,8 @@ fn drain_available_audio_chunks(
   encoding: AudioChunkEncoding,
 ) {
   while let Ok(chunk) = rx.try_recv() {
-    append_audio_chunk(buffer, source, chunk, sample_rate_hz, encoding);
+    emit_audio_chunk(source, &chunk, sample_rate_hz, encoding);
+    buffer.extend_from_slice(&chunk);
   }
 }
 
@@ -522,13 +522,11 @@ fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
   }
 }
 
-fn write_aec_output(
+fn emit_aec_output(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  let output_path = start.output_path.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
-  let speaker_gain = start.speaker_gain;
   let chunk_encoding = start
     .audio_chunk_config
     .as_ref()
@@ -547,10 +545,9 @@ fn write_aec_output(
   let (speaker_rx, speaker_worker) =
     spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
 
-  let builder = thread::Builder::new().name("stitch-audio-aec-writer".to_string());
+  let builder = thread::Builder::new().name("stitch-audio-aec-emitter".to_string());
   builder
     .spawn(move || {
-      let mut writer = OggOpusWriter::create(&output_path)?;
       let mut warnings = vec!["aec_mode_active".to_string()];
 
       loop {
@@ -563,7 +560,6 @@ fn write_aec_output(
               target_sample_rate_hz,
               chunk_encoding,
             );
-            writer.write_samples(&chunk)?;
           }
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
@@ -582,7 +578,6 @@ fn write_aec_output(
             target_sample_rate_hz,
             chunk_encoding,
           );
-          writer.write_samples(&chunk)?;
         }
 
         // Drain speaker chunks and emit them for STT diarization.
@@ -593,11 +588,6 @@ fn write_aec_output(
             target_sample_rate_hz,
             chunk_encoding,
           );
-          // Mix speaker into the recording file at the configured gain.
-          if speaker_gain > 0.0 {
-            let gained: Vec<f32> = chunk.iter().map(|s| s * speaker_gain).collect();
-            writer.write_samples(&gained)?;
-          }
         }
 
         if stop_flag.load(Ordering::Relaxed) {
@@ -607,7 +597,12 @@ fn write_aec_output(
 
       // Drain remaining samples after stop.
       while let Ok(chunk) = aec_rx.try_recv() {
-        writer.write_samples(&chunk)?;
+        emit_audio_chunk(
+          AudioChunkSource::Mic,
+          &chunk,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
       }
       while let Ok(chunk) = speaker_rx.try_recv() {
         emit_audio_chunk(
@@ -616,13 +611,7 @@ fn write_aec_output(
           target_sample_rate_hz,
           chunk_encoding,
         );
-        if speaker_gain > 0.0 {
-          let gained: Vec<f32> = chunk.iter().map(|s| s * speaker_gain).collect();
-          writer.write_samples(&gained)?;
-        }
       }
-
-      writer.finalize()?;
 
       let aec_warnings = aec_worker
         .join()
@@ -635,15 +624,15 @@ fn write_aec_output(
 
       Ok(warnings)
     })
-    .map_err(|error| NativeError::Internal(format!("failed to spawn AEC writer thread: {error}")))
+    .map_err(|error| NativeError::Internal(format!("failed to spawn AEC emitter thread: {error}")))
 }
 
-fn write_dual_realtime_output(
+fn emit_dual_realtime(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   // Try AEC first — if available, we get echo-cancelled mic audio directly from the OS.
-  match write_aec_output(start, stop_flag.clone()) {
+  match emit_aec_output(start, stop_flag.clone()) {
     Ok(handle) => return Ok(handle),
     Err(error) => {
       let _ = emit(Event::Warning {
@@ -654,7 +643,6 @@ fn write_dual_realtime_output(
   }
 
   // Fallback: regular dual-source mixing without AEC.
-  let output_path = start.output_path.clone();
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;
@@ -671,8 +659,6 @@ fn write_dual_realtime_output(
   let builder = thread::Builder::new().name("stitch-audio-dual-mixer".to_string());
   builder
     .spawn(move || {
-      let mut writer = OggOpusWriter::create(&output_path)?;
-
       let mut warnings = vec!["dual_realtime_mixer_enabled".to_string()];
       let mut mic_buf: Vec<f32> = Vec::new();
       let mut speaker_buf: Vec<f32> = Vec::new();
@@ -682,13 +668,15 @@ fn write_dual_realtime_output(
       loop {
         use std::sync::mpsc::RecvTimeoutError;
         match mic_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
-          Ok(chunk) => append_audio_chunk(
-            &mut mic_buf,
-            AudioChunkSource::Mic,
-            chunk,
-            target_sample_rate_hz,
-            chunk_encoding,
-          ),
+          Ok(chunk) => {
+            emit_audio_chunk(
+              AudioChunkSource::Mic,
+              &chunk,
+              target_sample_rate_hz,
+              chunk_encoding,
+            );
+            mic_buf.extend_from_slice(&chunk);
+          }
           Err(RecvTimeoutError::Disconnected) => {
             if !stop_flag.load(Ordering::Relaxed) {
               warnings.push("mic_source_disconnected_early".to_string());
@@ -722,8 +710,7 @@ fn write_dual_realtime_output(
         );
 
         if mix_len > 0 {
-          let out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
-          writer.write_samples(&out)?;
+          let _out = mix_dual_samples(&mic_buf, &speaker_buf, mix_len, speaker_gain);
           drain_mixed_samples(&mut mic_buf, mix_len);
           drain_mixed_samples(&mut speaker_buf, mix_len);
         }
@@ -732,8 +719,6 @@ fn write_dual_realtime_output(
           break;
         }
       }
-
-      writer.finalize()?;
 
       let mic_warnings = mic_worker
         .join()
@@ -756,9 +741,8 @@ pub(crate) fn spawn_capture_worker(
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
   match start.mode {
     CaptureMode::Mic => spawn_mic_capture(start, stop_flag),
-    CaptureMode::Dual => write_dual_realtime_output(start, stop_flag),
+    CaptureMode::Dual => emit_dual_realtime(start, stop_flag),
     CaptureMode::Speaker => spawn_speaker_capture(
-      start.output_path.clone(),
       start.speaker_device_id.clone(),
       start.sample_rate_hz,
       stop_flag,

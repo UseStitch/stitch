@@ -21,7 +21,6 @@ export const SETTINGS_KEYS = [
   'notifications.sound.enabled',
   'browser.profileImported',
   'browser.activeProfile',
-  'browser.headless',
   'shortcuts.leaderKey',
   'memory.enabled',
   'memory.autoExtract',
@@ -47,11 +46,14 @@ export const SETTINGS_KEYS = [
   'recordings.transcription.modelId',
   'recordings.analysis.providerId',
   'recordings.analysis.modelId',
+  'recordings.analysis.defaultTemplateId',
   'stt.default.providerId',
   'stt.default.modelId',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
+
+const booleanSetting = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 export const SETTINGS_SCHEMAS = {
   'model.default.providerId': z.string(),
@@ -60,8 +62,8 @@ export const SETTINGS_SCHEMAS = {
   'model.compaction.modelId': z.string(),
   'model.title.providerId': z.string(),
   'model.title.modelId': z.string(),
-  'compaction.auto': z.coerce.boolean(),
-  'compaction.prune': z.coerce.boolean(),
+  'compaction.auto': booleanSetting,
+  'compaction.prune': booleanSetting,
   'compaction.reserved': z.coerce.number().int().min(0),
   'toolsets.defaultScope': z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
   'toolsets.ttlTurns': z.coerce.number().int().min(1),
@@ -71,13 +73,12 @@ export const SETTINGS_SCHEMAS = {
   'onboarding.version': z.string().regex(/^\d+$/),
   'profile.name': z.string().min(1).max(80),
   'profile.timezone': z.string().min(1).max(120),
-  'notifications.sound.enabled': z.coerce.boolean(),
+  'notifications.sound.enabled': booleanSetting,
   'browser.profileImported': z.string(),
   'browser.activeProfile': z.string(),
-  'browser.headless': z.coerce.boolean(),
   'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
-  'memory.enabled': z.coerce.boolean(),
-  'memory.autoExtract': z.coerce.boolean(),
+  'memory.enabled': booleanSetting,
+  'memory.autoExtract': booleanSetting,
   'memory.embedding.providerId': z.string(),
   'memory.embedding.modelId': z.string(),
   'memory.extraction.maxFactsPerTurn': z.coerce.number().int().min(1),
@@ -88,11 +89,11 @@ export const SETTINGS_SCHEMAS = {
   'memory.extraction.minTurnsBetweenWrites': z.coerce.number().int().min(0),
   'memory.retention.maxMemories': z.coerce.number().int().min(10),
   'memory.retention.staleDays': z.coerce.number().int().min(1),
-  'memory.retention.autoprune': z.coerce.boolean(),
+  'memory.retention.autoprune': booleanSetting,
   'memory.retrieval.maxResults': z.coerce.number().int().min(1),
   'memory.retrieval.minScore': z.coerce.number().min(0).max(1),
-  'memory.retrieval.recencyBoost': z.coerce.boolean(),
-  'recordings.autoAnalyze': z.coerce.boolean(),
+  'memory.retrieval.recencyBoost': booleanSetting,
+  'recordings.autoAnalyze': booleanSetting,
   'recordings.inputDeviceId': z.string(),
   'recordings.outputDeviceId': z.string(),
   'recordings.speakerGain': z.coerce.number().min(0.1).max(50),
@@ -100,6 +101,7 @@ export const SETTINGS_SCHEMAS = {
   'recordings.transcription.modelId': z.string(),
   'recordings.analysis.providerId': z.string(),
   'recordings.analysis.modelId': z.string(),
+  'recordings.analysis.defaultTemplateId': z.string(),
   'stt.default.providerId': z.string(),
   'stt.default.modelId': z.string(),
 } as const;
@@ -215,11 +217,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
-  },
-  {
-    key: 'browser.headless',
-    value: 'true',
-    description: 'Run the browser in headless mode (no visible window).',
   },
   {
     key: 'shortcuts.leaderKey',
@@ -351,6 +348,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'recordings.analysis.modelId',
     value: '',
     description: 'Preferred model ID used for recording analysis and summaries.',
+  },
+  {
+    key: 'recordings.analysis.defaultTemplateId',
+    value: 'mnt_prebuilt_executive_summary',
+    description: 'Default meeting note template used for recording analysis.',
   },
   {
     key: 'stt.default.providerId',

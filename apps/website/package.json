@@ -3,6 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ../../scripts/build-website-registries.mjs"
+    "dev": "vite",
+    "build": "vite build && bun run ../../scripts/build-website-registries.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project functions/tsconfig.json"
+  },
+  "dependencies": {
+    "posthog-js": "^1.386.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260615.1",
+    "typescript": "catalog:",
+    "vite": "^8.0.16"
   }
 }
