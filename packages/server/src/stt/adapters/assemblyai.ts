@@ -25,13 +25,14 @@ type AssemblyAIMessage =
       end_of_turn: boolean;
       transcript: string;
       end_of_turn_confidence: number;
+      turn_is_formatted?: boolean;
       words: Array<{ text: string; start: number; end: number; confidence: number }>;
       utterance: string | null;
     }
   | { type: 'Termination'; audio_duration_seconds: number; session_duration_seconds: number }
   | { type: string };
 
-function createAssemblyAIMessageParser(sessionStartMs: number) {
+export function createAssemblyAIMessageParser(sessionStartMs: number) {
   return function parseMessage(data: string): WsMessageResult | null {
     const msg = JSON.parse(data) as AssemblyAIMessage;
 
@@ -43,7 +44,7 @@ function createAssemblyAIMessageParser(sessionStartMs: number) {
         return null;
 
       case 'Turn': {
-        if (!('transcript' in msg) || !msg.transcript) return null;
+        if (!('transcript' in msg)) return null;
 
         const words =
           'words' in msg && msg.words
@@ -55,24 +56,29 @@ function createAssemblyAIMessageParser(sessionStartMs: number) {
             : undefined;
 
         const offsetMs = words && words.length > 0 ? words[0].startMs : Date.now() - sessionStartMs;
+        const id = `assemblyai-turn-${msg.turn_order}`;
 
-        if (msg.end_of_turn) {
+        if (!msg.end_of_turn || msg.turn_is_formatted === false) {
+          if (!msg.transcript) return null;
+
           const transcript: TranscriptEvent = {
-            kind: 'final',
+            id,
+            kind: 'partial',
             text: msg.transcript,
             offsetMs,
-            words,
           };
-          const usage: STTUsage = { durationMs: Date.now() - sessionStartMs };
-          return { transcript, usage };
+          return { transcript };
         }
 
         const transcript: TranscriptEvent = {
-          kind: 'partial',
+          id,
+          kind: 'final',
           text: msg.transcript,
           offsetMs,
+          words,
         };
-        return { transcript };
+        const usage: STTUsage = { durationMs: Date.now() - sessionStartMs };
+        return { transcript, usage };
       }
 
       case 'Termination':
@@ -97,6 +103,7 @@ function buildAssemblyAIUrl(config: STTConnectionConfig): string {
   const params = new URLSearchParams();
   params.set('sample_rate', String(config.inputFormat.sampleRateHz));
   params.set('speech_model', config.modelId);
+  params.set('format_turns', 'true');
 
   if (config.keyterms && config.keyterms.length > 0) {
     params.set('keyterms_prompt', config.keyterms.join(','));

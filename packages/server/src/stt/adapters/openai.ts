@@ -68,6 +68,14 @@ export function createOpenAIMessageParser(sessionStartMs: number) {
   // so we use elapsed time since session start as the offset.
   // We track the last offset to ensure monotonicity even if messages arrive out of order.
   let lastOffsetMs = 0;
+  let fallbackItemId = 0;
+  let currentItemId: string | null = null;
+
+  function getItemId(itemId: string | undefined, reset: boolean): string {
+    const id = itemId ?? currentItemId ?? `openai-item-${fallbackItemId++}`;
+    currentItemId = reset ? null : id;
+    return id;
+  }
 
   return function parseMessage(data: string): WsMessageResult | null {
     const msg = JSON.parse(data) as OpenAIRealtimeMessage;
@@ -76,13 +84,23 @@ export function createOpenAIMessageParser(sessionStartMs: number) {
       case 'conversation.item.input_audio_transcription.delta': {
         const offsetMs = Math.max(Date.now() - sessionStartMs, lastOffsetMs);
         lastOffsetMs = offsetMs;
-        const transcript: TranscriptEvent = { kind: 'partial', text: msg.delta, offsetMs };
+        const transcript: TranscriptEvent = {
+          id: getItemId(msg.item_id, false),
+          kind: 'partial',
+          text: msg.delta,
+          offsetMs,
+        };
         return { transcript };
       }
       case 'conversation.item.input_audio_transcription.completed': {
         const offsetMs = Math.max(Date.now() - sessionStartMs, lastOffsetMs + 1);
         lastOffsetMs = offsetMs;
-        const transcript: TranscriptEvent = { kind: 'final', text: msg.transcript, offsetMs };
+        const transcript: TranscriptEvent = {
+          id: getItemId(msg.item_id, true),
+          kind: 'final',
+          text: msg.transcript,
+          offsetMs,
+        };
         const usage = parseUsage(msg.usage, Date.now() - sessionStartMs);
         return { transcript, usage };
       }

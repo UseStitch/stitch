@@ -9,6 +9,7 @@ describe('createOpenAIMessageParser', () => {
     const result = parseMessage(
       JSON.stringify({
         type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'item-usage',
         transcript: 'Hi, can you hear me?',
         usage: {
           type: 'tokens',
@@ -26,6 +27,7 @@ describe('createOpenAIMessageParser', () => {
     expect(result?.usage?.audioInputTokens).toBe(17);
     expect(result?.usage?.textOutputTokens).toBe(9);
     expect(result?.usage?.durationMs).toBeGreaterThan(0);
+    expect(result?.transcript?.id).toBe('item-usage');
   });
 
   test('falls back to input tokens when audio token details are absent', () => {
@@ -63,5 +65,25 @@ describe('createOpenAIMessageParser', () => {
     );
 
     expect(result?.usage).toEqual({ durationMs: 1250 });
+  });
+
+  test('uses one fallback id for deltas and their completed transcript', () => {
+    const parseMessage = createOpenAIMessageParser(Date.now() - 1000);
+
+    const partial = parseMessage(
+      JSON.stringify({
+        type: 'conversation.item.input_audio_transcription.delta',
+        delta: 'Hello',
+      }),
+    );
+    const final = parseMessage(
+      JSON.stringify({
+        type: 'conversation.item.input_audio_transcription.completed',
+        transcript: 'Hello.',
+      }),
+    );
+
+    expect(partial?.transcript?.id).toBe('openai-item-0');
+    expect(final?.transcript?.id).toBe('openai-item-0');
   });
 });
