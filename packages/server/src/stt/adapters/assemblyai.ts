@@ -10,6 +10,7 @@ import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 const log = Log.create({ service: 'stt.assemblyai' });
 
 const ASSEMBLYAI_STREAMING_URL = 'wss://streaming.assemblyai.com/v3/ws';
+const ASSEMBLYAI_VERSION = 'v3';
 const CREDENTIALS_ERROR_REASON =
   'Invalid transcription API credentials. Please check your settings.';
 const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
@@ -141,6 +142,7 @@ function createAssemblyAITransport(config: STTConnectionConfig) {
       // AssemblyAI auth: raw key, no "Bearer" prefix
       headers: {
         Authorization: config.auth.kind === 'apiKey' ? config.auth.key : '',
+        'AssemblyAI-Version': ASSEMBLYAI_VERSION,
       },
       onReady: () => [],
       parseMessage: createAssemblyAIMessageParser(config.captureStartMs),
