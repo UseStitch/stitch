@@ -1,6 +1,6 @@
 import { registerIpcHandler } from './register.js';
 
-import type { ElectronBrowserManager } from '../browser-manager.js';
+import type { ElectronBrowserManager } from '../browser/browser-manager.js';
 
 export function registerBrowserHandlers(manager: ElectronBrowserManager): void {
   registerIpcHandler('browser:getState', () => manager.getState());

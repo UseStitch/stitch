@@ -5,6 +5,8 @@ import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { BROWSER_TOOL_INSTRUCTIONS } from '@/lib/browser/tool-config.js';
 import type {
   BrowserTab,
+  DropdownOptionsResult,
+  ExtractContentResult,
   FindElementsResult,
   ScrollDirection,
   SearchPageResult,
@@ -17,6 +19,11 @@ const descriptionField = z
   .describe('Short description of the task this browser action is performing. Shown to the user.');
 
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
+
+const outputSchemaField = z
+  .record(z.string(), z.unknown())
+  .optional()
+  .describe('Optional JSON Schema object. Supported properties are returned in a data object.');
 
 const browserSnapshotInputSchema = z.object({
   description: descriptionField,
@@ -46,15 +53,25 @@ const browserNavigateInputSchema = z.object({
 const browserInteractInputSchema = z.object({
   description: descriptionField,
   action: z
-    .enum(['click', 'type', 'press', 'hover', 'select', 'scroll', 'resize', 'evaluate'])
+    .enum([
+      'click',
+      'type',
+      'press',
+      'hover',
+      'select',
+      'get_dropdown_options',
+      'select_dropdown',
+      'scroll',
+      'evaluate',
+    ])
     .describe('Interaction action to perform.'),
   ref: z
     .string()
     .optional()
     .describe(
-      'Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select.',
+      'Element ref from a snapshot (e.g. "e1", "e2"). Required for click/type/hover/select/dropdown actions.',
     ),
-  text: z.string().optional().describe('Text to type. Required for type action.'),
+  text: z.string().optional().describe('Text to type, or dropdown option text to select.'),
   key: z
     .string()
     .optional()
@@ -73,8 +90,6 @@ const browserInteractInputSchema = z.object({
     .enum(['up', 'down', 'left', 'right'])
     .optional()
     .describe('Direction to scroll. Required for scroll action.'),
-  width: z.number().optional().describe('Viewport width in pixels. Required for resize action.'),
-  height: z.number().optional().describe('Viewport height in pixels. Required for resize action.'),
   fn: z
     .string()
     .optional()
@@ -95,8 +110,8 @@ const browserWaitInputSchema = z.object({
 const browserScreenshotInputSchema = z.object({
   description: descriptionField,
   ref: z.string().optional().describe('Element ref for element screenshot.'),
-  format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format. Default png.'),
-  quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg/webp.'),
+  format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format. Default png.'),
+  quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot.'),
 });
 
@@ -143,6 +158,9 @@ const browserContentInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Include text content for find_elements action. Default true.'),
+  includeLinks: z.boolean().optional().describe('Include links for extract action.'),
+  includeImages: z.boolean().optional().describe('Include images for extract action.'),
+  outputSchema: outputSchemaField,
 });
 
 const browserBatchActionSchema = z.object({
@@ -165,15 +183,13 @@ const browserBatchActionSchema = z.object({
   button: z.string().optional().describe('Mouse button for click operation.'),
   modifiers: z.array(z.string()).optional().describe('Modifier keys for click operation.'),
   direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Scroll direction.'),
-  width: z.number().optional().describe('Width for resize operation.'),
-  height: z.number().optional().describe('Height for resize operation.'),
   fn: z.string().optional().describe('Expression for evaluate operation.'),
   mode: z.enum(['time', 'selector']).optional().describe('Mode for wait tool.'),
   timeMs: z.number().optional().describe('Duration in ms for wait time mode.'),
   selector: z.string().optional().describe('CSS selector for wait/find/extract scope.'),
   timeoutMs: timeoutField,
-  format: z.enum(['png', 'jpeg', 'webp']).optional().describe('Screenshot format.'),
-  quality: z.number().optional().describe('Screenshot quality for jpeg/webp.'),
+  format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format.'),
+  quality: z.number().optional().describe('Screenshot quality for jpeg.'),
   fullPage: z.boolean().optional().describe('Full-page screenshot mode.'),
   dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Dialog handling action.'),
   promptText: z.string().optional().describe('Prompt text when accepting prompt dialogs.'),
@@ -188,6 +204,9 @@ const browserBatchActionSchema = z.object({
     .boolean()
     .optional()
     .describe('Whether find_elements should include text content.'),
+  includeLinks: z.boolean().optional().describe('Include links for extract operation.'),
+  includeImages: z.boolean().optional().describe('Include images for extract operation.'),
+  outputSchema: outputSchemaField,
 });
 
 const browserBatchInputSchema = z.object({
@@ -211,7 +230,7 @@ const browserBatchInputSchema = z.object({
 
 const SNAPSHOT_DESCRIPTION = `Capture the current browser state as a fresh snapshot.
 
-Use this before interactions to get current refs. The snapshot includes URL, tabs, scroll metadata, page stats, and a YAML accessibility tree with refs like [ref=e12].`;
+Use this before interactions to get current refs. The snapshot includes URL, tabs, viewport and scroll metadata, element bounds, visible/interactable nodes, shadow DOM where accessible, same-origin iframe summaries, and refs like [ref=e12].`;
 
 const NAVIGATE_DESCRIPTION = `Run browser navigation and tab actions.
 
@@ -221,17 +240,17 @@ Actions:
 - go_back / go_forward: history navigation
 - tab_new / tab_list / tab_focus / tab_close: tab management
 
-Use timeoutMs for navigation-sensitive operations.`;
+Use timeoutMs for navigation-sensitive operations. Page-changing actions return an updated snapshot in the result.`;
 
 const INTERACT_DESCRIPTION = `Interact with page elements and keyboard/mouse controls.
 
 Actions:
 - click / type / hover / select / scroll
+- get_dropdown_options / select_dropdown for dropdown discovery and text selection
 - press (keyboard)
-- resize (viewport)
 - evaluate (JavaScript, last resort)
 
-Use refs from the latest snapshot for element-targeted actions.`;
+Use refs from the latest snapshot for element-targeted actions. Navigation-capable interactions return an updated snapshot in the result.`;
 
 const WAIT_DESCRIPTION = `Wait for page conditions.
 
@@ -243,7 +262,7 @@ Use timeoutMs to cap the maximum wait.`;
 
 const SCREENSHOT_DESCRIPTION = `Take a browser screenshot.
 
-Supports viewport, full-page, and element screenshots (via ref). Returns base64 image data and format.`;
+Supports viewport, full-page, and element screenshots (via ref). Returns base64 PNG or JPEG image data and format.`;
 
 const DIALOG_DESCRIPTION = `Inspect and control browser dialogs (alert/confirm/prompt).
 
@@ -254,13 +273,13 @@ Actions:
 const CONTENT_DESCRIPTION = `Query or extract content from the current page.
 
 Actions:
-- extract: extract page content for a query
+- extract: extract page text, optionally with links/images/schema-shaped data
 - search_page: fast visible-text pattern search
 - find_elements: query DOM elements by CSS selector`;
 
 const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized call.
 
-Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error or page change by default.`;
+Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error, sequence-terminating actions, or a lightweight DOM/page fingerprint change by default. Results are concise; if the batch changes page state, the result includes an updated snapshot.`;
 
 let queueTail: Promise<void> = Promise.resolve();
 
@@ -324,6 +343,40 @@ function actionTerminatesSequence(action: BatchAction, op: string): boolean {
   return false;
 }
 
+function shouldReturnFreshSnapshot(input: OperationInput): boolean {
+  if (input.tool === 'navigate') {
+    const op = input.op;
+    return op !== 'tab_list';
+  }
+
+  if (input.tool === 'interact') {
+    return (
+      input.op === 'click' ||
+      input.op === 'press' ||
+      input.op === 'select_dropdown' ||
+      input.op === 'evaluate' ||
+      (input.op === 'type' && input.submit === true)
+    );
+  }
+
+  return false;
+}
+
+async function withFreshSnapshot(
+  result: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown>> {
+  const browser = getBrowserManager();
+  const snapshot = await browser.snapshot(signal);
+  const output =
+    typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+  return {
+    ...result,
+    output: `${output}\n\n### Updated Snapshot\n${snapshot}`,
+    snapshot,
+  };
+}
+
 function formatTabsOutput(tabs: BrowserTab[]) {
   const tabList = tabs
     .filter((t) => t.type === 'page')
@@ -360,6 +413,60 @@ function formatFindElementsSummary(selector: string, result: FindElementsResult)
     return `No elements matching "${selector}".`;
   }
   return `Found ${total} element${total !== 1 ? 's' : ''} matching "${selector}"${showing < total ? ` (showing ${showing})` : ''}:\n${elemLines.join('\n')}`;
+}
+
+function formatDropdownOptionsSummary(ref: string, result: DropdownOptionsResult) {
+  if (result.options.length === 0) {
+    return `No dropdown options found for ${ref}.`;
+  }
+
+  const lines = result.options.map((option) => {
+    const selected = option.selected ? ' selected' : '';
+    const disabled = option.disabled ? ' disabled' : '';
+    return `  ${option.index}. "${option.text}" value="${option.value}"${selected}${disabled}`;
+  });
+  return `Dropdown options for ${ref} (${result.type}):\n${lines.join('\n')}\nUse browser_interact action="select_dropdown" with text to choose one.`;
+}
+
+function formatExtractContent(query: string | undefined, result: string | ExtractContentResult) {
+  if (typeof result === 'string') {
+    return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${result}`;
+  }
+
+  const sections = [
+    `### Extracted Content`,
+    `**Query:** ${query ?? 'page content'}`,
+    '',
+    result.text,
+  ];
+  if (result.links) {
+    sections.push('', `### Links`, JSON.stringify(result.links, null, 2));
+  }
+  if (result.images) {
+    sections.push('', `### Images`, JSON.stringify(result.images, null, 2));
+  }
+  if (result.data) {
+    sections.push('', `### Data`, JSON.stringify(result.data, null, 2));
+  }
+  return sections.join('\n');
+}
+
+function summarizeOperationResult(result: unknown): string {
+  if (!result || typeof result !== 'object' || !('output' in result)) {
+    return summarizeValue(result);
+  }
+
+  return summarizeValue((result as { output: unknown }).output);
+}
+
+function summarizeValue(value: unknown): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  if (!text) return '';
+  return text.length > 500 ? `${text.slice(0, 500)}...` : text;
+}
+
+function formatBatchActionLabel(index: number, action: BatchAction): string {
+  return `${index}. ${action.tool}${action.op ? `.${action.op}` : ''}`;
 }
 
 async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
@@ -456,16 +563,23 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
         if (!input.values) throw new Error('Missing required field: values');
         return { output: await browser.select(input.ref, input.values, signal) };
       }
+      case 'get_dropdown_options': {
+        if (!input.ref) throw new Error('Missing required field: ref');
+        const result = await browser.getDropdownOptions(input.ref, signal);
+        return { output: formatDropdownOptionsSummary(input.ref, result), options: result.options };
+      }
+      case 'select_dropdown': {
+        if (!input.ref) throw new Error('Missing required field: ref');
+        if (!input.text) throw new Error('Missing required field: text');
+        return {
+          output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs),
+        };
+      }
       case 'scroll': {
         if (!input.direction) throw new Error('Missing required field: direction');
         return {
           output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal),
         };
-      }
-      case 'resize': {
-        if (!input.width) throw new Error('Missing required field: width');
-        if (!input.height) throw new Error('Missing required field: height');
-        return { output: await browser.resize(input.width, input.height, signal) };
       }
       case 'evaluate': {
         if (!input.fn) throw new Error('Missing required field: fn');
@@ -508,11 +622,19 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
     const op = getRequiredOp(input);
     if (op === 'state') {
       const state = await browser.getDialogState(signal);
-      if (!state.open) {
+      if (!state.type) {
         return { output: 'No open dialog found.' };
       }
+      const status = state.open ? 'open' : 'recent';
       const message = state.message ? `\nMessage: ${state.message}` : '';
-      return { output: `Dialog is open (${state.type ?? 'unknown'})${message}` };
+      const url = state.url ? `\nURL: ${state.url}` : '';
+      const disposition = state.disposition ? `\nDisposition: ${state.disposition}` : '';
+      const defaultPrompt = state.defaultPromptText
+        ? `\nDefault prompt text: ${state.defaultPromptText}`
+        : '';
+      return {
+        output: `Dialog/popup state: ${status} (${state.type})${message}${url}${disposition}${defaultPrompt}`,
+      };
     }
     if (op === 'handle') {
       if (!input.dialogAction) throw new Error('Missing required field: dialogAction');
@@ -525,11 +647,16 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
     const op = getRequiredOp(input);
     switch (op) {
       case 'extract': {
-        if (!input.query) throw new Error('Missing required field: query');
-        const content = await browser.extractPageContent(signal, input.selector);
+        const content = await browser.extractPageContent(signal, {
+          selector: input.selector,
+          query: input.query,
+          includeLinks: input.includeLinks,
+          includeImages: input.includeImages,
+          outputSchema: input.outputSchema,
+        });
         const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
         return {
-          output: `### Extracted Content\n**Query:** ${input.query}${selectorNote}\n\n${content}`,
+          output: `${formatExtractContent(input.query, content)}${selectorNote}`,
         };
       }
       case 'search_page': {
@@ -601,8 +728,11 @@ function createNavigateTool(context: ToolContext) {
     context,
     NAVIGATE_DESCRIPTION,
     browserNavigateInputSchema,
-    (input, signal) => {
-      return executeOperation({ ...input, tool: 'navigate', op: input.action }, signal);
+    async (input, signal) => {
+      const operation = { ...input, tool: 'navigate' as const, op: input.action };
+      const result = await executeOperation(operation, signal);
+      if (!shouldReturnFreshSnapshot(operation)) return result;
+      return withFreshSnapshot(result as Record<string, unknown>, signal);
     },
   );
 }
@@ -612,8 +742,11 @@ function createInteractTool(context: ToolContext) {
     context,
     INTERACT_DESCRIPTION,
     browserInteractInputSchema,
-    (input, signal) => {
-      return executeOperation({ ...input, tool: 'interact', op: input.action }, signal);
+    async (input, signal) => {
+      const operation = { ...input, tool: 'interact' as const, op: input.action };
+      const result = await executeOperation(operation, signal);
+      if (!shouldReturnFreshSnapshot(operation)) return result;
+      return withFreshSnapshot(result as Record<string, unknown>, signal);
     },
   );
 }
@@ -669,11 +802,13 @@ function createBatchTool(context: ToolContext) {
           tool: string;
           op?: string;
           status: 'ok' | 'error';
-          output?: unknown;
+          output?: string;
           error?: string;
         }> = [];
 
         let stoppedReason: string | null = null;
+        let freshSnapshot: string | null = null;
+        let lastSuccessfulAction: OperationInput | null = null;
 
         for (let i = 0; i < input.actions.length; i++) {
           const action = input.actions[i];
@@ -693,17 +828,18 @@ function createBatchTool(context: ToolContext) {
               tool: string;
               op?: string;
               status: 'ok';
-              output: unknown;
+              output: string;
             } = {
               index: i + 1,
               tool: action.tool,
               status: 'ok',
-              output: result,
+              output: summarizeOperationResult(result),
             };
             if (op) {
               resultRecord.op = op;
             }
             results.push(resultRecord);
+            lastSuccessfulAction = action;
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             const errorRecord: {
@@ -736,6 +872,7 @@ function createBatchTool(context: ToolContext) {
 
           if (op && actionTerminatesSequence(action, op)) {
             stoppedReason = `Stopped after ${action.tool}.${op}: terminates sequence.`;
+            freshSnapshot = await browser.snapshot(signal);
             break;
           }
 
@@ -749,17 +886,39 @@ function createBatchTool(context: ToolContext) {
 
             if (beforeState && afterState && beforeState !== afterState) {
               stoppedReason = `Stopped after action ${i + 1}: page state changed.`;
+              freshSnapshot = await browser.snapshot(signal);
               break;
             }
           }
         }
 
+        if (
+          !freshSnapshot &&
+          lastSuccessfulAction &&
+          shouldReturnFreshSnapshot(lastSuccessfulAction)
+        ) {
+          freshSnapshot = await browser.snapshot(signal);
+        }
+
         const executed = results.length;
         const total = input.actions.length;
         const skipped = Math.max(total - executed, 0);
-        const summary = stoppedReason
+        const summaryText = stoppedReason
           ? `Batch executed ${executed}/${total} action(s). ${stoppedReason}`
           : `Batch executed ${executed}/${total} action(s) successfully.`;
+        const resultLines = results.map((result) => {
+          const action = input.actions[result.index - 1];
+          const label = action
+            ? formatBatchActionLabel(result.index, action)
+            : `${result.index}. action`;
+          if (result.status === 'error') return `${label}: error - ${result.error}`;
+          return `${label}: ok${result.output ? ` - ${result.output}` : ''}`;
+        });
+        const outputText =
+          resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
+        const summary = freshSnapshot
+          ? `${outputText}\n\n### Updated Snapshot\n${freshSnapshot}`
+          : outputText;
 
         return {
           output: summary,
@@ -767,6 +926,7 @@ function createBatchTool(context: ToolContext) {
           stoppedReason,
           executed,
           skipped,
+          snapshot: freshSnapshot ?? undefined,
         };
       });
     },

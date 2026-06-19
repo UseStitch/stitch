@@ -1,6 +1,6 @@
 import { app, dialog, session, type BrowserWindow } from 'electron';
 
-import { ElectronBrowserManager } from './browser-manager.js';
+import { ElectronBrowserManager } from './browser/browser-manager.js';
 import { registerBrowserHandlers } from './ipc/browser.js';
 import { registerDevtoolsHandlers } from './ipc/devtools.js';
 import { registerFilesHandlers } from './ipc/files.js';

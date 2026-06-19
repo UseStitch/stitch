@@ -1,11 +1,15 @@
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserCommandResult,
+  ElectronBrowserDialogState,
   ElectronBrowserErrorMessage,
   ElectronBrowserResultMessage,
 } from '@stitch/shared/browser/electron';
 
 import type {
   BrowserTab,
+  DropdownOptionsResult,
+  ExtractContentResult,
   FindElementsResult,
   LaunchOptions,
   ScreenshotResult,
@@ -27,11 +31,11 @@ class DesktopBrowserBridge {
   private connectPromise: Promise<void> | null = null;
   private pending = new Map<string, PendingRequest>();
 
-  async send(
-    command: ElectronBrowserCommand,
+  async send<C extends ElectronBrowserCommand>(
+    command: C,
     sessionId: string,
     signal?: AbortSignal,
-  ): Promise<unknown> {
+  ): Promise<ElectronBrowserCommandResult<C['action']>> {
     await this.connect();
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -43,7 +47,7 @@ class DesktopBrowserBridge {
     const id = crypto.randomUUID();
     const message = JSON.stringify({ id, type: 'browser:command', sessionId, command });
 
-    return new Promise((resolve, reject) => {
+    return new Promise<ElectronBrowserCommandResult<C['action']>>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         reject(new Error(`Browser command timed out: ${command.action}`));
@@ -62,9 +66,11 @@ class DesktopBrowserBridge {
 
       signal?.addEventListener('abort', abort, { once: true });
       this.pending.set(id, {
+        // The WebSocket payload is untyped JSON; this is the single boundary where
+        // the wire result is trusted to match the command's mapped result type.
         resolve: (value) => {
           signal?.removeEventListener('abort', abort);
-          resolve(value);
+          resolve(value as ElectronBrowserCommandResult<C['action']>);
         },
         reject: (error) => {
           signal?.removeEventListener('abort', abort);
@@ -149,7 +155,10 @@ class BrowserManager {
     return this._sessionId;
   }
 
-  private send(command: ElectronBrowserCommand, signal?: AbortSignal): Promise<unknown> {
+  private send<C extends ElectronBrowserCommand>(
+    command: C,
+    signal?: AbortSignal,
+  ): Promise<ElectronBrowserCommandResult<C['action']>> {
     return this.bridge.send(command, this.getSessionId(), signal);
   }
 
@@ -171,20 +180,13 @@ class BrowserManager {
     );
   }
 
-  async getDialogState(
-    signal?: AbortSignal,
-  ): Promise<{ open: boolean; type?: string; message?: string }> {
-    return (await this.send({ action: 'dialogState' }, signal)) as {
-      open: boolean;
-      type?: string;
-      message?: string;
-    };
+  async getDialogState(signal?: AbortSignal): Promise<ElectronBrowserDialogState> {
+    return this.send({ action: 'dialogState' }, signal);
   }
 
   async getExecutionState(signal?: AbortSignal): Promise<string> {
-    const tabs = (await this.listTabs(signal)).filter((tab) => tab.type === 'page');
-    const active = tabs[0];
-    return active ? `${active.id}:${active.url}:${active.title}` : 'no-active-tab';
+    const state = await this.send({ action: 'executionState' }, signal);
+    return JSON.stringify(state);
   }
 
   async saveStorageState() {
@@ -196,7 +198,7 @@ class BrowserManager {
   }
 
   async listTabs(signal?: AbortSignal): Promise<BrowserTab[]> {
-    return (await this.send({ action: 'listTabs' }, signal)) as BrowserTab[];
+    return this.send({ action: 'listTabs' }, signal);
   }
 
   async newTab(
@@ -264,6 +266,19 @@ class BrowserManager {
     return String(await this.send({ action: 'select', ref, values }, signal));
   }
 
+  async getDropdownOptions(ref: string, signal?: AbortSignal): Promise<DropdownOptionsResult> {
+    return this.send({ action: 'getDropdownOptions', ref }, signal);
+  }
+
+  async selectDropdown(
+    ref: string,
+    text: string,
+    signal?: AbortSignal,
+    timeoutMs?: number,
+  ): Promise<string> {
+    return String(await this.send({ action: 'selectDropdown', ref, text, timeoutMs }, signal));
+  }
+
   async scroll(
     ref: string | undefined,
     direction: ScrollDirection,
@@ -279,16 +294,13 @@ class BrowserManager {
   async screenshot(
     options: {
       signal?: AbortSignal;
-      format?: 'png' | 'jpeg' | 'webp';
+      format?: 'png' | 'jpeg';
       quality?: number;
       fullPage?: boolean;
       ref?: string;
     } = {},
   ): Promise<ScreenshotResult> {
-    return (await this.send(
-      { action: 'screenshot', ...options },
-      options.signal,
-    )) as ScreenshotResult;
+    return this.send({ action: 'screenshot', ...options }, options.signal);
   }
 
   async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
@@ -306,7 +318,7 @@ class BrowserManager {
     },
     signal?: AbortSignal,
   ): Promise<SearchPageResult> {
-    return (await this.send({ action: 'searchPage', ...options }, signal)) as SearchPageResult;
+    return this.send({ action: 'searchPage', ...options }, signal);
   }
 
   async findElements(
@@ -318,11 +330,7 @@ class BrowserManager {
     },
     signal?: AbortSignal,
   ): Promise<FindElementsResult> {
-    return (await this.send({ action: 'findElements', ...options }, signal)) as FindElementsResult;
-  }
-
-  async resize(width: number, height: number, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'resize', width, height }, signal));
+    return this.send({ action: 'findElements', ...options }, signal);
   }
 
   async wait(timeMs?: number, selector?: string, signal?: AbortSignal): Promise<string> {
@@ -338,8 +346,17 @@ class BrowserManager {
     return String(await this.send({ action: 'search', query, engine, timeoutMs }, signal));
   }
 
-  async extractPageContent(signal?: AbortSignal, selector?: string): Promise<string> {
-    return String(await this.send({ action: 'extractPageContent', selector }, signal));
+  async extractPageContent(
+    signal?: AbortSignal,
+    options: {
+      selector?: string;
+      query?: string;
+      includeLinks?: boolean;
+      includeImages?: boolean;
+      outputSchema?: Record<string, unknown>;
+    } = {},
+  ): Promise<string | ExtractContentResult> {
+    return this.send({ action: 'extractPageContent', ...options }, signal);
   }
 }
 
