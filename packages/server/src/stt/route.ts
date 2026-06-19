@@ -133,6 +133,7 @@ async function handleStart(
       send(ws, {
         type: 'transcript',
         sttSessionId: message.sttSessionId,
+        id: evt.id,
         kind: evt.kind,
         text: evt.text,
         offsetMs: evt.offsetMs,
