@@ -19,6 +19,7 @@ import {
   useStartRecording,
   useStopRecording,
 } from '@/lib/queries/recordings';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 const WARNING_LABELS: Record<string, string> = {
   input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
@@ -62,12 +63,20 @@ export function RecordingEventListener() {
 export function MeetingRecordingBanner() {
   const [detection, setDetection] = React.useState<MeetingCallDetectedPayload | null>(null);
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
-  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   const startRecording = useStartRecording();
   const { data } = useQuery(activeRecordingQueryOptions);
   const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const activeRecordingId = data?.activeRecordingId ?? null;
+
+  const defaultSttModel: SttModelSelection | null =
+    settings['recordings.transcription.providerId'] && settings['recordings.transcription.modelId']
+      ? {
+          providerId: settings['recordings.transcription.providerId'],
+          modelId: settings['recordings.transcription.modelId'],
+        }
+      : null;
 
   const activeRecordingIdRef = React.useRef(activeRecordingId);
   activeRecordingIdRef.current = activeRecordingId;
@@ -181,8 +190,6 @@ export function MeetingRecordingBanner() {
                   void startRecording
                     .mutateAsync({
                       platform: detection.platform,
-                      sttProviderId: sttModelOverride?.providerId,
-                      sttModelId: sttModelOverride?.modelId,
                     })
                     .then(
                       () => {
@@ -203,8 +210,26 @@ export function MeetingRecordingBanner() {
               </Button>
               <ButtonGroupSeparator className="bg-primary-foreground/20" />
               <SttModelSelectorPopover
-                selectedValue={sttModelOverride}
-                onSelect={setSttModelOverride}
+                defaultValue={defaultSttModel}
+                onSelect={(value) => {
+                  void startRecording
+                    .mutateAsync({
+                      platform: detection.platform,
+                      sttProviderId: value.providerId,
+                      sttModelId: value.modelId,
+                    })
+                    .then(
+                      () => {
+                        requestDismissMeeting(detection.key);
+                        toast.success('Recording started');
+                      },
+                      (error: unknown) => {
+                        toast.error(
+                          error instanceof Error ? error.message : 'Failed to start recording',
+                        );
+                      },
+                    );
+                }}
                 sttProviders={sttProviders}
                 triggerRender={
                   <Button
@@ -212,7 +237,7 @@ export function MeetingRecordingBanner() {
                     size="sm"
                     disabled={startRecording.isPending}
                     className="rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
-                    title="Choose transcription model"
+                    title="Choose transcription model and start"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </Button>
@@ -227,8 +252,6 @@ export function MeetingRecordingBanner() {
                 void startRecording
                   .mutateAsync({
                     platform: detection.platform,
-                    sttProviderId: sttModelOverride?.providerId,
-                    sttModelId: sttModelOverride?.modelId,
                   })
                   .then(
                     () => {

@@ -12,8 +12,8 @@ export type SttModelSelection = {
 };
 
 type SttModelSelectorPopoverProps = {
-  selectedValue: SttModelSelection | null;
-  onSelect: (value: SttModelSelection | null) => void;
+  defaultValue: SttModelSelection | null;
+  onSelect: (value: SttModelSelection) => void;
   sttProviders: SttProviderModels[];
   /**
    * Element to render as the popover trigger. When omitted a standalone
@@ -24,18 +24,12 @@ type SttModelSelectorPopoverProps = {
 };
 
 export function SttModelSelectorPopover({
-  selectedValue,
+  defaultValue,
   onSelect,
   sttProviders,
   triggerRender,
 }: SttModelSelectorPopoverProps) {
   const [search, setSearch] = React.useState('');
-
-  const selectedModel = React.useMemo(() => {
-    if (!selectedValue) return null;
-    const provider = sttProviders.find((p) => p.providerId === selectedValue.providerId);
-    return provider?.models.find((m) => m.id === selectedValue.modelId) ?? null;
-  }, [sttProviders, selectedValue]);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return sttProviders;
@@ -52,22 +46,18 @@ export function SttModelSelectorPopover({
       .filter((p) => p.models.length > 0);
   }, [sttProviders, search]);
 
-  const label = selectedModel?.name ?? 'Default';
-
   return (
     <PopoverPrimitive.Root>
       <PopoverPrimitive.Trigger
         render={triggerRender}
-        title={`STT model: ${label}`}
+        title="Choose STT model"
         className={
           triggerRender
             ? undefined
             : cn(
                 'flex items-center justify-center rounded-md p-1 transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                selectedValue
-                  ? 'text-foreground bg-muted/50'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                'text-muted-foreground hover:text-foreground hover:bg-muted/50',
               )
         }
       >
@@ -91,7 +81,7 @@ export function SttModelSelectorPopover({
               'w-72 max-h-80 flex flex-col origin-(--transform-origin) outline-none duration-100',
             )}
           >
-            <div className="px-3 py-2 border-b border-border/50">
+            <div className="border-b border-border/50 px-3 py-2">
               <p className="text-xs font-medium text-muted-foreground">STT Model</p>
             </div>
 
@@ -108,21 +98,6 @@ export function SttModelSelectorPopover({
 
             <div className="no-scrollbar max-h-60 overflow-y-auto overscroll-contain">
               <div className="p-1">
-                <PopoverPrimitive.Close
-                  onClick={() => onSelect(null)}
-                  className={cn(
-                    'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
-                    'transition-colors hover:bg-accent hover:text-accent-foreground',
-                    'focus-visible:outline-none focus-visible:bg-accent',
-                    !selectedValue && 'font-medium',
-                  )}
-                >
-                  <span className="text-muted-foreground">Default (from settings)</span>
-                  {!selectedValue && <CheckIcon className="size-3.5 shrink-0" />}
-                </PopoverPrimitive.Close>
-
-                {filtered.length > 0 && <div className="my-1 h-px bg-border/50" />}
-
                 {filtered.map((provider, index) => (
                   <div key={provider.providerId}>
                     {index > 0 && <div className="my-1 h-px bg-border/50" />}
@@ -130,9 +105,9 @@ export function SttModelSelectorPopover({
                       {provider.providerName}
                     </p>
                     {provider.models.map((model) => {
-                      const isSelected =
-                        selectedValue?.providerId === provider.providerId &&
-                        selectedValue?.modelId === model.id;
+                      const isDefault =
+                        defaultValue?.providerId === provider.providerId &&
+                        defaultValue?.modelId === model.id;
                       return (
                         <PopoverPrimitive.Close
                           key={model.id}
@@ -143,11 +118,11 @@ export function SttModelSelectorPopover({
                             'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
                             'transition-colors hover:bg-accent hover:text-accent-foreground',
                             'focus-visible:outline-none focus-visible:bg-accent',
-                            isSelected && 'font-medium',
+                            isDefault && 'font-medium',
                           )}
                         >
                           <span>{model.name}</span>
-                          {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
+                          {isDefault && <CheckIcon className="size-3.5 shrink-0" />}
                         </PopoverPrimitive.Close>
                       );
                     })}

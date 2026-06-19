@@ -38,7 +38,6 @@ export function RecordingsPage() {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
-  const [sttModelOverride, setSttModelOverride] = React.useState<SttModelSelection | null>(null);
 
   const { data } = useSuspenseQuery({
     ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
@@ -101,14 +100,12 @@ export function RecordingsPage() {
           isStopping={stopRecording.isPending}
           title={title}
           onTitleChange={setTitle}
-          sttModelOverride={sttModelOverride}
-          onSttModelOverrideChange={setSttModelOverride}
-          onStart={() => {
+          onStart={(sttModel?: SttModelSelection) => {
             void startRecording
               .mutateAsync({
                 title: title.trim() || undefined,
-                sttProviderId: sttModelOverride?.providerId,
-                sttModelId: sttModelOverride?.modelId,
+                sttProviderId: sttModel?.providerId,
+                sttModelId: sttModel?.modelId,
               })
               .then(
                 () => {
