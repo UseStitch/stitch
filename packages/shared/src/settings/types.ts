@@ -49,6 +49,7 @@ export const SETTINGS_KEYS = [
   'recordings.analysis.defaultTemplateId',
   'stt.default.providerId',
   'stt.default.modelId',
+  'stt.holdToTalk',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -104,6 +105,7 @@ export const SETTINGS_SCHEMAS = {
   'recordings.analysis.defaultTemplateId': z.string(),
   'stt.default.providerId': z.string(),
   'stt.default.modelId': z.string(),
+  'stt.holdToTalk': booleanSetting,
 } as const;
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
@@ -365,5 +367,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Model ID for the default STT model used for live speech-to-text in the chat input.',
+  },
+  {
+    key: 'stt.holdToTalk',
+    value: 'false',
+    description:
+      'When enabled, the dictation shortcut records only while held and finalizes on release (push-to-talk). When disabled, the shortcut toggles recording on and off.',
   },
 ];

@@ -149,6 +149,9 @@ export function GeneralSettings() {
       <SettingSection title="Models">
         <ModelsContent />
       </SettingSection>
+      <SettingSection title="Dictation">
+        <DictationContent />
+      </SettingSection>
       <SettingSection title="App Updates">
         <AppUpdatesContent />
       </SettingSection>
@@ -250,6 +253,19 @@ function NotificationsContent() {
       label="Sound alerts"
       description="Play an attention sound when the AI needs your input"
       checked={settings['notifications.sound.enabled'] !== 'false'}
+    />
+  );
+}
+
+function DictationContent() {
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+
+  return (
+    <SwitchSettingRow
+      settingKey="stt.holdToTalk"
+      label="Hold to talk"
+      description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
+      checked={settings['stt.holdToTalk'] === 'true'}
     />
   );
 }
