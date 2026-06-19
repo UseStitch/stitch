@@ -19,6 +19,7 @@ import type { SttModelSelection } from '@/components/model-selectors/stt-model-s
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { Popover, PopoverContent } from '@/components/ui/popover';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import {
   sttProviderModelsQueryOptions,
@@ -44,6 +45,131 @@ type ChatInputInnerProps = {
   onPendingAttachmentsConsumed?: () => void;
 };
 
+type CompletionPrefix = '/' | '@';
+
+type CompletionState = {
+  prefix: CompletionPrefix;
+  anchorIndex: number;
+  filter: string;
+};
+
+type CompletionOption = {
+  value: string;
+  label: string;
+  description: string;
+};
+
+const SLASH_COMPLETIONS: CompletionOption[] = [
+  { value: 'summarize', label: 'Summarize', description: 'Summarize the current context' },
+  { value: 'rewrite', label: 'Rewrite', description: 'Rewrite selected text or your draft' },
+  { value: 'plan', label: 'Plan', description: 'Create a step-by-step plan' },
+  { value: 'debug', label: 'Debug', description: 'Help diagnose an issue' },
+];
+
+const MENTION_COMPLETIONS: CompletionOption[] = [
+  { value: 'workspace', label: 'Workspace', description: 'Reference the current workspace' },
+  { value: 'agenda', label: 'Agenda', description: 'Reference agenda items' },
+  { value: 'notes', label: 'Notes', description: 'Reference notes and summaries' },
+  { value: 'files', label: 'Files', description: 'Reference attached or local files' },
+];
+
+function getCompletionState(textarea: HTMLTextAreaElement): CompletionState | null {
+  const { selectionStart, selectionEnd, value } = textarea;
+  if (selectionStart !== selectionEnd || document.activeElement !== textarea) return null;
+
+  const textBeforeCaret = value.slice(0, selectionStart);
+  const slashIndex = textBeforeCaret.lastIndexOf('/');
+  const mentionIndex = textBeforeCaret.lastIndexOf('@');
+  const anchorIndex = Math.max(slashIndex, mentionIndex);
+  if (anchorIndex < 0) return null;
+
+  const prefix = value[anchorIndex] as CompletionPrefix;
+  const previousCharacter = anchorIndex > 0 ? value[anchorIndex - 1] : '';
+  if (previousCharacter && !/\s/.test(previousCharacter)) return null;
+
+  const filter = value.slice(anchorIndex + 1, selectionStart);
+  if (/\s/.test(filter)) return null;
+
+  return { prefix, anchorIndex, filter };
+}
+
+function filterCompletionOptions(state: CompletionState | null): CompletionOption[] {
+  if (!state) return [];
+
+  const options = state.prefix === '/' ? SLASH_COMPLETIONS : MENTION_COMPLETIONS;
+  const filter = state.filter.toLocaleLowerCase();
+  if (!filter) return options;
+
+  return options.filter((option) => {
+    return (
+      option.value.toLocaleLowerCase().startsWith(filter) ||
+      option.label.toLocaleLowerCase().startsWith(filter)
+    );
+  });
+}
+
+function getTextareaCharacterRect(textarea: HTMLTextAreaElement, index: number): DOMRect {
+  const computedStyle = window.getComputedStyle(textarea);
+  const mirror = document.createElement('div');
+  const textareaRect = textarea.getBoundingClientRect();
+  const properties = [
+    'boxSizing',
+    'width',
+    'height',
+    'borderTopWidth',
+    'borderRightWidth',
+    'borderBottomWidth',
+    'borderLeftWidth',
+    'paddingTop',
+    'paddingRight',
+    'paddingBottom',
+    'paddingLeft',
+    'fontFamily',
+    'fontSize',
+    'fontWeight',
+    'fontStyle',
+    'letterSpacing',
+    'lineHeight',
+    'textTransform',
+    'textIndent',
+    'textAlign',
+    'whiteSpace',
+    'wordBreak',
+    'overflowWrap',
+    'tabSize',
+  ] as const;
+
+  mirror.style.position = 'fixed';
+  mirror.style.top = `${textareaRect.top}px`;
+  mirror.style.left = `${textareaRect.left}px`;
+  mirror.style.visibility = 'hidden';
+  mirror.style.pointerEvents = 'none';
+  mirror.style.overflow = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.style.overflowWrap = 'break-word';
+
+  for (const property of properties) {
+    mirror.style[property] = computedStyle[property];
+  }
+
+  const before = textarea.value.slice(0, index);
+  const marker = document.createElement('span');
+  marker.textContent = textarea.value[index] || ' ';
+  mirror.textContent = before;
+  mirror.append(marker);
+  document.body.append(mirror);
+
+  const markerRect = marker.getBoundingClientRect();
+  mirror.remove();
+
+  return new DOMRect(
+    markerRect.left - textarea.scrollLeft,
+    markerRect.top - textarea.scrollTop,
+    1,
+    markerRect.height || Number.parseFloat(computedStyle.lineHeight) || 16,
+  );
+}
+
 export function ChatInputInner({
   value,
   onChange,
@@ -65,6 +191,9 @@ export function ChatInputInner({
   const shortcuts = useShortcuts();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const completionListId = React.useId();
+  const [completionState, setCompletionState] = React.useState<CompletionState | null>(null);
+  const [activeCompletionIndex, setActiveCompletionIndex] = React.useState(0);
 
   const {
     attachments,
@@ -90,18 +219,84 @@ export function ChatInputInner({
     [allOptions, selectedModel],
   );
   const canAttach = supportsAnyAttachment(selectedModelOption?.modelSummary ?? null);
+  const completionOptions = filterCompletionOptions(completionState);
+  const isCompletionOpen = completionState !== null && completionOptions.length > 0 && !disabled;
+
+  const completionAnchor = React.useMemo(() => {
+    return {
+      getBoundingClientRect: () => {
+        const textarea = textareaRef.current;
+        if (!textarea || !completionState) return new DOMRect();
+
+        return getTextareaCharacterRect(textarea, completionState.anchorIndex);
+      },
+    };
+  }, [completionState]);
+
+  const updateCompletionState = React.useCallback(() => {
+    const textarea = textareaRef.current;
+    const nextState = textarea ? getCompletionState(textarea) : null;
+    setCompletionState(nextState);
+    setActiveCompletionIndex(0);
+  }, []);
 
   const submit = React.useCallback(() => {
     onSubmit(value, consumeForSubmit());
   }, [consumeForSubmit, onSubmit, value]);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (isCompletionOpen) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setActiveCompletionIndex((index) => (index + 1) % completionOptions.length);
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveCompletionIndex((index) =>
+          index === 0 ? completionOptions.length - 1 : index - 1,
+        );
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setCompletionState(null);
+        return;
+      }
+
+      if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
+        event.preventDefault();
+        applyCompletion(completionOptions[activeCompletionIndex]);
+        return;
+      }
+    }
+
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if ((value.trim() || attachments.length > 0) && !disabled && !dictation.isRecording) {
         submit();
       }
     }
+  }
+
+  function applyCompletion(option: CompletionOption) {
+    const textarea = textareaRef.current;
+    if (!textarea || !completionState) return;
+
+    const replacement = `${completionState.prefix}${option.value} `;
+    const prefix = value.slice(0, completionState.anchorIndex) + replacement;
+    const suffix = value.slice(textarea.selectionEnd);
+    const nextValue = prefix + suffix;
+
+    onChange(nextValue);
+    setCompletionState(null);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(prefix.length, prefix.length);
+    });
   }
 
   React.useEffect(() => {
@@ -203,11 +398,23 @@ export function ChatInputInner({
       <textarea
         ref={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        aria-activedescendant={
+          isCompletionOpen ? `${completionListId}-${activeCompletionIndex}` : undefined
+        }
+        aria-autocomplete="list"
+        aria-controls={isCompletionOpen ? completionListId : undefined}
+        aria-expanded={isCompletionOpen}
+        onChange={(event) => {
+          onChange(event.target.value);
+          requestAnimationFrame(updateCompletionState);
+        }}
         onKeyDown={handleKeyDown}
         onPaste={(event) => {
           void handlePaste(event);
         }}
+        onSelect={updateCompletionState}
+        onBlur={() => setCompletionState(null)}
+        onFocus={updateCompletionState}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
@@ -219,6 +426,51 @@ export function ChatInputInner({
           disabled && 'cursor-not-allowed',
         )}
       />
+
+      <Popover open={isCompletionOpen} modal={false}>
+        <PopoverContent
+          anchor={completionAnchor}
+          align="start"
+          collisionPadding={8}
+          finalFocus={false}
+          initialFocus={false}
+          side="bottom"
+          sideOffset={6}
+          className="w-72 gap-1 p-1"
+        >
+          <div
+            id={completionListId}
+            role="listbox"
+            className="thin-scrollbar max-h-64 overflow-y-auto"
+          >
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              {completionState?.prefix === '/' ? 'Commands' : 'References'}
+            </div>
+            {completionOptions.map((option, index) => (
+              <button
+                id={`${completionListId}-${index}`}
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={index === activeCompletionIndex}
+                className={cn(
+                  'flex w-full cursor-default flex-col rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors',
+                  index === activeCompletionIndex && 'bg-muted text-foreground',
+                )}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActiveCompletionIndex(index)}
+                onClick={() => applyCompletion(option)}
+              >
+                <span className="font-medium">
+                  {completionState?.prefix}
+                  {option.value}
+                </span>
+                <span className="text-xs text-muted-foreground">{option.description}</span>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <div className="flex items-center justify-between px-3 pt-1 pb-3">
         {isRecording || isStopping ? (
