@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, SizedSample};
@@ -22,6 +22,7 @@ const PROGRESS_INTERVAL: Duration = Duration::from_millis(1000);
 const MIC_CAPTURE_RECV_TIMEOUT: Duration = Duration::from_millis(100);
 const MIC_SOURCE_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const DUAL_MIXER_RECV_TIMEOUT: Duration = Duration::from_millis(20);
+const MIC_DEFAULT_DEVICE_DEBOUNCE: Duration = Duration::from_millis(300);
 const MIC_RECONNECT_DELAY: Duration = Duration::from_secs(2);
 const MIC_MAX_RECONNECT_ATTEMPTS: u32 = 5;
 
@@ -67,6 +68,15 @@ fn choose_input_device(
   devices
     .find(|d| !device_name(d).map_or(false, |n| crate::device::is_tap_device(&n)))
     .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
+}
+
+fn default_input_device_name(host: &cpal::Host) -> Option<String> {
+  let device = host.default_input_device()?;
+  let name = device_name(&device)?;
+  if crate::device::is_tap_device(&name) {
+    return None;
+  }
+  Some(name)
 }
 
 fn downmix_to_mono_f32<T>(data: &[T], channels: usize, convert: impl Fn(T) -> f32) -> Vec<f32>
@@ -229,6 +239,10 @@ struct MicStreamRuntime {
   sample_rate_hz: u32,
   stream_error_flag: Arc<AtomicBool>,
   active_stream: Option<cpal::Stream>,
+  active_device_name: Option<String>,
+  follows_default_input: bool,
+  pending_default_device_name: Option<String>,
+  pending_default_device_since: Option<Instant>,
   reconnect_attempts: u32,
 }
 
@@ -241,12 +255,18 @@ impl MicStreamRuntime {
       sample_rate_hz,
       stream_error_flag: Arc::new(AtomicBool::new(false)),
       active_stream: None,
+      active_device_name: None,
+      follows_default_input: false,
+      pending_default_device_name: None,
+      pending_default_device_since: None,
       reconnect_attempts: 0,
     }
   }
 
   fn open_initial(&mut self, preferred_device: Option<&str>) -> Result<Vec<String>, NativeError> {
     let device = choose_input_device(&self.host, preferred_device)?;
+    self.active_device_name = device_name(&device);
+    self.follows_default_input = preferred_device.is_none();
     let (stream, warnings) = open_mic_stream(
       &device,
       self.tx.clone(),
@@ -264,6 +284,80 @@ impl MicStreamRuntime {
 
   fn has_stream_error(&self) -> bool {
     self.stream_error_flag.load(Ordering::Relaxed)
+  }
+
+  fn rebind_to_device(
+    &mut self,
+    device: cpal::Device,
+    warnings: &mut Vec<String>,
+  ) -> Result<(), NativeError> {
+    let new_name = device_name(&device).unwrap_or_default();
+    let (new_stream, new_warnings) = open_mic_stream(
+      &device,
+      self.tx.clone(),
+      self.stop_flag.clone(),
+      self.sample_rate_hz,
+      self.stream_error_flag.clone(),
+    )?;
+
+    self.active_stream = Some(new_stream);
+    self.active_device_name = Some(new_name.clone());
+    self.pending_default_device_name = None;
+    self.pending_default_device_since = None;
+    self.stream_error_flag.store(false, Ordering::Relaxed);
+    self.reset_reconnect_attempts();
+    warnings.extend(new_warnings);
+    warnings.push(format!("mic_rebound_to_{new_name}"));
+
+    let _ = emit(Event::DeviceChanged {
+      kind: "input",
+      device_name: Some(new_name),
+    });
+
+    Ok(())
+  }
+
+  fn rebind_if_default_changed(&mut self, warnings: &mut Vec<String>) -> Result<bool, NativeError> {
+    if !self.follows_default_input {
+      return Ok(false);
+    }
+
+    let current_default_name = default_input_device_name(&self.host);
+    if current_default_name == self.active_device_name {
+      self.pending_default_device_name = None;
+      self.pending_default_device_since = None;
+      return Ok(false);
+    }
+
+    let Some(default_name) = current_default_name else {
+      return Ok(false);
+    };
+
+    if self.pending_default_device_name.as_deref() != Some(default_name.as_str()) {
+      self.pending_default_device_name = Some(default_name);
+      self.pending_default_device_since = Some(Instant::now());
+      return Ok(false);
+    }
+
+    let Some(pending_since) = self.pending_default_device_since else {
+      self.pending_default_device_since = Some(Instant::now());
+      return Ok(false);
+    };
+
+    if pending_since.elapsed() < MIC_DEFAULT_DEVICE_DEBOUNCE {
+      return Ok(false);
+    }
+
+    let new_device = match choose_input_device(&self.host, None) {
+      Ok(device) => device,
+      Err(_) => return Ok(false),
+    };
+
+    if self.rebind_to_device(new_device, warnings).is_err() {
+      return Ok(false);
+    }
+
+    Ok(true)
   }
 
   fn reconnect_if_needed(&mut self, warnings: &mut Vec<String>) -> Result<bool, NativeError> {
@@ -303,26 +397,9 @@ impl MicStreamRuntime {
       Err(_) => return Ok(false),
     };
 
-    let Ok((new_stream, new_warnings)) = open_mic_stream(
-      &new_device,
-      self.tx.clone(),
-      self.stop_flag.clone(),
-      self.sample_rate_hz,
-      self.stream_error_flag.clone(),
-    ) else {
+    if self.rebind_to_device(new_device, warnings).is_err() {
       return Ok(false);
-    };
-
-    self.active_stream = Some(new_stream);
-    warnings.extend(new_warnings);
-
-    let new_name = device_name(&new_device).unwrap_or_default();
-    warnings.push(format!("mic_reconnected_to_{new_name}"));
-
-    let _ = emit(Event::DeviceChanged {
-      kind: "input",
-      device_name: Some(new_name),
-    });
+    }
 
     Ok(false)
   }
@@ -384,9 +461,11 @@ fn spawn_mic_capture(
             chunk_encoding,
           );
           mic_stream.reset_reconnect_attempts();
+          let _ = mic_stream.rebind_if_default_changed(&mut warnings)?;
           continue;
         }
 
+        let _ = mic_stream.rebind_if_default_changed(&mut warnings)?;
         if mic_stream.reconnect_if_needed(&mut warnings)? {
           break;
         }
@@ -441,11 +520,12 @@ fn spawn_mic_source(
         thread::sleep(MIC_SOURCE_POLL_INTERVAL);
 
         let had_stream_error = mic_stream.has_stream_error();
+        let rebound_to_default = mic_stream.rebind_if_default_changed(&mut warnings)?;
         if mic_stream.reconnect_if_needed(&mut warnings)? {
           break;
         }
 
-        if !had_stream_error {
+        if rebound_to_default || !had_stream_error {
           mic_stream.reset_reconnect_attempts();
         }
       }
