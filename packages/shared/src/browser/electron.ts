@@ -117,6 +117,108 @@ export type ElectronBrowserCommand =
   | { action: 'dialogState' }
   | { action: 'handleDialog'; dialogAction: 'accept' | 'dismiss'; promptText?: string };
 
+export type ElectronBrowserScreenshotResult = {
+  data: string;
+  format: 'png' | 'jpeg';
+};
+
+export type ElectronBrowserSearchPageMatch = {
+  match: string;
+  context: string;
+  index: number;
+};
+
+export type ElectronBrowserSearchPageResult = {
+  matches: ElectronBrowserSearchPageMatch[];
+  total: number;
+};
+
+export type ElectronBrowserFindElementEntry = {
+  tag: string;
+  text?: string;
+  attributes?: Record<string, string>;
+};
+
+export type ElectronBrowserFindElementsResult = {
+  elements: ElectronBrowserFindElementEntry[];
+  total: number;
+};
+
+export type ElectronBrowserDropdownOption = {
+  index: number;
+  text: string;
+  value: string;
+  selected: boolean;
+  disabled: boolean;
+};
+
+export type ElectronBrowserDropdownOptionsResult = {
+  type: string;
+  options: ElectronBrowserDropdownOption[];
+};
+
+export type ElectronBrowserExtractContentResult = {
+  text: string;
+  links?: Array<{ text: string; href: string }>;
+  images?: Array<{ alt: string; src: string }>;
+  data?: Record<string, string | string[]>;
+};
+
+/**
+ * Maps each browser command action to the result the desktop side returns for it.
+ * This is the single source of truth for the server-to-desktop wire contract:
+ * the server's `send()` and the desktop's command handler are both bound to it,
+ * so a mismatch becomes a compile error in both packages.
+ */
+export type ElectronBrowserCommandResultMap = {
+  ensure: ElectronBrowserState;
+  state: ElectronBrowserState;
+  executionState: ElectronBrowserExecutionState;
+  snapshot: string;
+  navigate: string;
+  search: string;
+  goBack: string;
+  goForward: string;
+  newTab: ElectronBrowserState;
+  listTabs: ElectronBrowserTab[];
+  focusTab: ElectronBrowserState;
+  closeTab: ElectronBrowserState;
+  click: string;
+  hover: string;
+  type: string;
+  press: string;
+  select: string;
+  getDropdownOptions: ElectronBrowserDropdownOptionsResult;
+  selectDropdown: string;
+  scroll: string;
+  screenshot: ElectronBrowserScreenshotResult;
+  evaluate: unknown;
+  wait: string;
+  extractPageContent: string | ElectronBrowserExtractContentResult;
+  searchPage: ElectronBrowserSearchPageResult;
+  findElements: ElectronBrowserFindElementsResult;
+  dialogState: ElectronBrowserDialogState;
+  handleDialog: string;
+};
+
+export type ElectronBrowserCommandResult<A extends ElectronBrowserCommand['action']> =
+  ElectronBrowserCommandResultMap[A];
+
+/** Union of every possible command result; the return shape of the desktop command handler. */
+export type ElectronBrowserCommandResultValue =
+  ElectronBrowserCommandResultMap[keyof ElectronBrowserCommandResultMap];
+
+type AssertExtends<A extends B, B> = A;
+// Compile-time guard: the result map must cover exactly the command union's actions.
+type _ResultMapCoversActions = AssertExtends<
+  keyof ElectronBrowserCommandResultMap,
+  ElectronBrowserCommand['action']
+>;
+type _ActionsCoveredByResultMap = AssertExtends<
+  ElectronBrowserCommand['action'],
+  keyof ElectronBrowserCommandResultMap
+>;
+
 export type ElectronBrowserCommandMessage = {
   id: string;
   type: 'browser:command';

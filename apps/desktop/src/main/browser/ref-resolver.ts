@@ -12,14 +12,14 @@ export class RefResolver {
     this.refs = new Map(Object.entries(refs));
   }
 
-  async runOnRef(ref: string, buildScript: (element: string) => string): Promise<unknown> {
+  async runOnRef<T = unknown>(ref: string, buildScript: (element: string) => string): Promise<T> {
     const result = await (
       await this.getBrowser()
     ).executeJavaScript(
       this.refActionScript(ref, (element) => buildScript(element)),
       true,
     );
-    return this.unwrapRefResult(ref, result);
+    return this.unwrapRefResult(ref, result) as T;
   }
 
   async resolveRef(ref: string): Promise<{ x: number; y: number }> {

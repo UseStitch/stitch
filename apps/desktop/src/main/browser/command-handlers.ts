@@ -1,7 +1,12 @@
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserCommandResultValue,
   ElectronBrowserDialogState,
+  ElectronBrowserDropdownOptionsResult,
   ElectronBrowserExecutionState,
+  ElectronBrowserExtractContentResult,
+  ElectronBrowserFindElementsResult,
+  ElectronBrowserSearchPageResult,
   ElectronBrowserState,
 } from '@stitch/shared/browser/electron';
 
@@ -36,7 +41,7 @@ type CommandContext = {
 export async function executeBrowserCommand(
   ctx: CommandContext,
   command: ElectronBrowserCommand,
-): Promise<unknown> {
+): Promise<ElectronBrowserCommandResultValue> {
   switch (command.action) {
     case 'navigate':
       await ctx.browser.loadURL(normalizeUrl(command.url));
@@ -117,11 +122,16 @@ export async function executeBrowserCommand(
       await selectRef(ctx.browser, ctx.refResolver, command.ref, command.values);
       return `Selected ${command.values.join(', ')} in ${command.ref}`;
     case 'getDropdownOptions':
-      return ctx.refResolver.runOnRef(command.ref, buildGetDropdownOptionsScript);
+      return ctx.refResolver.runOnRef<ElectronBrowserDropdownOptionsResult>(
+        command.ref,
+        buildGetDropdownOptionsScript,
+      );
     case 'selectDropdown': {
-      const result = (await ctx.refResolver.runOnRef(command.ref, (element) =>
-        buildSelectDropdownScript(element, command.text),
-      )) as { selected?: boolean; error?: string; text?: string };
+      const result = await ctx.refResolver.runOnRef<{
+        selected?: boolean;
+        error?: string;
+        text?: string;
+      }>(command.ref, (element) => buildSelectDropdownScript(element, command.text));
       if (!result.selected) {
         throw new Error(result.error ?? `Dropdown option not found: ${command.text}`);
       }
@@ -151,11 +161,20 @@ export async function executeBrowserCommand(
         ? `Selector appeared: ${command.selector}`
         : `Waited ${command.timeMs ?? 0}ms`;
     case 'extractPageContent':
-      return ctx.browser.executeJavaScript(buildExtractContentScript(command), true);
+      return runScript<string | ElectronBrowserExtractContentResult>(
+        ctx.browser,
+        buildExtractContentScript(command),
+      );
     case 'searchPage':
-      return ctx.browser.executeJavaScript(buildSearchPageScript(command), true);
+      return runScript<ElectronBrowserSearchPageResult>(
+        ctx.browser,
+        buildSearchPageScript(command),
+      );
     case 'findElements':
-      return ctx.browser.executeJavaScript(buildFindElementsScript(command), true);
+      return runScript<ElectronBrowserFindElementsResult>(
+        ctx.browser,
+        buildFindElementsScript(command),
+      );
     case 'dialogState':
       return ctx.getDialogState();
     case 'handleDialog':
@@ -166,8 +185,15 @@ export async function executeBrowserCommand(
   }
 }
 
+async function runScript<T>(browser: WebContents, script: string): Promise<T> {
+  // The injected scripts are untyped strings; this is the single boundary where
+  // their results are trusted to match the declared shape.
+  return (await browser.executeJavaScript(script, true)) as T;
+}
+
 async function getExecutionState(browser: WebContents): Promise<ElectronBrowserExecutionState> {
-  return (await browser.executeJavaScript(
+  return runScript<ElectronBrowserExecutionState>(
+    browser,
     `(() => {
       function hash(value) {
         let h = 2166136261;
@@ -206,8 +232,7 @@ async function getExecutionState(browser: WebContents): Promise<ElectronBrowserE
         bodyTextHash: hash(bodyText),
       };
     })()`,
-    true,
-  )) as ElectronBrowserExecutionState;
+  );
 }
 
 async function getScreenshotRect(

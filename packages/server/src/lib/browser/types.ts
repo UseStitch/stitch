@@ -1,13 +1,16 @@
+import type {
+  ElectronBrowserDropdownOptionsResult,
+  ElectronBrowserExtractContentResult,
+  ElectronBrowserFindElementsResult,
+  ElectronBrowserScreenshotResult,
+  ElectronBrowserSearchPageResult,
+} from '@stitch/shared/browser/electron';
+
 export type BrowserTab = {
   id: string;
   title: string;
   url: string;
   type: string;
-};
-
-export type ScreenshotResult = {
-  data: string;
-  format: 'png' | 'jpeg';
 };
 
 export type LaunchOptions = {
@@ -18,44 +21,10 @@ export type LaunchOptions = {
 
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
-export type SearchPageMatch = {
-  match: string;
-  context: string;
-  index: number;
-};
-
-export type SearchPageResult = {
-  matches: SearchPageMatch[];
-  total: number;
-};
-
-export type FindElementEntry = {
-  tag: string;
-  text?: string;
-  attributes?: Record<string, string>;
-};
-
-export type FindElementsResult = {
-  elements: FindElementEntry[];
-  total: number;
-};
-
-export type DropdownOption = {
-  index: number;
-  text: string;
-  value: string;
-  selected: boolean;
-  disabled: boolean;
-};
-
-export type DropdownOptionsResult = {
-  type: string;
-  options: DropdownOption[];
-};
-
-export type ExtractContentResult = {
-  text: string;
-  links?: Array<{ text: string; href: string }>;
-  images?: Array<{ alt: string; src: string }>;
-  data?: Record<string, string | string[]>;
-};
+// Wire-result shapes are defined once in @stitch/shared/browser/electron (the
+// server-to-desktop contract). These aliases keep the server's existing names.
+export type ScreenshotResult = ElectronBrowserScreenshotResult;
+export type SearchPageResult = ElectronBrowserSearchPageResult;
+export type FindElementsResult = ElectronBrowserFindElementsResult;
+export type DropdownOptionsResult = ElectronBrowserDropdownOptionsResult;
+export type ExtractContentResult = ElectronBrowserExtractContentResult;

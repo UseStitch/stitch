@@ -2,6 +2,7 @@ import { shell, webContents, type BrowserWindow, type WebContents } from 'electr
 
 import type {
   ElectronBrowserCommand,
+  ElectronBrowserCommandResultValue,
   ElectronBrowserDialogState,
   ElectronBrowserDownload,
   ElectronBrowserState,
@@ -163,7 +164,7 @@ export class ElectronBrowserManager {
     this.control.recordHumanInput();
   }
 
-  async execute(command: ElectronBrowserCommand): Promise<unknown> {
+  async execute(command: ElectronBrowserCommand): Promise<ElectronBrowserCommandResultValue> {
     if (command.action === 'state') return this.getState();
     if (command.action === 'ensure') return this.requestShow();
     this.requestShow();
@@ -199,7 +200,9 @@ export class ElectronBrowserManager {
     this.downloads.openDownload(download);
   }
 
-  private async executeWithBrowser(command: ElectronBrowserCommand): Promise<unknown> {
+  private async executeWithBrowser(
+    command: ElectronBrowserCommand,
+  ): Promise<ElectronBrowserCommandResultValue> {
     const browser = await this.waitForBrowser();
     return executeBrowserCommand(
       {
@@ -329,7 +332,7 @@ export class ElectronBrowserManager {
   private async handleBridgeCommand(
     sessionId: string,
     command: ElectronBrowserCommand,
-  ): Promise<unknown> {
+  ): Promise<ElectronBrowserCommandResultValue> {
     if (sessionId !== this.store.getCurrentSessionId()) {
       this.switchSession(sessionId);
     }

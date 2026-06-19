@@ -162,7 +162,7 @@ async function selectSingleValueWithKeyboard(
   ref: string,
   value: string,
 ): Promise<boolean> {
-  const result = (await refResolver.runOnRef(
+  const result = await refResolver.runOnRef<{ usable: boolean; targetIndex?: number }>(
     ref,
     (element) => `
       if (${element}.tagName?.toLowerCase() !== 'select' || ${element}.multiple) return { usable: false };
@@ -173,7 +173,7 @@ async function selectSingleValueWithKeyboard(
       ${element}.focus();
       return { usable: true, targetIndex };
     `,
-  )) as { usable?: boolean; targetIndex?: number };
+  );
 
   if (!result.usable || typeof result.targetIndex !== 'number') {
     return false;
