@@ -135,8 +135,6 @@ function classifyAssemblyAIError(err: Error): STTErrorClassification {
 }
 
 function createAssemblyAITransport(config: STTConnectionConfig) {
-  const sessionStartMs = Date.now();
-
   return createWsTransport(
     {
       url: buildAssemblyAIUrl(config),
@@ -145,8 +143,11 @@ function createAssemblyAITransport(config: STTConnectionConfig) {
         Authorization: config.auth.kind === 'apiKey' ? config.auth.key : '',
       },
       onReady: () => [],
-      parseMessage: createAssemblyAIMessageParser(sessionStartMs),
+      parseMessage: createAssemblyAIMessageParser(config.captureStartMs),
       label: 'AssemblyAI',
+      pingIntervalMs: config.reconnect.pingIntervalMs,
+      pongTimeoutMs: config.reconnect.pongTimeoutMs,
+      keepAliveMessage: config.reconnect.keepAliveMessage,
     },
     // AssemblyAI v3 accepts raw binary PCM16 frames directly
     (chunk) => Buffer.from(chunk.samplesB64, 'base64'),

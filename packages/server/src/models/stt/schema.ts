@@ -31,6 +31,9 @@ const ReconnectConfigSchema = z.object({
   backoffMs: z.number().int().nonnegative(),
   maxBackoffMs: z.number().int().positive().optional(),
   rotateBeforeMs: z.number().int().positive().optional(),
+  pingIntervalMs: z.number().int().positive().optional(),
+  pongTimeoutMs: z.number().int().positive().optional(),
+  keepAliveMessage: z.string().min(1).optional(),
 });
 
 const TokenPricingSchema = z.object({

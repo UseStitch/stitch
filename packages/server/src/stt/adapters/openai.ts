@@ -165,8 +165,6 @@ function classifyOpenAIError(err: Error): STTErrorClassification {
 }
 
 function createOpenAITransport(config: STTConnectionConfig) {
-  const sessionStartMs = Date.now();
-
   return createWsTransport(
     {
       url: `${OPENAI_REALTIME_BASE_URL}?intent=transcription`,
@@ -174,8 +172,11 @@ function createOpenAITransport(config: STTConnectionConfig) {
         Authorization: `Bearer ${config.auth.kind === 'apiKey' ? config.auth.key : ''}`,
       },
       onReady: () => [buildSessionConfig(config)],
-      parseMessage: createOpenAIMessageParser(sessionStartMs),
+      parseMessage: createOpenAIMessageParser(config.captureStartMs),
       label: 'OpenAI',
+      pingIntervalMs: config.reconnect.pingIntervalMs,
+      pongTimeoutMs: config.reconnect.pongTimeoutMs,
+      keepAliveMessage: config.reconnect.keepAliveMessage,
     },
     (chunk) =>
       JSON.stringify({

@@ -173,8 +173,6 @@ function classifyElevenLabsError(err: Error): STTErrorClassification {
 }
 
 function createElevenLabsTransport(config: STTConnectionConfig) {
-  const sessionStartMs = Date.now();
-
   return createWsTransport(
     {
       url: buildElevenLabsUrl(config),
@@ -187,8 +185,14 @@ function createElevenLabsTransport(config: STTConnectionConfig) {
         }
         return [];
       },
-      parseMessage: createElevenLabsMessageParser(sessionStartMs, shouldIncludeTimestamps(config)),
+      parseMessage: createElevenLabsMessageParser(
+        config.captureStartMs,
+        shouldIncludeTimestamps(config),
+      ),
       label: 'ElevenLabs',
+      pingIntervalMs: config.reconnect.pingIntervalMs,
+      pongTimeoutMs: config.reconnect.pongTimeoutMs,
+      keepAliveMessage: config.reconnect.keepAliveMessage,
     },
     (chunk) =>
       JSON.stringify({

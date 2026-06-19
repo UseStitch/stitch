@@ -184,7 +184,7 @@ describe('createManagedConnection recovery', () => {
     await conn.close();
   });
 
-  test('reconnects indefinitely past maxRetries until success (option A)', async () => {
+  test('emits unrecoverable when reconnect attempts are exhausted', async () => {
     let openCount = 0;
     const transports: FakeTransport[] = [];
     const conn = await createManagedConnection({
@@ -194,8 +194,7 @@ describe('createManagedConnection recovery', () => {
       classifyError: () => ({ fatal: false }),
       openConnection: async () => {
         openCount++;
-        // Initial open succeeds; then fail more times than maxRetries before succeeding.
-        if (openCount > 1 && openCount <= 5) {
+        if (openCount > 1) {
           throw new Error('still down');
         }
         const t = createFakeTransport();
@@ -203,14 +202,100 @@ describe('createManagedConnection recovery', () => {
         return t;
       },
     });
+    const reasons: string[] = [];
+    conn.onUnrecoverable((reason) => reasons.push(reason));
 
     // Drop the initial transport to trigger reactive reconnect.
     transports[0].emitClose();
 
-    // maxRetries is 2 but we fail 4 times — indefinite retry must keep going.
-    await sleep(120);
-    expect(openCount).toBeGreaterThan(5);
-    expect(transports[transports.length - 1].closed).toBe(false);
+    await sleep(40);
+    expect(openCount).toBe(3);
+    expect(reasons).toEqual(['reconnect attempts exhausted']);
+
+    await conn.close();
+  });
+
+  test('reconnects when the live transport emits a transient error', async () => {
+    const transports: FakeTransport[] = [];
+    const conn = await createManagedConnection({
+      buffer: baseBuffer,
+      reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
+      partialStrategy: 'cumulative',
+      classifyError: () => ({ fatal: false }),
+      openConnection: async () => {
+        const t = createFakeTransport();
+        transports.push(t);
+        return t;
+      },
+    });
+
+    transports[0].emitError(new Error('missing-pong'));
+    await sleep(20);
+
+    expect(transports).toHaveLength(2);
+    expect(transports[0].closed).toBe(true);
+
+    conn.sendAudio(makeChunk(7));
+    await sleep(10);
+    expect(transports[1].received.some((c) => c.samplesB64 === 'chunk-7')).toBe(true);
+
+    await conn.close();
+  });
+
+  test('suppresses duplicate finals with the same transcript id', async () => {
+    const transports: FakeTransport[] = [];
+    const conn = await createManagedConnection({
+      buffer: baseBuffer,
+      reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
+      partialStrategy: 'cumulative',
+      classifyError: () => ({ fatal: false }),
+      openConnection: async () => {
+        const t = createFakeTransport();
+        transports.push(t);
+        return t;
+      },
+    });
+    const transcripts: TranscriptEvent[] = [];
+    conn.onTranscript((evt) => transcripts.push(evt));
+
+    transports[0].emitTranscript({ id: 'turn-1', kind: 'final', text: 'Hello', offsetMs: 0 });
+    transports[0].emitTranscript({ id: 'turn-1', kind: 'final', text: 'Hello again', offsetMs: 0 });
+    transports[0].emitTranscript({ id: 'turn-1', kind: 'partial', text: 'late', offsetMs: 0 });
+
+    expect(transcripts.map((evt) => evt.text)).toEqual(['Hello']);
+
+    await conn.close();
+  });
+
+  test('does not replay chunks already covered by final word timestamps', async () => {
+    const transports: FakeTransport[] = [];
+    const conn = await createManagedConnection({
+      buffer: baseBuffer,
+      reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
+      partialStrategy: 'cumulative',
+      classifyError: () => ({ fatal: false }),
+      openConnection: async () => {
+        const t = createFakeTransport();
+        transports.push(t);
+        return t;
+      },
+    });
+
+    conn.sendAudio(makeChunk(1));
+    conn.sendAudio(makeChunk(2));
+    conn.sendAudio(makeChunk(3));
+    transports[0].emitTranscript({
+      id: 'turn-1',
+      kind: 'final',
+      text: 'done',
+      offsetMs: 0,
+      words: [{ text: 'done', startMs: 0, endMs: 200 }],
+    });
+    transports[0].emitClose();
+    await sleep(20);
+
+    const replayed = transports[1].received.map((chunk) => chunk.samplesB64);
+    expect(replayed).toEqual(['chunk-3']);
 
     await conn.close();
   });

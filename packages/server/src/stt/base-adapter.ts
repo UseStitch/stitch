@@ -20,6 +20,8 @@ type ManagedConnectionConfig = {
 type BufferedChunk = {
   chunk: AudioChunk;
   durationMs: number;
+  startMs: number;
+  endMs: number;
 };
 
 function chunkByteSize(chunk: AudioChunk): number {
@@ -75,6 +77,10 @@ export async function createManagedConnection(
 
   // Partial accumulation for incremental providers
   let accumulatedPartial = '';
+  let nextChunkStartMs = 0;
+  let lastConfirmedFinalMs = 0;
+  const finalizedTranscriptIds: string[] = [];
+  const finalizedTranscriptIdSet = new Set<string>();
 
   let transport: STTTransport | null = null;
   let closed = false;
@@ -98,8 +104,11 @@ export async function createManagedConnection(
 
   function addToBuffer(chunk: AudioChunk): void {
     const duration = chunkDurationMs(chunk);
-    ringBuffer.push({ chunk, durationMs: duration });
+    const startMs = nextChunkStartMs;
+    const endMs = startMs + duration;
+    ringBuffer.push({ chunk, durationMs: duration, startMs, endMs });
     totalBufferedMs += duration;
+    nextChunkStartMs = endMs;
 
     while (totalBufferedMs > bufferConfig.maxBufferedMs && ringBuffer.length > 1) {
       const dropped = ringBuffer.shift()!;
@@ -110,6 +119,13 @@ export async function createManagedConnection(
 
   function getReplayChunks(): AudioChunk[] {
     return ringBuffer.map((b) => b.chunk);
+  }
+
+  function trimBufferBefore(offsetMs: number): void {
+    while (ringBuffer.length > 1 && ringBuffer[0].endMs <= offsetMs) {
+      const dropped = ringBuffer.shift()!;
+      totalBufferedMs -= dropped.durationMs;
+    }
   }
 
   function clearBuffer(): void {
@@ -153,6 +169,7 @@ export async function createManagedConnection(
   function wireTransport(conn: STTTransport): void {
     conn.onTranscript((e) => {
       const normalized = normalizeTranscript(e);
+      if (!normalized) return;
       for (const cb of transcriptListeners) cb(normalized);
     });
     conn.onUsage((u) => {
@@ -172,7 +189,31 @@ export async function createManagedConnection(
    * Normalizes incremental partials into cumulative ones.
    * Resets on final events.
    */
-  function normalizeTranscript(event: TranscriptEvent): TranscriptEvent {
+  function rememberFinal(id: string): void {
+    finalizedTranscriptIds.push(id);
+    finalizedTranscriptIdSet.add(id);
+
+    while (finalizedTranscriptIds.length > 1000) {
+      const oldId = finalizedTranscriptIds.shift();
+      if (oldId) finalizedTranscriptIdSet.delete(oldId);
+    }
+  }
+
+  function finalAudioOffsetMs(event: TranscriptEvent): number {
+    const words = event.words;
+    if (words && words.length > 0) return words[words.length - 1].endMs;
+    return event.offsetMs;
+  }
+
+  function normalizeTranscript(event: TranscriptEvent): TranscriptEvent | null {
+    if (finalizedTranscriptIdSet.has(event.id)) return null;
+
+    if (event.kind === 'final') {
+      rememberFinal(event.id);
+      lastConfirmedFinalMs = Math.max(lastConfirmedFinalMs, finalAudioOffsetMs(event));
+      trimBufferBefore(lastConfirmedFinalMs);
+    }
+
     if (partialStrategy === 'cumulative') return event;
 
     if (event.kind === 'partial') {
@@ -180,7 +221,6 @@ export async function createManagedConnection(
       return { ...event, text: accumulatedPartial };
     }
 
-    // Final event — reset accumulation for the next utterance
     accumulatedPartial = '';
     return event;
   }
@@ -261,6 +301,8 @@ export async function createManagedConnection(
       return;
     }
     log.warn({ error: err }, 'transient adapter error');
+    void transport?.close();
+    void handleDisconnect();
   }
 
   async function reactiveReconnect(): Promise<void> {
@@ -305,6 +347,12 @@ export async function createManagedConnection(
           return;
         }
         log.warn({ error: err, attempt }, 'reconnect attempt failed');
+      }
+
+      if (attempt >= reconnectConfig.maxRetries) {
+        reconnecting = false;
+        emitUnrecoverable('reconnect attempts exhausted');
+        return;
       }
     }
 
