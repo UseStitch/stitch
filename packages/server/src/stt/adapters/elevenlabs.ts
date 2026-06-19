@@ -139,6 +139,7 @@ function classifyElevenLabsError(err: Error): STTErrorClassification {
   if (
     code === 'auth_error' ||
     code === 'invalid_api_key' ||
+    msg.includes('must be authenticated') ||
     msg.includes('401') ||
     msg.includes('403')
   ) {

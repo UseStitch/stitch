@@ -37,6 +37,7 @@ export function createWsTransport(
     const usageListeners: ((u: STTUsage) => void)[] = [];
     const errorListeners: ((err: Error) => void)[] = [];
     const closeListeners: (() => void)[] = [];
+    const pendingErrors: Error[] = [];
 
     // The WebSocket constructor in Node does not have a typed overload for headers.
     // This cast is isolated here so adapters don't repeat it.
@@ -45,6 +46,16 @@ export function createWsTransport(
     } as unknown as string[]);
 
     let opened = false;
+    let closed = false;
+
+    function emitOrQueueError(err: Error): void {
+      if (errorListeners.length === 0) {
+        pendingErrors.push(err);
+        return;
+      }
+
+      for (const cb of errorListeners) cb(err);
+    }
 
     ws.addEventListener('open', () => {
       opened = true;
@@ -90,9 +101,13 @@ export function createWsTransport(
         },
         onError(cb) {
           errorListeners.push(cb);
+          while (pendingErrors.length > 0) {
+            cb(pendingErrors.shift()!);
+          }
         },
         onClose(cb) {
           closeListeners.push(cb);
+          if (closed) cb();
         },
       };
 
@@ -111,7 +126,7 @@ export function createWsTransport(
           for (const cb of usageListeners) cb(result.usage);
         }
         if (result.error) {
-          for (const cb of errorListeners) cb(result.error);
+          emitOrQueueError(result.error);
         }
       } catch (err) {
         log.warn({ error: err, label: config.label }, 'failed to parse WebSocket message');
@@ -119,6 +134,7 @@ export function createWsTransport(
     });
 
     ws.addEventListener('close', (event) => {
+      closed = true;
       const err = new Error(`${config.label} WebSocket closed: ${event.code} ${event.reason}`);
       (err as Error & { code?: string }).code = String(event.code);
 
@@ -128,7 +144,7 @@ export function createWsTransport(
       }
 
       if (event.code !== 1000) {
-        for (const cb of errorListeners) cb(err);
+        emitOrQueueError(err);
       }
 
       for (const cb of closeListeners) cb();
@@ -141,7 +157,7 @@ export function createWsTransport(
         reject(err);
         return;
       }
-      for (const cb of errorListeners) cb(err);
+      emitOrQueueError(err);
     });
   });
 }

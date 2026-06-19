@@ -82,6 +82,7 @@ export async function createManagedConnection(
   let reconnecting = false;
   let recoveryQueued = false;
   let rotationTimer: ReturnType<typeof setTimeout> | null = null;
+  let unrecoverableReason: string | null = null;
 
   const sessionStartedAt = Date.now();
   let rotationCount = 0;
@@ -91,6 +92,8 @@ export async function createManagedConnection(
   }
 
   function emitUnrecoverable(reason: string): void {
+    if (unrecoverableReason) return;
+    unrecoverableReason = reason;
     log.error({ reason, rotationCount, sessionAgeMs: sessionAgeMs() }, 'connection unrecoverable');
     for (const cb of unrecoverableListeners) cb(reason);
     void close();
@@ -403,6 +406,10 @@ export async function createManagedConnection(
       closeListeners.push(cb);
     },
     onUnrecoverable(cb) {
+      if (unrecoverableReason) {
+        cb(unrecoverableReason);
+        return;
+      }
       unrecoverableListeners.push(cb);
     },
   };
