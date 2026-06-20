@@ -20,5 +20,3 @@ export const LIQUID_UI_COLUMNS = ['1', '2', '3', '4'] as const;
 export const LIQUID_UI_ALIGNMENTS = ['start', 'center', 'end', 'between'] as const;
 export const TEXT_VARIANTS = ['body', 'muted', 'heading', 'caption'] as const;
 export const STAT_TRENDS = ['up', 'down', 'neutral'] as const;
-
-export type LiquidUiComponent = (typeof LIQUID_UI_COMPONENTS)[number];
