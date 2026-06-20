@@ -85,7 +85,12 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason, parts: accumulatedParts });
         },
         markSessionUnread: async () => {},
-        getCompactionSettings: async () => ({ auto: false, prune: false }),
+        getCompactionSettings: async () => ({
+          auto: false,
+          prune: false,
+          maxCumulativeInputTokens: 500_000,
+        }),
+        pruneSession: async () => 0,
       },
     });
 
@@ -119,7 +124,12 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason });
         },
         markSessionUnread: async () => {},
-        getCompactionSettings: async () => ({ auto: false, prune: false }),
+        getCompactionSettings: async () => ({
+          auto: false,
+          prune: false,
+          maxCumulativeInputTokens: 500_000,
+        }),
+        pruneSession: async () => 0,
       },
     });
 
