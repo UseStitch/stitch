@@ -88,7 +88,6 @@ describe('runStream integration', () => {
         getCompactionSettings: async () => ({
           auto: false,
           prune: false,
-          maxCumulativeInputTokens: 500_000,
         }),
         pruneSession: async () => 0,
       },
@@ -127,7 +126,6 @@ describe('runStream integration', () => {
         getCompactionSettings: async () => ({
           auto: false,
           prune: false,
-          maxCumulativeInputTokens: 500_000,
         }),
         pruneSession: async () => 0,
       },

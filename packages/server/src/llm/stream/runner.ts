@@ -394,12 +394,6 @@ class StreamRunner {
           this.setFinishReason('context-overflow', 'mid-loop-overflow');
           break;
         }
-
-        const cumulativeInput = this.state.totalUsage.inputTokens ?? 0;
-        if (cumulativeInput > compactionSettings.maxCumulativeInputTokens) {
-          this.setNeedsCompaction(true, 'cumulative-cost-guard');
-          break;
-        }
       }
 
       if (stepResult.toolCalls.length === 0) {

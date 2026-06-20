@@ -42,7 +42,6 @@ type CompactionSettings = {
   auto: boolean;
   prune: boolean;
   reserved?: number;
-  maxCumulativeInputTokens: number;
 };
 
 type StoredMessage = typeof messages.$inferSelect;
@@ -52,13 +51,11 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
     'compaction.auto',
     'compaction.prune',
     'compaction.reserved',
-    'compaction.maxCumulativeInputTokens',
   ] as const);
   return {
     auto: s['compaction.auto'],
     prune: s['compaction.prune'],
     reserved: s['compaction.reserved'],
-    maxCumulativeInputTokens: s['compaction.maxCumulativeInputTokens'],
   };
 }
 

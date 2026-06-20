@@ -10,7 +10,6 @@ export const SETTINGS_KEYS = [
   'compaction.auto',
   'compaction.prune',
   'compaction.reserved',
-  'compaction.maxCumulativeInputTokens',
   'toolsets.defaultScope',
   'toolsets.ttlTurns',
   'appearance.mode',
@@ -67,7 +66,6 @@ export const SETTINGS_SCHEMAS = {
   'compaction.auto': booleanSetting,
   'compaction.prune': booleanSetting,
   'compaction.reserved': z.coerce.number().int().min(0),
-  'compaction.maxCumulativeInputTokens': z.coerce.number().int().min(1),
   'toolsets.defaultScope': z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
   'toolsets.ttlTurns': z.coerce.number().int().min(1),
   'appearance.mode': z.enum(['light', 'dark', 'system']),
@@ -168,12 +166,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'compaction.reserved',
     value: '20000',
     description: 'Reserved token headroom used when deciding whether to compact.',
-  },
-  {
-    key: 'compaction.maxCumulativeInputTokens',
-    value: '500000',
-    description:
-      'Maximum cumulative input tokens allowed in one streamed response before compacting.',
   },
   {
     key: 'toolsets.defaultScope',
