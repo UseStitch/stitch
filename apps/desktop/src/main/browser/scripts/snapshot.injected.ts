@@ -44,6 +44,7 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
   function normalizedValue(el) {
     const tag = el.tagName.toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return el.value || '';
+    if (el.isContentEditable && el.getAttribute('contenteditable') !== null) return (el.innerText || el.textContent || '').trim().slice(0, maxTextLength);
     return el.getAttribute('aria-valuetext') || el.getAttribute('aria-valuenow') || '';
   }
 
@@ -75,7 +76,7 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
   function interactable(el) {
     const tag = el.tagName.toLowerCase();
     const r = role(el);
-    return ['a', 'button', 'input', 'textarea', 'select', 'summary', 'option'].includes(tag) || ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio', 'combobox', 'textbox', 'switch'].includes(r) || el.hasAttribute('onclick') || el.hasAttribute('tabindex') || getComputedStyle(el).cursor === 'pointer';
+    return ['a', 'button', 'input', 'textarea', 'select', 'summary', 'option'].includes(tag) || ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio', 'combobox', 'textbox', 'switch'].includes(r) || el.hasAttribute('onclick') || el.hasAttribute('tabindex') || (el.isContentEditable && el.getAttribute('contenteditable') !== null) || getComputedStyle(el).cursor === 'pointer';
   }
 
   function inViewport(rect) {
