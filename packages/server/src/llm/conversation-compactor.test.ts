@@ -51,6 +51,52 @@ describe('conversation compactor', () => {
     expect(toolMessage.content[1]).toMatchObject({ output: { type: 'json', value: largeOutput } });
   });
 
+  test('compacts browser results more aggressively than generic tools', () => {
+    const largeOutput = 'browser snapshot '.repeat(2_000);
+    const conversation: ModelMessage[] = [
+      { role: 'user', content: 'Browse' },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'old-browser',
+            toolName: 'browser_navigate',
+            output: { type: 'json', value: largeOutput },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'latest-browser',
+            toolName: 'browser_interact',
+            output: { type: 'json', value: largeOutput },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'latest-bash',
+            toolName: 'bash',
+            output: { type: 'json', value: 'ok' },
+          },
+        ],
+      },
+    ];
+
+    const compacted = compactConversationForStep(conversation, { preserveRecentToolResults: 3 });
+    const toolMessage = compacted[1];
+
+    expect(toolMessage?.role).toBe('tool');
+    if (toolMessage?.role !== 'tool' || !Array.isArray(toolMessage.content)) {
+      throw new Error('expected tool message content');
+    }
+
+    expect(toolMessage.content[0]).toMatchObject({
+      output: { value: expect.objectContaining({ summary: expect.stringContaining('compacted') }) },
+    });
+    expect(toolMessage.content[1]).toMatchObject({
+      output: { value: expect.objectContaining({ summary: expect.stringContaining('compacted') }) },
+    });
+    expect(toolMessage.content[2]).toMatchObject({ output: { type: 'json', value: 'ok' } });
+  });
+
   test('strips media from user messages older than the most recent user message', () => {
     const conversation: ModelMessage[] = [
       {

@@ -12,6 +12,7 @@ import type {
   SearchPageResult,
 } from '@/lib/browser/types.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
+import { serializeBrowserSnapshot } from '@/tools/toolsets/browser-snapshot-serializer.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 
 const descriptionField = z
@@ -368,12 +369,16 @@ async function withFreshSnapshot(
 ): Promise<Record<string, unknown>> {
   const browser = getBrowserManager();
   const snapshot = await browser.snapshot(signal);
+  const compactSnapshot = serializeBrowserSnapshot(snapshot);
   const output =
     typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
   return {
     ...result,
-    output: `${output}\n\n### Updated Snapshot\n${snapshot}`,
-    snapshot,
+    output: `${output}\n\n### Updated Snapshot\n${compactSnapshot.text}`,
+    snapshot: compactSnapshot.text,
+    snapshotFingerprint: compactSnapshot.fingerprint,
+    snapshotOriginalChars: compactSnapshot.originalChars,
+    snapshotTruncated: compactSnapshot.truncated,
   };
 }
 
@@ -474,7 +479,14 @@ async function executeOperation(input: OperationInput, signal?: AbortSignal): Pr
 
   if (input.tool === 'snapshot') {
     const tree = await browser.snapshot(signal);
-    return { output: tree };
+    const compactSnapshot = serializeBrowserSnapshot(tree);
+    return {
+      output: compactSnapshot.text,
+      snapshot: compactSnapshot.text,
+      snapshotFingerprint: compactSnapshot.fingerprint,
+      snapshotOriginalChars: compactSnapshot.originalChars,
+      snapshotTruncated: compactSnapshot.truncated,
+    };
   }
 
   if (input.tool === 'navigate') {
@@ -916,8 +928,9 @@ function createBatchTool(context: ToolContext) {
         });
         const outputText =
           resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
-        const summary = freshSnapshot
-          ? `${outputText}\n\n### Updated Snapshot\n${freshSnapshot}`
+        const compactSnapshot = freshSnapshot ? serializeBrowserSnapshot(freshSnapshot) : null;
+        const summary = compactSnapshot
+          ? `${outputText}\n\n### Updated Snapshot\n${compactSnapshot.text}`
           : outputText;
 
         return {
@@ -926,7 +939,10 @@ function createBatchTool(context: ToolContext) {
           stoppedReason,
           executed,
           skipped,
-          snapshot: freshSnapshot ?? undefined,
+          snapshot: compactSnapshot?.text,
+          snapshotFingerprint: compactSnapshot?.fingerprint,
+          snapshotOriginalChars: compactSnapshot?.originalChars,
+          snapshotTruncated: compactSnapshot?.truncated,
         };
       });
     },

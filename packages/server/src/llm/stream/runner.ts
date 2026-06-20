@@ -119,7 +119,6 @@ type StreamRunnerState = {
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
 const TOOL_CALL_FINISH_RECOVERY_LIMIT = 1;
-const COMPACT_EVERY_N_STEPS = 5;
 const PRESERVE_RECENT_TOOL_RESULTS = 3;
 
 const DEFAULT_DEPS: StreamRunnerDeps = {
@@ -530,12 +529,12 @@ class StreamRunner {
 
   private buildConversationForStep(step: number): ModelMessage[] {
     if (step === 0) {
-      return compactConversationForStep(this.state.conversation, { compactToolResults: false });
+      return compactConversationForStep(this.state.conversation);
     }
 
     return compactConversationForStep(this.state.conversation, {
       preserveRecentToolResults: PRESERVE_RECENT_TOOL_RESULTS,
-      compactToolResults: step % COMPACT_EVERY_N_STEPS === 0,
+      compactToolResults: true,
     });
   }
 

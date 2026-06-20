@@ -10,6 +10,8 @@ const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
 
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 const PRESERVE_RECENT_TOOL_RESULTS = 3;
+const PRESERVE_RECENT_BROWSER_TOOL_RESULTS = 1;
+const RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS = 3_000;
 
 type CompactableToolResult = {
   toolName: string;
@@ -135,6 +137,21 @@ function countToolResults(conversation: ModelMessage[]): number {
   return count;
 }
 
+function countBrowserToolResults(conversation: ModelMessage[]): number {
+  let count = 0;
+  for (const message of conversation) {
+    if (message.role !== 'tool' || !Array.isArray(message.content)) {
+      continue;
+    }
+
+    count += message.content.filter(
+      (part) => isToolResultContentPart(part) && part.toolName.startsWith('browser_'),
+    ).length;
+  }
+
+  return count;
+}
+
 export function compactConversationForStep(
   conversation: ModelMessage[],
   options?: {
@@ -148,10 +165,15 @@ export function compactConversationForStep(
   const lastUserMessageIndex = findLastUserMessageIndex(conversation);
   let remainingProtectedToolResults = preserveRecentToolResults;
   let remainingToolResults = countToolResults(conversation);
+  let remainingBrowserToolResults = countBrowserToolResults(conversation);
   let changed = false;
 
   const compacted = conversation.map((message, messageIndex): ModelMessage => {
-    if (message.role === 'user' && Array.isArray(message.content) && messageIndex !== lastUserMessageIndex) {
+    if (
+      message.role === 'user' &&
+      Array.isArray(message.content) &&
+      messageIndex !== lastUserMessageIndex
+    ) {
       let contentChanged = false;
       const content = message.content.map((part) => {
         if (!isMediaContentPart(part)) {
@@ -178,9 +200,28 @@ export function compactConversationForStep(
         return part;
       }
 
-      const isProtected = remainingToolResults <= remainingProtectedToolResults;
+      const isBrowserTool = part.toolName.startsWith('browser_');
+      const isProtected = isBrowserTool
+        ? remainingBrowserToolResults <= PRESERVE_RECENT_BROWSER_TOOL_RESULTS
+        : remainingToolResults <= remainingProtectedToolResults;
       remainingToolResults -= 1;
+      if (isBrowserTool) {
+        remainingBrowserToolResults -= 1;
+      }
       if (!compactToolResults || isProtected) {
+        if (compactToolResults && isBrowserTool && isProtected) {
+          const compactedOutput = compactToolResultOutput(
+            {
+              toolName: part.toolName,
+              output: part.output.value,
+            },
+            RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS,
+          );
+          if (compactedOutput !== part.output.value) {
+            contentChanged = true;
+            return { ...part, output: { ...part.output, value: compactedOutput } };
+          }
+        }
         return part;
       }
 
