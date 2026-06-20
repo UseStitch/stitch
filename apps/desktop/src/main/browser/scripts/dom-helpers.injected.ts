@@ -25,6 +25,7 @@ function role(el) {
   if (/^h[1-6]$/.test(tag)) return 'heading';
   if (tag === 'img') return 'img';
   if (tag === 'svg') return 'img';
+  if (el.isContentEditable && el.getAttribute('contenteditable') !== null) return 'textbox';
   return 'generic';
 }
 
