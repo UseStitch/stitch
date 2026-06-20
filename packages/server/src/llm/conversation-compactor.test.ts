@@ -97,6 +97,39 @@ describe('conversation compactor', () => {
     expect(toolMessage.content[2]).toMatchObject({ output: { type: 'json', value: 'ok' } });
   });
 
+  test('changes compacted text tool output to json when the compacted value is an object', () => {
+    const largeOutput = 'screenshot-base64'.repeat(10_000);
+    const conversation: ModelMessage[] = [
+      { role: 'user', content: 'Screenshot' },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'screenshot',
+            toolName: 'browser_screenshot',
+            output: { type: 'text', value: largeOutput },
+          },
+        ],
+      },
+    ];
+
+    const compacted = compactConversationForStep(conversation, { preserveRecentToolResults: 0 });
+    const toolMessage = compacted[1];
+
+    expect(toolMessage?.role).toBe('tool');
+    if (toolMessage?.role !== 'tool' || !Array.isArray(toolMessage.content)) {
+      throw new Error('expected tool message content');
+    }
+
+    expect(toolMessage.content[0]).toMatchObject({
+      output: {
+        type: 'json',
+        value: expect.objectContaining({ summary: expect.stringContaining('compacted') }),
+      },
+    });
+  });
+
   test('strips media from user messages older than the most recent user message', () => {
     const conversation: ModelMessage[] = [
       {

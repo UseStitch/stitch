@@ -114,6 +114,12 @@ function stripMediaPart(part: MediaContentPart): { type: 'text'; text: string } 
   return { type: 'text', text: `[Attached ${mediaType}${label} already processed by model]` };
 }
 
+function toToolResultOutput(
+  value: unknown,
+): { type: 'text'; value: string } | { type: 'json'; value: unknown } {
+  return typeof value === 'string' ? { type: 'text', value } : { type: 'json', value };
+}
+
 function findLastUserMessageIndex(conversation: ModelMessage[]): number {
   for (let i = conversation.length - 1; i >= 0; i--) {
     if (conversation[i]?.role === 'user') {
@@ -219,7 +225,7 @@ export function compactConversationForStep(
           );
           if (compactedOutput !== part.output.value) {
             contentChanged = true;
-            return { ...part, output: { ...part.output, value: compactedOutput } };
+            return { ...part, output: toToolResultOutput(compactedOutput) };
           }
         }
         return part;
@@ -234,7 +240,7 @@ export function compactConversationForStep(
       }
 
       contentChanged = true;
-      return { ...part, output: { ...part.output, value: compactedOutput } };
+      return { ...part, output: toToolResultOutput(compactedOutput) };
     });
 
     if (contentChanged) {
