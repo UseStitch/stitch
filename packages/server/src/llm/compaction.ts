@@ -19,6 +19,7 @@ import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as OllamaModels from '@/models/llm/ollama.js';
 import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
@@ -41,6 +42,7 @@ type CompactionSettings = {
   auto: boolean;
   prune: boolean;
   reserved?: number;
+  maxCumulativeInputTokens: number;
 };
 
 type StoredMessage = typeof messages.$inferSelect;
@@ -50,11 +52,13 @@ export async function getCompactionSettings(): Promise<CompactionSettings> {
     'compaction.auto',
     'compaction.prune',
     'compaction.reserved',
+    'compaction.maxCumulativeInputTokens',
   ] as const);
   return {
     auto: s['compaction.auto'],
     prune: s['compaction.prune'],
     reserved: s['compaction.reserved'],
+    maxCumulativeInputTokens: s['compaction.maxCumulativeInputTokens'],
   };
 }
 
@@ -89,6 +93,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
+  const protectOverrides = getToolPruneProtectOverrides(msgs);
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
     const msg = msgs[msgIndex];
@@ -101,7 +106,9 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
       if (part.type === 'tool-result') {
         const est = estimate(part.output);
         total += est;
-        if (total > PRUNE_PROTECT) {
+        const key = `${msg.id}:${partIndex}`;
+        const protect = protectOverrides.get(key)?.protectTokens ?? PRUNE_PROTECT;
+        if (total > protect) {
           pruned += est;
           toPrune.push({ messageId: msg.id, partIndex });
         }
@@ -155,6 +162,22 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   }
 
   return pruned;
+}
+
+export async function pruneSession(sessionId: PrefixedString<'ses'>): Promise<number> {
+  const compactionSettings = await getCompactionSettings();
+  if (!compactionSettings.prune) {
+    return 0;
+  }
+
+  const db = getDb();
+  const allMsgs = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt));
+
+  return prune(allMsgs);
 }
 
 const COMPACTION_PROMPT = `Provide a detailed prompt for continuing our conversation above.
