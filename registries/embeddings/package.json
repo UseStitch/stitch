@@ -7,5 +7,14 @@
     "./models/nvidia.json": "./models/nvidia.json",
     "./models/openai.json": "./models/openai.json",
     "./models/openrouter.json": "./models/openrouter.json"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
   }
 }

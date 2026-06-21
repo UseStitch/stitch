@@ -1,5 +1,14 @@
 {
   "name": "@stitch/registry-mcp",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "zod": "catalog:"
+  }
 }
