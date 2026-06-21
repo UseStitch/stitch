@@ -9,6 +9,7 @@ const log = Log.create({ service: 'memory-tables' });
 const SEMANTIC_TABLE = 'semantic_memories';
 
 let cachedTable: LanceTable | null = null;
+let cachedTablePromise: Promise<LanceTable> | null = null;
 
 function semanticSchema(dimensions: number): Schema {
   return new Schema([
@@ -29,18 +30,30 @@ function semanticSchema(dimensions: number): Schema {
 
 export async function getSemanticTable(dimensions: number): Promise<LanceTable> {
   if (cachedTable) return cachedTable;
+  if (cachedTablePromise) return cachedTablePromise;
 
-  const db = await getConnection();
-  const names = await db.tableNames();
+  cachedTablePromise = (async () => {
+    const db = await getConnection();
+    const names = await db.tableNames();
 
-  if (names.includes(SEMANTIC_TABLE)) {
-    cachedTable = await db.openTable(SEMANTIC_TABLE);
-  } else {
-    log.info({ dimensions }, 'creating semantic_memories table');
-    cachedTable = await db.createEmptyTable(SEMANTIC_TABLE, semanticSchema(dimensions));
+    if (names.includes(SEMANTIC_TABLE)) {
+      cachedTable = await db.openTable(SEMANTIC_TABLE);
+    } else {
+      log.info({ dimensions }, 'creating semantic_memories table');
+      cachedTable = await db.createEmptyTable(SEMANTIC_TABLE, semanticSchema(dimensions), {
+        mode: 'create',
+        existOk: true,
+      });
+    }
+
+    return cachedTable;
+  })();
+
+  try {
+    return await cachedTablePromise;
+  } finally {
+    cachedTablePromise = null;
   }
-
-  return cachedTable;
 }
 
 export async function dropSemanticTable(): Promise<void> {
@@ -49,6 +62,7 @@ export async function dropSemanticTable(): Promise<void> {
   if (names.includes(SEMANTIC_TABLE)) {
     await db.dropTable(SEMANTIC_TABLE);
     cachedTable = null;
+    cachedTablePromise = null;
     log.info('dropped semantic_memories table');
   }
 }
