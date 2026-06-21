@@ -20,10 +20,17 @@ const headersAuthConfigSchema = z.object({
   type: z.literal('headers'),
   headers: z.record(z.string(), z.string()),
 });
+const oauthAuthConfigSchema = z.object({
+  type: z.literal('oauth'),
+  scopes: z.array(z.string()).optional(),
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
+});
 const authConfigSchema = z.discriminatedUnion('type', [
   noneAuthConfigSchema,
   apiKeyAuthConfigSchema,
   headersAuthConfigSchema,
+  oauthAuthConfigSchema,
 ]);
 
 const mcpRegistryServerSchema = z.object({

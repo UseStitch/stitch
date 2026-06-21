@@ -3,14 +3,36 @@ import type { PrefixedString } from '../id/index.js';
 export const MCP_TRANSPORT_TYPES = ['stdio', 'http'] as const;
 export type McpTransport = (typeof MCP_TRANSPORT_TYPES)[number];
 
-export const MCP_AUTH_TYPES = ['none', 'api_key', 'headers'] as const;
+export const MCP_AUTH_TYPES = ['none', 'api_key', 'headers', 'oauth'] as const;
 export type McpAuthType = (typeof MCP_AUTH_TYPES)[number];
 
 export type NoneAuth = { type: 'none' };
 export type ApiKeyAuth = { type: 'api_key'; apiKey: string };
 export type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
 
-export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth;
+/**
+ * OAuth configuration holds only what the user enters. Live secrets
+ * (access/refresh tokens, DCR-registered client info, discovery state) live in
+ * a separate table, never in `authConfig`, and are never returned to the FE.
+ */
+export type OAuthAuth = {
+  type: 'oauth';
+  scopes?: string[];
+  clientId?: string;
+  clientSecret?: string;
+};
+
+export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth | OAuthAuth;
+
+export const MCP_AUTH_STATUSES = [
+  'none',
+  'connected',
+  'awaiting_auth',
+  'reauthorization_required',
+  'client_registration_required',
+  'error',
+] as const;
+export type McpAuthStatus = (typeof MCP_AUTH_STATUSES)[number];
 
 export type McpRegistryServerInstall = {
   name: string;
@@ -44,6 +66,7 @@ export type McpServer = {
   transport: McpTransport;
   url: string;
   authConfig: McpAuthConfig;
+  authStatus: McpAuthStatus;
   createdAt: number;
   updatedAt: number;
 };

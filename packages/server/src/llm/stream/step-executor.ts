@@ -15,6 +15,7 @@ import {
   addCacheControlToTools,
   getProviderOptions,
 } from '@/llm/cache-control.js';
+import { sanitizeToolSchemasForProvider } from '@/llm/provider-schema.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import {
   ContextOverflowError,
@@ -80,7 +81,16 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     opts.providerId as ProviderId,
     model.modelId,
   );
-  const cachedTools = addCacheControlToTools(tools, opts.providerId as ProviderId, model.modelId);
+  const sanitizedTools = sanitizeToolSchemasForProvider(
+    tools,
+    opts.providerId as ProviderId,
+    model.modelId,
+  );
+  const cachedTools = addCacheControlToTools(
+    sanitizedTools,
+    opts.providerId as ProviderId,
+    model.modelId,
+  );
   const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
 
   const result = streamText({

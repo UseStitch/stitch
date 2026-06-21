@@ -87,6 +87,25 @@ function assertAuthConfig(authConfig, filePath) {
     return;
   }
 
+  if (authConfig.type === 'oauth') {
+    if (authConfig.scopes !== undefined) {
+      assertNonEmptyArray(authConfig.scopes, filePath, 'oauth scopes');
+      for (const scope of authConfig.scopes) {
+        assert(
+          typeof scope === 'string' && scope.length > 0,
+          `${filePath}: oauth scopes must be non-empty strings`,
+        );
+      }
+    }
+    if (authConfig.clientId !== undefined) {
+      assertNonEmptyString(authConfig.clientId, filePath, 'oauth clientId');
+    }
+    if (authConfig.clientSecret !== undefined) {
+      assertNonEmptyString(authConfig.clientSecret, filePath, 'oauth clientSecret');
+    }
+    return;
+  }
+
   throw new Error(`${filePath}: unsupported auth type ${String(authConfig.type)}`);
 }
 

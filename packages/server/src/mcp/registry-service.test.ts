@@ -145,4 +145,64 @@ describe('mcp registry service', () => {
       expect(result.error.status).toBe(500);
     }
   });
+
+  test('accepts an oauth authConfig variant', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const payload = {
+      version: 1,
+      generatedAt: '2026-04-13T12:00:00.000Z',
+      servers: [
+        {
+          id: 'oauth-server',
+          name: 'OAuth Server',
+          description: 'o',
+          docsUrl: 'https://example.com/o',
+          tags: ['o'],
+          install: {
+            name: 'OAuth',
+            transport: 'http' as const,
+            url: 'https://example.com/o/mcp',
+            authConfig: { type: 'oauth' as const, scopes: ['read'] },
+          },
+        },
+      ],
+    };
+    const fetchImpl: FetchLike = async () =>
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
+    expect(result.error).toBeNull();
+    if (result.error) return;
+    expect(result.data.servers[0]?.install.authConfig).toEqual({ type: 'oauth', scopes: ['read'] });
+  });
+
+  test('rejects an oauth authConfig with a non-string scope', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const payload = {
+      version: 1,
+      generatedAt: '2026-04-13T12:00:00.000Z',
+      servers: [
+        {
+          id: 'bad-oauth',
+          name: 'Bad',
+          description: 'b',
+          docsUrl: 'https://example.com/b',
+          tags: ['b'],
+          install: {
+            name: 'Bad',
+            transport: 'http' as const,
+            url: 'https://example.com/b/mcp',
+            authConfig: { type: 'oauth' as const, scopes: [123] },
+          },
+        },
+      ],
+    };
+    const fetchImpl: FetchLike = async () => new Response(JSON.stringify(payload), { status: 200 });
+
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
+    expect(result.error).not.toBeNull();
+  });
 });
