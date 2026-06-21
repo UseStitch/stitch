@@ -1,7 +1,7 @@
 import { ArrowUpIcon, ChevronDownIcon, MicIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useHotkey } from '@tanstack/react-hotkeys';
+import { parseHotkey, useHeldKeys, useHotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { AttachmentPreview } from './attachment-preview';
@@ -50,6 +50,16 @@ type ChatInputInnerProps = {
 
 const CHAT_COMPLETION_GROUPS: TextareaCompletionGroup[] = [];
 
+function areHotkeyKeysHeld(hotkey: string, heldKeys: string[]) {
+  const parsed = parseHotkey(hotkey);
+  const held = new Set(heldKeys.map((key) => key.toLowerCase()));
+
+  return (
+    held.has(parsed.key.toLowerCase()) &&
+    parsed.modifiers.every((modifier) => held.has(modifier.toLowerCase()))
+  );
+}
+
 export function ChatInputInner({
   value,
   onChange,
@@ -69,6 +79,7 @@ export function ChatInputInner({
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const shortcuts = useShortcuts();
+  const heldKeys = useHeldKeys();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -127,7 +138,7 @@ export function ChatInputInner({
     defaultProviderId: settings['stt.default.providerId'],
     defaultModelId: settings['stt.default.modelId'],
   });
-  const { isRecording, isStopping } = dictation;
+  const { isRecording, isStopping, start, stopAndCommit, toggle } = dictation;
 
   const defaultSttModel: SttModelSelection | null =
     settings['stt.default.providerId'] && settings['stt.default.modelId']
@@ -135,28 +146,22 @@ export function ChatInputInner({
       : null;
 
   const dictationHotkey = shortcuts.get('toggle-dictation');
+  const dictationHotkeyValue = dictationHotkey?.hotkey ?? 'Mod+Space';
   const holdToTalk = settings['stt.holdToTalk'] === 'true';
   const dictationEnabled = sttProviders.length > 0 && !!dictationHotkey?.hotkey && !disabled;
+  const isDictationHotkeyHeld = areHotkeyKeysHeld(dictationHotkeyValue, heldKeys);
 
-  // Toggle mode: press once to start, again to finalize.
-  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.toggle(), {
-    preventDefault: true,
-    enabled: dictationEnabled && !holdToTalk,
-  });
-
-  // Hold-to-talk mode: record while held, finalize on release.
-  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.start(), {
+  useHotkey(dictationHotkeyValue, () => (holdToTalk ? start() : toggle()), {
     preventDefault: true,
     requireReset: true,
-    enabled: dictationEnabled && holdToTalk,
+    enabled: dictationEnabled,
   });
-  useHotkey(
-    dictationHotkey?.hotkey ?? 'Mod+Space',
-    () => {
-      void dictation.stopAndCommit();
-    },
-    { eventType: 'keyup', enabled: dictationEnabled && holdToTalk },
-  );
+
+  React.useEffect(() => {
+    if (!holdToTalk || !isRecording || isDictationHotkeyHeld) return;
+
+    void stopAndCommit();
+  }, [holdToTalk, isDictationHotkeyHeld, isRecording, stopAndCommit]);
 
   const canSend = canSubmit && !isRecording && !isStopping;
 
