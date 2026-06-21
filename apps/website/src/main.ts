@@ -22,6 +22,18 @@ document.addEventListener('click', (e: MouseEvent) => {
   });
 });
 
+document.addEventListener('click', (e: MouseEvent) => {
+  if (!(e.target instanceof Element)) return;
+
+  const downloadLink = e.target.closest<HTMLAnchorElement>('a[data-app-download-platform]');
+
+  if (!downloadLink || !posthogKey) return;
+
+  posthog.capture('app_download', {
+    platform: downloadLink.dataset.appDownloadPlatform,
+  });
+});
+
 // Theme toggle
 (() => {
   const stored = localStorage.getItem('theme');
