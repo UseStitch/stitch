@@ -16,8 +16,10 @@ describe('meeting note templates', () => {
   test('seeds prebuilt templates', async () => {
     const result = await listMeetingNoteTemplates();
 
-    expect(result.templates).toHaveLength(PREBUILT_MEETING_NOTE_TEMPLATES.length);
-    expect(result.templates.map((template) => template.id).sort()).toEqual(
+    expect(result.error).toBeNull();
+    if (result.error) return;
+    expect(result.data.templates).toHaveLength(PREBUILT_MEETING_NOTE_TEMPLATES.length);
+    expect(result.data.templates.map((template) => template.id).sort()).toEqual(
       PREBUILT_MEETING_NOTE_TEMPLATES.map((template) => template.id).sort(),
     );
   });
@@ -34,7 +36,9 @@ describe('meeting note templates', () => {
     seedMeetingNoteTemplates();
 
     const result = await listMeetingNoteTemplates();
-    const edited = result.templates.find((item) => item.id === template.id);
+    expect(result.error).toBeNull();
+    if (result.error) return;
+    const edited = result.data.templates.find((item) => item.id === template.id);
 
     expect(edited?.name).toBe('Edited Template');
     expect(edited?.content).toBe('# Edited');
@@ -64,7 +68,9 @@ describe('meeting note templates', () => {
     expect(deleted.error).toBeNull();
 
     const result = await listMeetingNoteTemplates();
-    expect(result.templates.some((template) => template.id === created.data.template.id)).toBe(
+    expect(result.error).toBeNull();
+    if (result.error) return;
+    expect(result.data.templates.some((template) => template.id === created.data.template.id)).toBe(
       false,
     );
   });

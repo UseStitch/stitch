@@ -1,4 +1,6 @@
 import * as Log from '@/lib/log.js';
+import { ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { deduplicateMemories, getMemoryStats, pruneStaleMemories } from '@/memory/service.js';
 import type { MemoryStats } from '@/memory/service.js';
@@ -11,12 +13,12 @@ type MaintenanceResult = {
   stats: MemoryStats | null;
 };
 
-export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
+export async function runMemoryMaintenance(): Promise<ServiceResult<MaintenanceResult>> {
   const config = await getMemoryConfig();
 
   if (!isMemoryActive(config)) {
     log.info('memory maintenance skipped — memory not active');
-    return { pruned: 0, deduplicated: 0, stats: null };
+    return ok({ pruned: 0, deduplicated: 0, stats: null });
   }
 
   log.info('starting memory maintenance');
@@ -54,5 +56,5 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
     );
   }
 
-  return { pruned, deduplicated, stats };
+  return ok({ pruned, deduplicated, stats });
 }

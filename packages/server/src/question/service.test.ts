@@ -135,7 +135,7 @@ describe('question service interactions', () => {
   test('replyQuestion accepts custom answers by default', async () => {
     const { createQuestion, replyQuestion } = await import('@/question/service.js');
 
-    const question = await createQuestion({
+    const questionResult = await createQuestion({
       sessionId,
       messageId,
       toolCallId: 'call_custom',
@@ -148,6 +148,9 @@ describe('question service interactions', () => {
         },
       ],
     });
+    expect(questionResult.error).toBeNull();
+    if (questionResult.error) return;
+    const question = questionResult.data;
 
     const result = await replyQuestion(question.id, [['Something else']]);
     expect(result).toEqual({ data: null, error: null });
@@ -161,7 +164,7 @@ describe('question service interactions', () => {
   test('replyQuestion rejects invalid answers without resolving the question', async () => {
     const { createQuestion, replyQuestion } = await import('@/question/service.js');
 
-    const question = await createQuestion({
+    const questionResult = await createQuestion({
       sessionId,
       messageId,
       toolCallId: 'call_invalid',
@@ -175,6 +178,9 @@ describe('question service interactions', () => {
         },
       ],
     });
+    expect(questionResult.error).toBeNull();
+    if (questionResult.error) return;
+    const question = questionResult.data;
 
     expect(replyQuestion(question.id, [[]])).resolves.toEqual({
       data: null,

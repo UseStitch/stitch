@@ -1,5 +1,3 @@
-import { err, ok } from './service-result.js';
-
 import type { ServiceResult } from './service-result.js';
 import type { Context } from 'hono';
 
@@ -18,9 +16,4 @@ export function unwrapResult<T>(
 
   if (successStatus === 204) return c.body(null, 204);
   return c.json(result.data, successStatus);
-}
-
-export function requireFound<T>(value: T | null | undefined, label: string): ServiceResult<T> {
-  if (value === null || value === undefined) return err(`${label} not found`, 404);
-  return ok(value);
 }

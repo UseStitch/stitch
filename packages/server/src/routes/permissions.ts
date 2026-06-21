@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { getSessionById } from '@/chat/service.js';
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   allowPermissionResponse,
   alternativePermissionResponse,
@@ -37,11 +37,11 @@ permissionsRouter.get(
   async (c) => {
     const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
+    const sessionResult = await getSessionById(sessionId);
     if (sessionResult.error) return unwrapResult(c, sessionResult);
 
-    const rows = await getPendingPermissionResponses(sessionId);
-    return c.json(rows);
+    const result = await getPendingPermissionResponses(sessionId);
+    return unwrapResult(c, result);
   },
 );
 

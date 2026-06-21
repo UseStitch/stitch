@@ -151,7 +151,7 @@ function toRecording(
 export async function listRecordings(input: {
   page: number;
   pageSize: number;
-}): Promise<ListRecordingsResponse> {
+}): Promise<ServiceResult<ListRecordingsResponse>> {
   const db = getDb();
   const offset = (input.page - 1) * input.pageSize;
   const [rows, countRows] = await Promise.all([
@@ -171,7 +171,7 @@ export async function listRecordings(input: {
   const total = Number(countRows[0]?.total ?? 0);
   const totalPages = computeTotalPages(total, input.pageSize);
 
-  return {
+  return ok({
     recordings: rows.map((row) =>
       toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
     ),
@@ -180,7 +180,7 @@ export async function listRecordings(input: {
     pageSize: input.pageSize,
     total,
     totalPages,
-  };
+  });
 }
 
 export async function getRecordingDetails(
@@ -209,8 +209,8 @@ export async function getRecordingDetails(
   });
 }
 
-export function getActiveRecording(): ActiveRecordingResponse {
-  return { activeRecordingId: activeRecording?.id ?? null };
+export function getActiveRecording(): ServiceResult<ActiveRecordingResponse> {
+  return ok({ activeRecordingId: activeRecording?.id ?? null });
 }
 
 export async function startRecording(
