@@ -1,5 +1,5 @@
 import { PATHS } from '@/lib/paths.js';
-import { createRegistryCache } from '@/lib/registry-cache.js';
+import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import {
   EmbeddingRegistryPayloadSchema,
   type EmbeddingModel,
@@ -67,6 +67,7 @@ const embeddingRegistryCache = createRegistryCache<EmbeddingRegistryPayload>({
       })),
     };
   },
+  userAgent: getStitchRegistryUserAgent,
 });
 
 export async function getEmbeddingModelsFromRegistry(

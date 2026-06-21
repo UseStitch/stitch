@@ -1,5 +1,5 @@
 import { PATHS } from '@/lib/paths.js';
-import { createRegistryCache } from '@/lib/registry-cache.js';
+import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import {
   SttRegistryPayloadSchema,
   type SttProvider,
@@ -27,6 +27,7 @@ const sttRegistryCache = createRegistryCache<SttRegistryPayload>({
       })),
     };
   },
+  userAgent: getStitchRegistryUserAgent,
 });
 
 export async function getSttProvidersFromRegistry(fetchImpl = fetch): Promise<SttProvider[]> {

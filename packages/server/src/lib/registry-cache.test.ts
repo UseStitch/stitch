@@ -50,6 +50,47 @@ describe('createRegistryCache', () => {
     expect(written).toEqual(PAYLOAD);
   });
 
+  test('sends configured user agent when fetching from network', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const cache = createRegistryCache({
+      cacheFilePath,
+      url: 'https://example.com',
+      parse,
+      userAgent: 'stitch',
+    });
+
+    const captured = { userAgent: null as string | null };
+    const fetchImpl: FetchLike = async (_input, init) => {
+      captured.userAgent = new Headers(init?.headers).get('User-Agent');
+      return new Response(JSON.stringify(PAYLOAD), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await cache.get(fetchImpl);
+
+    expect(captured.userAgent).toBe('stitch');
+  });
+
+  test('does not send user agent unless configured', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse });
+
+    const captured = { userAgent: 'unexpected' as string | null };
+    const fetchImpl: FetchLike = async (_input, init) => {
+      captured.userAgent = new Headers(init?.headers).get('User-Agent');
+      return new Response(JSON.stringify(PAYLOAD), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    await cache.get(fetchImpl);
+
+    expect(captured.userAgent).toBeNull();
+  });
+
   test('returns in-memory cache on second get without fetching', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse });

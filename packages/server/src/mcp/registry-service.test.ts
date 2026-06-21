@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 import {
   clearMcpRegistryCacheForTests,
@@ -88,6 +88,28 @@ describe('mcp registry service', () => {
     const cachedText = await fs.readFile(cacheFilePath, 'utf8');
     const cachedPayload = JSON.parse(cachedText) as { servers: { id: string }[] };
     expect(cachedPayload.servers).toHaveLength(2);
+  });
+
+  test('sends Stitch user agent when fetching registry payload', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const captured = { userAgent: null as string | null };
+    const fetchImpl: FetchLike = async (_input, init) => {
+      captured.userAgent = new Headers(init?.headers).get('User-Agent');
+      return new Response(JSON.stringify(REGISTRY_PAYLOAD), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    const result = await refreshMcpRegistryCache({
+      cacheFilePath,
+      fetchImpl,
+      force: true,
+    });
+
+    expect('error' in result).toBe(false);
+    expect(captured.userAgent?.startsWith('Stitch/')).toBe(true);
+    expect(captured.userAgent).toContain('RegistryClient/1');
   });
 
   test('uses disk cache when present', async () => {
