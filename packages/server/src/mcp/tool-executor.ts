@@ -21,8 +21,6 @@ import {
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
-export { evictMcpClient } from '@/mcp/client.js';
-
 const log = Log.create({ service: 'mcp-tool-executor' });
 
 let refreshInFlight: Promise<void> | null = null;

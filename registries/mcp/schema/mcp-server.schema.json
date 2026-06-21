@@ -70,98 +70,85 @@
           "format": "uri"
         },
         "authConfig": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["type"],
-              "properties": {
-                "type": {
-                  "const": "none"
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["type", "apiKey"],
-              "properties": {
-                "type": {
-                  "const": "api_key"
-                },
-                "apiKey": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["type", "headers"],
-              "properties": {
-                "type": {
-                  "const": "headers"
-                },
-                "headers": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          ]
+          "$ref": "#/$defs/authConfig"
         },
         "optionalAuthConfigs": {
           "type": "array",
           "description": "Additional auth presets a user may choose instead of the default authConfig",
           "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type"],
-                "properties": {
-                  "type": {
-                    "const": "none"
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type", "apiKey"],
-                "properties": {
-                  "type": {
-                    "const": "api_key"
-                  },
-                  "apiKey": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type", "headers"],
-                "properties": {
-                  "type": {
-                    "const": "headers"
-                  },
-                  "headers": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            ]
+            "$ref": "#/$defs/authConfig"
           }
         }
       }
+    },
+    "authConfig": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "apiKey"],
+          "properties": {
+            "type": {
+              "const": "api_key"
+            },
+            "apiKey": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "headers"],
+          "properties": {
+            "type": {
+              "const": "headers"
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "const": "oauth"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "clientId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "clientSecret": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
     }
   }
 }

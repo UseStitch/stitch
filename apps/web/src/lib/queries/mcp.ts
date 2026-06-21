@@ -89,3 +89,31 @@ export function useRefreshMcpRegistry() {
     },
   });
 }
+
+function openAuthUrl(authUrl: string): void {
+  if (!authUrl) return;
+  void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
+}
+
+export function useStartMcpAuth() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      serverRequest<{ authUrl: string }>(`/mcp/${id}/auth`, { method: 'POST' }),
+    onSuccess: (data) => {
+      openAuthUrl(data.authUrl);
+      void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
+    },
+  });
+}
+
+export function useMcpLogout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => serverRequest<void>(`/mcp/${id}/auth/logout`, { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mcpKeys.all });
+      void queryClient.invalidateQueries({ queryKey: toolKeys.all });
+    },
+  });
+}

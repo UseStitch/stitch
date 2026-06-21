@@ -1,20 +1,15 @@
 import { SESSION_EVENT_NAMES, type SessionEvents } from './chat/session-events.js';
 import { STREAM_EVENT_NAMES, type StreamEvents } from './chat/stream-events.js';
+import { MCP_EVENT_NAMES, type McpEvents } from './mcp/events.js';
 import { PERMISSION_EVENT_NAMES, type PermissionEvents } from './permissions/events.js';
 import { QUESTION_EVENT_NAMES, type QuestionEvents } from './questions/events.js';
 import { RECORDING_EVENT_NAMES, type RecordingEvents } from './recordings/events.js';
-
-const MCP_EVENT_NAMES = ['mcp-tools-changed'] as const;
 
 const CONNECTION_EVENT_NAMES = ['heartbeat', 'connected'] as const;
 
 export type ConnectionEvents = {
   heartbeat: { ts: number };
   connected: { ts: number };
-};
-
-export type McpEvents = {
-  'mcp-tools-changed': { serverId: string; serverName: string; toolCount: number | null };
 };
 
 export type SseEventPayloadMap = ConnectionEvents &

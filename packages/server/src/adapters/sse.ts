@@ -224,6 +224,13 @@ export function registerSseAdapter(): void {
     });
   });
 
+  internalBus.onSync('mcp.auth.status_changed', (event) => {
+    broadcast('mcp-auth-status-changed', {
+      serverId: event.serverId,
+      authStatus: event.authStatus,
+    });
+  });
+
   // ─── Recordings ─────────────────────────────────────────────────────────────
 
   internalBus.onSync('recording.started', (event) => {
