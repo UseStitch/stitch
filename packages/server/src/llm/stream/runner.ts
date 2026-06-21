@@ -8,7 +8,14 @@ import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
-import { isOverflow, compact, getCompactionSettings, getModelLimits } from '@/llm/compaction.js';
+import {
+  isOverflow,
+  compact,
+  getCompactionSettings,
+  getModelLimits,
+  pruneSession,
+} from '@/llm/compaction.js';
+import { compactConversationForStep } from '@/llm/conversation-compactor.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
@@ -67,6 +74,7 @@ type StreamRunnerDeps = {
   getModelLimits: typeof getModelLimits;
   getCompactionSettings: typeof getCompactionSettings;
   compact: typeof compact;
+  pruneSession: typeof pruneSession;
   saveAssistantMessage: typeof saveAssistantMessage;
   markSessionUnread: typeof markSessionUnread;
   now: () => number;
@@ -111,6 +119,7 @@ type StreamRunnerState = {
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
 const TOOL_CALL_FINISH_RECOVERY_LIMIT = 1;
+const PRESERVE_RECENT_TOOL_RESULTS = 3;
 
 const DEFAULT_DEPS: StreamRunnerDeps = {
   executeStepWithRetry,
@@ -118,6 +127,7 @@ const DEFAULT_DEPS: StreamRunnerDeps = {
   getModelLimits,
   getCompactionSettings,
   compact,
+  pruneSession,
   saveAssistantMessage,
   markSessionUnread,
   now: Date.now,
@@ -218,13 +228,13 @@ class StreamRunner {
     return Object.fromEntries(Object.entries(all).sort(([a], [b]) => a.localeCompare(b)));
   }
 
-  private buildStepOptions(step: number): StepOptions {
+  private buildStepOptions(step: number, conversation = this.state.conversation): StepOptions {
     return {
       sessionId: this.ctx.sessionId,
       messageId: this.ctx.assistantMessageId,
       step,
       model: this.ctx.model,
-      conversation: this.state.conversation,
+      conversation,
       accumulatedParts: this.state.accumulatedParts,
       providerId: this.ctx.providerId,
       tools: this.getCurrentTools(),
@@ -284,6 +294,12 @@ class StreamRunner {
   }
 
   private async runStepLoop(): Promise<void> {
+    const [compactionSettings, modelLimits] = await Promise.all([
+      this.deps.getCompactionSettings(),
+      this.deps.getModelLimits(this.ctx.providerId, this.ctx.modelId),
+    ]);
+    this.state.compactionSettings = compactionSettings;
+
     for (let step = 0; step < MAX_STEPS; step++) {
       this.state.stepCount = step + 1;
       log.info(
@@ -307,9 +323,10 @@ class StreamRunner {
       }
 
       const stepStartedAt = this.deps.now();
+      const stepConversation = this.buildConversationForStep(step);
 
       const stepResult = await this.deps.executeStepWithRetry({
-        ...this.buildStepOptions(step),
+        ...this.buildStepOptions(step, stepConversation),
         tools: isLastStep ? ({} as StepOptions['tools']) : this.getCurrentTools(),
         onAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
           internalBus.emit('usage.step.failed', {
@@ -368,6 +385,15 @@ class StreamRunner {
 
       for (const msg of stepResult.responseMessages) {
         this.state.conversation.push(msg);
+      }
+
+      if (compactionSettings.auto) {
+        if (isOverflow(stepResult.usage, modelLimits, { reserved: compactionSettings.reserved })) {
+          this.state.contextOverflow = true;
+          this.setNeedsCompaction(true, 'mid-loop-overflow');
+          this.setFinishReason('context-overflow', 'mid-loop-overflow');
+          break;
+        }
       }
 
       if (stepResult.toolCalls.length === 0) {
@@ -493,6 +519,17 @@ class StreamRunner {
         break;
       }
     }
+  }
+
+  private buildConversationForStep(step: number): ModelMessage[] {
+    if (step === 0) {
+      return compactConversationForStep(this.state.conversation);
+    }
+
+    return compactConversationForStep(this.state.conversation, {
+      preserveRecentToolResults: PRESERVE_RECENT_TOOL_RESULTS,
+      compactToolResults: true,
+    });
   }
 
   private async maybeRunFinalSynthesis(): Promise<void> {
@@ -844,6 +881,10 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
+    void this.deps.pruneSession(this.ctx.sessionId).catch((error: unknown) => {
+      log.warn({ sessionId: this.ctx.sessionId, error }, 'post-stream prune failed');
+    });
+
     const currentToolsetState = getSessionToolsetState(this.ctx.sessionId);
     setSessionToolsetState(
       this.ctx.sessionId,

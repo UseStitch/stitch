@@ -6,8 +6,10 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
   let refCounter = 0;
   const refs = {};
   const lines = [];
-  const maxNodes = 3000;
+  const maxVisitedNodes = 10000;
+  const maxRenderedNodes = 450;
   const maxTextLength = 140;
+  const viewportMargin = 120;
   const previousIdentities = new Set(${JSON.stringify(previousSnapshotIdentities)});
   const hasPreviousSnapshot = previousIdentities.size > 0;
   const currentIdentities = new Set();
@@ -66,7 +68,7 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
   }
 
   function occluded(el, rect) {
-    if (!inViewport(rect) || rect.width <= 0 || rect.height <= 0) return false;
+    if (!inViewport(rect, 0) || rect.width <= 0 || rect.height <= 0) return false;
     const x = Math.min(Math.max(rect.left + rect.width / 2, 0), window.innerWidth - 1);
     const y = Math.min(Math.max(rect.top + rect.height / 2, 0), window.innerHeight - 1);
     const top = document.elementFromPoint(x, y);
@@ -79,28 +81,44 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
     return ['a', 'button', 'input', 'textarea', 'select', 'summary', 'option'].includes(tag) || ['button', 'link', 'tab', 'menuitem', 'checkbox', 'radio', 'combobox', 'textbox', 'switch'].includes(r) || el.hasAttribute('onclick') || el.hasAttribute('tabindex') || (el.isContentEditable && el.getAttribute('contenteditable') !== null) || getComputedStyle(el).cursor === 'pointer';
   }
 
-  function inViewport(rect) {
-    return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
+  function inViewport(rect, margin = viewportMargin) {
+    return rect.bottom > -margin && rect.right > -margin && rect.top < window.innerHeight + margin && rect.left < window.innerWidth + margin;
+  }
+
+  function meaningfulName(el, r, isTarget) {
+    if (isTarget || r !== 'generic') return name(el);
+    return '';
+  }
+
+  function hasInteractiveAncestor(el) {
+    for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+      if (interactable(node)) return true;
+    }
+    return false;
   }
 
   function walk(el, depth, context) {
-    if (!el || count > maxNodes || el.nodeType !== 1) return;
+    if (!el || count > maxVisitedNodes || lines.length > maxRenderedNodes || el.nodeType !== 1) return;
     const tag = el.tagName.toLowerCase();
     if (['script', 'style', 'noscript', 'template', 'meta', 'link', 'head'].includes(tag)) return;
     if (!visible(el) && tag !== 'body' && tag !== 'html') return;
 
     count++;
     const r = role(el);
-    const label = name(el);
+    const baseTarget = interactable(el);
+    const isNestedTarget = baseTarget && hasInteractiveAncestor(el);
+    const isTarget = baseTarget && !isNestedTarget;
+    const label = meaningfulName(el, r, isTarget);
     const text = label || directText(el);
-    const isTarget = interactable(el);
     const elementIdentity = identity(el, r, label);
     const rect = el.getBoundingClientRect();
-    const isInViewport = inViewport(rect);
+    const isInViewport = inViewport(rect, 0);
+    const isNearViewport = inViewport(rect);
+    const isOccluded = occluded(el, rect);
     const canReference = context === 'document' || context === 'shadow';
     currentIdentities.add(elementIdentity);
     let ref = null;
-    if (isTarget && canReference) {
+    if (isTarget && canReference && isInViewport && !isOccluded) {
       refCounter++;
       ref = 'e' + refCounter;
       refs[ref] = {
@@ -116,7 +134,8 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
         height: Math.round(rect.height),
       };
     }
-    if (isTarget || text || r !== 'generic' || tag === 'iframe' || isScrollable(el)) {
+    const shouldEmit = isNearViewport && (isTarget || text || r !== 'generic' || tag === 'iframe' || isScrollable(el));
+    if (shouldEmit) {
       const attrs = [];
       if (ref) attrs.push('ref=' + ref);
       if (isInViewport) attrs.push('viewport');
@@ -126,7 +145,7 @@ export function buildSnapshotScript(previousSnapshotIdentities: string[]): strin
       if (context === 'iframe') attrs.push('iframe');
       if (isScrollable(el)) attrs.push('scrollable');
       if (isDisabled(el)) attrs.push('disabled');
-      if (occluded(el, rect)) attrs.push('occluded');
+      if (isOccluded) attrs.push('occluded');
       if (el.checked) attrs.push('checked');
       if (el.selected) attrs.push('selected');
       if (el.required) attrs.push('required');

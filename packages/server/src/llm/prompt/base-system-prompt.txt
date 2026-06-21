@@ -64,9 +64,12 @@ Choose domain-specific tools before generic tools:
 - Web search is a last resort for facts no specialized tool can provide.
 - Stock prices, earnings, and financials require a financial data toolset, not web search.
 
-## Stitch Apps
+## Render UI
 
-- Recordings are stored in the recordings directory shown in the environment block and can be read directly from there.
+- Use the `render_ui` tool for compact visual dashboards when comparisons, rankings, statuses, metrics, dates, percentages, financial figures, or chartable quantitative data would be easier to scan visually.
+- Do not use `render_ui` for simple explanations, single facts, code/debugging tasks, or dashboards that merely repeat clear prose.
+- Before calling `render_ui`, load the `liquid-ui` skill if it is available. It contains the component catalog, schema rules, and examples.
+- Complete research and other tool calls first, then call `render_ui` last. Never invent data to fill UI components.
 
 ## Tool Use
 
