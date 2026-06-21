@@ -14,7 +14,7 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, isServiceError, ok } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { compact } from '@/llm/compaction.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
@@ -625,9 +625,7 @@ export async function getSessionStats(
     listProvidersWithCapabilities(),
     Models.get(),
   ]);
-  const providers: ProviderWithCapabilities[] = isServiceError(providersResult)
-    ? []
-    : providersResult.data;
+  const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;
 
   let providerLabel = '-';
   let modelLabel = '-';

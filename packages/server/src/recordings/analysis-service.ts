@@ -15,7 +15,7 @@ import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
-import { err, isServiceError, ok } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
@@ -147,7 +147,7 @@ export async function startRecordingAnalysis(
   }
 
   const templateResult = await getMeetingNoteTemplate(input.templateId);
-  if (isServiceError(templateResult)) {
+  if (templateResult.error) {
     return templateResult;
   }
 
@@ -161,7 +161,7 @@ export async function startRecordingAnalysis(
     modelIdKey: 'recordings.analysis.modelId',
   });
 
-  if (isServiceError(analysisModel)) {
+  if (analysisModel.error) {
     return analysisModel;
   }
 

@@ -7,7 +7,6 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
@@ -262,7 +261,7 @@ export async function processMemories(input: {
           query: fact.content,
           page: 1,
           pageSize: 5,
-        }).then((result) => (isServiceError(result) ? [] : result.data.memories)),
+        }).then((result) => (result.error ? [] : result.data.memories)),
       ),
     );
 

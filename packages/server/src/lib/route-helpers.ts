@@ -1,4 +1,4 @@
-import { isServiceError } from './service-result.js';
+import { err, ok } from './service-result.js';
 
 import type { ServiceResult } from './service-result.js';
 import type { Context } from 'hono';
@@ -10,10 +10,10 @@ export function unwrapResult<T>(
   result: ServiceResult<T>,
   successStatus: SuccessStatus = 200,
 ): Response {
-  if (isServiceError(result)) {
-    const body: Record<string, unknown> = { error: result.error };
-    if (result.details !== undefined) body.details = result.details;
-    return c.json(body, result.status);
+  if (result.error) {
+    const body: Record<string, unknown> = { error: result.error.message };
+    if (result.error.details !== undefined) body.details = result.error.details;
+    return c.json(body, result.error.status);
   }
 
   if (successStatus === 204) return c.body(null, 204);
@@ -21,6 +21,6 @@ export function unwrapResult<T>(
 }
 
 export function requireFound<T>(value: T | null | undefined, label: string): ServiceResult<T> {
-  if (value === null || value === undefined) return { error: `${label} not found`, status: 404 };
-  return { data: value };
+  if (value === null || value === undefined) return err(`${label} not found`, 404);
+  return ok(value);
 }

@@ -151,7 +151,7 @@ export async function replyQuestion(
   }
 
   const validation = validateQuestionAnswers(existingQuestion, answers);
-  if ('error' in validation) return validation;
+  if (validation.error) return validation;
 
   const [question] = await db
     .update(questions)

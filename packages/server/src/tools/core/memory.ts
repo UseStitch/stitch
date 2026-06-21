@@ -1,7 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import {
   addSemanticMemory,
@@ -79,7 +78,7 @@ function createMemoryTool(context: ToolContext) {
             pageSize: 10,
             sourceFilter: 'chat',
           });
-          if (isServiceError(searchResult)) {
+          if (searchResult.error) {
             return { output: 'Failed to search memories.' };
           }
           const result = searchResult.data;
@@ -110,7 +109,7 @@ function createMemoryTool(context: ToolContext) {
             pageSize: 1000,
             sourceFilter: 'chat',
           });
-          if (isServiceError(listResult)) {
+          if (listResult.error) {
             return { output: 'Failed to list memories.' };
           }
           const all = listResult.data;

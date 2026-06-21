@@ -13,7 +13,6 @@ import {
   getAgendaLists,
   updateAgendaItem,
 } from '@/agenda/service.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { listSettings } from '@/settings/service.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
@@ -78,7 +77,7 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
 
 async function resolveUserTimezone(): Promise<string> {
   const settingsResult = await listSettings();
-  if (isServiceError(settingsResult)) return 'UTC';
+  if (settingsResult.error) return 'UTC';
   return settingsResult.data['profile.timezone'] || 'UTC';
 }
 
@@ -123,8 +122,8 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         sourceMessageId: context.messageId,
       });
 
-      if (isServiceError(result)) {
-        return { output: `Failed to create item: ${result.error}` };
+      if (result.error) {
+        return { output: `Failed to create item: ${result.error.message}` };
       }
 
       const item = result.data;
@@ -169,7 +168,7 @@ Use when the user asks to mark something as done, change priority, reschedule, o
         dueAt,
       });
 
-      if (isServiceError(result)) {
+      if (result.error) {
         return { output: `No agenda item found with id: ${input.itemId}` };
       }
 
@@ -193,7 +192,7 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
       let listId: PrefixedString<'alist'> | undefined;
       if (input.listName) {
         const listResult = getAgendaListByName(input.listName);
-        if (!isServiceError(listResult) && listResult.data) listId = listResult.data.id;
+        if (!listResult.error && listResult.data) listId = listResult.data.id;
       }
 
       const result = await getAgendaItems({
@@ -204,8 +203,8 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
         pageSize: 50,
       });
 
-      if (isServiceError(result)) {
-        return { output: `Failed to list items: ${result.error}` };
+      if (result.error) {
+        return { output: `Failed to list items: ${result.error.message}` };
       }
 
       const { items, total } = result.data;
@@ -234,7 +233,7 @@ Use when the user wants to see the complete information about a specific item.`,
     }),
     execute: async (input) => {
       const result = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
-      if (isServiceError(result)) {
+      if (result.error) {
         return { output: `No agenda item found with id: ${input.itemId}` };
       }
 
@@ -268,8 +267,8 @@ Use when the user wants to organize items into a new list/topic.`,
         description: input.description,
       });
 
-      if (isServiceError(result)) {
-        return { output: `Failed to create list: ${result.error}` };
+      if (result.error) {
+        return { output: `Failed to create list: ${result.error.message}` };
       }
 
       const list = result.data;
@@ -284,8 +283,8 @@ Use when the user wants to see what lists exist or get an overview of their agen
     inputSchema: z.object({}),
     execute: async () => {
       const result = getAgendaLists();
-      if (isServiceError(result)) {
-        return { output: `Failed to list agenda lists: ${result.error}` };
+      if (result.error) {
+        return { output: `Failed to list agenda lists: ${result.error.message}` };
       }
 
       const lists = result.data;

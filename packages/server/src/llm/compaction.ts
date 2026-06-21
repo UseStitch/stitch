@@ -10,7 +10,6 @@ import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
@@ -504,7 +503,7 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
   if (providerId === 'ollama_local') {
     const result = await OllamaModels.getOllamaModel(modelId);
-    if (!isServiceError(result)) {
+    if (!result.error) {
       return { context: result.data.contextWindow, output: result.data.outputLimit };
     }
     return { context: 200_000, output: 8_192 };

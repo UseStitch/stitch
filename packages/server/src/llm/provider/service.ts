@@ -4,7 +4,7 @@ import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig, ollamaModels } from '@/db/schema/providers.js';
-import { err, isServiceError, ok } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { ResolvedEmbeddingModel } from '@/models/embedding/schema.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
@@ -102,7 +102,7 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   }
 
   const providerResult = await resolveProvider(providerId);
-  if (isServiceError(providerResult)) {
+  if (providerResult.error) {
     return providerResult;
   }
 
@@ -148,7 +148,7 @@ export async function listProviderModels(
   }
 
   const providerResult = await resolveProvider(providerId);
-  if (isServiceError(providerResult)) {
+  if (providerResult.error) {
     return providerResult;
   }
 

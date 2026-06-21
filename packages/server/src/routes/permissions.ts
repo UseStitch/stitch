@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 import { getSessionById } from '@/chat/service.js';
 import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 import {
   allowPermissionResponse,
   alternativePermissionResponse,
@@ -39,7 +38,7 @@ permissionsRouter.get(
     const { id: sessionId } = c.req.valid('param');
 
     const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
-    if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
+    if (sessionResult.error) return unwrapResult(c, sessionResult);
 
     const rows = await getPendingPermissionResponses(sessionId);
     return c.json(rows);

@@ -6,7 +6,6 @@ import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
 import { listMcpRegistryServers, reloadMcpRegistryCacheFromDisk } from '@/mcp/registry-service.js';
 import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
@@ -46,7 +45,7 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
     url: body.url,
     authConfig: body.authConfig,
   });
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
   return unwrapResult(c, result, 201);
 });
@@ -76,7 +75,7 @@ mcpRouter.get('/registry/:registryId/logo', async (c) => {
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return unwrapResult(c, result);
 });
@@ -107,7 +106,7 @@ mcpRouter.post('/:id/refresh', async (c) => {
 mcpRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteMcpServer(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   evictMcpClient(id);
   await refreshMcpToolsets({ refreshTools: false });
   return unwrapResult(c, result, 204);

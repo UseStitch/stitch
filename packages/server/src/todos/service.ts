@@ -7,7 +7,7 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 import { getDb } from '@/db/client.js';
 import { sessionTodos, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
-import { err, isServiceError, ok, type ServiceResult } from '@/lib/service-result.js';
+import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 
 export async function listSessionTodos(
   sessionId: PrefixedString<'ses'>,
@@ -64,7 +64,7 @@ export async function getSessionTodosPromptBlock(
   sessionId: PrefixedString<'ses'>,
 ): Promise<string | null> {
   const result = await listSessionTodos(sessionId);
-  if (isServiceError(result) || result.data.length === 0) return null;
+  if (result.error || result.data.length === 0) return null;
 
   const lines = result.data.map((todo) => `- [${todo.status}] (${todo.priority}) ${todo.content}`);
 

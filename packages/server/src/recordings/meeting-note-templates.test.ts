@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import { setupTestDb } from '@/db/test-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 import {
   createMeetingNoteTemplate,
   deleteMeetingNoteTemplate,
@@ -30,7 +29,7 @@ describe('meeting note templates', () => {
       content: '# Edited',
     });
 
-    expect(isServiceError(updated)).toBe(false);
+    expect(updated.error).toBeNull();
 
     seedMeetingNoteTemplates();
 
@@ -47,22 +46,22 @@ describe('meeting note templates', () => {
       content: '# Custom',
     });
 
-    expect(isServiceError(created)).toBe(false);
-    if (isServiceError(created)) return;
+    expect(created.error).toBeNull();
+    if (created.error) return;
 
     const updated = await updateMeetingNoteTemplate(created.data.template.id, {
       name: 'Updated Template',
       content: '# Updated',
     });
 
-    expect(isServiceError(updated)).toBe(false);
-    if (isServiceError(updated)) return;
+    expect(updated.error).toBeNull();
+    if (updated.error) return;
     expect(updated.data.template.name).toBe('Updated Template');
     expect(updated.data.template.content).toBe('# Updated');
 
     const deleted = await deleteMeetingNoteTemplate(created.data.template.id);
 
-    expect(isServiceError(deleted)).toBe(false);
+    expect(deleted.error).toBeNull();
 
     const result = await listMeetingNoteTemplates();
     expect(result.templates.some((template) => template.id === created.data.template.id)).toBe(

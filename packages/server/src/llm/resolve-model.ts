@@ -129,6 +129,6 @@ export async function validateProviderModel(
     fallbackProviderId: providerId,
     fallbackModelId: modelId,
   });
-  if ('error' in result) return result;
+  if (result.error) return result;
   return ok(null);
 }

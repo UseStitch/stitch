@@ -24,7 +24,7 @@ import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/ru
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
-import { err, ok, isServiceError } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'connectors' });
@@ -411,7 +411,7 @@ export async function upgradeConnectorInstance(
       .where(eq(connectorInstances.id, typedInstanceId));
 
     const auth = await authorizeOAuthInstance(instanceId, deps);
-    if (isServiceError(auth)) {
+    if (auth.error) {
       return auth;
     }
 

@@ -364,8 +364,11 @@ export async function stopRecording(
       void startRecordingAnalysis(current.id, {
         templateId: defaultTemplateId as PrefixedString<'mnt'>,
       }).then((result) => {
-        if ('error' in result) {
-          log.warn({ recordingId: current.id, error: result.error }, 'auto analysis skipped');
+        if (result.error) {
+          log.warn(
+            { recordingId: current.id, error: result.error.message },
+            'auto analysis skipped',
+          );
         }
       });
     }
