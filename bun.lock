@@ -14,7 +14,7 @@
     },
     "apps/desktop": {
       "name": "@stitch/desktop",
-      "version": "0.5.6",
+      "version": "0.6.0",
       "dependencies": {
         "@stitch/audio-capture": "workspace:*",
         "@stitch/shared": "workspace:*",
@@ -33,7 +33,7 @@
     },
     "apps/web": {
       "name": "@stitch/web",
-      "version": "0.5.6",
+      "version": "0.6.0",
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@stitch/scheduler": "workspace:*",
@@ -199,12 +199,27 @@
     },
     "registries/embeddings": {
       "name": "@stitch/registry-embeddings",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "zod": "catalog:",
+      },
     },
     "registries/mcp": {
       "name": "@stitch/registry-mcp",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "zod": "catalog:",
+      },
     },
     "registries/stt": {
       "name": "@stitch/registry-stt",
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+        "zod": "catalog:",
+      },
     },
   },
   "catalog": {

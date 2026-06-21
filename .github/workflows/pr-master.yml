@@ -28,7 +28,6 @@ jobs:
             ci:
               - '**'
               - '!apps/website/**'
-              - '!registries/**'
               - '!**/*.md'
               - '!**/*.txt'
               - '!LICENSE'
