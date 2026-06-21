@@ -19,6 +19,7 @@ import {
   startOAuthFlow as startOAuthFlowDefault,
 } from '@/connectors/auth/oauth2.js';
 import type { startOAuthFlow as StartOAuthFlowFn } from '@/connectors/auth/oauth2.js';
+import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
@@ -483,17 +484,16 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
       if (creds) {
         const config = definition.authConfig as OAuthConfig;
         const now = Date.now();
-        const refreshed = await refreshAccessToken(
-          config.tokenUrl,
-          creds.clientId,
-          creds.clientSecret,
-          instance.refreshToken,
+        const refreshToken = instance.refreshToken;
+        if (!refreshToken) return err('Connector has no refresh token', 400);
+        const refreshed = await withRefreshLock(instance.id, () =>
+          refreshAccessToken(config.tokenUrl, creds.clientId, creds.clientSecret, refreshToken),
         );
         await db
           .update(connectorInstances)
           .set({
             accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken ?? instance.refreshToken,
+            refreshToken: refreshed.refreshToken ?? refreshToken,
             tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
             status: 'connected' as ConnectorStatus,
             authIssue: null,
@@ -503,7 +503,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
         testedInstance = {
           ...instance,
           accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken ?? instance.refreshToken,
+          refreshToken: refreshed.refreshToken ?? refreshToken,
           tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
         };
       }
