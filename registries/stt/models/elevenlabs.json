@@ -1,5 +1,5 @@
 {
-  "$schema": "../schema/stt-provider.schema.json",
+  "$schema": "https://usestitch.ai/schemas/stt-provider.schema.json",
   "providerId": "elevenlabs",
   "providerName": "ElevenLabs",
   "models": [
