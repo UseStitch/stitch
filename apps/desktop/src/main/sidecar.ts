@@ -130,6 +130,9 @@ export async function spawnServer(port: number, extraEnv: NodeJS.ProcessEnv = {}
     ...extraEnv,
     NODE_ENV: app.isPackaged ? 'production' : 'development',
     STITCH_APP_NAME: app.isPackaged ? 'stitch' : 'stitch-dev',
+    STITCH_APP_VERSION: app.getVersion(),
+    STITCH_CHANNEL: app.isPackaged ? 'production' : 'development',
+    STITCH_CLIENT: 'desktop',
   };
 
   if (app.isPackaged) {

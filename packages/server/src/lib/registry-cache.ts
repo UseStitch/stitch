@@ -5,6 +5,9 @@ import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'registry-cache' });
 const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_VERSION = '0.0.0';
+
+type BunGlobal = typeof globalThis & { Bun?: { version?: string } };
 
 export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -19,9 +22,29 @@ type RegistryCacheOptions<T> = {
   fallback?: T;
   /** Fetch timeout in milliseconds. Defaults to 10 000. */
   timeoutMs?: number;
+  /** Optional User-Agent header for registries we own. */
+  userAgent?: string | (() => string);
   /** Inject a custom fetch implementation (useful for tests). */
   fetchImpl?: FetchLike;
 };
+
+function userAgentToken(value: string | undefined, fallback: string): string {
+  return (value?.trim() || fallback).replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function runtimeToken(): string {
+  const bunVersion = (globalThis as BunGlobal).Bun?.version;
+  if (bunVersion) return `Bun/${userAgentToken(bunVersion, 'unknown')}`;
+  return `Node/${userAgentToken(process.versions.node, 'unknown')}`;
+}
+
+export function getStitchRegistryUserAgent(): string {
+  const version = userAgentToken(process.env['STITCH_APP_VERSION'], DEFAULT_VERSION);
+  const channel = userAgentToken(process.env['STITCH_CHANNEL'] ?? process.env.NODE_ENV, 'unknown');
+  const client = userAgentToken(process.env['STITCH_CLIENT'], 'server');
+
+  return `Stitch/${version} (${channel}; ${client}; ${process.platform}; ${process.arch}) ${runtimeToken()} RegistryClient/1`;
+}
 
 /**
  * Generic registry cache.
@@ -35,7 +58,14 @@ type RegistryCacheOptions<T> = {
  * Deliberately knows nothing about LLM models or embeddings.
  */
 export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
-  const { cacheFilePath, url, parse, fallback, fetchImpl: defaultFetch = fetch } = options;
+  const {
+    cacheFilePath,
+    url,
+    parse,
+    fallback,
+    userAgent,
+    fetchImpl: defaultFetch = fetch,
+  } = options;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   let memory: T | null = null;
@@ -58,7 +88,11 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
   }
 
   async function fetchFromNetwork(fetchImpl: FetchLike): Promise<T> {
-    const response = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+    const resolvedUserAgent = typeof userAgent === 'function' ? userAgent() : userAgent;
+    const response = await fetchImpl(url, {
+      headers: resolvedUserAgent ? { 'User-Agent': resolvedUserAgent } : undefined,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return parse(await response.json());
   }

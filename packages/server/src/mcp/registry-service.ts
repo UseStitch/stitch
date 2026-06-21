@@ -6,6 +6,7 @@ import type { McpRegistryPayload, McpRegistryServer } from '@stitch/shared/mcp/t
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { isServiceError } from '@/lib/service-result.js';
@@ -97,6 +98,7 @@ function normalizeServers(payload: McpRegistryPayload): McpRegistryServer[] {
 
 async function fetchRegistryPayload(fetchImpl: FetchLike): Promise<McpRegistryPayload> {
   const response = await fetchImpl(getRegistryUrl(), {
+    headers: { 'User-Agent': getStitchRegistryUserAgent() },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!response.ok) {

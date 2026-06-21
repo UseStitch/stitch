@@ -32,7 +32,7 @@ import { createUpdater } from './updater.js';
 import { createWindow } from './window.js';
 
 const DEV_APP_NAME = 'stitch-dev';
-const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1_000;
 
 function configureAppIdentityForEnvironment(): void {
   if (app.isPackaged) return;
