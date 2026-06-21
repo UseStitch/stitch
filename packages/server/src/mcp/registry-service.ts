@@ -9,7 +9,6 @@ import { PATHS } from '@/lib/paths.js';
 import { getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'mcp-registry' });
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
@@ -169,7 +168,7 @@ export async function listMcpRegistryServers(
     fetchImpl: options.fetchImpl,
     force: true,
   });
-  if (isServiceError(refreshed)) {
+  if (refreshed.error) {
     return refreshed;
   }
 
@@ -181,7 +180,7 @@ export async function findMcpRegistryServerForInstall(input: {
   url: string;
 }): Promise<McpRegistryServer | null> {
   const result = await listMcpRegistryServers();
-  if (isServiceError(result)) return null;
+  if (result.error) return null;
 
   const normalizedUrl = input.url.trim().toLowerCase();
   const normalizedName = input.name.trim().toLowerCase();

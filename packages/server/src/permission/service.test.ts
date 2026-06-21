@@ -93,7 +93,10 @@ describe('permission service interactions', () => {
 
     const permissionResponseId = requestedData.permissionResponse.id;
 
-    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null });
+    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({
+      data: null,
+      error: null,
+    });
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
     const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
@@ -278,7 +281,7 @@ describe('permission service interactions', () => {
 
     expect(
       alternativePermissionResponse(permissionResponseId, 'Use read instead'),
-    ).resolves.toEqual({ data: null });
+    ).resolves.toEqual({ data: null, error: null });
     expect(promise).resolves.toEqual({
       decision: 'alternative',
       entry: 'Use read instead',

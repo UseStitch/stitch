@@ -3,7 +3,6 @@ import type { Automation, AutomationSchedule } from '@stitch/shared/automations/
 
 import { listAutomations, runAutomation } from './service.js';
 
-import { isServiceError } from '@/lib/service-result.js';
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 import { getSettings } from '@/settings/service.js';
 
@@ -47,8 +46,8 @@ async function registerAutomationJob(automation: Automation, timezone: string): 
     schedule: toSchedulerSchedule(automation.schedule, timezone),
     callback: async () => {
       const result = await runAutomation(automation.id);
-      if (isServiceError(result)) {
-        throw new Error(result.error);
+      if (result.error) {
+        throw new Error(result.error.message);
       }
     },
     maxConcurrency: 1,
@@ -79,7 +78,7 @@ export async function syncAllAutomationSchedules(): Promise<void> {
 
   while (true) {
     const result = await listAutomations({ page, pageSize });
-    if (isServiceError(result)) throw new Error(result.error);
+    if (result.error) throw new Error(result.error.message);
 
     automationList.push(...result.data.automations);
 

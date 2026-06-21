@@ -19,7 +19,7 @@ export const definition: ToolDefinition = {
     inputSchema: skillInputSchema,
     execute: async ({ name }) => {
       const result = await getSkillByName(name);
-      if ('error' in result) return { error: result.error };
+      if (result.error) return { error: result.error.message };
 
       const skill = result.data;
       const dir = path.dirname(skill.location);

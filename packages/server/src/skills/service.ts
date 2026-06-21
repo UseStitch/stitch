@@ -343,7 +343,7 @@ export async function importSkillFromDirectory(
 
 export async function buildSkillsSystemPrompt(): Promise<string> {
   const result = await listSkills();
-  if ('error' in result || result.data.length === 0) return '';
+  if (result.error || result.data.length === 0) return '';
 
   const lines = result.data.map((skill) => `- ${skill.name}: ${skill.description}`);
   return `Available skills provide task-specific instructions. Use the \`skill\` tool to load a skill when the user's request matches its description.\n\n${lines.join('\n')}`;

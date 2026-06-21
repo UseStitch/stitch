@@ -62,7 +62,7 @@ recordingsRouter.get(
   async (c) => {
     const { page, pageSize } = c.req.valid('query');
     const result = await listRecordings({ page, pageSize });
-    return c.json(result);
+    return unwrapResult(c, result);
   },
 );
 
@@ -80,7 +80,7 @@ recordingsRouter.post('/stop', zValidator('json', stopRecordingSchema), async (c
 
 recordingsRouter.get('/templates', async (c) => {
   const result = await listMeetingNoteTemplates();
-  return c.json(result);
+  return unwrapResult(c, result);
 });
 
 recordingsRouter.post('/templates', zValidator('json', meetingNoteTemplateSchema), async (c) => {
@@ -117,7 +117,7 @@ recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), asy
   return unwrapResult(c, result, 204);
 });
 
-recordingsRouter.get('/active', (c) => c.json(getActiveRecording()));
+recordingsRouter.get('/active', (c) => unwrapResult(c, getActiveRecording()));
 
 recordingsRouter.get('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');

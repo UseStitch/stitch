@@ -14,7 +14,7 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, isServiceError, ok } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { compact } from '@/llm/compaction.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
@@ -112,10 +112,13 @@ export async function listSessions(
   return ok({ sessions: page, hasMore });
 }
 
-export async function getSessionById(sessionId: PrefixedString<'ses'>) {
+export async function getSessionById(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
-  return session;
+  if (!session) return err('Session not found', 404);
+  return ok(session);
 }
 
 export async function listSessionMessages(
@@ -156,24 +159,31 @@ export async function deleteSession(
   return ok(result[0]);
 }
 
-export async function renameSession(sessionId: PrefixedString<'ses'>, title: string) {
+export async function renameSession(
+  sessionId: PrefixedString<'ses'>,
+  title: string,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const [updated] = await db
     .update(sessions)
     .set({ title, updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .returning();
-  return updated;
+  if (!updated) return err('Session not found', 404);
+  return ok(updated);
 }
 
-export async function markSessionRead(sessionId: PrefixedString<'ses'>) {
+export async function markSessionRead(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const [updated] = await db
     .update(sessions)
     .set({ isUnread: false, updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .returning();
-  return updated ?? null;
+  if (!updated) return err('Session not found', 404);
+  return ok(updated);
 }
 
 async function maybeGenerateTitle(input: {
@@ -394,7 +404,9 @@ export function resolveDoomLoop(
   return ok({ ok: true });
 }
 
-export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
+export async function abortSessionRun(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<null>> {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
@@ -414,6 +426,8 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>) {
       await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id)]);
     }),
   ]);
+
+  return ok(null);
 }
 
 function getSplitTitle(baseTitle: string, n: number): string {
@@ -625,9 +639,7 @@ export async function getSessionStats(
     listProvidersWithCapabilities(),
     Models.get(),
   ]);
-  const providers: ProviderWithCapabilities[] = isServiceError(providersResult)
-    ? []
-    : providersResult.data;
+  const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;
 
   let providerLabel = '-';
   let modelLabel = '-';

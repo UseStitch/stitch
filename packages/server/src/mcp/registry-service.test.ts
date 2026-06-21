@@ -77,11 +77,11 @@ describe('mcp registry service', () => {
       fetchImpl,
       force: true,
     });
-    expect('error' in refreshResult).toBe(false);
+    expect(refreshResult.error).toBeNull();
 
     const listResult = await listMcpRegistryServers({ cacheFilePath });
-    expect('error' in listResult).toBe(false);
-    if ('error' in listResult) return;
+    expect(listResult.error).toBeNull();
+    if (listResult.error) return;
 
     expect(listResult.data.map((server) => server.name)).toEqual(['Alpha Server', 'Zulu Server']);
 
@@ -107,7 +107,7 @@ describe('mcp registry service', () => {
       force: true,
     });
 
-    expect('error' in result).toBe(false);
+    expect(result.error).toBeNull();
     expect(captured.userAgent?.startsWith('Stitch/')).toBe(true);
     expect(captured.userAgent).toContain('RegistryClient/1');
   });
@@ -121,8 +121,8 @@ describe('mcp registry service', () => {
     };
 
     const result = await listMcpRegistryServers({ cacheFilePath, fetchImpl });
-    expect('error' in result).toBe(false);
-    if ('error' in result) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data).toHaveLength(2);
   });
@@ -140,9 +140,9 @@ describe('mcp registry service', () => {
       force: true,
     });
 
-    expect('error' in result).toBe(true);
-    if ('error' in result) {
-      expect(result.status).toBe(500);
+    expect(result.error).not.toBeNull();
+    if (result.error) {
+      expect(result.error.status).toBe(500);
     }
   });
 });

@@ -28,11 +28,11 @@ Returns status, file path, and Markdown meeting notes.`,
     execute: async (input) => {
       const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
 
-      if ('error' in result) {
+      if (result.error) {
         return {
           recordingId: input.recordingId,
           found: false,
-          message: result.error,
+          message: result.error.message,
         };
       }
 
@@ -95,11 +95,11 @@ Use this when analysis is missing or stale.`,
         templateId: templateId as PrefixedString<'mnt'>,
       });
 
-      if ('error' in result) {
+      if (result.error) {
         return {
           recordingId: input.recordingId,
           ok: false,
-          message: result.error,
+          message: result.error.message,
         };
       }
 

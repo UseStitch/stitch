@@ -20,7 +20,6 @@ import {
 import * as Log from '@/lib/log.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'automations' });
 
@@ -80,7 +79,7 @@ automationsRouter.patch(
 automationsRouter.delete('/:id', zValidator('param', automationIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await deleteAutomation(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
 
   await unregisterAutomationSchedule(id).catch((error: unknown) => {
     log.error({ error }, 'failed to unregister automation schedule');

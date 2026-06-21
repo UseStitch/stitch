@@ -20,7 +20,6 @@ import {
 } from '@/agenda/service.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const createListSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -67,7 +66,7 @@ export const agendaRouter = new Hono();
 agendaRouter.get('/lists', (c) => {
   const includeArchived = c.req.query('includeArchived') === 'true';
   const result = getAgendaLists({ includeArchived });
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   return c.json({ lists: result.data });
 });
 

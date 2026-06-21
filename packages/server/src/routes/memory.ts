@@ -155,7 +155,7 @@ memoryRouter.post('/maintenance', async (c) => {
   if (inactiveResponse) return inactiveResponse;
 
   const result = await runMemoryMaintenance();
-  return c.json(result);
+  return unwrapResult(c, result);
 });
 
 memoryRouter.post('/reset', async (c) => {

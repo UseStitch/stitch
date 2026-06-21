@@ -69,14 +69,16 @@ export function seedMeetingNoteTemplates(db = getDb()): void {
   }
 }
 
-export async function listMeetingNoteTemplates(): Promise<ListMeetingNoteTemplatesResponse> {
+export async function listMeetingNoteTemplates(): Promise<
+  ServiceResult<ListMeetingNoteTemplatesResponse>
+> {
   const db = getDb();
   const rows = await db
     .select()
     .from(meetingNoteTemplates)
     .orderBy(desc(meetingNoteTemplates.updatedAt));
 
-  return { templates: rows.map(toMeetingNoteTemplate) };
+  return ok({ templates: rows.map(toMeetingNoteTemplate) });
 }
 
 export async function getMeetingNoteTemplate(

@@ -10,7 +10,6 @@ import { isSvgResponse, readCachedText, writeCachedText } from '@/lib/icon-cache
 import type { FetchLike } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { findMcpRegistryServerForInstall, listMcpRegistryServers } from '@/mcp/registry-service.js';
 
 const log = Log.create({ service: 'mcp-registry-logos' });
@@ -70,7 +69,7 @@ export async function getMcpRegistryLogo(
   if (cached) return cached;
 
   const result = await listMcpRegistryServers({ cacheFilePath: options.registryCacheFilePath });
-  if (isServiceError(result)) return undefined;
+  if (result.error) return undefined;
 
   const server = result.data.find((entry) => entry.id === registryId);
   if (!server) return undefined;

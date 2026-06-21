@@ -13,7 +13,6 @@ import {
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 setupTestDb();
 
@@ -96,10 +95,10 @@ describe('connector service', () => {
 
     const result = await upgradeConnectorInstance(instanceId, {});
 
-    expect(isServiceError(result)).toBe(true);
-    if (isServiceError(result)) {
-      expect(result.status).toBe(400);
-      expect(result.error).toContain('API key is required');
+    expect(result.error).not.toBeNull();
+    if (result.error) {
+      expect(result.error.status).toBe(400);
+      expect(result.error.message).toContain('API key is required');
     }
 
     // Row should be unchanged
@@ -150,8 +149,8 @@ describe('connector service', () => {
       { startOAuthFlow: fakeStartOAuthFlow },
     );
 
-    expect(isServiceError(result)).toBe(false);
-    if (!isServiceError(result)) {
+    expect(result.error).toBeNull();
+    if (!result.error) {
       expect(result.data).toEqual({
         type: 'reauthorize',
         authUrl: 'https://example.com/authorize',
@@ -207,12 +206,12 @@ describe('connector service', () => {
       apiKey: 'secret',
     });
 
-    expect(isServiceError(oauthResult)).toBe(true);
-    expect(isServiceError(apiKeyResult)).toBe(true);
-    if (isServiceError(oauthResult))
-      expect(oauthResult.error).toBe('Connector is currently disabled');
-    if (isServiceError(apiKeyResult))
-      expect(apiKeyResult.error).toBe('Connector is currently disabled');
+    expect(oauthResult.error).not.toBeNull();
+    expect(apiKeyResult.error).not.toBeNull();
+    if (oauthResult.error)
+      expect(oauthResult.error.message).toBe('Connector is currently disabled');
+    if (apiKeyResult.error)
+      expect(apiKeyResult.error.message).toBe('Connector is currently disabled');
 
     // Nothing written to DB
     const rows = await getDb().select().from(connectorInstances);
@@ -256,8 +255,8 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     let threw = false;
     try {
@@ -310,8 +309,8 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     await result.data.waitForTokens();
 
@@ -363,8 +362,8 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     await result.data.waitForTokens();
 
