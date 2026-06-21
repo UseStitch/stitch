@@ -2,7 +2,6 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
-import { BROWSER_TOOL_INSTRUCTIONS } from '@/lib/browser/tool-config.js';
 import type {
   BrowserTab,
   DropdownOptionsResult,
@@ -18,6 +17,12 @@ import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/t
 const descriptionField = z
   .string()
   .describe('Short description of the task this browser action is performing. Shown to the user.');
+
+const BROWSER_TOOL_INSTRUCTIONS = `You control a real Chrome browser. Before browser work, load the \`browser-automation\` skill for the batching contract and examples.
+
+Always start with \`browser_snapshot\` and use refs from the latest snapshot. Prefer \`browser_batch\` over single calls for any chain of 2+ same-goal actions.
+
+Batch independent browser tool calls in a single step instead of one per turn. Only go one-at-a-time when the next call genuinely needs the previous result.`;
 
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
 
