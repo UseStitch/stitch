@@ -14,6 +14,7 @@ type UseSlashCommandsOptions = {
   selectedModel: ModelSpec | null;
   isStreaming: boolean;
   setInput: (value: string) => void;
+  onGenerateAutomation?: () => Promise<void>;
 };
 
 type UseSlashCommandsResult = {
@@ -31,6 +32,7 @@ export function useSlashCommands({
   selectedModel,
   isStreaming,
   setInput,
+  onGenerateAutomation,
 }: UseSlashCommandsOptions): UseSlashCommandsResult {
   const queryClient = useQueryClient();
   const requestCompaction = useRequestCompaction();
@@ -46,9 +48,20 @@ export function useSlashCommands({
         requestCompaction: async (id: string) => {
           await requestCompaction.mutateAsync(id);
         },
+        generateAutomation: async () => {
+          await onGenerateAutomation?.();
+        },
       },
     }),
-    [sessionId, selectedModel, isStreaming, setInput, queryClient, requestCompaction],
+    [
+      sessionId,
+      selectedModel,
+      isStreaming,
+      setInput,
+      queryClient,
+      requestCompaction,
+      onGenerateAutomation,
+    ],
   );
 
   const completionGroups = React.useMemo(

@@ -139,7 +139,10 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
         >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
-            <SessionChatPane sessionId={sessionId} />
+            <SessionChatPane
+              sessionId={sessionId}
+              onGenerateAutomation={handleGenerateAutomation}
+            />
           </ResizablePanel>
 
           {rightPanelOpen ? (

@@ -5,6 +5,7 @@ import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 /** Server-backed actions a command can invoke, injected by the host hook. */
 export type CommandActions = {
   requestCompaction: (sessionId: string) => Promise<void>;
+  generateAutomation: () => Promise<void>;
 };
 
 /** Runtime context handed to a command handler when it runs. */

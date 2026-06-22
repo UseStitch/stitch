@@ -32,9 +32,10 @@ import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = {
   sessionId: string;
+  onGenerateAutomation?: () => Promise<void>;
 };
 
-export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
+export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChatPaneProps) {
   const id = sessionId;
   const navigate = useNavigate();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
@@ -79,6 +80,7 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
     selectedModel,
     isStreaming,
     setInput: setValue,
+    onGenerateAutomation,
   });
 
   async function handleSubmit(text: string, attachments: Attachment[]) {

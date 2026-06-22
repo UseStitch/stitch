@@ -1,9 +1,10 @@
 import { compactCommand } from './commands/compact.js';
+import { generateAutomationCommand } from './commands/generate-automation.js';
 
 import type { CommandContext, SlashCommand } from './types.js';
 import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 
-const COMMANDS: SlashCommand[] = [compactCommand];
+const COMMANDS: SlashCommand[] = [compactCommand, generateAutomationCommand];
 
 export function findCommand(name: string): SlashCommand | null {
   const lowered = name.toLowerCase();
