@@ -175,7 +175,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
     name: 'Google Drive',
     icon: { type: 'simpleIcons', slug: 'googledrive' },
     description: canWrite
-      ? 'Search, read, and create text files in Google Drive, including access to Docs, Sheets, PDFs, and other documents.'
+      ? 'Search, read, create text files, and upload local files in Google Drive, including access to Docs, Sheets, PDFs, and other documents.'
       : 'Search and read Google Drive files, including Docs, Sheets, PDFs, and other documents.',
     instructions: [
       EXACT_TOOL_NAME_INSTRUCTION,
@@ -184,7 +184,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
       "Combine with: and, or, not. Example: \"name contains 'Q4' and mimeType='application/vnd.google-apps.spreadsheet'\"",
       'Google Docs are exported as plain text, Sheets as CSV. Binary files are downloaded directly.',
       canWrite
-        ? 'You have write access. Use drive_write to create new text or Markdown files.'
+        ? 'You have write access. Use drive_write to create new text or Markdown files, and drive_upload to upload local file paths.'
         : 'You have read-only access. Creating files is not available.',
     ].join('\n'),
     tools: () => summarizeTools(createDriveTools(SUMMARY_RESOLVER, canWrite)),

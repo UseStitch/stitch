@@ -56,7 +56,7 @@ type GoogleErrorResponse = {
 type RequestOptions = {
   method?: string;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | ArrayBuffer;
   signal?: AbortSignal;
 };
 

@@ -141,4 +141,31 @@ describe('buildGoogleToolsets', () => {
       ]),
     );
   });
+
+  test('only exposes drive write tools when drive write access exists', () => {
+    const readOnly = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+      capabilities: ['google.drive.read', 'google.drive.write'],
+    }).find((toolset) => toolset.id === 'google-drive');
+
+    const writable = buildGoogleToolsets({
+      scopes: ['https://www.googleapis.com/auth/drive.file'],
+      capabilities: ['google.drive.read', 'google.drive.write'],
+    }).find((toolset) => toolset.id === 'google-drive');
+
+    expect(toolNames(readOnly)).toEqual(
+      expect.arrayContaining(['drive_search', 'drive_read', 'drive_info']),
+    );
+    expect(toolNames(readOnly)).not.toContain('drive_write');
+    expect(toolNames(readOnly)).not.toContain('drive_upload');
+    expect(toolNames(writable)).toEqual(
+      expect.arrayContaining([
+        'drive_search',
+        'drive_read',
+        'drive_info',
+        'drive_write',
+        'drive_upload',
+      ]),
+    );
+  });
 });
