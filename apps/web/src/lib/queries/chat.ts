@@ -293,6 +293,13 @@ export function useRespondDoomLoop() {
   });
 }
 
+export function useRequestCompaction() {
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      serverRequest<{ ok: true }>(`/chat/sessions/${sessionId}/compact`, { method: 'POST' }),
+  });
+}
+
 export function useGenerateAutomationDraft() {
   const queryClient = useQueryClient();
   return useMutation({

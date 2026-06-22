@@ -13,6 +13,12 @@ export type TextareaCompletionGroup = {
   prefix: string;
   label: string;
   options: TextareaCompletionOption[];
+  /**
+   * Where the prefix is allowed to trigger completions.
+   * - `word` (default): after any whitespace, like an `@`-mention mid-sentence.
+   * - `start`: only when the prefix is the very first character of the input.
+   */
+  anchor?: 'word' | 'start';
 };
 
 type CompletionState = {
@@ -68,8 +74,12 @@ function getCompletionState(
 
   if (!matchingGroup || anchorIndex < 0) return null;
 
-  const previousCharacter = anchorIndex > 0 ? value[anchorIndex - 1] : '';
-  if (previousCharacter && !/\s/.test(previousCharacter)) return null;
+  if (matchingGroup.anchor === 'start') {
+    if (anchorIndex !== 0) return null;
+  } else {
+    const previousCharacter = anchorIndex > 0 ? value[anchorIndex - 1] : '';
+    if (previousCharacter && !/\s/.test(previousCharacter)) return null;
+  }
 
   const filter = value.slice(anchorIndex + matchingGroup.prefix.length, selectionStart);
   if (/\s/.test(filter)) return null;
