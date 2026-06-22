@@ -16,13 +16,13 @@ interface CloudflareGraphQLResponse<T> {
 }
 
 interface RegistryStatsGroup {
+  count: number;
   dimensions: {
     clientRequestPath: string;
     userAgent: string;
   };
   sum: {
-    requests: number;
-    bytes: number;
+    edgeResponseBytes: number;
   };
 }
 
@@ -112,8 +112,8 @@ function aggregateRegistryStats(
   const perUserAgent = new Map<string, { requests: number; bytes: number }>();
 
   for (const group of groups) {
-    const requests = group.sum.requests;
-    const bytes = group.sum.bytes;
+    const requests = group.count;
+    const bytes = group.sum.edgeResponseBytes;
     const path = group.dimensions.clientRequestPath || 'unknown';
     const userAgent = group.dimensions.userAgent || 'unknown';
 
@@ -131,8 +131,8 @@ function aggregateRegistryStats(
   return {
     since,
     until,
-    total: groups.reduce((sum, group) => sum + group.sum.requests, 0),
-    bytes: groups.reduce((sum, group) => sum + group.sum.bytes, 0),
+    total: groups.reduce((sum, group) => sum + group.count, 0),
+    bytes: groups.reduce((sum, group) => sum + group.sum.edgeResponseBytes, 0),
     per_path: [...perPath.entries()].map(([path, stats]) => ({ path, ...stats })),
     per_user_agent: [...perUserAgent.entries()]
       .map(([user_agent, stats]) => ({ user_agent, ...stats }))
@@ -165,13 +165,13 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
               clientRequestPath_in: $paths
             }
           ) {
+            count
             dimensions {
               clientRequestPath
               userAgent
             }
             sum {
-              requests
-              bytes
+              edgeResponseBytes
             }
           }
         }
