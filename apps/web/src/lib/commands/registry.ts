@@ -1,7 +1,7 @@
-import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
-
 import { compactCommand } from './commands/compact.js';
+
 import type { CommandContext, SlashCommand } from './types.js';
+import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 
 const COMMANDS: SlashCommand[] = [compactCommand];
 
@@ -9,8 +9,7 @@ export function findCommand(name: string): SlashCommand | null {
   const lowered = name.toLowerCase();
   return (
     COMMANDS.find(
-      (command) =>
-        command.name === lowered || command.aliases?.some((alias) => alias === lowered),
+      (command) => command.name === lowered || command.aliases?.some((alias) => alias === lowered),
     ) ?? null
   );
 }
@@ -24,6 +23,7 @@ export function buildSlashCompletionGroup(ctx: CommandContext): TextareaCompleti
   return {
     prefix: '/',
     label: 'Commands',
+    anchor: 'start',
     options: COMMANDS.filter((command) => isCommandAvailable(command, ctx)).map((command) => ({
       value: command.name,
       label: command.name,
