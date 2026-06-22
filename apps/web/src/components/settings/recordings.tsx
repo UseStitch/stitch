@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { AppEnableSetting } from '@/components/settings/app-enable-setting';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -569,6 +570,11 @@ export function RecordingsSettings() {
         </TabsList>
 
         <TabsContent value="settings" className="pt-4">
+          <SettingSection title="App">
+            <SettingRows>
+              <AppEnableSetting appId="recordings" label="Recordings" />
+            </SettingRows>
+          </SettingSection>
           <PermissionStatus />
           <SettingSection title="Audio Devices" className="mt-4">
             <AudioDeviceSettings />

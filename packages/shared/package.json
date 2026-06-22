@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./apps/types": "./src/apps/types.ts",
     "./appearance/types": "./src/appearance/types.ts",
     "./automations/types": "./src/automations/types.ts",
     "./browser/electron": "./src/browser/electron.ts",

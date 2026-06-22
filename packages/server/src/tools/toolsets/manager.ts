@@ -1,3 +1,4 @@
+import { getDisabledAppToolsetIds, isToolsetEnabledByApp } from '@/apps/service.js';
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
@@ -63,8 +64,11 @@ export class ToolsetManager {
       return { status: 'not_found' };
     }
 
-    const toolsetEnabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
-    if (!toolsetEnabled) {
+    const [toolsetEnabled, appEnabled] = await Promise.all([
+      isToolEnabled({ scope: 'toolset', identifier: toolsetId }),
+      isToolsetEnabledByApp(toolsetId),
+    ]);
+    if (!toolsetEnabled || !appEnabled) {
       log.info(
         { event: 'toolset.activate.disabled', toolsetId },
         'attempted to activate disabled toolset',
@@ -234,9 +238,12 @@ export class ToolsetManager {
    * Used by the list_toolsets meta-tool.
    */
   async getCatalogWithState(options?: { includeTools?: boolean }): Promise<ToolsetView[]> {
-    const disabledIds = await getDisabledToolIdentifiers('toolset');
+    const [disabledIds, disabledAppToolsetIds] = await Promise.all([
+      getDisabledToolIdentifiers('toolset'),
+      getDisabledAppToolsetIds(),
+    ]);
     return listToolsets()
-      .filter((ts) => !disabledIds.has(ts.id))
+      .filter((ts) => !disabledIds.has(ts.id) && !disabledAppToolsetIds.has(ts.id))
       .map((ts) =>
         toToolsetView(ts, {
           active: this.isActive(ts.id),
