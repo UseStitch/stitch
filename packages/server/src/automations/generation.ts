@@ -112,6 +112,8 @@ function buildAutomationPrompt(input: {
 
   return [
     'Review the conversation and create an automation draft.',
+    'The generated prompt will be used as the first user message in a brand-new automation session.',
+    'It must be self-contained: do not rely on prior chat history, implied context, or phrases like "as discussed".',
     'Focus on the user goal and their feedback/corrections so instructions are precise and actionable.',
     'Treat explicit user corrections, dislikes, and "do not" guidance as hard constraints.',
     'When guidance conflicts, prioritize the latest explicit user instruction.',
@@ -125,9 +127,12 @@ function buildAutomationPrompt(input: {
     '- title: short and descriptive (max 120 chars).',
     '- toolsets: only include toolset IDs that are actually relevant.',
     '- steps: 3-10 concise, ordered steps.',
-    '- prompt: clear reusable automation instructions that reflect user feedback and use markdown formatting.',
+    '- prompt: write reusable automation instructions, not a summary of the conversation.',
+    '- prompt: include goal, scope, success criteria, required inputs, constraints, and expected output.',
     '- prompt: include both positive goals (what to do) and explicit exclusions (what to avoid) from user guidance.',
     '- prompt: do not reintroduce approaches the user rejected unless they later reversed that decision.',
+    '- prompt: state any assumptions about files, credentials, external apps, or browser/session state.',
+    '- prompt: prefer a clear checklist or runbook format.',
   ].join('\n');
 }
 
