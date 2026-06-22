@@ -14,6 +14,7 @@ type UseSlashCommandsOptions = {
   selectedModel: ModelSpec | null;
   isStreaming: boolean;
   setInput: (value: string) => void;
+  onSubmitPrompt: (content: string) => Promise<void>;
   onGenerateAutomation?: () => Promise<void>;
 };
 
@@ -35,6 +36,7 @@ export function useSlashCommands({
   selectedModel,
   isStreaming,
   setInput,
+  onSubmitPrompt,
   onGenerateAutomation,
 }: UseSlashCommandsOptions): UseSlashCommandsResult {
   const queryClient = useQueryClient();
@@ -54,6 +56,7 @@ export function useSlashCommands({
         generateAutomation: async () => {
           await onGenerateAutomation?.();
         },
+        submitPrompt: onSubmitPrompt,
       },
     }),
     [
@@ -63,6 +66,7 @@ export function useSlashCommands({
       setInput,
       queryClient,
       requestCompaction,
+      onSubmitPrompt,
       onGenerateAutomation,
     ],
   );
@@ -82,6 +86,14 @@ export function useSlashCommands({
 
       const ctx = buildContext();
       if (command.isAvailable && !command.isAvailable(ctx)) return false;
+
+      if (command.kind === 'prompt') {
+        const prompt = command.buildPrompt(parsed.args, ctx);
+        void ctx.actions.submitPrompt(prompt).catch((error) => {
+          console.error(`Slash command "${command.name}" failed:`, error);
+        });
+        return true;
+      }
 
       void Promise.resolve(command.run(parsed.args, ctx)).catch((error) => {
         console.error(`Slash command "${command.name}" failed:`, error);
