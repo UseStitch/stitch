@@ -87,7 +87,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
     if (!canSend) return;
 
-    if (attachments.length === 0 && (await slashCommands.tryRun(text))) {
+    if (attachments.length === 0 && slashCommands.tryRun(text)) {
       setValue('');
       return;
     }

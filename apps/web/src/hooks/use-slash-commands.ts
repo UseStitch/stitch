@@ -23,8 +23,11 @@ type UseSlashCommandsResult = {
    * Runs the input as a slash command when it matches a registered, available
    * command. Returns true when handled (caller should skip the normal send),
    * false otherwise (caller should send the input as a normal message).
+   *
+   * The command's async work is fired without being awaited so the caller can
+   * clear the input immediately; handlers own their own success/error feedback.
    */
-  tryRun: (input: string) => Promise<boolean>;
+  tryRun: (input: string) => boolean;
 };
 
 export function useSlashCommands({
@@ -70,7 +73,7 @@ export function useSlashCommands({
   );
 
   const tryRun = React.useCallback(
-    async (input: string): Promise<boolean> => {
+    (input: string): boolean => {
       const parsed = parseSlashCommand(input);
       if (!parsed) return false;
 
@@ -80,7 +83,9 @@ export function useSlashCommands({
       const ctx = buildContext();
       if (command.isAvailable && !command.isAvailable(ctx)) return false;
 
-      await command.run(parsed.args, ctx);
+      void Promise.resolve(command.run(parsed.args, ctx)).catch((error) => {
+        console.error(`Slash command "${command.name}" failed:`, error);
+      });
       return true;
     },
     [buildContext],
