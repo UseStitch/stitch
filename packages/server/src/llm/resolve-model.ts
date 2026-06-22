@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
@@ -123,12 +125,27 @@ export async function validateProviderModel(
   providerId: string,
   modelId: string,
 ): Promise<ServiceResult<null>> {
-  const result = await resolveModel({
-    providerIdKey: '' as SettingsKey,
-    modelIdKey: '' as SettingsKey,
-    fallbackProviderId: providerId,
-    fallbackModelId: modelId,
-  });
-  if (result.error) return result;
+  if (!isAllowedProvider(providerId)) {
+    return err('Provider not found', 404);
+  }
+
+  const db = getDb();
+  const [providers, config] = await Promise.all([
+    Models.get(),
+    db
+      .select({ providerId: providerConfig.providerId })
+      .from(providerConfig)
+      .where(eq(providerConfig.providerId, providerId))
+      .get(),
+  ]);
+
+  const provider = providers[providerId];
+  if (!provider) return err('Provider not found', 404);
+
+  const model = provider.models[modelId];
+  if (!model) return err('Model not found for provider', 400);
+
+  if (!config) return err('Provider is not configured', 400);
+
   return ok(null);
 }
