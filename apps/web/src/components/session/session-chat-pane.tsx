@@ -75,11 +75,30 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   const isStreaming = streamState.isStreaming;
   const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
 
+  const submitTextMessage = React.useCallback(
+    async (text: string) => {
+      if (!selectedModel || !canSend) return;
+
+      const assistantMessageId = createMessageId();
+      startStream(id, assistantMessageId);
+
+      await sendMessage.mutateAsync({
+        sessionId: id as PrefixedString<'ses'>,
+        content: text,
+        providerId: selectedModel.providerId,
+        modelId: selectedModel.modelId,
+        assistantMessageId,
+      });
+    },
+    [canSend, id, selectedModel, sendMessage, startStream],
+  );
+
   const slashCommands = useSlashCommands({
     sessionId: id,
     selectedModel,
     isStreaming,
     setInput: setValue,
+    onSubmitPrompt: submitTextMessage,
     onGenerateAutomation,
   });
 
@@ -94,21 +113,23 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
     setValue('');
 
+    if (attachments.length === 0) {
+      await submitTextMessage(text);
+      return;
+    }
+
     const assistantMessageId = createMessageId();
     startStream(id, assistantMessageId);
 
     await sendMessage.mutateAsync({
       sessionId: id as PrefixedString<'ses'>,
       content: text,
-      attachments:
-        attachments.length > 0
-          ? attachments.map((a) => ({
-              path: a.path,
-              previewUrl: a.previewUrl,
-              mime: a.mime,
-              filename: a.filename,
-            }))
-          : undefined,
+      attachments: attachments.map((a) => ({
+        path: a.path,
+        previewUrl: a.previewUrl,
+        mime: a.mime,
+        filename: a.filename,
+      })),
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
       assistantMessageId,

@@ -6,6 +6,7 @@ import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 export type CommandActions = {
   requestCompaction: (sessionId: string) => Promise<void>;
   generateAutomation: () => Promise<void>;
+  submitPrompt: (content: string) => Promise<void>;
 };
 
 /** Runtime context handed to a command handler when it runs. */
@@ -42,4 +43,13 @@ export type ClientCommand = {
   run: (args: string, ctx: CommandContext) => void | Promise<void>;
 };
 
-export type SlashCommand = ClientCommand;
+export type PromptCommand = {
+  kind: 'prompt';
+  name: string;
+  aliases?: string[];
+  description: string;
+  isAvailable?: (ctx: CommandContext) => boolean;
+  buildPrompt: (args: string, ctx: CommandContext) => string;
+};
+
+export type SlashCommand = ClientCommand | PromptCommand;
