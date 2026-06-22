@@ -76,11 +76,42 @@ describe('resolveGoogleQuotaOperation', () => {
     ).toEqual({ service: 'gmail', quotaCost: 5 });
   });
 
-  test('maps non-Gmail services to request-count quota units', () => {
+  test('maps Drive endpoints to method-specific quota units', () => {
     expect(
       resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files?q=test', 'GET'),
-    ).toEqual({ service: 'drive', quotaCost: 1 });
+    ).toEqual({ service: 'drive', quotaCost: 100 });
 
+    expect(
+      resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files/file-1', 'GET'),
+    ).toEqual({ service: 'drive', quotaCost: 5 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://www.googleapis.com/drive/v3/files/file-1?alt=media',
+        'GET',
+      ),
+    ).toEqual({ service: 'drive', quotaCost: 200 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://www.googleapis.com/drive/v3/files/file-1/export?mimeType=text/plain',
+        'GET',
+      ),
+    ).toEqual({ service: 'drive', quotaCost: 200 });
+
+    expect(
+      resolveGoogleQuotaOperation('https://www.googleapis.com/drive/v3/files/file-1', 'PATCH'),
+    ).toEqual({ service: 'drive', quotaCost: 50 });
+
+    expect(
+      resolveGoogleQuotaOperation(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        'POST',
+      ),
+    ).toEqual({ service: 'drive', quotaCost: 5 });
+  });
+
+  test('maps non-Gmail and non-Drive services to request-count quota units', () => {
     expect(
       resolveGoogleQuotaOperation('https://docs.googleapis.com/v1/documents/abc', 'GET'),
     ).toEqual({ service: 'docsRead', quotaCost: 1 });
@@ -112,8 +143,8 @@ describe('GoogleRateLimitCoordinator', () => {
         services: {
           ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services,
           drive: {
-            project: { capacity: 100, windowMs: 5 },
-            account: { capacity: 1, windowMs: 5 },
+            project: { capacity: 200, windowMs: 5 },
+            account: { capacity: 100, windowMs: 5 },
           },
         },
       },

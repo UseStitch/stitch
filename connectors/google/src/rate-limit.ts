@@ -28,8 +28,8 @@ export const DEFAULT_GOOGLE_RATE_LIMIT_CONFIG: GoogleRateLimitConfig = {
       account: { capacity: 15_000, windowMs: 60_000 },
     },
     drive: {
-      project: { capacity: 12_000, windowMs: 60_000 },
-      account: { capacity: 12_000, windowMs: 60_000 },
+      project: { capacity: 1_000_000, windowMs: 60_000 },
+      account: { capacity: 325_000, windowMs: 60_000 },
     },
     docsRead: {
       project: { capacity: 3000, windowMs: 60_000 },
@@ -65,6 +65,14 @@ const GMAIL_METHOD_COSTS = {
   FILTERS_LIST: 1,
   FILTERS_GET: 1,
   FILTERS_MUTATE: 5,
+  DEFAULT: 5,
+} as const;
+
+const DRIVE_METHOD_COSTS = {
+  FILES_GET: 5,
+  FILES_LIST: 100,
+  FILES_DOWNLOAD: 200,
+  FILES_UPDATE: 50,
   DEFAULT: 5,
 } as const;
 
@@ -130,6 +138,36 @@ function resolveGmailQuotaCost(pathname: string, method: string): number {
   return GMAIL_METHOD_COSTS.DEFAULT;
 }
 
+function resolveDriveQuotaCost(
+  pathname: string,
+  method: string,
+  searchParams: URLSearchParams,
+): number {
+  if (pathname.endsWith('/files') && method === 'GET') {
+    return DRIVE_METHOD_COSTS.FILES_LIST;
+  }
+
+  if (/\/files\/[^/]+\/download$/.test(pathname) && method === 'GET') {
+    return DRIVE_METHOD_COSTS.FILES_DOWNLOAD;
+  }
+
+  if (/\/files\/[^/]+\/export$/.test(pathname) && method === 'GET') {
+    return DRIVE_METHOD_COSTS.FILES_DOWNLOAD;
+  }
+
+  if (/\/files\/[^/]+$/.test(pathname) && method === 'GET') {
+    return searchParams.get('alt') === 'media'
+      ? DRIVE_METHOD_COSTS.FILES_DOWNLOAD
+      : DRIVE_METHOD_COSTS.FILES_GET;
+  }
+
+  if (/\/files\/[^/]+$/.test(pathname) && (method === 'PATCH' || method === 'PUT')) {
+    return DRIVE_METHOD_COSTS.FILES_UPDATE;
+  }
+
+  return DRIVE_METHOD_COSTS.DEFAULT;
+}
+
 export function resolveGoogleQuotaOperation(
   url: string,
   method: string | undefined,
@@ -156,8 +194,11 @@ export function resolveGoogleQuotaOperation(
   }
 
   if (parsed.hostname === 'www.googleapis.com') {
-    if (parsed.pathname.startsWith('/drive/')) {
-      return { service: 'drive', quotaCost: 1 };
+    if (parsed.pathname.startsWith('/drive/') || parsed.pathname.startsWith('/upload/drive/')) {
+      return {
+        service: 'drive',
+        quotaCost: resolveDriveQuotaCost(parsed.pathname, normalizedMethod, parsed.searchParams),
+      };
     }
     if (parsed.pathname.startsWith('/calendar/')) {
       return { service: 'calendar', quotaCost: 1 };
