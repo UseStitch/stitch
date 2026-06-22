@@ -3,6 +3,7 @@ import {
   CpuIcon,
   GlobeIcon,
   KeyboardIcon,
+  ListTodoIcon,
   MicIcon,
   MonitorIcon,
   NetworkIcon,
@@ -79,6 +80,15 @@ export const SETTINGS_PAGES = [
     to: '/settings/recordings',
     section: 'Apps',
     icon: MicIcon,
+  },
+  {
+    id: 'agenda',
+    label: 'Agenda',
+    title: 'Agenda',
+    description: 'Configure task tracking and agenda tools.',
+    to: '/settings/agenda',
+    section: 'Apps',
+    icon: ListTodoIcon,
   },
   {
     id: 'providers',

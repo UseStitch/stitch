@@ -6,6 +6,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import { TOOL_ENABLED_SCOPES } from '@stitch/shared/tools/types';
 
+import { getAppEnabledStates } from '@/apps/service.js';
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
 import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
@@ -89,6 +90,11 @@ configRouter.get('/toolsets', async (c) => {
 
 configRouter.get('/tools/enabled', async (c) => {
   const states = await getToolEnabledStates();
+  return c.json({ states });
+});
+
+configRouter.get('/apps/enabled', async (c) => {
+  const states = await getAppEnabledStates();
   return c.json({ states });
 });
 

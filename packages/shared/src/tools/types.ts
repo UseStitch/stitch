@@ -2,7 +2,7 @@ export const TOOL_TYPES = ['stitch', 'mcp', 'plugin'] as const;
 
 export type ToolType = (typeof TOOL_TYPES)[number];
 
-export const TOOL_ENABLED_SCOPES = ['tool', 'toolset', 'mcp_tool'] as const;
+export const TOOL_ENABLED_SCOPES = ['tool', 'toolset', 'mcp_tool', 'app'] as const;
 
 export type ToolEnabledScope = (typeof TOOL_ENABLED_SCOPES)[number];
 

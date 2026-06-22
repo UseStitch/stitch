@@ -33,6 +33,7 @@ import { Route as SettingsGeneralRouteImport } from './routes/settings/general'
 import { Route as SettingsConnectionRouteImport } from './routes/settings/connection'
 import { Route as SettingsBrowserRouteImport } from './routes/settings/browser'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings/appearance'
+import { Route as SettingsAgendaRouteImport } from './routes/settings/agenda'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
 import { Route as AutomationsAutomationIdRouteImport } from './routes/automations/$automationId'
@@ -159,6 +160,11 @@ const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
+const SettingsAgendaRoute = SettingsAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 const SessionIdRoute = SessionIdRouteImport.update({
   id: '/session/$id',
   path: '/session/$id',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/settings/agenda': typeof SettingsAgendaRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/settings/agenda': typeof SettingsAgendaRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/automations/$automationId': typeof AutomationsAutomationIdRoute
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
+  '/settings/agenda': typeof SettingsAgendaRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/automations/$automationId'
     | '/recordings/$id'
     | '/session/$id'
+    | '/settings/agenda'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/automations/$automationId'
     | '/recordings/$id'
     | '/session/$id'
+    | '/settings/agenda'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/automations/$automationId'
     | '/recordings/$id'
     | '/session/$id'
+    | '/settings/agenda'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -549,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAppearanceRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
+    '/settings/agenda': {
+      id: '/settings/agenda'
+      path: '/agenda'
+      fullPath: '/settings/agenda'
+      preLoaderRoute: typeof SettingsAgendaRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
     '/session/$id': {
       id: '/session/$id'
       path: '/session/$id'
@@ -631,6 +650,7 @@ const RecordingsRouteRouteWithChildren = RecordingsRouteRoute._addFileChildren(
 )
 
 interface SettingsRouteRouteChildren {
+  SettingsAgendaRoute: typeof SettingsAgendaRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsBrowserRoute: typeof SettingsBrowserRoute
   SettingsConnectionRoute: typeof SettingsConnectionRoute
@@ -647,6 +667,7 @@ interface SettingsRouteRouteChildren {
 }
 
 const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
+  SettingsAgendaRoute: SettingsAgendaRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsBrowserRoute: SettingsBrowserRoute,
   SettingsConnectionRoute: SettingsConnectionRoute,
