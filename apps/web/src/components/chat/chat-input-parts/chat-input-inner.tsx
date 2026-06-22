@@ -46,9 +46,10 @@ type ChatInputInnerProps = {
   embedded?: boolean;
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
+  completionGroups?: TextareaCompletionGroup[];
 };
 
-const CHAT_COMPLETION_GROUPS: TextareaCompletionGroup[] = [];
+const EMPTY_COMPLETION_GROUPS: TextareaCompletionGroup[] = [];
 
 function areHotkeyKeysHeld(hotkey: string, heldKeys: string[]) {
   const parsed = parseHotkey(hotkey);
@@ -74,6 +75,7 @@ export function ChatInputInner({
   embedded,
   pendingAttachments,
   onPendingAttachmentsConsumed,
+  completionGroups = EMPTY_COMPLETION_GROUPS,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
@@ -215,7 +217,7 @@ export function ChatInputInner({
         textareaRef={textareaRef}
         value={value}
         onChange={onChange}
-        groups={CHAT_COMPLETION_GROUPS}
+        groups={completionGroups}
         disabled={disabled}
         onKeyDown={handleKeyDown}
       >

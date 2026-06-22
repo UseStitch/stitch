@@ -17,6 +17,7 @@ import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import { useSlashCommands } from '@/hooks/use-slash-commands';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import {
   flattenMessages,
@@ -73,9 +74,21 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
   const isStreaming = streamState.isStreaming;
   const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
 
+  const slashCommands = useSlashCommands({
+    sessionId: id,
+    selectedModel,
+    isStreaming,
+    setInput: setValue,
+  });
+
   async function handleSubmit(text: string, attachments: Attachment[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
     if (!canSend) return;
+
+    if (attachments.length === 0 && (await slashCommands.tryRun(text))) {
+      setValue('');
+      return;
+    }
 
     setValue('');
 
@@ -165,6 +178,7 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
                         }
                         disabled={isCompacting || !canSend}
                         embedded
+                        completionGroups={slashCommands.completionGroups}
                       />
                     </div>
                   </div>
