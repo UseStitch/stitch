@@ -49,6 +49,26 @@ const driveWriteSchema = z.object({
     .describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
 });
 
+const driveUploadSchema = z.object({
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
+  filePath: z.string().describe('Local file path to upload to Google Drive'),
+  name: z
+    .string()
+    .optional()
+    .describe('Optional Google Drive file name. Defaults to the local file basename.'),
+  mimeType: z
+    .string()
+    .optional()
+    .describe('Optional MIME type of the uploaded file. Defaults to application/octet-stream.'),
+  parentId: z
+    .string()
+    .optional()
+    .describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
+});
+
 export function createDriveTools(
   resolveClient: (
     account?: string,
@@ -106,6 +126,20 @@ export function createDriveTools(
           input.mimeType,
           input.parentId,
         );
+        return { ...result, usedAccount };
+      },
+    });
+    tools['drive_upload'] = tool({
+      description:
+        'Upload a local file path to Google Drive. Optionally override the Drive filename, MIME type, and parent folder.',
+      inputSchema: driveUploadSchema,
+      execute: async (input: z.infer<typeof driveUploadSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await DriveApi.uploadFile(client, input.filePath, {
+          name: input.name,
+          mimeType: input.mimeType,
+          parentId: input.parentId,
+        });
         return { ...result, usedAccount };
       },
     });

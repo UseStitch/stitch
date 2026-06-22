@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 import type { GoogleClient } from '../client.js';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
@@ -170,6 +173,51 @@ export async function createFile(
       method: 'POST',
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
+    },
+  );
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    mimeType: raw.mimeType,
+    webViewLink: raw.webViewLink,
+  };
+}
+
+export async function uploadFile(
+  client: GoogleClient,
+  filePath: string,
+  options?: { name?: string; mimeType?: string; parentId?: string },
+): Promise<DriveWriteResult> {
+  const content = await fs.readFile(filePath);
+  const name = options?.name ?? path.basename(filePath);
+  const mimeType = options?.mimeType ?? 'application/octet-stream';
+  const metadata: Record<string, unknown> = { name };
+  if (options?.parentId) metadata['parents'] = [options.parentId];
+
+  const boundary = 'drive_upload_boundary';
+  const body = Buffer.concat([
+    Buffer.from(
+      [
+        `--${boundary}`,
+        'Content-Type: application/json; charset=UTF-8',
+        '',
+        JSON.stringify(metadata),
+        `--${boundary}`,
+        `Content-Type: ${mimeType}`,
+        '',
+      ].join('\r\n'),
+    ),
+    content,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+
+  const raw = await client.request<DriveFileRaw>(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
     },
   );
 
