@@ -206,6 +206,7 @@ export async function uploadFile(
         `--${boundary}`,
         `Content-Type: ${mimeType}`,
         '',
+        '',
       ].join('\r\n'),
     ),
     content,

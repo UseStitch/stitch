@@ -1,8 +1,7 @@
+import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-
-import { describe, expect, test } from 'bun:test';
 
 import { uploadFile } from './api.js';
 
@@ -52,9 +51,8 @@ describe('Drive API uploadFile', () => {
         : Buffer.from(new Uint8Array(requestOptions.body ?? new ArrayBuffer(0))).toString();
 
     expect(requestBody).toContain('hello drive');
-    expect(requestBody).toContain(
-      JSON.stringify({ name: 'Report.txt', parents: ['folder-1'] }),
-    );
+    expect(requestBody).toContain('Content-Type: text/plain\r\n\r\nhello drive');
+    expect(requestBody).toContain(JSON.stringify({ name: 'Report.txt', parents: ['folder-1'] }));
     expect(result).toEqual({
       id: 'file-1',
       name: 'Report.txt',
