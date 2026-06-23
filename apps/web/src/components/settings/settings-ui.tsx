@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/page';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveSettingMutationOptions } from '@/lib/queries/settings';
 import { cn } from '@/lib/utils';
 
@@ -84,6 +85,20 @@ export function SettingPage({ title, description, icon, actions, children }: Set
       </PageHeader>
       {children}
     </div>
+  );
+}
+
+type SettingsIconButtonTooltipProps = {
+  label: string;
+  children: React.ReactElement;
+};
+
+export function SettingsIconButtonTooltip({ label, children }: SettingsIconButtonTooltipProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -15,6 +15,7 @@ import {
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
   sttProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -212,7 +213,7 @@ function AutoUpdatesContent() {
   return (
     <SettingRows>
       <SettingRow label="Desktop app updates" description={statusText}>
-        <div className="flex shrink-0 items-center gap-2">
+        <ButtonGroup className="shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -234,7 +235,7 @@ function AutoUpdatesContent() {
               Restart to update
             </Button>
           ) : null}
-        </div>
+        </ButtonGroup>
       </SettingRow>
       {updater.error ? <p className="pb-2 text-xs text-destructive">{updater.error}</p> : null}
     </SettingRows>

@@ -17,6 +17,7 @@ import {
 } from '@/components/settings/providers/utils';
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   useDeleteProviderConfigMutation,
@@ -260,7 +261,7 @@ export function ProviderConfig({
             ))
           )}
 
-          <div className="flex items-center gap-2 pt-1">
+          <ButtonGroup className="pt-1">
             <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
               {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>
@@ -274,7 +275,7 @@ export function ProviderConfig({
                 {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
               </Button>
             )}
-          </div>
+          </ButtonGroup>
         </div>
       )}
     </SettingSubPage>

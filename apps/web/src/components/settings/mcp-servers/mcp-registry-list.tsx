@@ -13,6 +13,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -62,15 +63,19 @@ export function McpRegistryList({
             className="pl-7"
           />
         </div>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={() => void handleRefresh()}
-          aria-label="Refresh MCP registry"
-          disabled={refreshRegistry.isPending}
-        >
-          <RefreshCwIcon className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`} />
-        </Button>
+        <SettingsIconButtonTooltip label="Refresh MCP registry">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => void handleRefresh()}
+            aria-label="Refresh MCP registry"
+            disabled={refreshRegistry.isPending}
+          >
+            <RefreshCwIcon
+              className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`}
+            />
+          </Button>
+        </SettingsIconButtonTooltip>
         <Button size="sm" variant="outline" onClick={onAddCustom}>
           <PlusIcon className="size-4" />
           Add custom
@@ -107,22 +112,26 @@ export function McpRegistryList({
             </div>
 
             <ButtonGroup className="shrink-0">
-              <Button
-                size="icon-sm"
-                variant="outline"
-                className="text-foreground"
-                onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
-                aria-label={`Open docs for ${server.name}`}
-              >
-                <ExternalLinkIcon className="size-3.5" />
-              </Button>
-              <Button
-                size="icon-sm"
-                onClick={() => onInstall(server)}
-                aria-label={`Install ${server.name}`}
-              >
-                <ArrowDownToLineIcon className="size-3.5" />
-              </Button>
+              <SettingsIconButtonTooltip label={`Open docs`}>
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="text-foreground"
+                  onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
+                  aria-label={`Open Docs`}
+                >
+                  <ExternalLinkIcon className="size-3.5" />
+                </Button>
+              </SettingsIconButtonTooltip>
+              <SettingsIconButtonTooltip label={`Install Server`}>
+                <Button
+                  size="icon-sm"
+                  onClick={() => onInstall(server)}
+                  aria-label={`Install Server`}
+                >
+                  <ArrowDownToLineIcon className="size-3.5" />
+                </Button>
+              </SettingsIconButtonTooltip>
             </ButtonGroup>
           </div>
         ))}

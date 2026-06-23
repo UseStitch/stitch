@@ -8,9 +8,10 @@ import type { Skill } from '@stitch/shared/skills/types';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   SettingPage,
-  SettingSubPage,
   SettingSection,
+  SettingSubPage,
   SettingRows,
+  SettingsIconButtonTooltip,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -239,7 +240,7 @@ export function SkillsSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
       actions={
-        <div className="flex gap-2">
+        <ButtonGroup>
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
             <DownloadIcon className="size-4" />
             Import
@@ -248,7 +249,7 @@ export function SkillsSettings() {
             <PlusIcon className="size-4" />
             Add Skill
           </Button>
-        </div>
+        </ButtonGroup>
       }
     >
       {skills.length === 0 ? (
@@ -270,23 +271,27 @@ export function SkillsSettings() {
                   </p>
                 </div>
                 <ButtonGroup>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(skill)}
-                    aria-label={`View ${skill.name}`}
-                  >
-                    <EyeIcon className="size-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => handleDelete(skill)}
-                    disabled={deleteSkill.isPending}
-                    aria-label={`Delete ${skill.name}`}
-                  >
-                    <Trash2Icon className="size-4" />
-                  </Button>
+                  <SettingsIconButtonTooltip label={`View Skill`}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(skill)}
+                      aria-label={`View Skill`}
+                    >
+                      <EyeIcon className="size-4" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
+                  <SettingsIconButtonTooltip label={`Delete Skill`}>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDelete(skill)}
+                      disabled={deleteSkill.isPending}
+                      aria-label={`Delete Skill`}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
                 </ButtonGroup>
               </div>
             ))}

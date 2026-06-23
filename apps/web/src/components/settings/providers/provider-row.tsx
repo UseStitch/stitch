@@ -7,6 +7,7 @@ import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
+import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { useDeleteProviderConfigMutation } from '@/lib/mutations/provider-config';
 import { type ProviderSummary } from '@/lib/queries/providers';
@@ -56,17 +57,19 @@ export function ProviderRow({ provider, onSelect }: Props) {
         {provider.enabled ? (
           <>
             {provider.id === 'ollama_local' && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Manage models"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect();
-                }}
-              >
-                <Settings2Icon className="size-3.5" />
-              </Button>
+              <SettingsIconButtonTooltip label="Manage models">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Manage models"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect();
+                  }}
+                >
+                  <Settings2Icon className="size-3.5" />
+                </Button>
+              </SettingsIconButtonTooltip>
             )}
             <Button
               variant="destructive"
