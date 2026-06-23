@@ -576,7 +576,7 @@ export function RecordingsSettings() {
             </SettingRows>
           </SettingSection>
           <PermissionStatus />
-          <SettingSection title="Audio Devices" className="mt-4">
+          <SettingSection title="Audio Devices">
             <AudioDeviceSettings />
           </SettingSection>
           <SettingSection title="Analysis">

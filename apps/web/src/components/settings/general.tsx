@@ -129,11 +129,6 @@ function ModelsContent() {
           </SettingRowControl>
         </SettingRow>
       ))}
-      <SettingRow label="STT Model" description="Used for live speech-to-text in the chat input">
-        <SettingRowControl>
-          <SttModelSelect />
-        </SettingRowControl>
-      </SettingRow>
     </SettingRows>
   );
 }
@@ -148,7 +143,7 @@ export function GeneralSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
     >
-      <SettingSection title="Models">
+      <SettingSection title="Preferred LLMs">
         <ModelsContent />
       </SettingSection>
       <SettingSection title="Dictation">
@@ -263,11 +258,18 @@ function DictationContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   return (
-    <SwitchSettingRow
-      settingKey="stt.holdToTalk"
-      label="Hold to talk"
-      description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
-      checked={settings['stt.holdToTalk'] === 'true'}
-    />
+    <SettingRows>
+      <SettingRow label="STT Model" description="Used for live speech-to-text in the chat input">
+        <SettingRowControl>
+          <SttModelSelect />
+        </SettingRowControl>
+      </SettingRow>
+      <SwitchSettingRow
+        settingKey="stt.holdToTalk"
+        label="Hold to talk"
+        description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
+        checked={settings['stt.holdToTalk'] === 'true'}
+      />
+    </SettingRows>
   );
 }

@@ -12,7 +12,7 @@ export function BrowserSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
     >
-      <SettingSection>
+      <SettingSection title="App">
         <SettingRows>
           <AppEnableSetting appId="browser" label="Browser" />
         </SettingRows>
