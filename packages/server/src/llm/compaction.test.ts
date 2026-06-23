@@ -351,7 +351,9 @@ describe('buildHistoryMessages', () => {
     expect(systemMessages.length).toBeGreaterThanOrEqual(2);
     // Semi-static layer contains env and custom prompt
     expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).toContain('<user-instructions>');
     expect(systemMessages[1].content).toContain('Custom system prompt for testing');
+    expect(systemMessages[1].content).toContain('</user-instructions>');
   });
 
   test('appends custom system prompt when base prompt is enabled', () => {
@@ -378,7 +380,34 @@ describe('buildHistoryMessages', () => {
     expect(systemMessages.length).toBeGreaterThanOrEqual(2);
     // Semi-static layer contains env and user instruction
     expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).toContain('<user-instructions>');
     expect(systemMessages[1].content).toContain('Extra user instruction');
+    expect(systemMessages[1].content).toContain('</user-instructions>');
+  });
+
+  test('omits user instructions block when custom system prompt is empty', () => {
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'user',
+          isSummary: false,
+          modelId: 'openai/gpt-5.3-codex',
+          parts: [textPart('hello')],
+        },
+      ],
+      {
+        useBasePrompt: true,
+        systemPrompt: '   ',
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
+      },
+    );
+
+    const systemMessages = result.filter((m) => m.role === 'system');
+    expect(systemMessages[1].content).toContain('<env>');
+    expect(systemMessages[1].content).not.toContain('<user-instructions>');
   });
 
   test('includes user profile name in system prompt when provided', () => {

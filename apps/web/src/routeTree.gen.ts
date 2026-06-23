@@ -33,6 +33,7 @@ import { Route as SettingsGeneralRouteImport } from './routes/settings/general'
 import { Route as SettingsConnectionRouteImport } from './routes/settings/connection'
 import { Route as SettingsBrowserRouteImport } from './routes/settings/browser'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings/appearance'
+import { Route as SettingsAgentsRouteImport } from './routes/settings/agents'
 import { Route as SettingsAgendaRouteImport } from './routes/settings/agenda'
 import { Route as SessionIdRouteImport } from './routes/session.$id'
 import { Route as RecordingsIdRouteImport } from './routes/recordings/$id'
@@ -160,6 +161,11 @@ const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
   path: '/appearance',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
+const SettingsAgentsRoute = SettingsAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 const SettingsAgendaRoute = SettingsAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/settings/agenda': typeof SettingsAgendaRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/settings/agenda': typeof SettingsAgendaRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/recordings/$id': typeof RecordingsIdRoute
   '/session/$id': typeof SessionIdRoute
   '/settings/agenda': typeof SettingsAgendaRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/recordings/$id'
     | '/session/$id'
     | '/settings/agenda'
+    | '/settings/agents'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/recordings/$id'
     | '/session/$id'
     | '/settings/agenda'
+    | '/settings/agents'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/recordings/$id'
     | '/session/$id'
     | '/settings/agenda'
+    | '/settings/agents'
     | '/settings/appearance'
     | '/settings/browser'
     | '/settings/connection'
@@ -561,6 +573,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAppearanceRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
+    '/settings/agents': {
+      id: '/settings/agents'
+      path: '/agents'
+      fullPath: '/settings/agents'
+      preLoaderRoute: typeof SettingsAgentsRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
     '/settings/agenda': {
       id: '/settings/agenda'
       path: '/agenda'
@@ -651,6 +670,7 @@ const RecordingsRouteRouteWithChildren = RecordingsRouteRoute._addFileChildren(
 
 interface SettingsRouteRouteChildren {
   SettingsAgendaRoute: typeof SettingsAgendaRoute
+  SettingsAgentsRoute: typeof SettingsAgentsRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsBrowserRoute: typeof SettingsBrowserRoute
   SettingsConnectionRoute: typeof SettingsConnectionRoute
@@ -668,6 +688,7 @@ interface SettingsRouteRouteChildren {
 
 const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
   SettingsAgendaRoute: SettingsAgendaRoute,
+  SettingsAgentsRoute: SettingsAgentsRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsBrowserRoute: SettingsBrowserRoute,
   SettingsConnectionRoute: SettingsConnectionRoute,
