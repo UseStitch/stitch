@@ -1,13 +1,24 @@
-import { FileIcon, FileTextIcon, GitForkIcon } from 'lucide-react';
+import {
+  FileIcon,
+  FileTextIcon,
+  GitForkIcon,
+  ChevronsDownUpIcon,
+  ChevronsUpDownIcon,
+} from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
+import ChatMarkdown from '@/components/chat/chat-markdown.js';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
 import {
   MESSAGE_ACTION_BUTTON_CLASS,
   MessageCopyButton,
 } from '@/components/chat/message-bubble/shared-components.js';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const COLLAPSED_MAX_HEIGHT = 150;
 
 type UserMessageBubbleProps = {
   parts: StoredPart[];
@@ -27,6 +38,17 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
   );
 
   const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el) {
+      setIsOverflowing(el.scrollHeight > COLLAPSED_MAX_HEIGHT);
+    }
+  }, [text]);
 
   return (
     <div className="group relative flex justify-end">
@@ -69,9 +91,39 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
         )}
 
         {text && (
-          <p className="text-right text-sm leading-relaxed wrap-break-word whitespace-pre-wrap text-foreground">
-            {text}
-          </p>
+          <div className="relative">
+            <div
+              ref={contentRef}
+              className={cn(
+                'transition-[max-height] duration-200',
+                !isExpanded && isOverflowing && 'max-h-37.5 overflow-y-auto thin-scrollbar',
+              )}
+            >
+              <ChatMarkdown text={text} className="text-sm" />
+            </div>
+
+            {isOverflowing && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-1 h-auto gap-1 px-0 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronsDownUpIcon className="size-3" />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <ChevronsUpDownIcon className="size-3" />
+                    Show more
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
