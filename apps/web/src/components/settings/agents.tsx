@@ -15,7 +15,11 @@ export function AgentsSettings() {
   const Icon = page.icon;
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const queryClient = useQueryClient();
-  const saveMutation = useMutation(saveSettingMutationOptions(SETTING_KEY, queryClient));
+  const saveMutation = useMutation(
+    saveSettingMutationOptions(SETTING_KEY, queryClient, {
+      successMessage: 'Custom instructions saved',
+    }),
+  );
   const savedInstructions = settings[SETTING_KEY] ?? '';
   const [instructions, setInstructions] = React.useState(savedInstructions);
 

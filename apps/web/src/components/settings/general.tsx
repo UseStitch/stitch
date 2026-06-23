@@ -56,7 +56,9 @@ function SttModelSelect() {
     saveSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
   );
   const saveModelMutation = useMutation(
-    saveSettingMutationOptions('stt.default.modelId', queryClient),
+    saveSettingMutationOptions('stt.default.modelId', queryClient, {
+      successMessage: 'STT model saved',
+    }),
   );
   const deleteProviderMutation = useMutation(
     deleteSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
