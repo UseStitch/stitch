@@ -1,4 +1,3 @@
-import { ArrowLeftIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +15,7 @@ import {
   resolveDefaultAuthMethod,
   type FieldValues,
 } from '@/components/settings/providers/utils';
+import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -174,33 +174,27 @@ export function ProviderConfig({
   const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to providers">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div className="shrink-0 text-muted-foreground">
+    <SettingSubPage
+      title={meta.displayName}
+      description={provider.capabilities.join(', ')}
+      onBack={onBack}
+      backLabel="Back to providers"
+      actions={
+        <div className="flex items-center gap-3">
           <ProviderLogo
             providerId={provider.id}
             providerName={meta.displayName}
             className="size-5"
           />
+          {provider.enabled && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+              Connected
+            </span>
+          )}
         </div>
-        <div>
-          <h2 className="text-sm font-semibold">{meta.displayName}</h2>
-          <p className="text-xs text-muted-foreground capitalize">
-            {provider.capabilities.join(', ')}
-          </p>
-        </div>
-        {provider.enabled && (
-          <span className="ml-auto flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
-            Connected
-          </span>
-        )}
-      </div>
-
+      }
+    >
       {provider.id === 'ollama_local' && provider.enabled ? (
         <div className="flex flex-1 flex-col gap-5">
           <OllamaModelsPanel
@@ -283,6 +277,6 @@ export function ProviderConfig({
           </div>
         </div>
       )}
-    </div>
+    </SettingSubPage>
   );
 }

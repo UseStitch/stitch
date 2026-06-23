@@ -53,7 +53,7 @@ import {
   useSetToolEnabledState,
 } from '@/lib/queries/tools';
 
-type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp';
+type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp' | 'settings';
 type ToolsetDefaultScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
 
 const DEFAULT_TOOLSET_SCOPE = 'ttl_turns' satisfies ToolsetDefaultScope;
@@ -205,17 +205,17 @@ function ToolsContent() {
       icon={<Icon className="size-5" />}
     >
       <div className="space-y-5">
-        <ToolsetActivationSettings />
-
-        <div className="relative">
-          <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-8"
-            placeholder="Search by tool, toolset, or MCP server..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </div>
+        {scope !== 'settings' && (
+          <div className="relative">
+            <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Search by tool, toolset, or MCP server..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        )}
 
         <Tabs
           value={scope}
@@ -227,6 +227,7 @@ function ToolsContent() {
             <TabsTrigger value="native">Native toolsets</TabsTrigger>
             <TabsTrigger value="connectors">Connector tools</TabsTrigger>
             <TabsTrigger value="mcp">MCP servers</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="stitch">
@@ -360,6 +361,10 @@ function ToolsContent() {
               isMutating={isMutating}
               onEditTarget={setEditingTarget}
             />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <ToolsetActivationSettings />
           </TabsContent>
         </Tabs>
 

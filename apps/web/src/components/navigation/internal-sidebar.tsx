@@ -105,8 +105,8 @@ function Group({
   );
 }
 
-function List(props: React.ComponentProps<typeof SidebarMenu>) {
-  return <SidebarMenu {...props} />;
+function List({ className, ...props }: React.ComponentProps<typeof SidebarMenu>) {
+  return <SidebarMenu className={cn('px-1', className)} {...props} />;
 }
 
 function Item({

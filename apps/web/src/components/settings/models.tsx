@@ -6,7 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import { SettingPage } from '@/components/settings/settings-ui';
+import { SettingPage, SettingSection, SettingRows } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -31,8 +31,8 @@ type ModelRowProps = {
 
 function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-border/50 py-3 last:border-none">
-      <span className="truncate text-sm text-foreground">{modelName}</span>
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className="truncate text-sm font-medium text-foreground">{modelName}</span>
       <Switch checked={checked} onCheckedChange={onToggle} aria-label={`Toggle ${modelName}`} />
     </div>
   );
@@ -161,11 +161,8 @@ function ModelsListContent() {
       )}
 
       {filtered.map((provider) => (
-        <div key={provider.providerId}>
-          <p className="mb-1 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            {provider.providerName}
-          </p>
-          <div>
+        <SettingSection key={provider.providerId} title={provider.providerName}>
+          <SettingRows>
             {provider.models.map((model) => (
               <ModelRow
                 key={model.id}
@@ -179,8 +176,8 @@ function ModelsListContent() {
                 onToggle={(checked) => void handleToggle(provider, model.id, checked)}
               />
             ))}
-          </div>
-        </div>
+          </SettingRows>
+        </SettingSection>
       ))}
     </div>
   );

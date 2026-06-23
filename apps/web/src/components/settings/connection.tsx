@@ -115,7 +115,7 @@ function ConnectionContent() {
           </div>
         </SettingSection>
 
-        <SettingSection>
+        <SettingSection title="Connection details">
           <div>
             <Label htmlFor="remote-server-url" className="text-sm font-medium">
               Remote server URL

@@ -8,7 +8,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import { SettingPage } from '@/components/settings/settings-ui';
+import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
@@ -26,8 +26,7 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
   return (
     <div className="flex flex-col gap-6">
       {connected.length > 0 && (
-        <div className="flex flex-col">
-          <h3 className="mb-2 text-[13px] font-semibold">Connected providers</h3>
+        <SettingSection title="Connected providers" className="mt-0">
           <div className="flex flex-col">
             {connected.map((provider) => (
               <ProviderRow
@@ -37,12 +36,14 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
               />
             ))}
           </div>
-        </div>
+        </SettingSection>
       )}
 
       {unconnected.length > 0 && (
-        <div className="flex flex-col">
-          <h3 className="mb-2 text-[13px] font-semibold">Popular providers</h3>
+        <SettingSection
+          title="Popular providers"
+          className={connected.length > 0 ? 'mt-6' : 'mt-0'}
+        >
           <div className="flex flex-col">
             {unconnected.map((provider) => (
               <ProviderRow
@@ -52,7 +53,7 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
               />
             ))}
           </div>
-        </div>
+        </SettingSection>
       )}
     </div>
   );
