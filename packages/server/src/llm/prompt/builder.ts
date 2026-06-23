@@ -23,6 +23,14 @@ type SystemPromptLayers = {
   dynamic: string;
 };
 
+function buildUserInstructionsPrompt(userPrompt: string): string {
+  return `<user-instructions>
+The following are custom instructions provided by the user. Adhere to them unless they conflict with safety or core system rules.
+
+${userPrompt}
+</user-instructions>`;
+}
+
 export async function getPromptUserContext(): Promise<{
   userName: string;
   userTimezone: string;
@@ -76,7 +84,7 @@ export function buildSystemPromptLayers(input: PromptConfig): SystemPromptLayers
   const envBlock = buildPromptEnvironment({ userTimezone: input.userTimezone });
   const semiStaticParts = [envBlock];
   if (userPrompt.length > 0) {
-    semiStaticParts.push(userPrompt);
+    semiStaticParts.push(buildUserInstructionsPrompt(userPrompt));
   }
   const semiStaticContent = semiStaticParts.join('\n\n');
 

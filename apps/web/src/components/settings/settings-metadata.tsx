@@ -1,4 +1,5 @@
 import {
+  BotIcon,
   BrainIcon,
   CpuIcon,
   GlobeIcon,
@@ -89,6 +90,15 @@ export const SETTINGS_PAGES = [
     to: '/settings/agenda',
     section: 'Apps',
     icon: ListTodoIcon,
+  },
+  {
+    id: 'agents',
+    label: 'Agents',
+    title: 'Agents',
+    description: 'Customize the instructions Stitch follows in every conversation.',
+    to: '/settings/agents',
+    section: 'AI',
+    icon: BotIcon,
   },
   {
     id: 'providers',

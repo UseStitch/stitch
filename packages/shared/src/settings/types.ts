@@ -38,6 +38,7 @@ export const SETTINGS_KEYS = [
   'memory.retrieval.maxResults',
   'memory.retrieval.minScore',
   'memory.retrieval.recencyBoost',
+  'agents.customInstructions',
   'recordings.autoAnalyze',
   'recordings.inputDeviceId',
   'recordings.outputDeviceId',
@@ -94,6 +95,7 @@ export const SETTINGS_SCHEMAS = {
   'memory.retrieval.maxResults': z.coerce.number().int().min(1),
   'memory.retrieval.minScore': z.coerce.number().min(0).max(1),
   'memory.retrieval.recencyBoost': booleanSetting,
+  'agents.customInstructions': z.string().max(20_000),
   'recordings.autoAnalyze': booleanSetting,
   'recordings.inputDeviceId': z.string(),
   'recordings.outputDeviceId': z.string(),
@@ -309,6 +311,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'memory.retrieval.recencyBoost',
     value: 'true',
     description: 'Boost recently-accessed memories in ranking.',
+  },
+  {
+    key: 'agents.customInstructions',
+    value: '',
+    description:
+      'Custom Markdown instructions appended to the system prompt for every conversation.',
   },
   {
     key: 'recordings.autoAnalyze',
