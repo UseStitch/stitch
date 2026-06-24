@@ -61,8 +61,7 @@ const serverState = {
 };
 
 async function startLocalServer(): Promise<string> {
-  const port = await findAvailablePort();
-  return spawnServer(port, { STITCH_BROWSER_BRIDGE_PORT: String(browserBridgePort) });
+  return spawnServer({ STITCH_BROWSER_BRIDGE_PORT: String(browserBridgePort) });
 }
 
 async function resolveServerUrl(): Promise<string> {
