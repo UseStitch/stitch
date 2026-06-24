@@ -53,10 +53,10 @@ fn choose_input_device(
   }
 
   // Try the default input device (if it's not our tap)
-  if let Some(device) = host.default_input_device() {
-    if !device_name(&device).map_or(false, |n| crate::device::is_tap_device(&n)) {
-      return Ok(device);
-    }
+  if let Some(device) = host.default_input_device()
+    && !device_name(&device).is_some_and(|n| crate::device::is_tap_device(&n))
+  {
+    return Ok(device);
   }
 
   // Last resort: first non-tap input device
@@ -65,7 +65,7 @@ fn choose_input_device(
   })?;
 
   devices
-    .find(|d| !device_name(d).map_or(false, |n| crate::device::is_tap_device(&n)))
+    .find(|d| !device_name(d).is_some_and(|n| crate::device::is_tap_device(&n)))
     .ok_or_else(|| NativeError::DeviceNotFound("no input device available".to_string()))
 }
 
@@ -411,13 +411,7 @@ fn spawn_mic_capture(
 fn spawn_mic_source(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let desired_rate = start.sample_rate_hz;
   let requested_channels = start.channels;
   let mic_device_id = start.mic_device_id.clone();
@@ -528,10 +522,127 @@ fn drain_mixed_samples(buffer: &mut Vec<f32>, count: usize) {
   }
 }
 
+fn emit_aec_output(
+  start: &CaptureStart,
+  stop_flag: Arc<AtomicBool>,
+) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
+  let target_sample_rate_hz = start.sample_rate_hz;
+  let chunk_encoding = start
+    .audio_chunk_config
+    .as_ref()
+    .map(|c| c.encoding)
+    .unwrap_or(AudioChunkEncoding::F32Le);
+  let preferred_device = start.mic_device_id.clone();
+  let speaker_device_id = start.speaker_device_id.clone();
+
+  let (aec_rx, aec_worker) = crate::aec::spawn_aec_mic_source(
+    preferred_device.as_deref(),
+    target_sample_rate_hz,
+    stop_flag.clone(),
+  )?;
+
+  // Spawn a speaker source so the STT server receives both streams for diarization.
+  let (speaker_rx, speaker_worker) =
+    spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
+
+  let builder = thread::Builder::new().name("stitch-audio-aec-emitter".to_string());
+  builder
+    .spawn(move || {
+      let mut warnings = vec!["aec_mode_active".to_string()];
+
+      loop {
+        use std::sync::mpsc::RecvTimeoutError;
+        match aec_rx.recv_timeout(DUAL_MIXER_RECV_TIMEOUT) {
+          Ok(chunk) => {
+            emit_audio_chunk(
+              AudioChunkSource::Mic,
+              &chunk,
+              target_sample_rate_hz,
+              chunk_encoding,
+            );
+          }
+          Err(RecvTimeoutError::Disconnected) => {
+            if !stop_flag.load(Ordering::Relaxed) {
+              warnings.push("aec_source_disconnected_early".to_string());
+            }
+            break;
+          }
+          Err(RecvTimeoutError::Timeout) => {}
+        }
+
+        // Drain any additional buffered AEC mic chunks.
+        while let Ok(chunk) = aec_rx.try_recv() {
+          emit_audio_chunk(
+            AudioChunkSource::Mic,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
+        }
+
+        // Drain speaker chunks and emit them for STT diarization.
+        while let Ok(chunk) = speaker_rx.try_recv() {
+          emit_audio_chunk(
+            AudioChunkSource::Speaker,
+            &chunk,
+            target_sample_rate_hz,
+            chunk_encoding,
+          );
+        }
+
+        if stop_flag.load(Ordering::Relaxed) {
+          break;
+        }
+      }
+
+      // Drain remaining samples after stop.
+      while let Ok(chunk) = aec_rx.try_recv() {
+        emit_audio_chunk(
+          AudioChunkSource::Mic,
+          &chunk,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+      }
+      while let Ok(chunk) = speaker_rx.try_recv() {
+        emit_audio_chunk(
+          AudioChunkSource::Speaker,
+          &chunk,
+          target_sample_rate_hz,
+          chunk_encoding,
+        );
+      }
+
+      let aec_warnings = aec_worker
+        .join()
+        .map_err(|_| NativeError::Internal("AEC thread panicked".to_string()))??;
+      let speaker_warnings = speaker_worker
+        .join()
+        .map_err(|_| NativeError::Internal("speaker thread panicked".to_string()))??;
+      warnings.extend(aec_warnings);
+      warnings.extend(speaker_warnings);
+
+      Ok(warnings)
+    })
+    .map_err(|error| NativeError::Internal(format!("failed to spawn AEC emitter thread: {error}")))
+}
+
 fn emit_dual_realtime(
   start: &CaptureStart,
   stop_flag: Arc<AtomicBool>,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
+  // Try AEC first — if available, we get echo-cancelled mic audio directly from the OS.
+  match emit_aec_output(start, stop_flag.clone()) {
+    Ok(handle) => return Ok(handle),
+    Err(error) => {
+      let _ = emit(Event::Warning {
+        code: "aec_unavailable".to_string(),
+        message: format!("AEC not available, falling back to software mixing: {error}"),
+      });
+    }
+  }
+
+  // Fallback: regular dual-source mixing without AEC.
   let speaker_device_id = start.speaker_device_id.clone();
   let target_sample_rate_hz = start.sample_rate_hz;
   let speaker_gain = start.speaker_gain;

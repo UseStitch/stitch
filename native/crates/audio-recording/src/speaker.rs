@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(target_os = "windows")]
 use std::sync::mpsc::TrySendError;
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
@@ -295,13 +295,7 @@ fn spawn_macos_speaker_source(
   _speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
@@ -478,13 +472,7 @@ fn decode_speaker_frames(
 fn spawn_windows_speaker_source(
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   let (tx, rx) = mpsc::sync_channel(SPEAKER_SOURCE_QUEUE_CAPACITY);
   let builder = thread::Builder::new().name("stitch-audio-speaker-source".to_string());
 
@@ -527,7 +515,7 @@ fn spawn_windows_speaker_source(
         .unwrap_or(desired_format);
 
       let channels = accepted_format.get_nchannels() as usize;
-      let source_sample_rate_hz = accepted_format.get_samplespersec() as u32;
+      let source_sample_rate_hz = accepted_format.get_samplespersec();
       let mut resampler = StreamResampler::new(source_sample_rate_hz, target_sample_rate_hz)?;
       let sample_type = accepted_format.get_subformat().map_err(|error| {
         NativeError::StreamFailed(format!("unsupported WASAPI sample type: {error}"))
@@ -620,17 +608,12 @@ fn spawn_windows_speaker_source(
   Ok((rx, worker))
 }
 
+#[allow(clippy::needless_return)]
 pub(crate) fn spawn_speaker_source(
   speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
-) -> Result<
-  (
-    Receiver<Vec<f32>>,
-    thread::JoinHandle<Result<Vec<String>, NativeError>>,
-  ),
-  NativeError,
-> {
+) -> crate::AudioSourceResult {
   #[cfg(target_os = "macos")]
   {
     return spawn_macos_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag);
