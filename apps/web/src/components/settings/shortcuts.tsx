@@ -182,14 +182,18 @@ function ShortcutsContent() {
       if (!recordingId) return;
 
       if (BLOCKED_HOTKEYS.includes(hotkey)) {
-        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`);
+        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`, {
+          id: 'shortcut-reserved',
+        });
         setRecordingId(null);
         return;
       }
 
       if (recordingId === LEADER_KEY_RECORDING_ID) {
         if (!isValidLeaderKeyHotkey(hotkey)) {
-          toast.error('Leader key must be in the format Mod+<single letter or digit>');
+          toast.error('Leader key must be in the format Mod+<single letter or digit>', {
+            id: 'shortcut-leader-format',
+          });
           setRecordingId(null);
           return;
         }
@@ -201,6 +205,7 @@ function ShortcutsContent() {
         if (conflictEntry) {
           toast.error(
             `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Choose a different leader key.`,
+            { id: 'shortcut-leader-conflict' },
           );
           setRecordingId(null);
           return;
@@ -223,6 +228,7 @@ function ShortcutsContent() {
       if (conflictEntry) {
         toast.error(
           `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Please unassign it first.`,
+          { id: 'shortcut-conflict' },
         );
         setRecordingId(null);
         return;
@@ -234,7 +240,7 @@ function ShortcutsContent() {
     onCancel: () => setRecordingId(null),
     onClear: () => {
       if (recordingId === LEADER_KEY_RECORDING_ID) {
-        toast.error('Leader key cannot be unassigned');
+        toast.error('Leader key cannot be unassigned', { id: 'shortcut-leader-unassign' });
         setRecordingId(null);
         return;
       }

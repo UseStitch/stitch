@@ -167,7 +167,9 @@ function ToolsContent() {
       void setToolEnabledState
         .mutateAsync({ scope: kind, identifier, enabled })
         .catch((error: unknown) => {
-          toast.error(error instanceof Error ? error.message : 'Failed to update tool state');
+          toast.error(error instanceof Error ? error.message : 'Failed to update tool state', {
+            id: 'tool-state',
+          });
         });
     },
     [setToolEnabledState],

@@ -108,9 +108,11 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
     setTestingId(instanceId);
     try {
       await testMutation.mutateAsync(instanceId);
-      toast.success('Connection test successful');
+      toast.success('Connection test successful', { id: 'connector-test' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Connection test failed');
+      toast.error(e instanceof Error ? e.message : 'Connection test failed', {
+        id: 'connector-test',
+      });
     } finally {
       setTestingId(null);
     }
@@ -119,9 +121,11 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
   async function handleDelete(instanceId: string, label: string) {
     try {
       await deleteMutation.mutateAsync(instanceId);
-      toast.success(`Disconnected ${label}`);
+      toast.success(`Disconnected ${label}`, { id: 'connector-delete' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to disconnect');
+      toast.error(e instanceof Error ? e.message : 'Failed to disconnect', {
+        id: 'connector-delete',
+      });
     }
   }
 
@@ -129,9 +133,11 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
     try {
       const { authUrl } = await authorizeMutation.mutateAsync(instanceId);
       void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
-      toast.info('Opening browser for authorization...');
+      toast.info('Opening browser for authorization...', { id: 'connector-auth' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to start authorization');
+      toast.error(e instanceof Error ? e.message : 'Failed to start authorization', {
+        id: 'connector-auth',
+      });
     }
   }
 
@@ -159,13 +165,15 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         void (
           window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank')
         );
-        toast.info('Opening browser to complete connector upgrade...');
+        toast.info('Opening browser to complete connector upgrade...', { id: 'connector-upgrade' });
         return;
       }
 
-      toast.success('Connector upgraded successfully');
+      toast.success('Connector upgraded successfully', { id: 'connector-upgrade' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector');
+      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector', {
+        id: 'connector-upgrade',
+      });
     }
   }
 

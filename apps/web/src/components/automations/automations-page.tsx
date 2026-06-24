@@ -112,24 +112,28 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
       if (automationId === automationToDelete.id) {
         void navigate({ to: '/automations' });
       }
-      toast.success('Automation deleted');
+      toast.success('Automation deleted', { id: 'automation-delete' });
       setAutomationToDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete automation');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete automation', {
+        id: 'automation-delete',
+      });
     }
   };
 
   const handleRun = async (automation: Automation) => {
     try {
       const result = await runAutomation.mutateAsync(automation.id);
-      toast.success(`Started ${automation.title}`);
+      toast.success(`Started ${automation.title}`, { id: 'automation-run' });
       void navigate({
         to: '/automations/sessions/$id',
         params: { id: result.sessionId },
         viewTransition: true,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run automation');
+      toast.error(error instanceof Error ? error.message : 'Failed to run automation', {
+        id: 'automation-run',
+      });
     }
   };
 
@@ -301,7 +305,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           try {
             const created = await createAutomation.mutateAsync(input);
             closeCreateDialog();
-            toast.success('Automation created');
+            toast.success('Automation created', { id: 'automation-create' });
             if (action === 'create-view') {
               void navigate({
                 to: '/automations/$automationId',
@@ -309,7 +313,9 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
               });
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to create automation');
+            toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
+              id: 'automation-create',
+            });
           }
         }}
       />
@@ -329,9 +335,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           try {
             await updateAutomation.mutateAsync({ automationId: editingAutomation.id, input });
             closeEditDialog();
-            toast.success('Automation updated');
+            toast.success('Automation updated', { id: 'automation-update' });
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to update automation');
+            toast.error(error instanceof Error ? error.message : 'Failed to update automation', {
+              id: 'automation-update',
+            });
           }
         }}
       />

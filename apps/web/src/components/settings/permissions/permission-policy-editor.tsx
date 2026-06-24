@@ -95,7 +95,9 @@ function ToolPermissionEditor({
     void upsertPermission
       .mutateAsync({ toolName, pattern: null, permission })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
+          id: 'permission-update',
+        });
       });
   };
 
@@ -103,13 +105,17 @@ function ToolPermissionEditor({
     void upsertPermission
       .mutateAsync({ toolName, pattern: rule.pattern, permission })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
+          id: 'permission-update',
+        });
       });
   };
 
   const handleDeleteRule = (rule: ToolPermission) => {
     void deletePermission.mutateAsync(rule.id).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete rule');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete rule', {
+        id: 'permission-delete',
+      });
     });
   };
 
@@ -124,7 +130,9 @@ function ToolPermissionEditor({
         setNewPermission('ask');
       })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to add rule');
+        toast.error(error instanceof Error ? error.message : 'Failed to add rule', {
+          id: 'permission-add-rule',
+        });
       });
   };
 
@@ -244,6 +252,7 @@ function ToolPermissionEditor({
                           .catch((error: unknown) => {
                             toast.error(
                               error instanceof Error ? error.message : 'Failed to add rule',
+                              { id: 'permission-add-preset' },
                             );
                           });
                       }

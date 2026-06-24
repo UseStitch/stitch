@@ -35,11 +35,13 @@ export function RecordingEventListener() {
   React.useEffect(() => {
     const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
       const label = WARNING_LABELS[payload.code] ?? payload.message;
-      toast.warning(label);
+      toast.warning(label, { id: `recording-warning-${payload.code}` });
     });
     const unsubscribeDeviceChanged = window.api?.recording?.onDeviceChanged((payload) => {
       const deviceLabel = payload.deviceName ?? 'unknown device';
-      toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`);
+      toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`, {
+        id: 'recording-device-change',
+      });
     });
 
     return () => {
@@ -50,9 +52,9 @@ export function RecordingEventListener() {
 
   useRecordingEvents(activeRecordingId, {
     'recording-unrecoverable': ({ reason }) => {
-      toast.error(reason);
+      toast.error(reason, { id: 'recording-unrecoverable' });
       void stopRecording.mutateAsync().catch(() => {
-        toast.error('Failed to finalize the recording.');
+        toast.error('Failed to finalize the recording.', { id: 'recording-finalize-error' });
       });
     },
   });
@@ -194,11 +196,12 @@ export function MeetingRecordingBanner() {
                     .then(
                       () => {
                         requestDismissMeeting(detection.key);
-                        toast.success('Recording started');
+                        toast.success('Recording started', { id: 'meeting-recording-start-3' });
                       },
                       (error: unknown) => {
                         toast.error(
                           error instanceof Error ? error.message : 'Failed to start recording',
+                          { id: 'meeting-recording-start-3' },
                         );
                       },
                     );
@@ -221,11 +224,12 @@ export function MeetingRecordingBanner() {
                     .then(
                       () => {
                         requestDismissMeeting(detection.key);
-                        toast.success('Recording started');
+                        toast.success('Recording started', { id: 'meeting-recording-start-stt' });
                       },
                       (error: unknown) => {
                         toast.error(
                           error instanceof Error ? error.message : 'Failed to start recording',
+                          { id: 'meeting-recording-start-stt' },
                         );
                       },
                     );
@@ -256,11 +260,12 @@ export function MeetingRecordingBanner() {
                   .then(
                     () => {
                       requestDismissMeeting(detection.key);
-                      toast.success('Recording started');
+                      toast.success('Recording started', { id: 'meeting-recording-start' });
                     },
                     (error: unknown) => {
                       toast.error(
                         error instanceof Error ? error.message : 'Failed to start recording',
+                        { id: 'meeting-recording-start' },
                       );
                     },
                   );

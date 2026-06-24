@@ -119,7 +119,7 @@ export function useStt(): UseSttReturn {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       } catch {
-        toast.error('Microphone access denied');
+        toast.error('Microphone access denied', { id: 'stt-mic-denied' });
         return;
       }
       streamRef.current = stream;
@@ -147,7 +147,7 @@ export function useStt(): UseSttReturn {
         ws.onerror = () => reject(new Error('WebSocket connection failed'));
       }).catch((err: Error) => {
         cleanup();
-        toast.error(err.message);
+        toast.error(err.message, { id: 'stt-ws-error' });
         throw err;
       });
 
@@ -188,7 +188,7 @@ export function useStt(): UseSttReturn {
               stopResolveRef.current = null;
               stopRejectRef.current = null;
             } else {
-              toast.error(`STT error: ${msg.message}`);
+              toast.error(`STT error: ${msg.message}`, { id: 'stt-msg-error' });
             }
             setState('idle');
             setCommittedText('');

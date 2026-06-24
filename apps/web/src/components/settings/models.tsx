@@ -109,7 +109,9 @@ function ModelsListContent() {
         });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update model visibility');
+      toast.error(error instanceof Error ? error.message : 'Failed to update model visibility', {
+        id: 'model-visibility',
+      });
     }
   }
 
