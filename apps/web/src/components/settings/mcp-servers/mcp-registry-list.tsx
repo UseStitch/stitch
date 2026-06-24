@@ -45,9 +45,11 @@ export function McpRegistryList({
   const handleRefresh = async () => {
     try {
       await refreshRegistry.mutateAsync();
-      toast.success('MCP registry refreshed');
+      toast.success('MCP registry refreshed', { id: 'mcp-registry-refresh' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP registry');
+      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP registry', {
+        id: 'mcp-registry-refresh',
+      });
     }
   };
 

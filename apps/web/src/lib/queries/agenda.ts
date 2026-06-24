@@ -72,9 +72,9 @@ export function useCreateAgendaList() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
-      toast.success('List created');
+      toast.success('List created', { id: 'agenda-list-create' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-list-create' }),
   });
 }
 
@@ -93,9 +93,9 @@ export function useUpdateAgendaList() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
-      toast.success('List updated');
+      toast.success('List updated', { id: 'agenda-list-update' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-list-update' }),
   });
 }
 
@@ -107,9 +107,9 @@ export function useDeleteAgendaList() {
     onSuccess: () => {
       // Items are cascade-deleted, so both caches are stale
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
-      toast.success('List deleted');
+      toast.success('List deleted', { id: 'agenda-list-delete' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-list-delete' }),
   });
 }
 
@@ -134,9 +134,9 @@ export function useCreateAgendaItem() {
     onSuccess: () => {
       // New item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
-      toast.success('Item created');
+      toast.success('Item created', { id: 'agenda-item-create' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-item-create' }),
   });
 }
 
@@ -169,9 +169,9 @@ export function useUpdateAgendaItem() {
       } else {
         void queryClient.invalidateQueries({ queryKey: agendaKeys.items() });
       }
-      toast.success('Item updated');
+      toast.success('Item updated', { id: 'agenda-item-update' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-item-update' }),
   });
 }
 
@@ -183,9 +183,9 @@ export function useDeleteAgendaItem() {
     onSuccess: () => {
       // Deleted item changes both item list and list counts
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
-      toast.success('Item deleted');
+      toast.success('Item deleted', { id: 'agenda-item-delete' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-item-delete' }),
   });
 }
 
@@ -201,9 +201,9 @@ export function useMergeAgendaLists() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
-      toast.success('Lists merged');
+      toast.success('Lists merged', { id: 'agenda-lists-merge' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-lists-merge' }),
   });
 }
 
@@ -220,7 +220,7 @@ export function useReorderAgendaItems() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.items() });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-items-reorder' }),
   });
 }
 
@@ -237,6 +237,6 @@ export function useReorderAgendaLists() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: agendaKeys.lists() });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'agenda-lists-reorder' }),
   });
 }

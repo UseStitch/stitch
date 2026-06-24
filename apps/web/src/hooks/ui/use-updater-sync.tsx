@@ -32,15 +32,19 @@ export function UpdaterSync() {
       if (payload.status === previousStatus.current) return;
 
       if (payload.status === 'available') {
-        toast.info(`Update available${payload.version ? `: v${payload.version}` : ''}`);
+        toast.info(`Update available${payload.version ? `: v${payload.version}` : ''}`, {
+          id: 'update-available',
+        });
       }
 
       if (payload.status === 'downloaded') {
-        toast.success('Update ready. Open Settings > General to restart and install.');
+        toast.success('Update ready. Open Settings > General to restart and install.', {
+          id: 'update-ready',
+        });
       }
 
       if (payload.status === 'error') {
-        toast.error(payload.error ?? 'Failed to check for updates');
+        toast.error(payload.error ?? 'Failed to check for updates', { id: 'update-error' });
       }
 
       previousStatus.current = payload.status;

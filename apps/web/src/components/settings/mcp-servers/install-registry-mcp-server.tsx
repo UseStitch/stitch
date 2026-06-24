@@ -86,15 +86,15 @@ export function InstallRegistryMcpServer({
     const url = form.url.trim();
 
     if (!name) {
-      toast.error('Name is required');
+      toast.error('Name is required', { id: 'mcp-install-name' });
       return;
     }
     if (!url) {
-      toast.error('URL is required');
+      toast.error('URL is required', { id: 'mcp-install-url' });
       return;
     }
     if (form.authType === 'api_key' && !form.apiKey.trim()) {
-      toast.error('API key is required');
+      toast.error('API key is required', { id: 'mcp-install-apikey' });
       return;
     }
 
@@ -107,13 +107,17 @@ export function InstallRegistryMcpServer({
       });
       if (form.authType === 'oauth') {
         await startAuth.mutateAsync(id);
-        toast.success('Authorization started — complete it in your browser');
+        toast.success('Authorization started — complete it in your browser', {
+          id: 'mcp-install-auth',
+        });
       } else {
-        toast.success(`${server.name} installed`);
+        toast.success(`${server.name} installed`, { id: 'mcp-install-success' });
       }
       onInstalled();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server', {
+        id: 'mcp-install-error',
+      });
     }
   };
 

@@ -30,9 +30,10 @@ export function saveSettingMutationOptions(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      if (!options?.silent) toast.success(options?.successMessage ?? 'Setting Saved');
+      if (!options?.silent)
+        toast.success(options?.successMessage ?? 'Setting Saved', { id: `setting-save-${key}` });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message, { id: `setting-save-${key}` }),
   };
 }
 
@@ -49,8 +50,9 @@ export function deleteSettingMutationOptions(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      if (!options?.silent) toast.success(options?.successMessage ?? 'Setting Reset');
+      if (!options?.silent)
+        toast.success(options?.successMessage ?? 'Setting Reset', { id: `setting-delete-${key}` });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message, { id: `setting-delete-${key}` }),
   };
 }

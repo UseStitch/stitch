@@ -42,18 +42,22 @@ export function McpServerList({
   const handleDelete = async (server: McpServer) => {
     try {
       await deleteServer.mutateAsync(server.id);
-      toast.success(`${server.name} removed`);
+      toast.success(`${server.name} removed`, { id: 'mcp-server-delete' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server', {
+        id: 'mcp-server-delete',
+      });
     }
   };
 
   const handleRefresh = async () => {
     try {
       await refreshServers.mutateAsync();
-      toast.success('MCP servers refreshed');
+      toast.success('MCP servers refreshed', { id: 'mcp-server-refresh' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers');
+      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers', {
+        id: 'mcp-server-refresh',
+      });
     }
   };
 
@@ -61,16 +65,20 @@ export function McpServerList({
     try {
       await startAuth.mutateAsync(server.id);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to start authorization');
+      toast.error(error instanceof Error ? error.message : 'Failed to start authorization', {
+        id: 'mcp-server-auth',
+      });
     }
   };
 
   const handleLogout = async (server: McpServer) => {
     try {
       await logout.mutateAsync(server.id);
-      toast.success(`${server.name} disconnected`);
+      toast.success(`${server.name} disconnected`, { id: 'mcp-server-logout' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect');
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect', {
+        id: 'mcp-server-logout',
+      });
     }
   };
 

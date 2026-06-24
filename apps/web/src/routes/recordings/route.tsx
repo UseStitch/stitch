@@ -10,7 +10,9 @@ export const Route = createFileRoute('/recordings')({
     const recordingsEnabled =
       appStates.find((state) => state.appId === 'recordings')?.enabled ?? true;
     if (!recordingsEnabled) {
-      toast.warning('Recordings is disabled. Enable it in Settings > Recordings.');
+      toast.warning('Recordings is disabled. Enable it in Settings > Recordings.', {
+        id: 'recordings-disabled',
+      });
       throw redirect({ to: '/' });
     }
   },

@@ -52,9 +52,9 @@ export function useCreateSkill() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
-      toast.success('Skill created');
+      toast.success('Skill created', { id: 'skill-create' });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message, { id: 'skill-create' }),
   });
 }
 
@@ -69,9 +69,9 @@ export function useUpdateSkill() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
-      toast.success('Skill saved');
+      toast.success('Skill saved', { id: 'skill-update' });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message, { id: 'skill-update' }),
   });
 }
 
@@ -82,9 +82,9 @@ export function useDeleteSkill() {
       serverRequest<void>(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
-      toast.success('Skill deleted');
+      toast.success('Skill deleted', { id: 'skill-delete' });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message, { id: 'skill-delete' }),
   });
 }
 
@@ -99,8 +99,8 @@ export function useImportSkill() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
-      toast.success('Skill imported');
+      toast.success('Skill imported', { id: 'skill-import' });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(error.message, { id: 'skill-import' }),
   });
 }

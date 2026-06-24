@@ -375,10 +375,12 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
       setShowAddForm(false);
       setEditingId(null);
-      toast.success('Model saved');
+      toast.success('Model saved', { id: 'ollama-model-save' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save model');
+      toast.error(error instanceof Error ? error.message : 'Failed to save model', {
+        id: 'ollama-model-save',
+      });
     },
   });
 
@@ -391,10 +393,12 @@ export function OllamaModelsPanel({ baseURL }: Props) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
-      toast.success('Model deleted');
+      toast.success('Model deleted', { id: 'ollama-model-delete' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete model');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete model', {
+        id: 'ollama-model-delete',
+      });
     },
   });
 
@@ -403,6 +407,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
     if (result.isError) {
       toast.error(
         result.error instanceof Error ? result.error.message : 'Failed to connect to Ollama',
+        { id: 'ollama-discover' },
       );
     }
   }

@@ -108,9 +108,9 @@ export function updateMemoryMutationOptions(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Memory updated');
+      toast.success('Memory updated', { id: 'memory-update' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-update' }),
   };
 }
 
@@ -127,7 +127,7 @@ export function pinMemoryMutationOptions(
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-pin' }),
   };
 }
 
@@ -138,9 +138,9 @@ export function pruneMemoriesMutationOptions(
     mutationFn: () => serverRequest<void>('/memory/prune', { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Stale memories pruned');
+      toast.success('Stale memories pruned', { id: 'memory-prune' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-prune' }),
   };
 }
 
@@ -151,9 +151,9 @@ export function deleteMemoryMutationOptions(
     mutationFn: (id) => serverRequest<void>(`/memory/semantic/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Memory deleted');
+      toast.success('Memory deleted', { id: 'memory-delete' });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-delete' }),
   };
 }
 
@@ -169,9 +169,11 @@ export function bulkDeleteMemoriesMutationOptions(
       }),
     onSuccess: (_, ids) => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`);
+      toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`, {
+        id: 'memory-bulk-delete',
+      });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-bulk-delete' }),
   };
 }
 
@@ -195,9 +197,10 @@ export function runMaintenanceMutationOptions(
         parts.length > 0
           ? `Maintenance complete: ${parts.join(', ')}`
           : 'Maintenance complete — nothing to clean up',
+        { id: 'memory-maintenance' },
       );
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-maintenance' }),
   };
 }
 
@@ -209,6 +212,6 @@ export function resetMemoriesMutationOptions(
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toast.error(err.message, { id: 'memory-reset' }),
   };
 }

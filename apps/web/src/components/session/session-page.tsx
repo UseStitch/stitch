@@ -190,7 +190,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             const created = await createAutomation.mutateAsync(input);
             setAutomationDialogOpen(false);
             setGeneratedDraft(null);
-            toast.success('Automation created');
+            toast.success('Automation created', { id: 'session-automation-create' });
             if (action === 'create-view') {
               void navigate({
                 to: '/automations/$automationId',
@@ -198,7 +198,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
               });
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to create automation');
+            toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
+              id: 'session-automation-create',
+            });
           }
         }}
       />

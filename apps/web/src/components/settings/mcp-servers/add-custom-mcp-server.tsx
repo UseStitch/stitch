@@ -35,15 +35,15 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
     const url = form.url.trim();
 
     if (!name) {
-      toast.error('Name is required');
+      toast.error('Name is required', { id: 'mcp-add-name' });
       return;
     }
     if (!url) {
-      toast.error('URL is required');
+      toast.error('URL is required', { id: 'mcp-add-url' });
       return;
     }
     if (form.authType === 'api_key' && !form.apiKey.trim()) {
-      toast.error('API key is required');
+      toast.error('API key is required', { id: 'mcp-add-apikey' });
       return;
     }
 
@@ -56,13 +56,17 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
       });
       if (form.authType === 'oauth') {
         await startAuth.mutateAsync(id);
-        toast.success('Authorization started — complete it in your browser');
+        toast.success('Authorization started — complete it in your browser', {
+          id: 'mcp-add-auth',
+        });
       } else {
-        toast.success('MCP server added');
+        toast.success('MCP server added', { id: 'mcp-add-success' });
       }
       onBack();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server', {
+        id: 'mcp-add-error',
+      });
     }
   };
 
