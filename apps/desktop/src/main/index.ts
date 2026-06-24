@@ -26,7 +26,6 @@ import {
 import { configureRecordingCaptureEnv, stopRecordingCapture } from './recording-capture.js';
 import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
 import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
-import { resetTccPermissionsIfVersionChanged } from './tcc-permissions.js';
 import { destroyTray, initTray } from './tray.js';
 import { createUpdater } from './updater.js';
 import { createWindow } from './window.js';
@@ -178,8 +177,6 @@ void app.whenReady().then(async () => {
 
     serverState.serverUrl = await resolveServerUrl();
 
-    const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
-
     mainWindow = await spawnMainWindow();
     startMeetingDetection(
       () => mainWindow,
@@ -196,17 +193,6 @@ void app.whenReady().then(async () => {
         dismissDesktopNotification(`meeting:${payload.key}`);
       },
     );
-
-    if (permissionsWereReset) {
-      void dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Permissions Required',
-        message: 'Stitch was updated and needs audio permissions re-granted.',
-        detail:
-          'When you start a recording, you will be prompted to grant microphone access. You may also need to enable Stitch under "System Audio Recording Only" in System Settings > Privacy & Security.',
-        buttons: ['OK'],
-      });
-    }
 
     updater.init();
     setTimeout(() => void updater.checkForUpdates(), 15_000);
