@@ -29,6 +29,7 @@ import {
 } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
+import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
 
@@ -550,10 +551,7 @@ export async function getSessionStats(
   const db = getDb();
 
   const getMessageTokens = (usage: (typeof messages.$inferSelect)['usage']): number =>
-    usage?.totalTokens ??
-    (usage?.inputTokens ?? 0) +
-      (usage?.outputTokens ?? 0) +
-      (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+    normalizeUsage(usage).totalTokens;
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) {
@@ -603,34 +601,15 @@ export async function getSessionStats(
     const msg = sessionMessages[i];
     if (!msg || msg.role !== 'assistant') continue;
     if (msg.parts?.some((p) => p.type === 'session-title')) continue;
-    const usage = msg.usage;
-    const tokenSum =
-      usage?.totalTokens ??
-      (usage?.inputTokens ?? 0) +
-        (usage?.outputTokens ?? 0) +
-        (usage?.outputTokenDetails?.reasoningTokens ?? 0);
+    const tokenSum = normalizeUsage(msg.usage).totalTokens;
     if (tokenSum > 0) {
       latestAssistantWithTokens = msg;
       break;
     }
   }
 
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let reasoningTokens = 0;
-  let cacheReadTokens = 0;
-  let cacheWriteTokens = 0;
-
-  if (latestAssistantWithTokens) {
-    const usage = latestAssistantWithTokens.usage;
-    inputTokens = usage?.inputTokens ?? 0;
-    outputTokens = usage?.outputTokens ?? 0;
-    cacheReadTokens = usage?.inputTokenDetails?.cacheReadTokens ?? 0;
-    cacheWriteTokens = usage?.inputTokenDetails?.cacheWriteTokens ?? 0;
-    reasoningTokens = usage?.outputTokenDetails?.reasoningTokens ?? 0;
-  }
-
-  const totalTokens = latestAssistantWithTokens?.usage?.totalTokens ?? inputTokens + outputTokens;
+  const latestUsage = normalizeUsage(latestAssistantWithTokens?.usage);
+  const totalTokens = latestUsage.totalTokens;
 
   // Resolve provider/model labels and context limit
   const latestMessage =
@@ -675,11 +654,11 @@ export async function getSessionStats(
     totalTokens,
     currentSessionTokens,
     childSessionsTokens,
-    inputTokens,
-    outputTokens,
-    reasoningTokens,
-    cacheReadTokens,
-    cacheWriteTokens,
+    inputTokens: latestUsage.inputTokens,
+    outputTokens: latestUsage.outputTokens,
+    reasoningTokens: latestUsage.reasoningTokens,
+    cacheReadTokens: latestUsage.cacheReadTokens,
+    cacheWriteTokens: latestUsage.cacheWriteTokens,
     userMessageCount,
     assistantMessageCount,
     totalCostUsd: currentSessionCostUsd + childSessionsCostUsd,

@@ -26,6 +26,7 @@ import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
+import { normalizeUsage } from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'compaction' });
@@ -65,12 +66,7 @@ export function isOverflow(
 ): boolean {
   if (limits.context === 0) return false;
 
-  const count =
-    usage.totalTokens ??
-    (usage.inputTokens ?? 0) +
-      (usage.outputTokens ?? 0) +
-      (usage.inputTokenDetails?.cacheReadTokens ?? 0) +
-      (usage.inputTokenDetails?.cacheWriteTokens ?? 0);
+  const count = normalizeUsage(usage).totalTokens;
 
   const maxOutput = Math.min(limits.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX;
   const reserved = settings?.reserved ?? Math.min(COMPACTION_BUFFER, maxOutput);
