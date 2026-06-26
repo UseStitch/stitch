@@ -47,6 +47,7 @@ const isDesktopNotificationWindow = window.location.hash.startsWith('#/desktop-n
 if (isDesktopNotificationWindow) {
   injectThemeCss(getTheme(DEFAULT_THEME));
   applyAppearanceMode(DEFAULT_MODE);
+  document.getElementById('stitch-splash')?.remove();
 }
 
 ReactDOM.createRoot(rootElement).render(
