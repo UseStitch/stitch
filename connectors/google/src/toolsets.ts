@@ -19,6 +19,7 @@ import {
   hasServiceAccess,
   hasWriteAccess,
 } from './scopes.js';
+import { wrapGoogleToolErrors } from './tool-error.js';
 
 import type { GoogleClient } from './client.js';
 import type { Tool } from 'ai';
@@ -162,7 +163,8 @@ function createGmailToolset(
       'Do not add SPAM and TRASH in the same gmail_modify_messages call. Apply those actions in separate steps if needed.',
     ].join('\n'),
     tools: () => summarizeTools(createGmailTools(SUMMARY_RESOLVER, permissions, config)),
-    activate: (resolveClient) => createGmailTools(resolveClient, permissions, config),
+    activate: (resolveClient) =>
+      wrapGoogleToolErrors(createGmailTools(resolveClient, permissions, config)),
   };
 }
 
@@ -188,7 +190,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
         : 'You have read-only access. Creating files is not available.',
     ].join('\n'),
     tools: () => summarizeTools(createDriveTools(SUMMARY_RESOLVER, canWrite)),
-    activate: (resolveClient) => createDriveTools(resolveClient, canWrite),
+    activate: (resolveClient) => wrapGoogleToolErrors(createDriveTools(resolveClient, canWrite)),
   };
 }
 
@@ -215,7 +217,7 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
         : 'You have read-only access. Creating, updating, and deleting events is not available.',
     ].join('\n'),
     tools: () => summarizeTools(createCalendarTools(SUMMARY_RESOLVER, canWrite)),
-    activate: (resolveClient) => createCalendarTools(resolveClient, canWrite),
+    activate: (resolveClient) => wrapGoogleToolErrors(createCalendarTools(resolveClient, canWrite)),
   };
 }
 
@@ -239,7 +241,7 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
         : 'You have read-only access. Creating and updating docs is not available.',
     ].join('\n'),
     tools: () => summarizeTools(createDocsTools(SUMMARY_RESOLVER, canWrite)),
-    activate: (resolveClient) => createDocsTools(resolveClient, canWrite),
+    activate: (resolveClient) => wrapGoogleToolErrors(createDocsTools(resolveClient, canWrite)),
   };
 }
 
