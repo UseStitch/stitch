@@ -1,3 +1,4 @@
+import { AppearanceStep } from './steps/appearance-step';
 import { AppsStep } from './steps/apps-step';
 import { MemoryStep } from './steps/memory-step';
 import { ProfileStep } from './steps/profile-step';
@@ -34,6 +35,10 @@ export function OnboardingDialog() {
               isSaving={state.isSavingProfile}
               onContinue={state.saveProfileAndAdvance}
             />
+          )}
+
+          {state.step === 'appearance' && (
+            <AppearanceStep onContinue={() => state.goToStep('apps')} />
           )}
 
           {state.step === 'apps' && (
