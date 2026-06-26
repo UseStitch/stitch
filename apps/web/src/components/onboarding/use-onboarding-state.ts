@@ -5,7 +5,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type OnboardingStep = 'welcome' | 'profile' | 'apps' | 'provider' | 'memory' | 'success';
+type OnboardingStep =
+  | 'welcome'
+  | 'profile'
+  | 'appearance'
+  | 'apps'
+  | 'provider'
+  | 'memory'
+  | 'success';
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
 const CURRENT_ONBOARDING_VERSION = '4';
@@ -71,7 +78,7 @@ export function useOnboardingState(): OnboardingState {
   function saveProfileAndAdvance(name: string, timezone: string) {
     void Promise.all([saveProfileName.mutateAsync(name), saveProfileTimezone.mutateAsync(timezone)])
       .then(() => {
-        setStep('apps');
+        setStep('appearance');
         return undefined;
       })
       .catch(() => undefined);

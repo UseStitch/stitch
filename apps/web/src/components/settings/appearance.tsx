@@ -17,6 +17,19 @@ const MODE_LABELS: Record<AppearanceMode, string> = {
 export function AppearanceSettings() {
   const page = SETTINGS_PAGE_BY_ID.appearance;
   const Icon = page.icon;
+
+  return (
+    <SettingPage
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
+    >
+      <AppearanceSelector />
+    </SettingPage>
+  );
+}
+
+export function AppearanceSelector() {
   const { mode, themeName, setMode, setTheme } = useTheme();
 
   const effectiveMode =
@@ -27,11 +40,7 @@ export function AppearanceSettings() {
       : mode;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <>
       <SettingSection title="Mode">
         <div className="flex gap-2">
           {APPEARANCE_MODES.map((m) => (
@@ -52,7 +61,7 @@ export function AppearanceSettings() {
       </SettingSection>
 
       <SettingSection title="Theme">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {THEMES.map((t) => (
             <button
               key={t.name}
@@ -70,7 +79,7 @@ export function AppearanceSettings() {
           ))}
         </div>
       </SettingSection>
-    </SettingPage>
+    </>
   );
 }
 
