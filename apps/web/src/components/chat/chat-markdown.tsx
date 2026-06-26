@@ -17,6 +17,7 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import MermaidDiagram from '@/components/chat/mermaid-diagram';
 import {
   getHighlighterPromise,
   type SupportedLanguage,
@@ -169,10 +170,13 @@ function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiC
   );
 }
 
-function extractFenceLanguage(className: string | undefined): string {
+function extractRawFenceLanguage(className: string | undefined): string {
   const match = className?.match(/(?:^|\s)language-([^\s]+)/);
-  const raw = match?.[1] ?? 'text';
-  return normalizeLanguage(raw);
+  return (match?.[1] ?? 'text').toLowerCase();
+}
+
+function extractFenceLanguage(className: string | undefined): string {
+  return normalizeLanguage(extractRawFenceLanguage(className));
 }
 
 function nodeToPlainText(node: React.ReactNode): string {
@@ -260,6 +264,16 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
         const codeBlock = extractCodeBlock(children);
         if (!codeBlock) {
           return <pre {...props}>{children}</pre>;
+        }
+
+        if (extractRawFenceLanguage(codeBlock.className) === 'mermaid') {
+          return (
+            <MermaidDiagram
+              code={codeBlock.code}
+              isStreaming={isStreaming}
+              fallback={<pre {...props}>{children}</pre>}
+            />
+          );
         }
 
         // During streaming: skip Shiki (expensive async highlighting) — plain pre

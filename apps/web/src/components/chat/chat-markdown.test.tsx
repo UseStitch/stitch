@@ -19,4 +19,17 @@ describe('ChatMarkdown', () => {
 
     expect(html).toContain('katex');
   });
+
+  test('routes mermaid fenced blocks to the mermaid container', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'```mermaid\ngraph TD\n  A-->B\n```'} />);
+
+    expect(html).toContain('chat-mermaid');
+    expect(html).toContain('A--&gt;B');
+  });
+
+  test('does not route non-mermaid code blocks to the mermaid container', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'```js\nconst a = 1;\n```'} />);
+
+    expect(html).not.toContain('chat-mermaid');
+  });
 });
