@@ -158,6 +158,12 @@ export const googleConnectorModule: ConnectorModule = {
         access_type: 'offline',
         prompt: 'consent',
       },
+      incrementalAuth: {
+        enabled: true,
+        params: {
+          include_granted_scopes: 'true',
+        },
+      },
     },
     setupInstructions: [
       {

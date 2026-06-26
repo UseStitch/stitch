@@ -183,6 +183,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         const def = getDefinition(instance.connectorId);
         const statusConfig = getStatusPresentation(instance);
         const isTesting = testingId === instance.id;
+        const canReauthorize = def?.authType === 'oauth2';
 
         return (
           <div
@@ -244,17 +245,31 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   Upgrade
                 </Button>
               )}
-              {(instance.status === 'awaiting_auth' || instance.status === 'error') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReauthorize(instance.id)}
-                  disabled={authorizeMutation.isPending}
-                >
-                  <ExternalLinkIcon className="size-3.5" />
-                  {statusConfig.actionLabel}
-                </Button>
-              )}
+              {canReauthorize &&
+                (instance.status === 'awaiting_auth' || instance.status === 'error') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReauthorize(instance.id)}
+                    disabled={authorizeMutation.isPending}
+                  >
+                    <ExternalLinkIcon className="size-3.5" />
+                    {statusConfig.actionLabel}
+                  </Button>
+                )}
+              {canReauthorize &&
+                instance.status === 'connected' &&
+                !instance.upgrade?.available && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReauthorize(instance.id)}
+                    disabled={authorizeMutation.isPending}
+                  >
+                    <ExternalLinkIcon className="size-3.5" />
+                    Reauthorize
+                  </Button>
+                )}
               <Button
                 variant="ghost"
                 size="icon-sm"
