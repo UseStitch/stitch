@@ -4,7 +4,7 @@ import {
   compactConversationForStep,
   compactToolResultOutput,
   getToolResultBudget,
-} from '@/llm/conversation-compactor.js';
+} from '@/llm/context-budget.js';
 import type { ModelMessage } from 'ai';
 
 describe('conversation compactor', () => {

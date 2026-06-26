@@ -2,9 +2,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
-import { buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
 import { PromptComposer } from '@/llm/prompt/composer.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
+import { buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
 import {
   getCurrentSessionToolsetState,
   getSessionToolsetState,
