@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { serializeBrowserSnapshot } from '@/tools/toolsets/browser-snapshot-serializer.js';
+import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 
 describe('browser snapshot serializer', () => {
   test('keeps metadata and refs while enforcing a hard character budget', () => {

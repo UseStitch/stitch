@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
-import { browserPrunePolicy } from '@/tools/toolsets/browser-prune-policy.js';
+import { browserPrunePolicy } from '@/tools/toolsets/browser/prune-policy.js';
 
 function toolResult(toolName: string): StoredPart {
   return {
