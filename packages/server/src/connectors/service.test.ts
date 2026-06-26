@@ -134,14 +134,23 @@ describe('connector service', () => {
       accountInfo: null,
     });
 
-    const fakeStartOAuthFlow = async () => ({
-      authUrl: 'https://example.com/authorize',
-      waitForTokens: async () => ({
-        accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
-        expiresIn: 3600,
-      }),
-    });
+    let requestedScopes: string[] = [];
+    const fakeStartOAuthFlow = async (
+      _config: unknown,
+      _id: string,
+      _secret: string,
+      scopes: string[],
+    ) => {
+      requestedScopes = scopes;
+      return {
+        authUrl: 'https://example.com/authorize',
+        waitForTokens: async () => ({
+          accessToken: 'new-access-token',
+          refreshToken: 'new-refresh-token',
+          expiresIn: 3600,
+        }),
+      };
+    };
 
     const result = await upgradeConnectorInstance(
       instanceId,
@@ -167,6 +176,83 @@ describe('connector service', () => {
     // After token exchange the instance should be connected with the new key and merged scopes
     expect(row?.apiKey).toBe('new-key');
     expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
+    expect(requestedScopes).toEqual(['scope:read', 'scope:admin']);
+  });
+
+  test('upgrade uses only missing scopes for incremental oauth connectors', async () => {
+    const definition = oauthDefinition({
+      authConfig: {
+        authUrl: 'https://example.com/auth',
+        tokenUrl: 'https://example.com/token',
+        defaultScopes: ['scope:read'],
+        scopeDescriptions: { 'scope:read': 'Read', 'scope:admin': 'Admin' },
+        incrementalAuth: {
+          enabled: true,
+          params: { include_granted_scopes: 'true' },
+        },
+      },
+    });
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_test_incremental' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example',
+      appliedVersion: 2,
+      capabilities: ['example.read', 'example.write'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+      accessToken: 'token',
+      refreshToken: 'refresh',
+      tokenExpiresAt: Date.now() + 60_000,
+      scopes: ['scope:read'],
+      status: 'connected',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    let requestedScopes: string[] = [];
+    let requestedParams: Record<string, string> | undefined;
+    const fakeStartOAuthFlow = async (
+      _config: unknown,
+      _id: string,
+      _secret: string,
+      scopes: string[],
+      options?: { additionalParams?: Record<string, string> },
+    ) => {
+      requestedScopes = scopes;
+      requestedParams = options?.additionalParams;
+      return {
+        authUrl: 'https://example.com/authorize',
+        waitForTokens: async () => ({
+          accessToken: 'new-access-token',
+          refreshToken: 'new-refresh-token',
+          expiresIn: 3600,
+        }),
+      };
+    };
+
+    const result = await upgradeConnectorInstance(
+      instanceId,
+      {},
+      { startOAuthFlow: fakeStartOAuthFlow },
+    );
+
+    expect(result.error).toBeNull();
+    expect(requestedScopes).toEqual(['scope:admin']);
+    expect(requestedParams).toEqual({ include_granted_scopes: 'true' });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const [row] = await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId));
+    expect(row?.scopes).toEqual(['scope:read', 'scope:admin']);
   });
 
   test('disabled connectors cannot be created', async () => {
@@ -324,6 +410,70 @@ describe('connector service', () => {
     expect(row?.appliedVersion).toBe(definition.currentVersion);
     expect(row?.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
     expect(typeof row?.tokenExpiresAt).toBe('number');
+  });
+
+  test('authorizeOAuthInstance uses default scopes for connected incremental oauth reauth', async () => {
+    const definition = oauthDefinition({
+      authConfig: {
+        authUrl: 'https://example.com/auth',
+        tokenUrl: 'https://example.com/token',
+        defaultScopes: ['scope:read'],
+        scopeDescriptions: { 'scope:read': 'Read', 'scope:docs': 'Docs' },
+        incrementalAuth: {
+          enabled: true,
+          params: { include_granted_scopes: 'true' },
+        },
+      },
+    });
+    registerConnector(definition);
+
+    const db = getDb();
+    const instanceId = 'conn_auth_incremental_reauth' as never;
+    await db.insert(connectorInstances).values({
+      id: instanceId,
+      connectorId: definition.id,
+      label: 'Example OAuth',
+      appliedVersion: definition.currentVersion,
+      capabilities: ['example.read', 'example.write', 'example.admin'],
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+      accessToken: 'old-access-token',
+      refreshToken: 'existing-refresh-token',
+      tokenExpiresAt: Date.now() - 1_000,
+      scopes: ['scope:read', 'scope:docs'],
+      status: 'connected',
+      authIssue: null,
+      accountEmail: null,
+      accountInfo: null,
+    });
+
+    let requestedScopes: string[] = [];
+    let requestedParams: Record<string, string> | undefined;
+    const fakeStartOAuthFlow = async (
+      _config: unknown,
+      _id: string,
+      _secret: string,
+      scopes: string[],
+      options?: { additionalParams?: Record<string, string> },
+    ) => {
+      requestedScopes = scopes;
+      requestedParams = options?.additionalParams;
+      return {
+        authUrl: 'https://example.com/authorize',
+        waitForTokens: async () => ({
+          accessToken: 'new-access-token',
+          refreshToken: null,
+          expiresIn: 3600,
+        }),
+      };
+    };
+
+    const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
+
+    expect(result.error).toBeNull();
+    expect(requestedScopes).toEqual(['scope:read']);
+    expect(requestedParams).toEqual({ include_granted_scopes: 'true' });
   });
 
   test('authorizeOAuthInstance preserves existing refresh token when provider omits one', async () => {

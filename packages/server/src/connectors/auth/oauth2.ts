@@ -109,6 +109,7 @@ export async function startOAuthFlow(
   clientId: string,
   clientSecret: string,
   scopes: string[],
+  options?: { additionalParams?: Record<string, string> },
 ): Promise<{ authUrl: string; waitForTokens: () => Promise<OAuthTokens> }> {
   const port = await findFreePort();
   const redirectUri = `http://127.0.0.1:${port}/callback`;
@@ -125,6 +126,7 @@ export async function startOAuthFlow(
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     ...config.additionalParams,
+    ...options?.additionalParams,
   });
 
   const authUrl = `${config.authUrl}?${authParams.toString()}`;
