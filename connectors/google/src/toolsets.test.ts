@@ -43,18 +43,17 @@ describe('buildGoogleToolsets', () => {
     expect(toolNames(sendOnly)).not.toContain('gmail_modify_messages');
 
     expect(toolNames(modify)).toEqual(
-      expect.arrayContaining([
-        'gmail_send',
-        'gmail_modify_labels',
-        'gmail_modify_messages',
-        'gmail_filters',
-      ]),
+      expect.arrayContaining(['gmail_send', 'gmail_modify_labels', 'gmail_modify_messages']),
     );
+    expect(toolNames(modify)).not.toContain('gmail_filters');
   });
 
   test('exposes gmail_filters with gmail.settings.basic scope but not modify tools', () => {
     const settingsOnly = buildGoogleToolsets({
-      scopes: ['https://www.googleapis.com/auth/gmail.settings.basic'],
+      scopes: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.settings.basic',
+      ],
       capabilities: ['google.gmail.read', 'google.gmail.write'],
     }).find((toolset) => toolset.id === 'google-gmail');
 

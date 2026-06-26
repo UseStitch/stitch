@@ -29,7 +29,6 @@ const GMAIL_SCOPES = [
   GOOGLE_SCOPE_GMAIL_READONLY,
   GOOGLE_SCOPE_GMAIL_SEND,
   GOOGLE_SCOPE_GMAIL_MODIFY,
-  GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC,
 ] as const;
 
 const DRIVE_SCOPES = [
@@ -104,7 +103,5 @@ export function hasGmailModifyAccess(grantedScopes: string[]): boolean {
 
 /** Check if granted scopes can manage Gmail settings (filters, etc.). */
 export function hasGmailSettingsAccess(grantedScopes: string[]): boolean {
-  return grantedScopes.some(
-    (s) => s === GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC || s === GOOGLE_SCOPE_GMAIL_MODIFY,
-  );
+  return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC);
 }
