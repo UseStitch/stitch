@@ -32,7 +32,7 @@ const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
   minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 4,
 });
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -53,63 +53,55 @@ function formatDate(value: number | null | undefined) {
   return DATE_TIME_FORMATTER.format(new Date(value));
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-[13px] text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground [font-variant-numeric:tabular-nums]">
-        {value}
-      </p>
-    </div>
-  );
+function formatTokenRatio(tokens: number, limit: number | null) {
+  if (!limit) return `${formatNumber(tokens)} tokens`;
+  return `${formatNumber(tokens)} / ${formatNumber(limit)} tokens`;
 }
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
+function parsePercent(value: string) {
+  const percent = Number.parseInt(value.replace('%', ''), 10);
+  if (Number.isNaN(percent)) return 0;
+  return Math.max(0, Math.min(100, percent));
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-border/80 bg-background/80 p-4 shadow-sm backdrop-blur-sm sm:p-5">
-      <div className="space-y-1 border-b border-border/70 pb-3">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-[13px] text-muted-foreground">{description}</p>
-      </div>
-      <div className="pt-3">{children}</div>
+    <section className="border-t border-border/70 pt-4 first:border-t-0 first:pt-0">
+      <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {title}
+      </p>
+      <div className="space-y-2.5">{children}</div>
     </section>
   );
 }
 
-function SplitRow({
-  label,
-  value,
-  emphasize = false,
-}: {
-  label: string;
-  value: string;
-  emphasize?: boolean;
-}) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1',
-        emphasize && 'pt-2',
-      )}
-    >
-      <p className={cn('text-sm text-muted-foreground', emphasize && 'text-foreground')}>{label}</p>
-      <p
-        className={cn(
-          'text-right text-sm font-medium text-foreground [font-variant-numeric:tabular-nums]',
-          emphasize && 'text-base',
-        )}
-      >
+    <div className="flex items-baseline justify-between gap-4 text-sm">
+      <p className="shrink-0 text-muted-foreground">{label}</p>
+      <div className="min-w-0 text-right font-medium text-foreground [font-variant-numeric:tabular-nums]">
         {value}
-      </p>
+      </div>
     </div>
+  );
+}
+
+function SecondaryDetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 pl-4 text-sm">
+      <p className="shrink-0 text-muted-foreground">{label}</p>
+      <div className="min-w-0 text-right text-muted-foreground [font-variant-numeric:tabular-nums]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function TruncatedValue({ value }: { value: string }) {
+  return (
+    <span className="block truncate" title={value}>
+      {value}
+    </span>
   );
 }
 
@@ -122,8 +114,6 @@ export function SessionDetailsSheet({
   messagesCount,
   usagePercent,
   totalTokens,
-  currentSessionTokens,
-  childSessionsTokens,
   inputTokens,
   outputTokens,
   reasoningTokens,
@@ -138,104 +128,104 @@ export function SessionDetailsSheet({
   lastActivityAt,
   className,
 }: SessionDetailsSheetProps) {
-  const totalUsageTokens = currentSessionTokens + childSessionsTokens;
+  const hasContextUsage = totalTokens > 0;
+  const usageValue = parsePercent(usagePercent);
+  const showSpend = hasContextUsage || currentSessionCostUsd > 0 || childSessionsCostUsd > 0;
+  const messageSplit =
+    userMessageCount > 0 || assistantMessageCount > 0
+      ? `${formatNumber(messagesCount)} total, ${formatNumber(userMessageCount)} user / ${formatNumber(assistantMessageCount)} assistant`
+      : `${formatNumber(messagesCount)} total`;
 
   return (
-    <aside
-      className={cn(
-        'h-full min-h-0 overflow-hidden bg-linear-to-b from-muted/60 to-muted/35',
-        className,
-      )}
-    >
-      <div className="h-full border-l border-foreground/20 bg-transparent">
-        <div className="border-b border-border/80 bg-background/65 px-5 py-3.5 backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-base font-medium">Context</p>
-            <span
-              className="truncate rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-              title={sessionId}
-            >
-              {sessionId}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">Session metadata and token usage.</p>
+    <aside className={cn('h-full min-h-0 overflow-hidden bg-background', className)}>
+      <div className="h-full border-l border-border/80">
+        <div className="border-b border-border/70 px-5 py-4">
+          <p className="text-base font-medium">Context</p>
+          <p
+            className="truncate text-sm text-muted-foreground"
+            title={`${providerLabel} ${modelLabel}`}
+          >
+            {providerLabel !== '-' || modelLabel !== '-'
+              ? `${providerLabel} · ${modelLabel}`
+              : 'No model usage yet'}
+          </p>
         </div>
-        <ScrollArea className="h-[calc(100%-74px)]">
-          <div className="space-y-4 px-5 pt-4 pb-6 sm:space-y-5">
-            <Section title="At a Glance" description="Quick summary of this conversation.">
-              <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
-                <div className="min-w-40 flex-1">
-                  <DetailItem label="Total Spend" value={USD_FORMATTER.format(totalCostUsd)} />
+        <ScrollArea className="h-[calc(100%-73px)]">
+          <div className="space-y-6 px-5 py-5">
+            <section className="space-y-3">
+              {hasContextUsage ? (
+                <>
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-3xl font-semibold tracking-tight text-foreground">
+                        {usagePercent === '-' ? formatNumber(totalTokens) : usagePercent}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {usagePercent === '-' ? 'tokens in latest context' : 'context used'}
+                      </p>
+                    </div>
+                    <p className="pb-1 text-right text-sm text-muted-foreground [font-variant-numeric:tabular-nums]">
+                      {formatTokenRatio(totalTokens, contextLimit)}
+                    </p>
+                  </div>
+                  {contextLimit ? (
+                    <progress
+                      className="h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary"
+                      value={usageValue}
+                      max={100}
+                      aria-label="Context used"
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-lg font-medium text-foreground">No usage yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Send a message to see model, cost, and context usage.
+                  </p>
                 </div>
-                <div className="min-w-40 flex-1">
-                  <DetailItem label="Total AI Usage" value={formatNumber(totalUsageTokens)} />
-                </div>
-                <div className="min-w-40 flex-1">
-                  <DetailItem label="Context Used" value={usagePercent} />
-                </div>
-              </div>
-            </Section>
+              )}
+            </section>
 
-            <Section title="Session Overview" description="Basic details for this session.">
-              <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <DetailItem label="Session" value={sessionTitle} />
-                <DetailItem label="Messages" value={formatNumber(messagesCount)} />
-                <DetailItem label="Provider" value={providerLabel} />
-                <DetailItem label="Model" value={modelLabel} />
-                <DetailItem label="Session Created" value={formatDate(sessionCreatedAt)} />
-                <DetailItem label="Last Activity" value={formatDate(lastActivityAt)} />
-                <DetailItem label="User Messages" value={formatNumber(userMessageCount)} />
-                <DetailItem
-                  label="Assistant Messages"
-                  value={formatNumber(assistantMessageCount)}
-                />
-              </div>
-            </Section>
+            {hasContextUsage ? (
+              <Section title="Latest Context">
+                {contextLimit ? (
+                  <DetailRow label="Context limit" value={formatNumber(contextLimit)} />
+                ) : null}
+                <DetailRow label="Input" value={formatNumber(inputTokens)} />
+                <DetailRow label="Output" value={formatNumber(outputTokens)} />
+                {reasoningTokens > 0 ? (
+                  <DetailRow label="Reasoning" value={formatNumber(reasoningTokens)} />
+                ) : null}
+                {cacheReadTokens > 0 || cacheWriteTokens > 0 ? (
+                  <DetailRow
+                    label="Cache"
+                    value={`${formatNumber(cacheReadTokens)} read / ${formatNumber(cacheWriteTokens)} write`}
+                  />
+                ) : null}
+              </Section>
+            ) : null}
 
-            <Section title="Spending (USD)" description="Where money was spent.">
-              <div className="space-y-2.5">
-                <SplitRow
-                  label="This session"
+            {showSpend ? (
+              <Section title="Spend">
+                <DetailRow label="Total cost" value={USD_FORMATTER.format(totalCostUsd)} />
+                <SecondaryDetailRow
+                  label="Current session"
                   value={USD_FORMATTER.format(currentSessionCostUsd)}
                 />
-                <SplitRow
+                <SecondaryDetailRow
                   label="Child sessions"
                   value={USD_FORMATTER.format(childSessionsCostUsd)}
                 />
-                <div className="border-t border-border/70" />
-                <SplitRow label="Total" value={USD_FORMATTER.format(totalCostUsd)} emphasize />
-              </div>
-            </Section>
+              </Section>
+            ) : null}
 
-            <Section title="AI Usage (Tokens)" description="How much AI processing was used.">
-              <div className="space-y-2.5">
-                <SplitRow label="This session" value={formatNumber(currentSessionTokens)} />
-                <SplitRow label="Child sessions" value={formatNumber(childSessionsTokens)} />
-                <div className="border-t border-border/70" />
-                <SplitRow label="Total" value={formatNumber(totalUsageTokens)} emphasize />
-                <p className="pt-1 text-[13px] text-muted-foreground">
-                  Tokens = AI processing units.
-                </p>
-              </div>
-            </Section>
-
-            <Section
-              title="Current Message Context"
-              description="Usage for the active context window right now."
-            >
-              <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-                <DetailItem label="Context Used" value={usagePercent} />
-                <DetailItem label="Tokens in Current Context" value={formatNumber(totalTokens)} />
-                <DetailItem
-                  label="Context Limit"
-                  value={contextLimit ? formatNumber(contextLimit) : '-'}
-                />
-                <DetailItem label="Input Tokens" value={formatNumber(inputTokens)} />
-                <DetailItem label="Output Tokens" value={formatNumber(outputTokens)} />
-                <DetailItem label="Reasoning Tokens" value={formatNumber(reasoningTokens)} />
-                <DetailItem label="Cache Read" value={formatNumber(cacheReadTokens)} />
-                <DetailItem label="Cache Write" value={formatNumber(cacheWriteTokens)} />
-              </div>
+            <Section title="Session">
+              <DetailRow label="Title" value={<TruncatedValue value={sessionTitle} />} />
+              <DetailRow label="Messages" value={messageSplit} />
+              <DetailRow label="Created" value={formatDate(sessionCreatedAt)} />
+              <DetailRow label="Last activity" value={formatDate(lastActivityAt)} />
+              <DetailRow label="ID" value={<TruncatedValue value={sessionId} />} />
             </Section>
           </div>
         </ScrollArea>
