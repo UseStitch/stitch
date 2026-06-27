@@ -8,6 +8,8 @@ const rootDir = join(__dirname, '..');
 const WEBSITE_BASE_URL = 'https://usestitch.ai';
 const outputDir = join(rootDir, 'apps', 'website', 'dist');
 
+const REGISTRY_FILES = ['/mcp-registry.json', '/embedding-models.json', '/stt-models.json'];
+
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
@@ -58,6 +60,13 @@ function writeRegistryJson(filePath, payload) {
   writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
+function writeHeaders() {
+  const rules = REGISTRY_FILES.map(
+    (path) => `${path}\n  Cache-Control: public, max-age=300, s-maxage=300`,
+  );
+  writeFileSync(join(outputDir, '_headers'), `${rules.join('\n\n')}\n`, 'utf8');
+}
+
 function copySchemas() {
   const schemasOutputDir = join(outputDir, 'schemas');
   mkdirSync(schemasOutputDir, { recursive: true });
@@ -99,6 +108,7 @@ function writeOutput(servers, embeddingProviders, sttProviders) {
 
   copySchemas();
   copyServerLogos(servers);
+  writeHeaders();
 
   writeRegistryJson(join(outputDir, 'mcp-registry.json'), {
     version: 1,

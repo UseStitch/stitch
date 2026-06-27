@@ -151,6 +151,7 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
               datetime_lt: $until
               clientRequestHTTPHost: $host
               clientRequestPath_in: $paths
+              requestSource: "eyeball"
             }
           ) {
             count
@@ -239,11 +240,13 @@ await reportToPostHog(total, releases);
 
 const registryStats = await fetchCloudflareRegistryStats();
 if (registryStats) {
-  console.log(`Registry requests in last 24h: ${registryStats.total.toLocaleString()}`);
+  console.log(`Registry requests (end users) in last 24h: ${registryStats.total.toLocaleString()}`);
   await reportRegistryStatsToPostHog(registryStats);
 }
 
 console.log('='.repeat(60));
 console.log(`TOTAL DOWNLOADS: ${total.toLocaleString()}`);
-if (registryStats) console.log(`TOTAL REGISTRY REQUESTS: ${registryStats.total.toLocaleString()}`);
+if (registryStats) {
+  console.log(`TOTAL REGISTRY REQUESTS (END USERS): ${registryStats.total.toLocaleString()}`);
+}
 console.log('='.repeat(60));
