@@ -40,7 +40,12 @@ const config: Configuration = {
     output: 'dist',
     buildResources: 'resources',
   },
-  files: ['out/**/*'],
+  files: [
+    'out/**/*',
+    // Addon ships via extraResources; keep its Rust build tree out of the asar.
+    '!node_modules/@stitch/meeting-detection/{target,src-rs,native,.turbo}/**',
+    '!node_modules/@stitch/meeting-detection/{Cargo.toml,Cargo.lock,build.rs,rustfmt.toml}',
+  ],
   extraResources: [
     {
       from: 'resources/',
