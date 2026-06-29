@@ -86,6 +86,17 @@ function buildThemeCss(theme: ThemeDefinition): string {
 
 const THEME_STYLE_ID = 'stitch-theme';
 
+// Persisted so the synchronous splash preload script (see index.html) can paint
+// the correct background before the React bundle runs, avoiding a flash on launch.
+const SPLASH_MODE_KEY = 'stitch.appearance.mode';
+const SPLASH_BG_LIGHT_KEY = 'stitch.splash.bg.light';
+const SPLASH_BG_DARK_KEY = 'stitch.splash.bg.dark';
+
+function cacheSplashBackground(theme: ThemeDefinition): void {
+  localStorage.setItem(SPLASH_BG_LIGHT_KEY, theme.light.background);
+  localStorage.setItem(SPLASH_BG_DARK_KEY, theme.dark.background);
+}
+
 export function injectThemeCss(theme: ThemeDefinition): void {
   let el = document.getElementById(THEME_STYLE_ID) as HTMLStyleElement | null;
   if (!el) {
@@ -94,14 +105,28 @@ export function injectThemeCss(theme: ThemeDefinition): void {
     document.head.appendChild(el);
   }
   el.textContent = buildThemeCss(theme);
+  cacheSplashBackground(theme);
 }
 
 export function applyAppearanceMode(mode: AppearanceMode): void {
   const root = document.documentElement;
-  if (mode === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    root.classList.toggle('dark', prefersDark);
-  } else {
-    root.classList.toggle('dark', mode === 'dark');
-  }
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+  root.classList.toggle('dark', isDark);
+  localStorage.setItem(SPLASH_MODE_KEY, mode);
+}
+
+export function removeSplash(): void {
+  const splash = document.getElementById('stitch-splash');
+  if (!splash) return;
+  // Match the html background to the live theme so there is no flash once the
+  // splash is gone but before the app's own surfaces cover the viewport.
+  const background = getComputedStyle(document.documentElement)
+    .getPropertyValue('--background')
+    .trim();
+  if (background) document.documentElement.style.backgroundColor = background;
+
+  splash.style.transition = 'opacity 200ms ease';
+  splash.style.opacity = '0';
+  splash.addEventListener('transitionend', () => splash.remove(), { once: true });
 }

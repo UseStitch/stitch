@@ -6,9 +6,68 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>Stitch</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+      }
+      #stitch-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: inherit;
+      }
+      #stitch-splash svg {
+        width: 72px;
+        height: 72px;
+        animation: stitch-splash-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes stitch-splash-pulse {
+        0%,
+        100% {
+          opacity: 0.45;
+          transform: scale(0.96);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+    <script src="/splash-preload.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <div id="stitch-splash">
+      <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-label="Stitch">
+        <defs>
+          <linearGradient id="stitch-splash-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color: #2196f3" />
+            <stop offset="100%" style="stop-color: #00e5ff" />
+          </linearGradient>
+        </defs>
+        <rect width="256" height="256" rx="55" fill="#1c1e2e" />
+        <circle cx="50" cy="50" r="15" fill="#2d314d" />
+        <circle cx="200" cy="50" r="15" fill="#2d314d" />
+        <circle cx="50" cy="200" r="15" fill="#2d314d" />
+        <circle cx="200" cy="200" r="15" fill="#2d314d" />
+        <path
+          stroke="url(#stitch-splash-grad)"
+          stroke-width="18"
+          stroke-linecap="round"
+          d="M50 200 200 50"
+        />
+        <path
+          stroke="url(#stitch-splash-grad)"
+          stroke-width="18"
+          stroke-linecap="round"
+          d="m50 50 150 150"
+        />
+      </svg>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
