@@ -12,7 +12,11 @@ import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
 import { registerUpdaterHandlers } from './ipc/updater.js';
 import { registerWindowHandlers } from './ipc/window.js';
-import { startMeetingDetection, stopMeetingDetection } from './meeting-detection.js';
+import {
+  startMeetingDetection,
+  stopMeetingDetection,
+  dismissMeetingDetection,
+} from './meeting-detection.js';
 import {
   destroyNotificationWindow,
   dismissDesktopNotification,
@@ -124,6 +128,7 @@ function registerAllIpcHandlers(): void {
 }
 
 function dismissMeetingCall(key: string): void {
+  dismissMeetingDetection(key);
   mainWindow?.webContents.send('meeting:call-dismissed', { key });
   dismissDesktopNotification(`meeting:${key}`);
 }

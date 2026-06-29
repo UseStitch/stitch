@@ -29,5 +29,6 @@ export function createMeetingDetector(
     getActive(): MeetingDetection | null {
       return null;
     },
+    dismiss(_key: string): void {},
   };
 }

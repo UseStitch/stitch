@@ -43,5 +43,6 @@ export function createNativeWatcherMeetingDetector(
 
     subscribe: engine.subscribe.bind(engine),
     getActive: engine.getActive.bind(engine),
+    dismiss: engine.dismiss.bind(engine),
   };
 }

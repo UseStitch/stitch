@@ -34,6 +34,8 @@ export type MeetingDetectionListener = (event: MeetingDetectionEvent) => void;
 export type MeetingDetectionOptions = {
   activationThresholdMs?: number;
   cooldownMs?: number;
+  endGraceMs?: number;
+  minRepromptIntervalMs?: number;
   logger?: StitchLogger;
 };
 
@@ -42,4 +44,5 @@ export type MeetingDetector = {
   stop: () => void;
   subscribe: (listener: MeetingDetectionListener) => () => void;
   getActive: () => MeetingDetection | null;
+  dismiss: (key: string, now?: number) => void;
 };

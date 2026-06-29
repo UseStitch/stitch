@@ -9,6 +9,8 @@ import type { BrowserWindow } from 'electron';
 const detector = createMeetingDetector(process.platform, {
   activationThresholdMs: 5_000,
   cooldownMs: 10 * 60_000,
+  endGraceMs: 20_000,
+  minRepromptIntervalMs: 2 * 60_000,
 });
 
 let unsubscribe: (() => void) | null = null;
@@ -66,4 +68,8 @@ export function stopMeetingDetection(): void {
   unsubscribe?.();
   unsubscribe = null;
   detector.stop();
+}
+
+export function dismissMeetingDetection(key: string): void {
+  detector.dismiss(key);
 }
