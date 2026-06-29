@@ -235,39 +235,17 @@ pub fn run(
 
   let _ = initialize_mta().ok();
 
-  // Shared dirty flag set by WASAPI notification callbacks.
   let needs_scan: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
-
-  // Try to register IAudioSessionNotification so we get callbacks when sessions
-  // are created/deleted on the default capture device. This is best-effort: if
-  // it fails we rely purely on the periodic reconciliation fallback.
-  //
-  // WASAPI session notifications use COM interfaces that require manual lifetime
-  // management. We implement them via the wasapi crate's session manager and
-  // use a background thread that polls the COM event queue via a Windows event.
-  //
-  // For simplicity and robustness we implement session-change detection by
-  // registering a Windows multimedia session notification through the capture
-  // device session manager and relying on periodic reconciliation as the
-  // primary path, with rapid re-checks (500ms) triggered by the COM callback.
-
   let needs_scan_clone = needs_scan.clone();
   let stop_for_poll = stop.clone();
 
-  // Spawn a thread that registers with WASAPI and signals needs_scan.
-  // The wasapi crate does not expose IAudioSessionNotification directly, so we
-  // use a polling loop at short intervals here, but only while within 2s of the
-  // last detected state change - effectively debouncing COM events.
-  // The outer loop then does true 10s reconciliation as the baseline.
+  // The wasapi crate doesn't expose IAudioSessionNotification, so detect session
+  // changes by polling the active PIDs every 500ms and flagging a rescan on diff.
+  // The main loop's 10s reconcile covers anything this misses.
   std::thread::spawn(move || {
-    // Rapid-check after a session state transition (triggered by ourselves
-    // below when we detect a change via the reconcile path).
     let last_active_pids: Arc<Mutex<HashSet<u32>>> = Arc::new(Mutex::new(HashSet::new()));
     let last_active_clone = last_active_pids.clone();
 
-    // WASAPI session notification via polling at short interval to detect
-    // session state changes quickly. This thread runs at ~500ms and marks
-    // needs_scan on change, complementing the 10s reconcile in the main loop.
     loop {
       if stop_for_poll.load(Ordering::Relaxed) {
         return;
@@ -293,8 +271,7 @@ pub fn run(
   let rows = build_watch_rows(&tsfn);
   emit_snapshot(&tsfn, rows);
 
-  // Main loop: emit new snapshot whenever the flag is set, plus periodic
-  // reconciliation as a safety net for missed notifications.
+  // Emit on the dirty flag, with periodic reconciliation as a safety net.
   let mut last_reconcile = Instant::now();
   loop {
     if stop.load(Ordering::Relaxed) {

@@ -150,13 +150,11 @@ pub fn run(
     result
   }
 
-  // Shared flag between the CoreAudio listener thread and a debounce flush task.
+  // Set a dirty flag from CoreAudio callbacks instead of scanning inline, so the
+  // audio thread is never blocked.
   let needs_scan: Arc<Mutex<bool>> = Arc::new(Mutex::new(true));
   let needs_scan_for_listener = needs_scan.clone();
 
-  // Callback invoked from the CoreAudio thread when the default input device's
-  // running state changes. We set a flag rather than scanning inline to avoid
-  // blocking the audio thread.
   extern "C-unwind" fn device_listener(
     _obj_id: ca::Obj,
     _number_addresses: u32,
@@ -176,7 +174,7 @@ pub fn run(
     _addresses: *const ca::PropAddr,
     client_data: *mut (),
   ) -> cidre_os::Status {
-    // Default input device changed; re-register device listener and mark dirty.
+    // Default input device changed; mark dirty so the next scan picks it up.
     let flag = unsafe { &*(client_data as *const Mutex<bool>) };
     if let Ok(mut guard) = flag.lock() {
       *guard = true;
@@ -192,7 +190,6 @@ pub fn run(
 
   let needs_scan_raw = Arc::into_raw(needs_scan_for_listener) as *mut ();
 
-  // Register system-level listener for default input device changes.
   if let Err(e) = ca::System::OBJ.add_prop_listener(
     &ca::PropSelector::HW_DEFAULT_INPUT_DEVICE.global_addr(),
     system_listener,
@@ -204,7 +201,6 @@ pub fn run(
     );
   }
 
-  // Register per-device listener on the current default input device.
   if let Ok(device) = ca::System::default_input_device() {
     if let Err(e) = device.add_prop_listener(
       &DEVICE_IS_RUNNING_SOMEWHERE,
@@ -226,11 +222,9 @@ pub fn run(
   // Restore the Arc so it won't leak.
   let needs_scan = unsafe { Arc::from_raw(needs_scan_raw as *const Mutex<bool>) };
 
-  // Emit initial snapshot.
   emit_snapshot(&tsfn, build_watch_rows(&tsfn));
 
-  // Event loop: sleep in short increments and flush when the flag is set.
-  // The flag is set by CoreAudio callbacks on state changes.
+  // Flush a snapshot whenever a CoreAudio callback has set the dirty flag.
   const DEBOUNCE_MS: u64 = 250;
   loop {
     if stop.load(Ordering::Relaxed) {

@@ -1,8 +1,6 @@
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 
-/// A snapshot is delivered to JS (via a ThreadsafeFunction) whenever the set of
-/// active meeting-related processes changes. The TS watcher ingests these to
-/// drive the MeetingDetectionEngine.
+/// One mic-using process in a snapshot delivered to JS.
 #[napi(object)]
 #[derive(Clone)]
 pub struct WatchRow {
@@ -11,7 +9,7 @@ pub struct WatchRow {
   pub window_title: Option<String>,
 }
 
-/// Discriminated union delivered to JS. `kind` is "snapshot" | "error".
+/// Event delivered to JS; `kind` is "snapshot" | "error".
 #[napi(object)]
 #[derive(Clone)]
 pub struct WatchEvent {
