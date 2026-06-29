@@ -1,7 +1,7 @@
 import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
-import { compactToolResultOutput, isToolResultError } from '@/llm/conversation-compactor.js';
+import { compactToolResultOutput, isToolResultError } from '@/llm/context-budget.js';
 import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
 import type { ModelMessage } from 'ai';

@@ -5,7 +5,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/compaction.js';
+import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { registerToolset, unregisterToolset, listToolsetIds } from '@/tools/toolsets/registry.js';

@@ -19,7 +19,6 @@ interface RegistryStatsGroup {
   count: number;
   dimensions: {
     clientRequestPath: string;
-    userAgent: string;
   };
   sum: {
     edgeResponseBytes: number;
@@ -32,7 +31,6 @@ interface RegistryStats {
   total: number;
   bytes: number;
   per_path: { path: string; requests: number; bytes: number }[];
-  per_user_agent: { user_agent: string; requests: number; bytes: number }[];
 }
 
 const REGISTRY_PATHS = ['/mcp-registry.json', '/embedding-models.json', '/stt-models.json'];
@@ -109,23 +107,16 @@ function aggregateRegistryStats(
   until: string,
 ): RegistryStats {
   const perPath = new Map<string, { requests: number; bytes: number }>();
-  const perUserAgent = new Map<string, { requests: number; bytes: number }>();
 
   for (const group of groups) {
     const requests = group.count;
     const bytes = group.sum.edgeResponseBytes;
     const path = group.dimensions.clientRequestPath || 'unknown';
-    const userAgent = group.dimensions.userAgent || 'unknown';
 
     const pathStats = perPath.get(path) ?? { requests: 0, bytes: 0 };
     pathStats.requests += requests;
     pathStats.bytes += bytes;
     perPath.set(path, pathStats);
-
-    const userAgentStats = perUserAgent.get(userAgent) ?? { requests: 0, bytes: 0 };
-    userAgentStats.requests += requests;
-    userAgentStats.bytes += bytes;
-    perUserAgent.set(userAgent, userAgentStats);
   }
 
   return {
@@ -134,9 +125,6 @@ function aggregateRegistryStats(
     total: groups.reduce((sum, group) => sum + group.count, 0),
     bytes: groups.reduce((sum, group) => sum + group.sum.edgeResponseBytes, 0),
     per_path: [...perPath.entries()].map(([path, stats]) => ({ path, ...stats })),
-    per_user_agent: [...perUserAgent.entries()]
-      .map(([user_agent, stats]) => ({ user_agent, ...stats }))
-      .toSorted((a, b) => b.requests - a.requests),
   };
 }
 
@@ -163,12 +151,12 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
               datetime_lt: $until
               clientRequestHTTPHost: $host
               clientRequestPath_in: $paths
+              requestSource: "eyeball"
             }
           ) {
             count
             dimensions {
               clientRequestPath
-              userAgent
             }
             sum {
               edgeResponseBytes
@@ -252,11 +240,13 @@ await reportToPostHog(total, releases);
 
 const registryStats = await fetchCloudflareRegistryStats();
 if (registryStats) {
-  console.log(`Registry requests in last 24h: ${registryStats.total.toLocaleString()}`);
+  console.log(`Registry requests (end users) in last 24h: ${registryStats.total.toLocaleString()}`);
   await reportRegistryStatsToPostHog(registryStats);
 }
 
 console.log('='.repeat(60));
 console.log(`TOTAL DOWNLOADS: ${total.toLocaleString()}`);
-if (registryStats) console.log(`TOTAL REGISTRY REQUESTS: ${registryStats.total.toLocaleString()}`);
+if (registryStats) {
+  console.log(`TOTAL REGISTRY REQUESTS (END USERS): ${registryStats.total.toLocaleString()}`);
+}
 console.log('='.repeat(60));

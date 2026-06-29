@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { getSessionById } from '@/chat/service.js';
+import { getSessionById } from '@/chat/session-crud.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   createQuestion,

@@ -1,7 +1,7 @@
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { browserPrunePolicy } from '@/tools/toolsets/browser-prune-policy.js';
+import { browserPrunePolicy } from '@/tools/toolsets/browser/prune-policy.js';
 
 export type PrunePolicyMessage = {
   id: PrefixedString<'msg'>;
