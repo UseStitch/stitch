@@ -13,9 +13,6 @@ function resolveDefaultTarget() {
     return 'aarch64-apple-darwin';
   }
 
-  if (process.platform === 'darwin' && process.arch === 'x64') {
-    return 'x86_64-apple-darwin';
-  }
 
   if (process.platform === 'win32' && process.arch === 'x64') {
     return 'x86_64-pc-windows-msvc';
