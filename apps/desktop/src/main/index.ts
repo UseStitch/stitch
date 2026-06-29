@@ -12,11 +12,7 @@ import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
 import { registerUpdaterHandlers } from './ipc/updater.js';
 import { registerWindowHandlers } from './ipc/window.js';
-import {
-  configureMeetingDetectionEnv,
-  startMeetingDetection,
-  stopMeetingDetection,
-} from './meeting-detection.js';
+import { startMeetingDetection, stopMeetingDetection } from './meeting-detection.js';
 import {
   destroyNotificationWindow,
   dismissDesktopNotification,
@@ -154,7 +150,6 @@ async function spawnMainWindow(): Promise<BrowserWindow> {
 
 void app.whenReady().then(async () => {
   try {
-    configureMeetingDetectionEnv();
     configureRecordingCaptureEnv();
 
     browserBridgePort = await findAvailablePort();

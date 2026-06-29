@@ -1,4 +1,4 @@
-import { createMeetingDetector, resolveMeetingWatcherBinaryPath } from '@stitch/audio-capture';
+import { createMeetingDetector } from '@stitch/meeting-detection';
 import type {
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
@@ -13,14 +13,6 @@ const detector = createMeetingDetector(process.platform, {
 
 let unsubscribe: (() => void) | null = null;
 let started = false;
-
-export function configureMeetingDetectionEnv(): void {
-  if (process.env.STITCH_MEETING_WATCH_BIN) {
-    return;
-  }
-
-  process.env.STITCH_MEETING_WATCH_BIN = resolveMeetingWatcherBinaryPath();
-}
 
 export function startMeetingDetection(
   getWindow: () => BrowserWindow | null,

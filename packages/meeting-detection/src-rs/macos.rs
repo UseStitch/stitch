@@ -1,8 +1,13 @@
 #[cfg(target_os = "macos")]
-pub fn run_macos_meeting_watcher() {
-  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
+pub fn run(
+  tsfn: std::sync::Arc<crate::watch_output::Emitter>,
+  stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) {
   use std::process::Command;
+  use std::sync::atomic::Ordering;
   use std::sync::{Arc, Mutex};
+
+  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
 
   use cidre::core_audio as ca_inner;
   use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -68,7 +73,7 @@ pub fn run_macos_meeting_watcher() {
   return JSON.stringify(output);
 })();"#;
 
-  fn build_watch_rows() -> Vec<WatchRow> {
+  fn build_watch_rows(tsfn: &crate::watch_output::Emitter) -> Vec<WatchRow> {
     let browser_titles = {
       let output = Command::new("osascript")
         .args(["-l", "JavaScript", "-e", BROWSER_WINDOW_SCAN_SCRIPT])
@@ -84,7 +89,7 @@ pub fn run_macos_meeting_watcher() {
     let processes = match list_mic_using_processes() {
       Ok(procs) => procs,
       Err(error) => {
-        emit_watch_error(format!("mic process scan failed: {error}"));
+        emit_watch_error(tsfn, format!("mic process scan failed: {error}"));
         return Vec::new();
       }
     };
@@ -193,9 +198,10 @@ pub fn run_macos_meeting_watcher() {
     system_listener,
     needs_scan_raw,
   ) {
-    emit_watch_error(format!(
-      "failed to register CoreAudio system listener: {e:?}"
-    ));
+    emit_watch_error(
+      &tsfn,
+      format!("failed to register CoreAudio system listener: {e:?}"),
+    );
   }
 
   // Register per-device listener on the current default input device.
@@ -205,24 +211,32 @@ pub fn run_macos_meeting_watcher() {
       device_listener,
       needs_scan_raw,
     ) {
-      emit_watch_error(format!(
-        "failed to register CoreAudio device listener: {e:?}"
-      ));
+      emit_watch_error(
+        &tsfn,
+        format!("failed to register CoreAudio device listener: {e:?}"),
+      );
     }
   } else {
-    emit_watch_error("no default input device found; watcher may miss initial state".to_string());
+    emit_watch_error(
+      &tsfn,
+      "no default input device found; watcher may miss initial state".to_string(),
+    );
   }
 
   // Restore the Arc so it won't leak.
   let needs_scan = unsafe { Arc::from_raw(needs_scan_raw as *const Mutex<bool>) };
 
   // Emit initial snapshot.
-  emit_snapshot(build_watch_rows());
+  emit_snapshot(&tsfn, build_watch_rows(&tsfn));
 
   // Event loop: sleep in short increments and flush when the flag is set.
   // The flag is set by CoreAudio callbacks on state changes.
   const DEBOUNCE_MS: u64 = 250;
   loop {
+    if stop.load(Ordering::Relaxed) {
+      return;
+    }
+
     std::thread::sleep(std::time::Duration::from_millis(DEBOUNCE_MS));
 
     let dirty = {
@@ -233,12 +247,7 @@ pub fn run_macos_meeting_watcher() {
     };
 
     if dirty {
-      emit_snapshot(build_watch_rows());
+      emit_snapshot(&tsfn, build_watch_rows(&tsfn));
     }
   }
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn run_macos_meeting_watcher() {
-  // No-op on non-macOS platforms.
 }

@@ -1,7 +1,5 @@
-import { createMacosMeetingDetector } from './meeting-detection/macos.js';
-import { createWindowsMeetingDetector } from './meeting-detection/windows.js';
 import { createNativeDriver } from './native-driver.js';
-export { resolveMeetingWatcherBinaryPath, resolveNativeBinaryPath } from './native-binary.js';
+export { resolveNativeBinaryPath } from './native-binary.js';
 
 const macosDriver = createNativeDriver('darwin');
 const windowsDriver = createNativeDriver('win32');
@@ -14,12 +12,6 @@ import type {
   NativeCaptureEventListener,
   StartCaptureInput,
   StopCaptureResult,
-} from './types.js';
-import type {
-  MeetingDetection,
-  MeetingDetectionListener,
-  MeetingDetectionOptions,
-  MeetingDetector,
 } from './types.js';
 
 const DRIVERS: Partial<Record<NodeJS.Platform, AudioCaptureDriver>> = {
@@ -83,30 +75,6 @@ export function createAudioCaptureHandle(
 
     onEvent(listener: NativeCaptureEventListener): void {
       active?.controller.onEvent(listener);
-    },
-  };
-}
-
-export function createMeetingDetector(
-  platform: NodeJS.Platform = process.platform,
-  options: MeetingDetectionOptions = {},
-): MeetingDetector {
-  if (platform === 'darwin') {
-    return createMacosMeetingDetector(options);
-  }
-
-  if (platform === 'win32') {
-    return createWindowsMeetingDetector(options);
-  }
-
-  return {
-    start(): void {},
-    stop(): void {},
-    subscribe(_listener: MeetingDetectionListener): () => void {
-      return () => {};
-    },
-    getActive(): MeetingDetection | null {
-      return null;
     },
   };
 }

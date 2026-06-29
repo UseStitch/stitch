@@ -39,13 +39,8 @@ function resolveBinaryName(target) {
   return target.includes('windows') ? 'stitch-audio-capture.exe' : 'stitch-audio-capture';
 }
 
-function resolveMeetingWatcherBinaryName(target) {
-  return target.includes('windows') ? 'stitch-meeting-watch.exe' : 'stitch-meeting-watch';
-}
-
 const target = parseTarget();
 const binaryName = resolveBinaryName(target);
-const meetingWatcherBinaryName = resolveMeetingWatcherBinaryName(target);
 
 const build = spawnSync(
   'cargo',
@@ -76,19 +71,8 @@ if (!existsSync(builtBinary)) {
   throw new Error(`Native audio binary was not found at ${builtBinary}`);
 }
 
-const builtMeetingWatcherBinary = join(
-  repoRoot,
-  `native/target/${target}/release/${meetingWatcherBinaryName}`,
-);
-if (!existsSync(builtMeetingWatcherBinary)) {
-  throw new Error(`Native meeting watcher binary was not found at ${builtMeetingWatcherBinary}`);
-}
-
 mkdirSync(stageDir, { recursive: true });
 const stagedBinary = join(stageDir, binaryName);
 copyFileSync(builtBinary, stagedBinary);
-const stagedMeetingWatcherBinary = join(stageDir, meetingWatcherBinaryName);
-copyFileSync(builtMeetingWatcherBinary, stagedMeetingWatcherBinary);
 
 console.log(`Staged ${binaryName} -> ${stagedBinary}`);
-console.log(`Staged ${meetingWatcherBinaryName} -> ${stagedMeetingWatcherBinary}`);

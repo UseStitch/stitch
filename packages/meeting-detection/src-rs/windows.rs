@@ -1,9 +1,14 @@
 #[cfg(target_os = "windows")]
-pub fn run_windows_meeting_watcher() {
-  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
+pub fn run(
+  tsfn: std::sync::Arc<crate::watch_output::Emitter>,
+  stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) {
   use std::collections::{HashMap, HashSet};
+  use std::sync::atomic::Ordering;
   use std::sync::{Arc, Mutex};
   use std::time::{Duration, Instant};
+
+  use crate::watch_output::{WatchRow, emit_snapshot, emit_watch_error};
 
   use sysinfo::{Pid, ProcessesToUpdate, System};
   use wasapi::{DeviceEnumerator, Direction, SessionState, initialize_mta};
@@ -151,11 +156,11 @@ pub fn run_windows_meeting_watcher() {
     Ok(pids)
   }
 
-  fn build_watch_rows() -> Vec<WatchRow> {
+  fn build_watch_rows(tsfn: &crate::watch_output::Emitter) -> Vec<WatchRow> {
     let pids = match collect_active_session_pids() {
       Ok(pids) => pids,
       Err(error) => {
-        emit_watch_error(error);
+        emit_watch_error(tsfn, error);
         return Vec::new();
       }
     };
@@ -247,6 +252,7 @@ pub fn run_windows_meeting_watcher() {
   // primary path, with rapid re-checks (500ms) triggered by the COM callback.
 
   let needs_scan_clone = needs_scan.clone();
+  let stop_for_poll = stop.clone();
 
   // Spawn a thread that registers with WASAPI and signals needs_scan.
   // The wasapi crate does not expose IAudioSessionNotification directly, so we
@@ -263,6 +269,10 @@ pub fn run_windows_meeting_watcher() {
     // session state changes quickly. This thread runs at ~500ms and marks
     // needs_scan on change, complementing the 10s reconcile in the main loop.
     loop {
+      if stop_for_poll.load(Ordering::Relaxed) {
+        return;
+      }
+
       std::thread::sleep(SESSION_POLL_INTERVAL);
 
       let Ok(current_pids) = collect_active_session_pids() else {
@@ -280,13 +290,17 @@ pub fn run_windows_meeting_watcher() {
   });
 
   // Emit initial snapshot immediately.
-  let rows = build_watch_rows();
-  emit_snapshot(rows);
+  let rows = build_watch_rows(&tsfn);
+  emit_snapshot(&tsfn, rows);
 
   // Main loop: emit new snapshot whenever the flag is set, plus periodic
   // reconciliation as a safety net for missed notifications.
   let mut last_reconcile = Instant::now();
   loop {
+    if stop.load(Ordering::Relaxed) {
+      return;
+    }
+
     std::thread::sleep(MAIN_LOOP_INTERVAL);
 
     let dirty = {
@@ -302,13 +316,8 @@ pub fn run_windows_meeting_watcher() {
       if reconcile_due {
         last_reconcile = Instant::now();
       }
-      let rows = build_watch_rows();
-      emit_snapshot(rows);
+      let rows = build_watch_rows(&tsfn);
+      emit_snapshot(&tsfn, rows);
     }
   }
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn run_windows_meeting_watcher() {
-  // No-op on non-Windows platforms.
 }

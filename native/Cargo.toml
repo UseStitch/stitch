@@ -1,8 +1,3 @@
 [workspace]
-members = [
-  "crates/audio-core",
-  "crates/audio-recording",
-  "crates/audio-meeting-detect",
-  "crates/audio-cli",
-]
+members = ["crates/audio-core", "crates/audio-recording", "crates/audio-cli"]
 resolver = "2"

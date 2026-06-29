@@ -3,9 +3,7 @@ import { existsSync } from 'node:fs';
 import type { Configuration } from 'electron-builder';
 
 const audioCaptureBinaryFilter =
-  process.platform === 'win32'
-    ? ['stitch-audio-capture.exe', 'stitch-meeting-watch.exe']
-    : ['stitch-audio-capture', 'stitch-meeting-watch'];
+  process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
 
 const audioCaptureResource = {
   from: '../../native/target/release',
@@ -14,6 +12,14 @@ const audioCaptureResource = {
 };
 
 const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
+
+const meetingDetectionResource = {
+  from: '../../packages/meeting-detection/native',
+  to: 'meeting-detection',
+  filter: ['*.node', 'binding.cjs'],
+};
+
+const hasMeetingDetectionResource = existsSync(meetingDetectionResource.from);
 
 const shouldNotarize = Boolean(
   process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
@@ -67,6 +73,7 @@ const config: Configuration = {
       ],
     },
     ...(hasAudioCaptureResource ? [audioCaptureResource] : []),
+    ...(hasMeetingDetectionResource ? [meetingDetectionResource] : []),
   ],
   icon: 'resources/icon.png',
   nsis: {
@@ -97,7 +104,7 @@ const config: Configuration = {
       'Contents/Resources/stitch-server',
       'Contents/Resources/stitch-sandbox',
       'Contents/Resources/audio-capture/stitch-audio-capture',
-      'Contents/Resources/audio-capture/stitch-meeting-watch',
+      'Contents/Resources/meeting-detection/*.node',
     ],
     target: ['dmg', 'zip'],
   },
