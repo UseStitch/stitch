@@ -130,6 +130,9 @@
     "packages/meeting-detection": {
       "name": "@stitch/meeting-detection",
       "version": "0.0.0",
+      "dependencies": {
+        "@stitch/shared": "workspace:*",
+      },
       "devDependencies": {
         "@napi-rs/cli": "^3.7.2",
         "@types/bun": "catalog:",

@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
+  "dependencies": {
+    "@stitch/shared": "workspace:*"
+  },
   "devDependencies": {
     "@napi-rs/cli": "^3.7.2",
     "@types/bun": "catalog:",

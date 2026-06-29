@@ -6,7 +6,7 @@ const describeMac = process.platform === 'darwin' ? describe : describe.skip;
 
 describeMac('macos meeting detector parser', () => {
   test('maps known process names to desktop observations', () => {
-    expect(internal.toDesktopObservation({ processName: 'Slack' })).toMatchObject({
+    expect(internal.toDesktopObservation({ pid: 1, processName: 'Slack' })).toMatchObject({
       key: 'desktop:slack',
       platform: 'slack',
       kind: 'desktop',
@@ -14,7 +14,9 @@ describeMac('macos meeting detector parser', () => {
       processNames: ['Slack'],
     });
 
-    expect(internal.toDesktopObservation({ processName: 'Microsoft Teams Helper' })).toMatchObject({
+    expect(
+      internal.toDesktopObservation({ pid: 2, processName: 'Microsoft Teams Helper' }),
+    ).toMatchObject({
       key: 'desktop:teams',
       platform: 'teams',
       kind: 'desktop',
@@ -24,6 +26,7 @@ describeMac('macos meeting detector parser', () => {
 
   test('maps browser process and title to google meet observation', () => {
     const observation = internal.toBrowserObservation({
+      pid: 3,
       processName: 'Google Chrome',
       windowTitle: 'Google Meet - Standup',
     });
@@ -38,9 +41,10 @@ describeMac('macos meeting detector parser', () => {
   });
 
   test('returns null for unknown process names and non-meet titles', () => {
-    expect(internal.toDesktopObservation({ processName: 'Finder' })).toBeNull();
+    expect(internal.toDesktopObservation({ pid: 4, processName: 'Finder' })).toBeNull();
     expect(
       internal.toBrowserObservation({
+        pid: 5,
         processName: 'Google Chrome',
         windowTitle: 'Inbox - Gmail',
       }),

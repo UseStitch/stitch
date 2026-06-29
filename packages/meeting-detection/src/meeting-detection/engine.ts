@@ -31,6 +31,10 @@ type MeetingEngineOptions = {
 const DEFAULT_ACTIVATION_THRESHOLD_MS = 15_000;
 const DEFAULT_COOLDOWN_MS = 10 * 60_000;
 
+type MeetingDetectionEngine = Pick<MeetingDetector, 'subscribe' | 'getActive'> & {
+  ingest: (observations: MeetingObservation[], now?: number) => void;
+};
+
 const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = [
   'zoom',
   'teams',
@@ -61,12 +65,9 @@ function toDetection(candidate: Candidate): MeetingDetection {
   };
 }
 
-export function createMeetingDetectionEngine(options: MeetingEngineOptions = {}): Pick<
-  MeetingDetector,
-  'subscribe' | 'getActive'
-> & {
-  ingest: (observations: MeetingObservation[], now?: number) => void;
-} {
+export function createMeetingDetectionEngine(
+  options: MeetingEngineOptions = {},
+): MeetingDetectionEngine {
   const activationThresholdMs = options.activationThresholdMs ?? DEFAULT_ACTIVATION_THRESHOLD_MS;
   const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   const staleCandidateThresholdMs = options.staleCandidateThresholdMs ?? activationThresholdMs * 2;

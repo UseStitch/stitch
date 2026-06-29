@@ -8,8 +8,6 @@ import type {
   MeetingDetector,
 } from './types.js';
 
-;
-
 export function createMeetingDetector(
   platform: NodeJS.Platform = process.platform,
   options: MeetingDetectionOptions = {},

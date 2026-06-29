@@ -1,13 +1,4 @@
-type StitchLogger = {
-  debug(extra: Record<string, unknown>, message: string): void;
-  debug(message: string): void;
-  info(extra: Record<string, unknown>, message: string): void;
-  info(message: string): void;
-  warn(extra: Record<string, unknown>, message: string): void;
-  warn(message: string): void;
-  error(extra: Record<string, unknown>, message: string): void;
-  error(message: string): void;
-};
+import type { StitchLogger } from '@stitch/shared/logger';
 
 export type MeetingPlatform = 'zoom' | 'teams' | 'slack' | 'discord' | 'google-meet';
 

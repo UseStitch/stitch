@@ -32,7 +32,7 @@ function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): bo
 }
 
 function classifyRow(row: WatchRow): MeetingObservation[] {
-  const rawProcessName = row.processName?.trim();
+  const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return [];
   }
@@ -48,7 +48,7 @@ function classifyRow(row: WatchRow): MeetingObservation[] {
       kind: 'desktop',
       displayName: 'Zoom',
       processNames: [rawProcessName],
-      windowTitle,
+      windowTitle: windowTitle || null,
     });
   }
 
