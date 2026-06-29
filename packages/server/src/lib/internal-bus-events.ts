@@ -2,6 +2,7 @@ import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { McpAuthStatus } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 import type { RecordingAnalysisStatus } from '@stitch/shared/recordings/types';
@@ -279,6 +280,11 @@ export type McpToolsChangedEvent = {
   toolCount: number | null;
 };
 
+export type McpAuthStatusChangedEvent = {
+  serverId: PrefixedString<'mcp'>;
+  authStatus: McpAuthStatus;
+};
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -336,4 +342,5 @@ export type InternalEventMap = {
   // MCP
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
+  'mcp.auth.status_changed': McpAuthStatusChangedEvent;
 };

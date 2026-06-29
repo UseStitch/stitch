@@ -17,6 +17,7 @@ import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
 import { useCompactionUpdates } from '@/hooks/sse/use-compaction-updates';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import { useSlashCommands } from '@/hooks/use-slash-commands';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import {
   flattenMessages,
@@ -31,9 +32,10 @@ import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = {
   sessionId: string;
+  onGenerateAutomation?: () => Promise<void>;
 };
 
-export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
+export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChatPaneProps) {
   const id = sessionId;
   const navigate = useNavigate();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
@@ -73,11 +75,48 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
   const isStreaming = streamState.isStreaming;
   const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
 
+  const submitTextMessage = React.useCallback(
+    async (text: string) => {
+      if (!selectedModel || !canSend) return;
+
+      const assistantMessageId = createMessageId();
+      startStream(id, assistantMessageId);
+
+      await sendMessage.mutateAsync({
+        sessionId: id as PrefixedString<'ses'>,
+        content: text,
+        providerId: selectedModel.providerId,
+        modelId: selectedModel.modelId,
+        assistantMessageId,
+      });
+    },
+    [canSend, id, selectedModel, sendMessage, startStream],
+  );
+
+  const slashCommands = useSlashCommands({
+    sessionId: id,
+    selectedModel,
+    isStreaming,
+    setInput: setValue,
+    onSubmitPrompt: submitTextMessage,
+    onGenerateAutomation,
+  });
+
   async function handleSubmit(text: string, attachments: Attachment[]) {
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
     if (!canSend) return;
 
+    if (attachments.length === 0 && slashCommands.tryRun(text)) {
+      setValue('');
+      return;
+    }
+
     setValue('');
+
+    if (attachments.length === 0) {
+      await submitTextMessage(text);
+      return;
+    }
 
     const assistantMessageId = createMessageId();
     startStream(id, assistantMessageId);
@@ -85,15 +124,12 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
     await sendMessage.mutateAsync({
       sessionId: id as PrefixedString<'ses'>,
       content: text,
-      attachments:
-        attachments.length > 0
-          ? attachments.map((a) => ({
-              path: a.path,
-              previewUrl: a.previewUrl,
-              mime: a.mime,
-              filename: a.filename,
-            }))
-          : undefined,
+      attachments: attachments.map((a) => ({
+        path: a.path,
+        previewUrl: a.previewUrl,
+        mime: a.mime,
+        filename: a.filename,
+      })),
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
       assistantMessageId,
@@ -165,6 +201,7 @@ export function SessionChatPane({ sessionId }: SessionChatPaneProps) {
                         }
                         disabled={isCompacting || !canSend}
                         embedded
+                        completionGroups={slashCommands.completionGroups}
                       />
                     </div>
                   </div>

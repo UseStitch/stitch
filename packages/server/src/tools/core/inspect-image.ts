@@ -8,13 +8,12 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { createSession } from '@/chat/service.js';
+import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
@@ -104,11 +103,11 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         title: sessionTitle,
         parentSessionId: deps.parentSessionId,
       });
-      if (isServiceError(sessionResult)) {
+      if (sessionResult.error) {
         return {
           childSessionId: null,
           childSessionName: null,
-          summary: `Failed to create inspection session: ${sessionResult.error}`,
+          summary: `Failed to create inspection session: ${sessionResult.error.message}`,
         };
       }
       const childSession = sessionResult.data;

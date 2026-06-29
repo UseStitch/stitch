@@ -112,6 +112,7 @@ export async function executeBrowserCommand(
         command.submit,
         command.slowly,
       );
+      await waitForPageStability(ctx.browser);
       return `Typed into ${command.ref}`;
     case 'press':
       ctx.browser.sendInputEvent({ type: 'keyDown', keyCode: command.key });
@@ -170,11 +171,30 @@ export async function executeBrowserCommand(
         ctx.browser,
         buildSearchPageScript(command),
       );
-    case 'findElements':
-      return runScript<ElectronBrowserFindElementsResult>(
-        ctx.browser,
-        buildFindElementsScript(command),
-      );
+    case 'findElements': {
+      type RawFindResult = {
+        elements: Array<{
+          tag: string;
+          text?: string;
+          attributes?: Record<string, string>;
+          cssPath?: string;
+        }>;
+        total: number;
+      };
+      const raw = await runScript<RawFindResult>(ctx.browser, buildFindElementsScript(command));
+      const result: ElectronBrowserFindElementsResult = {
+        total: raw.total,
+        elements: raw.elements.map((el) => {
+          const ref = el.cssPath ? ctx.refResolver.findRefBySelector(el.cssPath) : undefined;
+          return {
+            tag: el.tag,
+            text: el.text,
+            attributes: { ...el.attributes, ...(ref ? { ref } : {}) },
+          };
+        }),
+      };
+      return result;
+    }
     case 'dialogState':
       return ctx.getDialogState();
     case 'handleDialog':

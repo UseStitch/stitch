@@ -12,8 +12,11 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';
 
+import type { AppId } from '@stitch/shared/apps/types';
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
+import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 import { cn } from '@/lib/utils';
 import { hasUpdaterBadge, useUpdaterStore } from '@/stores/updater-store';
@@ -24,6 +27,7 @@ type NavItemData = {
   label: string;
   to: string;
   matchPrefix: string;
+  appId?: AppId;
 };
 
 const TOP_ITEMS: NavItemData[] = [
@@ -47,6 +51,7 @@ const TOP_ITEMS: NavItemData[] = [
     label: 'Recordings',
     to: '/recordings',
     matchPrefix: '/recordings',
+    appId: 'recordings',
   },
   {
     id: 'agenda',
@@ -54,6 +59,7 @@ const TOP_ITEMS: NavItemData[] = [
     label: 'Agenda',
     to: '/agenda',
     matchPrefix: '/agenda',
+    appId: 'agenda',
   },
 ];
 
@@ -132,6 +138,7 @@ function NavLink({
 
 export function ActivityBar() {
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
+  const { data: appEnabledStates = [] } = useQuery(appEnabledStatesQueryOptions);
   const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
   const pendingConnectorUpdates = connectorInstances.filter(
     (instance) => instance.upgrade?.available,
@@ -141,6 +148,10 @@ export function ActivityBar() {
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const showTrafficLightPadding = isMac && !isFullScreen;
+  const disabledAppIds = new Set(
+    appEnabledStates.filter((state) => !state.enabled).map((state) => state.appId),
+  );
+  const topItems = TOP_ITEMS.filter((item) => !item.appId || !disabledAppIds.has(item.appId));
 
   return (
     <TooltipProvider>
@@ -154,7 +165,7 @@ export function ActivityBar() {
           <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
         )}
         <div className="flex w-full flex-col items-center gap-2">
-          {TOP_ITEMS.map((item) => (
+          {topItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.to}

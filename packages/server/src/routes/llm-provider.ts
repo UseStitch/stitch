@@ -7,7 +7,6 @@ import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 import {
   getProvider,
   getProviderLogo,
@@ -38,7 +37,7 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await getProvider(providerId);
-    if (isServiceError(result)) log.warn({ providerId }, 'blocked access to provider');
+    if (result.error) log.warn({ providerId }, 'blocked access to provider');
     return unwrapResult(c, result);
   },
 );
@@ -49,7 +48,7 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await listProviderModels(providerId);
-    if (isServiceError(result)) log.warn({ providerId }, 'blocked access to provider models');
+    if (result.error) log.warn({ providerId }, 'blocked access to provider models');
     return unwrapResult(c, result);
   },
 );
@@ -60,7 +59,7 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await getProviderLogo(providerId);
-    if (isServiceError(result)) {
+    if (result.error) {
       log.warn({ providerId }, 'provider logo request failed');
       return unwrapResult(c, result);
     }
@@ -77,7 +76,7 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await getProviderCredentials(providerId);
-    if (isServiceError(result)) log.warn({ providerId }, 'provider config request failed');
+    if (result.error) log.warn({ providerId }, 'provider config request failed');
     return unwrapResult(c, result);
   },
 );
@@ -90,7 +89,7 @@ providerRouter.put(
     const { providerId } = c.req.valid('param');
     const body = c.req.valid('json');
     const result = await upsertProviderCredentials(providerId, body);
-    if (isServiceError(result)) log.warn({ providerId }, 'provider config update failed');
+    if (result.error) log.warn({ providerId }, 'provider config update failed');
     return unwrapResult(c, result, 204);
   },
 );
@@ -101,7 +100,7 @@ providerRouter.delete(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await deleteProviderCredentials(providerId);
-    if (isServiceError(result)) log.warn({ providerId }, 'provider config delete failed');
+    if (result.error) log.warn({ providerId }, 'provider config delete failed');
     return unwrapResult(c, result, 204);
   },
 );

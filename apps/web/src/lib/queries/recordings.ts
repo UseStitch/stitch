@@ -90,9 +90,9 @@ export function useCreateMeetingNoteTemplate() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
-      toast.success('Template created');
+      toast.success('Template created', { id: 'recording-template-create' });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(error.message, { id: 'recording-template-create' }),
   });
 }
 
@@ -108,9 +108,9 @@ export function useUpdateMeetingNoteTemplate() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
-      toast.success('Template saved');
+      toast.success('Template saved', { id: 'recording-template-update' });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(error.message, { id: 'recording-template-update' }),
   });
 }
 
@@ -122,9 +122,9 @@ export function useDeleteMeetingNoteTemplate() {
       serverRequest<void>(`/recordings/templates/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
-      toast.success('Template deleted');
+      toast.success('Template deleted', { id: 'recording-template-delete' });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(error.message, { id: 'recording-template-delete' }),
   });
 }
 

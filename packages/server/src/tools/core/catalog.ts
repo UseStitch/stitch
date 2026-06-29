@@ -1,8 +1,8 @@
 import { isDbInitialized } from '@/db/client.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import { definition as bash } from '@/tools/core/bash.js';
+import { definition as createSkill } from '@/tools/core/create-skill.js';
 import { definition as edit } from '@/tools/core/edit.js';
 import { definition as glob } from '@/tools/core/glob.js';
 import { definition as grep } from '@/tools/core/grep.js';
@@ -45,6 +45,7 @@ export const CORE_TOOL_CATALOG: CatalogEntry[] = [
   { kind: 'static', definition: write },
   { kind: 'static', definition: renderUi },
   { kind: 'static', definition: skill },
+  { kind: 'static', definition: createSkill },
   {
     kind: 'contextual',
     name: 'question',
@@ -67,7 +68,7 @@ export const CORE_TOOL_CATALOG: CatalogEntry[] = [
       const memoryConfig = await getMemoryConfig();
       if (!hasConfiguredEmbeddingModel(memoryConfig)) return false;
       const result = await listEnabledProviderEmbeddingModels();
-      const providers = isServiceError(result) ? [] : result.data;
+      const providers = result.error ? [] : result.data;
       return providers.some(
         (provider) =>
           provider.providerId === memoryConfig.embeddingProviderId &&

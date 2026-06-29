@@ -17,6 +17,7 @@ import { sessions } from '@/db/schema/sessions.js';
 import { embeddingUsageEvents, llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
 type GetUsageDashboardInput = {
@@ -59,19 +60,14 @@ function addTokenMetrics(
 ): void {
   if (!usage) return;
 
-  const inputTokens = usage.inputTokens ?? 0;
-  const outputTokens = usage.outputTokens ?? 0;
-  const reasoningTokens = usage.outputTokenDetails?.reasoningTokens ?? 0;
-  const cacheReadTokens = usage.inputTokenDetails?.cacheReadTokens ?? 0;
-  const cacheWriteTokens = usage.inputTokenDetails?.cacheWriteTokens ?? 0;
-  const totalTokens = usage.totalTokens ?? inputTokens + outputTokens + reasoningTokens;
+  const metrics = normalizeUsage(usage);
 
-  target.inputTokens += inputTokens;
-  target.outputTokens += outputTokens;
-  target.reasoningTokens += reasoningTokens;
-  target.cacheReadTokens += cacheReadTokens;
-  target.cacheWriteTokens += cacheWriteTokens;
-  target.totalTokens += totalTokens;
+  target.inputTokens += metrics.inputTokens;
+  target.outputTokens += metrics.outputTokens;
+  target.reasoningTokens += metrics.reasoningTokens;
+  target.cacheReadTokens += metrics.cacheReadTokens;
+  target.cacheWriteTokens += metrics.cacheWriteTokens;
+  target.totalTokens += metrics.totalTokens;
 }
 
 function isValidTimestamp(value: number | undefined): value is number {

@@ -6,9 +6,9 @@ import type { McpRegistryPayload, McpRegistryServer } from '@stitch/shared/mcp/t
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { isServiceError } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'mcp-registry' });
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
@@ -20,10 +20,17 @@ const headersAuthConfigSchema = z.object({
   type: z.literal('headers'),
   headers: z.record(z.string(), z.string()),
 });
+const oauthAuthConfigSchema = z.object({
+  type: z.literal('oauth'),
+  scopes: z.array(z.string()).optional(),
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
+});
 const authConfigSchema = z.discriminatedUnion('type', [
   noneAuthConfigSchema,
   apiKeyAuthConfigSchema,
   headersAuthConfigSchema,
+  oauthAuthConfigSchema,
 ]);
 
 const mcpRegistryServerSchema = z.object({
@@ -97,6 +104,7 @@ function normalizeServers(payload: McpRegistryPayload): McpRegistryServer[] {
 
 async function fetchRegistryPayload(fetchImpl: FetchLike): Promise<McpRegistryPayload> {
   const response = await fetchImpl(getRegistryUrl(), {
+    headers: { 'User-Agent': getStitchRegistryUserAgent() },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -167,7 +175,7 @@ export async function listMcpRegistryServers(
     fetchImpl: options.fetchImpl,
     force: true,
   });
-  if (isServiceError(refreshed)) {
+  if (refreshed.error) {
     return refreshed;
   }
 
@@ -179,7 +187,7 @@ export async function findMcpRegistryServerForInstall(input: {
   url: string;
 }): Promise<McpRegistryServer | null> {
   const result = await listMcpRegistryServers();
-  if (isServiceError(result)) return null;
+  if (result.error) return null;
 
   const normalizedUrl = input.url.trim().toLowerCase();
   const normalizedName = input.name.trim().toLowerCase();

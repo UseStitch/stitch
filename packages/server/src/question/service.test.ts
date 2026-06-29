@@ -80,7 +80,7 @@ describe('question service interactions', () => {
     const questionId = askedData.question.id;
 
     const replyResult = await replyQuestion(questionId, [['A']]);
-    expect(replyResult).toEqual({ data: null });
+    expect(replyResult).toEqual({ data: null, error: null });
 
     expect(promise).resolves.toEqual([['A']]);
 
@@ -116,7 +116,7 @@ describe('question service interactions', () => {
     const questionId = askedData.question.id;
 
     const rejectResult = await rejectQuestion(questionId);
-    expect(rejectResult).toEqual({ data: null });
+    expect(rejectResult).toEqual({ data: null, error: null });
 
     expect(promise).rejects.toThrow('Question rejected by user');
 
@@ -135,7 +135,7 @@ describe('question service interactions', () => {
   test('replyQuestion accepts custom answers by default', async () => {
     const { createQuestion, replyQuestion } = await import('@/question/service.js');
 
-    const question = await createQuestion({
+    const questionResult = await createQuestion({
       sessionId,
       messageId,
       toolCallId: 'call_custom',
@@ -148,9 +148,12 @@ describe('question service interactions', () => {
         },
       ],
     });
+    expect(questionResult.error).toBeNull();
+    if (questionResult.error) return;
+    const question = questionResult.data;
 
     const result = await replyQuestion(question.id, [['Something else']]);
-    expect(result).toEqual({ data: null });
+    expect(result).toEqual({ data: null, error: null });
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, question.id));
@@ -161,7 +164,7 @@ describe('question service interactions', () => {
   test('replyQuestion rejects invalid answers without resolving the question', async () => {
     const { createQuestion, replyQuestion } = await import('@/question/service.js');
 
-    const question = await createQuestion({
+    const questionResult = await createQuestion({
       sessionId,
       messageId,
       toolCallId: 'call_invalid',
@@ -175,21 +178,21 @@ describe('question service interactions', () => {
         },
       ],
     });
+    expect(questionResult.error).toBeNull();
+    if (questionResult.error) return;
+    const question = questionResult.data;
 
     expect(replyQuestion(question.id, [[]])).resolves.toEqual({
-      error: 'Question 1 requires an answer',
-      status: 400,
-      details: undefined,
+      data: null,
+      error: { message: 'Question 1 requires an answer', status: 400, details: undefined },
     });
     expect(replyQuestion(question.id, [['Something else']])).resolves.toEqual({
-      error: 'Question 1 received an invalid answer',
-      status: 400,
-      details: undefined,
+      data: null,
+      error: { message: 'Question 1 received an invalid answer', status: 400, details: undefined },
     });
     expect(replyQuestion(question.id, [['A', 'Something else']])).resolves.toEqual({
-      error: 'Question 1 only accepts one answer',
-      status: 400,
-      details: undefined,
+      data: null,
+      error: { message: 'Question 1 only accepts one answer', status: 400, details: undefined },
     });
 
     const db = getDb();

@@ -19,7 +19,7 @@ export const settingsQueryOptions = queryOptions({
 export function saveSettingMutationOptions(
   key: string,
   queryClient: QueryClient,
-  options?: { silent?: boolean },
+  options?: { silent?: boolean; successMessage?: string },
 ): MutationOptions<void, Error, string> {
   return {
     mutationFn: (value: string) =>
@@ -30,16 +30,17 @@ export function saveSettingMutationOptions(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      if (!options?.silent) toast.success('Model preference saved');
+      if (!options?.silent)
+        toast.success(options?.successMessage ?? 'Setting Saved', { id: `setting-save-${key}` });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message, { id: `setting-save-${key}` }),
   };
 }
 
 export function deleteSettingMutationOptions(
   key: string,
   queryClient: QueryClient,
-  options?: { silent?: boolean },
+  options?: { silent?: boolean; successMessage?: string },
 ): MutationOptions<void, Error, void> {
   return {
     mutationFn: () =>
@@ -49,8 +50,9 @@ export function deleteSettingMutationOptions(
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      if (!options?.silent) toast.success('Model preference reset');
+      if (!options?.silent)
+        toast.success(options?.successMessage ?? 'Setting Reset', { id: `setting-delete-${key}` });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message, { id: `setting-delete-${key}` }),
   };
 }

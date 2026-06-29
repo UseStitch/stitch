@@ -10,6 +10,7 @@ export const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description:
   none: { label: 'No auth', description: 'Open server, no credentials needed' },
   api_key: { label: 'API key', description: 'Bearer token sent as Authorization header' },
   headers: { label: 'Custom headers', description: 'Arbitrary static headers (e.g. X-API-Token)' },
+  oauth: { label: 'OAuth', description: 'Authorize in your browser (PKCE, auto-registration)' },
 };
 
 export type HeaderEntry = { key: string; value: string };
@@ -21,6 +22,9 @@ export type AddFormState = {
   authType: McpAuthType;
   apiKey: string;
   headers: HeaderEntry[];
+  oauthScopes: string;
+  oauthClientId: string;
+  oauthClientSecret: string;
 };
 
 export type HomeTab = 'configured' | 'marketplace';
@@ -30,6 +34,26 @@ export type View =
   | { type: 'add-custom'; returnTab: HomeTab }
   | { type: 'preview'; server: McpServer; returnTab: HomeTab }
   | { type: 'install'; server: McpRegistryServer; returnTab: HomeTab };
+
+export const EMPTY_ADD_FORM: AddFormState = {
+  name: '',
+  url: '',
+  transport: 'http',
+  authType: 'none',
+  apiKey: '',
+  headers: [],
+  oauthScopes: '',
+  oauthClientId: '',
+  oauthClientSecret: '',
+};
+
+function parseScopes(raw: string): string[] | undefined {
+  const scopes = raw
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return scopes.length > 0 ? scopes : undefined;
+}
 
 export function buildAuthConfig(form: AddFormState): McpAuthConfig {
   if (form.authType === 'api_key') {
@@ -41,6 +65,14 @@ export function buildAuthConfig(form: AddFormState): McpAuthConfig {
       if (key.trim()) headers[key.trim()] = value;
     }
     return { type: 'headers', headers };
+  }
+  if (form.authType === 'oauth') {
+    return {
+      type: 'oauth',
+      scopes: parseScopes(form.oauthScopes),
+      clientId: form.oauthClientId.trim() || undefined,
+      clientSecret: form.oauthClientSecret.trim() || undefined,
+    };
   }
   return { type: 'none' };
 }
@@ -61,6 +93,18 @@ export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthCon
       authType: 'headers',
       apiKey: '',
       headers: Object.entries(authConfig.headers).map(([key, value]) => ({ key, value })),
+    };
+  }
+
+  if (authConfig.type === 'oauth') {
+    return {
+      ...form,
+      authType: 'oauth',
+      apiKey: '',
+      headers: [],
+      oauthScopes: authConfig.scopes?.join(' ') ?? '',
+      oauthClientId: authConfig.clientId ?? '',
+      oauthClientSecret: authConfig.clientSecret ?? '',
     };
   }
 

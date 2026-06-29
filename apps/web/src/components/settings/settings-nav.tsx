@@ -10,7 +10,9 @@ export function SettingsSidebarContent() {
     <InternalSidebar.Content>
       {SETTINGS_SECTIONS.map((section) => (
         <InternalSidebar.Section key={section} title={section}>
-          {SETTINGS_PAGES.filter((page) => page.section === section).map((page) => {
+          {SETTINGS_PAGES.filter(
+            (page) => page.section === section && page.id !== 'connection',
+          ).map((page) => {
             const Icon = page.icon;
             const active = currentPath === page.to;
             return (

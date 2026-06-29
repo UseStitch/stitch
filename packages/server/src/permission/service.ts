@@ -238,8 +238,8 @@ export async function alternativePermissionResponse(
 
 export async function getPendingPermissionResponses(
   sessionId: PrefixedString<'ses'>,
-): Promise<PermissionResponse[]> {
-  return [...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId);
+): Promise<ServiceResult<PermissionResponse[]>> {
+  return ok([...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId));
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {

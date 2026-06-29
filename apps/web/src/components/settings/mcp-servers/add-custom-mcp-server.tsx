@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 
 import { HeaderRows } from './header-rows';
-import { AUTH_TYPE_LABELS, type AddFormState, buildAuthConfig } from './shared';
+import { OAuthFields } from './oauth-fields';
+import { AUTH_TYPE_LABELS, type AddFormState, EMPTY_ADD_FORM, buildAuthConfig } from './shared';
 
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
@@ -17,19 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAddMcpServer } from '@/lib/queries/mcp';
+import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
   const addServer = useAddMcpServer();
+  const startAuth = useStartMcpAuth();
 
-  const [form, setForm] = React.useState<AddFormState>({
-    name: '',
-    url: '',
-    transport: 'http',
-    authType: 'none',
-    apiKey: '',
-    headers: [],
-  });
+  const [form, setForm] = React.useState<AddFormState>(EMPTY_ADD_FORM);
 
   const set = <K extends keyof AddFormState>(key: K, value: AddFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -40,31 +35,42 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
     const url = form.url.trim();
 
     if (!name) {
-      toast.error('Name is required');
+      toast.error('Name is required', { id: 'mcp-add-name' });
       return;
     }
     if (!url) {
-      toast.error('URL is required');
+      toast.error('URL is required', { id: 'mcp-add-url' });
       return;
     }
     if (form.authType === 'api_key' && !form.apiKey.trim()) {
-      toast.error('API key is required');
+      toast.error('API key is required', { id: 'mcp-add-apikey' });
       return;
     }
 
     try {
-      await addServer.mutateAsync({
+      const { id } = await addServer.mutateAsync({
         name,
         transport: form.transport,
         url,
         authConfig: buildAuthConfig(form),
       });
-      toast.success('MCP server added');
+      if (form.authType === 'oauth') {
+        await startAuth.mutateAsync(id);
+        toast.success('Authorization started — complete it in your browser', {
+          id: 'mcp-add-auth',
+        });
+      } else {
+        toast.success('MCP server added', { id: 'mcp-add-success' });
+      }
       onBack();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server', {
+        id: 'mcp-add-error',
+      });
     }
   };
+
+  const isBusy = addServer.isPending || startAuth.isPending;
 
   return (
     <SettingSubPage
@@ -133,12 +139,14 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
+        {form.authType === 'oauth' && <OAuthFields form={form} set={set} />}
+
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onBack} disabled={addServer.isPending}>
+          <Button variant="outline" onClick={onBack} disabled={isBusy}>
             Cancel
           </Button>
-          <Button onClick={() => void handleSave()} disabled={addServer.isPending}>
-            {addServer.isPending ? 'Adding...' : 'Add server'}
+          <Button onClick={() => void handleSave()} disabled={isBusy}>
+            {isBusy ? 'Adding...' : 'Add server'}
           </Button>
         </div>
       </div>

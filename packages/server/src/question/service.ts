@@ -61,7 +61,7 @@ export async function createQuestion(opts: {
   questions: QuestionInfo[];
   toolCallId: string;
   messageId: PrefixedString<'msg'>;
-}): Promise<QuestionRequest> {
+}): Promise<ServiceResult<QuestionRequest>> {
   const db = getDb();
   const id = createQuestionId();
   const now = Date.now();
@@ -79,7 +79,7 @@ export async function createQuestion(opts: {
     })
     .returning();
 
-  return toQuestionRequest(row);
+  return ok(toQuestionRequest(row));
 }
 
 export async function askQuestion(opts: {
@@ -151,7 +151,7 @@ export async function replyQuestion(
   }
 
   const validation = validateQuestionAnswers(existingQuestion, answers);
-  if ('error' in validation) return validation;
+  if (validation.error) return validation;
 
   const [question] = await db
     .update(questions)
@@ -231,14 +231,14 @@ export async function rejectQuestion(
 
 export async function getPendingQuestions(
   sessionId: PrefixedString<'ses'>,
-): Promise<QuestionRequest[]> {
+): Promise<ServiceResult<QuestionRequest[]>> {
   const db = getDb();
   const rows = await db
     .select()
     .from(questions)
     .where(and(eq(questions.sessionId, sessionId), eq(questions.status, 'pending')));
 
-  return rows.map(toQuestionRequest);
+  return ok(rows.map(toQuestionRequest));
 }
 
 /**

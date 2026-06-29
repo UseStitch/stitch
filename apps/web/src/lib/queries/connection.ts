@@ -45,10 +45,12 @@ export function useSaveServerConfig() {
     },
     onSuccess: (config) => {
       queryClient.setQueryData(connectionKeys.config(), config);
-      toast.success('Server connection updated');
+      toast.success('Server connection updated', { id: 'connection-update' });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update server connection');
+      toast.error(error.message || 'Failed to update server connection', {
+        id: 'connection-update',
+      });
     },
   });
 }

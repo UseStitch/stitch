@@ -23,11 +23,11 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          predicate-quantifier: 'every'
           filters: |
             ci:
               - '**'
               - '!apps/website/**'
-              - '!registries/**'
               - '!**/*.md'
               - '!**/*.txt'
               - '!LICENSE'
@@ -73,7 +73,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .turbo
-          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json') }}
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-
 

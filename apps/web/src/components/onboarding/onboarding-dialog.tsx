@@ -1,3 +1,5 @@
+import { AppearanceStep } from './steps/appearance-step';
+import { AppsStep } from './steps/apps-step';
 import { MemoryStep } from './steps/memory-step';
 import { ProfileStep } from './steps/profile-step';
 import { ProviderStep } from './steps/provider-step';
@@ -32,6 +34,16 @@ export function OnboardingDialog() {
               initialTimezone={state.profileTimezone}
               isSaving={state.isSavingProfile}
               onContinue={state.saveProfileAndAdvance}
+            />
+          )}
+
+          {state.step === 'appearance' && (
+            <AppearanceStep onContinue={() => state.goToStep('apps')} />
+          )}
+
+          {state.step === 'apps' && (
+            <AppsStep
+              onContinue={() => state.goToStep(state.hasEnabledProvider ? 'memory' : 'provider')}
             />
           )}
 

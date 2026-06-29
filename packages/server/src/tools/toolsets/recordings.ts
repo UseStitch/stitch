@@ -28,11 +28,11 @@ Returns status, file path, and Markdown meeting notes.`,
     execute: async (input) => {
       const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
 
-      if ('error' in result) {
+      if (result.error) {
         return {
           recordingId: input.recordingId,
           found: false,
-          message: result.error,
+          message: result.error.message,
         };
       }
 
@@ -95,11 +95,11 @@ Use this when analysis is missing or stale.`,
         templateId: templateId as PrefixedString<'mnt'>,
       });
 
-      if ('error' in result) {
+      if (result.error) {
         return {
           recordingId: input.recordingId,
           ok: false,
-          message: result.error,
+          message: result.error.message,
         };
       }
 
@@ -126,7 +126,7 @@ export function createRecordingsToolset(): Toolset {
     name: 'Recordings',
     description: 'Work with recording transcription and Markdown analysis results.',
     instructions: [
-      `Recordings may be found at ${PATHS.dirPaths.recordings}. Search that location for recordings.`,
+      `Recordings are stored at ${PATHS.dirPaths.recordings} and can be read directly from there. Search that location for recordings.`,
       'Use grep/glob/read to find relevant recording IDs and files before fetching details.',
       'Use recordings_get_analysis for Markdown notes for one recording.',
       'Use recordings_get_transcript for transcript entries for one recording.',

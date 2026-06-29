@@ -26,13 +26,12 @@ import {
 import { configureRecordingCaptureEnv, stopRecordingCapture } from './recording-capture.js';
 import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
 import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
-import { resetTccPermissionsIfVersionChanged } from './tcc-permissions.js';
 import { destroyTray, initTray } from './tray.js';
 import { createUpdater } from './updater.js';
 import { createWindow } from './window.js';
 
 const DEV_APP_NAME = 'stitch-dev';
-const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1_000;
 
 function configureAppIdentityForEnvironment(): void {
   if (app.isPackaged) return;
@@ -62,8 +61,7 @@ const serverState = {
 };
 
 async function startLocalServer(): Promise<string> {
-  const port = await findAvailablePort();
-  return spawnServer(port, { STITCH_BROWSER_BRIDGE_PORT: String(browserBridgePort) });
+  return spawnServer({ STITCH_BROWSER_BRIDGE_PORT: String(browserBridgePort) });
 }
 
 async function resolveServerUrl(): Promise<string> {
@@ -178,8 +176,6 @@ void app.whenReady().then(async () => {
 
     serverState.serverUrl = await resolveServerUrl();
 
-    const permissionsWereReset = await resetTccPermissionsIfVersionChanged();
-
     mainWindow = await spawnMainWindow();
     startMeetingDetection(
       () => mainWindow,
@@ -196,17 +192,6 @@ void app.whenReady().then(async () => {
         dismissDesktopNotification(`meeting:${payload.key}`);
       },
     );
-
-    if (permissionsWereReset) {
-      void dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Permissions Required',
-        message: 'Stitch was updated and needs audio permissions re-granted.',
-        detail:
-          'When you start a recording, you will be prompted to grant microphone access. You may also need to enable Stitch under "System Audio Recording Only" in System Settings > Privacy & Security.',
-        buttons: ['OK'],
-      });
-    }
 
     updater.init();
     setTimeout(() => void updater.checkForUpdates(), 15_000);

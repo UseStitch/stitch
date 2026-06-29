@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
+import { ok } from '@/lib/service-result.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import { getMcpServerPresentation, refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import {
@@ -33,9 +34,8 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ({
-          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-        }),
+        fetchMcpTools: async () =>
+          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -64,9 +64,8 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ({
-          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-        }),
+        fetchMcpTools: async () =>
+          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -86,9 +85,8 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ({
-          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-        }),
+        fetchMcpTools: async () =>
+          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => ({
@@ -124,9 +122,8 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ({
-          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-        }),
+        fetchMcpTools: async () =>
+          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => ({
           name: 'mcp-typescript server on vercel',
           title: 'mcp-typescript server on vercel',
@@ -162,9 +159,8 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ({
-          data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-        }),
+        fetchMcpTools: async () =>
+          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -189,9 +185,8 @@ describe('refreshMcpToolsets', () => {
 
   test('removing a stale server also drops its presentation', async () => {
     const deps = {
-      fetchMcpTools: async () => ({
-        data: [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
-      }),
+      fetchMcpTools: async () =>
+        ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
       fetchServerInfo: async () => null,
       fetchServerPrompts: async () => [],
       findRegistryServer: async () => null,

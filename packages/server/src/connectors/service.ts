@@ -24,7 +24,7 @@ import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/ru
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
-import { err, ok, isServiceError } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'connectors' });
@@ -191,6 +191,7 @@ export async function createApiKeyConnectorInstance(input: {
 export async function authorizeOAuthInstance(
   instanceId: string,
   deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
+  options?: { scopes?: string[]; additionalParams?: Record<string, string> },
 ): Promise<ServiceResult<{ authUrl: string; waitForTokens: () => Promise<void> }>> {
   const db = getDb();
   const [instance] = await db
@@ -211,13 +212,25 @@ export async function authorizeOAuthInstance(
   }
 
   const config = definition.authConfig as OAuthConfig;
-  const scopes = (instance.scopes as string[]) ?? config.defaultScopes;
+  const useIncrementalRefresh =
+    options?.scopes === undefined &&
+    config.incrementalAuth?.enabled === true &&
+    instance.status === 'connected';
+  const scopes =
+    options?.scopes ??
+    (useIncrementalRefresh
+      ? config.defaultScopes
+      : (instance.scopes as string[]) || config.defaultScopes);
+  const additionalParams =
+    options?.additionalParams ??
+    (useIncrementalRefresh ? config.incrementalAuth?.params : undefined);
 
   const { authUrl, waitForTokens } = await (deps?.startOAuthFlow ?? startOAuthFlowDefault)(
     config,
     resolvedOAuthCredentials.clientId,
     resolvedOAuthCredentials.clientSecret,
     scopes,
+    { additionalParams },
   );
 
   const tokenHandler = async (): Promise<void> => {
@@ -410,8 +423,13 @@ export async function upgradeConnectorInstance(
       .set(setValues)
       .where(eq(connectorInstances.id, typedInstanceId));
 
-    const auth = await authorizeOAuthInstance(instanceId, deps);
-    if (isServiceError(auth)) {
+    const config = definition.authConfig as OAuthConfig;
+    const authScopes = config.incrementalAuth?.enabled ? upgrade.missingScopes : nextScopes;
+    const auth = await authorizeOAuthInstance(instanceId, deps, {
+      scopes: authScopes.length > 0 ? authScopes : nextScopes,
+      additionalParams: config.incrementalAuth?.params,
+    });
+    if (auth.error) {
       return auth;
     }
 

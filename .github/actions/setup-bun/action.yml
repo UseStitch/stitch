@@ -29,6 +29,7 @@ runs:
           apps/*/node_modules
           packages/*/node_modules
           connectors/*/node_modules
+          registries/*/node_modules
         key: ${{ runner.os }}-node_modules-${{ hashFiles('**/bun.lock') }}
         restore-keys: |
           ${{ runner.os }}-node_modules-

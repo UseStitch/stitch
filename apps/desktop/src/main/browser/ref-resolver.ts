@@ -12,6 +12,13 @@ export class RefResolver {
     this.refs = new Map(Object.entries(refs));
   }
 
+  findRefBySelector(selector: string): string | undefined {
+    for (const [ref, entry] of this.refs) {
+      if (entry.selector === selector) return ref;
+    }
+    return undefined;
+  }
+
   async runOnRef<T = unknown>(ref: string, buildScript: (element: string) => string): Promise<T> {
     const result = await (
       await this.getBrowser()

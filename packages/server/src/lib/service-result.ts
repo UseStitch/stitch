@@ -1,27 +1,29 @@
 export type ServiceError = {
-  error: string;
+  message: string;
   status: 400 | 401 | 403 | 404 | 409 | 422 | 500;
   details?: unknown;
 };
 
 export type ServiceSuccess<T> = {
   data: T;
+  error: null;
 };
 
-export type ServiceResult<T> = ServiceSuccess<T> | ServiceError;
+export type ServiceFailure = {
+  data: null;
+  error: ServiceError;
+};
+
+export type ServiceResult<T> = ServiceSuccess<T> | ServiceFailure;
 
 export function ok<T>(data: T): ServiceSuccess<T> {
-  return { data };
+  return { data, error: null };
 }
 
 export function err(
-  error: string,
+  message: string,
   status: 400 | 401 | 403 | 404 | 409 | 422 | 500,
   details?: unknown,
-): ServiceError {
-  return { error, status, details };
-}
-
-export function isServiceError<T>(result: ServiceResult<T>): result is ServiceError {
-  return 'error' in result;
+): ServiceFailure {
+  return { data: null, error: { message, status, details } };
 }

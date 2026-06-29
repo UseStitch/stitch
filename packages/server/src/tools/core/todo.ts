@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { TODO_PRIORITIES, TODO_STATUSES } from '@stitch/shared/todos/types';
 import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 
-import { isServiceError } from '@/lib/service-result.js';
 import { listSessionTodos, replaceSessionTodos } from '@/todos/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
@@ -54,7 +53,7 @@ function createTodoTool(context: ToolContext) {
     execute: async (input) => {
       if (input.action === 'read') {
         const result = await listSessionTodos(context.sessionId);
-        if (isServiceError(result)) return { output: result.error };
+        if (result.error) return { output: result.error.message };
 
         return {
           output: formatSummary(result.data),
@@ -70,7 +69,7 @@ function createTodoTool(context: ToolContext) {
         sessionId: context.sessionId,
         todos: input.todos,
       });
-      if (isServiceError(result)) return { output: result.error };
+      if (result.error) return { output: result.error.message };
 
       return {
         output: `Updated session todos:\n${formatSummary(result.data)}`,

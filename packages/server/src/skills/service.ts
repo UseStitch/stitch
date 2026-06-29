@@ -15,6 +15,7 @@ import type {
   SkillUpdateInput,
 } from '@stitch/shared/skills/types';
 
+import { getDisabledAppSkillNames } from '@/apps/service.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -343,8 +344,13 @@ export async function importSkillFromDirectory(
 
 export async function buildSkillsSystemPrompt(): Promise<string> {
   const result = await listSkills();
-  if ('error' in result || result.data.length === 0) return '';
+  if (result.error || result.data.length === 0) return '';
 
-  const lines = result.data.map((skill) => `- ${skill.name}: ${skill.description}`);
+  const disabledSkillNames = await getDisabledAppSkillNames();
+  const lines = result.data
+    .filter((skill) => !disabledSkillNames.has(skill.name))
+    .map((skill) => `- ${skill.name}: ${skill.description}`);
+  if (lines.length === 0) return '';
+
   return `Available skills provide task-specific instructions. Use the \`skill\` tool to load a skill when the user's request matches its description.\n\n${lines.join('\n')}`;
 }

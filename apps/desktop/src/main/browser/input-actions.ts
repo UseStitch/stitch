@@ -3,6 +3,8 @@ import type { WebContents } from 'electron';
 
 const DEFAULT_SCROLL_PX = 650;
 const SELECT_CHANGE_DELAY_MS = 10;
+const CONTENTEDITABLE_CHAR_DELAY_MS = 5;
+const FOCUS_SETTLE_MS = 50;
 
 export async function clickRef(
   browser: WebContents,
@@ -75,19 +77,89 @@ export async function typeIntoRef(
   submit?: boolean,
   slowly?: boolean,
 ): Promise<void> {
-  await refResolver.focusRef(ref);
+  const isContentEditable = await refResolver.runOnRef<boolean>(
+    ref,
+    (element) =>
+      `return ${element}.isContentEditable || ${element}.getAttribute('contenteditable') !== null`,
+  );
+
+  if (isContentEditable) {
+    await typeIntoContentEditable(browser, refResolver, ref, text, clear, submit, slowly);
+  } else {
+    await refResolver.focusRef(ref);
+    await new Promise((resolve) => setTimeout(resolve, FOCUS_SETTLE_MS));
+    if (clear) {
+      sendShortcut(browser, 'A');
+      sendKey(browser, 'Backspace');
+    }
+    if (slowly) {
+      for (const char of text) {
+        await browser.insertText(char);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    } else {
+      await browser.insertText(text);
+    }
+    if (submit) {
+      sendKey(browser, 'Enter');
+    }
+  }
+}
+
+async function typeIntoContentEditable(
+  browser: WebContents,
+  refResolver: RefResolver,
+  ref: string,
+  text: string,
+  clear?: boolean,
+  submit?: boolean,
+  slowly?: boolean,
+): Promise<void> {
+  // Click the element to activate the rich text editor framework
+  const target = await refResolver.resolveRef(ref);
+  browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
+  browser.sendInputEvent({
+    type: 'mouseDown',
+    x: target.x,
+    y: target.y,
+    button: 'left',
+    clickCount: 1,
+  });
+  browser.sendInputEvent({
+    type: 'mouseUp',
+    x: target.x,
+    y: target.y,
+    button: 'left',
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, FOCUS_SETTLE_MS));
+
   if (clear) {
     sendShortcut(browser, 'A');
+    await new Promise((resolve) => setTimeout(resolve, FOCUS_SETTLE_MS));
     sendKey(browser, 'Backspace');
+    await new Promise((resolve) => setTimeout(resolve, FOCUS_SETTLE_MS));
   }
-  if (slowly) {
-    for (const char of text) {
-      await browser.insertText(char);
-      await new Promise((resolve) => setTimeout(resolve, 20));
+
+  // Type character-by-character using key events for contenteditable compatibility
+  const delay = slowly ? 20 : CONTENTEDITABLE_CHAR_DELAY_MS;
+  for (const char of text) {
+    if (char === '\n') {
+      sendKey(browser, 'Enter');
+    } else {
+      browser.sendInputEvent({ type: 'keyDown', keyCode: char });
+      browser.sendInputEvent({ type: 'char', keyCode: char });
+      browser.sendInputEvent({ type: 'keyUp', keyCode: char });
     }
-  } else {
-    await browser.insertText(text);
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
+
+  // Dispatch input event to trigger framework reactivity
+  await refResolver.runOnRef(
+    ref,
+    (element) => `${element}.dispatchEvent(new Event('input', { bubbles: true })); return true;`,
+  );
+
   if (submit) {
     sendKey(browser, 'Enter');
   }

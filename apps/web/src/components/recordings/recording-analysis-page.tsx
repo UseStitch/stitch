@@ -53,33 +53,40 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
     void deleteRecording.mutateAsync(recordingId).then(
       () => {
         setShowDeleteConfirm(false);
-        toast.success('Recording deleted');
+        toast.success('Recording deleted', { id: 'analysis-recording-delete' });
         void navigate({ to: '/recordings' });
       },
-      (error: unknown) => toast.error(getErrorMessage(error, 'Failed to delete recording')),
+      (error: unknown) =>
+        toast.error(getErrorMessage(error, 'Failed to delete recording'), {
+          id: 'analysis-recording-delete',
+        }),
     );
   }, [deleteRecording, navigate, recordingId]);
 
   const handleStartAnalysis = () => {
     if (!selectedTemplate) {
-      toast.error('Select a meeting note template first');
+      toast.error('Select a meeting note template first', { id: 'analysis-no-template' });
       return;
     }
 
     void startAnalysis
       .mutateAsync({ recordingId, force: true, templateId: selectedTemplate.id })
       .then(
-        () => toast.success('Analysis started'),
+        () => toast.success('Analysis started', { id: 'analysis-start' }),
         (error: unknown) =>
-          toast.error(getErrorMessage(error, 'Failed to start recording analysis')),
+          toast.error(getErrorMessage(error, 'Failed to start recording analysis'), {
+            id: 'analysis-start',
+          }),
       );
   };
 
   const handleCancelAnalysis = () => {
     void cancelAnalysis.mutateAsync(recordingId).then(
-      () => toast.success('Analysis cancelled'),
+      () => toast.success('Analysis cancelled', { id: 'analysis-cancel' }),
       (error: unknown) =>
-        toast.error(getErrorMessage(error, 'Failed to cancel recording analysis')),
+        toast.error(getErrorMessage(error, 'Failed to cancel recording analysis'), {
+          id: 'analysis-cancel',
+        }),
     );
   };
 
@@ -103,8 +110,11 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
           onCancelAnalysis={handleCancelAnalysis}
           onStopRecording={() => {
             void stopRecording.mutateAsync().then(
-              () => toast.success('Recording stopped'),
-              (error: unknown) => toast.error(getErrorMessage(error, 'Failed to stop recording')),
+              () => toast.success('Recording stopped', { id: 'analysis-recording-stop' }),
+              (error: unknown) =>
+                toast.error(getErrorMessage(error, 'Failed to stop recording'), {
+                  id: 'analysis-recording-stop',
+                }),
             );
           }}
           onDelete={() => {

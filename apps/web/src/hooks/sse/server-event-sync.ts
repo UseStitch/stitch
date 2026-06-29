@@ -243,6 +243,9 @@ function useServerEventSync(): void {
         queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
       ]);
     },
+    'mcp-auth-status-changed': () => {
+      void queryClient.invalidateQueries({ queryKey: mcpKeys.list() });
+    },
   });
 }
 

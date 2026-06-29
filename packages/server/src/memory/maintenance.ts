@@ -1,6 +1,9 @@
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
+import { ok } from '@/lib/service-result.js';
+import type { ServiceResult } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
+import { consolidateMemories } from '@/memory/consolidation.js';
+import type { ConsolidationResult } from '@/memory/consolidation.js';
 import { deduplicateMemories, getMemoryStats, pruneStaleMemories } from '@/memory/service.js';
 import type { MemoryStats } from '@/memory/service.js';
 
@@ -9,15 +12,21 @@ const log = Log.create({ service: 'memory-maintenance' });
 type MaintenanceResult = {
   pruned: number;
   deduplicated: number;
+  consolidated: ConsolidationResult;
   stats: MemoryStats | null;
 };
 
-export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
+export async function runMemoryMaintenance(): Promise<ServiceResult<MaintenanceResult>> {
   const config = await getMemoryConfig();
 
   if (!isMemoryActive(config)) {
     log.info('memory maintenance skipped — memory not active');
-    return { pruned: 0, deduplicated: 0, stats: null };
+    return ok({
+      pruned: 0,
+      deduplicated: 0,
+      consolidated: { groupsReviewed: 0, added: 0, updated: 0, deleted: 0, skipped: 0 },
+      stats: null,
+    });
   }
 
   log.info('starting memory maintenance');
@@ -28,8 +37,8 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
     const beforeResult = await getMemoryStats();
     await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays });
     const afterResult = await getMemoryStats();
-    const beforeTotal = isServiceError(beforeResult) ? 0 : beforeResult.data.total;
-    const afterTotal = isServiceError(afterResult) ? 0 : afterResult.data.total;
+    const beforeTotal = beforeResult.error ? 0 : beforeResult.data.total;
+    const afterTotal = afterResult.error ? 0 : afterResult.data.total;
     pruned = Math.max(0, beforeTotal - afterTotal);
     log.info({ pruned }, 'memory maintenance: pruning complete');
   }
@@ -38,9 +47,13 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
   const deduplicated = await deduplicateMemories();
   log.info({ deduplicated }, 'memory maintenance: dedup sweep complete');
 
-  // Phase 3: Emit stats
+  // Phase 3: Reflective consolidation of related semantic memories
+  const consolidated = await consolidateMemories();
+  log.info(consolidated, 'memory maintenance: consolidation complete');
+
+  // Phase 4: Emit stats
   const statsResult = await getMemoryStats();
-  const stats = isServiceError(statsResult) ? null : statsResult.data;
+  const stats = statsResult.error ? null : statsResult.data;
   if (stats) {
     log.info(
       {
@@ -55,5 +68,5 @@ export async function runMemoryMaintenance(): Promise<MaintenanceResult> {
     );
   }
 
-  return { pruned, deduplicated, stats };
+  return ok({ pruned, deduplicated, consolidated, stats });
 }

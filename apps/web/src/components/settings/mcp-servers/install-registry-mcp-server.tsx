@@ -5,8 +5,10 @@ import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { HeaderRows } from './header-rows';
+import { OAuthFields } from './oauth-fields';
 import {
   AUTH_TYPE_LABELS,
+  EMPTY_ADD_FORM,
   applyAuthConfigToForm,
   buildAuthConfig,
   describeAuthConfig,
@@ -24,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAddMcpServer } from '@/lib/queries/mcp';
+import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function InstallRegistryMcpServer({
   server,
@@ -36,6 +38,7 @@ export function InstallRegistryMcpServer({
   onInstalled: () => void;
 }) {
   const addServer = useAddMcpServer();
+  const startAuth = useStartMcpAuth();
 
   const authOptions = React.useMemo(() => {
     const configs = [server.install.authConfig, ...(server.install.optionalAuthConfigs ?? [])];
@@ -54,12 +57,10 @@ export function InstallRegistryMcpServer({
   const [form, setForm] = React.useState<AddFormState>(() =>
     applyAuthConfigToForm(
       {
+        ...EMPTY_ADD_FORM,
         name: server.install.name,
         url: server.install.url,
         transport: server.install.transport,
-        authType: 'none',
-        apiKey: '',
-        headers: [],
       },
       authOptions[0]?.config ?? server.install.authConfig,
     ),
@@ -85,31 +86,42 @@ export function InstallRegistryMcpServer({
     const url = form.url.trim();
 
     if (!name) {
-      toast.error('Name is required');
+      toast.error('Name is required', { id: 'mcp-install-name' });
       return;
     }
     if (!url) {
-      toast.error('URL is required');
+      toast.error('URL is required', { id: 'mcp-install-url' });
       return;
     }
     if (form.authType === 'api_key' && !form.apiKey.trim()) {
-      toast.error('API key is required');
+      toast.error('API key is required', { id: 'mcp-install-apikey' });
       return;
     }
 
     try {
-      await addServer.mutateAsync({
+      const { id } = await addServer.mutateAsync({
         name,
         transport: form.transport,
         url,
         authConfig: buildAuthConfig(form),
       });
-      toast.success(`${server.name} installed`);
+      if (form.authType === 'oauth') {
+        await startAuth.mutateAsync(id);
+        toast.success('Authorization started — complete it in your browser', {
+          id: 'mcp-install-auth',
+        });
+      } else {
+        toast.success(`${server.name} installed`, { id: 'mcp-install-success' });
+      }
       onInstalled();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server', {
+        id: 'mcp-install-error',
+      });
     }
   };
+
+  const isBusy = addServer.isPending || startAuth.isPending;
 
   return (
     <SettingSubPage
@@ -197,12 +209,14 @@ export function InstallRegistryMcpServer({
           </div>
         )}
 
+        {form.authType === 'oauth' && <OAuthFields form={form} set={set} />}
+
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onBack} disabled={addServer.isPending}>
+          <Button variant="outline" onClick={onBack} disabled={isBusy}>
             Cancel
           </Button>
-          <Button onClick={() => void handleInstall()} disabled={addServer.isPending}>
-            {addServer.isPending ? 'Installing...' : 'Install server'}
+          <Button onClick={() => void handleInstall()} disabled={isBusy}>
+            {isBusy ? 'Installing...' : 'Install server'}
           </Button>
         </div>
       </div>

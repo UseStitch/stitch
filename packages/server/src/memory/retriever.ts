@@ -1,5 +1,4 @@
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
 import { searchSemanticMemories, touchSemanticMemories } from '@/memory/service.js';
 import type { MemoryCategory } from '@/memory/types.js';
@@ -70,7 +69,7 @@ export async function retrieveMemoryContext(
     sourceFilter,
   });
 
-  if (isServiceError(semanticResult)) return null;
+  if (semanticResult.error) return null;
   const semantic = semanticResult.data;
 
   // Apply category and score filters before reranking.

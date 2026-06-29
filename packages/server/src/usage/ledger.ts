@@ -6,48 +6,12 @@ import { getDb } from '@/db/client.js';
 import { embeddingUsageEvents, llmUsageEvents } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
 import { calculateEmbeddingCostUsd, calculateMessageCostUsd } from '@/usage/cost.js';
+import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'usage-ledger' });
 
 type UsageEventStatus = 'succeeded' | 'failed' | 'aborted';
-
-type UsageMetrics = {
-  inputTokens: number;
-  outputTokens: number;
-  reasoningTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
-  totalTokens: number;
-};
-
-function safeNumber(value: number | null | undefined): number {
-  if (typeof value !== 'number') {
-    return 0;
-  }
-
-  return Number.isFinite(value) ? value : 0;
-}
-
-function extractUsageMetrics(usage: LanguageModelUsage | null | undefined): UsageMetrics {
-  const inputTokens = safeNumber(usage?.inputTokens);
-  const outputTokens = safeNumber(usage?.outputTokens);
-  const reasoningTokens = safeNumber(usage?.outputTokenDetails?.reasoningTokens);
-  const cacheReadTokens = safeNumber(usage?.inputTokenDetails?.cacheReadTokens);
-  const cacheWriteTokens = safeNumber(usage?.inputTokenDetails?.cacheWriteTokens);
-  const totalTokens =
-    safeNumber(usage?.totalTokens) ||
-    inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
-
-  return {
-    inputTokens,
-    outputTokens,
-    reasoningTokens,
-    cacheReadTokens,
-    cacheWriteTokens,
-    totalTokens,
-  };
-}
 
 export async function recordUsageEvent(input: {
   runId: string;
@@ -72,7 +36,7 @@ export async function recordUsageEvent(input: {
   const now = Date.now();
   const endedAt = input.endedAt ?? now;
   const durationMs = input.durationMs ?? Math.max(0, endedAt - input.startedAt);
-  const metrics = extractUsageMetrics(input.usage);
+  const metrics = normalizeUsage(input.usage);
 
   await db.insert(llmUsageEvents).values({
     id: randomUUID(),

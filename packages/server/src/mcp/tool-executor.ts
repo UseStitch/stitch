@@ -3,7 +3,6 @@ import type { McpIcon, McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpClient, listMcpAiTools } from '@/mcp/client.js';
 import { buildServerPresentation } from '@/mcp/presentation.js';
@@ -21,8 +20,6 @@ import {
 } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
-
-export { evictMcpClient } from '@/mcp/client.js';
 
 const log = Log.create({ service: 'mcp-tool-executor' });
 
@@ -276,7 +273,7 @@ async function refreshMcpToolsetsInternal(
       const tools = refreshTools
         ? await deps
             .fetchMcpTools(server.id)
-            .then((result) => (isServiceError(result) ? (server.tools ?? []) : result.data))
+            .then((result) => (result.error ? (server.tools ?? []) : result.data))
             .catch(() => server.tools ?? [])
         : (server.tools ?? []);
       return {

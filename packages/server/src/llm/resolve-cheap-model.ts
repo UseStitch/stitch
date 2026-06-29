@@ -37,7 +37,7 @@ export async function resolveCheapModel(input: {
     priorityModelIds: CHEAP_MODEL_PRIORITY,
   });
 
-  if ('error' in result) {
+  if (result.error) {
     return null;
   }
 

@@ -5,20 +5,22 @@ import { z } from 'zod';
 import { generateAutomationDraft } from '@/automations/generation.js';
 import {
   abortSessionRun,
-  createSession,
-  deleteSession,
-  getSessionById,
   getSessionStats,
-  listSessionMessages,
-  listSessions,
-  markSessionRead,
-  renameSession,
   requestCompaction,
   resolveDoomLoop,
   sendMessage,
   splitSession,
 } from '@/chat/service.js';
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
+import {
+  createSession,
+  deleteSession,
+  getSessionById,
+  listSessionMessages,
+  listSessions,
+  markSessionRead,
+  renameSession,
+} from '@/chat/session-crud.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import { listSessionTodos } from '@/todos/service.js';
 
@@ -87,7 +89,7 @@ chatRouter.get('/sessions', zValidator('query', listSessionsQuerySchema), async 
 
 chatRouter.get('/sessions/:id', zValidator('param', sessionIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  const result = requireFound(await getSessionById(id), 'Session');
+  const result = await getSessionById(id);
   return unwrapResult(c, result);
 });
 
@@ -128,16 +130,14 @@ chatRouter.patch(
   async (c) => {
     const { id } = c.req.valid('param');
     const { title } = c.req.valid('json');
-    const updated = await renameSession(id, title);
-    const result = requireFound(updated, 'Session');
+    const result = await renameSession(id, title);
     return unwrapResult(c, result);
   },
 );
 
 chatRouter.patch('/sessions/:id/read', zValidator('param', sessionIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  const updated = await markSessionRead(id);
-  const result = requireFound(updated, 'Session');
+  const result = await markSessionRead(id);
   return unwrapResult(c, result, 204);
 });
 
@@ -174,8 +174,8 @@ chatRouter.post(
 
 chatRouter.post('/sessions/:id/abort', zValidator('param', sessionIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  await abortSessionRun(id);
-  return c.json({ ok: true });
+  const result = await abortSessionRun(id);
+  return unwrapResult(c, result, 204);
 });
 
 chatRouter.post('/sessions/:id/split/:msgId', zValidator('param', splitParamSchema), async (c) => {

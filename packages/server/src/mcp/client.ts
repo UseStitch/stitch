@@ -1,3 +1,4 @@
+import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { dynamicTool, jsonSchema } from 'ai';
@@ -8,6 +9,7 @@ import type { McpAuthConfig } from '@stitch/shared/mcp/types';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
+import { McpOAuthProvider, setMcpAuthStatus } from '@/mcp/oauth-provider.js';
 import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
 import type { JSONSchema7 } from 'ai';
 import type { Tool } from 'ai';
@@ -30,6 +32,45 @@ type McpServerRef = {
  */
 const clientCache = new Map<string, Promise<McpClient>>();
 
+/**
+ * Transports for in-flight OAuth flows, keyed by server ID. `finishAuth` must
+ * run on the same transport instance that began the flow (it holds the
+ * in-memory PKCE/code-verifier linkage); a fresh transport would re-trigger
+ * discovery and break the exchange.
+ */
+const pendingOAuthTransports = new Map<string, StreamableHTTPClientTransport>();
+
+export function registerPendingOAuthTransport(
+  serverId: string,
+  transport: StreamableHTTPClientTransport,
+): void {
+  pendingOAuthTransports.set(serverId, transport);
+}
+
+export function getPendingOAuthTransport(
+  serverId: string,
+): StreamableHTTPClientTransport | undefined {
+  return pendingOAuthTransports.get(serverId);
+}
+
+export function clearPendingOAuthTransport(serverId: string): void {
+  pendingOAuthTransports.delete(serverId);
+}
+
+function buildTransport(server: McpServerRef): StreamableHTTPClientTransport {
+  if (server.authConfig.type === 'oauth') {
+    const authProvider = new McpOAuthProvider({
+      id: server.id,
+      url: server.url,
+      authConfig: server.authConfig,
+    });
+    return new StreamableHTTPClientTransport(new URL(server.url), { authProvider });
+  }
+
+  const headers = buildAuthHeaders(server.authConfig);
+  return new StreamableHTTPClientTransport(new URL(server.url), { requestInit: { headers } });
+}
+
 function createAiTool(server: McpServerRef, tool: McpTool): Tool {
   return dynamicTool({
     title: tool.title,
@@ -51,12 +92,7 @@ export async function listMcpAiTools(server: McpServerRef): Promise<Record<strin
 }
 
 async function openClient(server: McpServerRef): Promise<McpClient> {
-  const headers = buildAuthHeaders(server.authConfig);
-  const transport = new StreamableHTTPClientTransport(new URL(server.url), {
-    requestInit: {
-      headers,
-    },
-  });
+  const transport = buildTransport(server);
   const client = new Client(
     { name: 'stitch', version: '1.0.0' },
     {
@@ -133,6 +169,15 @@ export async function withMcpClient<T>(
     return await fn(client);
   } catch (err) {
     clientCache.delete(server.id);
+    if (server.authConfig.type === 'oauth' && isUnauthorizedError(err)) {
+      await setMcpAuthStatus(server.id, 'reauthorization_required');
+    }
     throw err;
   }
+}
+
+function isUnauthorizedError(err: unknown): boolean {
+  if (err instanceof UnauthorizedError) return true;
+  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  return message.includes('unauthorized') || message.includes('401');
 }

@@ -18,6 +18,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
 import { useCreateAutomation } from '@/lib/queries/automations';
 import { useGenerateAutomationDraft, useMarkSessionRead } from '@/lib/queries/chat';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
@@ -31,6 +32,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const navigate = useNavigate();
   const { mutate: markReadMutate } = useMarkSessionRead();
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: appEnabledStates } = useQuery(appEnabledStatesQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
   const createAutomation = useCreateAutomation();
   const generateAutomation = useGenerateAutomationDraft();
@@ -49,7 +51,10 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
   const rightPanelOpen = rightPanel !== 'closed';
 
-  const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser);
+  const browserAppEnabled =
+    appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
+  const hasBrowser =
+    typeof window !== 'undefined' && Boolean(window.api?.browser) && browserAppEnabled;
 
   const toggleDetails = React.useCallback(() => {
     setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
@@ -60,8 +65,16 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   }, []);
 
   React.useEffect(() => {
-    return window.api?.browser.onShowRequested(() => setRightPanel('browser'));
-  }, []);
+    return window.api?.browser.onShowRequested(() => {
+      if (browserAppEnabled) setRightPanel('browser');
+    });
+  }, [browserAppEnabled]);
+
+  React.useEffect(() => {
+    if (!hasBrowser && rightPanel === 'browser') {
+      setRightPanel('closed');
+    }
+  }, [hasBrowser, rightPanel]);
 
   React.useEffect(() => {
     lastReadCompletedMessageIdRef.current = null;
@@ -126,7 +139,10 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
         >
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
-            <SessionChatPane sessionId={sessionId} />
+            <SessionChatPane
+              sessionId={sessionId}
+              onGenerateAutomation={handleGenerateAutomation}
+            />
           </ResizablePanel>
 
           {rightPanelOpen ? (
@@ -174,7 +190,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             const created = await createAutomation.mutateAsync(input);
             setAutomationDialogOpen(false);
             setGeneratedDraft(null);
-            toast.success('Automation created');
+            toast.success('Automation created', { id: 'session-automation-create' });
             if (action === 'create-view') {
               void navigate({
                 to: '/automations/$automationId',
@@ -182,7 +198,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
               });
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to create automation');
+            toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
+              id: 'session-automation-create',
+            });
           }
         }}
       />

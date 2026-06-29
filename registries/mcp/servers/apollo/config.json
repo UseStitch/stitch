@@ -1,0 +1,17 @@
+{
+  "$schema": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "id": "apollo",
+  "name": "Apollo.io",
+  "description": "Sales and marketing data, prospecting, and enrichment tools from Apollo.io via remote MCP.",
+  "homepageUrl": "https://apollo.io",
+  "docsUrl": "https://docs.apollo.io/docs/apollo-mcp-server",
+  "tags": ["sales", "marketing", "crm", "enrichment", "prospecting"],
+  "install": {
+    "name": "Apollo.io",
+    "transport": "http",
+    "url": "https://mcp.apollo.io/mcp",
+    "authConfig": {
+      "type": "oauth"
+    }
+  }
+}

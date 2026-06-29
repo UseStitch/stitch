@@ -9,6 +9,7 @@ import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import type { ModelMessage } from 'ai';
 
@@ -21,13 +22,14 @@ export async function buildSessionLlmMessages(
 ): Promise<ModelMessage[]> {
   const db = getDb();
 
-  const [msgs, promptUserContext, sessionRow, todoContext] = await Promise.all([
+  const [msgs, promptUserContext, promptSettings, sessionRow, todoContext] = await Promise.all([
     db
       .select()
       .from(messages)
       .where(eq(messages.sessionId, sessionId))
       .orderBy(asc(messages.createdAt)),
     getPromptUserContext(),
+    getSettings(['agents.customInstructions'] as const),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
     getSessionTodosPromptBlock(sessionId),
   ]);
@@ -58,7 +60,7 @@ export async function buildSessionLlmMessages(
 
   return buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig.useBasePrompt,
-    systemPrompt: promptConfig.systemPrompt,
+    systemPrompt: promptConfig.systemPrompt ?? promptSettings['agents.customInstructions'],
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,

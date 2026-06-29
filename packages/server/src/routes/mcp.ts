@@ -5,12 +5,24 @@ import { z } from 'zod';
 import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
+import * as Log from '@/lib/log.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
+import { evictMcpClient } from '@/mcp/client.js';
+import * as OAuthCallback from '@/mcp/oauth-callback.js';
 import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
 import { listMcpRegistryServers, reloadMcpRegistryCacheFromDisk } from '@/mcp/registry-service.js';
-import { createMcpServer, deleteMcpServer, fetchMcpTools, listMcpServers } from '@/mcp/service.js';
-import { evictMcpClient, refreshMcpToolsets } from '@/mcp/tool-executor.js';
+import {
+  createMcpServer,
+  deleteMcpServer,
+  fetchMcpTools,
+  getMcpAuthStatus,
+  listMcpServers,
+  logoutMcpAuth,
+  startMcpAuth,
+} from '@/mcp/service.js';
+import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
+
+const log = Log.create({ service: 'mcp-routes' });
 
 const noneAuthSchema = z.object({ type: z.literal('none') });
 const apiKeyAuthSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
@@ -18,10 +30,17 @@ const headersAuthSchema = z.object({
   type: z.literal('headers'),
   headers: z.record(z.string(), z.string()),
 });
+const oauthAuthSchema = z.object({
+  type: z.literal('oauth'),
+  scopes: z.array(z.string()).optional(),
+  clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
+});
 const authConfigSchema = z.discriminatedUnion('type', [
   noneAuthSchema,
   apiKeyAuthSchema,
   headersAuthSchema,
+  oauthAuthSchema,
 ]);
 
 const createMcpServerSchema = z.object({
@@ -46,7 +65,7 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
     url: body.url,
     authConfig: body.authConfig,
   });
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
   return unwrapResult(c, result, 201);
 });
@@ -76,7 +95,7 @@ mcpRouter.get('/registry/:registryId/logo', async (c) => {
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return unwrapResult(c, result);
 });
@@ -107,8 +126,41 @@ mcpRouter.post('/:id/refresh', async (c) => {
 mcpRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteMcpServer(id);
-  if (isServiceError(result)) return unwrapResult(c, result);
+  if (result.error) return unwrapResult(c, result);
+  OAuthCallback.cancelPending(id);
   evictMcpClient(id);
   await refreshMcpToolsets({ refreshTools: false });
+  return unwrapResult(c, result, 204);
+});
+
+mcpRouter.post('/:id/auth', async (c) => {
+  const id = c.req.param('id');
+  const result = await startMcpAuth(id);
+  if (result.error) return unwrapResult(c, result);
+
+  const { waitForTokens } = result.data;
+  void waitForTokens().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn(
+      { event: 'mcp.auth.background_failed', id, error: message },
+      'background MCP authorization failed',
+    );
+  });
+
+  return c.json({ authUrl: result.data.authUrl });
+});
+
+mcpRouter.get('/:id/auth/status', async (c) => {
+  const id = c.req.param('id');
+  const result = await getMcpAuthStatus(id);
+  return unwrapResult(c, result);
+});
+
+mcpRouter.post('/:id/auth/logout', async (c) => {
+  const id = c.req.param('id');
+  const result = await logoutMcpAuth(id);
+  if (result.error) return unwrapResult(c, result);
+  evictMcpClient(id);
+  await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return unwrapResult(c, result, 204);
 });

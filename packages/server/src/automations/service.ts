@@ -14,13 +14,14 @@ import type { Session } from '@stitch/shared/chat/messages';
 import { createAutomationId, createMessageId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { createSession, sendMessage } from '@/chat/service.js';
+import { sendMessage } from '@/chat/service.js';
+import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { automations } from '@/db/schema/automations.js';
 import { sessions } from '@/db/schema/sessions.js';
 import * as Log from '@/lib/log.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
-import { err, isServiceError, ok } from '@/lib/service-result.js';
+import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { validateProviderModel } from '@/llm/resolve-model.js';
 
@@ -117,12 +118,12 @@ async function createAutomation(
   }
 
   const scheduleResult = validateAutomationSchedule(scheduleInput);
-  if ('error' in scheduleResult) {
+  if (scheduleResult.error) {
     return scheduleResult;
   }
 
   const validation = await validateProviderModel(providerId, modelId);
-  if ('error' in validation) {
+  if (validation.error) {
     return validation;
   }
 
@@ -148,7 +149,7 @@ export async function createAutomationAndSync(
   syncSchedule: SyncAutomationSchedule,
 ): Promise<ServiceResult<AutomationRow>> {
   const result = await createAutomation(input);
-  if (isServiceError(result)) return result;
+  if (result.error) return result;
 
   try {
     await syncSchedule(result.data);
@@ -190,12 +191,12 @@ async function updateAutomation(
   }
 
   const scheduleResult = validateAutomationSchedule(scheduleInput);
-  if ('error' in scheduleResult) {
+  if (scheduleResult.error) {
     return scheduleResult;
   }
 
   const validation = await validateProviderModel(providerId, modelId);
-  if ('error' in validation) {
+  if (validation.error) {
     return validation;
   }
 
@@ -225,10 +226,10 @@ export async function updateAutomationAndSync(
   syncSchedule: SyncAutomationSchedule,
 ): Promise<ServiceResult<AutomationRow>> {
   const beforeResult = await getAutomation(automationId);
-  if (isServiceError(beforeResult)) return beforeResult;
+  if (beforeResult.error) return beforeResult;
 
   const result = await updateAutomation(automationId, input);
-  if (isServiceError(result)) return result;
+  if (result.error) return result;
 
   try {
     await syncSchedule(result.data);
@@ -322,7 +323,7 @@ export async function runAutomation(
   }
 
   const validation = await validateProviderModel(automation.providerId, automation.modelId);
-  if ('error' in validation) {
+  if (validation.error) {
     return validation;
   }
 
@@ -332,7 +333,7 @@ export async function runAutomation(
     type: 'automation',
     automationId: automation.id,
   });
-  if (isServiceError(sessionResult)) return sessionResult;
+  if (sessionResult.error) return sessionResult;
   const session = sessionResult.data;
 
   const assistantMessageId = createMessageId();
@@ -343,7 +344,7 @@ export async function runAutomation(
     modelId: automation.modelId,
     assistantMessageId,
   });
-  if (isServiceError(sendResult)) return sendResult;
+  if (sendResult.error) return sendResult;
 
   const [updatedAutomation] = await db.transaction(async (tx) => {
     const [updated] = await tx

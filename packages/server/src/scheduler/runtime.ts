@@ -4,6 +4,7 @@ import type { RegisteredJob } from '@stitch/scheduler';
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
+import { refreshExpiringMcpTokens } from '@/mcp/service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import * as EmbeddingRegistry from '@/models/embedding/registry.js';
@@ -83,6 +84,11 @@ function getBuiltinJobs(): RegisteredJob[] {
       key: 'token-refresh',
       schedule: { type: 'interval', everyMs: TOKEN_REFRESH_INTERVAL_MS },
       callback: () => refreshExpiringTokens(),
+    },
+    {
+      key: 'mcp-token-refresh',
+      schedule: { type: 'interval', everyMs: TOKEN_REFRESH_INTERVAL_MS },
+      callback: () => refreshExpiringMcpTokens(),
     },
   ];
 

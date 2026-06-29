@@ -35,6 +35,10 @@ export type OAuthConfig = {
   serviceAccessOptions?: OAuthServiceAccessOption[];
 
   additionalParams?: Record<string, string>;
+  incrementalAuth?: {
+    enabled: boolean;
+    params?: Record<string, string>;
+  };
   /** Maps scopes to the API IDs they require (for generating "Enable APIs" links) */
   scopeApiMap?: Record<string, string>;
 };

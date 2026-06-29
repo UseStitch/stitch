@@ -11,7 +11,6 @@ import {
   ImageIcon,
   ListTodoIcon,
   MicIcon,
-  PanelTopIcon,
   PencilIcon,
   SearchIcon,
   ServerIcon,
@@ -88,7 +87,7 @@ export function ToolKindIcon({ kind, className }: { kind: ToolIconKind; classNam
     case 'agenda':
       return <CalendarCheckIcon className={className} />;
     case 'browser':
-      return <PanelTopIcon className={className} />;
+      return <GlobeIcon className={className} />;
     case 'recordings':
       return <MicIcon className={className} />;
     case 'inspect-image':
@@ -114,7 +113,7 @@ export function NativeToolsetIcon({
   className?: string;
 }) {
   if (toolsetId === 'agenda') return <CalendarCheckIcon className={className} />;
-  if (toolsetId === 'browser') return <PanelTopIcon className={className} />;
+  if (toolsetId === 'browser') return <GlobeIcon className={className} />;
   if (toolsetId === 'recordings') return <MicIcon className={className} />;
   if (toolsetId === 'session-history') return <HistoryIcon className={className} />;
 

@@ -246,6 +246,13 @@
       "when": 1781653056873,
       "tag": "0034_acoustic_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1782067742555,
+      "tag": "0035_slim_sumo",
+      "breakpoints": true
     }
   ]
 }

@@ -309,6 +309,16 @@ function ProductList({ filters, minRating }: Props) {
       - Major documentation additions (if applicable)
       ```
 
+##### PR Title Convention
+
+Use conventional commit format: `type(scope): description`. Scope is optional, `!` before `:` marks breaking changes.
+
+- `feat` — New features
+- `fix` — Bug fixes
+- `improvement` / `refactor` / `perf` — Improvements
+- `docs` — Documentation
+- `chore` — Maintenance
+
 ##### PR/Issue Text
 
 - Always write PR and issue bodies to a temp file and use `gh pr create --body-file` / `gh pr edit --body-file` — passing markdown directly via `--body` will mangle backticks and special characters.

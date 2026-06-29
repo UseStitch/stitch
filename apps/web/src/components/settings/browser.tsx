@@ -1,61 +1,10 @@
-import { toast } from 'sonner';
-
-import { useSuspenseQuery } from '@tanstack/react-query';
-
+import { AppEnableSetting } from '@/components/settings/app-enable-setting';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import {
-  SettingPage,
-  SettingRow,
-  SettingRows,
-  SettingSection,
-} from '@/components/settings/settings-ui';
-import { Switch } from '@/components/ui/switch';
-import { toolEnabledStatesQueryOptions, useSetToolEnabledState } from '@/lib/queries/tools';
-
-const BROWSER_TOOLSET_ID = 'browser';
-
-function BrowserToolsetToggle({
-  enabled,
-  isMutating,
-  onToggle,
-}: {
-  enabled: boolean;
-  isMutating: boolean;
-  onToggle: (enabled: boolean) => void;
-}) {
-  return (
-    <SettingRow
-      label="Enable browser tool"
-      description={`Browser Toolset ${enabled ? 'Active' : 'Inactive'}`}
-      htmlFor="browser-toolset-toggle"
-    >
-      <Switch
-        id="browser-toolset-toggle"
-        checked={enabled}
-        onCheckedChange={onToggle}
-        disabled={isMutating}
-      />
-    </SettingRow>
-  );
-}
+import { SettingPage, SettingRows, SettingSection } from '@/components/settings/settings-ui';
 
 export function BrowserSettings() {
   const page = SETTINGS_PAGE_BY_ID.browser;
   const Icon = page.icon;
-  const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
-  const setToolEnabledState = useSetToolEnabledState();
-  const browserToolEnabled =
-    enabledStates.find(
-      (state) => state.scope === 'toolset' && state.identifier === BROWSER_TOOLSET_ID,
-    )?.enabled ?? true;
-
-  function handleBrowserToolsetToggle(checked: boolean) {
-    void setToolEnabledState
-      .mutateAsync({ scope: 'toolset', identifier: BROWSER_TOOLSET_ID, enabled: checked })
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update browser tool');
-      });
-  }
 
   return (
     <SettingPage
@@ -63,13 +12,9 @@ export function BrowserSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
     >
-      <SettingSection>
+      <SettingSection title="App">
         <SettingRows>
-          <BrowserToolsetToggle
-            enabled={browserToolEnabled}
-            isMutating={setToolEnabledState.isPending}
-            onToggle={handleBrowserToolsetToggle}
-          />
+          <AppEnableSetting appId="browser" label="Browser" />
         </SettingRows>
       </SettingSection>
     </SettingPage>

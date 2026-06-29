@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 import {
   clearMcpRegistryCacheForTests,
@@ -77,17 +77,39 @@ describe('mcp registry service', () => {
       fetchImpl,
       force: true,
     });
-    expect('error' in refreshResult).toBe(false);
+    expect(refreshResult.error).toBeNull();
 
     const listResult = await listMcpRegistryServers({ cacheFilePath });
-    expect('error' in listResult).toBe(false);
-    if ('error' in listResult) return;
+    expect(listResult.error).toBeNull();
+    if (listResult.error) return;
 
     expect(listResult.data.map((server) => server.name)).toEqual(['Alpha Server', 'Zulu Server']);
 
     const cachedText = await fs.readFile(cacheFilePath, 'utf8');
     const cachedPayload = JSON.parse(cachedText) as { servers: { id: string }[] };
     expect(cachedPayload.servers).toHaveLength(2);
+  });
+
+  test('sends Stitch user agent when fetching registry payload', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const captured = { userAgent: null as string | null };
+    const fetchImpl: FetchLike = async (_input, init) => {
+      captured.userAgent = new Headers(init?.headers).get('User-Agent');
+      return new Response(JSON.stringify(REGISTRY_PAYLOAD), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    const result = await refreshMcpRegistryCache({
+      cacheFilePath,
+      fetchImpl,
+      force: true,
+    });
+
+    expect(result.error).toBeNull();
+    expect(captured.userAgent?.startsWith('Stitch/')).toBe(true);
+    expect(captured.userAgent).toContain('RegistryClient/1');
   });
 
   test('uses disk cache when present', async () => {
@@ -99,8 +121,8 @@ describe('mcp registry service', () => {
     };
 
     const result = await listMcpRegistryServers({ cacheFilePath, fetchImpl });
-    expect('error' in result).toBe(false);
-    if ('error' in result) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data).toHaveLength(2);
   });
@@ -118,9 +140,69 @@ describe('mcp registry service', () => {
       force: true,
     });
 
-    expect('error' in result).toBe(true);
-    if ('error' in result) {
-      expect(result.status).toBe(500);
+    expect(result.error).not.toBeNull();
+    if (result.error) {
+      expect(result.error.status).toBe(500);
     }
+  });
+
+  test('accepts an oauth authConfig variant', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const payload = {
+      version: 1,
+      generatedAt: '2026-04-13T12:00:00.000Z',
+      servers: [
+        {
+          id: 'oauth-server',
+          name: 'OAuth Server',
+          description: 'o',
+          docsUrl: 'https://example.com/o',
+          tags: ['o'],
+          install: {
+            name: 'OAuth',
+            transport: 'http' as const,
+            url: 'https://example.com/o/mcp',
+            authConfig: { type: 'oauth' as const, scopes: ['read'] },
+          },
+        },
+      ],
+    };
+    const fetchImpl: FetchLike = async () =>
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
+    expect(result.error).toBeNull();
+    if (result.error) return;
+    expect(result.data.servers[0]?.install.authConfig).toEqual({ type: 'oauth', scopes: ['read'] });
+  });
+
+  test('rejects an oauth authConfig with a non-string scope', async () => {
+    const cacheFilePath = await createTempCacheFilePath();
+    const payload = {
+      version: 1,
+      generatedAt: '2026-04-13T12:00:00.000Z',
+      servers: [
+        {
+          id: 'bad-oauth',
+          name: 'Bad',
+          description: 'b',
+          docsUrl: 'https://example.com/b',
+          tags: ['b'],
+          install: {
+            name: 'Bad',
+            transport: 'http' as const,
+            url: 'https://example.com/b/mcp',
+            authConfig: { type: 'oauth' as const, scopes: [123] },
+          },
+        },
+      ],
+    };
+    const fetchImpl: FetchLike = async () => new Response(JSON.stringify(payload), { status: 200 });
+
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
+    expect(result.error).not.toBeNull();
   });
 });

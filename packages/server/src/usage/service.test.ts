@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '@/db/client.js';
 import { llmUsageEvents } from '@/db/schema/usage.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { getUsageDashboard, usageServiceInternals } from '@/usage/service.js';
 
 setupTestDb();
@@ -98,8 +97,8 @@ describe('getUsageDashboard', () => {
       to: now,
     });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBe(0);
     expect(result.data.totals.tokenMetrics.totalTokens).toBe(0);
@@ -126,8 +125,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBeCloseTo(0.03);
   });
@@ -146,8 +145,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBe(0);
     expect(result.data.sources).not.toContain('transcription');
@@ -167,8 +166,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBe(0);
   });
@@ -188,8 +187,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBe(0);
   });
@@ -209,8 +208,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBe(0);
   });
@@ -229,8 +228,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.usedProviders).toContain('anthropic');
     expect(
@@ -262,8 +261,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now, providerId: 'openai' });
 
-    expect(isServiceError(result)).toBe(false);
-    if (isServiceError(result)) return;
+    expect(result.error).toBeNull();
+    if (result.error) return;
 
     expect(result.data.totals.costUsd).toBeCloseTo(1.0);
     expect(result.data.usedProviders).toEqual(['openai']);

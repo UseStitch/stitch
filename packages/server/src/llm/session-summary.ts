@@ -10,7 +10,6 @@ import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { isServiceError } from '@/lib/service-result.js';
 import { addCacheControlToMessages, getProviderOptions } from '@/llm/cache-control.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
@@ -19,6 +18,7 @@ import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as OllamaModels from '@/models/llm/ollama.js';
 import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
@@ -26,6 +26,7 @@ import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
+import { normalizeUsage } from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'compaction' });
@@ -65,12 +66,7 @@ export function isOverflow(
 ): boolean {
   if (limits.context === 0) return false;
 
-  const count =
-    usage.totalTokens ??
-    (usage.inputTokens ?? 0) +
-      (usage.outputTokens ?? 0) +
-      (usage.inputTokenDetails?.cacheReadTokens ?? 0) +
-      (usage.inputTokenDetails?.cacheWriteTokens ?? 0);
+  const count = normalizeUsage(usage).totalTokens;
 
   const maxOutput = Math.min(limits.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX;
   const reserved = settings?.reserved ?? Math.min(COMPACTION_BUFFER, maxOutput);
@@ -89,6 +85,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
+  const protectOverrides = getToolPruneProtectOverrides(msgs);
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
     const msg = msgs[msgIndex];
@@ -101,7 +98,9 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
       if (part.type === 'tool-result') {
         const est = estimate(part.output);
         total += est;
-        if (total > PRUNE_PROTECT) {
+        const key = `${msg.id}:${partIndex}`;
+        const protect = protectOverrides.get(key)?.protectTokens ?? PRUNE_PROTECT;
+        if (total > protect) {
           pruned += est;
           toPrune.push({ messageId: msg.id, partIndex });
         }
@@ -155,6 +154,22 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   }
 
   return pruned;
+}
+
+export async function pruneSession(sessionId: PrefixedString<'ses'>): Promise<number> {
+  const compactionSettings = await getCompactionSettings();
+  if (!compactionSettings.prune) {
+    return 0;
+  }
+
+  const db = getDb();
+  const allMsgs = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(asc(messages.createdAt));
+
+  return prune(allMsgs);
 }
 
 const COMPACTION_PROMPT = `Provide a detailed prompt for continuing our conversation above.
@@ -484,7 +499,7 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
   if (providerId === 'ollama_local') {
     const result = await OllamaModels.getOllamaModel(modelId);
-    if (!isServiceError(result)) {
+    if (!result.error) {
       return { context: result.data.contextWindow, output: result.data.outputLimit };
     }
     return { context: 200_000, output: 8_192 };

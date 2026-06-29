@@ -1,66 +1,15 @@
 import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
+import { compactToolResultOutput, isToolResultError } from '@/llm/context-budget.js';
 import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
-import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'history-messages' });
 
 const PRESERVE_RECENT_ASSISTANT_TURNS = 3;
 const IMAGE_PRUNED_PLACEHOLDER = '[Image already processed by model]';
-
-const DEFAULT_TOOL_RESULT_BUDGET_TOKENS = 1_000;
-const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
-  browser: 600,
-  webfetch: 700,
-  bash: 900,
-};
-const TOOL_RESULT_PREVIEW_CHARS = 1_600;
-
-function isToolResultError(output: unknown): boolean {
-  return output !== null && output !== undefined && typeof output === 'object' && 'error' in output;
-}
-
-function toPreviewText(value: unknown): string {
-  if (typeof value === 'string') {
-    return value.slice(0, TOOL_RESULT_PREVIEW_CHARS);
-  }
-
-  if (value && typeof value === 'object') {
-    const output = (value as { output?: unknown }).output;
-    if (typeof output === 'string') {
-      return output.slice(0, TOOL_RESULT_PREVIEW_CHARS);
-    }
-  }
-
-  const serialized = JSON.stringify(value);
-  return serialized.slice(0, TOOL_RESULT_PREVIEW_CHARS);
-}
-
-function compactToolResultOutput(part: StoredPart & { type: 'tool-result' }): unknown {
-  const output = part.output;
-  if (isToolResultError(output)) {
-    return output;
-  }
-
-  const tokenEstimate = estimate(output);
-  const tokenBudget = TOOL_RESULT_BUDGET_TOKENS[part.toolName] ?? DEFAULT_TOOL_RESULT_BUDGET_TOKENS;
-
-  if (tokenEstimate <= tokenBudget) {
-    return output;
-  }
-
-  return {
-    summary: `Tool output compacted for context replay (${tokenEstimate} estimated tokens).`,
-    toolName: part.toolName,
-    estimatedTokens: tokenEstimate,
-    truncated: part.truncated,
-    outputPath: part.outputPath ?? null,
-    preview: toPreviewText(output),
-  };
-}
 
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,

@@ -1,7 +1,7 @@
 import { ArrowUpIcon, ChevronDownIcon, MicIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useHotkey } from '@tanstack/react-hotkeys';
+import { parseHotkey, useHeldKeys, useHotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { AttachmentPreview } from './attachment-preview';
@@ -19,6 +19,10 @@ import type { SttModelSelection } from '@/components/model-selectors/stt-model-s
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import {
+  TextareaCompletions,
+  type TextareaCompletionGroup,
+} from '@/components/ui/textarea-completions';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import {
   sttProviderModelsQueryOptions,
@@ -42,7 +46,20 @@ type ChatInputInnerProps = {
   embedded?: boolean;
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
+  completionGroups?: TextareaCompletionGroup[];
 };
+
+const EMPTY_COMPLETION_GROUPS: TextareaCompletionGroup[] = [];
+
+function areHotkeyKeysHeld(hotkey: string, heldKeys: string[]) {
+  const parsed = parseHotkey(hotkey);
+  const held = new Set(heldKeys.map((key) => key.toLowerCase()));
+
+  return (
+    held.has(parsed.key.toLowerCase()) &&
+    parsed.modifiers.every((modifier) => held.has(modifier.toLowerCase()))
+  );
+}
 
 export function ChatInputInner({
   value,
@@ -58,11 +75,13 @@ export function ChatInputInner({
   embedded,
   pendingAttachments,
   onPendingAttachmentsConsumed,
+  completionGroups = EMPTY_COMPLETION_GROUPS,
 }: ChatInputInnerProps) {
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
   const shortcuts = useShortcuts();
+  const heldKeys = useHeldKeys();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -121,7 +140,7 @@ export function ChatInputInner({
     defaultProviderId: settings['stt.default.providerId'],
     defaultModelId: settings['stt.default.modelId'],
   });
-  const { isRecording, isStopping } = dictation;
+  const { isRecording, isStopping, start, stopAndCommit, toggle } = dictation;
 
   const defaultSttModel: SttModelSelection | null =
     settings['stt.default.providerId'] && settings['stt.default.modelId']
@@ -129,28 +148,22 @@ export function ChatInputInner({
       : null;
 
   const dictationHotkey = shortcuts.get('toggle-dictation');
+  const dictationHotkeyValue = dictationHotkey?.hotkey ?? 'Mod+Space';
   const holdToTalk = settings['stt.holdToTalk'] === 'true';
   const dictationEnabled = sttProviders.length > 0 && !!dictationHotkey?.hotkey && !disabled;
+  const isDictationHotkeyHeld = areHotkeyKeysHeld(dictationHotkeyValue, heldKeys);
 
-  // Toggle mode: press once to start, again to finalize.
-  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.toggle(), {
-    preventDefault: true,
-    enabled: dictationEnabled && !holdToTalk,
-  });
-
-  // Hold-to-talk mode: record while held, finalize on release.
-  useHotkey(dictationHotkey?.hotkey ?? 'Mod+Space', () => dictation.start(), {
+  useHotkey(dictationHotkeyValue, () => (holdToTalk ? start() : toggle()), {
     preventDefault: true,
     requireReset: true,
-    enabled: dictationEnabled && holdToTalk,
+    enabled: dictationEnabled,
   });
-  useHotkey(
-    dictationHotkey?.hotkey ?? 'Mod+Space',
-    () => {
-      void dictation.stopAndCommit();
-    },
-    { eventType: 'keyup', enabled: dictationEnabled && holdToTalk },
-  );
+
+  React.useEffect(() => {
+    if (!holdToTalk || !isRecording || isDictationHotkeyHeld) return;
+
+    void stopAndCommit();
+  }, [holdToTalk, isDictationHotkeyHeld, isRecording, stopAndCommit]);
 
   const canSend = canSubmit && !isRecording && !isStopping;
 
@@ -200,25 +213,35 @@ export function ChatInputInner({
         }}
       />
 
-      <textarea
-        ref={textareaRef}
+      <TextareaCompletions
+        textareaRef={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={handleKeyDown}
-        onPaste={(event) => {
-          void handlePaste(event);
-        }}
-        placeholder={placeholder}
+        onChange={onChange}
+        groups={completionGroups}
         disabled={disabled}
-        rows={1}
-        className={cn(
-          'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
-          'placeholder:text-muted-foreground/60',
-          'max-h-48 overflow-y-auto thin-scrollbar',
-          'field-sizing-content',
-          disabled && 'cursor-not-allowed',
+        onKeyDown={handleKeyDown}
+      >
+        {({ textareaProps }) => (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            {...textareaProps}
+            onPaste={(event) => {
+              void handlePaste(event);
+            }}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={1}
+            className={cn(
+              'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
+              'placeholder:text-muted-foreground/60',
+              'max-h-48 overflow-y-auto thin-scrollbar',
+              'field-sizing-content',
+              disabled && 'cursor-not-allowed',
+            )}
+          />
         )}
-      />
+      </TextareaCompletions>
 
       <div className="flex items-center justify-between px-3 pt-1 pb-3">
         {isRecording || isStopping ? (

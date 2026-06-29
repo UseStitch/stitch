@@ -2,9 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { getSessionById } from '@/chat/service.js';
-import { requireFound, unwrapResult } from '@/lib/route-helpers.js';
-import { isServiceError } from '@/lib/service-result.js';
+import { getSessionById } from '@/chat/session-crud.js';
+import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   createQuestion,
   getPendingQuestions,
@@ -52,11 +51,11 @@ questionsRouter.get(
   async (c) => {
     const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
-    if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
+    const sessionResult = await getSessionById(sessionId);
+    if (sessionResult.error) return unwrapResult(c, sessionResult);
 
-    const rows = await getPendingQuestions(sessionId);
-    return c.json(rows);
+    const result = await getPendingQuestions(sessionId);
+    return unwrapResult(c, result);
   },
 );
 
@@ -67,19 +66,19 @@ questionsRouter.post(
   async (c) => {
     const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = requireFound(await getSessionById(sessionId), 'Session');
-    if (isServiceError(sessionResult)) return unwrapResult(c, sessionResult);
+    const sessionResult = await getSessionById(sessionId);
+    if (sessionResult.error) return unwrapResult(c, sessionResult);
 
     const body = c.req.valid('json');
 
-    const row = await createQuestion({
+    const result = await createQuestion({
       sessionId,
       questions: body.questions,
       toolCallId: body.toolCallId,
       messageId: body.messageId,
     });
 
-    return c.json(row, 201);
+    return unwrapResult(c, result, 201);
   },
 );
 

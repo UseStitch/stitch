@@ -6,7 +6,13 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { Skill } from '@stitch/shared/skills/types';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import { SettingPage, SettingSubPage } from '@/components/settings/settings-ui';
+import {
+  SettingPage,
+  SettingSection,
+  SettingSubPage,
+  SettingRows,
+  SettingsIconButtonTooltip,
+} from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
@@ -234,7 +240,7 @@ export function SkillsSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
       actions={
-        <div className="flex gap-2">
+        <ButtonGroup>
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
             <DownloadIcon className="size-4" />
             Import
@@ -243,52 +249,55 @@ export function SkillsSettings() {
             <PlusIcon className="size-4" />
             Add Skill
           </Button>
-        </div>
+        </ButtonGroup>
       }
     >
-      <div className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
-        {skills.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-            <p className="text-sm font-medium">No skills yet</p>
-            <p className="max-w-sm text-xs text-muted-foreground">
-              Create a skill with a trigger-focused description and Markdown instructions.
-            </p>
-          </div>
-        ) : (
-          skills.map((skill) => (
-            <div
-              key={skill.name}
-              className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{skill.name}</p>
-                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                  {skill.description}
-                </p>
+      {skills.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/10 px-6 py-12 text-center">
+          <p className="text-sm font-medium">No skills yet</p>
+          <p className="max-w-sm text-xs text-muted-foreground">
+            Create a skill with a trigger-focused description and Markdown instructions.
+          </p>
+        </div>
+      ) : (
+        <SettingSection title="My Skills">
+          <SettingRows>
+            {skills.map((skill) => (
+              <div key={skill.name} className="flex items-center justify-between gap-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{skill.name}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                    {skill.description}
+                  </p>
+                </div>
+                <ButtonGroup>
+                  <SettingsIconButtonTooltip label={`View Skill`}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(skill)}
+                      aria-label={`View Skill`}
+                    >
+                      <EyeIcon className="size-4" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
+                  <SettingsIconButtonTooltip label={`Delete Skill`}>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDelete(skill)}
+                      disabled={deleteSkill.isPending}
+                      aria-label={`Delete Skill`}
+                    >
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
+                </ButtonGroup>
               </div>
-              <ButtonGroup>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleEdit(skill)}
-                  aria-label={`View ${skill.name}`}
-                >
-                  <EyeIcon className="size-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => handleDelete(skill)}
-                  disabled={deleteSkill.isPending}
-                  aria-label={`Delete ${skill.name}`}
-                >
-                  <Trash2Icon className="size-4" />
-                </Button>
-              </ButtonGroup>
-            </div>
-          ))
-        )}
-      </div>
+            ))}
+          </SettingRows>
+        </SettingSection>
+      )}
     </SettingPage>
   );
 }
