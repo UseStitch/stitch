@@ -6,13 +6,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { setupTestDb } from '@/db/test-helpers.js';
 import { mcpOAuthSessions, mcpServers } from '@/db/schema/mcp.js';
-import {
-  getMcpAuthStatus,
-  logoutMcpAuth,
-  startMcpAuth,
-} from '@/mcp/service.js';
+import { setupTestDb } from '@/db/test-helpers.js';
+import { getMcpAuthStatus, logoutMcpAuth, startMcpAuth } from '@/mcp/service.js';
 
 setupTestDb();
 

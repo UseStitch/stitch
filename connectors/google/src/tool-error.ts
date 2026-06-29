@@ -1,6 +1,6 @@
-import type { Tool, ToolExecuteFunction } from 'ai';
-
 import { GoogleApiError } from './client.js';
+
+import type { Tool, ToolExecuteFunction } from 'ai';
 
 type GoogleToolErrorResult = {
   error: string;

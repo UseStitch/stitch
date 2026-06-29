@@ -5,7 +5,9 @@ import { createSkillSchema } from '@stitch/shared/skills/types';
 import { createSkill } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 
-const createSkillInputSchema = createSkillSchema.describe('A reusable skill to save for future use');
+const createSkillInputSchema = createSkillSchema.describe(
+  'A reusable skill to save for future use',
+);
 
 export async function createSkillFromTool(input: unknown) {
   const parsed = createSkillSchema.parse(input);

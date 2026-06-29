@@ -33,7 +33,10 @@ export function getMcpOAuthRedirectUri(): string {
   return `http://127.0.0.1:${port}${CALLBACK_PATH}`;
 }
 
-function handleRequest(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse): void {
+function handleRequest(
+  req: import('node:http').IncomingMessage,
+  res: import('node:http').ServerResponse,
+): void {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${activePort ?? resolvePort()}`);
 
   if (url.pathname !== CALLBACK_PATH) {
@@ -50,7 +53,9 @@ function handleRequest(req: import('node:http').IncomingMessage, res: import('no
   const entry = state ? pending.get(state) : undefined;
   if (!state || !entry) {
     res.writeHead(400, { 'Content-Type': 'text/html' });
-    res.end(buildHtmlResponse('Authorization Failed', 'Unknown or missing state parameter.', false));
+    res.end(
+      buildHtmlResponse('Authorization Failed', 'Unknown or missing state parameter.', false),
+    );
     return;
   }
 
