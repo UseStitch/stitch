@@ -2,7 +2,17 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
-import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
+import {
+  summarizeOperationResult,
+  withFreshSnapshot,
+} from '@/tools/toolsets/browser/formatters.js';
+import {
+  actionTerminatesSequence,
+  executeOperation,
+  shouldReturnFreshSnapshot,
+} from '@/tools/toolsets/browser/operations.js';
+import { runBrowserTool } from '@/tools/toolsets/browser/queue.js';
 import {
   browserBatchInputSchema,
   browserContentInputSchema,
@@ -13,14 +23,7 @@ import {
   browserSnapshotInputSchema,
   browserWaitInputSchema,
 } from '@/tools/toolsets/browser/schemas.js';
-import {
-  actionTerminatesSequence,
-  executeOperation,
-  shouldReturnFreshSnapshot,
-} from '@/tools/toolsets/browser/operations.js';
-import { summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
-import { runBrowserTool } from '@/tools/toolsets/browser/queue.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 
 const BROWSER_TOOL_INSTRUCTIONS = `You control a real Chrome browser. Before browser work, load the \`browser-automation\` skill for the batching contract and examples.
@@ -152,11 +155,8 @@ function createScreenshotTool(context: ToolContext) {
 }
 
 function createDialogTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    DIALOG_DESCRIPTION,
-    browserDialogInputSchema,
-    (input, signal) => executeOperation({ ...input, tool: 'dialog', op: input.action }, signal),
+  return createBrowserTool(context, DIALOG_DESCRIPTION, browserDialogInputSchema, (input, signal) =>
+    executeOperation({ ...input, tool: 'dialog', op: input.action }, signal),
   );
 }
 

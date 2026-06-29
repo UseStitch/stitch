@@ -11,6 +11,9 @@ export type ReconnectConfig = {
   backoffMs: number;
   maxBackoffMs?: number;
   rotateBeforeMs?: number;
+  pingIntervalMs?: number;
+  pongTimeoutMs?: number;
+  keepAliveMessage?: string;
 };
 
 export type PartialStrategy = 'cumulative' | 'incremental';
@@ -45,4 +48,5 @@ export type STTConnectionConfig = {
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
   keyterms?: string[];
+  captureStartMs: number;
 };

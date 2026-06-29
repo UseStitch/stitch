@@ -9,7 +9,7 @@ export const skillifyCommand: SlashCommand = {
   buildPrompt: (args) => {
     const description = args.trim();
     return [
-      'Use the skillify skill to capture this session\'s repeatable process as a reusable skill.',
+      "Use the skillify skill to capture this session's repeatable process as a reusable skill.",
       '',
       description ? `User description: ${description}` : null,
     ]

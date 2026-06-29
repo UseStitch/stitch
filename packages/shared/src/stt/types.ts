@@ -43,6 +43,7 @@ export type TranscriptWord = {
 };
 
 export type TranscriptEvent = {
+  id: string;
   kind: 'partial' | 'final';
   text: string;
   offsetMs: number;
@@ -111,6 +112,7 @@ export type SttReadyMessage = {
 export type SttTranscriptMessage = {
   type: 'transcript';
   sttSessionId: string;
+  id: string;
   kind: 'partial' | 'final';
   text: string;
   offsetMs: number;

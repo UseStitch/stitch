@@ -1,6 +1,5 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
-import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 import {
   formatDropdownOptionsSummary,
   formatExtractContent,
@@ -9,6 +8,7 @@ import {
   formatTabsOutput,
 } from '@/tools/toolsets/browser/formatters.js';
 import type { BatchAction, OperationInput } from '@/tools/toolsets/browser/schemas.js';
+import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 
 function getRequiredOp(action: BatchAction): string {
   if (!action.op) {

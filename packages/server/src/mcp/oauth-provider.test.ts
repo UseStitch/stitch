@@ -6,8 +6,8 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { OAuthAuth } from '@stitch/shared/mcp/types';
 
 import { getDb } from '@/db/client.js';
-import { setupTestDb } from '@/db/test-helpers.js';
 import { mcpOAuthSessions, mcpServers } from '@/db/schema/mcp.js';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { McpOAuthProvider } from '@/mcp/oauth-provider.js';
 
 setupTestDb();
@@ -85,7 +85,7 @@ describe('McpOAuthProvider', () => {
 
   test('codeVerifier throws when none is saved', async () => {
     const provider = makeProvider(serverId, { type: 'oauth' });
-     expect(provider.codeVerifier()).rejects.toThrow();
+    expect(provider.codeVerifier()).rejects.toThrow();
   });
 
   test('redirectToAuthorization captures the URL', () => {
@@ -104,10 +104,7 @@ describe('McpOAuthProvider', () => {
 
     expect(await provider.tokens()).toBeUndefined();
     expect(await provider.clientInformation()).toEqual({ client_id: 'dcr-id' });
-    const [server] = await getDb()
-      .select()
-      .from(mcpServers)
-      .where(eq(mcpServers.id, serverId));
+    const [server] = await getDb().select().from(mcpServers).where(eq(mcpServers.id, serverId));
     expect(server?.authStatus).toBe('reauthorization_required');
   });
 

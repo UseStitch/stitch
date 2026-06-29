@@ -29,6 +29,15 @@ type ElevenLabsMessage =
   | { message_type: string; error?: string; code?: string };
 
 function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps: boolean) {
+  let segmentId = 0;
+  let currentSegmentId: string | null = null;
+
+  function getSegmentId(reset: boolean): string {
+    const id = currentSegmentId ?? `elevenlabs-segment-${segmentId++}`;
+    currentSegmentId = reset ? null : id;
+    return id;
+  }
+
   return function parseMessage(data: string): WsMessageResult | null {
     const msg = JSON.parse(data) as ElevenLabsMessage;
 
@@ -39,6 +48,7 @@ function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps
       case 'partial_transcript': {
         if (!('text' in msg) || !msg.text) return null;
         const transcript: TranscriptEvent = {
+          id: getSegmentId(false),
           kind: 'partial',
           text: msg.text,
           offsetMs: Date.now() - sessionStartMs,
@@ -54,6 +64,7 @@ function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps
         if (includeTimestamps) return null;
         if (!('text' in msg) || !msg.text) return null;
         const transcript: TranscriptEvent = {
+          id: getSegmentId(true),
           kind: 'final',
           text: msg.text,
           offsetMs: Date.now() - sessionStartMs,
@@ -75,6 +86,7 @@ function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps
         const offsetMs =
           parsedWords.length > 0 ? parsedWords[0].startMs : Date.now() - sessionStartMs;
         const transcript: TranscriptEvent = {
+          id: getSegmentId(true),
           kind: 'final',
           text: msg.text,
           offsetMs,
@@ -162,8 +174,6 @@ function classifyElevenLabsError(err: Error): STTErrorClassification {
 }
 
 function createElevenLabsTransport(config: STTConnectionConfig) {
-  const sessionStartMs = Date.now();
-
   return createWsTransport(
     {
       url: buildElevenLabsUrl(config),
@@ -176,8 +186,14 @@ function createElevenLabsTransport(config: STTConnectionConfig) {
         }
         return [];
       },
-      parseMessage: createElevenLabsMessageParser(sessionStartMs, shouldIncludeTimestamps(config)),
+      parseMessage: createElevenLabsMessageParser(
+        config.captureStartMs,
+        shouldIncludeTimestamps(config),
+      ),
       label: 'ElevenLabs',
+      pingIntervalMs: config.reconnect.pingIntervalMs,
+      pongTimeoutMs: config.reconnect.pongTimeoutMs,
+      keepAliveMessage: config.reconnect.keepAliveMessage,
     },
     (chunk) =>
       JSON.stringify({
