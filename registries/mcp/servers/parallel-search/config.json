@@ -1,0 +1,23 @@
+{
+  "$schema": "https://usestitch.ai/schemas/mcp-server.schema.json",
+  "id": "parallel-search",
+  "name": "Parallel Search",
+  "description": "Web search tools from Parallel via remote MCP.",
+  "homepageUrl": "https://parallel.ai",
+  "docsUrl": "https://docs.parallel.ai/integrations/mcp/search-mcp",
+  "tags": ["search", "web", "research"],
+  "install": {
+    "name": "Parallel Search MCP",
+    "transport": "http",
+    "url": "https://search.parallel.ai/mcp",
+    "authConfig": {
+      "type": "none"
+    },
+    "optionalAuthConfigs": [
+      {
+        "type": "api_key",
+        "apiKey": "YOUR_PARALLEL_API_KEY"
+      }
+    ]
+  }
+}
