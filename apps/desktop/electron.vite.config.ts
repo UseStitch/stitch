@@ -4,7 +4,7 @@ export default defineConfig({
   main: {
     build: {
       externalizeDeps: {
-        exclude: ['@stitch/audio-capture', '@stitch/meeting-detection'],
+        exclude: ['@stitch/audio-capture', '@stitch/meeting-detection', '@stitch/shared'],
       },
     },
   },
