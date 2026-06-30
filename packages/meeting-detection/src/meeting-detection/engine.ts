@@ -26,10 +26,18 @@ type MeetingEngineOptions = {
   activationThresholdMs?: number;
   cooldownMs?: number;
   staleCandidateThresholdMs?: number;
+  endGraceMs?: number;
+  minRepromptIntervalMs?: number;
 };
 
 const DEFAULT_ACTIVATION_THRESHOLD_MS = 15_000;
 const DEFAULT_COOLDOWN_MS = 10 * 60_000;
+const DEFAULT_END_GRACE_MS = 20_000;
+const DEFAULT_MIN_REPROMPT_INTERVAL_MS = 2 * 60_000;
+
+type MeetingDetectionEngine = Pick<MeetingDetector, 'subscribe' | 'getActive' | 'dismiss'> & {
+  ingest: (observations: MeetingObservation[], now?: number) => void;
+};
 
 const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = [
   'zoom',
@@ -61,15 +69,14 @@ function toDetection(candidate: Candidate): MeetingDetection {
   };
 }
 
-export function createMeetingDetectionEngine(options: MeetingEngineOptions = {}): Pick<
-  MeetingDetector,
-  'subscribe' | 'getActive'
-> & {
-  ingest: (observations: MeetingObservation[], now?: number) => void;
-} {
+export function createMeetingDetectionEngine(
+  options: MeetingEngineOptions = {},
+): MeetingDetectionEngine {
   const activationThresholdMs = options.activationThresholdMs ?? DEFAULT_ACTIVATION_THRESHOLD_MS;
   const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   const staleCandidateThresholdMs = options.staleCandidateThresholdMs ?? activationThresholdMs * 2;
+  const endGraceMs = options.endGraceMs ?? DEFAULT_END_GRACE_MS;
+  const minRepromptIntervalMs = options.minRepromptIntervalMs ?? DEFAULT_MIN_REPROMPT_INTERVAL_MS;
 
   if (staleCandidateThresholdMs < activationThresholdMs) {
     throw new Error(
@@ -80,7 +87,10 @@ export function createMeetingDetectionEngine(options: MeetingEngineOptions = {})
   const listeners = new Set<MeetingDetectionListener>();
   const candidates = new Map<string, Candidate>();
   const cooldownUntil = new Map<string, number>();
+  const dismissedKeys = new Set<string>();
   let active: MeetingDetection | null = null;
+  let pendingEndSince: number | null = null;
+  let lastDetectedEmitAt: number | null = null;
 
   function emit(event: MeetingDetectionEvent): void {
     for (const listener of listeners) {
@@ -117,6 +127,9 @@ export function createMeetingDetectionEngine(options: MeetingEngineOptions = {})
       if ((cooldownUntil.get(candidate.observation.key) ?? 0) > now) {
         continue;
       }
+      if (dismissedKeys.has(candidate.observation.key)) {
+        continue;
+      }
       eligible.push(candidate);
     }
     if (eligible.length === 0) {
@@ -124,6 +137,18 @@ export function createMeetingDetectionEngine(options: MeetingEngineOptions = {})
     }
     eligible.sort((a, b) => compareObservations(a.observation, b.observation));
     return eligible[0] ?? null;
+  }
+
+  function endActiveMeeting(now: number): void {
+    if (!active) {
+      return;
+    }
+    const endedKey = active.key;
+    active = null;
+    pendingEndSince = null;
+    cooldownUntil.set(endedKey, now + cooldownMs);
+    dismissedKeys.delete(endedKey);
+    emit({ type: 'ended', key: endedKey, endedAt: now });
   }
 
   return {
@@ -134,24 +159,34 @@ export function createMeetingDetectionEngine(options: MeetingEngineOptions = {})
       clearStaleCandidates(now);
 
       if (active && !seenKeys.has(active.key)) {
-        const endedKey = active.key;
-        active = null;
-        cooldownUntil.set(endedKey, now + cooldownMs);
-        emit({ type: 'ended', key: endedKey, endedAt: now });
-      }
-
-      if (!active) {
-        const next = chooseCandidate(now);
-        if (next) {
-          active = toDetection(next);
-          emit({ type: 'detected', detection: active, detectedAt: now });
+        pendingEndSince ??= now;
+        if (now - pendingEndSince >= endGraceMs) {
+          endActiveMeeting(now);
         }
-      } else {
+      } else if (active) {
+        pendingEndSince = null;
         const activeCandidate = candidates.get(active.key);
         if (activeCandidate) {
           active = toDetection(activeCandidate);
         }
       }
+
+      if (!active) {
+        const next = chooseCandidate(now);
+        if (
+          next &&
+          (lastDetectedEmitAt === null || now - lastDetectedEmitAt >= minRepromptIntervalMs)
+        ) {
+          active = toDetection(next);
+          pendingEndSince = null;
+          lastDetectedEmitAt = now;
+          emit({ type: 'detected', detection: active, detectedAt: now });
+        }
+      }
+    },
+
+    dismiss(key: string, _now: number = Date.now()): void {
+      dismissedKeys.add(key);
     },
 
     subscribe(listener): () => void {

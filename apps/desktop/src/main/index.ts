@@ -13,9 +13,9 @@ import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
 import { registerUpdaterHandlers } from './ipc/updater.js';
 import { registerWindowHandlers } from './ipc/window.js';
 import {
-  configureMeetingDetectionEnv,
   startMeetingDetection,
   stopMeetingDetection,
+  dismissMeetingDetection,
 } from './meeting-detection.js';
 import {
   destroyNotificationWindow,
@@ -128,6 +128,7 @@ function registerAllIpcHandlers(): void {
 }
 
 function dismissMeetingCall(key: string): void {
+  dismissMeetingDetection(key);
   mainWindow?.webContents.send('meeting:call-dismissed', { key });
   dismissDesktopNotification(`meeting:${key}`);
 }
@@ -154,7 +155,6 @@ async function spawnMainWindow(): Promise<BrowserWindow> {
 
 void app.whenReady().then(async () => {
   try {
-    configureMeetingDetectionEnv();
     configureRecordingCaptureEnv();
 
     browserBridgePort = await findAvailablePort();

@@ -23,8 +23,8 @@ cargo build --release --manifest-path native/Cargo.toml -p stitch-audio-capture
 
 Expected output binaries:
 
-- macOS/Linux: `native/target/release/stitch-audio-capture`, `native/target/release/stitch-meeting-watch`
-- Windows: `native/target/release/stitch-audio-capture.exe`, `native/target/release/stitch-meeting-watch.exe`
+- macOS/Linux: `native/target/release/stitch-audio-capture`
+- Windows: `native/target/release/stitch-audio-capture.exe`
 
 ## Monorepo helper build
 
@@ -38,8 +38,6 @@ The script builds a platform-appropriate target and stages the result into:
 
 - `native/target/release/stitch-audio-capture`
 - `native/target/release/stitch-audio-capture.exe`
-- `native/target/release/stitch-meeting-watch`
-- `native/target/release/stitch-meeting-watch.exe`
 
 ### Override target for cross-builds
 

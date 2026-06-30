@@ -7,66 +7,48 @@ import type { WatchRow } from './watcher.js';
 
 const GOOGLE_MEET_TITLE_RE = /google meet|meet\.google\.com/i;
 
+type DesktopApp = {
+  match: string;
+  key: string;
+  platform: Extract<MeetingObservation['platform'], 'zoom' | 'teams' | 'slack' | 'discord'>;
+  displayName: string;
+};
+
+const DESKTOP_APPS: readonly DesktopApp[] = [
+  { match: 'zoom', key: 'desktop:zoom', platform: 'zoom', displayName: 'Zoom' },
+  { match: 'teams', key: 'desktop:teams', platform: 'teams', displayName: 'Microsoft Teams' },
+  { match: 'slack', key: 'desktop:slack', platform: 'slack', displayName: 'Slack' },
+  { match: 'discord', key: 'desktop:discord', platform: 'discord', displayName: 'Discord' },
+];
+
 function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase();
 }
 
 function toDesktopObservation(row: WatchRow): MeetingObservation | null {
-  const rawProcessName = row.processName?.trim();
+  const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return null;
   }
 
   const processName = normalizeProcessName(rawProcessName);
-  if (processName.includes('zoom')) {
-    return {
-      key: 'desktop:zoom',
-      platform: 'zoom',
-      kind: 'desktop',
-      displayName: 'Zoom',
-      processNames: [rawProcessName],
-      windowTitle: null,
-    };
+  const app = DESKTOP_APPS.find((candidate) => processName.includes(candidate.match));
+  if (!app) {
+    return null;
   }
 
-  if (processName.includes('teams') || processName.includes('ms-teams')) {
-    return {
-      key: 'desktop:teams',
-      platform: 'teams',
-      kind: 'desktop',
-      displayName: 'Microsoft Teams',
-      processNames: [rawProcessName],
-      windowTitle: null,
-    };
-  }
-
-  if (processName.includes('slack')) {
-    return {
-      key: 'desktop:slack',
-      platform: 'slack',
-      kind: 'desktop',
-      displayName: 'Slack',
-      processNames: [rawProcessName],
-      windowTitle: null,
-    };
-  }
-
-  if (processName.includes('discord')) {
-    return {
-      key: 'desktop:discord',
-      platform: 'discord',
-      kind: 'desktop',
-      displayName: 'Discord',
-      processNames: [rawProcessName],
-      windowTitle: null,
-    };
-  }
-
-  return null;
+  return {
+    key: app.key,
+    platform: app.platform,
+    kind: 'desktop',
+    displayName: app.displayName,
+    processNames: [rawProcessName],
+    windowTitle: null,
+  };
 }
 
 function toBrowserObservation(row: WatchRow): MeetingObservation | null {
-  const rawProcessName = row.processName?.trim();
+  const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return null;
   }
