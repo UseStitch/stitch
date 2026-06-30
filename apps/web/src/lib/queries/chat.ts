@@ -37,7 +37,8 @@ const EMPTY_USAGE: LanguageModelUsage = {
 export const sessionKeys = {
   all: ['sessions'] as const,
   list: () => [...sessionKeys.all, 'list'] as const,
-  infiniteList: (search: string) => [...sessionKeys.list(), 'infinite', search] as const,
+  infiniteLists: () => [...sessionKeys.list(), 'infinite'] as const,
+  infiniteList: (search: string) => [...sessionKeys.infiniteLists(), search] as const,
   detail: (id: string) => [...sessionKeys.all, 'detail', id] as const,
   messages: (id: string) => [...sessionKeys.all, 'messages', id] as const,
   stats: (id: string) => [...sessionKeys.all, 'stats', id] as const,
@@ -79,9 +80,9 @@ export const sessionQueryOptions = (id: string) =>
     queryFn: () => serverRequest<Session>(`/chat/sessions/${id}`),
   });
 
-function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
+export function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
   const cacheEntries = queryClient.getQueriesData<InfiniteData<SessionsPage>>({
-    queryKey: sessionKeys.list(),
+    queryKey: sessionKeys.infiniteLists(),
   });
   for (const [, data] of cacheEntries) {
     if (!data) continue;
@@ -242,9 +243,7 @@ export function useSplitSession() {
         method: 'POST',
       }),
     onSuccess: (data) => {
-      queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev) =>
-        prev ? [...prev, data.session] : [data.session],
-      );
+      queryClient.setQueryData(sessionKeys.detail(data.session.id), data.session);
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
     },
   });
