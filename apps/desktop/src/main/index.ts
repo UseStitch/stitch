@@ -23,7 +23,7 @@ import {
   registerNotificationHandlers,
   showDesktopNotification,
 } from './notifications.js';
-import { configureRecordingCaptureEnv, stopRecordingCapture } from './recording-capture.js';
+import { stopRecordingCapture } from './recording-capture.js';
 import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
 import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
 import { destroyTray, initTray } from './tray.js';
@@ -155,8 +155,6 @@ async function spawnMainWindow(): Promise<BrowserWindow> {
 
 void app.whenReady().then(async () => {
   try {
-    configureRecordingCaptureEnv();
-
     browserBridgePort = await findAvailablePort();
     browserManager = new ElectronBrowserManager(() => mainWindow);
     browserManager.startBridge(browserBridgePort);

@@ -1,0 +1,4 @@
+*.node
+target/
+native/binding.cjs
+native/binding.d.ts

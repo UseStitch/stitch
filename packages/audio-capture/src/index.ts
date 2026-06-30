@@ -1,23 +1,22 @@
-import { createNativeDriver } from './native-driver.js';
-export { resolveNativeBinaryPath } from './native-binary.js';
-
-const macosDriver = createNativeDriver('darwin');
-const windowsDriver = createNativeDriver('win32');
+import {
+  checkPermissions,
+  listDevices,
+  primeSystemAudio,
+  startCapture,
+  stopCapture,
+} from './native.js';
 
 import type {
   ActiveCapture,
-  AudioCaptureDriver,
   AudioDeviceList,
   AudioPermissionsStatus,
-  NativeCaptureEventListener,
+  CaptureEvent,
+  CaptureEventListener,
   StartCaptureInput,
   StopCaptureResult,
 } from './types.js';
 
-const DRIVERS: Partial<Record<NodeJS.Platform, AudioCaptureDriver>> = {
-  darwin: macosDriver,
-  win32: windowsDriver,
-};
+const SUPPORTED_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin', 'win32']);
 
 type AudioCaptureHandle = {
   start: (input: StartCaptureInput) => Promise<void>;
@@ -26,25 +25,29 @@ type AudioCaptureHandle = {
   listDevices: () => Promise<AudioDeviceList>;
   checkPermissions: () => Promise<AudioPermissionsStatus>;
   primeSystemAudio: () => Promise<AudioPermissionsStatus>;
-  onEvent: (listener: NativeCaptureEventListener) => void;
+  onEvent: (listener: CaptureEventListener) => void;
 };
 
 export function createAudioCaptureHandle(
   platform: NodeJS.Platform = process.platform,
 ): AudioCaptureHandle {
-  const driver = DRIVERS[platform];
-  if (!driver) {
+  if (!SUPPORTED_PLATFORMS.has(platform)) {
     throw new Error(`Audio capture is not supported on ${platform}`);
   }
 
   let active: ActiveCapture | null = null;
+  let listener: CaptureEventListener | null = null;
 
   return {
     async start(input): Promise<void> {
       if (active) {
         throw new Error('Audio capture is already running');
       }
-      active = await driver.start(input);
+
+      startCapture(input, (event: CaptureEvent) => {
+        listener?.(event);
+      });
+      active = { startedAt: Date.now() };
     },
 
     async stop(): Promise<StopCaptureResult | null> {
@@ -52,9 +55,10 @@ export function createAudioCaptureHandle(
         return null;
       }
 
-      const current = active;
       active = null;
-      return driver.stop(current);
+      const result = stopCapture();
+      listener = null;
+      return result;
     },
 
     getActive(): ActiveCapture | null {
@@ -62,19 +66,19 @@ export function createAudioCaptureHandle(
     },
 
     async listDevices(): Promise<AudioDeviceList> {
-      return driver.listDevices();
+      return listDevices();
     },
 
     async checkPermissions(): Promise<AudioPermissionsStatus> {
-      return driver.checkPermissions();
+      return checkPermissions();
     },
 
     async primeSystemAudio(): Promise<AudioPermissionsStatus> {
-      return driver.primeSystemAudio();
+      return primeSystemAudio();
     },
 
-    onEvent(listener: NativeCaptureEventListener): void {
-      active?.controller.onEvent(listener);
+    onEvent(nextListener: CaptureEventListener): void {
+      listener = nextListener;
     },
   };
 }

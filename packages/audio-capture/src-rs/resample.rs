@@ -1,11 +1,11 @@
 use rubato::Resampler;
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 
-use audio_core::error::NativeError;
+use crate::error::NativeError;
 
 const RESAMPLE_CHUNK_SIZE: usize = 256;
 
-pub(crate) struct StreamResampler {
+pub struct StreamResampler {
   passthrough: bool,
   input_buffer: Vec<f32>,
   chunk_buffer: Vec<f32>,
@@ -13,7 +13,7 @@ pub(crate) struct StreamResampler {
 }
 
 impl StreamResampler {
-  pub(crate) fn new(input_rate_hz: u32, output_rate_hz: u32) -> Result<Self, NativeError> {
+  pub fn new(input_rate_hz: u32, output_rate_hz: u32) -> Result<Self, NativeError> {
     if input_rate_hz == 0 || output_rate_hz == 0 {
       return Err(NativeError::StreamFailed(
         "resampler sample rates must be > 0".to_string(),
@@ -51,7 +51,7 @@ impl StreamResampler {
     })
   }
 
-  pub(crate) fn process(&mut self, input: &[f32]) -> Result<Vec<f32>, NativeError> {
+  pub fn process(&mut self, input: &[f32]) -> Result<Vec<f32>, NativeError> {
     if self.passthrough {
       return Ok(input.to_vec());
     }

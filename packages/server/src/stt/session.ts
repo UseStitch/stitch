@@ -27,7 +27,6 @@ import {
   type SourcedTranscriptEvent,
 } from '@/stt/ordering-buffer.js';
 import { getAdapter } from '@/stt/registry.js';
-import type { AudioResampler } from '@/stt/resampler.js';
 import type { CommitStrategy, STTConnectionConfig } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.session' });
@@ -61,10 +60,6 @@ export type STTSession = {
   onUnrecoverable(cb: (reason: string) => void): void;
 };
 
-type STTSessionDeps = {
-  resampler: AudioResampler;
-};
-
 export class STTSessionError extends Error {
   constructor(
     message: string,
@@ -75,10 +70,7 @@ export class STTSessionError extends Error {
   }
 }
 
-export async function createSTTSession(
-  config: STTSessionConfig,
-  deps: STTSessionDeps,
-): Promise<STTSession> {
+export async function createSTTSession(config: STTSessionConfig): Promise<STTSession> {
   const { sttSessionId, providerId, modelId, service, capabilityRequest, language, keyterms } =
     config;
 
@@ -218,15 +210,13 @@ export async function createSTTSession(
   }
 
   function feedAudio(source: AudioSource, chunk: AudioChunk): void {
-    const converted = deps.resampler.convert(chunk, model.inputFormat);
-
     const conn = useDualStream ? connections.get(source) : connections.get('mic');
     if (!conn) return;
 
-    conn.sendAudio(converted);
+    conn.sendAudio(chunk);
 
     if (vadFallback) {
-      const shouldCommit = vadFallback.processChunk(converted);
+      const shouldCommit = vadFallback.processChunk(chunk);
       if (shouldCommit) {
         conn.commit();
       }

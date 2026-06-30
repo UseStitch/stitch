@@ -54,7 +54,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            native
+            packages/audio-capture
             packages/meeting-detection
           shared-key: release-check-${{ runner.os }}
 
@@ -73,7 +73,7 @@ jobs:
         run: bun run test
 
       - name: Run Rust tests
-        run: cargo test --manifest-path native/Cargo.toml --workspace
+        run: cargo test --manifest-path packages/audio-capture/Cargo.toml
 
       - name: Run meeting-detection Rust tests
         run: cargo test --manifest-path packages/meeting-detection/Cargo.toml
@@ -196,7 +196,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            native
+            packages/audio-capture
             packages/meeting-detection
           shared-key: release-${{ matrix.rust_target }}
 

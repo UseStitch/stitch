@@ -1,28 +1,40 @@
-use thiserror::Error;
+use std::fmt;
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum NativeError {
-  #[error("invalid command: {0}")]
-  InvalidCommand(String),
-  #[error("permission denied: {0}")]
   PermissionDenied(String),
-  #[error("device not found: {0}")]
   DeviceNotFound(String),
-  #[error("stream failed: {0}")]
   StreamFailed(String),
-  #[error("internal error: {0}")]
   Internal(String),
 }
+
+impl fmt::Display for NativeError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::PermissionDenied(msg) => write!(f, "permission denied: {msg}"),
+      Self::DeviceNotFound(msg) => write!(f, "device not found: {msg}"),
+      Self::StreamFailed(msg) => write!(f, "stream failed: {msg}"),
+      Self::Internal(msg) => write!(f, "internal error: {msg}"),
+    }
+  }
+}
+
+impl std::error::Error for NativeError {}
 
 impl NativeError {
   pub fn code(&self) -> &'static str {
     match self {
-      Self::InvalidCommand(_) => "invalid_command",
       Self::PermissionDenied(_) => "permission_denied",
       Self::DeviceNotFound(_) => "device_not_found",
       Self::StreamFailed(_) => "stream_failed",
       Self::Internal(_) => "internal_error",
     }
+  }
+}
+
+impl From<NativeError> for napi::Error {
+  fn from(error: NativeError) -> Self {
+    napi::Error::from_reason(format!("{} ({})", error, error.code()))
   }
 }
 
@@ -33,10 +45,6 @@ mod tests {
   #[test]
   fn maps_error_codes_consistently() {
     let cases = vec![
-      (
-        NativeError::InvalidCommand("x".to_string()),
-        "invalid_command",
-      ),
       (
         NativeError::PermissionDenied("x".to_string()),
         "permission_denied",
