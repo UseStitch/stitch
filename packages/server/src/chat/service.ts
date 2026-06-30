@@ -344,7 +344,7 @@ export async function splitSession(
     .values({
       id: newSessionId,
       title: newTitle,
-      parentSessionId: sessionId,
+      parentSessionId: null,
       createdAt: now,
       updatedAt: now,
     })
