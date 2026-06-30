@@ -21,6 +21,8 @@ const meetingDetectionResource = {
 
 const hasMeetingDetectionResource = existsSync(meetingDetectionResource.from);
 
+const meetingDetectionDarwinBinary = `Contents/Resources/meeting-detection/index.darwin-${process.arch}.node`;
+
 const shouldNotarize = Boolean(
   process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
 );
@@ -111,7 +113,7 @@ const config: Configuration = {
       'Contents/Resources/stitch-server',
       'Contents/Resources/stitch-sandbox',
       'Contents/Resources/audio-capture/stitch-audio-capture',
-      'Contents/Resources/meeting-detection/*.node',
+      meetingDetectionDarwinBinary,
     ],
     target: ['dmg', 'zip'],
   },
