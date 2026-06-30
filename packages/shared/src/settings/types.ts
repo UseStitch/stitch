@@ -42,7 +42,6 @@ export const SETTINGS_KEYS = [
   'recordings.autoAnalyze',
   'recordings.inputDeviceId',
   'recordings.outputDeviceId',
-  'recordings.speakerGain',
   'recordings.transcription.providerId',
   'recordings.transcription.modelId',
   'recordings.analysis.providerId',
@@ -99,7 +98,6 @@ export const SETTINGS_SCHEMAS = {
   'recordings.autoAnalyze': booleanSetting,
   'recordings.inputDeviceId': z.string(),
   'recordings.outputDeviceId': z.string(),
-  'recordings.speakerGain': z.coerce.number().min(0.1).max(50),
   'recordings.transcription.providerId': z.string(),
   'recordings.transcription.modelId': z.string(),
   'recordings.analysis.providerId': z.string(),
@@ -333,11 +331,6 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: '',
     description:
       'Preferred speaker device name for system audio capture. Empty string uses the system default.',
-  },
-  {
-    key: 'recordings.speakerGain',
-    value: '10',
-    description: 'Speaker volume gain multiplier for dual mode mixing. Range: 0.1 to 50.',
   },
   {
     key: 'recordings.transcription.providerId',

@@ -41,19 +41,13 @@ const log = Log.create({ service: 'recordings' });
 type RecordingCaptureSettings = {
   inputDeviceId: string | null;
   outputDeviceId: string | null;
-  speakerGain: number;
 };
 
 async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
-  const s = await getSettings([
-    'recordings.inputDeviceId',
-    'recordings.outputDeviceId',
-    'recordings.speakerGain',
-  ] as const);
+  const s = await getSettings(['recordings.inputDeviceId', 'recordings.outputDeviceId'] as const);
   return {
     inputDeviceId: s['recordings.inputDeviceId'] || null,
     outputDeviceId: s['recordings.outputDeviceId'] || null,
-    speakerGain: s['recordings.speakerGain'],
   };
 }
 
@@ -278,7 +272,6 @@ export async function startRecording(
     log.info(
       {
         recordingId: id,
-        speakerGain: settings.speakerGain,
         micDeviceId: settings.inputDeviceId,
         speakerDeviceId: settings.outputDeviceId,
         stt: { providerId: sttConfig.providerId, modelId: sttConfig.modelId },
@@ -302,7 +295,6 @@ export async function startRecording(
     recordingId: id,
     micDeviceId: settings.inputDeviceId,
     speakerDeviceId: settings.outputDeviceId,
-    speakerGain: settings.speakerGain,
     audioChunkConfig: { encoding: sttConfig.encoding, sampleRateHz: sttConfig.sampleRateHz },
     stt: { providerId: sttConfig.providerId, modelId: sttConfig.modelId },
   });

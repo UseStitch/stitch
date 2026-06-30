@@ -10,7 +10,7 @@ import type { BrowserWindow } from 'electron';
 
 type StartCaptureInput = Pick<
   StartRecordingResponse,
-  'recordingId' | 'micDeviceId' | 'speakerDeviceId' | 'speakerGain' | 'audioChunkConfig' | 'stt'
+  'recordingId' | 'micDeviceId' | 'speakerDeviceId' | 'audioChunkConfig' | 'stt'
 > & {
   serverUrl: string;
 };
