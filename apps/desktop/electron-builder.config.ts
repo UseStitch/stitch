@@ -104,6 +104,8 @@ const config: Configuration = {
         'Stitch needs microphone access to record audio during meetings and voice notes.',
       NSAudioCaptureUsageDescription:
         'Stitch needs system audio access to capture meeting audio from other applications.',
+      NSAppleEventsUsageDescription:
+        'Stitch reads browser window titles to detect when you join a meeting.',
     },
     binaries: [
       'Contents/Resources/stitch-server',
