@@ -228,19 +228,4 @@ describe('Log rotation', () => {
     expect(content).toContain('message A');
     expect(content).toContain('message B');
   });
-
-  test('recreates the log directory if it is removed after init', async () => {
-    const today = formatDate(new Date());
-    const logFile = path.join(PATHS.logDir, `app.${today}.1.log`);
-
-    const log = Log.create({ service: 'test-recreate' });
-    await Log.init({});
-    await fs.rm(PATHS.logDir, { recursive: true, force: true });
-
-    log.info('message after directory removal');
-
-    const output = await waitForLogOutput('message after directory removal');
-    expect(output).toContain('message after directory removal');
-    expect(await fileExists(logFile)).toBe(true);
-  });
 });

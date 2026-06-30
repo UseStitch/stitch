@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync, type WriteStream } from 'fs';
+import { createWriteStream, type WriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
@@ -75,13 +75,8 @@ let initialized = false;
 let last = Date.now();
 const loggers = new Map<string, Logger>();
 
-function logFilePath(date: string): string {
-  return path.join(PATHS.logDir, `${prefix}.${date}.1.log`);
-}
-
 function openStream(date: string): void {
-  mkdirSync(PATHS.logDir, { recursive: true });
-  const logFile = logFilePath(date);
+  const logFile = path.join(PATHS.logDir, `${prefix}.${date}.1.log`);
   stream?.end();
   stream = createWriteStream(logFile, { flags: 'a' });
   currentDate = date;
@@ -90,7 +85,7 @@ function openStream(date: string): void {
 function write(msg: string): void {
   if (!initialized) return;
   const today = formatDate(new Date());
-  if (today !== currentDate || !existsSync(logFilePath(today))) openStream(today);
+  if (today !== currentDate) openStream(today);
   stream?.write(msg);
 }
 
