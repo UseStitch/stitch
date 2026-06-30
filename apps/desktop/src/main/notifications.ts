@@ -12,6 +12,9 @@ const NOTIFICATION_DEFAULT_HEIGHT = 92;
 const NOTIFICATION_MARGIN = 16;
 const NOTIFICATION_GAP = 8;
 const EXIT_ANIMATION_MS = 220;
+const FOLLOW_CURSOR_ENABLED = true;
+const FOLLOW_CURSOR_DWELL_MS = 1500;
+const FOLLOW_CURSOR_POLL_INTERVAL_MS = 250;
 
 type NotificationEntry = {
   event: DesktopNotificationEvent;
@@ -23,10 +26,17 @@ type NotificationEntry = {
 const entries = new Map<string, NotificationEntry>();
 const orderedIds: string[] = [];
 let displayId: number | null = null;
+let candidateDisplayId: number | null = null;
+let candidateDisplaySince = 0;
+let followCursorInterval: NodeJS.Timeout | null = null;
 let screenListenersRegistered = false;
 
+function getCursorDisplay(): Electron.Display {
+  return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+}
+
 function getActiveDisplay(): Electron.Display {
-  const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const cursorDisplay = getCursorDisplay();
   if (displayId === null) {
     displayId = cursorDisplay.id;
   }
@@ -35,7 +45,9 @@ function getActiveDisplay(): Electron.Display {
 }
 
 function resetActiveDisplay(): void {
-  displayId = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).id;
+  displayId = getCursorDisplay().id;
+  candidateDisplayId = null;
+  candidateDisplaySince = 0;
 }
 
 function getBounds(
@@ -57,6 +69,8 @@ function getBounds(
 }
 
 function relayoutNotifications(): void {
+  if (entries.size === 0) return;
+
   const display = getActiveDisplay();
 
   orderedIds.forEach((id, index) => {
@@ -66,6 +80,54 @@ function relayoutNotifications(): void {
     entry.win.setBounds(getBounds(display, index, entry.height), false);
     entry.win.showInactive();
   });
+}
+
+function stopFollowCursorPolling(): void {
+  if (followCursorInterval) {
+    clearInterval(followCursorInterval);
+  }
+
+  followCursorInterval = null;
+  candidateDisplayId = null;
+  candidateDisplaySince = 0;
+}
+
+function pollCursorDisplay(): void {
+  if (entries.size === 0) {
+    stopFollowCursorPolling();
+    return;
+  }
+
+  const cursorDisplay = getCursorDisplay();
+  if (displayId === null) {
+    displayId = cursorDisplay.id;
+    return;
+  }
+
+  if (cursorDisplay.id === displayId) {
+    candidateDisplayId = null;
+    candidateDisplaySince = 0;
+    return;
+  }
+
+  if (cursorDisplay.id !== candidateDisplayId) {
+    candidateDisplayId = cursorDisplay.id;
+    candidateDisplaySince = Date.now();
+    return;
+  }
+
+  if (Date.now() - candidateDisplaySince < FOLLOW_CURSOR_DWELL_MS) return;
+
+  displayId = cursorDisplay.id;
+  candidateDisplayId = null;
+  candidateDisplaySince = 0;
+  relayoutNotifications();
+}
+
+function startFollowCursorPolling(): void {
+  if (!FOLLOW_CURSOR_ENABLED || followCursorInterval) return;
+
+  followCursorInterval = setInterval(pollCursorDisplay, FOLLOW_CURSOR_POLL_INTERVAL_MS);
 }
 
 function removeOrderedId(id: string): void {
@@ -89,6 +151,12 @@ function destroyNotification(id: string): void {
     entry.win.destroy();
   }
 
+  if (entries.size === 0) {
+    displayId = null;
+    stopFollowCursorPolling();
+    return;
+  }
+
   relayoutNotifications();
 }
 
@@ -110,8 +178,16 @@ function registerScreenListeners(): void {
   screen.on('display-metrics-changed', () => {
     relayoutNotifications();
   });
-  screen.on('display-removed', () => {
-    resetActiveDisplay();
+  screen.on('display-removed', (_event, display) => {
+    if (display.id === displayId) {
+      resetActiveDisplay();
+    }
+
+    if (display.id === candidateDisplayId) {
+      candidateDisplayId = null;
+      candidateDisplaySince = 0;
+    }
+
     relayoutNotifications();
   });
 }
@@ -172,6 +248,13 @@ function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindo
 
     entries.delete(event.id);
     removeOrderedId(event.id);
+
+    if (entries.size === 0) {
+      displayId = null;
+      stopFollowCursorPolling();
+      return;
+    }
+
     relayoutNotifications();
   });
 
@@ -206,7 +289,6 @@ export function registerNotificationHandlers(
 export async function showDesktopNotification(event: DesktopNotificationEvent): Promise<void> {
   if (entries.has(event.id)) return;
 
-  resetActiveDisplay();
   const win = createNotificationWindow(event);
   entries.set(event.id, {
     event,
@@ -215,6 +297,7 @@ export async function showDesktopNotification(event: DesktopNotificationEvent): 
     destroyTimer: null,
   });
   orderedIds.push(event.id);
+  startFollowCursorPolling();
 
   const notification = encodeURIComponent(JSON.stringify(event));
   await loadRendererWindow(win, `${NOTIFICATION_HASH}?notification=${notification}`);
