@@ -7,7 +7,7 @@ import type { NativeWatchEvent, NativeWatchRow } from '../native.js';
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 
-export type WatchRow = NativeWatchRow;
+type WatchRow = NativeWatchRow;
 
 /** Per-platform row classification implemented in the classifier files. */
 type RowClassifier = (rows: WatchRow[]) => MeetingObservation[];
