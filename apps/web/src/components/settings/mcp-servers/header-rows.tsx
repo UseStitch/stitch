@@ -1,6 +1,7 @@
 import { Trash2Icon } from 'lucide-react';
 
 import type { HeaderEntry } from './shared';
+import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -39,14 +40,16 @@ export function HeaderRows({
             onChange={(e) => update(i, 'value', e.target.value)}
             className="flex-1"
           />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => remove(i)}
-            aria-label="Remove header"
-          >
-            <Trash2Icon className="size-3.5" />
-          </Button>
+          <SettingsIconButtonTooltip label="Remove header">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => remove(i)}
+              aria-label="Remove header"
+            >
+              <Trash2Icon className="size-3.5" />
+            </Button>
+          </SettingsIconButtonTooltip>
         </div>
       ))}
       <Button variant="outline" size="sm" onClick={add} type="button">

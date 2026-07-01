@@ -87,7 +87,7 @@ export function SetupWizard({ definition, onClose }: Props) {
     if (isOAuth) {
       const scopesToUse = scopesOverride ?? selectedScopes;
       if (scopesToUse.length === 0) {
-        toast.error('Select at least one scope');
+        toast.error('Select at least one scope', { id: 'connector-setup-scope' });
         return;
       }
 
@@ -95,7 +95,9 @@ export function SetupWizard({ definition, onClose }: Props) {
 
       try {
         if (!clientId.trim() || !clientSecret.trim()) {
-          toast.error('Client ID and Client Secret are required');
+          toast.error('Client ID and Client Secret are required', {
+            id: 'connector-setup-credentials',
+          });
           setStep('credentials');
           return;
         }
@@ -112,12 +114,16 @@ export function SetupWizard({ definition, onClose }: Props) {
         void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
         setStep('done');
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector');
+        toast.error(e instanceof Error ? e.message : 'Failed to create connector', {
+          id: 'connector-setup-create',
+        });
         setStep('scopes');
       }
     } else {
       if (!apiKey.trim()) {
-        toast.error(`${apiKeyConfig?.keyLabel ?? 'API Key'} is required`);
+        toast.error(`${apiKeyConfig?.keyLabel ?? 'API Key'} is required`, {
+          id: 'connector-setup-apikey',
+        });
         return;
       }
 
@@ -131,9 +137,11 @@ export function SetupWizard({ definition, onClose }: Props) {
         });
 
         setStep('done');
-        toast.success('Connector created successfully');
+        toast.success('Connector created successfully', { id: 'connector-setup-create' });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector');
+        toast.error(e instanceof Error ? e.message : 'Failed to create connector', {
+          id: 'connector-setup-create',
+        });
         setStep('credentials');
       }
     }

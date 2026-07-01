@@ -1,4 +1,5 @@
 import { describe, expect, mock, test } from 'bun:test';
+
 import type { Table as LanceTable } from '@lancedb/lancedb';
 
 describe('getSemanticTable', () => {

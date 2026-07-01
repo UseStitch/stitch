@@ -24,22 +24,32 @@ type GoogleClientConfig = {
   rateLimits?: Partial<GoogleRateLimitConfig>;
 };
 
-class GoogleApiError extends Error {
+export class GoogleApiError extends Error {
   readonly status: number;
   readonly code: string | undefined;
   readonly reason: string | undefined;
+  readonly reasons: string[];
+  readonly authChallenge: string | undefined;
   readonly retryAfterMs: number | undefined;
 
   constructor(
     status: number,
     message: string,
-    options?: { code?: string; reason?: string; retryAfterMs?: number },
+    options?: {
+      code?: string;
+      reason?: string;
+      reasons?: string[];
+      authChallenge?: string;
+      retryAfterMs?: number;
+    },
   ) {
     super(message);
     this.name = 'GoogleApiError';
     this.status = status;
     this.code = options?.code;
     this.reason = options?.reason;
+    this.reasons = options?.reasons ?? [];
+    this.authChallenge = options?.authChallenge;
     this.retryAfterMs = options?.retryAfterMs;
   }
 }
@@ -50,13 +60,14 @@ type GoogleErrorResponse = {
     code?: number;
     status?: string;
     errors?: Array<{ reason?: string; message?: string }>;
+    details?: Array<{ reason?: string; domain?: string; metadata?: Record<string, string> }>;
   };
 };
 
 type RequestOptions = {
   method?: string;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | ArrayBuffer;
   signal?: AbortSignal;
 };
 
@@ -138,6 +149,8 @@ export class GoogleClient {
       const apiError = new GoogleApiError(response.status, parsedError.message, {
         code: parsedError.code,
         reason: parsedError.reason,
+        reasons: parsedError.reasons,
+        authChallenge: parsedError.authChallenge,
         retryAfterMs: parsedError.retryAfterMs,
       });
 
@@ -208,6 +221,8 @@ type ParsedApiError = {
   message: string;
   code: string | undefined;
   reason: string | undefined;
+  reasons: string[];
+  authChallenge: string | undefined;
   retryAfterMs: number | undefined;
 };
 
@@ -237,6 +252,7 @@ function mergeRateLimitConfig(
 async function parseGoogleApiError(response: Response): Promise<ParsedApiError> {
   const fallbackMessage = `Google API error: ${response.status} ${response.statusText}`;
   const retryAfterMs = parseRetryAfterMs(response.headers.get('retry-after'));
+  const authChallenge = response.headers.get('www-authenticate') ?? undefined;
 
   let bodyText = '';
   try {
@@ -246,6 +262,8 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
       message: fallbackMessage,
       code: undefined,
       reason: undefined,
+      reasons: [],
+      authChallenge,
       retryAfterMs,
     };
   }
@@ -255,6 +273,8 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
       message: fallbackMessage,
       code: undefined,
       reason: undefined,
+      reasons: [],
+      authChallenge,
       retryAfterMs,
     };
   }
@@ -263,11 +283,17 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
     const parsed = JSON.parse(bodyText) as GoogleErrorResponse;
     const message = parsed.error?.message ?? fallbackMessage;
     const code = parsed.error?.status;
-    const reason = parsed.error?.errors?.[0]?.reason;
+    const reasons = [
+      ...(parsed.error?.errors?.flatMap((item) => (item.reason ? [item.reason] : [])) ?? []),
+      ...(parsed.error?.details?.flatMap((item) => (item.reason ? [item.reason] : [])) ?? []),
+    ];
+    const reason = reasons[0];
     return {
       message,
       code,
       reason,
+      reasons,
+      authChallenge,
       retryAfterMs,
     };
   } catch {
@@ -275,6 +301,8 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
       message: fallbackMessage,
       code: undefined,
       reason: undefined,
+      reasons: [],
+      authChallenge,
       retryAfterMs,
     };
   }

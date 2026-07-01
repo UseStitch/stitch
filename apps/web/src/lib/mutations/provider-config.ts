@@ -58,12 +58,12 @@ export function useSaveProviderConfigMutation({
     onSuccess: async (savedConfig) => {
       queryClient.setQueryData(providerKeys.config(providerId), savedConfig);
       await invalidateProviderQueries(queryClient);
-      toast.success(successMessage);
+      toast.success(successMessage, { id: `provider-config-save-${providerId}` });
       await onSuccess?.();
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : errorMessage;
-      toast.error(message);
+      toast.error(message, { id: `provider-config-save-${providerId}` });
     },
   });
 }
@@ -83,12 +83,12 @@ export function useDeleteProviderConfigMutation({
     onSuccess: async () => {
       queryClient.setQueryData(providerKeys.config(providerId), null);
       await invalidateProviderQueries(queryClient);
-      toast.success(successMessage);
+      toast.success(successMessage, { id: `provider-config-delete-${providerId}` });
       await onSuccess?.();
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : errorMessage;
-      toast.error(message);
+      toast.error(message, { id: `provider-config-delete-${providerId}` });
     },
   });
 }

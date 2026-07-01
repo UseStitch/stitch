@@ -11,7 +11,7 @@ import { BASH_COMMON_PRESETS } from '@stitch/shared/tools/bash-presets';
 import { PermissionSelect } from './permission-select';
 
 import type { EditingTarget } from './types';
-import { SettingSubPage } from '@/components/settings/settings-ui';
+import { SettingSubPage, SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -95,7 +95,9 @@ function ToolPermissionEditor({
     void upsertPermission
       .mutateAsync({ toolName, pattern: null, permission })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
+          id: 'permission-update',
+        });
       });
   };
 
@@ -103,13 +105,17 @@ function ToolPermissionEditor({
     void upsertPermission
       .mutateAsync({ toolName, pattern: rule.pattern, permission })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission');
+        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
+          id: 'permission-update',
+        });
       });
   };
 
   const handleDeleteRule = (rule: ToolPermission) => {
     void deletePermission.mutateAsync(rule.id).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete rule');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete rule', {
+        id: 'permission-delete',
+      });
     });
   };
 
@@ -124,7 +130,9 @@ function ToolPermissionEditor({
         setNewPermission('ask');
       })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to add rule');
+        toast.error(error instanceof Error ? error.message : 'Failed to add rule', {
+          id: 'permission-add-rule',
+        });
       });
   };
 
@@ -199,16 +207,18 @@ function ToolPermissionEditor({
                       includeDeny
                       disabled={isMutating}
                     />
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteRule(rule)}
-                      disabled={isMutating}
-                      aria-label="Delete rule"
-                      className="text-muted-foreground/70 hover:text-destructive"
-                    >
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
+                    <SettingsIconButtonTooltip label="Delete rule">
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteRule(rule)}
+                        disabled={isMutating}
+                        aria-label="Delete rule"
+                        className="text-muted-foreground/70 hover:text-destructive"
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
                   </div>
                 ))}
               </div>
@@ -242,6 +252,7 @@ function ToolPermissionEditor({
                           .catch((error: unknown) => {
                             toast.error(
                               error instanceof Error ? error.message : 'Failed to add rule',
+                              { id: 'permission-add-preset' },
                             );
                           });
                       }
@@ -284,17 +295,19 @@ function ToolPermissionEditor({
                     }}
                   />
                   {isFileTool && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-                      onClick={handleBrowse}
-                      aria-label="Browse for path"
-                      tabIndex={-1}
-                    >
-                      <FolderOpenIcon className="size-3.5" />
-                    </Button>
+                    <SettingsIconButtonTooltip label="Browse for path">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                        onClick={handleBrowse}
+                        aria-label="Browse for path"
+                        tabIndex={-1}
+                      >
+                        <FolderOpenIcon className="size-3.5" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
                   )}
                 </div>
                 <div className="flex items-center gap-2">

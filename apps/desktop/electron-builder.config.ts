@@ -3,9 +3,7 @@ import { existsSync } from 'node:fs';
 import type { Configuration } from 'electron-builder';
 
 const audioCaptureBinaryFilter =
-  process.platform === 'win32'
-    ? ['stitch-audio-capture.exe', 'stitch-meeting-watch.exe']
-    : ['stitch-audio-capture', 'stitch-meeting-watch'];
+  process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
 
 const audioCaptureResource = {
   from: '../../native/target/release',
@@ -14,6 +12,16 @@ const audioCaptureResource = {
 };
 
 const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
+
+const meetingDetectionResource = {
+  from: '../../packages/meeting-detection/native',
+  to: 'meeting-detection',
+  filter: ['*.node', 'binding.cjs'],
+};
+
+const hasMeetingDetectionResource = existsSync(meetingDetectionResource.from);
+
+const meetingDetectionDarwinBinary = `Contents/Resources/meeting-detection/index.darwin-${process.arch}.node`;
 
 const shouldNotarize = Boolean(
   process.env.APPLE_API_KEY && process.env.APPLE_API_KEY_ID && process.env.APPLE_API_ISSUER,
@@ -34,7 +42,12 @@ const config: Configuration = {
     output: 'dist',
     buildResources: 'resources',
   },
-  files: ['out/**/*'],
+  files: [
+    'out/**/*',
+    // Addon ships via extraResources; keep its Rust build tree out of the asar.
+    '!node_modules/@stitch/meeting-detection/{target,src-rs,native,.turbo}/**',
+    '!node_modules/@stitch/meeting-detection/{Cargo.toml,Cargo.lock,build.rs,rustfmt.toml}',
+  ],
   extraResources: [
     {
       from: 'resources/',
@@ -67,6 +80,7 @@ const config: Configuration = {
       ],
     },
     ...(hasAudioCaptureResource ? [audioCaptureResource] : []),
+    ...(hasMeetingDetectionResource ? [meetingDetectionResource] : []),
   ],
   icon: 'resources/icon.png',
   nsis: {
@@ -92,12 +106,14 @@ const config: Configuration = {
         'Stitch needs microphone access to record audio during meetings and voice notes.',
       NSAudioCaptureUsageDescription:
         'Stitch needs system audio access to capture meeting audio from other applications.',
+      NSAppleEventsUsageDescription:
+        'Stitch reads browser window titles to detect when you join a meeting.',
     },
     binaries: [
       'Contents/Resources/stitch-server',
       'Contents/Resources/stitch-sandbox',
       'Contents/Resources/audio-capture/stitch-audio-capture',
-      'Contents/Resources/audio-capture/stitch-meeting-watch',
+      meetingDetectionDarwinBinary,
     ],
     target: ['dmg', 'zip'],
   },

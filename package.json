@@ -36,14 +36,14 @@
   "catalogs": {
     "ai": {
       "ai": "6.0.116",
-      "@ai-sdk/provider": "3.0.8",
-      "@ai-sdk/amazon-bedrock": "4.0.77",
-      "@ai-sdk/anthropic": "3.0.58",
-      "@ai-sdk/google": "3.0.43",
-      "@ai-sdk/google-vertex": "4.0.80",
-      "@ai-sdk/openai": "3.0.41",
-      "@ai-sdk/openai-compatible": "2.0.41",
-      "@openrouter/ai-sdk-provider": "2.3.0"
+      "@ai-sdk/provider": "3.0.10",
+      "@ai-sdk/amazon-bedrock": "4.0.120",
+      "@ai-sdk/anthropic": "3.0.85",
+      "@ai-sdk/google": "3.0.83",
+      "@ai-sdk/google-vertex": "4.0.148",
+      "@ai-sdk/openai": "3.0.74",
+      "@ai-sdk/openai-compatible": "2.0.51",
+      "@openrouter/ai-sdk-provider": "2.9.1"
     }
   }
 }

@@ -1,10 +1,9 @@
-import { describe, expect, test } from 'bun:test';
 import { jsonSchema as toJsonSchema, dynamicTool } from 'ai';
+import { describe, expect, test } from 'bun:test';
 
 import type { ProviderId } from '@stitch/shared/providers/types';
 
 import { sanitizeToolSchemasForProvider } from '@/llm/provider-schema.js';
-
 import type { JSONSchema7, Schema, Tool } from 'ai';
 
 function mcpTool(schema: JSONSchema7): Tool {
@@ -27,10 +26,7 @@ describe('sanitizeToolSchemasForProvider', () => {
         tasks_attributes: {
           type: 'array',
           items: {
-            anyOf: [
-              { required: ['id'] },
-              { required: ['name'] },
-            ],
+            anyOf: [{ required: ['id'] }, { required: ['name'] }],
           } as JSONSchema7,
         },
       },

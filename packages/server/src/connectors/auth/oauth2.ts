@@ -170,6 +170,7 @@ export async function startOAuthFlow(
   clientId: string,
   clientSecret: string,
   scopes: string[],
+  options?: { additionalParams?: Record<string, string> },
 ): Promise<{ authUrl: string; waitForTokens: () => Promise<OAuthTokens> }> {
   const { server, port } = await createLoopbackServer();
   const redirectUri = `http://127.0.0.1:${port}/callback`;
@@ -186,6 +187,7 @@ export async function startOAuthFlow(
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
     ...config.additionalParams,
+    ...options?.additionalParams,
   });
 
   log.info({ event: 'oauth.flow.started', port, scopes }, 'OAuth flow started');

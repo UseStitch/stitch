@@ -8,7 +8,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { createSession } from '@/chat/service.js';
+import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';

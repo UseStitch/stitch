@@ -33,7 +33,7 @@ const SERVICE_ACCESS_OPTIONS = [
     label: 'Gmail',
     description: 'Search, read, and draft emails',
     readScopes: [GOOGLE_SCOPE_GMAIL_READONLY],
-    writeScopes: [GOOGLE_SCOPE_GMAIL_MODIFY],
+    writeScopes: [GOOGLE_SCOPE_GMAIL_MODIFY, GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC],
   },
   {
     id: 'drive',
@@ -64,6 +64,7 @@ const GOOGLE_SCOPES = {
   [GOOGLE_SCOPE_GMAIL_READONLY]: 'Read your Gmail messages',
   [GOOGLE_SCOPE_GMAIL_SEND]: 'Send emails on your behalf',
   [GOOGLE_SCOPE_GMAIL_MODIFY]: 'Read, send, and manage your Gmail',
+  [GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC]: 'Create and manage Gmail filters and settings',
   [GOOGLE_SCOPE_DRIVE_READONLY]: 'View files in your Google Drive',
   [GOOGLE_SCOPE_DRIVE_FILE]: 'Create and edit files in Google Drive',
   [GOOGLE_SCOPE_DRIVE]: 'Full access to Google Drive',
@@ -78,6 +79,7 @@ const GOOGLE_SCOPE_API_MAP: Record<string, string> = {
   [GOOGLE_SCOPE_GMAIL_READONLY]: 'gmail.googleapis.com',
   [GOOGLE_SCOPE_GMAIL_SEND]: 'gmail.googleapis.com',
   [GOOGLE_SCOPE_GMAIL_MODIFY]: 'gmail.googleapis.com',
+  [GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC]: 'gmail.googleapis.com',
   [GOOGLE_SCOPE_DRIVE_READONLY]: 'drive.googleapis.com',
   [GOOGLE_SCOPE_DRIVE_FILE]: 'drive.googleapis.com',
   [GOOGLE_SCOPE_DRIVE]: 'drive.googleapis.com',
@@ -95,7 +97,7 @@ export const googleConnectorModule: ConnectorModule = {
     description: 'Connect Gmail, Drive, and Calendar in one place.',
     icon: { type: 'simpleIcons', slug: 'google' },
     enabled: true,
-    currentVersion: 3,
+    currentVersion: 4,
     versionHistory: [
       {
         version: 1,
@@ -128,6 +130,14 @@ export const googleConnectorModule: ConnectorModule = {
         capabilities: [],
         requiredScopes: [GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC],
       },
+      {
+        version: 4,
+        title: 'Gmail filter permissions update',
+        description: 'Requests the required Gmail settings scope for managing filters.',
+        action: 'reauthorize',
+        capabilities: [],
+        requiredScopes: [GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC],
+      },
     ],
     serviceIcons: {
       gmail: { type: 'simpleIcons', slug: 'gmail' },
@@ -147,6 +157,12 @@ export const googleConnectorModule: ConnectorModule = {
       additionalParams: {
         access_type: 'offline',
         prompt: 'consent',
+      },
+      incrementalAuth: {
+        enabled: true,
+        params: {
+          include_granted_scopes: 'true',
+        },
       },
     },
     setupInstructions: [

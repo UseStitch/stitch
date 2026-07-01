@@ -9,15 +9,15 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { getMcpOAuthRedirectUri } from '@/mcp/oauth-callback.js';
 import type {
+  OAuthClientProvider,
+  OAuthDiscoveryState,
+} from '@modelcontextprotocol/sdk/client/auth.js';
+import type {
   OAuthClientInformation,
   OAuthClientInformationFull,
   OAuthClientMetadata,
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth.js';
-import type {
-  OAuthClientProvider,
-  OAuthDiscoveryState,
-} from '@modelcontextprotocol/sdk/client/auth.js';
 
 const log = Log.create({ service: 'mcp-oauth-provider' });
 
@@ -92,7 +92,9 @@ export class McpOAuthProvider implements OAuthClientProvider {
     return row ?? null;
   }
 
-  private async upsertSession(values: Partial<typeof mcpOAuthSessions.$inferInsert>): Promise<void> {
+  private async upsertSession(
+    values: Partial<typeof mcpOAuthSessions.$inferInsert>,
+  ): Promise<void> {
     const db = getDb();
     await db
       .insert(mcpOAuthSessions)
@@ -160,7 +162,10 @@ export class McpOAuthProvider implements OAuthClientProvider {
     scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery',
   ): Promise<void> {
     const db = getDb();
-    log.info({ event: 'mcp.oauth.invalidate', serverId: this.serverId, scope }, 'invalidating MCP OAuth credentials');
+    log.info(
+      { event: 'mcp.oauth.invalidate', serverId: this.serverId, scope },
+      'invalidating MCP OAuth credentials',
+    );
 
     if (scope === 'all') {
       await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, this.serverId));

@@ -5,19 +5,21 @@ import { z } from 'zod';
 import { generateAutomationDraft } from '@/automations/generation.js';
 import {
   abortSessionRun,
-  createSession,
-  deleteSession,
-  getSessionById,
   getSessionStats,
-  listSessionMessages,
-  listSessions,
-  markSessionRead,
-  renameSession,
   requestCompaction,
   resolveDoomLoop,
   sendMessage,
   splitSession,
 } from '@/chat/service.js';
+import {
+  createSession,
+  deleteSession,
+  getSessionById,
+  listSessionMessages,
+  listSessions,
+  markSessionRead,
+  renameSession,
+} from '@/chat/session-crud.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import { listSessionTodos } from '@/todos/service.js';

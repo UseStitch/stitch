@@ -8,13 +8,11 @@ import {
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // const { theme = "system" } = useTheme()
-  const theme = 'light'; // TODO Themes
-
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      theme="system"
       className="toaster group"
+      closeButton
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
@@ -33,6 +31,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: 'cn-toast',
+          description: '!text-popover-foreground/70',
+          closeButton:
+            '!border-border !bg-popover !text-popover-foreground hover:!bg-accent hover:!text-accent-foreground focus-visible:!ring-ring',
         },
       }}
       {...props}

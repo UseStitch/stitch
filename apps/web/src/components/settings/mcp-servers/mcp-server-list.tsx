@@ -6,6 +6,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { McpAuthStatus, McpServer } from '@stitch/shared/mcp/types';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import {
@@ -41,18 +42,22 @@ export function McpServerList({
   const handleDelete = async (server: McpServer) => {
     try {
       await deleteServer.mutateAsync(server.id);
-      toast.success(`${server.name} removed`);
+      toast.success(`${server.name} removed`, { id: 'mcp-server-delete' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server');
+      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server', {
+        id: 'mcp-server-delete',
+      });
     }
   };
 
   const handleRefresh = async () => {
     try {
       await refreshServers.mutateAsync();
-      toast.success('MCP servers refreshed');
+      toast.success('MCP servers refreshed', { id: 'mcp-server-refresh' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers');
+      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers', {
+        id: 'mcp-server-refresh',
+      });
     }
   };
 
@@ -60,16 +65,20 @@ export function McpServerList({
     try {
       await startAuth.mutateAsync(server.id);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to start authorization');
+      toast.error(error instanceof Error ? error.message : 'Failed to start authorization', {
+        id: 'mcp-server-auth',
+      });
     }
   };
 
   const handleLogout = async (server: McpServer) => {
     try {
       await logout.mutateAsync(server.id);
-      toast.success(`${server.name} disconnected`);
+      toast.success(`${server.name} disconnected`, { id: 'mcp-server-logout' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect');
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect', {
+        id: 'mcp-server-logout',
+      });
     }
   };
 
@@ -77,15 +86,17 @@ export function McpServerList({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-end gap-2">
         <div className="h-8 flex-1" aria-hidden />
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={() => void handleRefresh()}
-          aria-label="Refresh MCP servers"
-          disabled={refreshServers.isPending}
-        >
-          <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
-        </Button>
+        <SettingsIconButtonTooltip label="Refresh MCP servers">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={() => void handleRefresh()}
+            aria-label="Refresh MCP servers"
+            disabled={refreshServers.isPending}
+          >
+            <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
+          </Button>
+        </SettingsIconButtonTooltip>
         <Button size="sm" variant="outline" onClick={onAdd} aria-label="Add MCP server">
           <PlusIcon className="size-4" />
           Add custom
@@ -122,46 +133,54 @@ export function McpServerList({
               <ButtonGroup className="shrink-0">
                 {isOAuth &&
                   (isConnected ? (
-                    <Button
-                      size="icon-sm"
-                      variant="outline"
-                      className="text-foreground"
-                      onClick={() => void handleLogout(server)}
-                      disabled={logout.isPending}
-                      aria-label={`Disconnect ${server.name}`}
-                    >
-                      <LogOutIcon className="size-3.5" />
-                    </Button>
+                    <SettingsIconButtonTooltip label={`Disconnect Server`}>
+                      <Button
+                        size="icon-sm"
+                        variant="outline"
+                        className="text-foreground"
+                        onClick={() => void handleLogout(server)}
+                        disabled={logout.isPending}
+                        aria-label={`Disconnect ${server.name}`}
+                      >
+                        <LogOutIcon className="size-3.5" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
                   ) : (
-                    <Button
-                      size="icon-sm"
-                      variant="outline"
-                      className="text-foreground"
-                      onClick={() => void handleAuth(server)}
-                      disabled={startAuth.isPending}
-                      aria-label={`Authenticate ${server.name}`}
-                    >
-                      <KeyIcon className="size-3.5" />
-                    </Button>
+                    <SettingsIconButtonTooltip label={`Authenticate ${server.name}`}>
+                      <Button
+                        size="icon-sm"
+                        variant="outline"
+                        className="text-foreground"
+                        onClick={() => void handleAuth(server)}
+                        disabled={startAuth.isPending}
+                        aria-label={`Authenticate ${server.name}`}
+                      >
+                        <KeyIcon className="size-3.5" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
                   ))}
-                <Button
-                  size="icon-sm"
-                  variant="outline"
-                  className="text-foreground"
-                  onClick={() => onPreview(server)}
-                  aria-label={`Preview tools for ${server.name}`}
-                >
-                  <EyeIcon className="size-3.5" />
-                </Button>
-                <Button
-                  size="icon-sm"
-                  variant="destructive"
-                  onClick={() => void handleDelete(server)}
-                  disabled={deleteServer.isPending}
-                  aria-label={`Delete ${server.name}`}
-                >
-                  <Trash2Icon className="size-3.5" />
-                </Button>
+                <SettingsIconButtonTooltip label={`Preview tools`}>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="text-foreground"
+                    onClick={() => onPreview(server)}
+                    aria-label={`Preview tools`}
+                  >
+                    <EyeIcon className="size-3.5" />
+                  </Button>
+                </SettingsIconButtonTooltip>
+                <SettingsIconButtonTooltip label={`Delete Server`}>
+                  <Button
+                    size="icon-sm"
+                    variant="destructive"
+                    onClick={() => void handleDelete(server)}
+                    disabled={deleteServer.isPending}
+                    aria-label={`Delete Server`}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </SettingsIconButtonTooltip>
               </ButtonGroup>
             </div>
           );

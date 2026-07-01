@@ -15,6 +15,7 @@ import {
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import {
   sttProviderModelsQueryOptions,
   visibleProviderModelsQueryOptions,
@@ -56,7 +57,9 @@ function SttModelSelect() {
     saveSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
   );
   const saveModelMutation = useMutation(
-    saveSettingMutationOptions('stt.default.modelId', queryClient),
+    saveSettingMutationOptions('stt.default.modelId', queryClient, {
+      successMessage: 'STT model saved',
+    }),
   );
   const deleteProviderMutation = useMutation(
     deleteSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
@@ -127,11 +130,6 @@ function ModelsContent() {
           </SettingRowControl>
         </SettingRow>
       ))}
-      <SettingRow label="STT Model" description="Used for live speech-to-text in the chat input">
-        <SettingRowControl>
-          <SttModelSelect />
-        </SettingRowControl>
-      </SettingRow>
     </SettingRows>
   );
 }
@@ -146,7 +144,7 @@ export function GeneralSettings() {
       description={page.description}
       icon={<Icon className="size-5" />}
     >
-      <SettingSection title="Models">
+      <SettingSection title="Preferred LLMs">
         <ModelsContent />
       </SettingSection>
       <SettingSection title="Dictation">
@@ -215,7 +213,7 @@ function AutoUpdatesContent() {
   return (
     <SettingRows>
       <SettingRow label="Desktop app updates" description={statusText}>
-        <div className="flex shrink-0 items-center gap-2">
+        <ButtonGroup className="shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -237,7 +235,7 @@ function AutoUpdatesContent() {
               Restart to update
             </Button>
           ) : null}
-        </div>
+        </ButtonGroup>
       </SettingRow>
       {updater.error ? <p className="pb-2 text-xs text-destructive">{updater.error}</p> : null}
     </SettingRows>
@@ -261,11 +259,18 @@ function DictationContent() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
   return (
-    <SwitchSettingRow
-      settingKey="stt.holdToTalk"
-      label="Hold to talk"
-      description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
-      checked={settings['stt.holdToTalk'] === 'true'}
-    />
+    <SettingRows>
+      <SettingRow label="STT Model" description="Used for live speech-to-text in the chat input">
+        <SettingRowControl>
+          <SttModelSelect />
+        </SettingRowControl>
+      </SettingRow>
+      <SwitchSettingRow
+        settingKey="stt.holdToTalk"
+        label="Hold to talk"
+        description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
+        checked={settings['stt.holdToTalk'] === 'true'}
+      />
+    </SettingRows>
   );
 }

@@ -25,12 +25,18 @@ export function SettingsModelSelect({
 }: SettingsModelSelectProps) {
   const queryClient = useQueryClient();
 
-  const saveProviderMutation = useMutation(saveSettingMutationOptions(providerIdKey, queryClient));
+  const saveProviderMutation = useMutation(
+    saveSettingMutationOptions(providerIdKey, queryClient, {
+      successMessage: 'Model preference saved',
+    }),
+  );
   const saveModelMutation = useMutation(
     saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
   );
   const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient),
+    deleteSettingMutationOptions(providerIdKey, queryClient, {
+      successMessage: 'Model preference reset',
+    }),
   );
   const deleteModelMutation = useMutation(
     deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),

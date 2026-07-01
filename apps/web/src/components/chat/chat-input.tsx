@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
+import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 import { cn } from '@/lib/utils';
 
 type ChatInputProps = {
@@ -19,6 +20,7 @@ type ChatInputProps = {
   embedded?: boolean;
   pendingAttachments?: Attachment[];
   onPendingAttachmentsConsumed?: () => void;
+  completionGroups?: TextareaCompletionGroup[];
 };
 
 export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatInputProps) {

@@ -140,6 +140,10 @@ export async function createSTTSession(
 
   const useDualStream = diarizationFallback !== null;
 
+  // Usage tracking
+  const startedAt = Date.now();
+  let totalUsage: STTUsage = { durationMs: 0 };
+
   // Build connection config
   const connectionConfig: STTConnectionConfig = {
     modelId,
@@ -152,6 +156,7 @@ export async function createSTTSession(
     buffer: model.buffer,
     reconnect: model.reconnect,
     keyterms,
+    captureStartMs: startedAt,
   };
 
   // Open connections eagerly
@@ -160,10 +165,6 @@ export async function createSTTSession(
   const unrecoverableListeners: ((reason: string) => void)[] = [];
 
   const connections = new Map<AudioSource, STTConnection>();
-
-  // Usage tracking
-  const startedAt = Date.now();
-  let totalUsage: STTUsage = { durationMs: 0 };
 
   // Ordering buffer: collects events from both streams and emits in offsetMs order
   const orderingBuffer = createTranscriptOrderingBuffer((event) => {

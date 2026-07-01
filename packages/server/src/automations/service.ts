@@ -14,7 +14,8 @@ import type { Session } from '@stitch/shared/chat/messages';
 import { createAutomationId, createMessageId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { createSession, sendMessage } from '@/chat/service.js';
+import { sendMessage } from '@/chat/service.js';
+import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { automations } from '@/db/schema/automations.js';
 import { sessions } from '@/db/schema/sessions.js';

@@ -8,16 +8,16 @@ import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
+import { compactConversationForStep } from '@/llm/context-budget.js';
+import { createProvider } from '@/llm/provider/provider.js';
+import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import {
   isOverflow,
   compact,
   getCompactionSettings,
   getModelLimits,
   pruneSession,
-} from '@/llm/compaction.js';
-import { compactConversationForStep } from '@/llm/conversation-compactor.js';
-import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
+} from '@/llm/session-summary.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {

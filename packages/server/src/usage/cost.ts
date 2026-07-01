@@ -1,5 +1,6 @@
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as Models from '@/models/llm/registry.js';
+import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
 const TOKENS_PER_MILLION = 1_000_000;
@@ -31,19 +32,13 @@ export async function calculateMessageCostUsd(input: {
   }
 
   const effectiveCost = getEffectiveCostModel(modelCost, input.usage);
-  const inputTokens = input.usage.inputTokens ?? 0;
-  const outputTokens = input.usage.outputTokens ?? 0;
-  const cacheReadTokens = input.usage.inputTokenDetails?.cacheReadTokens ?? 0;
-  const cacheWriteTokens = input.usage.inputTokenDetails?.cacheWriteTokens ?? 0;
-  const noCacheTokens =
-    input.usage.inputTokenDetails?.noCacheTokens ??
-    Math.max(0, inputTokens - cacheReadTokens - cacheWriteTokens);
+  const usage = normalizeUsage(input.usage);
 
   const costUsd =
-    (noCacheTokens * effectiveCost.input +
-      outputTokens * effectiveCost.output +
-      cacheReadTokens * (effectiveCost.cache_read ?? effectiveCost.input) +
-      cacheWriteTokens * (effectiveCost.cache_write ?? effectiveCost.input)) /
+    (usage.noCacheTokens * effectiveCost.input +
+      usage.outputTokens * effectiveCost.output +
+      usage.cacheReadTokens * (effectiveCost.cache_read ?? effectiveCost.input) +
+      usage.cacheWriteTokens * (effectiveCost.cache_write ?? effectiveCost.input)) /
     TOKENS_PER_MILLION;
 
   return Number.isFinite(costUsd) ? costUsd : 0;

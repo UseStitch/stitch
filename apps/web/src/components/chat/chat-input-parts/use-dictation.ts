@@ -60,13 +60,17 @@ export function useDictation({
       const providerId = model?.providerId ?? defaultProviderId;
       const modelId = model?.modelId ?? defaultModelId;
       if (!providerId || !modelId) {
-        toast.error('No STT model configured. Set one in Settings → General → STT Model.');
+        toast.error('No STT model configured. Set one in Settings → General → STT Model.', {
+          id: 'stt-no-model',
+        });
         return null;
       }
       const provider = sttProviders.find((p) => p.providerId === providerId);
       const found = provider?.models.find((m) => m.id === modelId);
       if (!found) {
-        toast.error('Configured STT model not found. Check Settings → General → STT Model.');
+        toast.error('Configured STT model not found. Check Settings → General → STT Model.', {
+          id: 'stt-model-not-found',
+        });
         return null;
       }
       return { providerId, modelId, sampleRateHz: found.sampleRateHz };

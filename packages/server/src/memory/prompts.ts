@@ -47,6 +47,31 @@ export const deduplicationSchema = z.object({
     .describe('The merged/updated content when action is UPDATE. Null otherwise.'),
 });
 
+export const consolidationSchema = z.object({
+  actions: z.array(
+    z.object({
+      action: z
+        .enum(['ADD', 'UPDATE', 'DELETE', 'NONE'])
+        .describe(
+          'ADD = new merged fact, UPDATE = improve one existing memory, DELETE = remove a superseded or contradicted memory, NONE = leave unchanged.',
+        ),
+      memoryId: z
+        .string()
+        .nullable()
+        .describe('The existing memory id for UPDATE, DELETE, or NONE. Null for ADD.'),
+      content: z
+        .string()
+        .nullable()
+        .describe('The memory content for ADD or UPDATE. Null for DELETE/NONE.'),
+      category: z.enum(MEMORY_CATEGORIES).nullable().describe('Category for ADD. Null otherwise.'),
+      confidence: z
+        .enum(MEMORY_CONFIDENCES)
+        .nullable()
+        .describe('Confidence for ADD. Null otherwise.'),
+    }),
+  ),
+});
+
 // ---------------------------------------------------------------------------
 // Prompt builders — return the system/user content; schema is applied via
 // the AI SDK `output` option, so prompts no longer include JSON instructions.
@@ -135,4 +160,43 @@ confidence: ${fact.confidence}
 <existing_memories>
 ${memoriesBlock}
 </existing_memories>`;
+}
+
+export function buildConsolidationPrompt(
+  memories: {
+    id: string;
+    content: string;
+    category: string;
+    confidence: string;
+    pinned: boolean;
+  }[],
+): string {
+  const memoriesBlock = memories
+    .map(
+      (m, i) =>
+        `[${i}] id="${m.id}" category="${m.category}" confidence="${m.confidence}" pinned=${m.pinned}: ${m.content}`,
+    )
+    .join('\n');
+
+  return `You are a memory consolidation system. Given a small cluster of related long-term memories, produce safe cleanup actions.
+
+Goals:
+- Merge fragmented memories into clearer, self-contained memories.
+- Remove exact duplicates or memories fully superseded by a better merged memory.
+- Fix direct contradictions only when the contradiction is explicit.
+- Preserve useful specificity. Do not replace specifics with vague summaries.
+
+Rules:
+- Do not invent facts. Every ADD or UPDATE must be fully supported by the provided memories.
+- Never DELETE a pinned memory.
+- Prefer NONE when a memory is already clear and non-duplicative.
+- Prefer UPDATE over ADD when improving a single existing memory is enough.
+- Use ADD only when several memories should be merged into a new single memory.
+- If using ADD to merge memories, DELETE only the unpinned memories that are fully represented by the new content.
+- Keep each content value as one concise, durable statement about the user.
+- Do not include reasons or prose outside the structured output.
+
+<memories>
+${memoriesBlock}
+</memories>`;
 }

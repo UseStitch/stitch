@@ -57,9 +57,12 @@ export function RecordingsPage() {
       void deleteRecording.mutateAsync(recordingId).then(
         () => {
           onSuccess?.();
-          toast.success('Recording deleted');
+          toast.success('Recording deleted', { id: 'recording-delete' });
         },
-        (error: unknown) => toast.error(getErrorMessage(error, 'Failed to delete recording')),
+        (error: unknown) =>
+          toast.error(getErrorMessage(error, 'Failed to delete recording'), {
+            id: 'recording-delete',
+          }),
       );
     },
     [deleteRecording],
@@ -110,16 +113,21 @@ export function RecordingsPage() {
               .then(
                 () => {
                   setTitle('');
-                  toast.success('Recording started');
+                  toast.success('Recording started', { id: 'recording-start' });
                 },
                 (error: unknown) =>
-                  toast.error(getErrorMessage(error, 'Failed to start recording')),
+                  toast.error(getErrorMessage(error, 'Failed to start recording'), {
+                    id: 'recording-start',
+                  }),
               );
           }}
           onStop={() => {
             void stopRecording.mutateAsync().then(
-              () => toast.success('Recording stopped'),
-              (error: unknown) => toast.error(getErrorMessage(error, 'Failed to stop recording')),
+              () => toast.success('Recording stopped', { id: 'recording-stop' }),
+              (error: unknown) =>
+                toast.error(getErrorMessage(error, 'Failed to stop recording'), {
+                  id: 'recording-stop',
+                }),
             );
           }}
         />

@@ -14,6 +14,13 @@ type WsTransportConfig = {
   parseMessage: (data: string) => WsMessageResult | null;
   /** Log label for diagnostics. */
   label: string;
+  pingIntervalMs?: number;
+  pongTimeoutMs?: number;
+  keepAliveMessage?: string;
+};
+
+type PingableWebSocket = WebSocket & {
+  ping?: () => void;
 };
 
 export type WsMessageResult = {
@@ -47,6 +54,8 @@ export function createWsTransport(
 
     let opened = false;
     let closed = false;
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+    let pongTimer: ReturnType<typeof setTimeout> | null = null;
 
     function emitOrQueueError(err: Error): void {
       if (errorListeners.length === 0) {
@@ -57,7 +66,72 @@ export function createWsTransport(
       for (const cb of errorListeners) cb(err);
     }
 
-    ws.addEventListener('open', () => {
+    function stopKeepAlive(): void {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+      if (pongTimer) {
+        clearTimeout(pongTimer);
+        pongTimer = null;
+      }
+    }
+
+    function cleanupListeners(): void {
+      ws.removeEventListener('open', handleOpen);
+      ws.removeEventListener('message', handleMessage);
+      ws.removeEventListener('close', handleClose);
+      ws.removeEventListener('error', handleError);
+      ws.removeEventListener('pong', handlePong as EventListener);
+    }
+
+    function closeSocket(code: number, reason: string): void {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close(code, reason);
+      }
+    }
+
+    function armPongTimeout(): void {
+      if (!config.pongTimeoutMs) return;
+      if (pongTimer) clearTimeout(pongTimer);
+
+      pongTimer = setTimeout(() => {
+        const err = new Error(`${config.label} WebSocket missing pong`);
+        (err as Error & { code?: string }).code = 'missing-pong';
+        emitOrQueueError(err);
+        closeSocket(4000, 'missing pong');
+      }, config.pongTimeoutMs);
+    }
+
+    function markAlive(): void {
+      if (pongTimer) {
+        clearTimeout(pongTimer);
+        pongTimer = null;
+      }
+    }
+
+    function sendKeepAlive(): void {
+      if (ws.readyState !== WebSocket.OPEN) return;
+
+      const pingable = ws as PingableWebSocket;
+      if (pingable.ping) {
+        pingable.ping();
+      } else if (config.keepAliveMessage) {
+        ws.send(config.keepAliveMessage);
+      } else {
+        return;
+      }
+
+      armPongTimeout();
+    }
+
+    function startKeepAlive(): void {
+      if (!config.pingIntervalMs) return;
+      sendKeepAlive();
+      pingTimer = setInterval(sendKeepAlive, config.pingIntervalMs);
+    }
+
+    function handleOpen(): void {
       opened = true;
       log.debug({ label: config.label }, 'WebSocket opened');
 
@@ -89,9 +163,10 @@ export function createWsTransport(
           ws.send(buildCommitMessage());
         },
         async close() {
-          if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-            ws.close(1000, 'client close');
-          }
+          closed = true;
+          stopKeepAlive();
+          cleanupListeners();
+          closeSocket(1000, 'client close');
         },
         onTranscript(cb) {
           transcriptListeners.push(cb);
@@ -111,10 +186,12 @@ export function createWsTransport(
         },
       };
 
+      startKeepAlive();
       resolve(transport);
-    });
+    }
 
-    ws.addEventListener('message', (event) => {
+    function handleMessage(event: MessageEvent): void {
+      markAlive();
       try {
         const result = config.parseMessage(String(event.data));
         if (!result) return;
@@ -131,10 +208,13 @@ export function createWsTransport(
       } catch (err) {
         log.warn({ error: err, label: config.label }, 'failed to parse WebSocket message');
       }
-    });
+    }
 
-    ws.addEventListener('close', (event) => {
-      closed = true;
+    function handleClose(event: CloseEvent): void {
+      stopKeepAlive();
+      cleanupListeners();
+      if (closed) return;
+
       const err = new Error(`${config.label} WebSocket closed: ${event.code} ${event.reason}`);
       (err as Error & { code?: string }).code = String(event.code);
 
@@ -148,9 +228,9 @@ export function createWsTransport(
       }
 
       for (const cb of closeListeners) cb();
-    });
+    }
 
-    ws.addEventListener('error', (event) => {
+    function handleError(event: Event): void {
       const message = (event as ErrorEvent).message ?? 'unknown';
       const err = new Error(`${config.label} WebSocket error: ${message}`);
       if (!opened) {
@@ -158,6 +238,16 @@ export function createWsTransport(
         return;
       }
       emitOrQueueError(err);
-    });
+    }
+
+    function handlePong(): void {
+      markAlive();
+    }
+
+    ws.addEventListener('open', handleOpen);
+    ws.addEventListener('message', handleMessage);
+    ws.addEventListener('close', handleClose);
+    ws.addEventListener('error', handleError);
+    ws.addEventListener('pong', handlePong as EventListener);
   });
 }

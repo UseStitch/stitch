@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { AppEnableSetting } from '@/components/settings/app-enable-setting';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -12,6 +13,7 @@ import {
   SettingRowControl,
   SettingRows,
   SettingSection,
+  SettingsIconButtonTooltip,
   SliderSettingRow,
 } from '@/components/settings/settings-ui';
 import {
@@ -49,6 +51,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   enabledProviderModelsQueryOptions,
   sttProviderModelsQueryOptions,
@@ -354,42 +357,49 @@ function RecordingsContent() {
 
 function MarkdownHelpDialog() {
   return (
-    <Dialog>
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="icon-sm" aria-label="Markdown help" title="Markdown help">
-            <HelpCircleIcon />
-          </Button>
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Markdown basics</DialogTitle>
-          <DialogDescription>
-            Use Markdown to shape how the note template should be filled in.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3 text-sm">
-          <div>
-            <p className="font-medium">Headings</p>
-            <code className="text-xs text-muted-foreground"># Title, ## Section</code>
+    <Tooltip>
+      <Dialog>
+        <DialogTrigger
+          render={
+            <TooltipTrigger
+              render={
+                <Button variant="outline" size="icon-sm" aria-label="Markdown help">
+                  <HelpCircleIcon />
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Markdown help</TooltipContent>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Markdown basics</DialogTitle>
+            <DialogDescription>
+              Use Markdown to shape how the note template should be filled in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="font-medium">Headings</p>
+              <code className="text-xs text-muted-foreground"># Title, ## Section</code>
+            </div>
+            <div>
+              <p className="font-medium">Lists</p>
+              <code className="text-xs text-muted-foreground">- Bullet item</code>
+            </div>
+            <div>
+              <p className="font-medium">Tasks</p>
+              <code className="text-xs text-muted-foreground">- [ ] Owner: action item</code>
+            </div>
+            <div>
+              <p className="font-medium">Emphasis</p>
+              <code className="text-xs text-muted-foreground">**important** or _note_</code>
+            </div>
           </div>
-          <div>
-            <p className="font-medium">Lists</p>
-            <code className="text-xs text-muted-foreground">- Bullet item</code>
-          </div>
-          <div>
-            <p className="font-medium">Tasks</p>
-            <code className="text-xs text-muted-foreground">- [ ] Owner: action item</code>
-          </div>
-          <div>
-            <p className="font-medium">Emphasis</p>
-            <code className="text-xs text-muted-foreground">**important** or _note_</code>
-          </div>
-        </div>
-        <DialogFooter showCloseButton />
-      </DialogContent>
-    </Dialog>
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+    </Tooltip>
   );
 }
 
@@ -474,19 +484,25 @@ function MeetingNoteTemplatesSettings() {
           </Button>
           <MarkdownHelpDialog />
           <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <AlertDialogTrigger
-              render={
-                <Button
-                  variant="destructive"
-                  size="icon-sm"
-                  aria-label="Delete template"
-                  title="Delete template"
-                  disabled={!selectedTemplate || deleteMutation.isPending}
-                >
-                  <TrashIcon />
-                </Button>
-              }
-            />
+            <Tooltip>
+              <AlertDialogTrigger
+                render={
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="destructive"
+                        size="icon-sm"
+                        aria-label="Delete template"
+                        disabled={!selectedTemplate || deleteMutation.isPending}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    }
+                  />
+                }
+              />
+              <TooltipContent>Delete template</TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogMedia>
@@ -510,15 +526,16 @@ function MeetingNoteTemplatesSettings() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button
-            size="icon-sm"
-            aria-label="Save template"
-            title="Save template"
-            disabled={!canSave || isSaving}
-            onClick={handleSaveTemplate}
-          >
-            <SaveIcon />
-          </Button>
+          <SettingsIconButtonTooltip label="Save template">
+            <Button
+              size="icon-sm"
+              aria-label="Save template"
+              disabled={!canSave || isSaving}
+              onClick={handleSaveTemplate}
+            >
+              <SaveIcon />
+            </Button>
+          </SettingsIconButtonTooltip>
         </ButtonGroup>
       </div>
 
@@ -569,8 +586,13 @@ export function RecordingsSettings() {
         </TabsList>
 
         <TabsContent value="settings" className="pt-4">
+          <SettingSection title="App">
+            <SettingRows>
+              <AppEnableSetting appId="recordings" label="Recordings" />
+            </SettingRows>
+          </SettingSection>
           <PermissionStatus />
-          <SettingSection title="Audio Devices" className="mt-4">
+          <SettingSection title="Audio Devices">
             <AudioDeviceSettings />
           </SettingSection>
           <SettingSection title="Analysis">

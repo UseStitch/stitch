@@ -22,6 +22,7 @@ function allowDirectory(toolName: string, directory: string): DefaultPermissionR
 function getDefaultPermissionRules(): DefaultPermissionRule[] {
   return [
     allowDirectory('read', PATHS.dirPaths.skills),
+    allowDirectory('write', PATHS.dirPaths.skills),
     allowDirectory('read', PATHS.dirPaths.recordings),
     allowDirectory('write', PATHS.dirPaths.recordings),
     allowDirectory('grep', PATHS.dirPaths.recordings),

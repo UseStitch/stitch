@@ -20,7 +20,7 @@ import { useStreamStore } from '@/stores/stream-store';
 
 type PendingDelta = { sessionId: string; messageId: string; partId: string; delta: PartDelta };
 
-// Helper to mark a session unread in list and infinite list caches
+// Helper to mark a session unread in infinite list caches
 function markSessionUnread(
   queryClient: QueryClient,
   sessionId: string,
@@ -30,7 +30,7 @@ function markSessionUnread(
 
   // Update infinite list queries
   queryClient.setQueriesData<InfiniteData<SessionsPage>>(
-    { queryKey: sessionKeys.list() },
+    { queryKey: sessionKeys.infiniteLists() },
     (prev: InfiniteData<SessionsPage> | undefined) => {
       if (!prev) return prev;
       return {
@@ -42,12 +42,6 @@ function markSessionUnread(
       };
     },
   );
-
-  // Update flat list query
-  queryClient.setQueryData<Session[]>(sessionKeys.list(), (prev: Session[] | undefined) => {
-    if (!prev) return prev;
-    return prev.map((s) => (s.id === sessionId ? { ...s, isUnread: true } : s));
-  });
 }
 
 // Helper to check if sound is enabled
@@ -185,7 +179,7 @@ function useServerEventSync(): void {
     // Session Events
     'session-title-update': ({ sessionId, title }) => {
       queryClient.setQueriesData<InfiniteData<SessionsPage>>(
-        { queryKey: sessionKeys.list() },
+        { queryKey: sessionKeys.infiniteLists() },
         (prev: InfiniteData<SessionsPage> | undefined) => {
           if (!prev) return prev;
           return {

@@ -4,7 +4,9 @@ import { toast } from 'sonner';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -301,9 +303,7 @@ function ModelForm({
                 onCheckedChange={(v) =>
                   set(
                     'inputModalities',
-                    v
-                      ? [...form.inputModalities, m]
-                      : form.inputModalities.filter((x) => x !== m),
+                    v ? [...form.inputModalities, m] : form.inputModalities.filter((x) => x !== m),
                   )
                 }
               />
@@ -375,10 +375,12 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
       setShowAddForm(false);
       setEditingId(null);
-      toast.success('Model saved');
+      toast.success('Model saved', { id: 'ollama-model-save' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save model');
+      toast.error(error instanceof Error ? error.message : 'Failed to save model', {
+        id: 'ollama-model-save',
+      });
     },
   });
 
@@ -391,10 +393,12 @@ export function OllamaModelsPanel({ baseURL }: Props) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
-      toast.success('Model deleted');
+      toast.success('Model deleted', { id: 'ollama-model-delete' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete model');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete model', {
+        id: 'ollama-model-delete',
+      });
     },
   });
 
@@ -403,6 +407,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
     if (result.isError) {
       toast.error(
         result.error instanceof Error ? result.error.message : 'Failed to connect to Ollama',
+        { id: 'ollama-discover' },
       );
     }
   }
@@ -417,7 +422,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Models</h3>
-        <div className="flex gap-2">
+        <ButtonGroup>
           <Button
             variant="outline"
             size="sm"
@@ -438,7 +443,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
             <PlusIcon className="mr-1.5 size-3.5" />
             Add
           </Button>
-        </div>
+        </ButtonGroup>
       </div>
 
       {newDiscovered.length > 0 && (
@@ -509,26 +514,32 @@ export function OllamaModelsPanel({ baseURL }: Props) {
                     <span className="text-sm font-medium">{model.name}</span>
                     <span className="font-mono text-xs text-muted-foreground">{model.id}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => {
-                        setEditingId(model.id);
-                        setShowAddForm(false);
-                      }}
-                    >
-                      <PencilIcon className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => deleteMutation.mutate(model.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2Icon className="size-3.5 text-destructive" />
-                    </Button>
-                  </div>
+                  <ButtonGroup>
+                    <SettingsIconButtonTooltip label={`Edit model`}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Edit model`}
+                        onClick={() => {
+                          setEditingId(model.id);
+                          setShowAddForm(false);
+                        }}
+                      >
+                        <PencilIcon className="size-3.5" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
+                    <SettingsIconButtonTooltip label={`Delete model`}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Delete model`}
+                        onClick={() => deleteMutation.mutate(model.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2Icon className="size-3.5 text-destructive" />
+                      </Button>
+                    </SettingsIconButtonTooltip>
+                  </ButtonGroup>
                 </div>
               )}
             </div>

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { RecordingsSettings } from '@/components/settings/recordings';
+import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
 import {
   enabledProviderModelsQueryOptions,
   sttProviderModelsQueryOptions,
@@ -15,6 +16,7 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 export const Route = createFileRoute('/settings/recordings')({
   loader: ({ context }) =>
     Promise.all([
+      context.queryClient.ensureQueryData(appEnabledStatesQueryOptions),
       context.queryClient.ensureQueryData(settingsQueryOptions),
       context.queryClient.ensureQueryData(sttProviderModelsQueryOptions),
       context.queryClient.ensureQueryData(enabledProviderModelsQueryOptions),

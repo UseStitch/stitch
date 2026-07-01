@@ -30,12 +30,12 @@ stitch/
 │   ├── shared/         # Zod schemas, TypeScript interfaces, constants
 │   ├── scheduler/      # Cron-like scheduling for automations
 │   ├── sandbox/        # Process-isolated TypeScript execution for Code Mode
-│   └── audio-capture/  # TypeScript wrapper around native Rust audio recording
-├── native/             # Rust workspace (audio capture, meeting detection)
+│   ├── audio-capture/  # TypeScript wrapper around native Rust audio recording
+│   └── meeting-detection/ # NAPI native addon for in-process meeting detection
+├── native/             # Rust workspace (audio capture)
 │   └── crates/
 │       ├── audio-core/
 │       ├── audio-recording/
-│       ├── audio-meeting-detect/
 │       └── audio-cli/
 ├── connectors/
 │   ├── sdk/            # Connector framework and shared types

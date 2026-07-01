@@ -1,4 +1,4 @@
-import { createMeetingDetector, resolveMeetingWatcherBinaryPath } from '@stitch/audio-capture';
+import { createMeetingDetector } from '@stitch/meeting-detection';
 import type {
   MeetingCallDetectedPayload,
   MeetingCallEndedPayload,
@@ -9,18 +9,12 @@ import type { BrowserWindow } from 'electron';
 const detector = createMeetingDetector(process.platform, {
   activationThresholdMs: 5_000,
   cooldownMs: 10 * 60_000,
+  endGraceMs: 20_000,
+  minRepromptIntervalMs: 2 * 60_000,
 });
 
 let unsubscribe: (() => void) | null = null;
 let started = false;
-
-export function configureMeetingDetectionEnv(): void {
-  if (process.env.STITCH_MEETING_WATCH_BIN) {
-    return;
-  }
-
-  process.env.STITCH_MEETING_WATCH_BIN = resolveMeetingWatcherBinaryPath();
-}
 
 export function startMeetingDetection(
   getWindow: () => BrowserWindow | null,
@@ -74,4 +68,8 @@ export function stopMeetingDetection(): void {
   unsubscribe?.();
   unsubscribe = null;
   detector.stop();
+}
+
+export function dismissMeetingDetection(key: string): void {
+  detector.dismiss(key);
 }

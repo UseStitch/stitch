@@ -9,7 +9,12 @@ import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settin
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import { SettingPage } from '@/components/settings/settings-ui';
+import {
+  SettingPage,
+  SettingSection,
+  SettingRows,
+  SettingRow,
+} from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -177,14 +182,18 @@ function ShortcutsContent() {
       if (!recordingId) return;
 
       if (BLOCKED_HOTKEYS.includes(hotkey)) {
-        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`);
+        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`, {
+          id: 'shortcut-reserved',
+        });
         setRecordingId(null);
         return;
       }
 
       if (recordingId === LEADER_KEY_RECORDING_ID) {
         if (!isValidLeaderKeyHotkey(hotkey)) {
-          toast.error('Leader key must be in the format Mod+<single letter or digit>');
+          toast.error('Leader key must be in the format Mod+<single letter or digit>', {
+            id: 'shortcut-leader-format',
+          });
           setRecordingId(null);
           return;
         }
@@ -196,6 +205,7 @@ function ShortcutsContent() {
         if (conflictEntry) {
           toast.error(
             `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Choose a different leader key.`,
+            { id: 'shortcut-leader-conflict' },
           );
           setRecordingId(null);
           return;
@@ -218,6 +228,7 @@ function ShortcutsContent() {
       if (conflictEntry) {
         toast.error(
           `${formatForDisplay(hotkey)} is already assigned to "${conflictEntry.label}". Please unassign it first.`,
+          { id: 'shortcut-conflict' },
         );
         setRecordingId(null);
         return;
@@ -229,7 +240,7 @@ function ShortcutsContent() {
     onCancel: () => setRecordingId(null),
     onClear: () => {
       if (recordingId === LEADER_KEY_RECORDING_ID) {
-        toast.error('Leader key cannot be unassigned');
+        toast.error('Leader key cannot be unassigned', { id: 'shortcut-leader-unassign' });
         setRecordingId(null);
         return;
       }
@@ -298,26 +309,28 @@ function ShortcutsContent() {
         </Button>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-4 shadow-sm">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-sm font-bold tracking-tight">Leader key</p>
-          <p className="text-sm text-muted-foreground">Used as the prefix for LEADER+ shortcuts</p>
-        </div>
-        <button
-          onClick={handleStartLeaderKeyRecording}
-          className={cn(
-            'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
-            recordingId === LEADER_KEY_RECORDING_ID &&
-              'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
-          )}
-        >
-          {recordingId === LEADER_KEY_RECORDING_ID ? (
-            <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
-          ) : (
-            <HotkeyBadge hotkey={leaderKey} isSequence={false} />
-          )}
-        </button>
-      </div>
+      <SettingSection title="Leader Key">
+        <SettingRows>
+          <SettingRow label="Leader key" description="Used as the prefix for LEADER+ shortcuts">
+            <button
+              onClick={handleStartLeaderKeyRecording}
+              className={cn(
+                'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
+                recordingId === LEADER_KEY_RECORDING_ID &&
+                  'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
+              )}
+            >
+              {recordingId === LEADER_KEY_RECORDING_ID ? (
+                <span className="text-xs font-medium text-muted-foreground italic">
+                  Press keys...
+                </span>
+              ) : (
+                <HotkeyBadge hotkey={leaderKey} isSequence={false} />
+              )}
+            </button>
+          </SettingRow>
+        </SettingRows>
+      </SettingSection>
 
       <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-4">
         <TabsList variant="line">
@@ -331,9 +344,9 @@ function ShortcutsContent() {
         {SHORTCUT_CATEGORIES.map((category) => {
           const entries = groups.get(category) ?? [];
           return (
-            <TabsContent key={category} value={category} className="mt-0">
+            <TabsContent key={category} value={category} className="mt-4">
               {entries.length > 0 ? (
-                <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+                <SettingRows>
                   {entries.map((entry) => (
                     <ShortcutRow
                       key={entry.actionId}
@@ -344,7 +357,7 @@ function ShortcutsContent() {
                       onStartRecording={handleStartRecording}
                     />
                   ))}
-                </div>
+                </SettingRows>
               ) : (
                 <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm font-medium text-muted-foreground">
                   No {category.toLowerCase()} shortcuts match "{search}"

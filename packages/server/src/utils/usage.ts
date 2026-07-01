@@ -1,5 +1,15 @@
 import type { LanguageModelUsage } from 'ai';
 
+type NormalizedUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  noCacheTokens: number;
+  totalTokens: number;
+};
+
 function safe(value: number | null | undefined): number {
   if (typeof value !== 'number') {
     return 0;
@@ -8,23 +18,49 @@ function safe(value: number | null | undefined): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUsage {
+export function normalizeUsage(usage: LanguageModelUsage | null | undefined): NormalizedUsage {
+  const inputTokens = safe(usage?.inputTokens);
+  const outputTokens = safe(usage?.outputTokens);
+  const reasoningTokens = safe(usage?.outputTokenDetails?.reasoningTokens);
+  const cacheReadTokens = safe(usage?.inputTokenDetails?.cacheReadTokens);
+  const cacheWriteTokens = safe(usage?.inputTokenDetails?.cacheWriteTokens);
+  const noCacheTokens =
+    usage?.inputTokenDetails?.noCacheTokens !== undefined
+      ? safe(usage.inputTokenDetails.noCacheTokens)
+      : Math.max(0, inputTokens - cacheReadTokens - cacheWriteTokens);
+  const providedTotalTokens = safe(usage?.totalTokens);
+  const totalTokens =
+    providedTotalTokens > 0
+      ? providedTotalTokens
+      : inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
+
   return {
-    inputTokens: safe(a.inputTokens) + safe(b.inputTokens),
-    outputTokens: safe(a.outputTokens) + safe(b.outputTokens),
-    totalTokens: safe(a.totalTokens) + safe(b.totalTokens),
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    noCacheTokens,
+    totalTokens,
+  };
+}
+
+export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUsage {
+  const usageA = normalizeUsage(a);
+  const usageB = normalizeUsage(b);
+
+  return {
+    inputTokens: usageA.inputTokens + usageB.inputTokens,
+    outputTokens: usageA.outputTokens + usageB.outputTokens,
+    totalTokens: usageA.totalTokens + usageB.totalTokens,
     inputTokenDetails: {
-      noCacheTokens:
-        safe(a.inputTokenDetails?.noCacheTokens) + safe(b.inputTokenDetails?.noCacheTokens),
-      cacheReadTokens:
-        safe(a.inputTokenDetails?.cacheReadTokens) + safe(b.inputTokenDetails?.cacheReadTokens),
-      cacheWriteTokens:
-        safe(a.inputTokenDetails?.cacheWriteTokens) + safe(b.inputTokenDetails?.cacheWriteTokens),
+      noCacheTokens: usageA.noCacheTokens + usageB.noCacheTokens,
+      cacheReadTokens: usageA.cacheReadTokens + usageB.cacheReadTokens,
+      cacheWriteTokens: usageA.cacheWriteTokens + usageB.cacheWriteTokens,
     },
     outputTokenDetails: {
       textTokens: safe(a.outputTokenDetails?.textTokens) + safe(b.outputTokenDetails?.textTokens),
-      reasoningTokens:
-        safe(a.outputTokenDetails?.reasoningTokens) + safe(b.outputTokenDetails?.reasoningTokens),
+      reasoningTokens: usageA.reasoningTokens + usageB.reasoningTokens,
     },
   };
 }

@@ -17,6 +17,19 @@ const MODE_LABELS: Record<AppearanceMode, string> = {
 export function AppearanceSettings() {
   const page = SETTINGS_PAGE_BY_ID.appearance;
   const Icon = page.icon;
+
+  return (
+    <SettingPage
+      title={page.title}
+      description={page.description}
+      icon={<Icon className="size-5" />}
+    >
+      <AppearanceSelector />
+    </SettingPage>
+  );
+}
+
+export function AppearanceSelector() {
   const { mode, themeName, setMode, setTheme } = useTheme();
 
   const effectiveMode =
@@ -27,11 +40,7 @@ export function AppearanceSettings() {
       : mode;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <>
       <SettingSection title="Mode">
         <div className="flex gap-2">
           {APPEARANCE_MODES.map((m) => (
@@ -39,10 +48,10 @@ export function AppearanceSettings() {
               key={m}
               onClick={() => setMode(m)}
               className={cn(
-                'flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                'flex-1 rounded-xl border px-3 py-3 text-sm font-medium transition-all text-center',
                 mode === m
-                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent',
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-foreground shadow-sm'
+                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}
             >
               {MODE_LABELS[m]}
@@ -52,7 +61,7 @@ export function AppearanceSettings() {
       </SettingSection>
 
       <SettingSection title="Theme">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {THEMES.map((t) => (
             <button
               key={t.name}
@@ -60,8 +69,8 @@ export function AppearanceSettings() {
               className={cn(
                 'rounded-xl border p-3 text-left transition-all space-y-2',
                 themeName === t.name
-                  ? 'border-primary ring-2 ring-primary/30 shadow-sm'
-                  : 'border-border hover:border-foreground/30',
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
+                  : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
               )}
             >
               <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
@@ -70,7 +79,7 @@ export function AppearanceSettings() {
           ))}
         </div>
       </SettingSection>
-    </SettingPage>
+    </>
   );
 }
 

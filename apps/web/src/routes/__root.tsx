@@ -32,6 +32,7 @@ import {
   DEFAULT_THEME,
   getTheme,
   injectThemeCss,
+  removeSplash,
 } from '@/lib/theme';
 import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
@@ -52,6 +53,19 @@ function RootLayout() {
   const actions = useActions();
   useGlobalHotkeys(actions);
   useTheme();
+
+  React.useEffect(() => {
+    // Wait two frames so the themed first paint lands before the splash fades,
+    // otherwise a bare frame can flash between splash removal and the real UI.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => removeSplash());
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, []);
 
   return (
     <SidebarProvider className="h-screen flex-col overflow-hidden">
