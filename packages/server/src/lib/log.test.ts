@@ -157,6 +157,43 @@ describe('Log.create', () => {
   });
 });
 
+describe('Log.close', () => {
+  beforeEach(async () => {
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    await clearLogDir();
+  });
+
+  afterEach(async () => {
+    await clearLogDir();
+  });
+
+  test('flushes buffered writes before resolving', async () => {
+    const log = Log.create({ service: 'test-close' });
+    await Log.init({});
+    log.info('message before close');
+
+    await Log.close();
+
+    const output = await readLogOutput();
+    expect(output).toContain('message before close');
+  });
+
+  test('writes after close are dropped without throwing', async () => {
+    const log = Log.create({ service: 'test-close-after' });
+    await Log.init({});
+    await Log.close();
+
+    expect(() => log.info('message after close')).not.toThrow();
+
+    const output = await readLogOutput();
+    expect(output).not.toContain('message after close');
+  });
+
+  test('resolves when called before init', async () => {
+    await Log.close();
+  });
+});
+
 describe('Log rotation', () => {
   beforeEach(async () => {
     await fs.mkdir(PATHS.logDir, { recursive: true });

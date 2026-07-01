@@ -99,6 +99,15 @@ export async function init(options: Options): Promise<void> {
   initialized = true;
 }
 
+export async function close(): Promise<void> {
+  const current = stream;
+  stream = undefined;
+  currentDate = undefined;
+  initialized = false;
+  if (!current) return;
+  await new Promise<void>((resolve) => current.end(resolve));
+}
+
 // Log filename format: <prefix>.<date>.<count>.log
 // e.g. app.2025-08-19.1.log or dev.2025-08-19.1.log
 const LOG_FILE_PATTERN = /^.+\.\d{4}-\d{2}-\d{2}\.\d+\.log$/;
