@@ -12,7 +12,7 @@ type BaseDirs = {
   temp: string;
 };
 
-export type ServerPaths = {
+type ServerPaths = {
   appName: string;
   configDir: string;
   dataDir: string;
@@ -38,7 +38,7 @@ export type ServerPaths = {
   };
 };
 
-export type CreatePathsOptions = {
+type CreatePathsOptions = {
   appName?: string;
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
