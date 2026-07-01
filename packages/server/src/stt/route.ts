@@ -7,7 +7,6 @@ import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { pushTranscriptEvent, startTranscriptCollection } from '@/recordings/transcript-store.js';
-import { createDefaultResampler } from '@/stt/resampler.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
 
@@ -71,7 +70,45 @@ function parseMessage(data: unknown): ParsedInboundMessage | null {
   }
 }
 
-const resampler = createDefaultResampler();
+const audioFrameHeaderSchema = z.object({
+  sttSessionId: z.string().min(1),
+  source: z.enum(['mic', 'speaker']),
+  sampleRateHz: z.number().int().positive(),
+  numSamples: z.number().int().nonnegative(),
+  encoding: z.enum(['f32le', 'pcm_s16le']),
+});
+
+function toBuffer(data: ArrayBuffer | Buffer | Uint8Array): Buffer {
+  if (Buffer.isBuffer(data)) return data;
+  return Buffer.from(data as ArrayBuffer);
+}
+
+function parseAudioFrame(
+  data: ArrayBuffer | Buffer | Uint8Array,
+): z.infer<typeof chunkMessageSchema> | null {
+  const buf = toBuffer(data);
+  if (buf.byteLength < 4) return null;
+
+  const headerLen = buf.readUInt32LE(0);
+  if (headerLen <= 0 || 4 + headerLen > buf.byteLength) return null;
+
+  let header: z.infer<typeof audioFrameHeaderSchema>;
+  try {
+    header = audioFrameHeaderSchema.parse(JSON.parse(buf.toString('utf8', 4, 4 + headerLen)));
+  } catch {
+    return null;
+  }
+
+  const pcm = buf.subarray(4 + headerLen);
+  return {
+    type: 'chunk',
+    sttSessionId: header.sttSessionId,
+    source: header.source,
+    samplesB64: pcm.toString('base64'),
+    sampleRateHz: header.sampleRateHz,
+    numSamples: header.numSamples,
+  };
+}
 
 type WsSender = {
   send(data: string | ArrayBuffer): void;
@@ -107,20 +144,17 @@ async function handleStart(
   state.recordingId = message.recordingId ?? null;
 
   try {
-    const session = await createSTTSession(
-      {
-        sttSessionId: message.sttSessionId,
-        providerId: message.providerId,
-        modelId: message.modelId,
-        service: message.service,
-        capabilityRequest: message.capabilityRequest,
-        language: message.language,
-        keyterms: message.keyterms,
-        inputEncoding: state.inputEncoding,
-        inputSampleRateHz: message.audioChunkConfig.sampleRateHz,
-      },
-      { resampler },
-    );
+    const session = await createSTTSession({
+      sttSessionId: message.sttSessionId,
+      providerId: message.providerId,
+      modelId: message.modelId,
+      service: message.service,
+      capabilityRequest: message.capabilityRequest,
+      language: message.language,
+      keyterms: message.keyterms,
+      inputEncoding: state.inputEncoding,
+      inputSampleRateHz: message.audioChunkConfig.sampleRateHz,
+    });
 
     state.session = session;
 
@@ -262,6 +296,12 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
         },
 
         onMessage(event, ws) {
+          if (typeof event.data !== 'string') {
+            const frame = parseAudioFrame(event.data as ArrayBuffer | Buffer | Uint8Array);
+            if (frame) handleChunk(frame, state);
+            return;
+          }
+
           const message = parseMessage(event.data);
           if (!message) {
             send(ws, {

@@ -10,7 +10,6 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev --filter=@stitch/web --filter=@stitch/desktop",
-    "audio-native:build": "node scripts/build-audio-native.mjs",
     "format:changed": "bun run scripts/format-changed.ts",
     "format:changed:check": "bun run scripts/format-changed.ts --check",
     "typecheck": "turbo typecheck",

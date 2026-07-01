@@ -8,10 +8,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "napi build --release --platform --output-dir native --js binding.cjs --dts binding.d.ts",
+    "build:debug": "napi build --platform --output-dir native --js binding.cjs --dts binding.d.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test --pass-with-no-tests"
   },
   "devDependencies": {
+    "@napi-rs/cli": "^3.7.2",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

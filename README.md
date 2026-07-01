@@ -67,7 +67,6 @@ stitch/
 bun install            # Install all dependencies
 bun run dev            # Start the app in development mode
 bun run check          # Run lint, typecheck, test, and format checks
-bun run audio-native:build  # Build native Rust audio binaries
 ```
 
 ## Packages

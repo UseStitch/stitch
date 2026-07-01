@@ -36,7 +36,8 @@ jobs:
               - '!.github/ISSUE_TEMPLATE/**'
               - '!.github/CODEOWNERS'
             rust:
-              - 'native/**'
+              - 'packages/audio-capture/**'
+              - 'packages/meeting-detection/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
 
@@ -65,7 +66,9 @@ jobs:
         if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: native
+          workspaces: |
+            packages/audio-capture
+            packages/meeting-detection
           shared-key: pr-master-${{ runner.os }}
 
       - name: Cache Turbo artifacts
@@ -87,4 +90,8 @@ jobs:
 
       - name: Run Rust tests
         if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
-        run: cargo test --manifest-path native/Cargo.toml --workspace
+        run: cargo test --manifest-path packages/audio-capture/Cargo.toml
+
+      - name: Run meeting-detection Rust tests
+        if: needs.filter.outputs.run-ci == 'true' && needs.filter.outputs.rust == 'true'
+        run: cargo test --manifest-path packages/meeting-detection/Cargo.toml

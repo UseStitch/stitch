@@ -59,7 +59,6 @@ export type StartRecordingResponse = {
   recordingId: PrefixedString<'rec'>;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
-  speakerGain: number;
   audioChunkConfig: {
     encoding: 'f32le' | 'pcm_s16le';
     sampleRateHz: number;

@@ -9,8 +9,9 @@ use std::time::Duration;
 #[cfg(target_os = "macos")]
 use std::sync::mpsc::SyncSender;
 
+use crate::error::NativeError;
+use crate::protocol::{AudioChunkEncoding, AudioChunkSource, Emitter, emit_audio_chunk};
 use crate::resample::StreamResampler;
-use audio_core::error::NativeError;
 
 #[cfg(target_os = "macos")]
 use ca::aggregate_device_keys as agg_keys;
@@ -620,7 +621,7 @@ fn spawn_windows_speaker_source(
   Ok((rx, worker))
 }
 
-pub(crate) fn spawn_speaker_source(
+fn spawn_speaker_source(
   speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
   stop_flag: Arc<AtomicBool>,
@@ -653,14 +654,13 @@ pub(crate) fn spawn_speaker_source(
   }
 }
 
-pub(crate) fn spawn_speaker_capture(
+pub fn spawn_speaker_worker(
   speaker_device_id: Option<String>,
   target_sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
   stop_flag: Arc<AtomicBool>,
+  emitter: Emitter,
 ) -> Result<thread::JoinHandle<Result<Vec<String>, NativeError>>, NativeError> {
-  use audio_core::output::emit_audio_chunk;
-  use audio_core::protocol::{AudioChunkEncoding, AudioChunkSource};
-
   let (rx, source_worker) =
     spawn_speaker_source(speaker_device_id, target_sample_rate_hz, stop_flag.clone())?;
 
@@ -670,29 +670,28 @@ pub(crate) fn spawn_speaker_capture(
       while !stop_flag.load(Ordering::Relaxed) {
         if let Ok(samples) = rx.recv_timeout(SPEAKER_CAPTURE_RECV_TIMEOUT) {
           emit_audio_chunk(
+            &emitter,
             AudioChunkSource::Speaker,
             &samples,
             target_sample_rate_hz,
-            AudioChunkEncoding::F32Le,
+            encoding,
           );
         }
       }
 
       while let Ok(samples) = rx.try_recv() {
         emit_audio_chunk(
+          &emitter,
           AudioChunkSource::Speaker,
           &samples,
           target_sample_rate_hz,
-          AudioChunkEncoding::F32Le,
+          encoding,
         );
       }
 
-      let mut warnings = source_worker
+      let warnings = source_worker
         .join()
         .map_err(|_| NativeError::Internal("speaker source thread panicked".to_string()))??;
-      warnings.push(format!(
-        "speaker_capture_sample_rate_{target_sample_rate_hz}"
-      ));
 
       Ok(warnings)
     })

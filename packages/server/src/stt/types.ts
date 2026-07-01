@@ -1,3 +1,5 @@
+import type { AudioFormat, CapabilityResolution, STTCapability } from '@stitch/shared/stt/types';
+
 export type BufferConfig = {
   maxChunkBytes: number;
   flushIntervalMs: number;
@@ -25,8 +27,8 @@ export type STTPricing =
 export type ModelDescriptor = {
   modelId: string;
   displayName: string;
-  capabilities: Record<import('@stitch/shared/stt/types').STTCapability, boolean>;
-  inputFormat: import('@stitch/shared/stt/types').AudioFormat;
+  capabilities: Record<STTCapability, boolean>;
+  inputFormat: AudioFormat;
   partialStrategy: PartialStrategy;
   buffer: BufferConfig;
   reconnect: ReconnectConfig;
@@ -40,9 +42,9 @@ export type CommitStrategy = 'native_vad' | 'manual';
 export type STTConnectionConfig = {
   modelId: string;
   auth: ProviderAuth;
-  inputFormat: import('@stitch/shared/stt/types').AudioFormat;
+  inputFormat: AudioFormat;
   language?: string;
-  capabilities: import('@stitch/shared/stt/types').CapabilityResolution;
+  capabilities: CapabilityResolution;
   commitStrategy: CommitStrategy;
   partialStrategy: PartialStrategy;
   buffer: BufferConfig;

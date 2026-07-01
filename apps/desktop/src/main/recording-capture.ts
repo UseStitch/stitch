@@ -1,4 +1,4 @@
-import { createAudioCaptureHandle, resolveNativeBinaryPath } from '@stitch/audio-capture';
+import { createAudioCaptureHandle } from '@stitch/audio-capture';
 import type {
   RecordingDeviceChangedPayload,
   RecordingWarningPayload,
@@ -10,7 +10,7 @@ import type { BrowserWindow } from 'electron';
 
 type StartCaptureInput = Pick<
   StartRecordingResponse,
-  'recordingId' | 'micDeviceId' | 'speakerDeviceId' | 'speakerGain' | 'audioChunkConfig' | 'stt'
+  'recordingId' | 'micDeviceId' | 'speakerDeviceId' | 'audioChunkConfig' | 'stt'
 > & {
   serverUrl: string;
 };
@@ -19,14 +19,6 @@ const capture = createAudioCaptureHandle();
 
 let activeSocket: WebSocket | null = null;
 let activeRecordingId: string | null = null;
-
-export function configureRecordingCaptureEnv(): void {
-  if (process.env.STITCH_AUDIO_CAPTURE_BIN) {
-    return;
-  }
-
-  process.env.STITCH_AUDIO_CAPTURE_BIN = resolveNativeBinaryPath();
-}
 
 function toSttStreamUrl(serverUrl: string): string {
   const url = new URL('/stt/stream', serverUrl);
@@ -55,6 +47,25 @@ function sendSttMessage(ws: WebSocket, message: SttInboundMessage): void {
   ws.send(JSON.stringify(message));
 }
 
+type AudioFrameHeader = {
+  sttSessionId: string;
+  source: 'mic' | 'speaker';
+  sampleRateHz: number;
+  numSamples: number;
+  encoding: 'f32le' | 'pcm_s16le';
+};
+
+function sendAudioFrame(ws: WebSocket, header: AudioFrameHeader, pcm: Buffer): void {
+  if (ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  const headerBuf = Buffer.from(JSON.stringify(header), 'utf8');
+  const lenBuf = Buffer.alloc(4);
+  lenBuf.writeUInt32LE(headerBuf.byteLength, 0);
+  ws.send(Buffer.concat([lenBuf, headerBuf, pcm]));
+}
+
 export async function startRecordingCapture(
   input: StartCaptureInput,
   getWindow: () => BrowserWindow | null,
@@ -80,11 +91,10 @@ export async function startRecordingCapture(
     });
 
     await capture.start({
-      channels: 1,
+      sampleRateHz: input.audioChunkConfig.sampleRateHz,
+      encoding: input.audioChunkConfig.encoding,
       micDeviceId: input.micDeviceId,
       speakerDeviceId: input.speakerDeviceId,
-      speakerGain: input.speakerGain,
-      audioChunkConfig: input.audioChunkConfig,
     });
 
     activeSocket = ws;
@@ -92,14 +102,17 @@ export async function startRecordingCapture(
 
     capture.onEvent((event) => {
       if (event.type === 'audioChunk') {
-        sendSttMessage(ws, {
-          type: 'chunk',
-          sttSessionId,
-          source: event.source,
-          samplesB64: event.samplesB64,
-          sampleRateHz: event.sampleRateHz,
-          numSamples: event.numSamples,
-        });
+        sendAudioFrame(
+          ws,
+          {
+            sttSessionId,
+            source: event.source,
+            sampleRateHz: event.sampleRateHz,
+            numSamples: event.numSamples,
+            encoding: event.encoding,
+          },
+          event.pcm,
+        );
         return;
       }
 

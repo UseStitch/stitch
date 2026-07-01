@@ -1,189 +1,46 @@
-import type { ChildProcessWithoutNullStreams } from 'node:child_process';
-
-export type CapturePlatform = 'darwin' | 'win32';
-
-export type CaptureFormat = 'opus';
-
-export type CaptureMode = 'mic' | 'speaker' | 'dual';
-
 export type AudioChunkEncoding = 'f32le' | 'pcm_s16le';
+export type AudioChunkSource = 'mic' | 'speaker';
+export type PermissionState = 'granted' | 'denied' | 'unknown';
 
-export type AudioChunkConfig = {
+export type StartCaptureInput = {
+  sampleRateHz: number;
   encoding: AudioChunkEncoding;
+  micDeviceId?: string | null;
+  speakerDeviceId?: string | null;
+};
+
+export type AudioChunkEvent = {
+  type: 'audioChunk';
+  source: AudioChunkSource;
+  pcm: Buffer;
   sampleRateHz: number;
+  numSamples: number;
+  encoding: AudioChunkEncoding;
 };
 
-export type NativeCaptureStartCommand = {
-  type: 'start';
-  format: CaptureFormat;
-  mode: CaptureMode;
-  sampleRateHz: number;
-  channels: number;
-  micDeviceId: string | null;
-  speakerDeviceId: string | null;
-  speakerGain: number | null;
-  audioChunkConfig: AudioChunkConfig | null;
+export type DeviceChangedEvent = {
+  type: 'deviceChanged';
+  kind: 'input' | 'output';
+  deviceName: string | null;
 };
 
-export type NativeCaptureStopCommand = {
-  type: 'stop';
-};
-
-export type NativeCaptureStatusCommand = {
-  type: 'status';
-};
-
-export type NativeCaptureListDevicesCommand = {
-  type: 'listDevices';
-};
-
-export type NativeCaptureCapabilitiesCommand = {
-  type: 'capabilities';
-};
-
-export type NativeCaptureCheckPermissionsCommand = {
-  type: 'checkPermissions';
-};
-
-export type NativeCapturePrimeSystemAudioCommand = {
-  type: 'primeSystemAudio';
-};
-
-export type NativeCaptureCommand =
-  | NativeCaptureStartCommand
-  | NativeCaptureStopCommand
-  | NativeCaptureStatusCommand
-  | NativeCaptureListDevicesCommand
-  | NativeCaptureCapabilitiesCommand
-  | NativeCaptureCheckPermissionsCommand
-  | NativeCapturePrimeSystemAudioCommand;
-
-export type NativeCaptureErrorCode =
-  | 'permission_denied'
-  | 'device_not_found'
-  | 'stream_failed'
-  | 'already_recording'
-  | 'not_recording'
-  | 'invalid_command'
-  | 'internal_error';
-
-export type NativeCaptureStartedEvent = {
-  type: 'started';
-  startedAt: number;
-};
-
-export type NativeCaptureProgressEvent = {
-  type: 'progress';
-  durationMs: number;
-};
-
-export type NativeCaptureWarningEvent = {
+export type WarningEvent = {
   type: 'warning';
   code: string;
   message: string;
 };
 
-export type NativeCaptureErrorEvent = {
-  type: 'error';
-  code: NativeCaptureErrorCode;
-  message: string;
-};
+export type CaptureEvent = AudioChunkEvent | DeviceChangedEvent | WarningEvent;
+export type CaptureEventListener = (event: CaptureEvent) => void;
 
-export type NativeCaptureStoppedEvent = {
-  type: 'stopped';
-  endedAt: number;
-  durationMs: number;
-  warnings: string[];
-};
-
-export type NativeCaptureStatusEvent = {
-  type: 'status';
-  state: 'inactive' | 'active' | 'finalizing';
-};
-
-export type NativeCaptureDeviceListEvent = {
-  type: 'deviceList';
+export type AudioDeviceList = {
   microphoneDevices: string[];
   speakerDevices: string[];
-};
-
-export type NativeCaptureCapabilitiesEvent = {
-  type: 'capabilities';
-  supportedModes: CaptureMode[];
-  supportsRealtimeDual: boolean;
-};
-
-export type PermissionState = 'granted' | 'denied' | 'unknown';
-
-export type NativeCapturePermissionsStatusEvent = {
-  type: 'permissionsStatus';
-  microphone: PermissionState;
-  screenCapture: PermissionState;
 };
 
 export type AudioPermissionsStatus = {
   microphone: PermissionState;
   screenCapture: PermissionState;
-};
-
-export type NativeCaptureDeviceChangedEvent = {
-  type: 'deviceChanged';
-  kind: 'input' | 'output' | 'list';
-  deviceName: string | null;
-};
-
-export type AudioChunkSource = 'mic' | 'speaker';
-
-export type NativeCaptureAudioChunkEvent = {
-  type: 'audioChunk';
-  source: AudioChunkSource;
-  samplesB64: string;
-  sampleRateHz: number;
-  numSamples: number;
-};
-
-export type NativeCaptureEvent =
-  | NativeCaptureStartedEvent
-  | NativeCaptureProgressEvent
-  | NativeCaptureWarningEvent
-  | NativeCaptureErrorEvent
-  | NativeCaptureStoppedEvent
-  | NativeCaptureStatusEvent
-  | NativeCaptureDeviceListEvent
-  | NativeCaptureCapabilitiesEvent
-  | NativeCapturePermissionsStatusEvent
-  | NativeCaptureDeviceChangedEvent
-  | NativeCaptureAudioChunkEvent;
-
-export type NativeCaptureEventListener = (
-  event: NativeCaptureWarningEvent | NativeCaptureDeviceChangedEvent | NativeCaptureAudioChunkEvent,
-) => void;
-
-export type NativeCaptureController = {
-  send: (command: NativeCaptureCommand) => void;
-  waitFor: <TType extends NativeCaptureEvent['type']>(
-    type: TType,
-    timeoutMs: number,
-  ) => Promise<Extract<NativeCaptureEvent, { type: TType }>>;
-  onEvent: (listener: NativeCaptureEventListener) => void;
-  close: () => void;
-};
-
-export type StartCaptureInput = {
-  format?: CaptureFormat;
-  sampleRateHz?: number;
-  channels?: number;
-  micDeviceId?: string | null;
-  speakerDeviceId?: string | null;
-  speakerGain?: number | null;
-  audioChunkConfig?: AudioChunkConfig | null;
-};
-
-export type ActiveCapture = {
-  startedAt: number;
-  sessionId: string;
-  process: ChildProcessWithoutNullStreams;
-  controller: NativeCaptureController;
 };
 
 export type StopCaptureResult = {
@@ -192,16 +49,6 @@ export type StopCaptureResult = {
   warnings: string[];
 };
 
-export type AudioCaptureDriver = {
-  platform: CapturePlatform;
-  start: (input: StartCaptureInput) => Promise<ActiveCapture>;
-  stop: (capture: ActiveCapture) => Promise<StopCaptureResult>;
-  listDevices: () => Promise<AudioDeviceList>;
-  checkPermissions: () => Promise<AudioPermissionsStatus>;
-  primeSystemAudio: () => Promise<AudioPermissionsStatus>;
-};
-
-export type AudioDeviceList = {
-  microphoneDevices: string[];
-  speakerDevices: string[];
+export type ActiveCapture = {
+  startedAt: number;
 };

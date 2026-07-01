@@ -2,16 +2,15 @@ import { existsSync } from 'node:fs';
 
 import type { Configuration } from 'electron-builder';
 
-const audioCaptureBinaryFilter =
-  process.platform === 'win32' ? ['stitch-audio-capture.exe'] : ['stitch-audio-capture'];
-
 const audioCaptureResource = {
-  from: '../../native/target/release',
+  from: '../../packages/audio-capture/native',
   to: 'audio-capture',
-  filter: audioCaptureBinaryFilter,
+  filter: ['*.node', 'binding.cjs'],
 };
 
 const hasAudioCaptureResource = existsSync(audioCaptureResource.from);
+
+const audioCaptureDarwinBinary = `Contents/Resources/audio-capture/index.darwin-${process.arch}.node`;
 
 const meetingDetectionResource = {
   from: '../../packages/meeting-detection/native',
@@ -47,6 +46,8 @@ const config: Configuration = {
     // Addon ships via extraResources; keep its Rust build tree out of the asar.
     '!node_modules/@stitch/meeting-detection/{target,src-rs,native,.turbo}/**',
     '!node_modules/@stitch/meeting-detection/{Cargo.toml,Cargo.lock,build.rs,rustfmt.toml}',
+    '!node_modules/@stitch/audio-capture/{target,src-rs,native,.turbo}/**',
+    '!node_modules/@stitch/audio-capture/{Cargo.toml,Cargo.lock,build.rs,rustfmt.toml}',
   ],
   extraResources: [
     {
@@ -112,7 +113,7 @@ const config: Configuration = {
     binaries: [
       'Contents/Resources/stitch-server',
       'Contents/Resources/stitch-sandbox',
-      'Contents/Resources/audio-capture/stitch-audio-capture',
+      audioCaptureDarwinBinary,
       meetingDetectionDarwinBinary,
     ],
     target: ['dmg', 'zip'],

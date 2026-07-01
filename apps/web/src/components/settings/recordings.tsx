@@ -14,7 +14,6 @@ import {
   SettingRows,
   SettingSection,
   SettingsIconButtonTooltip,
-  SliderSettingRow,
 } from '@/components/settings/settings-ui';
 import {
   AlertDialog,
@@ -166,7 +165,6 @@ function AudioDeviceSettings() {
 
   const currentInputDevice = settings['recordings.inputDeviceId'] ?? '';
   const currentOutputDevice = settings['recordings.outputDeviceId'] ?? '';
-  const currentSpeakerGain = Number.parseFloat(settings['recordings.speakerGain'] ?? '10') || 10;
 
   function handleInputDeviceChange(value: string | null) {
     if (!value || value === SYSTEM_DEFAULT_VALUE) {
@@ -227,17 +225,6 @@ function AudioDeviceSettings() {
           </Select>
         </SettingRowControl>
       </SettingRow>
-
-      <SliderSettingRow
-        settingKey="recordings.speakerGain"
-        label="Speaker Volume"
-        description="Gain multiplier for system audio in the mix. Default is 10."
-        currentValue={currentSpeakerGain}
-        min={1}
-        max={30}
-        step={1}
-        precision={0}
-      />
     </SettingRows>
   );
 }
