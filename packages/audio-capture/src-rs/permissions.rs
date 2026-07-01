@@ -18,7 +18,7 @@ pub fn list_microphone_devices() -> Vec<String> {
 pub fn list_speaker_devices() -> Vec<String> {
   #[cfg(target_os = "windows")]
   {
-    return vec!["default".to_string()];
+    vec!["default".to_string()]
   }
 
   #[cfg(target_os = "macos")]
