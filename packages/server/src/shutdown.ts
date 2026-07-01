@@ -14,6 +14,7 @@ async function shutdown(signal: string) {
   });
   await shutdownConnectorRuntime();
   closeDb();
+  await Log.close();
   process.exit(0);
 }
 
