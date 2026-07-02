@@ -1,6 +1,6 @@
-import crypto from 'node:crypto';
 import { createServer, type Server } from 'node:http';
-import { URL, URLSearchParams } from 'node:url';
+import { URL } from 'node:url';
+import * as oauth from 'openid-client';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
@@ -71,28 +71,89 @@ export function requiresOAuthReauth(error: unknown): boolean {
   return true;
 }
 
-function generateCodeVerifier(): string {
-  return crypto.randomBytes(32).toString('base64url');
-}
-
-function generateCodeChallenge(verifier: string): string {
-  return crypto.createHash('sha256').update(verifier).digest('base64url');
-}
-
-function findFreePort(): Promise<number> {
+async function createLoopbackServer(): Promise<{ server: Server; port: number }> {
   return new Promise((resolve, reject) => {
     const server = createServer();
+    let settled = false;
+
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+
     server.listen(0, '127.0.0.1', () => {
+      if (settled) return;
       const addr = server.address();
       if (addr && typeof addr === 'object') {
-        const port = addr.port;
-        server.close(() => resolve(port));
-      } else {
-        server.close(() => reject(new Error('Could not find free port')));
+        settled = true;
+        resolve({ server, port: addr.port });
+        return;
       }
+
+      server.close(() => fail(new Error('Could not bind OAuth callback server')));
     });
-    server.on('error', reject);
+    server.once('error', fail);
   });
+}
+
+function createOAuthConfiguration(
+  config: Pick<OAuthConfig, 'authUrl' | 'tokenUrl' | 'revokeUrl'>,
+  clientId: string,
+  clientSecret: string,
+): oauth.Configuration {
+  const tokenUrl = new URL(config.tokenUrl);
+  const configuration = new oauth.Configuration(
+    {
+      issuer: tokenUrl.origin,
+      authorization_endpoint: config.authUrl,
+      token_endpoint: config.tokenUrl,
+      revocation_endpoint: config.revokeUrl,
+    },
+    clientId,
+    { client_secret: clientSecret },
+    oauth.ClientSecretPost(clientSecret),
+  );
+
+  if (tokenUrl.protocol === 'http:' && tokenUrl.hostname === '127.0.0.1') {
+    oauth.allowInsecureRequests(configuration);
+  }
+
+  return configuration;
+}
+
+function toOAuthTokens(response: oauth.TokenEndpointResponse): OAuthTokens {
+  return {
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token ?? null,
+    expiresIn: response.expires_in ?? null,
+  };
+}
+
+async function fetchWithRefreshError(
+  url: string,
+  options: oauth.CustomFetchOptions,
+): Promise<Response> {
+  const response = await fetch(url, options);
+  if (response.ok) return response;
+
+  const errorBody = await response.clone().text();
+  const clockSkewMs = computeClockSkewMs(response.headers.get('date'));
+  log.error(
+    { event: 'oauth.refresh.failed', status: response.status, errorBody, clockSkewMs },
+    'Token refresh failed',
+  );
+  throw new OAuthRefreshError(response.status, errorBody, clockSkewMs);
+}
+
+function findOAuthRefreshError(error: unknown): OAuthRefreshError | null {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    if (current instanceof OAuthRefreshError) return current;
+    current = current.cause;
+  }
+
+  return null;
 }
 
 /**
@@ -111,14 +172,14 @@ export async function startOAuthFlow(
   scopes: string[],
   options?: { additionalParams?: Record<string, string> },
 ): Promise<{ authUrl: string; waitForTokens: () => Promise<OAuthTokens> }> {
-  const port = await findFreePort();
+  const { server, port } = await createLoopbackServer();
   const redirectUri = `http://127.0.0.1:${port}/callback`;
-  const state = crypto.randomBytes(16).toString('hex');
-  const codeVerifier = generateCodeVerifier();
-  const codeChallenge = generateCodeChallenge(codeVerifier);
+  const state = oauth.randomState();
+  const codeVerifier = oauth.randomPKCECodeVerifier();
+  const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
+  const oauthConfig = createOAuthConfiguration(config, clientId, clientSecret);
 
-  const authParams = new URLSearchParams({
-    client_id: clientId,
+  const authUrl = oauth.buildAuthorizationUrl(oauthConfig, {
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: scopes.join(' '),
@@ -129,143 +190,95 @@ export async function startOAuthFlow(
     ...options?.additionalParams,
   });
 
-  const authUrl = `${config.authUrl}?${authParams.toString()}`;
-
   log.info({ event: 'oauth.flow.started', port, scopes }, 'OAuth flow started');
 
-  const waitForTokens = (): Promise<OAuthTokens> => {
-    return new Promise((resolve, reject) => {
-      let server: Server;
-      const timeout = setTimeout(() => {
-        server?.close();
-        reject(new Error('OAuth flow timed out after 5 minutes'));
-      }, 300_000);
+  const tokenPromise = new Promise<OAuthTokens>((resolve, reject) => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      rejectOnce(new Error('OAuth flow timed out after 5 minutes'));
+    }, 300_000);
 
-      server = createServer(async (req, res) => {
-        const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
+    const closeServer = () => {
+      clearTimeout(timeout);
+      server.close();
+    };
 
-        if (url.pathname !== '/callback') {
-          res.writeHead(404);
-          res.end('Not found');
-          return;
-        }
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      closeServer();
+      reject(error);
+    };
 
-        const code = url.searchParams.get('code');
-        const returnedState = url.searchParams.get('state');
-        const error = url.searchParams.get('error');
+    const resolveOnce = (tokens: OAuthTokens) => {
+      if (settled) return;
+      settled = true;
+      closeServer();
+      resolve(tokens);
+    };
 
-        if (error) {
-          const errorDesc = url.searchParams.get('error_description') ?? error;
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(buildHtmlResponse('Authorization Failed', `Error: ${errorDesc}`, false));
-          clearTimeout(timeout);
-          server.close();
-          reject(new Error(`OAuth error: ${errorDesc}`));
-          return;
-        }
+    server.on('request', async (req, res) => {
+      const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
 
-        if (!code || returnedState !== state) {
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(buildHtmlResponse('Authorization Failed', 'Invalid callback parameters', false));
-          clearTimeout(timeout);
-          server.close();
-          reject(new Error('Invalid OAuth callback: missing code or state mismatch'));
-          return;
-        }
+      if (url.pathname !== '/callback') {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+      }
 
-        try {
-          const tokens = await exchangeCodeForTokens(
-            config.tokenUrl,
-            code,
-            clientId,
-            clientSecret,
-            redirectUri,
-            codeVerifier,
-          );
+      const code = url.searchParams.get('code');
+      const returnedState = url.searchParams.get('state');
+      const error = url.searchParams.get('error');
 
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(
-            buildHtmlResponse(
-              'Authorization Successful',
-              'You can close this window and return to Stitch.',
-              true,
-            ),
-          );
+      if (error) {
+        const errorDesc = url.searchParams.get('error_description') ?? error;
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(buildHtmlResponse('Authorization Failed', `Error: ${errorDesc}`, false));
+        rejectOnce(new Error(`OAuth error: ${errorDesc}`));
+        return;
+      }
 
-          clearTimeout(timeout);
-          server.close();
-          resolve(tokens);
-        } catch (e) {
-          const message = e instanceof Error ? e.message : String(e);
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(
-            buildHtmlResponse('Authorization Failed', `Token exchange failed: ${message}`, false),
-          );
-          clearTimeout(timeout);
-          server.close();
-          reject(e);
-        }
-      });
+      if (!code || returnedState !== state) {
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end(buildHtmlResponse('Authorization Failed', 'Invalid callback parameters', false));
+        rejectOnce(new Error('Invalid OAuth callback: missing code or state mismatch'));
+        return;
+      }
 
-      server.listen(port, '127.0.0.1', () => {
-        log.info({ event: 'oauth.server.listening', port }, 'OAuth callback server ready');
-      });
+      try {
+        const tokens = toOAuthTokens(
+          await oauth.authorizationCodeGrant(oauthConfig, url, {
+            pkceCodeVerifier: codeVerifier,
+            expectedState: state,
+          }),
+        );
 
-      server.on('error', (e) => {
-        clearTimeout(timeout);
-        reject(e);
-      });
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(
+          buildHtmlResponse(
+            'Authorization Successful',
+            'You can close this window and return to Stitch.',
+            true,
+          ),
+        );
+
+        resolveOnce(tokens);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(
+          buildHtmlResponse('Authorization Failed', `Token exchange failed: ${message}`, false),
+        );
+        rejectOnce(e);
+      }
     });
-  };
 
-  return { authUrl, waitForTokens };
-}
-
-async function exchangeCodeForTokens(
-  tokenUrl: string,
-  code: string,
-  clientId: string,
-  clientSecret: string,
-  redirectUri: string,
-  codeVerifier: string,
-): Promise<OAuthTokens> {
-  const body = new URLSearchParams({
-    grant_type: 'authorization_code',
-    code,
-    client_id: clientId,
-    client_secret: clientSecret,
-    redirect_uri: redirectUri,
-    code_verifier: codeVerifier,
+    server.on('error', rejectOnce);
   });
 
-  const response = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
+  log.info({ event: 'oauth.server.listening', port }, 'OAuth callback server ready');
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    log.error(
-      { event: 'oauth.token.exchange.failed', status: response.status, errorBody },
-      'Token exchange failed',
-    );
-    throw new Error(`Token exchange failed (${response.status}): ${errorBody}`);
-  }
-
-  const data = (await response.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
-
-  log.info({ event: 'oauth.token.exchange.success' }, 'Token exchange successful');
-
-  return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token ?? null,
-    expiresIn: data.expires_in ?? null,
-  };
+  return { authUrl: authUrl.toString(), waitForTokens: () => tokenPromise };
 }
 
 export async function refreshAccessToken(
@@ -274,40 +287,16 @@ export async function refreshAccessToken(
   clientSecret: string,
   refreshToken: string,
 ): Promise<OAuthTokens> {
-  const body = new URLSearchParams({
-    grant_type: 'refresh_token',
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-  });
+  const config = createOAuthConfiguration({ authUrl: tokenUrl, tokenUrl }, clientId, clientSecret);
+  config[oauth.customFetch] = fetchWithRefreshError;
 
-  const response = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    const clockSkewMs = computeClockSkewMs(response.headers.get('date'));
-    log.error(
-      { event: 'oauth.refresh.failed', status: response.status, errorBody, clockSkewMs },
-      'Token refresh failed',
-    );
-    throw new OAuthRefreshError(response.status, errorBody, clockSkewMs);
+  try {
+    return toOAuthTokens(await oauth.refreshTokenGrant(config, refreshToken));
+  } catch (error) {
+    const refreshError = findOAuthRefreshError(error);
+    if (refreshError) throw refreshError;
+    throw error;
   }
-
-  const data = (await response.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in?: number;
-  };
-
-  return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token ?? null,
-    expiresIn: data.expires_in ?? null,
-  };
 }
 
 /**

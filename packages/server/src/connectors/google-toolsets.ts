@@ -18,6 +18,7 @@ import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
+import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
@@ -28,9 +29,6 @@ import type { Toolset } from '@/tools/toolsets/types.js';
 
 const log = Log.create({ service: 'google-toolsets' });
 const REFRESH_BUFFER_MS = 60_000;
-
-/** Deduplicates concurrent refresh attempts for the same account. */
-const refreshInFlight = new Map<string, Promise<string>>();
 
 /** Convert a @stitch-connectors/google toolset definition into the server Toolset type. */
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
@@ -139,31 +137,23 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               if (definition?.authType === 'oauth2') {
                 const creds = await resolveOAuthCredentials(latest);
                 if (creds && latest.refreshToken) {
-                  const inFlight = refreshInFlight.get(chosen.id);
-                  if (inFlight) {
-                    return await inFlight;
-                  }
-
                   const config = definition.authConfig as OAuthConfig;
-                  const refreshPromise = refreshAccessToken(
-                    config.tokenUrl,
-                    creds.clientId,
-                    creds.clientSecret,
-                    latest.refreshToken,
-                  );
-                  refreshInFlight.set(
-                    chosen.id,
-                    refreshPromise.then((r) => r.accessToken),
-                  );
-
+                  const refreshToken = latest.refreshToken;
                   try {
-                    const refreshed = await refreshPromise;
+                    const refreshed = await withRefreshLock(chosen.id, () =>
+                      refreshAccessToken(
+                        config.tokenUrl,
+                        creds.clientId,
+                        creds.clientSecret,
+                        refreshToken,
+                      ),
+                    );
 
                     await db
                       .update(connectorInstances)
                       .set({
                         accessToken: refreshed.accessToken,
-                        refreshToken: refreshed.refreshToken ?? latest.refreshToken,
+                        refreshToken: refreshed.refreshToken ?? refreshToken,
                         tokenExpiresAt: refreshed.expiresIn
                           ? now + refreshed.expiresIn * 1000
                           : null,
@@ -201,8 +191,6 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                         .where(eq(connectorInstances.id, chosen.id));
                     }
                     throw error;
-                  } finally {
-                    refreshInFlight.delete(chosen.id);
                   }
                 }
               }

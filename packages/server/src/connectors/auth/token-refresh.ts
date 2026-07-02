@@ -8,6 +8,7 @@ import {
   requiresOAuthReauth,
 } from '@/connectors/auth/oauth2.js';
 import type { refreshAccessToken as RefreshAccessTokenFn } from '@/connectors/auth/oauth2.js';
+import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
@@ -75,7 +76,8 @@ export async function refreshExpiringTokens(deps?: {
 
       const config = definition.authConfig as OAuthConfig;
 
-      if (!instance.refreshToken) continue;
+      const refreshToken = instance.refreshToken;
+      if (!refreshToken) continue;
 
       const credentials = await resolveOAuthCredentials(instance);
       if (!credentials) continue;
@@ -85,10 +87,12 @@ export async function refreshExpiringTokens(deps?: {
         `Refreshing token for ${instance.label}`,
       );
 
-      const tokens = await refreshWithRetries(
-        deps?.refreshAccessToken ?? refreshAccessTokenDefault,
-        [config.tokenUrl, credentials.clientId, credentials.clientSecret, instance.refreshToken],
-        deps?.sleep ?? sleep,
+      const tokens = await withRefreshLock(instance.id, () =>
+        refreshWithRetries(
+          deps?.refreshAccessToken ?? refreshAccessTokenDefault,
+          [config.tokenUrl, credentials.clientId, credentials.clientSecret, refreshToken],
+          deps?.sleep ?? sleep,
+        ),
       );
 
       await db
