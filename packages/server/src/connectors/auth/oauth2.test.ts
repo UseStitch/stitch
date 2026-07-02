@@ -28,16 +28,17 @@ async function close(server: Server): Promise<void> {
 }
 
 /**
- * Builds a syntactically valid JWT whose issuer differs from the token endpoint
- * origin, mirroring how Google issues id_tokens (iss=https://accounts.google.com)
- * from a different token endpoint (oauth2.googleapis.com).
+ * Builds a syntactically valid JWT with the given issuer, mirroring how a
+ * provider issues an id_token whose issuer differs from the token endpoint
+ * origin (e.g. Google's issuer is https://accounts.google.com while its token
+ * endpoint is oauth2.googleapis.com).
  */
-function mismatchedIssuerIdToken(): string {
+function idToken(iss: string): string {
   const encode = (value: object): string =>
     Buffer.from(JSON.stringify(value)).toString('base64url');
   const header = encode({ alg: 'RS256', typ: 'JWT' });
   const payload = encode({
-    iss: 'https://accounts.google.com',
+    iss,
     sub: 'user-123',
     aud: 'client-id',
     exp: Math.floor(Date.now() / 1000) + 3600,
@@ -93,7 +94,7 @@ describe('startOAuthFlow', () => {
           token_type: 'Bearer',
           refresh_token: 'refresh',
           expires_in: 3600,
-          id_token: mismatchedIssuerIdToken(),
+          id_token: idToken('https://accounts.example.test'),
         }),
       );
     });
@@ -123,11 +124,59 @@ describe('startOAuthFlow', () => {
     if (!redirectUri || !state) throw new Error('OAuth URL missing callback parameters');
 
     const tokensPromise = waitForTokens();
-    await fetch(`${redirectUri}?code=auth-code&state=${state}`);
+    // Providers such as Google append their issuer as the `iss` callback param;
+    // it must match the configured issuer (derived from the authUrl origin).
+    await fetch(
+      `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://accounts.example.test')}`,
+    );
 
     expect(tokensPromise).resolves.toEqual({
       accessToken: 'access',
       refreshToken: 'refresh',
+      expiresIn: 3600,
+    });
+    await close(tokenServer);
+  });
+
+  test('accepts an explicit issuer that differs from the authorization endpoint', async () => {
+    const tokenServer = createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          access_token: 'access',
+          token_type: 'Bearer',
+          expires_in: 3600,
+        }),
+      );
+    });
+    const tokenPort = await listen(tokenServer);
+
+    const { authUrl, waitForTokens } = await startOAuthFlow(
+      {
+        authUrl: 'https://login.example.test/authorize',
+        tokenUrl: `http://127.0.0.1:${tokenPort}/token`,
+        issuer: 'https://issuer.example.test',
+        defaultScopes: [],
+        scopeDescriptions: {},
+      },
+      'client-id',
+      'client-secret',
+      ['scope:read'],
+    );
+
+    const url = new URL(authUrl);
+    const redirectUri = url.searchParams.get('redirect_uri');
+    const state = url.searchParams.get('state');
+    if (!redirectUri || !state) throw new Error('OAuth URL missing callback parameters');
+
+    const tokensPromise = waitForTokens();
+    await fetch(
+      `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://issuer.example.test')}`,
+    );
+
+    expect(tokensPromise).resolves.toEqual({
+      accessToken: 'access',
+      refreshToken: null,
       expiresIn: 3600,
     });
     await close(tokenServer);
@@ -174,7 +223,7 @@ describe('refreshAccessToken', () => {
           token_type: 'Bearer',
           refresh_token: 'new-refresh',
           expires_in: 1800,
-          id_token: mismatchedIssuerIdToken(),
+          id_token: idToken('https://accounts.google.com'),
         }),
       );
     });

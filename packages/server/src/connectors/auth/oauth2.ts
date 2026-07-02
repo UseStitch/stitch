@@ -98,14 +98,14 @@ async function createLoopbackServer(): Promise<{ server: Server; port: number }>
 }
 
 function createOAuthConfiguration(
-  config: Pick<OAuthConfig, 'authUrl' | 'tokenUrl' | 'revokeUrl'>,
+  config: Pick<OAuthConfig, 'authUrl' | 'tokenUrl' | 'revokeUrl' | 'issuer'>,
   clientId: string,
   clientSecret: string,
 ): oauth.Configuration {
   const tokenUrl = new URL(config.tokenUrl);
   const configuration = new oauth.Configuration(
     {
-      issuer: tokenUrl.origin,
+      issuer: config.issuer ?? new URL(config.authUrl).origin,
       authorization_endpoint: config.authUrl,
       token_endpoint: config.tokenUrl,
       revocation_endpoint: config.revokeUrl,

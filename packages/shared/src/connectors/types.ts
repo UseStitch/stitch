@@ -30,6 +30,7 @@ export type OAuthConfig = {
   authUrl: string;
   tokenUrl: string;
   revokeUrl?: string;
+  issuer?: string;
   defaultScopes: string[];
   scopeDescriptions: Record<string, string>;
   serviceAccessOptions?: OAuthServiceAccessOption[];
