@@ -115,11 +115,45 @@ function createOAuthConfiguration(
     oauth.ClientSecretPost(clientSecret),
   );
 
+  configuration[oauth.customFetch] = stripIdTokenFetch;
+
   if (tokenUrl.protocol === 'http:' && tokenUrl.hostname === '127.0.0.1') {
     oauth.allowInsecureRequests(configuration);
   }
 
   return configuration;
+}
+
+/**
+ * Removes any `id_token` from a successful token endpoint response before
+ * openid-client parses it. These connectors are consumed as plain OAuth2: the
+ * id_token is never used, and validating it forces its `iss` claim to match the
+ * configured issuer. Providers like Google issue id_tokens whose issuer differs
+ * from the token endpoint origin, so leaving it in place fails validation with
+ * "unexpected JWT claim value encountered".
+ */
+async function stripIdTokenFromResponse(response: Response): Promise<Response> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) return response;
+
+  const body = (await response.clone().json()) as Record<string, unknown>;
+  if (!('id_token' in body)) return response;
+
+  const { id_token: _idToken, ...rest } = body;
+  return new Response(JSON.stringify(rest), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+async function stripIdTokenFetch(
+  url: string,
+  options: oauth.CustomFetchOptions,
+): Promise<Response> {
+  const response = await fetch(url, options);
+  if (!response.ok) return response;
+  return stripIdTokenFromResponse(response);
 }
 
 function toOAuthTokens(response: oauth.TokenEndpointResponse): OAuthTokens {
@@ -135,7 +169,7 @@ async function fetchWithRefreshError(
   options: oauth.CustomFetchOptions,
 ): Promise<Response> {
   const response = await fetch(url, options);
-  if (response.ok) return response;
+  if (response.ok) return stripIdTokenFromResponse(response);
 
   const errorBody = await response.clone().text();
   const clockSkewMs = computeClockSkewMs(response.headers.get('date'));

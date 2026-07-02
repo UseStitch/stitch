@@ -27,6 +27,25 @@ async function close(server: Server): Promise<void> {
   });
 }
 
+/**
+ * Builds a syntactically valid JWT whose issuer differs from the token endpoint
+ * origin, mirroring how Google issues id_tokens (iss=https://accounts.google.com)
+ * from a different token endpoint (oauth2.googleapis.com).
+ */
+function mismatchedIssuerIdToken(): string {
+  const encode = (value: object): string =>
+    Buffer.from(JSON.stringify(value)).toString('base64url');
+  const header = encode({ alg: 'RS256', typ: 'JWT' });
+  const payload = encode({
+    iss: 'https://accounts.google.com',
+    sub: 'user-123',
+    aud: 'client-id',
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    iat: Math.floor(Date.now() / 1000),
+  });
+  return `${header}.${payload}.signature`;
+}
+
 function invalidGrant(clockSkewMs?: number): OAuthRefreshError {
   return new OAuthRefreshError(
     400,
@@ -74,6 +93,7 @@ describe('startOAuthFlow', () => {
           token_type: 'Bearer',
           refresh_token: 'refresh',
           expires_in: 3600,
+          id_token: mismatchedIssuerIdToken(),
         }),
       );
     });
@@ -124,6 +144,37 @@ describe('refreshAccessToken', () => {
           token_type: 'Bearer',
           refresh_token: 'new-refresh',
           expires_in: 1800,
+        }),
+      );
+    });
+    const port = await listen(server);
+
+    expect(
+      refreshAccessToken(
+        `http://127.0.0.1:${port}/token`,
+        'client-id',
+        'client-secret',
+        'old-refresh',
+      ),
+    ).resolves.toEqual({
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+      expiresIn: 1800,
+    });
+
+    await close(server);
+  });
+
+  test('ignores an id_token whose issuer differs from the token endpoint', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          access_token: 'new-access',
+          token_type: 'Bearer',
+          refresh_token: 'new-refresh',
+          expires_in: 1800,
+          id_token: mismatchedIssuerIdToken(),
         }),
       );
     });
