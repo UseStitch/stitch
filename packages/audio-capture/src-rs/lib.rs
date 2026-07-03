@@ -2,6 +2,7 @@
 extern crate napi_derive;
 
 mod encode;
+mod monitor;
 mod output_resample;
 mod permissions;
 mod protocol;
@@ -28,6 +29,7 @@ struct Session {
   runtime: tokio::runtime::Runtime,
   tasks: Vec<tokio::task::JoinHandle<()>>,
   warnings: Arc<Mutex<Vec<String>>>,
+  device_monitor: monitor::DeviceMonitorHandle,
 }
 
 fn session_lock() -> &'static Mutex<Option<Session>> {
@@ -318,6 +320,7 @@ pub fn start_capture(
   let chunk_size = hypr_audio_utils::chunk_size_for_stt(sample_rate_hz);
   let emitter: Emitter = callback;
   let warnings = Arc::new(Mutex::new(Vec::new()));
+  let device_monitor = monitor::spawn_device_monitor(emitter.clone());
 
   let dual_capture = if input.echo_cancellation.unwrap_or(false) {
     let _rt_guard = runtime.enter();
@@ -341,6 +344,7 @@ pub fn start_capture(
       runtime,
       tasks,
       warnings,
+      device_monitor,
     });
 
     return Ok(());
@@ -399,6 +403,7 @@ pub fn start_capture(
     runtime,
     tasks,
     warnings,
+    device_monitor,
   });
 
   Ok(())
@@ -418,6 +423,8 @@ pub fn stop_capture(
   let Some(session) = session else {
     return Ok(None);
   };
+
+  session.device_monitor.stop();
 
   for task in &session.tasks {
     task.abort();

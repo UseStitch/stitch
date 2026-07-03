@@ -25,15 +25,34 @@ const WARNING_LABELS: Record<string, string> = {
   input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
   stream_callback_error: 'Audio stream encountered an error.',
   resample_failed: 'Audio resampling failed.',
+  mic_stream_ended: 'Microphone stream ended — restarting audio capture.',
+  speaker_stream_ended: 'System audio stream ended — restarting audio capture.',
+  mic_resample_failed: 'Microphone resampling failed — restarting audio capture.',
+  speaker_resample_failed: 'System audio resampling failed — restarting audio capture.',
+  aec_resample_failed: 'Audio resampling failed — restarting audio capture.',
 };
+
+const UNRECOVERABLE_WARNING_CODE = 'capture_restart_failed';
 
 export function RecordingEventListener() {
   const { data } = useQuery(activeRecordingQueryOptions);
   const activeRecordingId = data?.activeRecordingId ?? null;
   const stopRecording = useStopRecording();
 
+  const stopRecordingRef = React.useRef(stopRecording);
+  stopRecordingRef.current = stopRecording;
+
   React.useEffect(() => {
     const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
+      if (payload.code === UNRECOVERABLE_WARNING_CODE) {
+        toast.error('Audio capture could not be recovered — stopping the recording.', {
+          id: 'recording-unrecoverable',
+        });
+        void stopRecordingRef.current.mutateAsync().catch(() => {
+          toast.error('Failed to finalize the recording.', { id: 'recording-finalize-error' });
+        });
+        return;
+      }
       const label = WARNING_LABELS[payload.code] ?? payload.message;
       toast.warning(label, { id: `recording-warning-${payload.code}` });
     });
