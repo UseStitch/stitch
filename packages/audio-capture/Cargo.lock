@@ -353,6 +353,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "earshot"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88d6e21bffead7abb6d9202cfb3285b34b2e750335d8cf3460b004f886c6f6db"
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -531,6 +537,22 @@ dependencies = [
  "pin-project",
  "rubato",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "hypr-vad"
+version = "0.1.0"
+dependencies = [
+ "earshot",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "hypr-vad-masking"
+version = "0.1.0"
+dependencies = [
+ "hypr-audio-utils",
+ "hypr-vad",
 ]
 
 [[package]]
@@ -1197,6 +1219,7 @@ dependencies = [
  "futures-util",
  "hypr-audio-actual",
  "hypr-audio-utils",
+ "hypr-vad-masking",
  "libc",
  "napi",
  "napi-build",

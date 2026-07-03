@@ -1,0 +1,15 @@
+# Vendored from https://github.com/fastrepl/hyprnote (crates/vad), MIT licensed.
+# See crates/LICENSE for the upstream license. Trimmed to the earshot backend;
+# the silero-onnx backend (ONNX Runtime) was dropped.
+[package]
+name = "hypr-vad"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+earshot = { workspace = true }
+thiserror = { workspace = true }

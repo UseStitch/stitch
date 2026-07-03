@@ -1,0 +1,14 @@
+# Vendored from https://github.com/fastrepl/hyprnote (crates/vad-masking), MIT licensed.
+# See crates/LICENSE for the upstream license. Examples and dev-only helpers were dropped.
+[package]
+name = "hypr-vad-masking"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+hypr-audio-utils = { workspace = true }
+hypr-vad = { workspace = true }

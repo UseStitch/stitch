@@ -11,6 +11,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
 use hypr_audio_actual::{AudioInput, CaptureStream};
+use hypr_vad_masking::VadMask;
 use napi::threadsafe_function::ThreadsafeFunction;
 
 use crate::protocol::{
@@ -46,8 +47,16 @@ fn push_warning(warnings: &Arc<Mutex<Vec<String>>>, warning: String) {
     .push(warning);
 }
 
+/// earshot's WebRTC VAD operates on 16kHz frames; masking is bypassed at other rates.
+const VAD_MASK_SAMPLE_RATE_HZ: u32 = 16_000;
+
+fn vad_mask_for(source: AudioChunkSource, sample_rate_hz: u32) -> Option<VadMask> {
+  (source == AudioChunkSource::Mic && sample_rate_hz == VAD_MASK_SAMPLE_RATE_HZ).then(VadMask::new)
+}
+
 /// Forwards capture frames to JS as `audioChunk` events; capture errors surface
-/// as `warning` events and end the stream.
+/// as `warning` events and end the stream. Mic audio is VAD-masked (non-speech
+/// frames zeroed) before emission.
 fn spawn_forward_task(
   runtime: &tokio::runtime::Runtime,
   mut stream: CaptureStream,
@@ -57,6 +66,8 @@ fn spawn_forward_task(
   emitter: Emitter,
   warnings: Arc<Mutex<Vec<String>>>,
 ) -> tokio::task::JoinHandle<()> {
+  let mut vad_mask = vad_mask_for(source, sample_rate_hz);
+
   runtime.spawn(async move {
     while let Some(item) = stream.next().await {
       match item {
@@ -65,7 +76,13 @@ fn spawn_forward_task(
             AudioChunkSource::Mic => frame.raw_mic,
             AudioChunkSource::Speaker => frame.raw_speaker,
           };
-          emit_audio_chunk(&emitter, source, &samples, sample_rate_hz, encoding);
+          if let Some(mask) = &mut vad_mask {
+            let mut masked = samples.to_vec();
+            mask.process(&mut masked);
+            emit_audio_chunk(&emitter, source, &masked, sample_rate_hz, encoding);
+          } else {
+            emit_audio_chunk(&emitter, source, &samples, sample_rate_hz, encoding);
+          }
         }
         Err(error) => {
           let code = error.to_string();
@@ -217,4 +234,17 @@ pub fn check_permissions() -> Permissions {
 #[napi]
 pub fn prime_system_audio() -> Permissions {
   permissions::prime_system_audio()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn vad_mask_applies_only_to_mic_at_16khz() {
+    assert!(vad_mask_for(AudioChunkSource::Mic, 16_000).is_some());
+    assert!(vad_mask_for(AudioChunkSource::Mic, 44_100).is_none());
+    assert!(vad_mask_for(AudioChunkSource::Speaker, 16_000).is_none());
+    assert!(vad_mask_for(AudioChunkSource::Speaker, 44_100).is_none());
+  }
 }

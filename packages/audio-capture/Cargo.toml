@@ -13,6 +13,7 @@ napi-derive = "3"
 
 hypr-audio-actual = { workspace = true }
 hypr-audio-utils = { workspace = true }
+hypr-vad-masking = { workspace = true }
 
 futures-util = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
@@ -31,6 +32,8 @@ members = [
   "crates/audio-interface",
   "crates/audio-utils",
   "crates/resampler",
+  "crates/vad",
+  "crates/vad-masking",
 ]
 
 # Audio capture crates under crates/ are vendored from
@@ -41,11 +44,14 @@ hypr-audio-actual = { path = "crates/audio-actual" }
 hypr-audio-interface = { path = "crates/audio-interface" }
 hypr-audio-utils = { path = "crates/audio-utils" }
 hypr-resampler = { path = "crates/resampler" }
+hypr-vad = { path = "crates/vad" }
+hypr-vad-masking = { path = "crates/vad-masking" }
 
 anyhow = "1"
 cidre = "0.15"
 cpal = "0.17"
 dasp = { version = "0.11.0", features = ["interpolate", "interpolate-linear"] }
+earshot = "0.1.0"
 futures-util = "0.3.31"
 pin-project = "1"
 ringbuf = "0.4.8"

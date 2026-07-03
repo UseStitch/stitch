@@ -1,9 +1,21 @@
 // Vendored from https://github.com/fastrepl/hyprnote (crates/audio-utils/src/pcm.rs), MIT licensed.
 
+const I16_SCALE: f32 = 32768.0;
+
 #[inline]
 pub fn f32_to_i16(sample: f32) -> i16 {
   let clamped = sample.clamp(-1.0, 1.0);
   (clamped * i16::MAX as f32) as i16
+}
+
+pub fn f32_to_i16_samples(samples: &[f32]) -> Vec<i16> {
+  samples
+    .iter()
+    .map(|&sample| {
+      let scaled = (sample * I16_SCALE).clamp(-I16_SCALE, I16_SCALE);
+      scaled as i16
+    })
+    .collect()
 }
 
 #[inline]
