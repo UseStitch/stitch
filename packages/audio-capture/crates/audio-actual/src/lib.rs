@@ -7,14 +7,15 @@ mod capture;
 mod mic;
 mod rt_ring;
 mod speaker;
+mod types;
 
 pub use mic::*;
 pub use speaker::*;
 
 pub use cpal;
 
-pub use hypr_audio::{CaptureConfig, CaptureFrame, CaptureStream, Error};
-pub use hypr_audio_interface::AsyncSource;
+pub use hypr_resampler::AsyncSource;
+pub use types::{CaptureConfig, CaptureFrame, CaptureStream, Error};
 
 pub const TAP_DEVICE_NAME: &str = "hypr-audio-tap";
 

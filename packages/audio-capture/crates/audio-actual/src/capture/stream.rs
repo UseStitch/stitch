@@ -15,7 +15,7 @@ use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 
-use hypr_audio::{CaptureFrame, CaptureStream, Error};
+use crate::{CaptureFrame, CaptureStream, Error};
 
 use crate::mic::MicInput;
 use crate::speaker::SpeakerInput;

@@ -3,6 +3,7 @@
 
 mod async_source;
 mod driver;
+mod source;
 
 pub use async_source::*;
 pub use driver::RubatoChunkResampler;
@@ -10,6 +11,7 @@ pub use rubato::{
   Async, FixedAsync, Indexing, PolynomialDegree, Resampler, SincInterpolationParameters,
   SincInterpolationType, WindowFunction,
 };
+pub use source::AsyncSource;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

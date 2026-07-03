@@ -10,7 +10,6 @@ license = "MIT"
 [dependencies]
 audioadapter-buffers = "2.0"
 futures-util = { workspace = true }
-hypr-audio-interface = { workspace = true }
 pin-project = { workspace = true }
 rubato = "1.0.1"
 thiserror = { workspace = true }

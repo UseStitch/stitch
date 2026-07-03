@@ -29,14 +29,11 @@ napi-build = "2"
 [workspace]
 members = [
   "crates/aec",
-  "crates/audio",
   "crates/audio-actual",
-  "crates/audio-interface",
   "crates/audio-sync",
   "crates/audio-utils",
   "crates/onnx",
   "crates/resampler",
-  "crates/vad",
   "crates/vad-masking",
 ]
 
@@ -44,14 +41,11 @@ members = [
 # https://github.com/fastrepl/hyprnote (MIT). See crates/LICENSE.
 [workspace.dependencies]
 hypr-aec = { path = "crates/aec", package = "aec" }
-hypr-audio = { path = "crates/audio" }
 hypr-audio-actual = { path = "crates/audio-actual" }
-hypr-audio-interface = { path = "crates/audio-interface" }
 hypr-audio-sync = { path = "crates/audio-sync", package = "audio-sync" }
 hypr-audio-utils = { path = "crates/audio-utils" }
 hypr-onnx = { path = "crates/onnx", package = "onnx" }
 hypr-resampler = { path = "crates/resampler" }
-hypr-vad = { path = "crates/vad" }
 hypr-vad-masking = { path = "crates/vad-masking" }
 
 anyhow = "1"

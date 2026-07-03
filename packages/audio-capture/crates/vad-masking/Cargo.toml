@@ -11,4 +11,5 @@ path = "src/lib.rs"
 
 [dependencies]
 hypr-audio-utils = { workspace = true }
-hypr-vad = { workspace = true }
+earshot = { workspace = true }
+thiserror = { workspace = true }
