@@ -1,0 +1,37 @@
+# Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual), MIT licensed.
+# See crates/LICENSE for the upstream license. Trimmed to microphone + system/loopback
+# capture; AEC, audio-sync, loudness normalization, playback (rodio), and the Linux
+# backend were dropped.
+[package]
+name = "hypr-audio-actual"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+hypr-audio = { workspace = true }
+hypr-audio-interface = { workspace = true }
+hypr-audio-utils = { workspace = true }
+hypr-resampler = { workspace = true }
+
+anyhow = { workspace = true }
+tracing = { workspace = true }
+
+futures-util = { workspace = true }
+pin-project = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros", "sync", "time"] }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
+
+cpal = { workspace = true }
+dasp = { workspace = true }
+ringbuf = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cidre = { workspace = true, features = ["av"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+wasapi = { workspace = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }

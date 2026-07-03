@@ -10,17 +10,49 @@ path = "src-rs/lib.rs"
 [dependencies]
 napi = { version = "3", default-features = false, features = ["napi6"] }
 napi-derive = "3"
-cpal = "0.17"
-rubato = "2"
 
-[target.'cfg(target_os = "windows")'.dependencies]
-wasapi = "0.23"
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+hypr-audio-actual = { workspace = true }
+hypr-audio-utils = { workspace = true }
+
+futures-util = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cidre = { version = "0.15", features = ["av", "sc", "blocks", "async"] }
-tokio = { version = "1", features = ["rt", "macros", "time"] }
+cidre = { workspace = true }
 libc = "0.2"
 
 [build-dependencies]
 napi-build = "2"
+
+[workspace]
+members = [
+  "crates/audio",
+  "crates/audio-actual",
+  "crates/audio-interface",
+  "crates/audio-utils",
+  "crates/resampler",
+]
+
+# Audio capture crates under crates/ are vendored from
+# https://github.com/fastrepl/hyprnote (MIT). See crates/LICENSE.
+[workspace.dependencies]
+hypr-audio = { path = "crates/audio" }
+hypr-audio-actual = { path = "crates/audio-actual" }
+hypr-audio-interface = { path = "crates/audio-interface" }
+hypr-audio-utils = { path = "crates/audio-utils" }
+hypr-resampler = { path = "crates/resampler" }
+
+anyhow = "1"
+cidre = "0.15"
+cpal = "0.17"
+dasp = { version = "0.11.0", features = ["interpolate", "interpolate-linear"] }
+futures-util = "0.3.31"
+pin-project = "1"
+ringbuf = "0.4.8"
+serial_test = "3"
+thiserror = "2"
+tokio = "1"
+tokio-stream = "0.1.17"
+tokio-util = "0.7.15"
+tracing = "0.1"
+wasapi = "0.23.0"

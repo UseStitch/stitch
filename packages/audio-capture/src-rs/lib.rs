@@ -1,36 +1,30 @@
 #[macro_use]
 extern crate napi_derive;
 
-mod capture;
-mod device;
 mod encode;
-mod error;
 mod permissions;
 mod protocol;
-mod resample;
-mod speaker;
 
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, OnceLock};
-use std::thread::JoinHandle;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use futures_util::StreamExt;
+use hypr_audio_actual::{AudioInput, CaptureStream};
 use napi::threadsafe_function::ThreadsafeFunction;
 
-use crate::error::NativeError;
 use crate::protocol::{
-  CaptureEvent, DeviceList, Emitter, Permissions, StartInput, StopResult, emit_warning,
-  parse_encoding,
+  AudioChunkEncoding, AudioChunkSource, CaptureEvent, DeviceList, Emitter, Permissions, StartInput,
+  StopResult, emit_audio_chunk, emit_warning, parse_encoding,
 };
 
-type WorkerHandle = JoinHandle<Result<Vec<String>, NativeError>>;
+const RUNTIME_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 
 struct Session {
   started_at_ms: f64,
-  stop_flag: Arc<AtomicBool>,
-  mic_worker: Option<WorkerHandle>,
-  speaker_worker: Option<WorkerHandle>,
+  runtime: tokio::runtime::Runtime,
+  tasks: Vec<tokio::task::JoinHandle<()>>,
+  warnings: Arc<Mutex<Vec<String>>>,
 }
 
 fn session_lock() -> &'static Mutex<Option<Session>> {
@@ -45,32 +39,43 @@ fn now_ms() -> f64 {
     .as_millis() as f64
 }
 
-/// Spawns a worker with panic isolation: a panicking capture thread emits a `warning`
-/// event instead of aborting the host process.
-fn join_worker(
-  worker: Option<WorkerHandle>,
-  emitter: &Emitter,
-  label: &str,
-  warnings: &mut Vec<String>,
-) {
-  let Some(worker) = worker else {
-    return;
-  };
-  match worker.join() {
-    Ok(Ok(mut worker_warnings)) => warnings.append(&mut worker_warnings),
-    Ok(Err(error)) => {
-      warnings.push(format!("{label}_error_{}", error.code()));
-      emit_warning(emitter, format!("{label}_error"), error.to_string());
+fn push_warning(warnings: &Arc<Mutex<Vec<String>>>, warning: String) {
+  warnings
+    .lock()
+    .unwrap_or_else(|e| e.into_inner())
+    .push(warning);
+}
+
+/// Forwards capture frames to JS as `audioChunk` events; capture errors surface
+/// as `warning` events and end the stream.
+fn spawn_forward_task(
+  runtime: &tokio::runtime::Runtime,
+  mut stream: CaptureStream,
+  source: AudioChunkSource,
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+  emitter: Emitter,
+  warnings: Arc<Mutex<Vec<String>>>,
+) -> tokio::task::JoinHandle<()> {
+  runtime.spawn(async move {
+    while let Some(item) = stream.next().await {
+      match item {
+        Ok(frame) => {
+          let samples = match source {
+            AudioChunkSource::Mic => frame.raw_mic,
+            AudioChunkSource::Speaker => frame.raw_speaker,
+          };
+          emit_audio_chunk(&emitter, source, &samples, sample_rate_hz, encoding);
+        }
+        Err(error) => {
+          let code = error.to_string();
+          push_warning(&warnings, code.clone());
+          emit_warning(&emitter, code, error.to_string());
+          return;
+        }
+      }
     }
-    Err(_) => {
-      warnings.push(format!("{label}_panicked"));
-      emit_warning(
-        emitter,
-        format!("{label}_panicked"),
-        format!("{label} thread panicked"),
-      );
-    }
-  }
+  })
 }
 
 #[napi]
@@ -86,43 +91,76 @@ pub fn start_capture(
   }
 
   if input.sample_rate_hz == 0 {
-    return Err(NativeError::StreamFailed("sampleRateHz must be > 0".to_string()).into());
+    return Err(napi::Error::from_reason("sampleRateHz must be > 0"));
   }
-  let encoding = parse_encoding(&input.encoding).ok_or_else(|| {
-    NativeError::StreamFailed(format!("unsupported encoding: {}", input.encoding))
-  })?;
+  let encoding = parse_encoding(&input.encoding)
+    .ok_or_else(|| napi::Error::from_reason(format!("unsupported encoding: {}", input.encoding)))?;
 
-  let stop_flag = Arc::new(AtomicBool::new(false));
+  let runtime = tokio::runtime::Builder::new_multi_thread()
+    .worker_threads(2)
+    .thread_name("stitch-audio-capture")
+    .enable_all()
+    .build()
+    .map_err(|e| napi::Error::from_reason(format!("failed to create tokio runtime: {e}")))?;
+
+  let sample_rate_hz = input.sample_rate_hz;
+  let chunk_size = hypr_audio_utils::chunk_size_for_stt(sample_rate_hz);
   let emitter: Emitter = callback;
+  let warnings = Arc::new(Mutex::new(Vec::new()));
 
-  let mic_worker = capture::spawn_mic_worker(
-    input.mic_device_id.clone(),
-    input.sample_rate_hz,
-    encoding,
-    stop_flag.clone(),
-    emitter.clone(),
-  )?;
+  let (mic_stream, speaker_stream) = {
+    let _rt_guard = runtime.enter();
 
-  let speaker_worker = match speaker::spawn_speaker_worker(
-    input.speaker_device_id.clone(),
-    input.sample_rate_hz,
-    encoding,
-    stop_flag.clone(),
-    emitter.clone(),
-  ) {
-    Ok(worker) => Some(worker),
-    Err(error) => {
-      // Speaker capture is best-effort; surface a warning but keep mic capture running.
-      emit_warning(&emitter, "speaker_start_failed", error.to_string());
-      None
-    }
+    let mic_stream =
+      AudioInput::from_mic_capture(input.mic_device_id.clone(), sample_rate_hz, chunk_size)
+        .map_err(|e| napi::Error::from_reason(format!("mic capture failed: {e}")))?;
+
+    // Speaker capture is best-effort; surface a warning but keep mic capture running.
+    let speaker_stream = match catch_unwind(AssertUnwindSafe(|| {
+      AudioInput::from_speaker_capture(sample_rate_hz, chunk_size)
+    })) {
+      Ok(Ok(stream)) => Some(stream),
+      Ok(Err(error)) => {
+        push_warning(&warnings, "speaker_start_failed".to_string());
+        emit_warning(&emitter, "speaker_start_failed", error.to_string());
+        None
+      }
+      Err(_) => {
+        push_warning(&warnings, "speaker_start_failed".to_string());
+        emit_warning(&emitter, "speaker_start_failed", "speaker capture panicked");
+        None
+      }
+    };
+
+    (mic_stream, speaker_stream)
   };
+
+  let mut tasks = vec![spawn_forward_task(
+    &runtime,
+    mic_stream,
+    AudioChunkSource::Mic,
+    sample_rate_hz,
+    encoding,
+    emitter.clone(),
+    warnings.clone(),
+  )];
+  if let Some(speaker_stream) = speaker_stream {
+    tasks.push(spawn_forward_task(
+      &runtime,
+      speaker_stream,
+      AudioChunkSource::Speaker,
+      sample_rate_hz,
+      encoding,
+      emitter,
+      warnings.clone(),
+    ));
+  }
 
   *guard = Some(Session {
     started_at_ms: now_ms(),
-    stop_flag,
-    mic_worker: Some(mic_worker),
-    speaker_worker,
+    runtime,
+    tasks,
+    warnings,
   });
 
   Ok(())
@@ -132,6 +170,8 @@ pub fn start_capture(
 pub fn stop_capture(
   callback: Arc<ThreadsafeFunction<CaptureEvent, ()>>,
 ) -> napi::Result<Option<StopResult>> {
+  let _ = callback;
+
   let session = {
     let mut guard = session_lock().lock().unwrap_or_else(|e| e.into_inner());
     guard.take()
@@ -141,20 +181,18 @@ pub fn stop_capture(
     return Ok(None);
   };
 
-  session.stop_flag.store(true, Ordering::Relaxed);
-
-  let emitter: Emitter = callback;
-  let mut warnings = Vec::new();
-  join_worker(session.mic_worker, &emitter, "mic_capture", &mut warnings);
-  join_worker(
-    session.speaker_worker,
-    &emitter,
-    "speaker_capture",
-    &mut warnings,
-  );
+  for task in &session.tasks {
+    task.abort();
+  }
+  session.runtime.shutdown_timeout(RUNTIME_SHUTDOWN_TIMEOUT);
 
   let ended_at = now_ms();
   let duration_ms = (ended_at - session.started_at_ms).max(0.0);
+  let warnings = session
+    .warnings
+    .lock()
+    .unwrap_or_else(|e| e.into_inner())
+    .clone();
 
   Ok(Some(StopResult {
     ended_at,

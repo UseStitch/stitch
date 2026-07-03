@@ -1,0 +1,16 @@
+# Vendored from https://github.com/fastrepl/hyprnote (crates/resampler), MIT licensed.
+# See crates/LICENSE for the upstream license. Trimmed to the dynamic-rate chunk
+# resampler used by capture; the legacy/static resampler variants were dropped.
+[package]
+name = "hypr-resampler"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+audioadapter-buffers = "2.0"
+futures-util = { workspace = true }
+hypr-audio-interface = { workspace = true }
+pin-project = { workspace = true }
+rubato = "1.0.1"
+thiserror = { workspace = true }

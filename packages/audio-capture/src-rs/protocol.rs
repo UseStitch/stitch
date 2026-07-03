@@ -122,22 +122,6 @@ pub fn emit_audio_chunk(
   tsfn.call(Ok(event), ThreadsafeFunctionCallMode::NonBlocking);
 }
 
-pub fn emit_device_changed(tsfn: &Emitter, device_kind: &str, device_name: Option<String>) {
-  let event = CaptureEvent {
-    kind: "deviceChanged".into(),
-    source: None,
-    pcm: None,
-    sample_rate_hz: None,
-    num_samples: None,
-    encoding: None,
-    device_kind: Some(device_kind.into()),
-    device_name,
-    code: None,
-    message: None,
-  };
-  tsfn.call(Ok(event), ThreadsafeFunctionCallMode::NonBlocking);
-}
-
 pub fn emit_warning(tsfn: &Emitter, code: impl Into<String>, message: impl Into<String>) {
   let event = CaptureEvent {
     kind: "warning".into(),
