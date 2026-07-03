@@ -73,7 +73,7 @@ jobs:
         run: bun run test
 
       - name: Run Rust tests
-        run: cargo test --manifest-path packages/audio-capture/Cargo.toml
+        run: cargo test --workspace --manifest-path packages/audio-capture/Cargo.toml
 
       - name: Run meeting-detection Rust tests
         run: cargo test --manifest-path packages/meeting-detection/Cargo.toml

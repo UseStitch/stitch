@@ -18,7 +18,7 @@ const config: KnipConfig = {
       ignore: ['functions/**/*.ts'],
     },
     'apps/desktop': {
-      entry: ['src/main/index.ts', 'src/preload/index.ts'],
+      entry: ['src/main/index.ts', 'src/preload/index.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/shared': {

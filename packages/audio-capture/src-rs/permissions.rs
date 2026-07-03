@@ -1,18 +1,11 @@
-use cpal::traits::{DeviceTrait, HostTrait};
+use stitch_audio_actual::MicInput;
+use stitch_audio_actual::cpal;
+use stitch_audio_actual::cpal::traits::{DeviceTrait, HostTrait};
 
-use crate::device::{device_display_name, is_tap_device};
 use crate::protocol::Permissions;
 
 pub fn list_microphone_devices() -> Vec<String> {
-  let host = cpal::default_host();
-  let Ok(devices) = host.input_devices() else {
-    return Vec::new();
-  };
-
-  devices
-    .filter_map(|device| device_display_name(&device))
-    .filter(|name| !is_tap_device(name))
-    .collect()
+  MicInput::list_devices()
 }
 
 pub fn list_speaker_devices() -> Vec<String> {
@@ -85,14 +78,11 @@ pub fn tcc_preflight(service: &str) -> i32 {
   }
 }
 
-fn check_screen_capture_permission() -> &'static str {
+/// System audio capture uses a Core Audio process tap, gated by kTCCServiceAudioCapture.
+fn check_system_audio_permission() -> &'static str {
   #[cfg(target_os = "macos")]
   {
-    // Speaker capture uses two paths in parallel: process taps (need kTCCServiceAudioCapture)
-    // and ScreenCaptureKit (needs kTCCServiceScreenCapture). Either one is sufficient.
-    let audio_capture = tcc_preflight("kTCCServiceAudioCapture");
-    let screen_capture = tcc_preflight("kTCCServiceScreenCapture");
-    if audio_capture == 0 || screen_capture == 0 {
+    if tcc_preflight("kTCCServiceAudioCapture") == 0 {
       return "granted";
     }
     return "denied";
@@ -107,7 +97,7 @@ fn check_screen_capture_permission() -> &'static str {
 pub fn check_permissions() -> Permissions {
   Permissions {
     microphone: check_microphone_permission().to_string(),
-    screen_capture: check_screen_capture_permission().to_string(),
+    screen_capture: check_system_audio_permission().to_string(),
   }
 }
 
@@ -119,8 +109,19 @@ const PRIME_POLL_ATTEMPTS: u32 = 20;
 /// Triggers the kTCCServiceAudioCapture prompt, waits up to 10s for user response.
 #[cfg(target_os = "macos")]
 pub fn prime_system_audio() -> Permissions {
-  if check_screen_capture_permission() != "granted" {
-    let prime = crate::speaker::prime_system_audio_tap();
+  use std::panic::{AssertUnwindSafe, catch_unwind};
+
+  use stitch_audio_actual::SpeakerInput;
+
+  if check_system_audio_permission() != "granted" {
+    // A running tap pipeline must stay alive while the TCC prompt is shown.
+    let prime = catch_unwind(AssertUnwindSafe(|| {
+      SpeakerInput::new()
+        .ok()
+        .and_then(|input| input.stream().ok())
+    }))
+    .ok()
+    .flatten();
     if prime.is_some() {
       for _ in 0..PRIME_POLL_ATTEMPTS {
         std::thread::sleep(PRIME_POLL_INTERVAL);
@@ -129,7 +130,6 @@ pub fn prime_system_audio() -> Permissions {
         }
       }
     }
-    // `prime` (the throwaway tap) must stay alive until polling completes.
     drop(prime);
   }
 

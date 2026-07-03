@@ -7,6 +7,7 @@ export type StartCaptureInput = {
   encoding: AudioChunkEncoding;
   micDeviceId?: string | null;
   speakerDeviceId?: string | null;
+  echoCancellation?: boolean;
 };
 
 export type AudioChunkEvent = {

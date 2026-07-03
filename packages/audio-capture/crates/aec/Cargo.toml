@@ -1,0 +1,21 @@
+# Vendored and trimmed for Stitch.
+# Trimmed to the model_128 ONNX weights;
+# the 256/512 model variants, snapshot tests, benches, and examples were dropped.
+[package]
+name = "aec"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[features]
+default = ["onnx", "128"]
+onnx = ["dep:stitch-onnx"]
+128 = []
+
+[dependencies]
+stitch-onnx = { workspace = true, optional = true }
+
+realfft = { workspace = true }
+
+serde = { workspace = true }
+thiserror = { workspace = true }

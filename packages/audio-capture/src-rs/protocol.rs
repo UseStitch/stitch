@@ -3,8 +3,6 @@ use std::sync::Arc;
 use napi::bindgen_prelude::Buffer;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 
-use crate::encode::encode_audio_chunk;
-
 /// Audio sample encoding requested by the caller.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioChunkEncoding {
@@ -52,6 +50,7 @@ pub struct StartInput {
   pub encoding: String,
   pub mic_device_id: Option<String>,
   pub speaker_device_id: Option<String>,
+  pub echo_cancellation: Option<bool>,
 }
 
 /// Event delivered to JS; `kind` is "audioChunk" | "deviceChanged" | "warning".
@@ -98,21 +97,21 @@ pub type Emitter = Arc<ThreadsafeFunction<CaptureEvent, ()>>;
 pub fn emit_audio_chunk(
   tsfn: &Emitter,
   source: AudioChunkSource,
-  samples: &[f32],
+  bytes: Vec<u8>,
   sample_rate_hz: u32,
+  num_samples: u32,
   encoding: AudioChunkEncoding,
 ) {
-  if samples.is_empty() {
+  if bytes.is_empty() {
     return;
   }
 
-  let bytes = encode_audio_chunk(samples, encoding);
   let event = CaptureEvent {
     kind: "audioChunk".into(),
     source: Some(source.as_str().into()),
     pcm: Some(bytes.into()),
     sample_rate_hz: Some(sample_rate_hz),
-    num_samples: Some(samples.len() as u32),
+    num_samples: Some(num_samples),
     encoding: Some(encoding.as_str().into()),
     device_kind: None,
     device_name: None,
@@ -122,7 +121,7 @@ pub fn emit_audio_chunk(
   tsfn.call(Ok(event), ThreadsafeFunctionCallMode::NonBlocking);
 }
 
-pub fn emit_device_changed(tsfn: &Emitter, device_kind: &str, device_name: Option<String>) {
+pub fn emit_device_changed(tsfn: &Emitter, kind: &str, device_name: Option<String>) {
   let event = CaptureEvent {
     kind: "deviceChanged".into(),
     source: None,
@@ -130,7 +129,7 @@ pub fn emit_device_changed(tsfn: &Emitter, device_kind: &str, device_name: Optio
     sample_rate_hz: None,
     num_samples: None,
     encoding: None,
-    device_kind: Some(device_kind.into()),
+    device_kind: Some(kind.into()),
     device_name,
     code: None,
     message: None,

@@ -6,6 +6,12 @@ import type {
 import type { StartRecordingResponse, StopRecordingInput } from '@stitch/shared/recordings/types';
 import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
 
+import {
+  createCaptureRestarter,
+  isRestartTriggerCode,
+  type CaptureRestarter,
+} from './capture-restart.js';
+
 import type { BrowserWindow } from 'electron';
 
 type StartCaptureInput = Pick<
@@ -19,6 +25,8 @@ const capture = createAudioCaptureHandle();
 
 let activeSocket: WebSocket | null = null;
 let activeRecordingId: string | null = null;
+let restarter: CaptureRestarter | null = null;
+let captureStartedAtMs: number | null = null;
 
 function toSttStreamUrl(serverUrl: string): string {
   const url = new URL('/stt/stream', serverUrl);
@@ -66,6 +74,61 @@ function sendAudioFrame(ws: WebSocket, header: AudioFrameHeader, pcm: Buffer): v
   ws.send(Buffer.concat([lenBuf, headerBuf, pcm]));
 }
 
+function sendWarningToRenderer(
+  getWindow: () => BrowserWindow | null,
+  payload: RecordingWarningPayload,
+): void {
+  const webContents = getWindow()?.webContents;
+  if (!webContents || webContents.isDestroyed()) {
+    return;
+  }
+  webContents.send('recording:warning', payload);
+}
+
+function attachCaptureEvents(
+  ws: WebSocket,
+  sttSessionId: string,
+  getWindow: () => BrowserWindow | null,
+): void {
+  capture.onEvent((event) => {
+    if (event.type === 'audioChunk') {
+      sendAudioFrame(
+        ws,
+        {
+          sttSessionId,
+          source: event.source,
+          sampleRateHz: event.sampleRateHz,
+          numSamples: event.numSamples,
+          encoding: event.encoding,
+        },
+        event.pcm,
+      );
+      return;
+    }
+
+    const streamDied = event.type === 'warning' && isRestartTriggerCode(event.code);
+    if (streamDied || event.type === 'deviceChanged') {
+      restarter?.trigger();
+    }
+
+    const webContents = getWindow()?.webContents;
+    if (!webContents || webContents.isDestroyed()) {
+      return;
+    }
+
+    if (event.type === 'warning') {
+      const payload: RecordingWarningPayload = { code: event.code, message: event.message };
+      webContents.send('recording:warning', payload);
+    } else if (event.type === 'deviceChanged') {
+      const payload: RecordingDeviceChangedPayload = {
+        kind: event.kind,
+        deviceName: event.deviceName,
+      };
+      webContents.send('recording:device-changed', payload);
+    }
+  });
+}
+
 export async function startRecordingCapture(
   input: StartCaptureInput,
   getWindow: () => BrowserWindow | null,
@@ -90,48 +153,32 @@ export async function startRecordingCapture(
       audioChunkConfig: input.audioChunkConfig,
     });
 
-    await capture.start({
+    const startInput = {
       sampleRateHz: input.audioChunkConfig.sampleRateHz,
       encoding: input.audioChunkConfig.encoding,
       micDeviceId: input.micDeviceId,
       speakerDeviceId: input.speakerDeviceId,
-    });
+      echoCancellation: true,
+    };
+
+    await capture.start(startInput);
 
     activeSocket = ws;
     activeRecordingId = input.recordingId;
+    captureStartedAtMs = Date.now();
 
-    capture.onEvent((event) => {
-      if (event.type === 'audioChunk') {
-        sendAudioFrame(
-          ws,
-          {
-            sttSessionId,
-            source: event.source,
-            sampleRateHz: event.sampleRateHz,
-            numSamples: event.numSamples,
-            encoding: event.encoding,
-          },
-          event.pcm,
-        );
-        return;
-      }
-
-      const webContents = getWindow()?.webContents;
-      if (!webContents || webContents.isDestroyed()) {
-        return;
-      }
-
-      if (event.type === 'warning') {
-        const payload: RecordingWarningPayload = { code: event.code, message: event.message };
-        webContents.send('recording:warning', payload);
-      } else if (event.type === 'deviceChanged') {
-        const payload: RecordingDeviceChangedPayload = {
-          kind: event.kind,
-          deviceName: event.deviceName,
-        };
-        webContents.send('recording:device-changed', payload);
-      }
+    restarter = createCaptureRestarter({
+      restart: async () => {
+        await capture.stop();
+        await capture.start(startInput);
+        attachCaptureEvents(ws, sttSessionId, getWindow);
+      },
+      onGiveUp: (message) => {
+        sendWarningToRenderer(getWindow, { code: 'capture_restart_failed', message });
+      },
     });
+
+    attachCaptureEvents(ws, sttSessionId, getWindow);
 
     ws.addEventListener('message', (event) => {
       try {
@@ -147,6 +194,9 @@ export async function startRecordingCapture(
     ws.close();
     activeSocket = null;
     activeRecordingId = null;
+    captureStartedAtMs = null;
+    restarter?.cancel();
+    restarter = null;
     throw error;
   }
 }
@@ -154,9 +204,13 @@ export async function startRecordingCapture(
 export async function stopRecordingCapture(): Promise<StopRecordingInput> {
   const ws = activeSocket;
   const recordingId = activeRecordingId;
+  const startedAtMs = captureStartedAtMs;
 
   activeSocket = null;
   activeRecordingId = null;
+  captureStartedAtMs = null;
+  restarter?.cancel();
+  restarter = null;
 
   try {
     const result = await capture.stop();
@@ -166,8 +220,10 @@ export async function stopRecordingCapture(): Promise<StopRecordingInput> {
       sendSttMessage(ws, { type: 'stop', sttSessionId: `recording-${recordingId}` });
     }
 
+    // Capture restarts split the native session, so its duration only covers
+    // the last segment; the wall-clock duration spans the whole recording.
     return {
-      durationMs: result?.durationMs ?? null,
+      durationMs: startedAtMs !== null ? Date.now() - startedAtMs : (result?.durationMs ?? null),
     };
   } finally {
     // Give a brief moment for the stop message to send before closing

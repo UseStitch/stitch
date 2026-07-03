@@ -1,0 +1,38 @@
+# Vendored and trimmed for Stitch.
+# Trimmed to microphone + system/loopback
+# capture (with the dual-stream AEC path); loudness normalization, playback (rodio), and
+# the Linux backend were dropped.
+[package]
+name = "stitch-audio-actual"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+stitch-aec = { workspace = true }
+stitch-audio-sync = { workspace = true }
+stitch-audio-utils = { workspace = true }
+stitch-resampler = { workspace = true }
+
+anyhow = { workspace = true }
+tracing = { workspace = true }
+
+futures-util = { workspace = true }
+pin-project = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros", "sync", "time"] }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
+
+cpal = { workspace = true }
+dasp = { workspace = true }
+ringbuf = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cidre = { workspace = true, features = ["av"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+wasapi = { workspace = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }

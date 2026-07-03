@@ -1,0 +1,8 @@
+# Vendored and trimmed for Stitch.
+# Trimmed to the PCM conversion helpers
+# and chunk sizing used by capture; file decoding/vorbis/rodio helpers were dropped.
+[package]
+name = "stitch-audio-utils"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"

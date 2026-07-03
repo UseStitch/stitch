@@ -1,0 +1,15 @@
+# Vendored and trimmed for Stitch.
+# Examples and dev-only helpers were dropped.
+[package]
+name = "stitch-vad-masking"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+stitch-audio-utils = { workspace = true }
+earshot = { workspace = true }
+thiserror = { workspace = true }
