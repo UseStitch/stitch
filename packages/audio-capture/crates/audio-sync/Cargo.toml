@@ -1,0 +1,11 @@
+# Vendored from https://github.com/fastrepl/hyprnote (crates/audio-sync), MIT licensed.
+# See crates/LICENSE for the upstream license. Trimmed: the e2e test suite and its
+# dev-dependencies were dropped; the in-crate unit tests are kept.
+[package]
+name = "audio-sync"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+realfft = { workspace = true }

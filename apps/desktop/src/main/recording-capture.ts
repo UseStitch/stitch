@@ -95,6 +95,7 @@ export async function startRecordingCapture(
       encoding: input.audioChunkConfig.encoding,
       micDeviceId: input.micDeviceId,
       speakerDeviceId: input.speakerDeviceId,
+      echoCancellation: true,
     });
 
     activeSocket = ws;

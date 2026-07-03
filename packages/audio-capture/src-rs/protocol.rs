@@ -52,6 +52,7 @@ pub struct StartInput {
   pub encoding: String,
   pub mic_device_id: Option<String>,
   pub speaker_device_id: Option<String>,
+  pub echo_cancellation: Option<bool>,
 }
 
 /// Event delivered to JS; `kind` is "audioChunk" | "deviceChanged" | "warning".

@@ -13,7 +13,7 @@ pub use speaker::*;
 
 pub use cpal;
 
-pub use hypr_audio::{CaptureFrame, CaptureStream, Error};
+pub use hypr_audio::{CaptureConfig, CaptureFrame, CaptureStream, Error};
 pub use hypr_audio_interface::AsyncSource;
 
 pub const TAP_DEVICE_NAME: &str = "hypr-audio-tap";
@@ -21,6 +21,10 @@ pub const TAP_DEVICE_NAME: &str = "hypr-audio-tap";
 pub struct AudioInput;
 
 impl AudioInput {
+  pub fn from_mic_and_speaker(config: CaptureConfig) -> Result<CaptureStream, Error> {
+    capture::open_capture(config)
+  }
+
   pub fn from_speaker_capture(sample_rate: u32, chunk_size: usize) -> Result<CaptureStream, Error> {
     capture::open_speaker_capture(sample_rate, chunk_size)
   }

@@ -32,6 +32,7 @@ type NativeStartInput = {
   encoding: string;
   micDeviceId?: string;
   speakerDeviceId?: string;
+  echoCancellation?: boolean;
 };
 
 type NativeStopResult = {
@@ -117,6 +118,7 @@ export function startCapture(input: StartCaptureInput, listener: CaptureEventLis
       encoding: input.encoding,
       micDeviceId: input.micDeviceId ?? undefined,
       speakerDeviceId: input.speakerDeviceId ?? undefined,
+      echoCancellation: input.echoCancellation,
     },
     (err, event) => {
       if (err) {

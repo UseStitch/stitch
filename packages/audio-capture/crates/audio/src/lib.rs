@@ -1,5 +1,5 @@
 // Vendored from https://github.com/fastrepl/hyprnote (crates/audio/src/lib.rs), MIT licensed.
-// Trimmed: the AudioProvider trait and CaptureConfig (dual-stream/AEC/playback path) were dropped.
+// Trimmed: the AudioProvider trait (playback path) was dropped.
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -25,6 +25,14 @@ pub enum Error {
   MicStreamEnded,
   #[error("speaker_stream_ended")]
   SpeakerStreamEnded,
+}
+
+#[derive(Debug, Clone)]
+pub struct CaptureConfig {
+  pub sample_rate: u32,
+  pub chunk_size: usize,
+  pub mic_device: Option<String>,
+  pub enable_aec: bool,
 }
 
 #[derive(Debug, Clone)]
