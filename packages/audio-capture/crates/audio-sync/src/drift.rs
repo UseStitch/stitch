@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-sync/src/drift.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 #[derive(Default)]
 pub struct LagTrendTracker {

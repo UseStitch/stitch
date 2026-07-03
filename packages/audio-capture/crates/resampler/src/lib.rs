@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/resampler/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 // Trimmed: only the dynamic-rate chunk resampler used by capture is kept.
 
 mod async_source;

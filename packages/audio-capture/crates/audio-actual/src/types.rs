@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 // Trimmed: the AudioProvider trait (playback path) was dropped.
 
 use std::pin::Pin;

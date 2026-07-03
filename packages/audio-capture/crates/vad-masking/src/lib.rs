@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/vad-masking/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 mod earshot;
 mod masking;

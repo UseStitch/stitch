@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/speaker/macos.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -7,9 +7,9 @@ use std::task::Poll;
 use anyhow::Result;
 use futures_util::Stream;
 use futures_util::task::AtomicWaker;
-use hypr_audio_utils::{pcm_f64_to_f32, pcm_i16_to_f32, pcm_i32_to_f32};
-use hypr_resampler::AsyncSource;
 use pin_project::pin_project;
+use stitch_audio_utils::{pcm_f64_to_f32, pcm_i16_to_f32, pcm_i32_to_f32};
+use stitch_resampler::AsyncSource;
 
 use crate::async_ring::RingbufAsyncReader;
 use ringbuf::{HeapCons, HeapProd, HeapRb, traits::Split};

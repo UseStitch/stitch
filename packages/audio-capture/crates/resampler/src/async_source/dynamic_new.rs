@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/resampler/src/async_source/dynamic_new.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use std::pin::Pin;
 use std::task::{Context, Poll};

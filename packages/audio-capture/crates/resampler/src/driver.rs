@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/resampler/src/driver.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use std::collections::VecDeque;
 

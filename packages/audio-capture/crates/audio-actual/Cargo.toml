@@ -1,18 +1,18 @@
-# Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual), MIT licensed.
-# See crates/LICENSE for the upstream license. Trimmed to microphone + system/loopback
+# Vendored and trimmed for Stitch.
+# Trimmed to microphone + system/loopback
 # capture (with the dual-stream AEC path); loudness normalization, playback (rodio), and
 # the Linux backend were dropped.
 [package]
-name = "hypr-audio-actual"
+name = "stitch-audio-actual"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
 [dependencies]
-hypr-aec = { workspace = true }
-hypr-audio-sync = { workspace = true }
-hypr-audio-utils = { workspace = true }
-hypr-resampler = { workspace = true }
+stitch-aec = { workspace = true }
+stitch-audio-sync = { workspace = true }
+stitch-audio-utils = { workspace = true }
+stitch-resampler = { workspace = true }
 
 anyhow = { workspace = true }
 tracing = { workspace = true }

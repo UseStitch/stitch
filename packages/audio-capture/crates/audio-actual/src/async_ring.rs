@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/async_ring.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use futures_util::task::AtomicWaker;
 use ringbuf::traits::Consumer;

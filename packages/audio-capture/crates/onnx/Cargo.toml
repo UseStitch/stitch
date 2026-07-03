@@ -1,5 +1,4 @@
-# Vendored from https://github.com/fastrepl/hyprnote (crates/onnx), MIT licensed.
-# See crates/LICENSE for the upstream license.
+# Vendored and trimmed for Stitch.
 [package]
 name = "onnx"
 version = "0.1.0"

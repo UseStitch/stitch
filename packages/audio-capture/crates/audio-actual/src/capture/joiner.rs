@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/capture/joiner.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed.
 
 use std::collections::VecDeque;

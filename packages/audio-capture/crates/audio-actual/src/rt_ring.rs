@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/rt_ring.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use dasp::sample::ToSample;
 use ringbuf::traits::Producer;

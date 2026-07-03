@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/speaker/mod.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed. Trimmed: the Linux backend and hardware-dependent macOS/Linux tests were dropped.
 
 use anyhow::Result;
@@ -148,7 +148,7 @@ impl Stream for SpeakerStream {
 }
 
 #[cfg(any(test, not(target_os = "macos")))]
-impl hypr_resampler::AsyncSource for SpeakerStream {
+impl stitch_resampler::AsyncSource for SpeakerStream {
   fn as_stream(&mut self) -> impl Stream<Item = f32> + '_ {
     self
   }
@@ -162,10 +162,10 @@ impl hypr_resampler::AsyncSource for SpeakerStream {
 mod tests {
   use super::*;
   use futures_util::StreamExt;
-  use hypr_resampler::AsyncSource;
   #[cfg(target_os = "windows")]
   use serial_test::serial;
   use std::sync::atomic::Ordering;
+  use stitch_resampler::AsyncSource;
 
   #[tokio::test]
   async fn test_buffer_rate_preserved_after_rate_change() {

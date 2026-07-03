@@ -10,10 +10,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
-use hypr_audio_actual::{AudioInput, CaptureConfig, CaptureStream};
-use hypr_audio_utils::AudioEncoding;
-use hypr_vad_masking::VadMask;
 use napi::threadsafe_function::ThreadsafeFunction;
+use stitch_audio_actual::{AudioInput, CaptureConfig, CaptureStream};
+use stitch_audio_utils::AudioEncoding;
+use stitch_vad_masking::VadMask;
 
 use crate::protocol::{
   AudioChunkEncoding, AudioChunkSource, CaptureEvent, DeviceList, Emitter, Permissions, StartInput,
@@ -69,7 +69,7 @@ fn emit_samples(
   sample_rate_hz: u32,
   encoding: AudioChunkEncoding,
 ) {
-  let bytes = hypr_audio_utils::encode_audio_chunk(samples, audio_encoding(encoding));
+  let bytes = stitch_audio_utils::encode_audio_chunk(samples, audio_encoding(encoding));
   emit_audio_chunk(
     emitter,
     source,
@@ -212,7 +212,7 @@ fn try_start_dual_capture(
 ) -> Option<CaptureStream> {
   let config = CaptureConfig {
     sample_rate: input.sample_rate_hz,
-    chunk_size: hypr_audio_utils::chunk_size_for_stt(input.sample_rate_hz),
+    chunk_size: stitch_audio_utils::chunk_size_for_stt(input.sample_rate_hz),
     mic_device: input.mic_device_id.clone(),
     enable_aec: true,
   };
@@ -260,7 +260,7 @@ pub fn start_capture(
     .map_err(|e| napi::Error::from_reason(format!("failed to create tokio runtime: {e}")))?;
 
   let sample_rate_hz = input.sample_rate_hz;
-  let chunk_size = hypr_audio_utils::chunk_size_for_stt(sample_rate_hz);
+  let chunk_size = stitch_audio_utils::chunk_size_for_stt(sample_rate_hz);
   let emitter: Emitter = callback;
   let warnings = Arc::new(Mutex::new(Vec::new()));
   let device_monitor = monitor::spawn_device_monitor(emitter.clone());

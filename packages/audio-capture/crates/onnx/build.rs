@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/onnx/build.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 fn main() {
   // https://ort.pyke.io/perf/execution-providers#coreml

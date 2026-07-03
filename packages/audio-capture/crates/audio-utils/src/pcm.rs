@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-utils/src/pcm.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 const I16_SCALE: f32 = 32768.0;
 

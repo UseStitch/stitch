@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 // Trimmed: playback (rodio), loudness normalization, recorded-audio streaming, and the
 // AudioProvider impl were dropped; only mic + system/loopback capture is kept.
 
@@ -14,10 +14,10 @@ pub use speaker::*;
 
 pub use cpal;
 
-pub use hypr_resampler::AsyncSource;
+pub use stitch_resampler::AsyncSource;
 pub use types::{CaptureConfig, CaptureFrame, CaptureStream, Error};
 
-pub const TAP_DEVICE_NAME: &str = "hypr-audio-tap";
+pub const TAP_DEVICE_NAME: &str = "stitch-audio-tap";
 
 pub struct AudioInput;
 

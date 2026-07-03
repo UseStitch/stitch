@@ -1,6 +1,6 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/vad-masking/src/streaming.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
-use hypr_audio_utils::f32_to_i16_samples;
+use stitch_audio_utils::f32_to_i16_samples;
 
 use crate::earshot::{VoiceActivityDetector, choose_optimal_frame_size};
 

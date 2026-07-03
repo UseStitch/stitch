@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-sync/src/estimator.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use std::sync::Arc;
 

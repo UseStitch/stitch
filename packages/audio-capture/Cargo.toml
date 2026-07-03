@@ -11,10 +11,10 @@ path = "src-rs/lib.rs"
 napi = { version = "3", default-features = false, features = ["napi6"] }
 napi-derive = "3"
 
-hypr-audio-actual = { workspace = true }
-hypr-audio-utils = { workspace = true }
-hypr-resampler = { workspace = true }
-hypr-vad-masking = { workspace = true }
+stitch-audio-actual = { workspace = true }
+stitch-audio-utils = { workspace = true }
+stitch-resampler = { workspace = true }
+stitch-vad-masking = { workspace = true }
 
 futures-util = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
@@ -38,16 +38,15 @@ members = [
   "crates/vad-masking",
 ]
 
-# Audio capture crates under crates/ are vendored from
-# https://github.com/fastrepl/hyprnote (MIT). See crates/LICENSE.
+# Audio capture crates under crates/ are vendored and trimmed for Stitch.
 [workspace.dependencies]
-hypr-aec = { path = "crates/aec", package = "aec" }
-hypr-audio-actual = { path = "crates/audio-actual" }
-hypr-audio-sync = { path = "crates/audio-sync", package = "audio-sync" }
-hypr-audio-utils = { path = "crates/audio-utils" }
-hypr-onnx = { path = "crates/onnx", package = "onnx" }
-hypr-resampler = { path = "crates/resampler" }
-hypr-vad-masking = { path = "crates/vad-masking" }
+stitch-aec = { path = "crates/aec", package = "aec" }
+stitch-audio-actual = { path = "crates/audio-actual" }
+stitch-audio-sync = { path = "crates/audio-sync", package = "audio-sync" }
+stitch-audio-utils = { path = "crates/audio-utils" }
+stitch-onnx = { path = "crates/onnx", package = "onnx" }
+stitch-resampler = { path = "crates/resampler" }
+stitch-vad-masking = { path = "crates/vad-masking" }
 
 anyhow = "1"
 cidre = "0.15"

@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/aec/src/onnx/model.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed. Trimmed: the 256/512 model variants were dropped.
 
 #[cfg(feature = "128")]

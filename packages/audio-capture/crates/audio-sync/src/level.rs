@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-sync/src/level.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 pub struct LevelAccumulator {
   pub(crate) interval_samples: usize,

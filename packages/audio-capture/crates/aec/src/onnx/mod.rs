@@ -1,11 +1,11 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/aec/src/onnx/mod.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed. Trimmed: the spectral snapshot test suite (wav fixtures) was dropped
 // and replaced with fixture-free smoke tests.
 
 use realfft::{ComplexToReal, RealFftPlanner, RealToComplex, num_complex::Complex};
 use std::sync::Arc;
 
-use hypr_onnx::{
+use stitch_onnx::{
   ndarray::{Array3, Array4},
   ort::{session::Session, value::TensorRef},
 };
@@ -78,8 +78,8 @@ impl AEC {
     let fft = fft_planner.plan_fft_forward(block_len);
     let ifft = fft_planner.plan_fft_inverse(block_len);
 
-    let session_1 = hypr_onnx::load_model_from_bytes(model::BYTES_1)?;
-    let session_2 = hypr_onnx::load_model_from_bytes(model::BYTES_2)?;
+    let session_1 = stitch_onnx::load_model_from_bytes(model::BYTES_1)?;
+    let session_2 = stitch_onnx::load_model_from_bytes(model::BYTES_2)?;
 
     let state_size = model::STATE_SIZE;
 
@@ -130,7 +130,7 @@ impl AEC {
   }
 
   fn run_model_1(&mut self, ctx: &mut ProcessingContext) -> Result<(), crate::Error> {
-    let mut outputs = self.session_1.run(hypr_onnx::ort::inputs![
+    let mut outputs = self.session_1.run(stitch_onnx::ort::inputs![
       TensorRef::from_array_view(ctx.in_mag.view())?,
       TensorRef::from_array_view(self.states_1.view())?,
       TensorRef::from_array_view(ctx.lpb_mag.view())?
@@ -143,8 +143,8 @@ impl AEC {
     ctx
       .out_mask
       .copy_from_slice(out_mask_view.view().as_slice().ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?);
 
@@ -156,13 +156,13 @@ impl AEC {
       .states_1
       .as_slice_mut()
       .ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?
       .copy_from_slice(new_states_view.view().as_slice().ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?);
 
@@ -170,7 +170,7 @@ impl AEC {
   }
 
   fn run_model_2(&mut self, ctx: &mut ProcessingContext) -> Result<(), crate::Error> {
-    let mut outputs = self.session_2.run(hypr_onnx::ort::inputs![
+    let mut outputs = self.session_2.run(stitch_onnx::ort::inputs![
       TensorRef::from_array_view(ctx.estimated_block.view())?,
       TensorRef::from_array_view(self.states_2.view())?,
       TensorRef::from_array_view(ctx.in_lpb.view())?
@@ -183,8 +183,8 @@ impl AEC {
     ctx
       .out_block
       .copy_from_slice(out_block_view.view().as_slice().ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?);
 
@@ -196,13 +196,13 @@ impl AEC {
       .states_2
       .as_slice_mut()
       .ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?
       .copy_from_slice(new_states_view.view().as_slice().ok_or_else(|| {
-        crate::Error::ShapeError(hypr_onnx::ndarray::ShapeError::from_kind(
-          hypr_onnx::ndarray::ErrorKind::IncompatibleLayout,
+        crate::Error::ShapeError(stitch_onnx::ndarray::ShapeError::from_kind(
+          stitch_onnx::ndarray::ErrorKind::IncompatibleLayout,
         ))
       })?);
 

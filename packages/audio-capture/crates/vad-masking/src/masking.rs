@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/vad-masking/src/masking.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use crate::{StreamingVad, VadConfig};
 

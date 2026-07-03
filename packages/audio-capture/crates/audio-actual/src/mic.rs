@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/mic.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use cpal::{
   SizedSample,
@@ -113,7 +113,7 @@ impl MicInput {
       crate::Error::MicOpenFailed
     })?;
     tracing::info!(
-        hyprnote.audio.sample_rate_hz = ?config.sample_rate(),
+        stitch.audio.sample_rate_hz = ?config.sample_rate(),
         device_name,
         "mic_input_initialized"
     );
@@ -343,8 +343,8 @@ mod tests {
   #[tokio::test]
   #[ignore = "requires audio hardware"]
   async fn test_mic_stream_with_resampling() {
-    use hypr_audio_utils::chunk_size_for_stt;
-    use hypr_resampler::ResampleExtDynamicNew;
+    use stitch_audio_utils::chunk_size_for_stt;
+    use stitch_resampler::ResampleExtDynamicNew;
 
     let mic = MicInput::new(None).unwrap();
     println!("mic device: {}", mic.device_name());

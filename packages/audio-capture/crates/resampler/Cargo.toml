@@ -1,8 +1,8 @@
-# Vendored from https://github.com/fastrepl/hyprnote (crates/resampler), MIT licensed.
-# See crates/LICENSE for the upstream license. Trimmed to the dynamic-rate chunk
+# Vendored and trimmed for Stitch.
+# Trimmed to the dynamic-rate chunk
 # resampler used by capture; the legacy/static resampler variants were dropped.
 [package]
-name = "hypr-resampler"
+name = "stitch-resampler"
 version = "0.0.1"
 edition = "2024"
 license = "MIT"

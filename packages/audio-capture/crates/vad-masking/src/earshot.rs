@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/vad/src/earshot.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 pub use earshot;
 use earshot::VoiceActivityProfile;

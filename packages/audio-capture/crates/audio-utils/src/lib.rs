@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-utils/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 // Trimmed to the PCM conversion helpers and STT chunk sizing used by capture.
 
 mod encode;

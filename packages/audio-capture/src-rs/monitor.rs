@@ -2,8 +2,8 @@ use std::sync::mpsc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use hypr_audio_actual::cpal;
-use hypr_audio_actual::cpal::traits::{DeviceTrait, HostTrait};
+use stitch_audio_actual::cpal;
+use stitch_audio_actual::cpal::traits::{DeviceTrait, HostTrait};
 
 use crate::protocol::{Emitter, emit_device_changed};
 
@@ -43,7 +43,7 @@ fn detect_changes(prev: &DefaultDevices, next: &DefaultDevices) -> Vec<DeviceCha
 fn is_tap_device(name: &str) -> bool {
   #[cfg(target_os = "macos")]
   {
-    name.contains(hypr_audio_actual::TAP_DEVICE_NAME)
+    name.contains(stitch_audio_actual::TAP_DEVICE_NAME)
   }
   #[cfg(not(target_os = "macos"))]
   {

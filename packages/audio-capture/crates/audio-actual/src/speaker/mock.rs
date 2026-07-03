@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/speaker/mock.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use futures_util::Stream;
 use pin_project::pin_project;

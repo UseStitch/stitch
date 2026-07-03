@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-interface/src/lib.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 // Trimmed: the optional rodio blanket impl was dropped.
 
 use futures_util::Stream;

@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/onnx/src/error.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

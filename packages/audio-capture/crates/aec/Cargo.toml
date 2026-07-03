@@ -1,5 +1,5 @@
-# Vendored from https://github.com/fastrepl/hyprnote (crates/aec), MIT licensed.
-# See crates/LICENSE for the upstream license. Trimmed to the model_128 ONNX weights;
+# Vendored and trimmed for Stitch.
+# Trimmed to the model_128 ONNX weights;
 # the 256/512 model variants, snapshot tests, benches, and examples were dropped.
 [package]
 name = "aec"
@@ -9,11 +9,11 @@ license = "MIT"
 
 [features]
 default = ["onnx", "128"]
-onnx = ["dep:hypr-onnx"]
+onnx = ["dep:stitch-onnx"]
 128 = []
 
 [dependencies]
-hypr-onnx = { workspace = true, optional = true }
+stitch-onnx = { workspace = true, optional = true }
 
 realfft = { workspace = true }
 

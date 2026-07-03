@@ -1,5 +1,5 @@
-# Vendored from https://github.com/fastrepl/hyprnote (crates/audio-sync), MIT licensed.
-# See crates/LICENSE for the upstream license. Trimmed: the e2e test suite and its
+# Vendored and trimmed for Stitch.
+# Trimmed: the e2e test suite and its
 # dev-dependencies were dropped; the in-crate unit tests are kept.
 [package]
 name = "audio-sync"

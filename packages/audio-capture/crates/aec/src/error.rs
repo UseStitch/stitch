@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/aec/src/error.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 use serde::{Serialize, ser::Serializer};
 
@@ -6,18 +6,18 @@ use serde::{Serialize, ser::Serializer};
 pub enum Error {
   #[cfg(feature = "onnx")]
   #[error(transparent)]
-  HyprOnnxError(#[from] hypr_onnx::Error),
+  StitchOnnxError(#[from] stitch_onnx::Error),
 
   #[cfg(feature = "onnx")]
   #[error(transparent)]
-  OrtError(#[from] hypr_onnx::ort::Error),
+  OrtError(#[from] stitch_onnx::ort::Error),
 
   #[error(transparent)]
   FftError(#[from] realfft::FftError),
 
   #[cfg(feature = "onnx")]
   #[error(transparent)]
-  ShapeError(#[from] hypr_onnx::ndarray::ShapeError),
+  ShapeError(#[from] stitch_onnx::ndarray::ShapeError),
 
   #[error("Missing output tensor: {0}")]
   MissingOutput(String),

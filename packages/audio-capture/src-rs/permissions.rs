@@ -1,6 +1,6 @@
-use hypr_audio_actual::MicInput;
-use hypr_audio_actual::cpal;
-use hypr_audio_actual::cpal::traits::{DeviceTrait, HostTrait};
+use stitch_audio_actual::MicInput;
+use stitch_audio_actual::cpal;
+use stitch_audio_actual::cpal::traits::{DeviceTrait, HostTrait};
 
 use crate::protocol::Permissions;
 
@@ -111,7 +111,7 @@ const PRIME_POLL_ATTEMPTS: u32 = 20;
 pub fn prime_system_audio() -> Permissions {
   use std::panic::{AssertUnwindSafe, catch_unwind};
 
-  use hypr_audio_actual::SpeakerInput;
+  use stitch_audio_actual::SpeakerInput;
 
   if check_system_audio_permission() != "granted" {
     // A running tap pipeline must stay alive while the TCC prompt is shown.

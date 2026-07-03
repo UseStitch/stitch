@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/capture/mod.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed.
 
 mod joiner;
@@ -16,7 +16,7 @@ pub(crate) fn open_capture(config: CaptureConfig) -> Result<CaptureStream, Error
     config.sample_rate
   };
   let capture_chunk_size = if config.enable_aec {
-    hypr_audio_utils::chunk_size_for_stt(AEC_SAMPLE_RATE_HZ)
+    stitch_audio_utils::chunk_size_for_stt(AEC_SAMPLE_RATE_HZ)
   } else {
     config.chunk_size
   };

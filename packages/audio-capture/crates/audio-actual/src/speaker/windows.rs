@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/speaker/windows.rs), MIT licensed.
+// Vendored and trimmed for Stitch.
 
 // Under cfg(test) the platform stream is replaced by the mock in speaker/mod.rs.
 #![cfg_attr(test, allow(dead_code))]
@@ -6,7 +6,6 @@
 use anyhow::{Context, Result};
 use futures_util::Stream;
 use futures_util::task::AtomicWaker;
-use hypr_audio_utils::{pcm_i16_to_f32, pcm_i32_to_f32};
 use pin_project::pin_project;
 use ringbuf::{
   HeapCons, HeapProd, HeapRb,
@@ -17,6 +16,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
+use stitch_audio_utils::{pcm_i16_to_f32, pcm_i32_to_f32};
 use tracing::error;
 use wasapi::{
   DeviceEnumerator, Direction, SampleType, ShareMode, StreamMode, WaveFormat, initialize_mta,
@@ -213,7 +213,7 @@ fn capture_audio_loop(
 
   current_sample_rate.store(capture_format.sample_rate, Ordering::Release);
   tracing::info!(
-    hyprnote.audio.sample_rate_hz = capture_format.sample_rate,
+    stitch.audio.sample_rate_hz = capture_format.sample_rate,
     "wasapi_loopback_initialized"
   );
   let _ = init_tx.send(Ok(()));

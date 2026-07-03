@@ -1,4 +1,4 @@
-// Vendored from https://github.com/fastrepl/hyprnote (crates/audio-actual/src/capture/stream.rs),
+// Vendored and trimmed for Stitch,
 // MIT licensed.
 
 use std::collections::VecDeque;
@@ -8,9 +8,9 @@ use std::task::{Context, Poll};
 use std::{panic::AssertUnwindSafe, panic::catch_unwind};
 
 use futures_util::{Stream, StreamExt};
-use hypr_aec::AEC;
-use hypr_audio_sync::{SyncProbe, SyncProbeConfig, SyncProbeEvent, SyncProbeState};
-use hypr_resampler::{OutputResampler, ResampleExtDynamicNew};
+use stitch_aec::AEC;
+use stitch_audio_sync::{SyncProbe, SyncProbeConfig, SyncProbeEvent, SyncProbeState};
+use stitch_resampler::{OutputResampler, ResampleExtDynamicNew};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
@@ -23,7 +23,7 @@ use crate::speaker::SpeakerInput;
 use super::joiner::Joiner;
 
 pub(crate) type ChunkStream =
-  Pin<Box<dyn Stream<Item = Result<Vec<f32>, hypr_resampler::Error>> + Send>>;
+  Pin<Box<dyn Stream<Item = Result<Vec<f32>, stitch_resampler::Error>> + Send>>;
 
 const AUDIO_SYNC_PROBE_ENV: &str = "AUDIO_SYNC_PROBE";
 const AEC_MAX_REFERENCE_LAG_MS: u32 = 100;
@@ -156,7 +156,7 @@ async fn run_dual_loop(
   let mut output_resamplers = match DualOutputResamplers::new(
     capture_sample_rate,
     output_sample_rate,
-    hypr_audio_utils::chunk_size_for_stt(capture_sample_rate),
+    stitch_audio_utils::chunk_size_for_stt(capture_sample_rate),
     output_chunk_size,
   ) {
     Ok(resamplers) => resamplers,
@@ -237,7 +237,7 @@ impl DualOutputResamplers {
     output_sample_rate: u32,
     capture_chunk_size: usize,
     output_chunk_size: usize,
-  ) -> Result<Self, hypr_resampler::Error> {
+  ) -> Result<Self, stitch_resampler::Error> {
     Ok(Self {
       raw_mic: OutputResampler::for_rates(
         capture_sample_rate,
@@ -591,7 +591,7 @@ async fn run_single_loop(
 }
 
 fn handle_stream_item(
-  item: Option<Result<Vec<f32>, hypr_resampler::Error>>,
+  item: Option<Result<Vec<f32>, stitch_resampler::Error>>,
   side: CaptureSide,
   joiner: &mut Joiner,
 ) -> StreamResult {
