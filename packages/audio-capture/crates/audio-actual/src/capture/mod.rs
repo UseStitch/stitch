@@ -7,15 +7,30 @@ mod stream;
 use crate::{CaptureConfig, CaptureStream, Error};
 use stream::{CaptureSide, setup_mic_stream, setup_speaker_stream};
 
+const AEC_SAMPLE_RATE_HZ: u32 = 16_000;
+
 pub(crate) fn open_capture(config: CaptureConfig) -> Result<CaptureStream, Error> {
-  let mic_stream = setup_mic_stream(config.sample_rate, config.chunk_size, config.mic_device)?;
+  let capture_sample_rate = if config.enable_aec {
+    AEC_SAMPLE_RATE_HZ
+  } else {
+    config.sample_rate
+  };
+  let capture_chunk_size = if config.enable_aec {
+    hypr_audio_utils::chunk_size_for_stt(AEC_SAMPLE_RATE_HZ)
+  } else {
+    config.chunk_size
+  };
+
+  let mic_stream = setup_mic_stream(capture_sample_rate, capture_chunk_size, config.mic_device)?;
 
   std::thread::sleep(std::time::Duration::from_millis(50));
 
-  let speaker_stream = setup_speaker_stream(config.sample_rate, config.chunk_size)?;
+  let speaker_stream = setup_speaker_stream(capture_sample_rate, capture_chunk_size)?;
 
   Ok(stream::open_dual(
+    capture_sample_rate,
     config.sample_rate,
+    config.chunk_size,
     mic_stream,
     speaker_stream,
     config.enable_aec,

@@ -1,4 +1,11 @@
-use crate::protocol::AudioChunkEncoding;
+// Vendored from Stitch src-rs encoding glue; kept here so audio byte formats
+// live with the rest of the PCM/audio utilities.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioEncoding {
+  F32Le,
+  PcmS16Le,
+}
 
 pub fn encode_samples_f32(samples: &[f32]) -> Vec<u8> {
   let mut bytes = Vec::with_capacity(samples.len() * 4);
@@ -22,10 +29,10 @@ pub fn encode_samples_pcm_s16le(samples: &[f32]) -> Vec<u8> {
   buf
 }
 
-pub fn encode_audio_chunk(samples: &[f32], encoding: AudioChunkEncoding) -> Vec<u8> {
+pub fn encode_audio_chunk(samples: &[f32], encoding: AudioEncoding) -> Vec<u8> {
   match encoding {
-    AudioChunkEncoding::F32Le => encode_samples_f32(samples),
-    AudioChunkEncoding::PcmS16Le => encode_samples_pcm_s16le(samples),
+    AudioEncoding::F32Le => encode_samples_f32(samples),
+    AudioEncoding::PcmS16Le => encode_samples_pcm_s16le(samples),
   }
 }
 

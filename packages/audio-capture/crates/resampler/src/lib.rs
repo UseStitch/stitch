@@ -3,10 +3,12 @@
 
 mod async_source;
 mod driver;
+mod output_resample;
 mod source;
 
 pub use async_source::*;
 pub use driver::RubatoChunkResampler;
+pub use output_resample::OutputResampler;
 pub use rubato::{
   Async, FixedAsync, Indexing, PolynomialDegree, Resampler, SincInterpolationParameters,
   SincInterpolationType, WindowFunction,

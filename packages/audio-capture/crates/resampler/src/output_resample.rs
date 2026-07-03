@@ -1,4 +1,7 @@
-use hypr_resampler::{Async, FixedAsync, PolynomialDegree, RubatoChunkResampler};
+// Vendored from Stitch src-rs AEC output glue; kept here so fixed-ratio output
+// resampling lives with the rest of the resampler implementation.
+
+use crate::{Async, FixedAsync, PolynomialDegree, RubatoChunkResampler};
 
 /// Fixed-ratio chunk resampler for converting the AEC pipeline's native 16kHz
 /// output to the sample rate requested by the caller.
@@ -13,7 +16,7 @@ impl OutputResampler {
     output_rate_hz: u32,
     input_block_size: usize,
     output_chunk_size: usize,
-  ) -> Result<Option<Self>, hypr_resampler::Error> {
+  ) -> Result<Option<Self>, crate::Error> {
     if input_rate_hz == output_rate_hz {
       return Ok(None);
     }
@@ -34,7 +37,7 @@ impl OutputResampler {
   }
 
   /// Pushes samples through the resampler and returns all completed output chunks.
-  pub fn process(&mut self, samples: &[f32]) -> Result<Vec<Vec<f32>>, hypr_resampler::Error> {
+  pub fn process(&mut self, samples: &[f32]) -> Result<Vec<Vec<f32>>, crate::Error> {
     for &sample in samples {
       self.driver.push_sample(sample);
     }

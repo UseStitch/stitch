@@ -3,8 +3,6 @@ use std::sync::Arc;
 use napi::bindgen_prelude::Buffer;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 
-use crate::encode::encode_audio_chunk;
-
 /// Audio sample encoding requested by the caller.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AudioChunkEncoding {
@@ -99,21 +97,21 @@ pub type Emitter = Arc<ThreadsafeFunction<CaptureEvent, ()>>;
 pub fn emit_audio_chunk(
   tsfn: &Emitter,
   source: AudioChunkSource,
-  samples: &[f32],
+  bytes: Vec<u8>,
   sample_rate_hz: u32,
+  num_samples: u32,
   encoding: AudioChunkEncoding,
 ) {
-  if samples.is_empty() {
+  if bytes.is_empty() {
     return;
   }
 
-  let bytes = encode_audio_chunk(samples, encoding);
   let event = CaptureEvent {
     kind: "audioChunk".into(),
     source: Some(source.as_str().into()),
     pcm: Some(bytes.into()),
     sample_rate_hz: Some(sample_rate_hz),
-    num_samples: Some(samples.len() as u32),
+    num_samples: Some(num_samples),
     encoding: Some(encoding.as_str().into()),
     device_kind: None,
     device_name: None,

@@ -1,9 +1,7 @@
 #[macro_use]
 extern crate napi_derive;
 
-mod encode;
 mod monitor;
-mod output_resample;
 mod permissions;
 mod protocol;
 
@@ -13,10 +11,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
 use hypr_audio_actual::{AudioInput, CaptureConfig, CaptureStream};
+use hypr_audio_utils::AudioEncoding;
 use hypr_vad_masking::VadMask;
 use napi::threadsafe_function::ThreadsafeFunction;
 
-use crate::output_resample::OutputResampler;
 use crate::protocol::{
   AudioChunkEncoding, AudioChunkSource, CaptureEvent, DeviceList, Emitter, Permissions, StartInput,
   StopResult, emit_audio_chunk, emit_warning, parse_encoding,
@@ -53,11 +51,33 @@ fn push_warning(warnings: &Arc<Mutex<Vec<String>>>, warning: String) {
 
 /// earshot's WebRTC VAD operates on 16kHz frames; masking is bypassed at other rates.
 const VAD_MASK_SAMPLE_RATE_HZ: u32 = 16_000;
-/// The AEC ONNX models are trained on 16kHz mono audio.
-const AEC_SAMPLE_RATE_HZ: u32 = 16_000;
-
 fn vad_mask_for(source: AudioChunkSource, sample_rate_hz: u32) -> Option<VadMask> {
   (source == AudioChunkSource::Mic && sample_rate_hz == VAD_MASK_SAMPLE_RATE_HZ).then(VadMask::new)
+}
+
+fn audio_encoding(encoding: AudioChunkEncoding) -> AudioEncoding {
+  match encoding {
+    AudioChunkEncoding::F32Le => AudioEncoding::F32Le,
+    AudioChunkEncoding::PcmS16Le => AudioEncoding::PcmS16Le,
+  }
+}
+
+fn emit_samples(
+  emitter: &Emitter,
+  source: AudioChunkSource,
+  samples: &[f32],
+  sample_rate_hz: u32,
+  encoding: AudioChunkEncoding,
+) {
+  let bytes = hypr_audio_utils::encode_audio_chunk(samples, audio_encoding(encoding));
+  emit_audio_chunk(
+    emitter,
+    source,
+    bytes,
+    sample_rate_hz,
+    samples.len() as u32,
+    encoding,
+  );
 }
 
 fn emit_mic_chunk(
@@ -70,7 +90,7 @@ fn emit_mic_chunk(
   if let Some(mask) = vad_mask {
     let mut masked = samples.to_vec();
     mask.process(&mut masked);
-    emit_audio_chunk(
+    emit_samples(
       emitter,
       AudioChunkSource::Mic,
       &masked,
@@ -78,7 +98,7 @@ fn emit_mic_chunk(
       encoding,
     );
   } else {
-    emit_audio_chunk(
+    emit_samples(
       emitter,
       AudioChunkSource::Mic,
       samples,
@@ -116,7 +136,7 @@ fn spawn_forward_task(
             );
           }
           AudioChunkSource::Speaker => {
-            emit_audio_chunk(
+            emit_samples(
               &emitter,
               source,
               &frame.raw_speaker,
@@ -136,58 +156,16 @@ fn spawn_forward_task(
   })
 }
 
-/// Emits samples for one source, converting from the AEC pipeline's native
-/// 16kHz to the requested output rate when they differ.
-fn forward_chunk(
-  emitter: &Emitter,
-  source: AudioChunkSource,
-  samples: &[f32],
-  resampler: &mut Option<OutputResampler>,
-  sample_rate_hz: u32,
-  encoding: AudioChunkEncoding,
-) -> Result<(), hypr_resampler::Error> {
-  match resampler {
-    None => {
-      emit_audio_chunk(emitter, source, samples, sample_rate_hz, encoding);
-      Ok(())
-    }
-    Some(resampler) => {
-      for chunk in resampler.process(samples)? {
-        emit_audio_chunk(emitter, source, &chunk, sample_rate_hz, encoding);
-      }
-      Ok(())
-    }
-  }
-}
-
-/// AEC dual-stream capture plus per-source output resamplers (present when the
-/// requested rate differs from the AEC's native 16kHz).
-struct DualCapture {
-  stream: CaptureStream,
-  mic_resampler: Option<OutputResampler>,
-  speaker_resampler: Option<OutputResampler>,
-}
-
-/// Forwards joined mic+speaker frames from the AEC dual-stream capture. The
-/// echo-cancelled mic (falling back to raw mic if AEC is unavailable) is
-/// VAD-masked at 16kHz, then both sources are resampled to the requested rate
-/// before emission.
+/// Forwards joined mic+speaker frames from the AEC dual-stream capture.
 fn spawn_dual_forward_task(
   runtime: &tokio::runtime::Runtime,
-  dual: DualCapture,
+  mut stream: CaptureStream,
   sample_rate_hz: u32,
   encoding: AudioChunkEncoding,
   emitter: Emitter,
   warnings: Arc<Mutex<Vec<String>>>,
 ) -> tokio::task::JoinHandle<()> {
-  let DualCapture {
-    mut stream,
-    mut mic_resampler,
-    mut speaker_resampler,
-  } = dual;
-  // The dual pipeline always runs at 16kHz internally, so the mic can be
-  // VAD-masked regardless of the requested output rate.
-  let mut vad_mask = vad_mask_for(AudioChunkSource::Mic, AEC_SAMPLE_RATE_HZ);
+  let mut vad_mask = vad_mask_for(AudioChunkSource::Mic, sample_rate_hz);
 
   runtime.spawn(async move {
     while let Some(item) = stream.next().await {
@@ -199,30 +177,20 @@ fn spawn_dual_forward_task(
             mask.process(&mut masked);
           }
 
-          let forwarded = forward_chunk(
+          emit_samples(
             &emitter,
             AudioChunkSource::Mic,
             &masked,
-            &mut mic_resampler,
             sample_rate_hz,
             encoding,
-          )
-          .and_then(|()| {
-            forward_chunk(
-              &emitter,
-              AudioChunkSource::Speaker,
-              &frame.raw_speaker,
-              &mut speaker_resampler,
-              sample_rate_hz,
-              encoding,
-            )
-          });
-
-          if forwarded.is_err() {
-            push_warning(&warnings, "aec_resample_failed".to_string());
-            emit_warning(&emitter, "aec_resample_failed", "output resampling failed");
-            return;
-          }
+          );
+          emit_samples(
+            &emitter,
+            AudioChunkSource::Speaker,
+            &frame.raw_speaker,
+            sample_rate_hz,
+            encoding,
+          );
         }
         Err(error) => {
           let code = error.to_string();
@@ -236,36 +204,15 @@ fn spawn_dual_forward_task(
 }
 
 /// Best-effort start of the AEC dual-stream capture; any failure falls back to
-/// the separate mic/speaker path with a warning. Capture always runs at the
-/// AEC's native 16kHz; output is resampled to the requested rate.
+/// the separate mic/speaker path with a warning.
 fn try_start_dual_capture(
   input: &StartInput,
   emitter: &Emitter,
   warnings: &Arc<Mutex<Vec<String>>>,
-) -> Option<DualCapture> {
-  let aec_chunk_size = hypr_audio_utils::chunk_size_for_stt(AEC_SAMPLE_RATE_HZ);
-  let output_chunk_size = hypr_audio_utils::chunk_size_for_stt(input.sample_rate_hz);
-
-  let make_resampler = || {
-    OutputResampler::for_rates(
-      AEC_SAMPLE_RATE_HZ,
-      input.sample_rate_hz,
-      aec_chunk_size,
-      output_chunk_size,
-    )
-  };
-  let (mic_resampler, speaker_resampler) = match (make_resampler(), make_resampler()) {
-    (Ok(mic), Ok(speaker)) => (mic, speaker),
-    _ => {
-      push_warning(warnings, "aec_start_failed".to_string());
-      emit_warning(emitter, "aec_start_failed", "output resampler setup failed");
-      return None;
-    }
-  };
-
+) -> Option<CaptureStream> {
   let config = CaptureConfig {
-    sample_rate: AEC_SAMPLE_RATE_HZ,
-    chunk_size: aec_chunk_size,
+    sample_rate: input.sample_rate_hz,
+    chunk_size: hypr_audio_utils::chunk_size_for_stt(input.sample_rate_hz),
     mic_device: input.mic_device_id.clone(),
     enable_aec: true,
   };
@@ -273,11 +220,7 @@ fn try_start_dual_capture(
   match catch_unwind(AssertUnwindSafe(|| {
     AudioInput::from_mic_and_speaker(config)
   })) {
-    Ok(Ok(stream)) => Some(DualCapture {
-      stream,
-      mic_resampler,
-      speaker_resampler,
-    }),
+    Ok(Ok(stream)) => Some(stream),
     Ok(Err(error)) => {
       push_warning(warnings, "aec_start_failed".to_string());
       emit_warning(emitter, "aec_start_failed", error.to_string());

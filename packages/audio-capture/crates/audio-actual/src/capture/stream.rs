@@ -10,7 +10,7 @@ use std::{panic::AssertUnwindSafe, panic::catch_unwind};
 use futures_util::{Stream, StreamExt};
 use hypr_aec::AEC;
 use hypr_audio_sync::{SyncProbe, SyncProbeConfig, SyncProbeEvent, SyncProbeState};
-use hypr_resampler::ResampleExtDynamicNew;
+use hypr_resampler::{OutputResampler, ResampleExtDynamicNew};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
@@ -84,7 +84,9 @@ pub(crate) fn setup_speaker_stream(
 }
 
 pub(crate) fn open_dual(
-  sample_rate: u32,
+  capture_sample_rate: u32,
+  output_sample_rate: u32,
+  output_chunk_size: usize,
   mic_stream: ChunkStream,
   speaker_stream: ChunkStream,
   enable_aec: bool,
@@ -94,7 +96,9 @@ pub(crate) fn open_dual(
   let task = tokio::spawn(run_dual_loop(
     tx,
     cancel_token.clone(),
-    sample_rate,
+    capture_sample_rate,
+    output_sample_rate,
+    output_chunk_size,
     enable_aec,
     mic_stream,
     speaker_stream,
@@ -139,7 +143,9 @@ enum StreamResult {
 async fn run_dual_loop(
   tx: tokio::sync::mpsc::Sender<Result<CaptureFrame, Error>>,
   cancel_token: CancellationToken,
-  sample_rate: u32,
+  capture_sample_rate: u32,
+  output_sample_rate: u32,
+  output_chunk_size: usize,
   enable_aec: bool,
   mut mic_stream: ChunkStream,
   mut speaker_stream: ChunkStream,
@@ -147,8 +153,20 @@ async fn run_dual_loop(
   let mut joiner = Joiner::new();
   let mut aec = if enable_aec { build_aec() } else { None };
   let mut linear_echo_gain = None;
+  let mut output_resamplers = match DualOutputResamplers::new(
+    capture_sample_rate,
+    output_sample_rate,
+    hypr_audio_utils::chunk_size_for_stt(capture_sample_rate),
+    output_chunk_size,
+  ) {
+    Ok(resamplers) => resamplers,
+    Err(_) => {
+      let _ = tx.send(Err(Error::MicResampleFailed)).await;
+      return;
+    }
+  };
   let mut aec_reference = if aec.is_some() {
-    Some(AecReferenceAligner::new(sample_rate))
+    Some(AecReferenceAligner::new(capture_sample_rate))
   } else {
     None
   };
@@ -189,15 +207,11 @@ async fn run_dual_loop(
             &aligned.mic,
             &aligned.speaker,
           );
-          if tx
-            .send(Ok(CaptureFrame {
-              raw_mic,
-              raw_speaker,
-              aec_mic,
-            }))
+          if let Err(err) = output_resamplers
+            .send_frame(&tx, raw_mic, raw_speaker, aec_mic)
             .await
-            .is_err()
           {
+            let _ = tx.send(Err(err)).await;
             return;
           }
         }
@@ -208,6 +222,91 @@ async fn run_dual_loop(
         return;
       }
     }
+  }
+}
+
+struct DualOutputResamplers {
+  raw_mic: Option<OutputResampler>,
+  raw_speaker: Option<OutputResampler>,
+  aec_mic: Option<OutputResampler>,
+}
+
+impl DualOutputResamplers {
+  fn new(
+    capture_sample_rate: u32,
+    output_sample_rate: u32,
+    capture_chunk_size: usize,
+    output_chunk_size: usize,
+  ) -> Result<Self, hypr_resampler::Error> {
+    Ok(Self {
+      raw_mic: OutputResampler::for_rates(
+        capture_sample_rate,
+        output_sample_rate,
+        capture_chunk_size,
+        output_chunk_size,
+      )?,
+      raw_speaker: OutputResampler::for_rates(
+        capture_sample_rate,
+        output_sample_rate,
+        capture_chunk_size,
+        output_chunk_size,
+      )?,
+      aec_mic: OutputResampler::for_rates(
+        capture_sample_rate,
+        output_sample_rate,
+        capture_chunk_size,
+        output_chunk_size,
+      )?,
+    })
+  }
+
+  async fn send_frame(
+    &mut self,
+    tx: &tokio::sync::mpsc::Sender<Result<CaptureFrame, Error>>,
+    raw_mic: Arc<[f32]>,
+    raw_speaker: Arc<[f32]>,
+    aec_mic: Option<Arc<[f32]>>,
+  ) -> Result<(), Error> {
+    let raw_mic_chunks = resample_output(&mut self.raw_mic, &raw_mic)?;
+    let raw_speaker_chunks = resample_output(&mut self.raw_speaker, &raw_speaker)?;
+    let aec_mic_chunks = match aec_mic.as_deref() {
+      Some(samples) => Some(resample_output(&mut self.aec_mic, samples)?),
+      None => None,
+    };
+    let chunk_count = raw_mic_chunks.len().min(raw_speaker_chunks.len());
+
+    for idx in 0..chunk_count {
+      let aec_mic = aec_mic_chunks
+        .as_ref()
+        .and_then(|chunks| chunks.get(idx))
+        .cloned()
+        .map(Arc::from);
+      if tx
+        .send(Ok(CaptureFrame {
+          raw_mic: Arc::from(raw_mic_chunks[idx].clone()),
+          raw_speaker: Arc::from(raw_speaker_chunks[idx].clone()),
+          aec_mic,
+        }))
+        .await
+        .is_err()
+      {
+        return Err(Error::MicStreamEnded);
+      }
+    }
+
+    Ok(())
+  }
+}
+
+fn resample_output(
+  resampler: &mut Option<OutputResampler>,
+  samples: &[f32],
+) -> Result<Vec<Vec<f32>>, Error> {
+  match resampler {
+    None => Ok(vec![samples.to_vec()]),
+    Some(resampler) => resampler
+      .process(samples)
+      .map_err(|_| Error::MicResampleFailed),
   }
 }
 
