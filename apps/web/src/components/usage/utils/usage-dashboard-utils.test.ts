@@ -3,8 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
 
 describe('formatCost', () => {
-  test('keeps zero at cent precision', () => {
-    expect(formatCost(0)).toBe('$0.00');
+  test('shows exact zero without decimal precision', () => {
+    expect(formatCost(0)).toBe('$0');
   });
 
   test('shows non-zero sub-cent costs', () => {
@@ -13,6 +13,10 @@ describe('formatCost', () => {
 
   test('trims trailing zeroes from sub-cent costs', () => {
     expect(formatCost(0.001)).toBe('$0.001');
+  });
+
+  test('preserves tiny non-zero costs', () => {
+    expect(formatCost(0.00001234)).toBe('$0.000012');
   });
 
   test('uses cent precision for cent-level costs', () => {
