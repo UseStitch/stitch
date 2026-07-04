@@ -33,15 +33,11 @@ export function getStackSegmentRadius(ctx: ScriptableContext<'bar'>, radius = 5)
   const hasAbove = datasets
     .slice(datasetIndex + 1)
     .some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
-  const hasBelow = datasets
-    .slice(0, datasetIndex)
-    .some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
-
   return {
     topLeft: hasAbove ? 0 : radius,
     topRight: hasAbove ? 0 : radius,
-    bottomLeft: hasBelow ? 0 : radius,
-    bottomRight: hasBelow ? 0 : radius,
+    bottomLeft: 0,
+    bottomRight: 0,
   };
 }
 
