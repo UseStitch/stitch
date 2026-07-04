@@ -1,4 +1,4 @@
-import { Loader2Icon, MessageCircleIcon, MessageSquareIcon, PlusIcon } from 'lucide-react';
+import { Loader2Icon, MessageCircleIcon, PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
 import type { InfiniteData } from '@tanstack/react-query';
@@ -51,7 +51,7 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
     );
   }
 
-  return <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />;
+  return null;
 });
 
 export function ChatSidebarContent() {
