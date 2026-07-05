@@ -158,11 +158,11 @@ export function ActivityBar() {
       <div
         className={cn(
           'relative flex w-14 flex-col items-center bg-sidebar px-1.5 pb-3',
-          showTrafficLightPadding ? 'pt-10' : 'border-r border-border/50 pt-3',
+          showTrafficLightPadding ? 'pt-10' : 'border-r-2 border-border/50 pt-3',
         )}
       >
         {showTrafficLightPadding && (
-          <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r border-border/50" />
+          <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r-2 border-border/50" />
         )}
         <div className="flex w-full flex-col items-center gap-2">
           {topItems.map((item) => (
