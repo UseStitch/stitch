@@ -38,6 +38,7 @@
     "./tools/types": "./src/tools/types.ts",
     "./usage/types": "./src/usage/types.ts",
     "./connectors/types": "./src/connectors/types.ts",
+    "./desktop/bridge": "./src/desktop/bridge.ts",
     "./embedding/types": "./src/embedding/types.ts",
     "./memory/types": "./src/memory/types.ts",
     "./agenda/types": "./src/agenda/types.ts",

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import type { ElectronBrowserState } from '@stitch/shared/browser/electron';
+import type { DesktopBridge, ElectronBridge } from '@stitch/shared/desktop/bridge';
 import type {
   IpcContract,
   IpcEventContract,
@@ -31,7 +32,7 @@ function onIpc<TKey extends keyof IpcEventContract>(
   return () => ipcRenderer.removeListener(channel, subscription);
 }
 
-contextBridge.exposeInMainWorld('electron', {
+const electronBridge = {
   platform: process.platform,
   send: (channel: string, data?: unknown) => ipcRenderer.send(channel, data),
   on: (channel: string, callback: (...args: unknown[]) => void) => {
@@ -39,7 +40,9 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on(channel, subscription);
     return () => ipcRenderer.removeListener(channel, subscription);
   },
-});
+} satisfies ElectronBridge;
+
+contextBridge.exposeInMainWorld('electron', electronBridge);
 
 const api = {
   getServerConfig: () => invokeIpc('get-server-config'),
@@ -122,8 +125,6 @@ const api = {
     onStateChanged: (callback: (state: ElectronBrowserState) => void) => onIpc('browser:state-changed', callback),
     onShowRequested: (callback: () => void) => onIpc('browser:show-requested', callback),
   },
-};
+} satisfies DesktopBridge;
 
 contextBridge.exposeInMainWorld('api', api);
-
-export type DesktopApi = typeof api;
