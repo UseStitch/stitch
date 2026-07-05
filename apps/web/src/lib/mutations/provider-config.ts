@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useMutation, type QueryClient } from '@tanstack/react-query';
 
 import { serverFetch } from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import { providerKeys } from '@/lib/queries/providers';
 
 type ProviderConfigBody = Record<string, unknown>;
@@ -62,7 +63,7 @@ export function useSaveProviderConfigMutation({
       await onSuccess?.();
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : errorMessage;
+      const message = getErrorMessage(error, errorMessage);
       toast.error(message, { id: `provider-config-save-${providerId}` });
     },
   });
@@ -87,7 +88,7 @@ export function useDeleteProviderConfigMutation({
       await onSuccess?.();
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : errorMessage;
+      const message = getErrorMessage(error, errorMessage);
       toast.error(message, { id: `provider-config-delete-${providerId}` });
     },
   });

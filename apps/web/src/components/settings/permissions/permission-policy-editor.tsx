@@ -15,6 +15,7 @@ import { SettingSubPage, SettingsIconButtonTooltip } from '@/components/settings
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { getErrorMessage } from '@/lib/errors';
 import { toolPermissionsQueryOptions, useDeleteToolPermission, useUpsertToolPermission } from '@/lib/queries/tools';
 
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
@@ -73,19 +74,19 @@ function ToolPermissionEditor({
 
   const handleGlobalChange = (permission: ToolPermissionValue) => {
     void upsertPermission.mutateAsync({ toolName, pattern: null, permission }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update permission', { id: 'permission-update' });
+      toast.error(getErrorMessage(error, 'Failed to update permission'), { id: 'permission-update' });
     });
   };
 
   const handlePatternPermissionChange = (rule: ToolPermission, permission: ToolPermissionValue) => {
     void upsertPermission.mutateAsync({ toolName, pattern: rule.pattern, permission }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update permission', { id: 'permission-update' });
+      toast.error(getErrorMessage(error, 'Failed to update permission'), { id: 'permission-update' });
     });
   };
 
   const handleDeleteRule = (rule: ToolPermission) => {
     void deletePermission.mutateAsync(rule.id).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete rule', { id: 'permission-delete' });
+      toast.error(getErrorMessage(error, 'Failed to delete rule'), { id: 'permission-delete' });
     });
   };
 
@@ -100,7 +101,7 @@ function ToolPermissionEditor({
         setNewPermission('ask');
       })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to add rule', { id: 'permission-add-rule' });
+        toast.error(getErrorMessage(error, 'Failed to add rule'), { id: 'permission-add-rule' });
       });
   };
 
@@ -198,9 +199,7 @@ function ToolPermissionEditor({
                         void upsertPermission
                           .mutateAsync({ toolName, pattern: preset.pattern, permission: 'allow' })
                           .catch((error: unknown) => {
-                            toast.error(error instanceof Error ? error.message : 'Failed to add rule', {
-                              id: 'permission-add-preset',
-                            });
+                            toast.error(getErrorMessage(error, 'Failed to add rule'), { id: 'permission-add-preset' });
                           });
                       }
                     }}

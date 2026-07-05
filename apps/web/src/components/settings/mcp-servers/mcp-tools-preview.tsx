@@ -6,6 +6,7 @@ import type { McpServer } from '@stitch/shared/mcp/types';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { SettingSubPage } from '@/components/settings/settings-ui';
+import { getErrorMessage } from '@/lib/errors';
 import { mcpToolsQueryOptions } from '@/lib/queries/mcp';
 
 export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack: () => void }) {
@@ -15,9 +16,7 @@ export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack:
     <SettingSubPage title={server.name} onBack={onBack} backLabel="Back to MCP servers">
       {isLoading && <p className="text-sm text-muted-foreground">Connecting to server...</p>}
 
-      {isError && (
-        <p className="text-sm text-destructive">{error instanceof Error ? error.message : 'Failed to load tools'}</p>
-      )}
+      {isError && <p className="text-sm text-destructive">{getErrorMessage(error, 'Failed to load tools')}</p>}
 
       {tools && tools.length === 0 && <p className="text-sm text-muted-foreground">No tools exposed by this server.</p>}
 

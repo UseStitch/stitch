@@ -6,12 +6,13 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { AnalysisHeader } from './analysis/analysis-header';
 import { TranscriptSidebar } from './analysis/transcript-sidebar';
-import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
+import { shouldConfirmRecordingDelete } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getErrorMessage } from '@/lib/errors';
 import {
   recordingDetailsQueryOptions,
   meetingNoteTemplatesQueryOptions,

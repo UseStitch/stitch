@@ -13,6 +13,7 @@ import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { useRecordingEvents } from '@/hooks/sse/sse-context';
+import { getErrorMessage } from '@/lib/errors';
 import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { activeRecordingQueryOptions, useStartRecording, useStopRecording } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
@@ -206,7 +207,7 @@ export function MeetingRecordingBanner() {
                       toast.success('Recording started', { id: 'meeting-recording-start-3' });
                     },
                     (error: unknown) => {
-                      toast.error(error instanceof Error ? error.message : 'Failed to start recording', {
+                      toast.error(getErrorMessage(error, 'Failed to start recording'), {
                         id: 'meeting-recording-start-3',
                       });
                     },
@@ -232,7 +233,7 @@ export function MeetingRecordingBanner() {
                         toast.success('Recording started', { id: 'meeting-recording-start-stt' });
                       },
                       (error: unknown) => {
-                        toast.error(error instanceof Error ? error.message : 'Failed to start recording', {
+                        toast.error(getErrorMessage(error, 'Failed to start recording'), {
                           id: 'meeting-recording-start-stt',
                         });
                       },
@@ -262,9 +263,7 @@ export function MeetingRecordingBanner() {
                     toast.success('Recording started', { id: 'meeting-recording-start' });
                   },
                   (error: unknown) => {
-                    toast.error(error instanceof Error ? error.message : 'Failed to start recording', {
-                      id: 'meeting-recording-start',
-                    });
+                    toast.error(getErrorMessage(error, 'Failed to start recording'), { id: 'meeting-recording-start' });
                   },
                 );
               }}

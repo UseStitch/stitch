@@ -30,6 +30,7 @@ import {
   PageTitle,
 } from '@/components/ui/page';
 import { getAutomationScheduleLabel, getUpcomingRuns } from '@/lib/automations/schedule-label';
+import { getErrorMessage } from '@/lib/errors';
 import {
   automationSessionsQueryOptions,
   automationQueryOptions,
@@ -111,7 +112,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
       toast.success('Automation deleted', { id: 'automation-delete' });
       setAutomationToDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete automation', { id: 'automation-delete' });
+      toast.error(getErrorMessage(error, 'Failed to delete automation'), { id: 'automation-delete' });
     }
   };
 
@@ -121,7 +122,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
       toast.success(`Started ${automation.title}`, { id: 'automation-run' });
       void navigate({ to: '/automations/sessions/$id', params: { id: result.sessionId }, viewTransition: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run automation', { id: 'automation-run' });
+      toast.error(getErrorMessage(error, 'Failed to run automation'), { id: 'automation-run' });
     }
   };
 
@@ -268,9 +269,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
               void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
-              id: 'automation-create',
-            });
+            toast.error(getErrorMessage(error, 'Failed to create automation'), { id: 'automation-create' });
           }
         }}
       />
@@ -292,9 +291,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             closeEditDialog();
             toast.success('Automation updated', { id: 'automation-update' });
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to update automation', {
-              id: 'automation-update',
-            });
+            toast.error(getErrorMessage(error, 'Failed to update automation'), { id: 'automation-update' });
           }
         }}
       />

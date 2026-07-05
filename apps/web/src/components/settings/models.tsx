@@ -10,6 +10,7 @@ import { SettingPage, SettingSection, SettingRows } from '@/components/settings/
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { getErrorMessage } from '@/lib/errors';
 import {
   modelVisibilityQueryOptions,
   useResetModelVisibility,
@@ -94,9 +95,7 @@ function ModelsListContent() {
         });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update model visibility', {
-        id: 'model-visibility',
-      });
+      toast.error(getErrorMessage(error, 'Failed to update model visibility'), { id: 'model-visibility' });
     }
   }
 

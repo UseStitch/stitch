@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { serverFetch } from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import {
   discoverOllamaModelsQueryOptions,
   ollamaModelKeys,
@@ -365,7 +366,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       toast.success('Model saved', { id: 'ollama-model-save' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save model', { id: 'ollama-model-save' });
+      toast.error(getErrorMessage(error, 'Failed to save model'), { id: 'ollama-model-save' });
     },
   });
 
@@ -379,7 +380,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       toast.success('Model deleted', { id: 'ollama-model-delete' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete model', { id: 'ollama-model-delete' });
+      toast.error(getErrorMessage(error, 'Failed to delete model'), { id: 'ollama-model-delete' });
     },
   });
 

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
+import { getErrorMessage } from '@/lib/errors';
 import { mcpRegistryQueryOptions, useRefreshMcpRegistry } from '@/lib/queries/mcp';
 
 export function McpRegistryList({
@@ -39,9 +40,7 @@ export function McpRegistryList({
       await refreshRegistry.mutateAsync();
       toast.success('MCP registry refreshed', { id: 'mcp-registry-refresh' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP registry', {
-        id: 'mcp-registry-refresh',
-      });
+      toast.error(getErrorMessage(error, 'Failed to refresh MCP registry'), { id: 'mcp-registry-refresh' });
     }
   };
 
