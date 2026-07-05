@@ -1,4 +1,4 @@
-import type { DesktopApi } from '../../../desktop/src/preload/index';
+import type { DesktopBridge, ElectronBridge } from '@stitch/shared/desktop/bridge';
 
 export type ContextMenuParams = {
   x: number;
@@ -27,12 +27,8 @@ export type ServerConnectionConfig = { url: string; mode: ServerMode; remoteUrl:
 
 declare global {
   interface Window {
-    electron?: {
-      platform: NodeJS.Platform;
-      send: (channel: string, data?: unknown) => void;
-      on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
-    };
-    api?: DesktopApi;
+    electron?: ElectronBridge;
+    api?: DesktopBridge;
   }
 }
 
