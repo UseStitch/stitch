@@ -11,7 +11,7 @@ import type { Recording } from '@stitch/shared/recordings/types';
 import { RecordingStartStopBar } from './list/recording-start-stop-bar';
 import { RecordingsPagination } from './list/recordings-pagination';
 import { RecordingsTable } from './list/recordings-table';
-import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
+import { getErrorMessage } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
@@ -64,17 +64,9 @@ export function RecordingsPage() {
     [deleteRecording],
   );
 
-  const handleDelete = React.useCallback(
-    (recording: Recording) => {
-      if (shouldConfirmRecordingDelete(recording)) {
-        setRecordingToDelete(recording);
-        return;
-      }
-
-      deleteById(recording.id);
-    },
-    [deleteById],
-  );
+  const handleDelete = React.useCallback((recording: Recording) => {
+    setRecordingToDelete(recording);
+  }, []);
 
   return (
     <Page>
