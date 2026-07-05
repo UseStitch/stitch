@@ -12,6 +12,7 @@ import { sessionKeys } from '@/lib/queries/chat';
 import { mcpKeys } from '@/lib/queries/mcp';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 import { questionKeys } from '@/lib/queries/questions';
+import { recordingsKeys } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { todoKeys } from '@/lib/queries/todos';
 import { toolKeys } from '@/lib/queries/tools';
@@ -144,17 +145,17 @@ function useServerEventSync(): void {
 
     // Recording Events
     'recording-started': () => {
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'list'] });
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail'] });
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'active'] });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.details() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
     'recording-stopped': () => {
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'list'] });
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail'] });
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'active'] });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.details() });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
     'recording-analysis-updated': ({ recordingId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['recordings', 'detail', recordingId] });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
     },
 
     // Session Events
