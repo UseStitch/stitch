@@ -6,6 +6,7 @@ import type { DesktopNotificationEvent } from '@stitch/shared/ipc/types';
 import { DesktopNotification } from './desktop-notification';
 
 import { PLATFORM_CONFIG } from '@/components/recordings/shared/formatting';
+import { getErrorMessage } from '@/lib/errors';
 import { useStartRecording } from '@/lib/queries/recordings';
 
 type MeetingDetectedNotificationProps = {
@@ -37,7 +38,7 @@ export function MeetingDetectedNotification({ event, exiting, onDismiss }: Meeti
               void startRecording.mutateAsync({ platform: event.payload.platform }).then(
                 () => onDismiss(event.id),
                 (nextError: unknown) => {
-                  setError(nextError instanceof Error ? nextError.message : 'Failed to start recording');
+                  setError(getErrorMessage(nextError, 'Failed to start recording'));
                 },
               );
             }}>

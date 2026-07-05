@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getErrorMessage } from '@/lib/errors';
 import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
@@ -56,7 +57,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
       }
       onBack();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server', { id: 'mcp-add-error' });
+      toast.error(getErrorMessage(error, 'Failed to add MCP server'), { id: 'mcp-add-error' });
     }
   };
 

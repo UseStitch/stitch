@@ -11,7 +11,6 @@ import type { Recording } from '@stitch/shared/recordings/types';
 import { RecordingStartStopBar } from './list/recording-start-stop-bar';
 import { RecordingsPagination } from './list/recordings-pagination';
 import { RecordingsTable } from './list/recordings-table';
-import { getErrorMessage } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
@@ -24,6 +23,7 @@ import {
   PageIcon,
   PageTitle,
 } from '@/components/ui/page';
+import { getErrorMessage } from '@/lib/errors';
 import {
   recordingsQueryOptions,
   useDeleteRecording,

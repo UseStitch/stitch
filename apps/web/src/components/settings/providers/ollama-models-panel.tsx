@@ -11,7 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import {
   discoverOllamaModelsQueryOptions,
   ollamaModelKeys,
@@ -346,18 +347,12 @@ export function OllamaModelsPanel({ baseURL }: Props) {
   const [showAddForm, setShowAddForm] = React.useState(false);
 
   const upsertMutation = useMutation({
-    mutationFn: async (input: OllamaModelInput) => {
-      const res = await serverFetch('/llm/ollama/models', {
+    mutationFn: (input: OllamaModelInput) =>
+      serverRequest<unknown>('/llm/ollama/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error ?? 'Failed to save model');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
       setShowAddForm(false);
@@ -365,21 +360,19 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       toast.success('Model saved', { id: 'ollama-model-save' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save model', { id: 'ollama-model-save' });
+      toast.error(getErrorMessage(error, 'Failed to save model'), { id: 'ollama-model-save' });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await serverFetch(`/llm/ollama/models/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete model');
-    },
+    mutationFn: (id: string) =>
+      serverRequest<void>(`/llm/ollama/models/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
       toast.success('Model deleted', { id: 'ollama-model-delete' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete model', { id: 'ollama-model-delete' });
+      toast.error(getErrorMessage(error, 'Failed to delete model'), { id: 'ollama-model-delete' });
     },
   });
 

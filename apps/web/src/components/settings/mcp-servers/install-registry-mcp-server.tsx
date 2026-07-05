@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getErrorMessage } from '@/lib/errors';
 import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function InstallRegistryMcpServer({
@@ -101,7 +102,7 @@ export function InstallRegistryMcpServer({
       }
       onInstalled();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server', { id: 'mcp-install-error' });
+      toast.error(getErrorMessage(error, 'Failed to install MCP server'), { id: 'mcp-install-error' });
     }
   };
 
