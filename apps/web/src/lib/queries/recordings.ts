@@ -23,15 +23,17 @@ import type {
 
 import { serverRequest } from '@/lib/api';
 
-const recordingsKeys = {
+export const recordingsKeys = {
   all: ['recordings'] as const,
   lists: () => [...recordingsKeys.all, 'list'] as const,
   list: (page: number, pageSize: number) => [...recordingsKeys.lists(), page, pageSize] as const,
   infiniteList: (pageSize: number) => [...recordingsKeys.lists(), 'infinite', pageSize] as const,
-  detail: (recordingId: string) => [...recordingsKeys.all, 'detail', recordingId] as const,
+  details: () => [...recordingsKeys.all, 'detail'] as const,
+  detail: (recordingId: string) => [...recordingsKeys.details(), recordingId] as const,
   active: () => [...recordingsKeys.all, 'active'] as const,
   devices: () => [...recordingsKeys.all, 'devices'] as const,
   templates: () => [...recordingsKeys.all, 'templates'] as const,
+  permissions: () => [...recordingsKeys.all, 'permissions'] as const,
 };
 
 const RECORDINGS_PAGE_SIZE = 12;
@@ -139,7 +141,7 @@ export const audioDevicesQueryOptions = queryOptions({
 });
 
 export const audioPermissionsQueryOptions = queryOptions({
-  queryKey: ['recordings', 'permissions'] as const,
+  queryKey: recordingsKeys.permissions(),
   queryFn: async (): Promise<AudioPermissionsStatus> => {
     if (!window.api?.recording?.checkPermissions) {
       throw new Error('Audio permissions are only available from the desktop app');
