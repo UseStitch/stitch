@@ -11,6 +11,7 @@ import type {
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { Button } from '@/components/ui/button';
+import { getErrorMessage } from '@/lib/errors';
 import {
   useAuthorizeConnector,
   useDeleteConnector,
@@ -70,7 +71,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       await testMutation.mutateAsync(instanceId);
       toast.success('Connection test successful', { id: 'connector-test' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Connection test failed', { id: 'connector-test' });
+      toast.error(getErrorMessage(e, 'Connection test failed'), { id: 'connector-test' });
     } finally {
       setTestingId(null);
     }
@@ -81,7 +82,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       await deleteMutation.mutateAsync(instanceId);
       toast.success(`Disconnected ${label}`, { id: 'connector-delete' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to disconnect', { id: 'connector-delete' });
+      toast.error(getErrorMessage(e, 'Failed to disconnect'), { id: 'connector-delete' });
     }
   }
 
@@ -91,7 +92,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
       toast.info('Opening browser for authorization...', { id: 'connector-auth' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to start authorization', { id: 'connector-auth' });
+      toast.error(getErrorMessage(e, 'Failed to start authorization'), { id: 'connector-auth' });
     }
   }
 
@@ -120,7 +121,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
 
       toast.success('Connector upgraded successfully', { id: 'connector-upgrade' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector', { id: 'connector-upgrade' });
+      toast.error(getErrorMessage(e, 'Failed to upgrade connector'), { id: 'connector-upgrade' });
     }
   }
 

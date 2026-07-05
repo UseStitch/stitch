@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getErrorMessage } from '@/lib/errors';
 import { useCreateOAuthConnector, useCreateApiKeyConnector, useAuthorizeConnector } from '@/lib/queries/connectors';
 
 type Props = { definition: ConnectorDefinition; onClose: () => void };
@@ -96,7 +97,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
         setStep('done');
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector', { id: 'connector-setup-create' });
+        toast.error(getErrorMessage(e, 'Failed to create connector'), { id: 'connector-setup-create' });
         setStep('scopes');
       }
     } else {
@@ -117,7 +118,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         setStep('done');
         toast.success('Connector created successfully', { id: 'connector-setup-create' });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector', { id: 'connector-setup-create' });
+        toast.error(getErrorMessage(e, 'Failed to create connector'), { id: 'connector-setup-create' });
         setStep('credentials');
       }
     }

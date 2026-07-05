@@ -9,6 +9,7 @@ import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { getErrorMessage } from '@/lib/errors';
 import {
   mcpServersQueryOptions,
   useDeleteMcpServer,
@@ -38,7 +39,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
       await deleteServer.mutateAsync(server.id);
       toast.success(`${server.name} removed`, { id: 'mcp-server-delete' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server', { id: 'mcp-server-delete' });
+      toast.error(getErrorMessage(error, 'Failed to remove MCP server'), { id: 'mcp-server-delete' });
     }
   };
 
@@ -47,9 +48,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
       await refreshServers.mutateAsync();
       toast.success('MCP servers refreshed', { id: 'mcp-server-refresh' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh MCP servers', {
-        id: 'mcp-server-refresh',
-      });
+      toast.error(getErrorMessage(error, 'Failed to refresh MCP servers'), { id: 'mcp-server-refresh' });
     }
   };
 
@@ -57,7 +56,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
     try {
       await startAuth.mutateAsync(server.id);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to start authorization', { id: 'mcp-server-auth' });
+      toast.error(getErrorMessage(error, 'Failed to start authorization'), { id: 'mcp-server-auth' });
     }
   };
 
@@ -66,7 +65,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
       await logout.mutateAsync(server.id);
       toast.success(`${server.name} disconnected`, { id: 'mcp-server-logout' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect', { id: 'mcp-server-logout' });
+      toast.error(getErrorMessage(error, 'Failed to disconnect'), { id: 'mcp-server-logout' });
     }
   };
 

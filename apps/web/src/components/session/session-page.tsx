@@ -15,6 +15,7 @@ import { SessionPageHeader, type SessionPageHeaderProps } from '@/components/ses
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
+import { getErrorMessage } from '@/lib/errors';
 import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
 import { useCreateAutomation } from '@/lib/queries/automations';
 import { useGenerateAutomationDraft, useMarkSessionRead } from '@/lib/queries/chat';
@@ -103,7 +104,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
       setAutomationDialogOpen(true);
       toast.success('Automation draft ready', { id: toastId });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to generate automation draft', { id: toastId });
+      toast.error(getErrorMessage(error, 'Failed to generate automation draft'), { id: toastId });
     }
   }, [generateAutomation, sessionId]);
 
@@ -172,9 +173,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
               void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
             }
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
-              id: 'session-automation-create',
-            });
+            toast.error(getErrorMessage(error, 'Failed to create automation'), { id: 'session-automation-create' });
           }
         }}
       />

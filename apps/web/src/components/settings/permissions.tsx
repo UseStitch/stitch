@@ -26,6 +26,7 @@ import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getErrorMessage } from '@/lib/errors';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
   knownMcpToolsQueryOptions,
@@ -138,7 +139,7 @@ function ToolsContent() {
   const updateEnabled = React.useCallback(
     (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => {
       void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update tool state', { id: 'tool-state' });
+        toast.error(getErrorMessage(error, 'Failed to update tool state'), { id: 'tool-state' });
       });
     },
     [setToolEnabledState],
