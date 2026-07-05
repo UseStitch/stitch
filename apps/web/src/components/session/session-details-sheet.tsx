@@ -130,7 +130,7 @@ export function SessionDetailsSheet({
 }: SessionDetailsSheetProps) {
   const hasContextUsage = totalTokens > 0;
   const usageValue = parsePercent(usagePercent);
-  const showSpend = hasContextUsage || currentSessionCostUsd > 0 || childSessionsCostUsd > 0;
+  const showSpend = messagesCount > 0 || currentSessionCostUsd > 0 || childSessionsCostUsd > 0;
   const messageSplit =
     userMessageCount > 0 || assistantMessageCount > 0
       ? `${formatNumber(messagesCount)} total, ${formatNumber(userMessageCount)} user / ${formatNumber(assistantMessageCount)} assistant`
